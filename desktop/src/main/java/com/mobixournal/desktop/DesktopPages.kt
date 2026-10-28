@@ -45,6 +45,8 @@ data class PageMenuActions(
     val removePage: () -> Unit = {},
     val movePageUp: () -> Unit = {},
     val movePageDown: () -> Unit = {},
+    /** The advanced half: a whole range of pages moved or removed at once (`PageRangePanel`). */
+    val managePages: () -> Unit = {},
     val previousPage: () -> Unit = {},
     val nextPage: () -> Unit = {},
     val format: () -> Unit = {},
@@ -55,6 +57,8 @@ data class PageMenuActions(
     /** The first page cannot go up, the last cannot go down, and one page can go nowhere. */
     val canMoveUp: Boolean = false,
     val canMoveDown: Boolean = false,
+    /** With no document open there is no page list to manage. */
+    val canManage: Boolean = false,
 )
 
 /**
@@ -149,6 +153,80 @@ internal class DesktopPages(
         return true
     }
 
+    /**
+     * The advanced page-management question, or null while it is closed.
+     *
+     * It lives with the page commands rather than in the shell because it is one more way to change the
+     * **list**, and every one of those goes through this class.
+     */
+    var range by mutableStateOf<PageRangeRequest?>(null)
+        private set
+
+    /** Open the panel on the page in view — a range of one, which the reader widens by typing. */
+    fun openRange(): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        if (count <= 0) return false
+        range = PageRanges.opening(count, tab.page)
+        return true
+    }
+
+    fun closeRange() {
+        range = null
+    }
+
+    /** Retype one field of the open question. */
+    fun editRange(transform: (PageRangeRequest) -> PageRangeRequest) {
+        range = range?.let(transform)
+    }
+
+    /**
+     * **Move** the typed range so that its first page lands where the target field says — one undo step.
+     *
+     * The list is the document's order, so a PDF-backed document reorders which source page is drawn where
+     * without touching the PDF, and the reference stays wherever it was (a reference is a fact about the
+     * file, not about a position in the list).
+     */
+    fun moveRange(): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        val typed = range ?: return false
+        val pages = PageRanges.pages(typed, count) as? PageRangePlan.Pages ?: return false
+        val target = PageRanges.target(typed, count) as? PageRangePlan.Pages ?: return false
+        if (PageRanges.moveRefusal(pages, target) != null) return false
+        val before = tab.document.snapshot()
+        val moved = PageOps.moveRange(tab.document.model.pages, pages.first, pages.last, target.first)
+        if (moved === tab.document.model.pages) return false
+        tab.document.replacePages(moved)
+        tab.record(before)
+        onStructure(tab)
+        selectPage(tab, target.first.coerceIn(0, tab.document.pageCount - 1))
+        range = null
+        return true
+    }
+
+    /**
+     * **Delete** the typed range as one undo step, keeping the document's PDF reference when the run
+     * happens to hold the page that carries it ([PdfPageReferences.keep]).
+     */
+    fun deleteRange(): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        val typed = range ?: return false
+        val pages = PageRanges.pages(typed, count) as? PageRangePlan.Pages ?: return false
+        if (PageRanges.deleteRefusal(pages, count) != null) return false
+        val before = tab.document.snapshot()
+        val kept = PageOps.removeAll(tab.document.model.pages, (pages.first..pages.last).toSet())
+        if (kept === tab.document.model.pages) return false
+        val remaining = PdfPageReferences.keep(tab.document.model.pages, kept)
+        tab.document.replacePages(remaining)
+        tab.record(before)
+        onStructure(tab)
+        selectPage(tab, pages.first.coerceIn(0, tab.document.pageCount - 1))
+        range = null
+        return true
+    }
+
     /** One page forward or back — the menu's two arrows, and what the page keys already do. */
     fun step(delta: Int): Boolean {
         val tab = active() ?: return false
@@ -172,6 +250,7 @@ internal class DesktopPages(
             removePage = { removePage() },
             movePageUp = { tab?.let { movePage(it.page, it.page - 1) } },
             movePageDown = { tab?.let { movePage(it.page, it.page + 1) } },
+            managePages = { openRange() },
             previousPage = { step(-1) },
             nextPage = { step(1) },
             format = format,
@@ -180,6 +259,7 @@ internal class DesktopPages(
             canRemove = count > 1,
             canMoveUp = count > 1 && at > 0,
             canMoveDown = count > 1 && at < count - 1,
+            canManage = count > 0,
         )
     }
 }
@@ -290,6 +370,8 @@ internal fun PageMenuPanel(actions: PageMenuActions, onClose: () -> Unit) {
         PageMenuRow("Previous page", enabled = actions.canStep) { onClose(); actions.previousPage() }
         PageMenuRow("Next page", enabled = actions.canStep) { onClose(); actions.nextPage() }
         PageMenuRule()
+        PageMenuRow("Manage pages…", enabled = actions.canManage) { onClose(); actions.managePages() }
+        PageMenuRule()
         PageMenuRow("Page format", enabled = true) { onClose(); actions.format() }
         PageMenuRow("Page background", enabled = true) { onClose(); actions.background() }
     }
@@ -307,8 +389,8 @@ internal object PageMenuMetrics {
     val ruleHeight = 11.dp
     val gap = 1.dp
 
-    /** The rows in the order the panel draws them; a rule sits after every pair but the last. */
-    const val ROWS = 8
+    /** The rows in the order the panel draws them; a rule sits after every group of two. */
+    const val ROWS = 9
 
     /** The top edge of row [index], from the panel's own top padding and its inter-row gaps. */
     fun rowTop(index: Int): androidx.compose.ui.unit.Dp {
@@ -316,7 +398,8 @@ internal object PageMenuMetrics {
             index < 2 -> 0
             index < 4 -> 1
             index < 6 -> 2
-            else -> 3
+            index < 7 -> 3
+            else -> 4
         }
         return padding + (rowHeight + gap) * index + (ruleHeight + gap) * rulesAbove
     }

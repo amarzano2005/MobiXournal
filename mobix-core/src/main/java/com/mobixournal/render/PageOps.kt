@@ -97,6 +97,26 @@ object PageOps {
     }
 
     /**
+     * A copy of [pages] with the run `[first]..[last]` lifted out and re-inserted so that its **first** page
+     * lands at [target] — moving a range of pages at once, rather than one at a time.
+     *
+     * [target] is a position in the *result*, as [move]'s is: with `A B C D`, moving `B C` to 0 yields
+     * `B C A D` and moving it to 3 yields `A D B C`. A target inside the range is a no-op (the run is
+     * already where it was asked to go), out-of-range arguments are clamped, and a refusal returns the
+     * same instance so callers can hand the result straight to an "only if it differs" edit.
+     */
+    fun moveRange(pages: List<Page>, first: Int, last: Int, target: Int): List<Page> {
+        if (pages.isEmpty()) return pages
+        val from = first.coerceIn(0, pages.lastIndex)
+        val to = last.coerceIn(from, pages.lastIndex)
+        val at = target.coerceIn(0, pages.lastIndex)
+        if (at in from..to) return pages
+        val block = pages.subList(from, to + 1)
+        val rest = pages.filterIndexed { index, _ -> index !in from..to }
+        return rest.toMutableList().apply { addAll(at.coerceAtMost(rest.size), block) }
+    }
+
+    /**
      * The pages at [indices], in ascending document order — the page-overview copy. Out-of-range
      * indices are ignored, so an empty or fully out-of-range selection yields an empty list. Pages are
      * immutable, so the "copy" shares structure with the originals and is safe to re-insert as-is:

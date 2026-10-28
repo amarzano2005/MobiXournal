@@ -124,7 +124,9 @@ pages as you scroll it, and the pen's own packet stream draws the ink when a gra
   you save it.
 - **The PDF's pages are the document's pages**: every sheet in the sidebar wears the PDF page it stands
   for, its row's **×** drops that sheet, and *Move page up* / *Move page down* in the pages menu reorder
-  them — one undo step each, and an export follows the order you leave them in. Removing the sheet that
+  them — one undo step each, and an export follows the order you leave them in. **Drag a thumbnail** onto
+  another row to move it there, with the list scrolling itself when you hold near an edge, and
+  **Manage pages…** acts on a whole run at once (*pages 3 to 7* moved or removed). Removing the sheet that
   carries the PDF's own reference hands it to the next one, so the document never loses its PDF.
 - **A remote or synced file** has to be available offline before it opens — a Drive or OneDrive placeholder
   is not a document.

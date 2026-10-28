@@ -79,8 +79,12 @@ What it does today:
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, and *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
 - **Owns the PDF's pages as the document's pages** — the sidebar lists every sheet with the PDF page it
-  carries drawn on it, a row's close glyph drops that sheet, and **Move page up / Move page down** in the
-  Pages menu reorder them; each is one `PageOps` edit and one undo step (`DesktopPdfPageListTest`). A page
+  carries drawn on it, a row's close glyph drops that sheet, **Move page up / Move page down** in the Pages
+  menu reorder them, and a thumbnail **dragged** onto another row lands there (the pointer's row, with the
+  list scrolling under it while the pointer rests against an edge — `PageReorder`,
+  `PageSidebarDragTest`); each is one `PageOps` edit and one undo step (`DesktopPdfPageListTest`).
+  **Manage pages…** takes a run at once: *pages 3 to 7* moved so its first page starts where you type, or
+  removed, refused when that would empty the document (`PageRanges`, `DesktopPageRangeTest`). A page
   that names no PDF of its own is drawn through the reference the document carries on one page
   (`PdfPageReferences`, the shape desktop Xournal++ reads by inheritance) — that is what makes pages two
   onwards of an import show at all — and removing the page that carries the reference hands it to the

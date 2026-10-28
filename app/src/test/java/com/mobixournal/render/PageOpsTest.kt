@@ -76,6 +76,32 @@ class PageOpsTest {
         assertSame(pages, PageOps.move(pages, -1, 0))
     }
 
+    @Test fun moveRangeCarriesTheWholeRunDown() {
+        val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"), page(400.0, "d"))
+        val out = PageOps.moveRange(pages, 1, 2, 3)
+        assertEquals(listOf(pages[0], pages[3], pages[1], pages[2]), out)
+    }
+
+    @Test fun moveRangeCarriesTheWholeRunUp() {
+        val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"), page(400.0, "d"))
+        val out = PageOps.moveRange(pages, 2, 3, 0)
+        assertEquals(listOf(pages[2], pages[3], pages[0], pages[1]), out)
+    }
+
+    @Test fun moveRangeToItsOwnPlaceIsANoOp() {
+        val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"))
+        assertSame("a target inside the run already holds it", pages, PageOps.moveRange(pages, 1, 2, 2))
+        assertSame(pages, PageOps.moveRange(pages, 0, 0, 0))
+    }
+
+    @Test fun moveRangeClampsAndLeavesAnEmptyDocumentAlone() {
+        val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"))
+        assertEquals("a target past the end lands last", listOf(pages[1], pages[2], pages[0]), PageOps.moveRange(pages, 0, 0, 9))
+        assertEquals("a last index past the end takes the rest", listOf(pages[2], pages[0], pages[1]), PageOps.moveRange(pages, 2, 9, 0))
+        val empty = emptyList<Page>()
+        assertSame(empty, PageOps.moveRange(empty, 0, 0, 0))
+    }
+
     @Test fun removeAtDropsThePage() {
         val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"))
         val out = PageOps.removeAt(pages, 1)

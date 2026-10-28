@@ -37,6 +37,8 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 // The row's own delete: one page, one undo step, and the document's PDF reference kept
                 // when the page it lived on is the one dropped.
                 onRemovePage = { index -> state.removePageAt(index) },
+                // A thumbnail dragged onto another row: one undo step, the same command the Pages menu runs.
+                onMovePage = { from, to -> state.movePage(from, to) },
                 // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
                 revision = state.thumbnailRevision,
             )

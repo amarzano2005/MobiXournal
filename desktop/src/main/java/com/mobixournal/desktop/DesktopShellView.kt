@@ -118,5 +118,6 @@ private fun BoxScope.WorkspaceBody(state: DesktopShellState, tablet: DesktopTabl
     ColourPanelHost(state)
     PageSetupHost(state)
     ImportPdfHost(state)
+    PageRangeHost(state)
     CloseDialogHost(state)
 }

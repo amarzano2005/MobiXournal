@@ -164,13 +164,13 @@ class DesktopPagesTest {
             tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(1), at); at += 512L
             tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(2), at); at += 512L
             tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(3), at); at += 512L
-            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(6), at)
+            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(7), at)
 
             assertEquals("add still works", 1, counters[0])
             assertEquals("remove is dead", 0, counters[1])
             assertEquals("moving up is dead", 0, counters[2])
             assertEquals("and so is moving down", 0, counters[3])
-            assertEquals("format still works", 1, counters[6])
+            assertEquals("format still works", 1, counters[7])
         } finally {
             scene.close()
         }
@@ -183,8 +183,9 @@ class DesktopPagesTest {
         movePageDown = { counters[3]++ },
         previousPage = { counters[4]++ },
         nextPage = { counters[5]++ },
-        format = { counters[6]++ },
-        background = { counters[7]++ },
+        managePages = { counters[6]++ },
+        format = { counters[7]++ },
+        background = { counters[8]++ },
     )
 
     private fun panelScene(canStep: Boolean, canRemove: Boolean): ImageComposeScene {
@@ -193,6 +194,7 @@ class DesktopPagesTest {
             canRemove = canRemove,
             canMoveUp = canStep,
             canMoveDown = canStep,
+            canManage = true,
         )
         val height = PanelBottom.value + 8f
         return ImageComposeScene(

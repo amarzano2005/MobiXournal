@@ -5,7 +5,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -40,6 +43,7 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
@@ -87,14 +91,31 @@ fun PageSidebar(
     revision: Int,
     /** A row's own delete: the PDF-page list can drop a sheet where the reader sees it. */
     onRemovePage: (Int) -> Unit = {},
+    /** A thumbnail dragged onto another row: the page moves to that row's index, one undo step. */
+    onMovePage: (Int, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
     val current = tab.page
+    val drag = remember(listState) { PageDragHandle(listState) }
+    val density = LocalDensity.current
+    val edgePx = with(density) { PageDragMetrics.EDGE.toPx() }
+    val maxStepPx = with(density) { PageDragMetrics.MAX_STEP.toPx() }
 
     // Selecting a page elsewhere (arrow keys, status bar) scrolls the sidebar to it.
     LaunchedEffect(tab, current) {
         if (current in 0 until tab.pageCount) listState.animateScrollToItem(current)
+    }
+
+    // A drag held against an edge scrolls the list under the pointer, so a page from the top of a long
+    // PDF can be dropped at the bottom without letting go. One frame at a time, so the rows the drop
+    // target is computed from are the rows the reader sees.
+    LaunchedEffect(drag.active) {
+        while (drag.active) {
+            withFrameNanos { }
+            val step = drag.autoScroll(edgePx, maxStepPx)
+            if (step != 0f) listState.scrollBy(step)
+        }
     }
 
     Column(
@@ -132,8 +153,10 @@ fun PageSidebar(
                     current = current,
                     revision = revision,
                     cache = cache,
+                    drag = drag,
                     onSelectPage = onSelectPage,
                     onRemovePage = onRemovePage,
+                    onMovePage = onMovePage,
                 )
             }
         }
@@ -158,25 +181,58 @@ private fun PageRow(
     current: Int,
     revision: Int,
     cache: MutableMap<Int, ImageBitmap>,
+    drag: PageDragHandle,
     onSelectPage: (Int) -> Unit,
     onRemovePage: (Int) -> Unit,
+    onMovePage: (Int, Int) -> Unit,
 ) {
     val preview = rememberThumbnail(tab, index, tab.hiddenOn(index), revision, cache)
+    val lifted = drag.from == index
+    // The row the lifted page would land on wears the accent line along its top edge: one mark, in the
+    // chrome's own ink, so where the page will go is readable while the list scrolls under the pointer.
+    val landing = drag.active && drag.target == index && drag.target != drag.from
     Row(
         Modifier
             .fillMaxWidth()
+            // A drag on the thumbnail reorders; a wheel scroll still scrolls the list, which is how this
+            // window is read on a PC.
+            .pointerInput(index, tab.pageCount) {
+                detectDragGestures(
+                    onDragStart = { offset -> drag.start(index, offset.y) },
+                    onDragEnd = { drag.drop()?.let { (from, to) -> onMovePage(from, to) } },
+                    onDragCancel = { drag.cancel() },
+                ) { change, amount ->
+                    change.consume()
+                    drag.moveBy(amount.y)
+                }
+            }
             .background(
-                if (index == current) DesktopTheme.accent.copy(alpha = 0.10f) else Color.Transparent,
+                when {
+                    lifted -> DesktopTheme.activeSlot
+                    index == current -> DesktopTheme.accent.copy(alpha = 0.10f)
+                    else -> Color.Transparent
+                },
                 RoundedCornerShape(8.dp),
             )
+            .drawBehind {
+                if (landing) {
+                    drawLine(
+                        color = DesktopTheme.accent,
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width, 0f),
+                        strokeWidth = 2.dp.toPx(),
+                    )
+                }
+            }
             .hoverFill(RoundedCornerShape(8.dp), active = index == current)
             .border(
                 1.dp,
                 if (index == current) DesktopTheme.accent else Color.Transparent,
                 RoundedCornerShape(8.dp),
             )
-            .padding(6.dp)
-            .clickable { onSelectPage(index) },
+            // The row is the target, padding included: a click on its air still picks the page.
+            .clickable { onSelectPage(index) }
+            .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

@@ -68,6 +68,15 @@ a row of disabled chips, which would claim space to state only that.
 
 ## Add/remove page
 
+**Moving and pruning a run of pages.** The list is reordered at two scales. A thumbnail **dragged** down the
+window's page sidebar lands on the row the pointer is over — recomputed as the list scrolls under it while
+the pointer rests against an edge (`PageReorder`, so a page from the top of a scan can be dropped at the
+bottom without letting go) — and **Manage pages…** in the Pages menu acts on a typed range: *pages 3 to 7*
+moved so its first page starts on the page you name, or removed, as **one** undo step each through
+`PageOps.moveRange`/`removeAll`. A range is refused rather than half-honoured when it would empty the
+document or already starts where the move asks, and `PageRanges` owns those sentences, so the panel's dead
+buttons and the commands behind them cannot disagree.
+
 **Add/remove page** edit the page list through the pure, tested `PageOps` (`mobix-core`, the one the
 window's Pages menu also calls, so neither shell can invent its own rules for a new sheet; a new page is born at the
 **default page size** — the settings value `MainActivity.applyDefaultPageSize` pushes into

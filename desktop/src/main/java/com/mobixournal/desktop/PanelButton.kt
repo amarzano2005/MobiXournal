@@ -31,6 +31,11 @@ internal fun PanelButton(
     primary: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
+    /**
+     * The **document red**, for the answer that takes something away. A destructive control keeps the same
+     * shape and the same five states; only its ink says what it does (`docs/interface-contract.md`).
+     */
+    destructive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val answer = rememberUpdatedState(onClick)
@@ -38,7 +43,11 @@ internal fun PanelButton(
         modifier
             .alpha(if (enabled) 1f else 0.4f)
             .background(
-                if (primary) DesktopTheme.accent else DesktopTheme.activeSlot,
+                when {
+                    primary -> DesktopTheme.accent
+                    destructive -> DesktopTheme.documentRed.copy(alpha = 0.16f)
+                    else -> DesktopTheme.activeSlot
+                },
                 DesktopTheme.capsuleShape,
             )
             .pointerInput(enabled) {
@@ -46,6 +55,14 @@ internal fun PanelButton(
             }
             .padding(horizontal = 16.dp, vertical = 7.dp),
     ) {
-        Text(label, color = if (primary) DesktopTheme.desk else DesktopTheme.ink, style = DesktopTheme.body)
+        Text(
+            label,
+            color = when {
+                primary -> DesktopTheme.desk
+                destructive -> DesktopTheme.documentRed
+                else -> DesktopTheme.ink
+            },
+            style = DesktopTheme.body,
+        )
     }
 }
