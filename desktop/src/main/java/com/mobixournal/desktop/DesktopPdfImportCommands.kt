@@ -33,7 +33,13 @@ data class ImportPdfRequest(
     val pageCount: Int,
     /** The answer being considered. Add is the default: it is the one that keeps the work. */
     val mode: ImportPdfMode = ImportPdfMode.APPEND,
-)
+    /** The first and last page to bring, as typed (1-based); the whole PDF until told otherwise. */
+    val first: String = "1",
+    val last: String = "$pageCount",
+) {
+    /** The run this card asks for, or the sentence saying why it cannot be used ([PageRanges]). */
+    internal val range: PageRangePlan get() = PageRanges.pages(PageRangeRequest(first, last), pageCount)
+}
 
 /**
  * Open the question for [file]: read its page count first, so the card can say what it will bring, and
@@ -47,7 +53,12 @@ fun DesktopShellState.askImportPdf(file: File) {
         return
     }
     failure = null
-    importRequest = ImportPdfRequest(file, pages)
+    importRequest = ImportPdfRequest(file = file, pageCount = pages)
+}
+
+/** Retype one field of the open question — the page range, today. */
+fun DesktopShellState.editImportPdf(transform: (ImportPdfRequest) -> ImportPdfRequest) {
+    importRequest = importRequest?.let(transform)
 }
 
 /** Put the question away without importing anything. */
@@ -55,24 +66,30 @@ fun DesktopShellState.cancelImportPdf() {
     importRequest = null
 }
 
-/** Answer the open question with [mode]. */
+/**
+ * Answer the open question with [mode], bringing the pages its range names.
+ *
+ * A range the card cannot use keeps the card up rather than importing something the reader did not ask
+ * for: the *Import* button is dead in that state, and this guard is the same rule behind it.
+ */
 fun DesktopShellState.confirmImportPdf(mode: ImportPdfMode) {
     val request = importRequest ?: return
+    val range = request.range as? PageRangePlan.Pages ?: return
     importRequest = null
-    importPdf(request.file, mode)
+    importPdf(request.file, mode, range.first..range.last)
 }
 
 /**
  * Turn [file] into pages, per [mode]. True when something landed; a PDF that cannot be read leaves the
  * window as it was and says why through the failure card.
  */
-fun DesktopShellState.importPdf(file: File, mode: ImportPdfMode): Boolean {
+fun DesktopShellState.importPdf(file: File, mode: ImportPdfMode, indices: IntRange? = null): Boolean {
     val reference = file.absolutePath
     return try {
         DesktopPdfImport.open(file).use { pdf ->
             when (mode) {
-                ImportPdfMode.REPLACE -> openImported(pdf, file, reference)
-                ImportPdfMode.APPEND -> appendImported(pdf, file, reference)
+                ImportPdfMode.REPLACE -> openImported(pdf, file, reference, indices)
+                ImportPdfMode.APPEND -> appendImported(pdf, file, reference, indices)
             }
         }
     } catch (refused: DesktopPdfImport.PdfImportRefused) {
@@ -88,8 +105,13 @@ fun DesktopShellState.importPdf(file: File, mode: ImportPdfMode): Boolean {
  * REPLACE: a **new tab** holding the PDF's pages, its file a name waiting to be written — the tab starts
  * dirty, so `Ctrl+S` asks where to put it and the proposed name is the PDF's own, in the PDF's own folder.
  */
-private fun DesktopShellState.openImported(pdf: PDDocument, file: File, reference: String): Boolean {
-    val model = DesktopPdfImport.document(pdf, reference)
+private fun DesktopShellState.openImported(
+    pdf: PDDocument,
+    file: File,
+    reference: String,
+    indices: IntRange?,
+): Boolean {
+    val model = DesktopPdfImport.document(pdf, reference, indices)
     val format = prefs.newDocumentFormat
     val folder = file.absoluteFile.parentFile
     val proposed = proposedPath(folder, file.nameWithoutExtension, format.extension)
@@ -118,22 +140,32 @@ private fun DesktopShellState.openImported(pdf: PDDocument, file: File, referenc
  * then continue the joined file's numbering. A document with no PDF background simply references the
  * picked one.
  */
-private fun DesktopShellState.appendImported(pdf: PDDocument, file: File, reference: String): Boolean {
+private fun DesktopShellState.appendImported(
+    pdf: PDDocument,
+    file: File,
+    reference: String,
+    indices: IntRange?,
+): Boolean {
     val tab = tabs.active ?: return false
     val before = tab.document.snapshot()
     val base = tab.document.pdfSource()
+    val wanted = indices ?: 0 until pdf.numberOfPages
     val landing = if (base != null) {
         val joined = DesktopPdfMerge.joined(base, file)
         val offset = DesktopPdfImport.pageCount(base)
         // The joined file's own numbering is the only correct one: its page i is page i, so the arriving
-        // run is its **tail** — a second numbering starting at the base's page count would name pages the
-        // joined file does not have.
+        // run is the part of its **tail** the reader picked — a second numbering starting at the base's
+        // page count would name pages the joined file does not have.
         val added = DesktopPdfImport.open(joined).use { joinedPdf ->
-            DesktopPdfImport.pages(joinedPdf, reference = null).drop(offset)
+            DesktopPdfImport.pages(
+                joinedPdf,
+                reference = null,
+                indices = (offset + wanted.first)..(offset + wanted.last),
+            )
         }
         DesktopPdfImport.retarget(tab.document.model.pages, joined) to added
     } else {
-        tab.document.model.pages to DesktopPdfImport.pages(pdf, reference)
+        tab.document.model.pages to DesktopPdfImport.pages(pdf, reference, indices = wanted)
     }
     val pages = PageOps.appendPages(landing.first, landing.second)
     if (pages === tab.document.model.pages || pages.size == landing.first.size) return false

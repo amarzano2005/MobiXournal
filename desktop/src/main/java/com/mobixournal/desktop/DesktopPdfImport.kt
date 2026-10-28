@@ -49,12 +49,23 @@ internal object DesktopPdfImport {
      * after an existing one ([com.mobixournal.render.PageOps.appendPages]).
      *
      * [reference] is what the background records as its `filename` — the PDF's own path — and only the
-     * first page carries it. [pageNoOffset] is where these pages start inside that file: a merge that
-     * joined an arriving PDF after the document's own passes the base's page count, so every `pageno`
-     * still points at the page it was made from.
+     * first page **of the run** carries it. [pageNoOffset] is where these pages start inside that file: a
+     * merge that joined an arriving PDF after the document's own passes the base's page count, so every
+     * `pageno` still points at the page it was made from.
+     *
+     * [indices] is the run of **source** pages to bring, 0-based; null brings the whole PDF. A `pageno` is
+     * always the source page's own number plus [pageNoOffset], never the run's position, so importing pages
+     * 5–20 of a scan still draws pages 5–20 of that scan.
      */
-    fun pages(pdf: PDDocument, reference: String?, pageNoOffset: Int = 0): List<Page> =
-        (0 until pdf.numberOfPages).map { index ->
+    fun pages(
+        pdf: PDDocument,
+        reference: String?,
+        pageNoOffset: Int = 0,
+        indices: IntRange? = null,
+    ): List<Page> {
+        val wanted = (indices?.toList() ?: (0 until pdf.numberOfPages).toList())
+            .filter { it in 0 until pdf.numberOfPages }
+        return wanted.mapIndexed { run, index ->
             val page = pdf.getPage(index)
             val box = page.mediaBox
             // A rotated page is shown, and drawn on, the way the reader turns it: the sheet follows the
@@ -64,16 +75,18 @@ internal object DesktopPdfImport {
                 width = (if (quarterTurn) box.height else box.width).toDouble(),
                 height = (if (quarterTurn) box.width else box.height).toDouble(),
                 background = Background.Pdf(
-                    filename = if (index == 0) reference else null,
+                    filename = if (run == 0) reference else null,
                     pageNo = index + pageNoOffset,
-                    domain = if (index == 0 && reference != null) ABSOLUTE_DOMAIN else null,
+                    domain = if (run == 0 && reference != null) ABSOLUTE_DOMAIN else null,
                 ),
                 layers = listOf(Layer(emptyList())),
             )
         }
+    }
 
-    /** The whole document an import makes: the PDF's pages, and nothing else. */
-    fun document(pdf: PDDocument, reference: String): Document = Document(pages = pages(pdf, reference))
+    /** The whole document an import makes: the PDF's pages ([indices], or all), and nothing else. */
+    fun document(pdf: PDDocument, reference: String, indices: IntRange? = null): Document =
+        Document(pages = pages(pdf, reference, indices = indices))
 
     /** How many pages [file] has, without building anything — the question card's readout. */
     fun pageCount(file: File): Int = open(file).use { it.numberOfPages }

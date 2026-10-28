@@ -38,24 +38,56 @@ import com.mobixournal.render.ImportPdfMode
  * the page in view, *replace* opens the PDF as its own tab and leaves what is open alone.
  *
  * The card names the file and its page count, because an import can bring a hundred pages and that is a
- * fact worth knowing before the button is pressed.
+ * fact worth knowing before the button is pressed — and it asks **which** of them, because bringing a
+ * chapter out of a four-hundred-page scan is a normal thing to want and rasterising the rest is not.
  */
 @Composable
 internal fun ImportPdfDialog(
     request: ImportPdfRequest,
+    onEdit: ((ImportPdfRequest) -> ImportPdfRequest) -> Unit,
     onConfirm: (ImportPdfMode) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var picked by remember(request) { mutableStateOf(request.mode) }
-    Column(modifier.width(400.dp).glassSpring().glassSurface().padding(18.dp)) {
+    val range = request.range
+    val usable = range is PageRangePlan.Pages
+    Column(modifier.width(420.dp).glassSpring().glassSurface().padding(18.dp)) {
         Text("Import a PDF", color = DesktopTheme.ink, style = DesktopTheme.title)
         Spacer(Modifier.height(6.dp))
         Text(
-            "“${request.file.name}” has ${pages(request.pageCount)}. Where should they go?",
+            "“${request.file.name}” has ${pages(request.pageCount)}. Which of them, and where should they go?",
             color = DesktopTheme.inkSecondary,
             style = DesktopTheme.body,
         )
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Pages", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+            Spacer(Modifier.width(10.dp))
+            PageNumberField(
+                value = request.first,
+                label = "First page to import",
+                onValue = { typed -> onEdit { it.copy(first = typed) } },
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("to", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+            Spacer(Modifier.width(8.dp))
+            PageNumberField(
+                value = request.last,
+                label = "Last page to import",
+                onValue = { typed -> onEdit { it.copy(last = typed) } },
+            )
+            Spacer(Modifier.width(10.dp))
+            Text("of ${request.pageCount}", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+        }
+        if (!usable) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                (range as PageRangePlan.Invalid).message,
+                color = DesktopTheme.documentRed,
+                style = DesktopTheme.label,
+            )
+        }
         Spacer(Modifier.height(14.dp))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             ImportModeRow(
@@ -75,7 +107,7 @@ internal fun ImportPdfDialog(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
             Spacer(Modifier.width(8.dp))
-            PanelButton(label = "Import", primary = true, enabled = true, onClick = { onConfirm(picked) })
+            PanelButton(label = "Import", primary = true, enabled = usable, onClick = { onConfirm(picked) })
         }
     }
 }
@@ -144,6 +176,7 @@ internal fun BoxScope.ImportPdfHost(state: DesktopShellState) {
             state.importRequest?.let { request ->
                 ImportPdfDialog(
                     request = request,
+                    onEdit = state::editImportPdf,
                     onConfirm = { mode -> state.confirmImportPdf(mode) },
                     onCancel = { state.cancelImportPdf() },
                 )

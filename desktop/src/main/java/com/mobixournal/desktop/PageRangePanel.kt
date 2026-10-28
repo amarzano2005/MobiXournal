@@ -134,7 +134,7 @@ private fun noteFor(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun PageNumberField(value: String, label: String, onValue: (String) -> Unit) {
+internal fun PageNumberField(value: String, label: String, onValue: (String) -> Unit) {
     Box(
         Modifier
             .width(64.dp)
