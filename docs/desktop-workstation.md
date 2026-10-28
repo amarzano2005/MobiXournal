@@ -76,7 +76,8 @@ What it does today:
   a suffix typed over used to undo the choice in silence. The tab is re-homed onto the file it just wrote.
   A save writes the document **with its edits**: a page the window drew on is the page the file gets, and
   a `.mobix` repack still streams the pages nobody touched out of the archive.
-- **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, and *Export pages as SVG…*
+- **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, *Export PNG* writes one
+  raster per page (2 px per point, the sheet painted by the canvas's own painter), *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
 - **Owns the PDF's pages as the document's pages** — the sidebar lists every sheet with the PDF page it
   carries drawn on it, a row's close glyph drops that sheet, **Move page up / Move page down** in the Pages
@@ -167,13 +168,15 @@ What it does today:
   with the colour and width that slot keeps, so a session resumes at the pen, the marker or the eraser it
   was left on instead of always at the pencil.
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
-  glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
-  document-red chip** and Export SVG in the accent, **a hairline**, then the tablet's **Pen block**: its
-  heading (the pen glyph beside the word) opens the Stylus page, and under it the page's own questions in
-  the page's own order — the **Stream** as a readout in the accent (its list is a popup, and a popup inside
-  the menu's popup would take the menu down; the row is the door to the page instead), **Pressure
+  glass panel — four **tiles** of art over a word (New, Open, Save, Save As), then the tablet's **two rows
+  of chips**: **Import PDF** and **Export PDF** in the document red (the same file, coming in and going
+  out), and **Export PNG** and **Export SVG** in the accent (one file per page, beside the document).
+  **A hairline**, then the tablet's **Pen block**: its heading (the pen glyph beside the word) opens the
+  Stylus page, and under it the pen's **drawing** answers in the page's own order — **Pressure
   sensitivity**, the **preset carousel** with its × and `+`, **Minimum pressure**, **Multiplier**, and
-  **Reset to defaults** as a command row in the accent. The rows are the page's rows at the menu's 34 dp
+  **Reset to defaults** as a command row in the accent. Which **stream** the pen is read from is not in the
+  menu: that is the driver's fact, not the stroke's, and it stays on the Stylus page the heading opens.
+  The rows are the page's rows at the menu's 34 dp
   line, which is what keeps *Pressure sensitivity* from reading as a heading over its own sliders. Picking a
   preset applies it and closes the panel (the hand was mid-drawing); the name field the `+` opens is the one
   the Stylus page opens, so the menu is the only popup that takes the keyboard. A second hairline, then the

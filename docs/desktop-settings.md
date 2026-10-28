@@ -183,8 +183,9 @@ reads — because the hand decides how hard it presses while the device decides 
   difference nobody can see between the phone's widths and the window's. With sensitivity **off** every
   stroke is drawn at its
   set width, and the two numbers stay on screen because that is the state they are remembered in. The
-  surface's hamburger menu carries the same rows in the same order (`MenuPenBlock`), at the menu's smaller
-  line, because they are reached mid-drawing.
+  surface's hamburger menu carries the same drawing rows in the same order (`MenuPenBlock`), at the
+  menu's smaller line, because they are reached mid-drawing — the stream itself is the page's row only,
+  since which driver is open is not a fact about the stroke being made.
 - **Pressure → Presets** — the tablet's named pairs, as one **carousel**: a strip of chips where the preset
   in use wears the accent on the steel fill, one click applies it (`tablet.penPresets`,
   `tablet.selectedPenPreset`). The strip's two marks act on the thing they sit on: a **red ×** beside a chip

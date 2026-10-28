@@ -104,9 +104,10 @@ annotated-PDF backgrounds, and the live tables, graphs, shapes, circuits and for
 
 It also edits them. Pen and highlighter, both erasers, the figure tools, text boxes, vertical space and the
 selection with its action bar and inspector lane all write to the page, each gesture one undo step, and
-`Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu
-and the Settings panel are the tablet's, drawn in the same glass. A notebook written for a term reads its
-pages as you scroll it, and the pen's own packet stream draws the ink when a graphics tablet is attached.
+`Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu,
+its imports and exports (a PDF either way, or one PNG or SVG per page) and the Settings panel are the
+tablet's, drawn in the same glass. A notebook reads its pages as you scroll it, and the pen's own packet
+stream draws the ink when a graphics tablet is attached.
 
 - **A file to try it on**: `udiff.xopp`, at the root of this repository.
 - **Keys**: every tool and command has one; the full table is in
@@ -114,8 +115,7 @@ pages as you scroll it, and the pen's own packet stream draws the ink when a gra
   That page also holds three **switch** keys — eraser, hand and selection — where one press picks the tool and
   the next puts back the tool you were using, with the kind of eraser or selection chosen beside them.
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
-  block or **Settings → Stylus** — and the menu keeps them as chips, so a light hand and a firm one are one
-  click apart, exactly as on the tablet.
+  block or **Settings → Stylus** — and the menu keeps them as chips, one click from a light hand or a firm one.
 - **Save As asks the file's format in the save window itself**: its **File type** list offers `.mobix`,
   `.xopp` and the zipped `.xopp` package, and the name field wears the suffix that goes with the picked
   type — one dialog, both answers. `Ctrl + S` keeps writing back in the format the document already had.
