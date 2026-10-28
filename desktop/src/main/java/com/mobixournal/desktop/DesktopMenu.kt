@@ -63,6 +63,11 @@ internal fun HeaderMenu(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
+    /**
+     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is a
+     * document command, not an export, which is why its row sits above the two chips.
+     */
+    onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
@@ -100,6 +105,7 @@ internal fun HeaderMenu(
                     onSaveAs = { open = false; onSaveAs() },
                     onExportPdf = { open = false; onExportPdf() },
                     onExportSvg = { open = false; onExportSvg() },
+                    onImportPdf = { open = false; onImportPdf() },
                     onToggleSidebar = { open = false; onToggleSidebar() },
                     onSettings = { open = false; onSettings() },
                     onPenParameters = { open = false; onPenParameters() },
@@ -123,6 +129,11 @@ internal fun MenuPanel(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
+    /**
+     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is a
+     * document command, not an export, which is why its row sits above the two chips.
+     */
+    onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
@@ -151,6 +162,16 @@ internal fun MenuPanel(
             MenuTile("Save", ChromeGlyph.SAVE, enabled = canSave, onClick = onSave)
             MenuTile("Save As", ChromeGlyph.SAVE_AS, enabled = true, onClick = onSaveAs)
         }
+        Spacer(Modifier.height(MenuMetrics.sectionGap))
+        // **Import** brings content in, so it stands beside the file commands rather than inside the row
+        // of exports: the two chips below send the document *out*, and a reader scanning for one should
+        // not find the other in the same place.
+        MenuRow(
+            label = "Import PDF",
+            glyph = ChromeGlyph.PDF,
+            enabled = true,
+            onClick = onImportPdf,
+        )
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         Row(
             Modifier

@@ -13,11 +13,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.mobix.PageSource
 import java.io.FileNotFoundException
+import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.withPage
 import com.mobixournal.io.DocumentEncoder
+import com.mobixournal.render.ATTACH_DOMAIN
 import com.mobixournal.render.CanvasGeometry
 import com.mobixournal.render.PageWindow
 import java.io.File
@@ -181,6 +183,29 @@ class DesktopDocument(
         carriedFrom = pageSource,
         repackOver = target.takeIf { it.absoluteFile == pageSource.absoluteFile },
     )
+
+    /**
+     * The PDF this document's pages sit on, **when its bytes are a file of their own** — what a save has to
+     * hand the encoder so the PDF travels with the document (`docs/pdf.md`).
+     *
+     * Null is the answer that matters as much as a file: a `.mobix` bundles its background and a zipped
+     * `.xopp` attaches it, so those bytes already travel inside [pageSource] and passing them again would
+     * write a second entry. A document whose reference is missing answers null too — there is nothing to
+     * carry, and the page simply paints as a plain sheet.
+     *
+     * Only the page that carries the reference is asked (the rest name the PDF by `pageno` alone), and it is
+     * read through [model] rather than the whole list: a `.mobix` page list is a lazy view, and the first
+     * page of a PDF-backed document is the one that answers.
+     */
+    fun pdfSource(): File? {
+        val background = model.pages.firstNotNullOfOrNull { it.background as? Background.Pdf } ?: return null
+        if (background.bundledAsset != null || background.domain == ATTACH_DOMAIN) return null
+        val name = background.filename?.takeIf { it.isNotBlank() } ?: return null
+        val path = File(name)
+        if (path.isAbsolute) return path.takeIf { it.isFile }
+        // A reference written beside the document (a `.xopp` on another machine, or ours after a save).
+        return file.parentFile?.let { File(it, name) }?.takeIf { it.isFile }
+    }
 
     /** True once [close] ran — a tab that was replaced or deduplicated must not keep its reader alive. */
     var isClosed: Boolean = false

@@ -119,6 +119,9 @@ pages as you scroll it, and the pen's own packet stream draws the ink when a gra
 - **Save As asks the file's format in the save window itself**: its **File type** list offers `.mobix`,
   `.xopp` and the zipped `.xopp` package, and the name field wears the suffix that goes with the picked
   type — one dialog, both answers. `Ctrl + S` keeps writing back in the format the document already had.
+- **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — as a document of its
+  own or added after the one you have, in one step you can undo — and the PDF travels with the file when
+  you save it.
 - **A remote or synced file** has to be available offline before it opens — a Drive or OneDrive placeholder
   is not a document.
 - **Not yet**: importing anything but a document, editing layers, and an installer. What is left is in

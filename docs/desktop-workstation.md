@@ -78,6 +78,12 @@ What it does today:
   a `.mobix` repack still streams the pages nobody touched out of the archive.
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, and *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
+- **Imports a PDF as pages to write on** — the menu's *Import PDF* turns a `.pdf` into a document of its
+  own (one page per PDF page, the sheet the PDF page's size, in a new tab) or adds its pages after the open
+  document as **one undo step** that drops a lone untouched blank sheet. A document already backed by a PDF
+  has the second one **joined** into it, since a `.xopp` references exactly one, and a save carries the PDF
+  with the document: a `.mobix` bundles it, a zipped `.xopp` attaches it, a plain `.xopp` names the file
+  beside it.
 - **Draws and erases on the page** — pen (`B`), highlighter (`H`) and eraser (`E`). A primary drag is
   fed to the shared `InkPointerRouter` (`mobix-core`) as a stream of `InkPointer`s, so what a press
   means, how hard the pen draws and when a drag is a stroke rather than a tap are the same decisions the

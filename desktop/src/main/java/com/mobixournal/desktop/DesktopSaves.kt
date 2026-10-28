@@ -75,7 +75,9 @@ object DesktopSaves {
         document: DesktopDocument,
         target: File,
         format: SaveFormat = formatOf(document.container),
-    ): List<Uncompilable> = stage(document, target, format).use { staged ->
+        /** The PDF a page sits on, when its bytes are a file — see [DesktopDocument.pdfSource]. */
+        pdf: File? = document.pdfSource(),
+    ): List<Uncompilable> = stage(document, target, format, pdf).use { staged ->
         staged.commit()
         staged.uncompiled
     }
@@ -101,6 +103,12 @@ object DesktopSaves {
         document: DesktopDocument,
         target: File,
         format: SaveFormat = formatOf(document.container),
+        /**
+         * The PDF a page sits on, when its bytes are a file of their own: a `.mobix` bundles it and a
+         * zipped `.xopp` attaches it, while a plain `.xopp` keeps the path (made relative to the target
+         * when the two share a folder). Defaulted, because the answer is the document's own.
+         */
+        pdf: File? = document.pdfSource(),
     ): Staged {
         if (format == SaveFormat.ZIPPED && hasAttachments(document)) {
             throw SaveRefused(
@@ -120,6 +128,7 @@ object DesktopSaves {
                     out = out,
                     appVersion = APP_VERSION,
                     shape = document.saveShapeFor(target),
+                    pdf = pdf,
                 )
             }
             Staged(temp, target, uncompiled)

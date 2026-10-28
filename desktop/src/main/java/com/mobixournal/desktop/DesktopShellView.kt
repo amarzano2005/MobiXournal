@@ -30,6 +30,8 @@ internal fun DesktopShell(
     onOpenPicker: () -> Unit,
     /** The system Save As picker, opened from the menu and from `Ctrl+Shift+S`. */
     onSavePicker: () -> Unit = {},
+    /** The PDF picker behind the menu's **Import PDF** row (`ImportPdfDialog` asks where the pages go). */
+    onImportPdfPicker: () -> Unit = {},
     /** Where the export's PDF should go, opened from the menu and from `Ctrl+E`. */
     onExportPdfPicker: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -52,6 +54,7 @@ internal fun DesktopShell(
             onSave = { state.save() },
             onSaveAs = onSavePicker,
             onExportPdf = onExportPdfPicker,
+            onImportPdf = onImportPdfPicker,
             // The pages go beside the document, which is the folder the user opened it from; no dialog,
             // because AWT has no folder-only picker and a file picker would ask the wrong question.
             onExportSvg = { DesktopExportQueue.request(ExportRequest.Svg()) },
@@ -114,5 +117,6 @@ private fun BoxScope.WorkspaceBody(state: DesktopShellState, tablet: DesktopTabl
     }
     ColourPanelHost(state)
     PageSetupHost(state)
+    ImportPdfHost(state)
     CloseDialogHost(state)
 }

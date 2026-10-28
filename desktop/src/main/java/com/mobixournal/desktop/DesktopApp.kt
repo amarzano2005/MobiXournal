@@ -98,6 +98,7 @@ fun FrameWindowScope.DesktopApp(
             // Save As is **one** dialog that answers both of its questions (`SaveAsPicker`): the name of
             // the file, and the container in its type box.
             onSavePicker = dialogs::saveAs,
+            onImportPdfPicker = dialogs::importPdf,
             onExportPdfPicker = dialogs::exportPdf,
             tablet = tablet,
             modifier = Modifier
@@ -112,8 +113,8 @@ fun FrameWindowScope.DesktopApp(
 }
 
 /**
- * The window's **system file dialogs**, as one object: open, Save As, Export PDF and the settings backup's
- * file. Each needs a `Frame` to hang a native `FileDialog` on — the one thing a composable cannot be tested
+ * The window's **system file dialogs**, as one object: open, Save As, Import PDF, Export PDF and the
+ * settings backup's file. Each needs a `Frame` to hang a native `FileDialog` on — the one thing a composable cannot be tested
  * with — so they live beside [DesktopApp] rather than inside it, where every line counts against the
  * module's function ratchet (`SourceStructureTest`).
  *
@@ -148,6 +149,16 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
         val tab = state.active ?: return
         val (file, format) = SaveAsPicker.choose(window, tab) ?: return
         state.saveAs(file, DesktopSaves.formatOf(format.container))
+    }
+
+    /**
+     * Import PDF: the picker names a `.pdf` and the question that follows asks where its pages go
+     * (`ImportPdfDialog`). The filter is a convenience on Windows, where AWT ignores it — the PDF's own
+     * bytes are what decide whether it can be read.
+     */
+    fun importPdf() {
+        val chosen = choosePdf(window) ?: return
+        state.askImportPdf(chosen)
     }
 
     /** The settings backup's own file: **save** asks where to write one, **load** which to read. */
@@ -216,6 +227,13 @@ private fun chooseBackupFile(window: Frame, save: Boolean): File? {
     if (!save) return chosen
     return if (chosen.name.contains('.')) chosen
     else File(chosen.parentFile, chosen.name + DesktopSettingsBackup.EXTENSION)
+}
+
+/** The native picker for a PDF to import — a name box, like the other browsers here. */
+private fun choosePdf(window: Frame): File? {
+    val dialog = FileDialog(window, "Import a PDF", FileDialog.LOAD)
+    dialog.setFilenameFilter { _, name -> name.endsWith(".pdf", ignoreCase = true) }
+    return awaitChoice(dialog)
 }
 
 /** The native save dialog with [proposed] already in its name field, or null when it was cancelled. */

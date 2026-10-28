@@ -108,6 +108,10 @@ class DesktopShellState(
     /** The last failed open, or null — cleared on the next successful one or by [dismissFailure]. */
     var failure by mutableStateOf<OpenFailure?>(null)
 
+    /** The PDF import being asked about, or null — the file, its pages and the answer in play. */
+    var importRequest by mutableStateOf<ImportPdfRequest?>(null)
+        internal set
+
     /**
      * The drag in flight that `Esc` would cancel — a geometry tool's figure, while its pointer is still
      * down. The canvas sets it when the drag starts and clears it when the gesture ends; deliberately not

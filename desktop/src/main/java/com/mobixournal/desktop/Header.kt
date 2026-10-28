@@ -51,6 +51,8 @@ internal fun Header(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
+    /** The menu's **Import PDF** row — the tablet's command, now that the window can carry a PDF. */
+    onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
@@ -80,6 +82,7 @@ internal fun Header(
             onSaveAs = onSaveAs,
             onExportPdf = onExportPdf,
             onExportSvg = onExportSvg,
+            onImportPdf = onImportPdf,
             onToggleSidebar = onToggleSidebar,
             onSettings = onSettings,
             onPenParameters = onPenParameters,

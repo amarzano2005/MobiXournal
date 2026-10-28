@@ -70,7 +70,7 @@ cache. Evicted bitmaps are *not* recycled — the drawing thread may still hold 
 flight; the GC reclaims them. Past the whole-page raster ceiling `requestTiles` supplies
 viewport-sized tiles rendered at the true on-screen scale (see the zoom paragraph above), so text
 keeps sharpening as you zoom. A `.xopp` whose PDF isn't present falls back to a
-plain sheet. **Import PDF** (`PdfImport`, invoked from `MainActivity`) copies the picked PDF into
+plain sheet. **Import PDF** (`PdfImport`, invoked from `MainActivity` on the tablet and from the window's own import on the PC) copies the picked PDF into
 app cache and builds pages from it (`PdfImport.pagesFor`) — one page per PDF page, sized from the PDF,
 with the `filename`+`domain` on the first of them only and `pageno` thereafter (the desktop on-disk
 convention). An `ImportPdfMode` chosen up front (the `ImportPdfDialog`) decides where they land:
