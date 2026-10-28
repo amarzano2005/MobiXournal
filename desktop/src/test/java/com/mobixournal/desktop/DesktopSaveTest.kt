@@ -277,8 +277,8 @@ class DesktopSaveTest {
     }
 
     /**
-     * The format is the Save As **question's** answer, not a guess from the file's name: a reader who types
-     * over the suffix still gets the container they picked (`SaveAsDialog.kt`).
+     * The format is the Save As **type box's** answer, not a guess from the file's name: a reader who types
+     * over the suffix still gets the container they picked (`SaveAsPicker.kt`).
      */
     @Test
     fun saveAsWritesTheChosenContainerWhateverTheName() {

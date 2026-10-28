@@ -116,9 +116,9 @@ pages as you scroll it, and the pen's own packet stream draws the ink when a gra
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
   block or **Settings → Stylus** — and the menu keeps them as chips, so a light hand and a firm one are one
   click apart, exactly as on the tablet.
-- **Save As asks the file's format**: pick `.mobix`, `.xopp` or the zipped `.xopp` package in the window,
-  then name the file — the system dialog only carries a name, so the format is the window's own question.
-  `Ctrl + S` keeps writing back in the format the document already had.
+- **Save As asks the file's format in the save window itself**: its **File type** list offers `.mobix`,
+  `.xopp` and the zipped `.xopp` package, and the name field wears the suffix that goes with the picked
+  type — one dialog, both answers. `Ctrl + S` keeps writing back in the format the document already had.
 - **A remote or synced file** has to be available offline before it opens — a Drive or OneDrive placeholder
   is not a document.
 - **Not yet**: importing anything but a document, editing layers, and an installer. What is left is in

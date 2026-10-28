@@ -172,26 +172,13 @@ enum class InspectorPolicy(val label: String) {
  * the tab is born with.
  */
 enum class DesktopNewDocumentFormat(
+    /** The name the Save As picker's type box shows, and the Documents row beside it. */
     val label: String,
     val extension: String,
-    /** One line saying what choosing this container means, for the Save As question. */
-    val summary: String,
 ) {
-    MOBIX(
-        "MobiXournal (.mobix)",
-        ".mobix",
-        "Figures, tables and components stay live, with the strokes' telemetry.",
-    ),
-    XOPP(
-        "Xournal++ (.xopp)",
-        ".xopp",
-        "The plain gzip document desktop Xournal++ reads everywhere.",
-    ),
-    ZIPPED(
-        "Xournal++ package (.xopp, zipped)",
-        ".xopp",
-        "The same document as a .zip, with its pictures and PDFs inside it.",
-    ),
+    MOBIX("MobiXournal (.mobix)", ".mobix"),
+    XOPP("Xournal++ (.xopp)", ".xopp"),
+    ZIPPED("Xournal++ package (.xopp, zipped)", ".xopp"),
     ;
 
     /** The container a tab opened on this answer carries until Save As names another. */

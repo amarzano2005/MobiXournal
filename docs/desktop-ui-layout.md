@@ -89,7 +89,7 @@ Everything the chrome does can also be done from the keyboard:
 | `Ctrl + T`, `+` | open a document; a file already open activates its tab instead of opening twice |
 | `Ctrl + W`, `×` | close the tab, activating its neighbour — asking first while it has unsaved edits |
 | `Ctrl + S` | save the active document back into the container it was opened as; unavailable while the file already holds it |
-| `Ctrl + Shift + S` | Save As — the name's suffix chooses the container |
+| `Ctrl + Shift + S` | Save As — one save window, whose **type box** chooses the container |
 | `Ctrl + E` | export the active document as a PDF, asking where to put it |
 | `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the active tab's last command |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |

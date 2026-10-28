@@ -8,6 +8,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import java.io.File
+import javax.swing.UIManager
 
 /**
  * The document named on the command line, or null to start empty.
@@ -133,6 +134,10 @@ fun main(args: Array<String>) {
         return
     }
     val initial = initialDocument(args, raw)
+    // The save window is Swing's — the one dialog on the machine with a **type box** (`SaveAsPicker`) —
+    // and a Swing dialog wears the cross-platform look unless the system's is asked for. On Windows that
+    // is the file dialog the reader already knows, with the same folder bar and buttons.
+    runCatching { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()) }
     application {
         // The window's close request is a **question** first: the shell answers whether it may go, and a
         // dirty tab turns the X into the same Save / Discard / Cancel dialog the tab's own close glyph

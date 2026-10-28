@@ -38,12 +38,12 @@ fun DesktopShellState.save(): List<Uncompilable>? {
 }
 
 /**
- * Write the active document to [file], as [format] — the answer the Save As question gave.
+ * Write the active document to [file], as [format] — the type the Save As picker's box answered.
  *
- * The format is the **window's question** (`SaveAsFormatDialog`), not a guess from the name: the system
- * dialog can only name a file, so a name without a suffix — or one typed over it — would otherwise
- * silently keep the document's container and make the choice the reader just made a no-op. Null keeps the
- * old behaviour for a caller that has no answer to give ([DesktopSaves.formatFor] reads the name).
+ * The format is the **window's answer** (`SaveAsPicker`), not a guess from the name: a name without a
+ * suffix — or one typed over it — would otherwise silently keep the document's container and make the
+ * choice the reader just made a no-op. Null keeps the old behaviour for a caller that has no answer to
+ * give ([DesktopSaves.formatFor] reads the name).
  *
  * Save As is the one place the sticky format changes (`docs/data-path.md`): the tab then remembers the new
  * file and container and the next Save writes back there.

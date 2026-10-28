@@ -68,12 +68,12 @@ What it does today:
   truncated notebook. A save over the document's own file stages first, releases the archive and opens
   it again after the move, because Windows refuses to replace a file the process still holds and a
   `.mobix` tab holds its own for as long as its pages stay lazy. The **container is the one it was
-  opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only place it changes: the window
-  asks **which of the three** first (`SaveAsDialog.kt` — `.mobix`, `.xopp` or the zipped `.xopp` package,
-  the list the Documents section shows for a new file, opened on the document's own container), and the
-  system dialog then only names the file, proposed with that suffix. That answer is what is written
-  whatever the name field ends up saying: a native dialog can carry a name and nothing else, and a
-  suffix typed over used to undo the choice in silence. The tab is re-homed onto the file it just wrote.
+  opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only place it changes: the save
+  window (`SaveAsPicker.kt`) asks **which of the three** in its own type box — `.mobix`, `.xopp` or the
+  zipped `.xopp` package, the list the Documents section shows for a new file, opened on the document's
+  own container — so one dialog gives both answers, and the name it proposes wears the picked suffix
+  (`note` is written `note.mobix`). That type is what is written whatever the name field ends up saying:
+  a suffix typed over used to undo the choice in silence. The tab is re-homed onto the file it just wrote.
   A save writes the document **with its edits**: a page the window drew on is the page the file gets, and
   a `.mobix` repack still streams the pages nobody touched out of the archive.
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, and *Export pages as SVG…*

@@ -1,8 +1,6 @@
 package com.mobixournal.desktop
 
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -14,11 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.window.FrameWindowScope
 import java.awt.EventQueue
 import java.awt.FileDialog
@@ -48,9 +42,6 @@ fun FrameWindowScope.DesktopApp(
     onExit: () -> Unit,
 ) {
     val focus = remember { FocusRequester() }
-    // Save As asks **which container** before a name is given (`SaveAsDialog.kt`): the native dialog is a
-    // name box, and the format is a decision the window owes the reader rather than a suffix to remember.
-    val saveAs = remember { SaveAsChoice() }
     val dialogs = remember { DocumentDialogs(window, state) }
     // Whether anything in the window holds the keyboard. A panel that closes takes its text field with
     // it, and Compose is then left with **no** focused element — the shortcuts would be dead until the
@@ -101,38 +92,22 @@ fun FrameWindowScope.DesktopApp(
         onDispose { state.prefs.pickBackupFile = null }
     }
     DesktopTheme.Apply {
-        // The window root: the shell, and the one question it raises over it — Save As's format.
-        Box(Modifier.fillMaxSize()) {
-            DesktopShell(
-                state = state,
-                onOpenPicker = dialogs::openDocument,
-                onSavePicker = { saveAs.request() },
-                onExportPdfPicker = dialogs::exportPdf,
-                tablet = tablet,
-                modifier = Modifier
-                    .focusRequester(focus)
-                    .focusable()
-                    .onFocusChanged { keyboardHeld = it.hasFocus }
-                    .onPreviewKeyEvent { event ->
-                        // A question owns the keyboard while it is up: `Esc` answers it with Cancel, and
-                        // nothing typed at it is a command of the page behind.
-                        if (saveAs.open) {
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
-                                saveAs.dismiss()
-                            }
-                            true
-                        } else {
-                            state.onKey(
-                                event,
-                                dialogs::openDocument,
-                                { saveAs.request() },
-                                dialogs::exportPdf,
-                            )
-                        }
-                    },
-            )
-            SaveAsFormatHost(saveAs, state, dialogs::saveAs)
-        }
+        DesktopShell(
+            state = state,
+            onOpenPicker = dialogs::openDocument,
+            // Save As is **one** dialog that answers both of its questions (`SaveAsPicker`): the name of
+            // the file, and the container in its type box.
+            onSavePicker = dialogs::saveAs,
+            onExportPdfPicker = dialogs::exportPdf,
+            tablet = tablet,
+            modifier = Modifier
+                .focusRequester(focus)
+                .focusable()
+                .onFocusChanged { keyboardHeld = it.hasFocus }
+                .onPreviewKeyEvent { event ->
+                    state.onKey(event, dialogs::openDocument, dialogs::saveAs, dialogs::exportPdf)
+                },
+        )
     }
 }
 
@@ -142,8 +117,8 @@ fun FrameWindowScope.DesktopApp(
  * with — so they live beside [DesktopApp] rather than inside it, where every line counts against the
  * module's function ratchet (`SourceStructureTest`).
  *
- * [saveAs] asks nothing: the format is already [SaveAsFormatDialog]'s answer, so it only names the file and
- * writes it.
+ * [saveAs] asks both of a save's questions at once: the picker's type box chooses the container and its name
+ * field the file (`SaveAsPicker`).
  */
 internal class DocumentDialogs(private val window: Frame, private val state: DesktopShellState) {
 
@@ -165,15 +140,14 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
     }
 
     /**
-     * Save As: the system dialog only names the file, proposed with the chosen container's suffix, and the
-     * write uses that container **whatever the reader leaves in the name field** — typing over the suffix is
-     * ordinary, and reading the name instead of the answer is what used to undo the choice in silence.
+     * Save As: one dialog names the file **and** carries the container in its type box, and the write uses
+     * the container that box answers **whatever the name field ends up saying** — typing over the suffix is
+     * ordinary, and reading the name instead of the type is what used to undo the choice in silence.
      */
-    fun saveAs(format: DesktopNewDocumentFormat) {
+    fun saveAs() {
         val tab = state.active ?: return
-        val proposed = tab.file.nameWithoutExtension + format.extension
-        chooseSave(window, "Save the document as", proposed)
-            ?.let { state.saveAs(it, DesktopSaves.formatOf(format.container)) }
+        val (file, format) = SaveAsPicker.choose(window, tab) ?: return
+        state.saveAs(file, DesktopSaves.formatOf(format.container))
     }
 
     /** The settings backup's own file: **save** asks where to write one, **load** which to read. */
