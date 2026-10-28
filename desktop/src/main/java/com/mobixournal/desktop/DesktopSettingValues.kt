@@ -171,10 +171,27 @@ enum class InspectorPolicy(val label: String) {
  * [container] is what the new tab holds (and therefore what its first save writes); [extension] is the name
  * the tab is born with.
  */
-enum class DesktopNewDocumentFormat(val label: String, val extension: String) {
-    MOBIX("MobiXournal (.mobix)", ".mobix"),
-    XOPP("Xournal++ (.xopp)", ".xopp"),
-    ZIPPED("Xournal++ package (.xopp, zipped)", ".xopp"),
+enum class DesktopNewDocumentFormat(
+    val label: String,
+    val extension: String,
+    /** One line saying what choosing this container means, for the Save As question. */
+    val summary: String,
+) {
+    MOBIX(
+        "MobiXournal (.mobix)",
+        ".mobix",
+        "Figures, tables and components stay live, with the strokes' telemetry.",
+    ),
+    XOPP(
+        "Xournal++ (.xopp)",
+        ".xopp",
+        "The plain gzip document desktop Xournal++ reads everywhere.",
+    ),
+    ZIPPED(
+        "Xournal++ package (.xopp, zipped)",
+        ".xopp",
+        "The same document as a .zip, with its pictures and PDFs inside it.",
+    ),
     ;
 
     /** The container a tab opened on this answer carries until Save As names another. */
@@ -191,6 +208,13 @@ enum class DesktopNewDocumentFormat(val label: String, val extension: String) {
 
         fun of(name: String?): DesktopNewDocumentFormat =
             entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: DEFAULT
+
+        /** The answer that writes a document opened as [container] again — the Save As dialog's default. */
+        fun ofContainer(container: DesktopContainer): DesktopNewDocumentFormat = when (container) {
+            DesktopContainer.MOBIX -> MOBIX
+            DesktopContainer.XOPP_GZIP -> XOPP
+            DesktopContainer.XOPP_ZIP -> ZIPPED
+        }
     }
 }
 

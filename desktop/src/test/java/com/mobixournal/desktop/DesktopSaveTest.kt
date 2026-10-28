@@ -276,6 +276,35 @@ class DesktopSaveTest {
         }
     }
 
+    /**
+     * The format is the Save As **question's** answer, not a guess from the file's name: a reader who types
+     * over the suffix still gets the container they picked (`SaveAsDialog.kt`).
+     */
+    @Test
+    fun saveAsWritesTheChosenContainerWhateverTheName() {
+        val source = temp.newFile("picked.mobix").apply { delete() }
+        SyntheticNotebook.write(source, SyntheticNotebook.pages(2))
+        // A name with no recognised suffix: reading the name would have kept the document's own container.
+        val target = File(temp.root, "chosen.txt")
+        val state = DesktopShellState()
+        try {
+            state.open(source)
+            val tab = state.tabs.active!!
+            assertEquals(DesktopContainer.MOBIX, tab.document.container)
+
+            state.saveAs(target, SaveFormat.ZIPPED)
+            assertTrue("the write succeeded", state.failure == null)
+            assertEquals(
+                "the file on disk is the container the question answered",
+                DesktopContainer.XOPP_ZIP,
+                DocumentLoader.load(target).use { it.container },
+            )
+            assertEquals("and the tab follows it", DesktopContainer.XOPP_ZIP, tab.document.container)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
     /** The two shortcuts the save hangs on, as the table in `docs/ui-modernization.md` states them. */
     @Test
     fun saveKeysMeaning() {

@@ -68,11 +68,14 @@ What it does today:
   truncated notebook. A save over the document's own file stages first, releases the archive and opens
   it again after the move, because Windows refuses to replace a file the process still holds and a
   `.mobix` tab holds its own for as long as its pages stay lazy. The **container is the one it was
-  opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only place it changes: the name
-  the user gives it decides (`.mobix` writes the archive, `.xopp` the gzip form, a packaged `.xopp` stays
-  packaged, an unrecognised name keeps what the document had), and the tab is re-homed onto the file it
-  just wrote. A save writes the document **with its edits**: a page the window drew on is the page the
-  file gets, and a `.mobix` repack still streams the pages nobody touched out of the archive.
+  opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only place it changes: the window
+  asks **which of the three** first (`SaveAsDialog.kt` — `.mobix`, `.xopp` or the zipped `.xopp` package,
+  the list the Documents section shows for a new file, opened on the document's own container), and the
+  system dialog then only names the file, proposed with that suffix. That answer is what is written
+  whatever the name field ends up saying: a native dialog can carry a name and nothing else, and a
+  suffix typed over used to undo the choice in silence. The tab is re-homed onto the file it just wrote.
+  A save writes the document **with its edits**: a page the window drew on is the page the file gets, and
+  a `.mobix` repack still streams the pages nobody touched out of the archive.
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, and *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
 - **Draws and erases on the page** — pen (`B`), highlighter (`H`) and eraser (`E`). A primary drag is
@@ -132,8 +135,9 @@ What it does today:
   slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already
   picked**, or `Alt`+`Down`) opens its **glass picker**. **One click never opens a submenu**: the first
   click arms the slot, the second asks; a circuit slot obeys the same rule, since its family palette is
-  its submenu. Picking a row re-faces the slot and closes the picker, `Esc` closes it too, and no key ever
-  changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
+  its submenu. Picking a row re-faces the slot and closes the picker, a click on a slot whose picker is
+  open closes it too (that click is the press the popup dismisses on, so it may not reopen what it just
+  closed), `Esc` closes it as well, and no key ever changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
   The slot is **remembered**: the pick is written as `interface.pickedTool` and the window reopens on it,
   with the colour and width that slot keeps, so a session resumes at the pen, the marker or the eraser it
   was left on instead of always at the pencil.

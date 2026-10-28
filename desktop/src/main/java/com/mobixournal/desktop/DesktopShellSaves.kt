@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.Uncompilable
 import java.io.File
 
@@ -37,16 +38,20 @@ fun DesktopShellState.save(): List<Uncompilable>? {
 }
 
 /**
- * Write the active document to [file]. The container follows the name the user gave it
- * ([DesktopSaves.formatFor]): `.mobix` writes the native archive, a `.xopp` the gzip or packaged form,
- * an unrecognised name keeps the document's own — which is the one place the sticky format changes
- * (`docs/data-path.md`), so the tab then remembers the new file and container and the next Save writes
- * back there.
+ * Write the active document to [file], as [format] — the answer the Save As question gave.
+ *
+ * The format is the **window's question** (`SaveAsFormatDialog`), not a guess from the name: the system
+ * dialog can only name a file, so a name without a suffix — or one typed over it — would otherwise
+ * silently keep the document's container and make the choice the reader just made a no-op. Null keeps the
+ * old behaviour for a caller that has no answer to give ([DesktopSaves.formatFor] reads the name).
+ *
+ * Save As is the one place the sticky format changes (`docs/data-path.md`): the tab then remembers the new
+ * file and container and the next Save writes back there.
  */
-fun DesktopShellState.saveAs(file: File): List<Uncompilable>? {
+fun DesktopShellState.saveAs(file: File, format: SaveFormat? = null): List<Uncompilable>? {
     val tab = tabs.active ?: return null
-    val format = DesktopSaves.formatFor(file.name, tab.document.container)
-    return runCatching { DesktopSaves.save(tab.document, file, format) }
+    val chosen = format ?: DesktopSaves.formatFor(file.name, tab.document.container)
+    return runCatching { DesktopSaves.save(tab.document, file, chosen) }
         .onFailure { failure = describeSaveFailure(it) }
         .onSuccess {
             failure = null

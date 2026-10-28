@@ -1,6 +1,8 @@
 package com.mobixournal.desktop
 
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -12,7 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.window.FrameWindowScope
 import java.awt.EventQueue
 import java.awt.FileDialog
@@ -42,38 +48,15 @@ fun FrameWindowScope.DesktopApp(
     onExit: () -> Unit,
 ) {
     val focus = remember { FocusRequester() }
+    // Save As asks **which container** before a name is given (`SaveAsDialog.kt`): the native dialog is a
+    // name box, and the format is a decision the window owes the reader rather than a suffix to remember.
+    val saveAs = remember { SaveAsChoice() }
+    val dialogs = remember { DocumentDialogs(window, state) }
     // Whether anything in the window holds the keyboard. A panel that closes takes its text field with
     // it, and Compose is then left with **no** focused element — the shortcuts would be dead until the
     // page was clicked. The window hands the keyboard back to its root instead, so `Ctrl+Z` or `G` works
     // the moment the panel is gone.
     var keyboardHeld by remember { mutableStateOf(false) }
-
-    /** The system picker for a document to open. */
-    fun pick() {
-        chooseDocument(window)?.let(state::open)
-    }
-
-    /**
-     * Export PDF: the dialog proposes the document's own name with a `.pdf` suffix, so the export lands
-     * beside the notebook unless the user says otherwise. The write itself is queued ([DesktopExportQueue])
-     * and runs off the UI thread.
-     */
-    fun pickExportDestination() {
-        val tab = state.active ?: return
-        val proposed = "${tab.file.nameWithoutExtension}.pdf"
-        chooseSave(window, "Export the document as a PDF", proposed)
-            ?.let { DesktopExportQueue.request(ExportRequest.Pdf(it)) }
-    }
-
-    /**
-     * Save As: the dialog proposes the name the document already has. The **container** follows the
-     * suffix the user leaves on the name (`DesktopSaves.formatFor`) — `.mobix` for the native archive,
-     * `.xopp` for the interchange one — so the dialog is where a format is chosen.
-     */
-    fun pickSaveDestination() {
-        val tab = state.active ?: return
-        chooseSave(window, "Save the document as", tab.file.name)?.let(state::saveAs)
-    }
 
     // Recovery first: a snapshot is newer than the file it stands for, so a file named on the command
     // line then lands on its recovered tab instead of opening a second view of the older bytes.
@@ -108,30 +91,94 @@ fun FrameWindowScope.DesktopApp(
     // `Ctrl+E` arrives at the shell, which has no window to hang a dialog on: the window lends it one for
     // as long as it is up.
     DisposableEffect(Unit) {
-        DesktopExportQueue.pickPdfDestination = ::pickExportDestination
+        DesktopExportQueue.pickPdfDestination = dialogs::exportPdf
         onDispose { DesktopExportQueue.pickPdfDestination = null }
     }
     // The Backup section's two rows need the same thing the PDF export does: a window to hang a native
     // dialog on. The state has none, so the window lends it one for as long as it is up.
     DisposableEffect(Unit) {
-        state.prefs.pickBackupFile = { save, onPicked -> onPicked(chooseBackupFile(window, save)) }
+        state.prefs.pickBackupFile = dialogs::backup
         onDispose { state.prefs.pickBackupFile = null }
     }
     DesktopTheme.Apply {
-        DesktopShell(
-            state = state,
-            onOpenPicker = ::pick,
-            onSavePicker = ::pickSaveDestination,
-            onExportPdfPicker = ::pickExportDestination,
-            tablet = tablet,
-            modifier = Modifier
-                .focusRequester(focus)
-                .focusable()
-                .onFocusChanged { keyboardHeld = it.hasFocus }
-                .onPreviewKeyEvent { event ->
-                    state.onKey(event, ::pick, ::pickSaveDestination, ::pickExportDestination)
-                },
-        )
+        // The window root: the shell, and the one question it raises over it — Save As's format.
+        Box(Modifier.fillMaxSize()) {
+            DesktopShell(
+                state = state,
+                onOpenPicker = dialogs::openDocument,
+                onSavePicker = { saveAs.request() },
+                onExportPdfPicker = dialogs::exportPdf,
+                tablet = tablet,
+                modifier = Modifier
+                    .focusRequester(focus)
+                    .focusable()
+                    .onFocusChanged { keyboardHeld = it.hasFocus }
+                    .onPreviewKeyEvent { event ->
+                        // A question owns the keyboard while it is up: `Esc` answers it with Cancel, and
+                        // nothing typed at it is a command of the page behind.
+                        if (saveAs.open) {
+                            if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                                saveAs.dismiss()
+                            }
+                            true
+                        } else {
+                            state.onKey(
+                                event,
+                                dialogs::openDocument,
+                                { saveAs.request() },
+                                dialogs::exportPdf,
+                            )
+                        }
+                    },
+            )
+            SaveAsFormatHost(saveAs, state, dialogs::saveAs)
+        }
+    }
+}
+
+/**
+ * The window's **system file dialogs**, as one object: open, Save As, Export PDF and the settings backup's
+ * file. Each needs a `Frame` to hang a native `FileDialog` on — the one thing a composable cannot be tested
+ * with — so they live beside [DesktopApp] rather than inside it, where every line counts against the
+ * module's function ratchet (`SourceStructureTest`).
+ *
+ * [saveAs] asks nothing: the format is already [SaveAsFormatDialog]'s answer, so it only names the file and
+ * writes it.
+ */
+internal class DocumentDialogs(private val window: Frame, private val state: DesktopShellState) {
+
+    /** The system picker for a document to open. */
+    fun openDocument() {
+        chooseDocument(window)?.let(state::open)
+    }
+
+    /**
+     * Export PDF: the dialog proposes the document's own name with a `.pdf` suffix, so the export lands
+     * beside the notebook unless the user says otherwise. The write itself is queued ([DesktopExportQueue])
+     * and runs off the UI thread.
+     */
+    fun exportPdf() {
+        val tab = state.active ?: return
+        val proposed = "${tab.file.nameWithoutExtension}.pdf"
+        chooseSave(window, "Export the document as a PDF", proposed)
+            ?.let { DesktopExportQueue.request(ExportRequest.Pdf(it)) }
+    }
+
+    /**
+     * Save As: the system dialog only names the file, proposed with the chosen container's suffix, and the
+     * write uses that container **whatever the reader leaves in the name field** — typing over the suffix is
+     * ordinary, and reading the name instead of the answer is what used to undo the choice in silence.
+     */
+    fun saveAs(format: DesktopNewDocumentFormat) {
+        val tab = state.active ?: return
+        val proposed = tab.file.nameWithoutExtension + format.extension
+        chooseSave(window, "Save the document as", proposed)
+            ?.let { state.saveAs(it, DesktopSaves.formatOf(format.container)) }
+    }
+
+    /** The settings backup's own file: **save** asks where to write one, **load** which to read. */
+    fun backup(save: Boolean, onPicked: (File?) -> Unit) {
+        onPicked(chooseBackupFile(window, save))
     }
 }
 
