@@ -121,13 +121,14 @@ pages as you scroll it, and the pen's own packet stream draws the ink when a gra
   type — one dialog, both answers. `Ctrl + S` keeps writing back in the format the document already had.
 - **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — as a document of its
   own or added after the one you have, in one step you can undo — and the PDF travels with the file when
-  you save it.
+  you save it. It asks which pages to bring (*pages 3 to 7 of 412*), so a long scan need not arrive whole.
 - **The PDF's pages are the document's pages**: every sheet in the sidebar wears the PDF page it stands
   for, its row's **×** drops that sheet, and *Move page up* / *Move page down* in the pages menu reorder
   them — one undo step each, and an export follows the order you leave them in. **Drag a thumbnail** onto
-  another row to move it there, with the list scrolling itself when you hold near an edge, and
-  **Manage pages…** acts on a whole run at once (*pages 3 to 7* moved or removed). Removing the sheet that
-  carries the PDF's own reference hands it to the next one, so the document never loses its PDF.
+  another row to move it there, with the list scrolling itself near an edge; **Ctrl-click** picks several
+  rows (**Shift** takes a run), and dragging one carries them all or the bar deletes them. **Manage pages…**
+  acts on a whole run at once (*pages 3 to 7* moved or removed). Removing the sheet that carries the PDF's
+  own reference hands it to the next one, so the document never loses its PDF.
 - **A remote or synced file** has to be available offline before it opens — a Drive or OneDrive placeholder
   is not a document.
 - **Not yet**: importing anything but a document or a PDF, editing layers, and an installer. What is left is in

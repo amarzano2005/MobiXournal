@@ -84,7 +84,11 @@ What it does today:
   list scrolling under it while the pointer rests against an edge — `PageReorder`,
   `PageSidebarDragTest`); each is one `PageOps` edit and one undo step (`DesktopPdfPageListTest`).
   **Manage pages…** takes a run at once: *pages 3 to 7* moved so its first page starts where you type, or
-  removed, refused when that would empty the document (`PageRanges`, `DesktopPageRangeTest`). A page
+  removed, refused when that would empty the document (`PageRanges`, `DesktopPageRangeTest`). Several rows
+  are also picked **in the list itself** — a plain click picks one, **Ctrl** adds or drops one, **Shift**
+  takes the run from the last one clicked — and the pick is what a drag then carries, as one block, and
+  what the bar that replaces the layers list deletes, in a single undo step either way
+  (`PageSelection`, `removePages`/`movePages` in `DesktopPages`, `PageSelectionSceneTest`). A page
   that names no PDF of its own is drawn through the reference the document carries on one page
   (`PdfPageReferences`, the shape desktop Xournal++ reads by inheritance) — that is what makes pages two
   onwards of an import show at all — and removing the page that carries the reference hands it to the
@@ -92,7 +96,10 @@ What it does today:
   export both follow the order the list has.
 - **Imports a PDF as pages to write on** — the menu's *Import PDF* turns a `.pdf` into a document of its
   own (one page per PDF page, the sheet the PDF page's size, in a new tab) or adds its pages after the open
-  document as **one undo step** that drops a lone untouched blank sheet. A document already backed by a PDF
+  document as **one undo step** that drops a lone untouched blank sheet. It asks **which** pages first
+  (`Pages 3 to 7 of 412`), so bringing a chapter out of a long scan does not mean importing the rest
+  (`ImportPdfRequest`, `DesktopPdfImportRangeTest`), and a range that cannot be used says why instead of
+  importing something else. A document already backed by a PDF
   has the second one **joined** into it, since a `.xopp` references exactly one, and a save carries the PDF
   with the document: a `.mobix` bundles it, a zipped `.xopp` attaches it, a plain `.xopp` names the file
   beside it.
