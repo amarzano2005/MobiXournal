@@ -32,3 +32,6 @@ tablet-probe.csv
 # working directory they are started from.
 /ink-probe.csv
 /mobix-diagnose.log
+
+# APKs built here to try a change on the tablet. They are handed out, never versioned.
+/artifacts/
