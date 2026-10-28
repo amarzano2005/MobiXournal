@@ -17,14 +17,15 @@ import org.junit.rules.TemporaryFolder
 /**
  * **Where the strips stand**, measured on the sheet they leave behind.
  *
- * The strips float over the page (2026-10-26, `docs/interface-contract.md`), so the canvas keeps its whole
- * body and the sheet can run behind the glass. The **framing** still respects them: a fitted page is
- * measured in the room the strips leave and centred there, so a document opens on the desk beside the bar
- * — the same picture a lane used to give, without a lane. This file measures both halves: the opening
- * frame beside the strip, and the sheet's pixels behind the capsule once it is zoomed past the room.
+ * Since 2026-10-28 the strips **take a lane** on the window, exactly as the tablet's rail does: the rail is
+ * a band down an edge with its capsule standing in it, the ribbon a band under the header, and the canvas
+ * is handed the rectangle that is left. Nothing of the chrome lies over the sheet, so the page can neither
+ * be drawn under a bar nor have its ink swallowed by one. This file measures both halves: the opening frame
+ * beside the lane, and the lane itself — a band, not the sheet, with a different material standing in it.
  *
- * The second render zooms the page past the window, because a floating strip is only visible as floating
- * where the sheet reaches under it; a fitted page stops short of the lane and would pass either way.
+ * The second render zooms the page past the window, because that is the case a lane has to survive: the paper
+ * fills its own canvas to both edges, and the lane still shows beside it instead of the sheet running under
+ * the bar.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class DesktopStripLayoutTest {
@@ -93,15 +94,14 @@ class DesktopStripLayoutTest {
     }
 
     /**
-     * A document opens **beside** the strip, on the black desk, exactly as it did when the strip took a
-     * lane: the floating bar keeps its room out of the framing, not out of the canvas.
+     * A document opens **beside** the lane, on the black desk — the tablet's own picture: the page begins
+     * where the bar ends, never under it.
      *
-     * The arithmetic is `DesktopChromeInsetTest`'s; this is the frame it produces. A rail on the left
-     * shifts the sheet right by the rail's lane, a rail on the right leaves it at the window's edge, and a
-     * ribbon pushes it down by its band — the three answers a lane used to give.
+     * A rail on the left shifts the sheet right by the rail's lane, a rail on the right leaves it at the
+     * window's edge, and a ribbon pushes it down by its band: three answers, one rule.
      */
     @Test
-    fun `the page opens beside the strip, over the desk`() {
+    fun `the page opens beside the strip's lane, on the desk`() {
         val lane = ToolStripMetrics.railWidth.value.toInt()
         val band = ToolStripMetrics.ribbonHeight.value.toInt()
         val header = DesktopTheme.headerHeight.value.toInt()
@@ -127,46 +127,62 @@ class DesktopStripLayoutTest {
     }
 
     /**
-     * The sheet runs **behind** the strip, and the strip is the pane of glass lying on it.
+     * **The lane is a band, and the sheet starts past it.**
      *
-     * Zoomed past the window the page reaches both edges, so a rail's lane and a ribbon's band are over
-     * paper — and the capsule sampled there is neither the paper nor the desk's own glass, which is what
-     * a translucent surface over a sheet looks like.
+     * Zoomed past the window the page fills its canvas to both edges, so the pixels just inside the lane
+     * are the case that matters: the band's own tone there, never paper. That is the assertion the floating
+     * layout could not pass — and the one that keeps a bar from ever lying on the ink again. The capsule
+     * standing in the band is a second, lighter material, which is what "the tools in a glass pill, in a
+     * bar" looks like in pixels.
      */
     @Test
-    fun `the strips float over the sheet instead of taking a lane from it`() {
+    fun `the rail takes a lane with its capsule in it`() {
         val header = DesktopTheme.headerHeight.value.toInt()
         val lane = ToolStripMetrics.railWidth.value.toInt()
+        val band = ToolStripMetrics.ribbonHeight.value.toInt()
         for (placement in StripPlacement.entries) {
             val pixels = render(placement, zoom = 2f)
+            fun at(point: Pair<Int, Int>) = pixels[point.second * width + point.first] and 0xFFFFFF
             // Near-white rather than exactly white: a sheet's own edge carries its hairline and a
             // little shading, so exact white fails on a page that is plainly there.
-            fun sheetAt(x: Int, y: Int) = (pixels[y * width + x] and 0xFF) >= 0xD0
-            // The lane is 64 dp of air around a 52 dp capsule, so its first pixels are the sheet itself:
-            // a lane taken out of the canvas would be the desk's black there instead.
-            val sheetUnderTheStrip = when {
-                placement.showsRail && placement.railSide == RailSide.LEFT -> sheetAt(2, height / 2)
-                placement.showsRail -> sheetAt(width - 3, height / 2)
-                // The ribbon's band lies over the sheet too: its capsule floats 4 dp below the header.
-                else -> sheetAt(width / 2, header + 2)
-            }
-            assertTrue(
-                "$placement: the sheet reaches under the strip, so no lane is taken from the canvas",
-                sheetUnderTheStrip,
-            )
+            fun sheetAt(point: Pair<Int, Int>) = (pixels[point.second * width + point.first] and 0xFF) >= 0xD0
 
-            if (placement.showsRail) {
-                val centreX = if (placement.railSide == RailSide.LEFT) lane / 2 else width - lane / 2
-                val capsule = pixels[(header + 200) * width + centreX] and 0xFFFFFF
-                assertTrue(
-                    "$placement: the rail is not drawn over the sheet (sampled #%06X)".format(capsule),
-                    capsule != 0xFFFFFF,
-                )
-                assertTrue(
-                    "$placement: and it is glass over paper, not the desk's glass (sampled #%06X)".format(capsule),
-                    maxChannelGap(capsule, DesktopTheme.bandRgb) > 3,
+            // The band's first pixels, the capsule's centre, and the sheet just past the board: the three
+            // samples a lane is made of, wherever the strip stands.
+            val (bandAt, capsuleAt, paperAt) = when {
+                placement.showsRail && placement.railSide == RailSide.LEFT ->
+                    Triple(2 to height / 2, lane / 2 to header + 200, lane + 8 to height / 2)
+                placement.showsRail ->
+                    Triple(
+                        width - 3 to height / 2,
+                        width - lane / 2 to header + 200,
+                        width - lane - 8 to height / 2,
+                    )
+                else -> Triple(
+                    width / 2 to header + 2,
+                    width / 2 to header + band / 2,
+                    width / 2 to header + band + 8,
                 )
             }
+
+            assertTrue(
+                "$placement: the strip's lane is a band, not the sheet (sampled #%06X)".format(at(bandAt)),
+                !sheetAt(bandAt),
+            )
+            assertEquals(
+                "$placement: and it wears the window's own band (sampled #%06X)".format(at(bandAt)),
+                DesktopTheme.bandRgb,
+                at(bandAt),
+            )
+            assertTrue(
+                "$placement: the canvas begins past the lane — the sheet is at $paperAt",
+                sheetAt(paperAt),
+            )
+            assertTrue(
+                "$placement: the capsule stands in the band as its own material (sampled #%06X)"
+                    .format(at(capsuleAt)),
+                maxChannelGap(at(capsuleAt), DesktopTheme.bandRgb) > 3,
+            )
         }
     }
 

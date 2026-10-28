@@ -1,27 +1,30 @@
 package com.mobixournal.desktop
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.mobixournal.format.model.LineStyle
 
 /**
- * The document's half of the window: the sidebar in its lane, the page, and the tool strips floating over it.
+ * The document's half of the window: the sidebar in its lane, the tool strips in theirs, and the page.
  *
  * It is a separate composable because it is the **layout** and nothing else — every value it draws comes
  * from [state] and every gesture goes back through it, so the shell file keeps the state and the commands
  * (`SourceStructureTest` keeps both it and this one small).
  *
- * **The strips float over the page.** The rail and the ribbon are panes of glass lying on the sheet — the
- * desktop decision of 2026-10-26 — so the canvas takes the whole body and the page runs behind them, the
- * way the tablet's floating chrome does. The sidebar keeps a lane of its own, because it is a list read
- * beside the page rather than a tool reached for while drawing, and only the strips are held over the ink.
- * The capsules are opaque to the pointer — their slots' input and their own scroll pane claim every press
- * that starts on them — so a drag begun on a strip is never a stroke drawn underneath it.
+ * **The strips take a lane, as they do on the tablet** (decision 2026-10-28). The rail stands in a band down
+ * the edge `RailSide` names and the ribbon in a band under the header; the canvas is handed what is left,
+ * so the page can never be under a bar. The bands are the header's material (`bandSurface`), and each one
+ * carries the tablet's own capsule — a pane of glass with a rim and a lift — standing *in* the band. Earlier
+ * (2026-10-26) the strips were panes of glass lying **over** the sheet, which left the canvas full width and
+ * the page running behind them; that is not how the tablet draws its rail, and one window is not a second
+ * design language. The capsules are opaque to the pointer — their slots' input and their own scroll pane
+ * claim every press that starts on them — so a drag begun on a strip is never a stroke drawn beneath it.
  */
 @Composable
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
@@ -37,74 +40,74 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
         }
         val placement = state.prefs.stripPlacement
         val railOnLeft = state.prefs.railSide == RailSide.LEFT
-        Box(Modifier.weight(1f).fillMaxHeight()) {
-            PageCanvas(
-                tab = tab,
-                panMode = state.panMode,
-                tool = state.tools.current,
-                // The page's ink, not the strip's: a highlighter writes a band, not a wide pen.
-                ink = state.pageInk,
-                // Figures, circuits and placements always take the pen's ink, never the highlighter's.
-                shapeInk = state.shapeInk,
-                // The component the Circuit slot is armed with — the picker's answer the drag reads.
-                circuitKind = state.activeCircuitKind,
-                // A STEM slot asks its values before the element exists, so the canvas hands the box over.
-                onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
-                // A component is pulled out along the drag's own two ends, aimed at the page's pins.
-                onPlaceCircuit = { kind, span -> state.placeCircuit(tab, kind, span) },
-                // A double-click on the selected living element opens the same lane its pencil does —
-                // the tablet's double-tap, and one command rather than a second way to edit.
-                onEditLiving = { state.runSelection(SelectionAction.EDIT) },
-                // The Text slot types in place: the canvas opens the box, the field hands the typing
-                // back, and nothing reaches the page until the box is committed (`DesktopTextBox`).
-                text = TextBoxUi(
-                    box = state.textBox.box,
-                    onPress = { x, y, pageW, pageH ->
-                        state.textBox.begin(tab, x, y, pageW, pageH, state.ink, state::edited)
-                    },
-                    onChange = { text -> state.textBox.change(text) },
-                ),
-                // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
-                // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
-                pen = tablet?.pen,
-                // And, when the driver has packets, the stroke is drawn from those: the same contact,
-                // without waiting for Windows' mouse emulation to notice the touch.
-                packets = tablet?.wintab,
-                // Which wheel turned: the dial's notches arrive from the tablet's own HID device, so
-                // they zoom at the cursor while the mouse's wheel keeps scrolling.
-                dialWheel = { tablet?.dialWheelRecently() == true },
-                // A figure being dragged can be cancelled with `Esc`; the shell keeps the end of that,
-                // because the key reaches the window and not the canvas.
-                onLiveDrag = { cancel -> state.liveDrag = cancel },
-                // The bar under the outline: what the selection can be, and the one command it runs. The
-                // rules (what is available, and when) are the shell's, so the canvas only draws them.
-                selectionBar = selectionBarUi(tab, state.clipboard) { action -> state.runSelection(action) },
-                onViewport = { tab.viewport = it },
-                onFit = { tab.fit = it },
-                // An edit changes the page's picture, so the thumbnail cached for it is stale; the other
-                // pages keep theirs. It is only *dropped* here — re-rendering it now would cost a full
-                // software paint per stroke, so the sidebar paints it again once the burst is quiet
-                // (`ThumbnailRefresh`, keyed on `thumbnailRevision`). The edit also starts the clock on
-                // the crash snapshot, which the shell writes after the same burst.
-                onEdited = { index ->
-                    state.thumbnails[tab.key]?.remove(index)
-                    state.noteEdit()
-                },
-                // The strips' own footprint: a fitted page is framed beside them, over the desk, so a
-                // document opens in the clear space exactly as it did when a strip took a lane — and a
-                // page too big for that space can still be dragged behind the glass.
-                chrome = placement.chromeInset(),
-                modifier = Modifier.fillMaxSize(),
-            )
-            // The rail is one composable with two homes — the lane before the canvas or the lane after
-            // it, whichever edge `RailSide` names — so the two edges cannot drift into two rails.
-            if (placement.showsRail) {
-                StripRail(
-                    state,
-                    Modifier.align(if (railOnLeft) Alignment.CenterStart else Alignment.CenterEnd),
-                )
+        Column(Modifier.weight(1f).fillMaxHeight()) {
+            // The ribbon is a band of its own above the canvas, not a bar lying on the sheet.
+            if (placement.showsRibbon) StripRibbon(state)
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                if (placement.showsRail && railOnLeft) StripRail(state)
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    PageCanvas(
+                        tab = tab,
+                        panMode = state.panMode,
+                        tool = state.tools.current,
+                        // The page's ink, not the strip's: a highlighter writes a band, not a wide pen.
+                        ink = state.pageInk,
+                        // Figures, circuits and placements always take the pen's ink, never the highlighter's.
+                        shapeInk = state.shapeInk,
+                        // The component the Circuit slot is armed with — the picker's answer the drag reads.
+                        circuitKind = state.activeCircuitKind,
+                        // A STEM slot asks its values before the element exists, so the canvas hands the box over.
+                        onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
+                        // A component is pulled out along the drag's own two ends, aimed at the page's pins.
+                        onPlaceCircuit = { kind, span -> state.placeCircuit(tab, kind, span) },
+                        // A double-click on the selected living element opens the same lane its pencil does —
+                        // the tablet's double-tap, and one command rather than a second way to edit.
+                        onEditLiving = { state.runSelection(SelectionAction.EDIT) },
+                        // The Text slot types in place: the canvas opens the box, the field hands the typing
+                        // back, and nothing reaches the page until the box is committed (`DesktopTextBox`).
+                        text = TextBoxUi(
+                            box = state.textBox.box,
+                            onPress = { x, y, pageW, pageH ->
+                                state.textBox.begin(tab, x, y, pageW, pageH, state.ink, state::edited)
+                            },
+                            onChange = { text -> state.textBox.change(text) },
+                        ),
+                        // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
+                        // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
+                        pen = tablet?.pen,
+                        // And, when the driver has packets, the stroke is drawn from those: the same contact,
+                        // without waiting for Windows' mouse emulation to notice the touch.
+                        packets = tablet?.wintab,
+                        // Which wheel turned: the dial's notches arrive from the tablet's own HID device, so
+                        // they zoom at the cursor while the mouse's wheel keeps scrolling.
+                        dialWheel = { tablet?.dialWheelRecently() == true },
+                        // A figure being dragged can be cancelled with `Esc`; the shell keeps the end of that,
+                        // because the key reaches the window and not the canvas.
+                        onLiveDrag = { cancel -> state.liveDrag = cancel },
+                        // The bar under the outline: what the selection can be, and the one command it runs. The
+                        // rules (what is available, and when) are the shell's, so the canvas only draws them.
+                        selectionBar = selectionBarUi(tab, state.clipboard) { action -> state.runSelection(action) },
+                        onViewport = { tab.viewport = it },
+                        onFit = { tab.fit = it },
+                        // An edit changes the page's picture, so the thumbnail cached for it is stale; the other
+                        // pages keep theirs. It is only *dropped* here — re-rendering it now would cost a full
+                        // software paint per stroke, so the sidebar paints it again once the burst is quiet
+                        // (`ThumbnailRefresh`, keyed on `thumbnailRevision`). The edit also starts the clock on
+                        // the crash snapshot, which the shell writes after the same burst.
+                        onEdited = { index ->
+                            state.thumbnails[tab.key]?.remove(index)
+                            state.noteEdit()
+                        },
+                        // No chrome inset: the bands take their room out of the row, so the canvas is already
+                        // the clear space a fitted page is framed in — nothing of the chrome lies over the sheet.
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                // The rail is one composable with two homes — the lane before the canvas or the lane
+                // after it, whichever edge `RailSide` names — so the two edges cannot drift into two
+                // rails, and each lane takes its width from the row.
+                if (placement.showsRail && !railOnLeft) StripRail(state)
             }
-            if (placement.showsRibbon) StripRibbon(state, Modifier.align(Alignment.TopCenter))
         }
         // The inspector, in a lane of its own on the right: it takes width from the row, so the page is
         // never resized by it. Its policy can only keep it shut — a column of blank controls is not an
@@ -116,7 +119,7 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
 }
 
 /**
- * The **ribbon**: the same tools as the rail, in a pane of glass across the top of the page, for `Top`.
+ * The **ribbon**: the same tools as the rail, in a band across the top of the page, for `Top`.
  *
  * It is a named composable rather than an inline call so the layout above reads as the objects it
  * arranges, and so the strip's ink actions are written once (`inkActions`) instead of at each home.
@@ -146,18 +149,6 @@ private fun StripRail(state: DesktopShellState, modifier: Modifier = Modifier) {
         ink = state.inkActions(),
         modifier = modifier,
     )
-}
-
-/**
- * The room a placement's strip takes on the canvas, in dp: one edge, the one it stands on.
- *
- * The ribbon's band is 56 dp and the rail's lane 64, and a fitted page is measured without them — which
- * is what keeps the page on the black desk beside the bar instead of under it.
- */
-private fun StripPlacement.chromeInset(): ChromeInset = when (this) {
-    StripPlacement.LEFT -> ChromeInset(left = ToolStripMetrics.railWidth.value)
-    StripPlacement.RIGHT -> ChromeInset(right = ToolStripMetrics.railWidth.value)
-    StripPlacement.TOP -> ChromeInset(top = ToolStripMetrics.ribbonHeight.value)
 }
 
 /** The colour capsule's verbs, as the strips' one action set — built from the shell, not from a copy. */

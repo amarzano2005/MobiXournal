@@ -124,13 +124,13 @@ What it does today:
   rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
 - **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
   and a **48 dp ribbon capsule in a 56 dp band** across the top — **Left**, **Right** or **Top**
-  (`stripPlacement`), re-laid live, and both **float over the page** (2026-10-26), the sheet running
-  behind them. Their footprint still **frames** a fitted page (`ChromeInset`), so a document opens on the
-  desk beside the bar. `Ctrl+,` opens the panel that sets it — [`desktop-settings.md`](desktop-settings.md)
+  (`stripPlacement`), re-laid live. Both **take a lane** (2026-10-28): the lane and the ribbon's band are
+  the header's own material, the canvas is handed what is left, and no bar lies on the sheet.
+  `Ctrl+,` opens the panel that sets it — [`desktop-settings.md`](desktop-settings.md)
   owns what each section answers; the header has no chooser, because moving the strips is a setting.
-  The strip is a **capsule** — its own 6 dp lift, the family's rim, and the only glass there (the lane is
-  **air**: painting it too stacked two sheets, rail #161618) — filled with the window's glass at
-  `DESKTOP_BAND_ALPHA`, so it reads `#0C0C0D` over the desk and the sheet through it over the page. Each
+  The capsule stands **in** its band — its own 6 dp lift, the family's rim and the nearly solid
+  `STRIP_GLASS_ALPHA` fill — and the band under it is the window's glass at `DESKTOP_BAND_ALPHA`, so the
+  two layers read as the tablet's rail: a pill of glass in a bar. Each
   header control is the same object at 36 dp. Both placements draw the same slots in the order, glyphs and
   shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, the picked slot a 10 dp squircle in the
   `#38383E` and a name-and-hotkey pill on hover.

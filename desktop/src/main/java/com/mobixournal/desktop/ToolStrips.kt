@@ -176,14 +176,17 @@ fun ToolRail(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    // The lane is **air**, not a band: the rail itself is the capsule, exactly as the tablet draws it —
-    // 52 dp inside a 64 dp lane, 6 dp of air each side and 8 dp above and below, its own shadow and its
-    // own rim. Painting the lane as a band as well stacked two layers of 0.85 glass under the capsule
-    // (0.85 over 0.85 is 0.98), so the window's rail came out #161618 where the tablet's is #131314.
+    // **A lane, not a bar lying on the page** (decision 2026-10-28): the lane is a band of its own —
+    // `bandSurface()`, the header's own fill and its one 4 dp lift onto the canvas — and the capsule
+    // stands *in* it, exactly as the tablet's rail does: 52 dp of glass inside a 64 dp lane, 6 dp of air
+    // each side and 8 above and below, its own shadow and its own rim. Taking the lane out of the row is
+    // what makes the page stop under the bar instead of behind it: the two shells now lay the tools out
+    // the same way instead of the window inventing a floating variant of the tablet's rail.
     Box(
         modifier
             .width(DesktopTheme.railLaneWidth)
-            .fillMaxHeight(),
+            .fillMaxHeight()
+            .bandSurface(),
         contentAlignment = Alignment.TopCenter,
     ) {
         Box(
@@ -257,12 +260,13 @@ fun ToolRibbon(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    // The ribbon is the rail laid on its side, and it wears the same material: a capsule floating over
-    // the page, not a band with a second sheet of glass behind it (see the rail's note).
+    // The ribbon is the rail laid on its side — a band under the header with the capsule standing in it,
+    // the same two layers in the same order as the rail's lane (see that note).
     Box(
         modifier
             .fillMaxWidth()
-            .height(ToolStripMetrics.ribbonHeight),
+            .height(ToolStripMetrics.ribbonHeight)
+            .bandSurface(),
         contentAlignment = Alignment.Center,
     ) {
         Row(

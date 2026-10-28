@@ -40,8 +40,9 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   page is `#000000`; platform materials (Windows 11 Mica) are **not** used: Mica tints the window with the
   wallpaper, so it would stop matching the phone and change with the user's own picture.
 - **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon the alternative
-  for 16:9 monitors. Whichever is on, the strip is a capsule in a lane of **air** beside the canvas, never a
-  bar over the page; the choice lives in the settings file, and the Interface section will own its door.
+  for 16:9 monitors. Whichever is on, the strip stands in a **lane of its own** beside the canvas — a band
+  with the tablet's capsule in it, never a bar over the page (2026-10-28, `interface-contract.md`); the
+  choice lives in the settings file, and the Interface section owns its door.
 - **The window's bands are blacker than the tablet's** (2026-10-25): the same glass RGB at
   `DESKTOP_BAND_ALPHA` (0.58), because 0.85 composites to `#131314`, which in a maximised window on a 34"
   screen read as a grey slab beside the phone; the band is `#0C0C0D` — the one tone the shells do not share.
@@ -50,11 +51,10 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**
 spoke it takes four rules, and the parity work of 2026-10-22 put them all in the window:
 
-- **A band is chrome, a capsule is an object.** The header, status bar and sidebar take the glass fill
-and **one 4 dp cast shadow**, no rim. A strip's lane is **air, not a band** — painting it too stacked two
-sheets of 0.85 glass and the rail read #161618. The rail is a **52 dp capsule in a 64 dp lane** (6 dp of
-side air, 8 above and below), the ribbon a 48 dp capsule in a 56 dp band; each takes its **own 6 dp lift**
-and the family's rim, and a header control is that capsule at 36 dp. Without the lifts the bands were flat,
+- **A band is chrome, a capsule is an object.** The header, status bar, sidebar and the strips' lanes take
+the glass fill and **one 4 dp cast shadow**, no rim. The rail is a **52 dp capsule in a 64 dp lane** (6 dp
+of side air, 8 above and below), the ribbon a 48 dp capsule in a 56 dp band; each takes its **own 6 dp
+lift** and the family's rim, and a header control is that capsule at 36 dp. Without the lifts the bands were flat,
 because over a true-black desk the glass' alpha is invisible: the shadow is the only depth the window has
 (`Modifier.bandSurface()` / `glassCapsule()`). The fill and the ink are the shared tokens' — a sheen of the
 window's own made the same material lighter (`interface-contract.md` §2 owns the colours).

@@ -47,15 +47,15 @@ Every surface is one of three objects. Pick the class from what the element *doe
   `ChromeGeometryGuardTest.bandsShadeTheirOwnClosingEdgeAndCastNothing` fails the build if a tablet band
   gains an elevation again, or loses its own edge.
 - A picker, menu or dialog that comes and goes **may** lie over the page; a band **may not**.
-- **The window's tool strips are capsules held *over* the page** (decision 2026-10-26). On the desktop the
-  rail and the ribbon float on the sheet — the capsule's recipe unchanged, glass, its own 6 dp lift and the
-  family's rim — and the canvas keeps the whole body, so choosing an edge no longer moves the page. The
-  tablet keeps its bands: a fingertip has no cursor to tell it what it is about to touch, while a mouse and
-  a stylus on a desk do. A strip is opaque to the pointer, and its fill is nearly solid
-  (`STRIP_GLASS_ALPHA`, 0.95) — at a band's 0.58 a white sheet turned the bar grey.
-- **A floating strip still frames the page.** The space it occupies (`ChromeInset`) is subtracted from the
-  *fit* and from the *centring*, never from the canvas: a document opens on the desk beside the bar, as it
-  did when a lane took that room, and a page too large for the room can still be scrolled behind the glass.
+- **The window's tool strips take a lane, as the tablet's do** (decision 2026-10-28). The rail stands in a
+  band down an edge and the ribbon in a band under the header — the header's own material and its one 4 dp
+  lift — with the tablet's capsule standing *in* that band: the rail 52 dp in a 64 dp lane, the ribbon
+  48 dp in a 56 dp band, each with its 6 dp lift and the family's rim. The canvas is handed what is left, so
+  no bar is ever drawn on the sheet. The strips lay themselves *over* the page between 2026-10-26 and this
+  decision; that left the canvas full width and the page running behind the glass, and one window is not a
+  second design language. A capsule is opaque to the pointer and its fill is nearly solid
+  (`STRIP_GLASS_ALPHA`, 0.95) — at a band's 0.58 a white sheet turned the bar grey. The canvas can still be
+  told to frame a fitted page around a surface that lies on it (`ChromeInset`), which no strip asks for now.
 - **Page content being authored is not a surface.** A stroke being drawn is a draft on the sheet, and the
   desktop's in-place text field is the same thing for words: it takes the document's own ink, face and
   place, and **no fill and no rim** — it wore the floating glass once and read as a charcoal slab across a

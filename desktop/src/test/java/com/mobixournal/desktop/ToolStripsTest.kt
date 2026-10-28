@@ -274,39 +274,44 @@ class ToolStripsTest {
     }
 
     /**
-     * The rail is a **bar**, not a pane as tall as the window: given the height for its slots it ends under
-     * the last of them, and whatever is behind it — the page, in the window — shows below. A full-height
-     * capsule is what a lane looked like, which is what this change was for.
+     * The rail's **capsule is a bar**, not a pane as tall as the window: it ends under the last of its slots
+     * and its own band shows below it.
+     *
+     * The band runs the whole edge — that is a lane, on the window as on the tablet — so what is measured is
+     * the capsule's own span: the rows carrying its nearly-solid fill rather than the band's lighter one.
      */
     @Test
-    fun `the rail ends under its last slot`() {
+    fun `the rail's capsule ends under its last slot`() {
         val lane = ToolStripMetrics.railWidth.value.toInt()
         val png = save(
             ImageComposeScene(lane, 1400, Density(1f)) { ToolRail(ToolStripState(), onSelect = {}) },
             "tools-rail-tall",
         )
         val image = ImageIO.read(ByteArrayInputStream(png))
-        // The rail is drawn on a transparent scene, so its own bottom is the last row with ink in it.
-        val bottom = (0 until image.height).lastOrNull { y -> (image.getRGB(lane / 2, y) ushr 24) != 0 }
-            ?: error("the rail drew nothing")
+        fun alphaAt(y: Int) = image.getRGB(lane / 2, y) ushr 24
+        // The capsule's fill, read in the 4 dp of its top padding — above slot 0, inside the capsule.
+        val capsuleAlpha = alphaAt(ToolStripMetrics.railSlotTop.value.toInt() - 2)
+        val bottom = (0 until image.height).lastOrNull { alphaAt(it) == capsuleAlpha }
+            ?: error("the rail's capsule drew nothing")
         assertTrue(
-            "the rail is as tall as the window ($bottom of ${image.height}), not as tall as its tools",
+            "the capsule is as tall as the window ($bottom of ${image.height}), not as tall as its tools",
             bottom < image.height - 200,
         )
     }
 
     /**
-     * The strips **float over the page**, and the page is left alone by them: nothing is taken out of
-     * the canvas for a lane, and a press that lands on a capsule is the strip's, not a stroke underneath.
+     * The strips **take a lane**, and a press that lands on their capsule is the strip's, not a stroke
+     * underneath.
      *
-     * The document is zoomed past the window on purpose: a fitted sheet stops short of the lane and would
-     * pass either way, while a sheet that reaches the window's edges is measurably behind the glass. The
-     * drag is a pen's and starts in the air between two slots — inside the capsule, outside every button —
-     * which is where an unblocked drag would ink the page. The page's elements must be untouched after it.
+     * The document is zoomed past the window on purpose: that is the case a lane has to hold, because a
+     * sheet larger than its canvas fills it to both edges — so the pixels just inside the lane are the
+     * band's tone and not paper, which is the opposite of what the floating layout gave. The drag is a
+     * pen's and starts in the air between two slots — inside the capsule, outside every button — which is
+     * where an unblocked drag would ink the page. The page's elements must be untouched after it.
      */
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
-    fun `the strips float over the page and swallow its presses`() {
+    fun `the strips take a lane and swallow their own presses`() {
         val document = temp.newFile("floating.mobix").also {
             SyntheticNotebook.write(it, SyntheticNotebook.pages(6))
         }
@@ -387,17 +392,28 @@ class ToolStripsTest {
             // Near-white, not the desk: a sheet's own edge carries its hairline and a little shading,
             // so exact white would fail on a page that is plainly there.
             fun sheetAt(px: Int, py: Int) = (image.getRGB(px, py) and 0xFF) >= 0xD0
-            // The strip's lane is 64 dp of air around a 52 dp capsule, so its first pixels are the sheet
-            // itself: a lane taken out of the canvas would be the desk's black there instead.
-            val sheetUnderTheStrip = when {
-                placement.showsRail && placement.railSide == RailSide.LEFT -> sheetAt(2, windowH / 2)
-                placement.showsRail -> sheetAt(windowW - 3, windowH / 2)
-                // The ribbon floats 4 dp below the header, over the sheet's top row.
-                else -> sheetAt(windowW / 2, header + 2)
+            val ribbon = ToolStripMetrics.ribbonHeight.value.toInt()
+            // The lane's first pixels, and the sheet just past the board: the page is zoomed past the
+            // window, so paper at the first of these would mean the strip lies over the sheet again.
+            val (bandAt, paperAt) = when {
+                placement.showsRail && placement.railSide == RailSide.LEFT ->
+                    (2 to windowH / 2) to (lane + 8 to windowH / 2)
+                placement.showsRail ->
+                    (windowW - 3 to windowH / 2) to (windowW - lane - 8 to windowH / 2)
+                else -> (windowW / 2 to header + 2) to (windowW / 2 to header + ribbon + 8)
             }
             assertTrue(
-                "$placement: the sheet stops short of the strip, so it still takes a lane from the canvas",
-                sheetUnderTheStrip,
+                "$placement: the sheet is under the strip's band — it is meant to take its own lane",
+                !sheetAt(bandAt.first, bandAt.second),
+            )
+            assertEquals(
+                "$placement: and the lane wears the window's band",
+                DesktopTheme.bandRgb,
+                image.getRGB(bandAt.first, bandAt.second) and 0xFFFFFF,
+            )
+            assertTrue(
+                "$placement: the canvas begins past the lane, and the sheet is at $paperAt",
+                sheetAt(paperAt.first, paperAt.second),
             )
             assertEquals(
                 "$placement: a drag begun on the strip drew on the page under it",
