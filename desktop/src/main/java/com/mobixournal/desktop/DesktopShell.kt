@@ -389,7 +389,7 @@ class DesktopShellState(
     /** The page setup's own piece of the state: which section is up, and the edits it makes. */
     private val pageSetupState = DesktopPageSetupState(tabs) { tab, index -> edited(tab, index) }
     /** The page **list**'s commands — add, remove, step (`DesktopPages.kt`). */
-    private val pagesSection = DesktopPages(tabs, ::edited, { defaultPageSize }) { pagesChanged(it) }
+    internal val pagesSection = DesktopPages(tabs, ::edited, { defaultPageSize }) { pagesChanged(it) }
 
     /** The section of the page-setup surface that is up, or null while it is closed. */
     val pageSetup: PageSetupSection? get() = pageSetupState.section

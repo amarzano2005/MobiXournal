@@ -40,13 +40,32 @@ class PageBackdrop(
 
     private val cache = LinkedHashMap<String, ImageBitmap?>()
 
+    /**
+     * Where a page that names the PDF **only by `pageno`** finds the document's one reference.
+     *
+     * A document records the PDF on a single page and every other pdf page carries a page number and
+     * nothing else (`docs/pdf.md`), which desktop Xournal++ reads by inheritance. [DesktopDocument] installs
+     * the supplier at construction, so the whole window — the canvas, the thumbnails, the PDF and SVG
+     * exporters — resolves those pages through one rule instead of each of them guessing.
+     */
+    var pdfReference: () -> Background.Pdf? = { null }
+
     /** The image behind [background], or null when there is nothing to draw (or nothing to find). */
     @Synchronized
     fun image(background: Background): ImageBitmap? {
-        val key = keyOf(background) ?: return null
+        // A pdf page with no file of its own is drawn from the document's reference; with neither, there
+        // is nothing to draw and the page keeps its paper.
+        val painted = when (background) {
+            is Background.Pdf -> PdfPageReferences.resolve(background, pdfReference()) ?: return null
+            else -> background
+        }
+        val key = keyOf(painted) ?: return null
         if (cache.containsKey(key)) return cache[key]
-        val bitmap = runCatching { render(background) }.getOrNull()
-        if (cache.size >= CACHE_MAX) cache.clear()
+        val bitmap = runCatching { render(painted) }.getOrNull()
+        // The **oldest** entry goes, not the whole map: the page list asks for one thumbnail per page it
+        // shows, and clearing twelve cached sheets every time a thirteenth row appears would send the
+        // canvas back to rasterising the pages it is actually drawing.
+        if (cache.size >= CACHE_MAX) cache.remove(cache.keys.first())
         cache[key] = bitmap
         return bitmap
     }
@@ -62,9 +81,10 @@ class PageBackdrop(
      * rendered picture.
      */
     fun sourcePdf(background: Background.Pdf): PDDocument? {
-        val bytes = bytesOf(background.bundledAsset, background.domain, background.filename)
+        val source = PdfPageReferences.resolve(background, pdfReference()) ?: return null
+        val bytes = bytesOf(source.bundledAsset, source.domain, source.filename)
         if (bytes != null) return runCatching { PDDocument.load(ByteArrayInputStream(bytes)) }.getOrNull()
-        val file = fileOf(background.domain, background.filename) ?: return null
+        val file = fileOf(source.domain, source.filename) ?: return null
         return runCatching { PDDocument.load(file) }.getOrNull()
     }
 

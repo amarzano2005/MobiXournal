@@ -122,9 +122,13 @@ pages as you scroll it, and the pen's own packet stream draws the ink when a gra
 - **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — as a document of its
   own or added after the one you have, in one step you can undo — and the PDF travels with the file when
   you save it.
+- **The PDF's pages are the document's pages**: every sheet in the sidebar wears the PDF page it stands
+  for, its row's **×** drops that sheet, and *Move page up* / *Move page down* in the pages menu reorder
+  them — one undo step each, and an export follows the order you leave them in. Removing the sheet that
+  carries the PDF's own reference hands it to the next one, so the document never loses its PDF.
 - **A remote or synced file** has to be available offline before it opens — a Drive or OneDrive placeholder
   is not a document.
-- **Not yet**: importing anything but a document, editing layers, and an installer. What is left is in
+- **Not yet**: importing anything but a document or a PDF, editing layers, and an installer. What is left is in
   [`TODO.toml`](TODO.toml), and the window's own state is
   [`docs/desktop-workstation.md`](docs/desktop-workstation.md) (*What the window does not do*).
 

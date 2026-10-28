@@ -97,6 +97,14 @@ class DesktopDocument(
     var edits: Int by mutableStateOf(0)
         private set
 
+    init {
+        // A pdf page names the document's one PDF on the page that carries the reference and nowhere else
+        // (`docs/pdf.md`), so the backdrop is told how to read those pages — once, here, rather than by
+        // every painter. It reads [model], so a merge that re-points the reference is answered without
+        // rebuilding the backdrop.
+        backdrop.pdfReference = { PdfPageReferences.of(model.pages) }
+    }
+
     val pageCount: Int get() = window.pageCount
 
     /** The page at [index] — the edit if there is one, else decoded now for a `.mobix`, in memory for a `.xopp`. */
@@ -193,12 +201,15 @@ class DesktopDocument(
      * write a second entry. A document whose reference is missing answers null too — there is nothing to
      * carry, and the page simply paints as a plain sheet.
      *
-     * Only the page that carries the reference is asked (the rest name the PDF by `pageno` alone), and it is
-     * read through [model] rather than the whole list: a `.mobix` page list is a lazy view, and the first
-     * page of a PDF-backed document is the one that answers.
+     * Only the page that carries the reference is asked (the rest name the PDF by `pageno` alone —
+     * [PdfPageReferences]), and it is read through [model] rather than the whole list: a `.mobix` page list
+     * is a lazy view, and the first page of a PDF-backed document is the one that answers.
+     *
+     * The carrier is looked for **anywhere** in the list, not on page one: reordering or removing pages can
+     * leave the reference on any page, and a save must still carry the bytes.
      */
     fun pdfSource(): File? {
-        val background = model.pages.firstNotNullOfOrNull { it.background as? Background.Pdf } ?: return null
+        val background = pdfBackground() ?: return null
         if (background.bundledAsset != null || background.domain == ATTACH_DOMAIN) return null
         val name = background.filename?.takeIf { it.isNotBlank() } ?: return null
         val path = File(name)
@@ -206,6 +217,14 @@ class DesktopDocument(
         // A reference written beside the document (a `.xopp` on another machine, or ours after a save).
         return file.parentFile?.let { File(it, name) }?.takeIf { it.isFile }
     }
+
+    /**
+     * The background that carries this document's PDF reference, or null when it has no PDF background.
+     *
+     * This is what a page that only names a `pageno` sits on ([PdfPageReferences.of]); the backdrop asks for
+     * it while painting, and a save asks for it to carry the bytes.
+     */
+    fun pdfBackground(): Background.Pdf? = PdfPageReferences.of(model.pages)
 
     /** True once [close] ran — a tab that was replaced or deduplicated must not keep its reader alive. */
     var isClosed: Boolean = false

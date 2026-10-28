@@ -78,6 +78,14 @@ What it does today:
   a `.mobix` repack still streams the pages nobody touched out of the archive.
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, and *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
+- **Owns the PDF's pages as the document's pages** — the sidebar lists every sheet with the PDF page it
+  carries drawn on it, a row's close glyph drops that sheet, and **Move page up / Move page down** in the
+  Pages menu reorder them; each is one `PageOps` edit and one undo step (`DesktopPdfPageListTest`). A page
+  that names no PDF of its own is drawn through the reference the document carries on one page
+  (`PdfPageReferences`, the shape desktop Xournal++ reads by inheritance) — that is what makes pages two
+  onwards of an import show at all — and removing the page that carries the reference hands it to the
+  first pdf page that survives, so a delete never takes the PDF out of the document. A save and a PDF
+  export both follow the order the list has.
 - **Imports a PDF as pages to write on** — the menu's *Import PDF* turns a `.pdf` into a document of its
   own (one page per PDF page, the sheet the PDF page's size, in a new tab) or adds its pages after the open
   document as **one undo step** that drops a lone untouched blank sheet. A document already backed by a PDF
@@ -161,8 +169,8 @@ What it does today:
   **page list** and **Settings** rows, each wearing its own mark. Its commands keep their 10 dp inset by
   padding themselves, so a row's hover spans the panel's whole width, as a menu's does. The block carries **nothing about the ink**: a
   colour and a width live in the strip's capsule, and a reset beside a pressure preset made two different
-  things share one word. Import PDF and Page as PNG are absent because the window has no such
-  command yet, not because it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by
+  things share one word. Page as PNG is absent because the window has no such command yet, not because it
+  has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by
   the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
@@ -234,7 +242,7 @@ the numbers).
 ### What the window does not do
 
 - No layer editing (hiding one is view state, above).
-- No import of anything but a document (no images as elements, no search, no page reordering or insertion).
+- No import of anything but a document and a PDF (no images as elements, no search).
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
   the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.
 

@@ -162,11 +162,15 @@ class DesktopPagesTest {
             var at = 3_000L
             tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(0), at); at += 512L
             tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(1), at); at += 512L
-            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(4), at)
+            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(2), at); at += 512L
+            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(3), at); at += 512L
+            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(6), at)
 
             assertEquals("add still works", 1, counters[0])
             assertEquals("remove is dead", 0, counters[1])
-            assertEquals("format still works", 1, counters[4])
+            assertEquals("moving up is dead", 0, counters[2])
+            assertEquals("and so is moving down", 0, counters[3])
+            assertEquals("format still works", 1, counters[6])
         } finally {
             scene.close()
         }
@@ -175,14 +179,21 @@ class DesktopPagesTest {
     private fun rows() = PageMenuActions(
         addPage = { counters[0]++ },
         removePage = { counters[1]++ },
-        previousPage = { counters[2]++ },
-        nextPage = { counters[3]++ },
-        format = { counters[4]++ },
-        background = { counters[5]++ },
+        movePageUp = { counters[2]++ },
+        movePageDown = { counters[3]++ },
+        previousPage = { counters[4]++ },
+        nextPage = { counters[5]++ },
+        format = { counters[6]++ },
+        background = { counters[7]++ },
     )
 
     private fun panelScene(canStep: Boolean, canRemove: Boolean): ImageComposeScene {
-        val actions = rows().copy(canStep = canStep, canRemove = canRemove)
+        val actions = rows().copy(
+            canStep = canStep,
+            canRemove = canRemove,
+            canMoveUp = canStep,
+            canMoveDown = canStep,
+        )
         val height = PanelBottom.value + 8f
         return ImageComposeScene(
             PageMenuMetrics.width.value.toInt(),

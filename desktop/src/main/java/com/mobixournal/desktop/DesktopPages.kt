@@ -43,6 +43,8 @@ import com.mobixournal.render.PageOps
 data class PageMenuActions(
     val addPage: () -> Unit = {},
     val removePage: () -> Unit = {},
+    val movePageUp: () -> Unit = {},
+    val movePageDown: () -> Unit = {},
     val previousPage: () -> Unit = {},
     val nextPage: () -> Unit = {},
     val format: () -> Unit = {},
@@ -50,6 +52,9 @@ data class PageMenuActions(
     /** A one-page document has nothing to step to, and the last page cannot be removed. */
     val canStep: Boolean = false,
     val canRemove: Boolean = false,
+    /** The first page cannot go up, the last cannot go down, and one page can go nowhere. */
+    val canMoveUp: Boolean = false,
+    val canMoveDown: Boolean = false,
 )
 
 /**
@@ -93,16 +98,54 @@ internal class DesktopPages(
     /** Drop the page in view, keeping the one in view sensible — the tablet's **Remove page**. */
     fun removePage(): Boolean {
         val tab = active() ?: return false
+        return removePageAt(tab.page)
+    }
+
+    /**
+     * Drop the page at [index] — the sidebar row's own delete, and the page menu's.
+     *
+     * A document's PDF lives in one page's background (`docs/pdf.md`), so removing **that** page must not
+     * take the PDF out of the document: the reference moves to the first pdf page that survives
+     * ([PdfPageReferences.keep]), and every remaining page still draws the sheet it names.
+     */
+    fun removePageAt(index: Int): Boolean {
+        val tab = active() ?: return false
         val count = tab.document.pageCount
         if (count <= 1) return false
-        val at = tab.page.coerceIn(0, count - 1)
+        val at = index.coerceIn(0, count - 1)
         val before = tab.document.snapshot()
-        val pages = PageOps.removeAt(tab.document.model.pages, at)
-        if (pages === tab.document.model.pages) return false
+        val kept = PageOps.removeAt(tab.document.model.pages, at)
+        if (kept === tab.document.model.pages) return false
+        val pages = PdfPageReferences.keep(tab.document.model.pages, kept)
         tab.document.replacePages(pages)
         tab.record(before)
         onStructure(tab)
         selectPage(tab, at.coerceAtMost(tab.document.pageCount - 1))
+        return true
+    }
+
+    /**
+     * Move the page at [from] to [to] — the page list's one reordering command, through
+     * [PageOps.move] and one undo step.
+     *
+     * The reference stays where it is: a reference is a fact about the **file**, and with the page order
+     * changed it is still the file every page names ([PdfPageReferences] answers from anywhere in the
+     * list). Only a delete can take it away, which is why that one [PdfPageReferences.keep]s it.
+     */
+    fun movePage(from: Int, to: Int): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        if (count <= 1) return false
+        if (from !in 0 until count) return false
+        val target = to.coerceIn(0, count - 1)
+        if (target == from) return false
+        val before = tab.document.snapshot()
+        val pages = PageOps.move(tab.document.model.pages, from, target)
+        if (pages === tab.document.model.pages) return false
+        tab.document.replacePages(pages)
+        tab.record(before)
+        onStructure(tab)
+        selectPage(tab, target)
         return true
     }
 
@@ -123,18 +166,35 @@ internal class DesktopPages(
     ): PageMenuActions {
         val tab = active()
         val count = tab?.document?.pageCount ?: 0
+        val at = tab?.page ?: 0
         return PageMenuActions(
             addPage = { addPage() },
             removePage = { removePage() },
+            movePageUp = { tab?.let { movePage(it.page, it.page - 1) } },
+            movePageDown = { tab?.let { movePage(it.page, it.page + 1) } },
             previousPage = { step(-1) },
             nextPage = { step(1) },
             format = format,
             background = background,
             canStep = count > 1,
             canRemove = count > 1,
+            canMoveUp = count > 1 && at > 0,
+            canMoveDown = count > 1 && at < count - 1,
         )
     }
 }
+
+/**
+ * Reorder the page list — the Pages menu's two move rows, one undo step.
+ *
+ * The page list is the **document's** order: a PDF-backed document reorders the sheets it writes on
+ * without touching the PDF, and the export follows the new order (`DesktopPdfExport` writes each page by
+ * the `pageno` its background still names).
+ */
+internal fun DesktopShellState.movePage(from: Int, to: Int): Boolean = pagesSection.movePage(from, to)
+
+/** Drop one page by index — the sidebar row's own delete, refused for the last page. */
+internal fun DesktopShellState.removePageAt(index: Int): Boolean = pagesSection.removePageAt(index)
 
 /**
  * A change to the page **list** invalidates every cached thumbnail: the bitmaps are filed by index, and an
@@ -224,6 +284,9 @@ internal fun PageMenuPanel(actions: PageMenuActions, onClose: () -> Unit) {
         PageMenuRow("Add page", enabled = true) { onClose(); actions.addPage() }
         PageMenuRow("Remove page", enabled = actions.canRemove) { onClose(); actions.removePage() }
         PageMenuRule()
+        PageMenuRow("Move page up", enabled = actions.canMoveUp) { onClose(); actions.movePageUp() }
+        PageMenuRow("Move page down", enabled = actions.canMoveDown) { onClose(); actions.movePageDown() }
+        PageMenuRule()
         PageMenuRow("Previous page", enabled = actions.canStep) { onClose(); actions.previousPage() }
         PageMenuRow("Next page", enabled = actions.canStep) { onClose(); actions.nextPage() }
         PageMenuRule()
@@ -244,15 +307,16 @@ internal object PageMenuMetrics {
     val ruleHeight = 11.dp
     val gap = 1.dp
 
-    /** The rows in the order the panel draws them; the two rules sit between rows 1-2 and 3-4. */
-    const val ROWS = 6
+    /** The rows in the order the panel draws them; a rule sits after every pair but the last. */
+    const val ROWS = 8
 
     /** The top edge of row [index], from the panel's own top padding and its inter-row gaps. */
     fun rowTop(index: Int): androidx.compose.ui.unit.Dp {
         val rulesAbove = when {
             index < 2 -> 0
             index < 4 -> 1
-            else -> 2
+            index < 6 -> 2
+            else -> 3
         }
         return padding + (rowHeight + gap) * index + (ruleHeight + gap) * rulesAbove
     }

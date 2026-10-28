@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -37,6 +39,11 @@ import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.createFontFamilyResolver
@@ -78,6 +85,8 @@ fun PageSidebar(
     onSelectPage: (Int) -> Unit,
     /** The shell's deferred [DesktopShellState.thumbnailRevision] — see the KDoc above. */
     revision: Int,
+    /** A row's own delete: the PDF-page list can drop a sheet where the reader sees it. */
+    onRemovePage: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -117,51 +126,116 @@ fun PageSidebar(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(count = tab.pageCount) { index ->
-                // The hidden set is part of the key: switching a layer off repaints this page's thumbnail
-                // rather than leaving a preview that disagrees with the sheet beside it. So is the
-                // shell's **deferred** revision, and deliberately not the document's edit count: an edit
-                // drops the page's cached bitmap, and the next quiet moment re-renders that one page here
-                // (the other rows hit the cache) instead of re-rendering it in the middle of a stroke.
-                val hidden = tab.hiddenOn(index)
-                val preview = rememberThumbnail(tab, index, hidden, revision, cache)
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (index == current) DesktopTheme.accent.copy(alpha = 0.10f) else Color.Transparent,
-                            RoundedCornerShape(8.dp),
-                        )
-                        .hoverFill(RoundedCornerShape(8.dp), active = index == current)
-                        .border(
-                            1.dp,
-                            if (index == current) DesktopTheme.accent else Color.Transparent,
-                            RoundedCornerShape(8.dp),
-                        )
-                        .padding(6.dp)
-                        .clickable { onSelectPage(index) },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "${index + 1}",
-                        color = if (index == current) DesktopTheme.accent else DesktopTheme.inkMuted,
-                        style = DesktopTheme.numeric,
-                        modifier = Modifier.width(22.dp),
-                    )
-                    if (preview == null) {
-                        Box(Modifier.width(THUMB_WIDTH).height(72.dp).background(DesktopTheme.activeSlot))
-                    } else {
-                        val aspect = preview.height.toFloat() / preview.width.toFloat()
-                        Image(
-                            bitmap = preview,
-                            contentDescription = "Page ${index + 1}",
-                            modifier = Modifier.width(THUMB_WIDTH).height((THUMB_WIDTH.value * aspect).dp),
-                        )
-                    }
-                }
+                PageRow(
+                    tab = tab,
+                    index = index,
+                    current = current,
+                    revision = revision,
+                    cache = cache,
+                    onSelectPage = onSelectPage,
+                    onRemovePage = onRemovePage,
+                )
             }
         }
         Spacer(Modifier.height(6.dp))
         LayersSection(tab)
+    }
+}
+
+/**
+ * One row of the page list: its number, the page itself, and its own delete.
+ *
+ * The thumbnail is asked for with the row's hidden layers as part of its key: switching a layer off
+ * repaints this page's thumbnail rather than leaving a preview that disagrees with the sheet beside it.
+ * So is the shell's **deferred** revision, and deliberately not the document's edit count — an edit drops
+ * the page's cached bitmap, and the next quiet moment re-renders that one page here (the other rows hit
+ * the cache) instead of re-rendering it in the middle of a stroke.
+ */
+@Composable
+private fun PageRow(
+    tab: DesktopTab,
+    index: Int,
+    current: Int,
+    revision: Int,
+    cache: MutableMap<Int, ImageBitmap>,
+    onSelectPage: (Int) -> Unit,
+    onRemovePage: (Int) -> Unit,
+) {
+    val preview = rememberThumbnail(tab, index, tab.hiddenOn(index), revision, cache)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(
+                if (index == current) DesktopTheme.accent.copy(alpha = 0.10f) else Color.Transparent,
+                RoundedCornerShape(8.dp),
+            )
+            .hoverFill(RoundedCornerShape(8.dp), active = index == current)
+            .border(
+                1.dp,
+                if (index == current) DesktopTheme.accent else Color.Transparent,
+                RoundedCornerShape(8.dp),
+            )
+            .padding(6.dp)
+            .clickable { onSelectPage(index) },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "${index + 1}",
+            color = if (index == current) DesktopTheme.accent else DesktopTheme.inkMuted,
+            style = DesktopTheme.numeric,
+            modifier = Modifier.width(22.dp),
+        )
+        if (preview == null) {
+            Box(Modifier.width(THUMB_WIDTH).height(72.dp).background(DesktopTheme.activeSlot))
+        } else {
+            val aspect = preview.height.toFloat() / preview.width.toFloat()
+            Image(
+                bitmap = preview,
+                contentDescription = "Page ${index + 1}",
+                modifier = Modifier.width(THUMB_WIDTH).height((THUMB_WIDTH.value * aspect).dp),
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        // The row's own delete, where the page is: the last page of a document is never removed
+        // (`PageOps.removeAt`), so the glyph wears the muted ink and does nothing.
+        PageRemoveGlyph(
+            enabled = tab.pageCount > 1,
+            label = "Remove page ${index + 1}",
+            onRemove = { onRemovePage(index) },
+        )
+    }
+}
+
+/**
+ * A row's delete: the chrome's monoline close, on the row rather than in a menu.
+ *
+ * Muted until the row is hovered and inert on a one-page document (`enabled = false`), which is the
+ * **disabled** state of `docs/interface-contract.md` §6 rather than a second, dimmer close glyph: an
+ * unavailable action stays where the eye expects it and says so in tone.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun PageRemoveGlyph(enabled: Boolean, label: String, onRemove: () -> Unit) {
+    var hovered by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .width(22.dp)
+            .height(22.dp)
+            .background(
+                if (hovered && enabled) DesktopTheme.hoverSlot else Color.Transparent,
+                DesktopTheme.capsuleShape,
+            )
+            .onPointerEvent(PointerEventType.Enter) { hovered = true }
+            .onPointerEvent(PointerEventType.Exit) { hovered = false }
+            .semantics { contentDescription = label }
+            .pointerInput(enabled) {
+                if (enabled) detectTapGestures { onRemove() }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(12.dp)) {
+            drawChromeGlyph(ChromeGlyph.CLOSE, if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted)
+        }
     }
 }
 
@@ -291,7 +365,9 @@ internal fun thumbnail(
     val page = runCatching { tab.document.page(index) }.getOrNull() ?: return null
     if (page.width <= 0.0) return null
     val scale = widthDp / page.width.toFloat()
-    val bitmap = runCatching { renderPageBitmap(page, scale, hiddenLayers = hidden) }.getOrNull() ?: return null
+    val bitmap = runCatching {
+        renderPageBitmap(page, scale, hiddenLayers = hidden, backdrop = tab.document.backdrop)
+    }.getOrNull() ?: return null
     if (hidden.isEmpty()) cache[index] = bitmap
     return bitmap
 }
@@ -319,6 +395,11 @@ internal fun renderPageBitmap(
     scale: Float,
     density: Density = Density(1f),
     hiddenLayers: Set<Int> = emptySet(),
+    /**
+     * What the page sits on. A PDF-backed page needs it here as much as on the canvas: a page list whose
+     * rows are bare paper cannot be reordered or pruned, because there is nothing to recognise.
+     */
+    backdrop: PageBackdrop? = null,
 ): ImageBitmap {
     val w = (page.width * scale).roundToInt().coerceAtLeast(1)
     val h = (page.height * scale).roundToInt().coerceAtLeast(1)
@@ -339,6 +420,7 @@ internal fun renderPageBitmap(
                 page,
                 pxPerPt = scale * density.density,
                 textMeasurer = measurer,
+                backdrop = backdrop,
                 hiddenLayers = hiddenLayers,
             )
         }

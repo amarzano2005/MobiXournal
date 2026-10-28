@@ -133,6 +133,15 @@ refused in words: slicing it into sheets is the tablet's `BoardSlicer` and the w
 The window's pages are read through its page window, so a paged `.mobix` inflates one sheet at a time and an
 unsaved edit is in the export.
 
+**A page that names no PDF is still on one.** A document records the reference on a single page and every
+other pdf page carries a `pageno` alone, and desktop reads that shape by inheritance — so the window
+resolves a page's picture through the document's reference rather than through the page itself
+(`PdfPageReferences`), and the same rule paints the canvas, the page list's thumbnails and the export. Told
+no better, the window used to read each page on its own: a three-page import showed its first sheet and
+left the other two blank, and an export of it lost their vectors too. Removing the page that carries the
+reference hands it to the first pdf page that survives, so a delete cannot take the PDF out of the
+document, and a reorder changes only the order the export writes.
+
 ## Fonts in generated PDFs
 
 **Fonts in generated PDFs.** The PDF **base-14** fonts (`PDType1Font.HELVETICA` and friends) only
