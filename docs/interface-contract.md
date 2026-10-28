@@ -24,7 +24,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
 
 - **A lane is air, not a band.** Painting a lane and its capsule both gives 0.85 over 0.85 (0.98) and the
   strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract
-  exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`.
+  exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`. **The tablet's rail
+  lane is air for the same reason** (`RailLane` paints the desk the canvas paints around the page): a sheet
+  of glass there made the lane a lighter column than the desk it stands on, so the body under the header
+  had two tones and the header's closing edge ended against that column in a white notch at the corner.
 - **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads
   as two grey rules across the window. The edge is a band's whole boundary.
 - **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a

@@ -132,8 +132,8 @@ fills in for any role a scheme does not name. See _The violet trap_ below for wh
   as the static schemes — so a wallpaper palette can only ever reach the error reds. (The light
 dynamic scheme used to re-pin primary and secondary *only*, which was the second way a lavender
 container could reach a light-theme screen.)
-- **Unified toolbar band surfaces**: Both the top bar (`EditorTopBar`) and the side rail lane (`RailLane`) wrap in an identical full-span `Surface(color = glassColor)`,
-  ensuring that both horizontal and vertical chrome bands share the exact same frosted glass fill without naked black cutouts. Neither wears an elevation: the rule that a band shades its own closing edge instead of casting onto the band beside it is owned by `interface-contract.md`.
+- **The top bar is the only glass band, and the rail's lane is air**: `EditorTopBar` is a full-span `Surface(color = glassColor)`, while `RailLane` paints the desk itself (`rememberChromeColor()`) — so the body under the header, lane and the canvas's own margin, is one tone and the frosted capsules are what stands in it. Neither wears an elevation: the rule that a band shades its own closing edge instead of casting onto the band beside it is owned by `interface-contract.md`;
+  the rule that a lane is air rather than a second sheet of glass is that same document's.
 - **`TextLightOnDark` (`#EDEDED`)** & **`TextDarkOnLight` (`#1B212F`)**: High-legibility neutral text.
 - **`TextSecondaryOnDark` (`#A0A0A0`)** & **`TextSecondaryOnLight` (`#5E6266`)**: Secondary caption text —
   both **neutral** greys. The light one was a blue-grey (`#596579`), which put a colour cast on every

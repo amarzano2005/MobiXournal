@@ -259,9 +259,11 @@ private fun ToolIndicatorFace(
  *
  * It is as tall as the dock ([TOP_BAR_DOCK_HEIGHT]), flush with its edge, and wears the dock's corner
  * ([TOP_BAR_DOCK_CORNER]) on the end it caps, while the corners facing the figures stay smaller so the
- * cap reads as part of the bar rather than as a second bar. The flush, full-height grey is the point:
- * an inset chip leaves a crescent of the dock's own tone around itself, and the toolbar's rounded
- * border then encloses the dock instead of enclosing the indicator.
+ * cap reads as part of the bar rather than as a second bar. The flush, full-height **fill of the dock
+ * itself** is the point: it is not a chip inside the bar but the bar's own end, and the face — the
+ * tool's icon, live colour and size letter — is the whole of what marks it. A grey plate of its own
+ * (`surfaceContainerHighest`) put two backgrounds inside one capsule, a seam down the dock's middle at
+ * the radius the two shapes met on (removed 2026-10-28).
  *
  * Nothing divides the cap from the figures either: a vertical divider cut the dock in two for a
  * boundary the grey already draws, so the tools simply start a padding-width after the cap.
@@ -287,8 +289,7 @@ internal fun ActiveToolIndicator(
         trapezoidKind = trapezoidKind,
         modifier = modifier
             .fillMaxHeight()
-            .clip(topBarCapShape(capOnLeft))
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .clip(topBarCapShape(capOnLeft)),
     )
 }
 
