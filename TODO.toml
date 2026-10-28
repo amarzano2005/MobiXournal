@@ -244,3 +244,99 @@ created = 2026-10-26
 tags = []
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-import-page-builder"
+title = "Desktop: build the pages of an imported PDF"
+description = """
+New `desktop/src/main/java/com/mobixournal/desktop/DesktopPdfImport.kt`, a JVM twin of `app/src/main/java/com/mobixournal/render/PdfImport.kt`: `object DesktopPdfImport` with `fun pages(pdf: PDDocument, reference: String?, pageNoOffset: Int = 0): List<Page>` and `fun document(pdf: PDDocument, reference: String): Document`.
+
+Behaviour, page for page, exactly the shape the tablet's importer documents: one `Page` per PDF page, `width`/`height` from `PDPage.mediaBox` in points (the unit `.xopp` and `PdfImport` use, so the sheet matches the PDF page), `background = Background.Pdf(filename = if (i == 0) reference else null, pageNo = i + pageNoOffset, domain = if (i == 0 && reference != null) ABSOLUTE_DOMAIN else null)` and `layers = listOf(Layer(emptyList()))` so the page has something to draw on. `ABSOLUTE_DOMAIN` is the constant `PdfImport` uses (`"absolute"`); take it from where it already lives rather than spelling a second one. A PDF that cannot be opened, or has no pages, is refused with a sentence a reader can act on (the copy rule is `docs/ui-modernization.md`; `describeOpenFailure` in `OpenFailure.kt` is the pattern) — never a stack trace, never an empty document.
+
+The page count and the page sizes are the only things `PdfPageCache` was needed for, so nothing of Android enters this: `PDDocument` is the desktop's own `org.apache.pdfbox`.
+
+Verification: new `desktop/src/test/java/com/mobixournal/desktop/DesktopPdfImportTest.kt`. Build a three-page PDF in the test with `PDDocument`/`PDPage` the way `DesktopPdfExportTest` does, then assert: the page count; each page's size equals its media box; only page 0 carries `filename` and `domain`, the others `pageno` alone; `pageno` runs 0,1,2 and `pageNoOffset = 5` shifts it to 5,6,7; `document()` gives one layer per page. Then assert the desktop renders it through the existing path: `PageBackdrop(bundled = { null }, documentDir = null).sourcePdf(pages.first().background as Background.Pdf)` answers a document with three pages (the absolute path arm of `PageBackdrop.fileOf`, no Skia needed).
+
+Docs, same commit: `docs/pdf.md` (the import paragraph gains the desktop half — one page per PDF page, the first carrying the reference), `docs/desktop-workstation.md`. Desktop only: no APK, `rebuild = false`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1140
+created = 2026-10-28
+tags = ["desktop", "pdf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-import-command-and-modes"
+title = "Desktop: Import PDF command, its REPLACE/APPEND question and the two outcomes"
+description = """
+The command and its two answers, wired end to end. Four pieces:
+
+(1) `DesktopMenu.kt` — a chip *Import PDF* in the export row beside *Export PDF*, wearing `ChromeGlyph.PDF`, always enabled (REPLACE needs no open document), with `onImportPdf: () -> Unit` on `MenuPanel`/`HeaderMenu` threaded exactly like `onExportSvg`. No new `ShellCommand` and no key: `onExportSvg` is the precedent, and `ShortcutTableTest` stays untouched.
+
+(2) `DesktopApp.kt`'s `DocumentDialogs` — `fun importPdf()`: a `FileDialog(window, "Import a PDF", FileDialog.LOAD)` filtered on `.pdf` (its filter is ignored on Windows, as `chooseDocument`'s comment says), then the question card. New `desktop/src/main/java/com/mobixournal/desktop/ImportPdfDialog.kt` in the window's own grammar (the material and the words of `docs/interface-contract.md`: two rows with a sentence each, the accent on the answer that keeps the work, Cancel): *Add the pages to this document* (the default) and *Replace this document*. A `.pdf` that will not open is reported through the failure card the window already has.
+
+(3) `DesktopShellState.importPdf(file: File, mode: ImportPdfMode)` in a new `DesktopPdfImportCommands.kt` beside `DesktopShellSaves.kt` (`ImportPdfMode` is already `app/.../render/ImportPdfMode.kt`, REPLACE/APPEND, reusable). REPLACE opens the built document in a **new tab** and never discards the open one: the tab is unsaved, dirty, named after the PDF with the default container's suffix in the PDF's own folder, so `Ctrl+S` proposes `<name>.mobix` beside it; `DesktopTabs.newBlankDocument` (`DesktopTabs.kt`) is the pattern to mirror — add an `adopt(...)` beside it that takes a model, a container and a proposed file rather than forking the tab class. APPEND records `tab.document.snapshot()` first, swaps the model for `PageOps.appendPages(...)` of the built pages, and drops a lone untouched blank sheet before appending (the tablet's rule in `DrawingSurfaceView.appendPages`); the tab is left dirty with exactly one undo step, and `Ctrl+Z` returns to the old page count.
+
+(4) Nothing else: no reader, no cache, no second format. `PageBackdrop` already paints the reference.
+
+Verification, in `DesktopPdfImportTest.kt`: a fixture PDF three pages long; REPLACE with a document open leaves that document and its tab untouched and adds one tab holding three PDF pages, dirty, with the proposed name; APPEND onto a fresh blank page yields exactly three pages (not four — the blank sheet is dropped); APPEND onto a two-page document yields five, dirty, and one `undo()` gives two again; a cancelled question changes nothing. A render test is not required: the dialog is a card and the state cases are the behaviour.
+
+Docs, same commit: `docs/desktop-workstation.md` (What the window does — the import and its two answers), `README.md` (the menu list and the import), `docs/pdf.md`. Desktop only: `rebuild = false`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1150
+created = 2026-10-28
+tags = ["desktop", "pdf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-import-merges-a-second-pdf"
+title = "Desktop: a second imported PDF is joined into the first"
+description = """
+`docs/pdf.md`'s single-background rule on the PC: a `.xopp` references one PDF, and the tablet answers a second import by joining the two files (`MainActivity.appendMergedPdf` → `render/PdfMerger.join`). That merger is pdfbox-android (`com.tom_roush`); the desktop links `org.apache.pdfbox` and needs its own twin.
+
+New `desktop/src/main/java/com/mobixournal/desktop/DesktopPdfMerge.kt`: `object DesktopPdfMerge` with `fun join(base: File, added: File, out: File): File` using `org.apache.pdfbox.multipdf.PDFMergerUtility` (`destinationFileName = out.absolutePath`, `addSource(base)`, `addSource(added)`, `mergeDocuments(MemoryUsageSetting.setupTempFileOnly())`), refusing an `out` that equals either source — the merge reads them while it writes, which is why `PdfMerger` requires the same and why callers alternate names. It is the only place that merges.
+
+Then the APPEND path in `DesktopPdfImportCommands.kt` honours it: when the active document already has a `Background.Pdf` page whose reference resolves to a file, the arriving PDF is joined *after* it — the joined file becomes the document's reference (page 0's `filename` re-pointed at it, `domain` left as it was), the built pages are appended with `pageNoOffset = base.numberOfPages` so their `pageno` continues, and the tab is still one undo step. When there is no PDF background yet, nothing merges: the pages are appended with their own reference, as the tablet does. A reference that resolves to nothing (a document whose PDF went missing) takes the merge arm only if the file can be found; otherwise the import adds its own reference and the pages paint from it.
+
+Verification, `DesktopPdfMergeTest.kt`: two builder-made PDFs, 2 and 3 pages; `join` writes a 5-page file and leaves both sources byte-identical; the appended pages carry `pageno` 2,3,4; page 0's `filename` is the joined file; a `.mobix`/`.xopp` save of that document paints all five pages through `PageBackdrop.sourcePdf`. Add the state case to `DesktopPdfImportTest.kt`: APPEND onto a document already backed by a two-page PDF gives five pages, one reference, one undo step.
+
+Docs, same commit: `docs/pdf.md` (the single-background paragraph gains the desktop's twin), `docs/desktop-workstation.md`. Desktop only: `rebuild = false`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1160
+created = 2026-10-28
+tags = ["desktop", "pdf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-import-saves-the-bytes-with-the-document"
+title = "Desktop: a save carries the PDF an import brought"
+description = """
+The bytes an import brought must travel with the document where the format can carry them, or the first save loses the PDF.
+
+`DocumentEncoder.write` in `mobix-core` already has the seam: `pdf: File?` is bundled as `background/background.pdf` for a `.mobix` and attached as `bg.pdf` with `domain="attach"` for a zipped `.xopp`, while a plain gzip `.xopp` keeps the path reference, made relative to the target when the two share a folder (`relativeReferences`). The window never passes it: `DesktopSaves.stage` calls `write(...)` with the shape alone.
+
+So: give `DesktopSaves.stage`/`save` a `pdf: File?` argument and pass it through, and resolve it in one place — a new `fun pdfSource(): File?` on `DesktopDocument` (`DocumentLoader.kt`, beside `saveShapeFor`) that answers the file behind the document's first `Background.Pdf` when its `filename` is an absolute path that exists, and null otherwise (a bundled `.mobix`, a package's extracted entry, a relative reference and a missing file all answer null — the first two already travel inside the archive `SaveShape.carriedFrom` repacks from, and passing them again would write a second entry). `DesktopTab.saveBack` and `DesktopShellState.saveAs` (`DesktopShellSaves.kt`) take the same document, so nothing else changes; `DesktopRecovery`'s snapshot keeps writing without it (a snapshot is a self-contained `.mobix` of its own, and `saveShapeFor` already handles it).
+
+Verification, new `DesktopPdfImportTest` cases or `DesktopSaveTest`: import a PDF onto a blank tab, save as `.mobix`, reopen with `DocumentLoader` and assert the background carries `bundledAsset` and that `PageBackdrop.sourcePdf` opens it; save as a zipped `.xopp` and assert the package holds `bg.pdf` and the reference is `attach`; save as a plain `.xopp` in the PDF's folder and assert the reference is relative, still opens, and is not `attach`; and a document opened from a `.mobix` that already bundles its PDF saves again with exactly one `background/background.pdf` entry (read the archive's entry names — no duplicate).
+
+Docs, same commit: `docs/pdf.md`, `docs/desktop-workstation.md` (a save carries the PDF), `docs/data-path.md` if it states what a save carries. Desktop and core only: no APK, `rebuild = false`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1170
+created = 2026-10-28
+tags = ["desktop", "pdf"]
+rebuild = false
+emulator_debug = false
