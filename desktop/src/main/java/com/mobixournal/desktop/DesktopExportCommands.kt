@@ -14,8 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * The window's **two export commands** — Export PDF and Export pages as SVG — and the one line it says
- * afterwards.
+ * The window's **three export commands** — Export PDF, Export pages as PNG and Export pages as SVG — and
+ * the one line it says afterwards.
  *
  * The exporters are the library (`DesktopPdfExport`, `DesktopSvgExport`) and they do not know about a
  * window: they write files. What a command adds is the *choice* (which file, which folder), the
@@ -46,6 +46,9 @@ internal sealed interface ExportRequest {
 
     /** One SVG per page, written into [folder] — the document's own folder when null. */
     data class Svg(val folder: File? = null) : ExportRequest
+
+    /** One PNG per page, written into [folder] — the document's own folder when null. */
+    data class Png(val folder: File? = null) : ExportRequest
 }
 
 /**
@@ -132,6 +135,13 @@ internal fun exportOf(document: DesktopDocument, request: ExportRequest): Export
                     "Exported ${files.size} ${pageWord(files.size)} as SVG into ${folder.path}",
                 )
             }
+            is ExportRequest.Png -> {
+                val folder = request.folder ?: document.file.absoluteFile.parentFile ?: File(".")
+                val files = DesktopPngExport.write(document, folder)
+                ExportOutcome.Written(
+                    "Exported ${files.size} ${pageWord(files.size)} as PNG into ${folder.path}",
+                )
+            }
         }
     }.getOrElse { failure -> ExportOutcome.Failed(describeExportFailure(failure)) }
 
@@ -158,6 +168,14 @@ internal fun DesktopShellState.exportPdf(target: File): ExportOutcome? {
 internal fun DesktopShellState.exportSvg(folder: File? = null): ExportOutcome? {
     val tab = tabs.active ?: return null
     val outcome = exportOf(tab.document, ExportRequest.Svg(folder))
+    applyExport(outcome)
+    return outcome
+}
+
+/** `Export pages as PNG` for the active document, beside it unless [folder] says otherwise. */
+internal fun DesktopShellState.exportPng(folder: File? = null): ExportOutcome? {
+    val tab = tabs.active ?: return null
+    val outcome = exportOf(tab.document, ExportRequest.Png(folder))
     applyExport(outcome)
     return outcome
 }

@@ -25,7 +25,8 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * The overflow menu as the mobile bar draws it: four tiles, two export chips, the page list under a rule.
+ * The overflow menu as the mobile bar draws it: four tiles, two rows of chips (the PDF pair in the
+ * document red, the page pair in the accent), the page list under a rule.
  *
  * A `Popup` cannot be rendered in a headless scene, which is why the panel is its own composable
  * (`MenuPanel`) and this draws it directly. The clicks use [MenuMetrics] — the very numbers the layout
@@ -38,15 +39,15 @@ class DesktopMenuTest {
     @get:Rule
     val temp = TemporaryFolder()
 
-    private val counters = IntArray(7)
+    private val counters = IntArray(9)
 
     private val width = MenuMetrics.width.value
     /** The scene fits the panel, Pen block included — a row clipped by the frame cannot be clicked. */
     private val height: Float = with(MenuMetrics) {
         (
-            padding * 2 + tileHeight + sectionGap + chipHeight + sectionGap +
+            padding * 2 + tileHeight + sectionGap + chipsHeight + sectionGap + dividerHeight +
                 rowHeight + sectionGap + dividerHeight + rowHeight * 2
-            ).value
+            ).value + 4f
     }
 
     @Test
@@ -57,15 +58,19 @@ class DesktopMenuTest {
             for (index in 0..3) {
                 tap(scene, tileCentre(index), tileCentreY(), at); at += 512L
             }
-            tap(scene, chipCentre(0), chipCentreY(), at); at += 512L
-            tap(scene, chipCentre(1), chipCentreY(), at); at += 512L
+            tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
+            tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
+            tap(scene, chipCentre(0), chipCentreY(row = 1), at); at += 512L
+            tap(scene, chipCentre(1), chipCentreY(row = 1), at); at += 512L
             tap(scene, width / 2f, rowCentreY(), at)
 
             assertEquals("New", 1, counters[NEW])
             assertEquals("Open", 1, counters[OPEN])
             assertEquals("Save", 1, counters[SAVE])
             assertEquals("Save As", 1, counters[SAVE_AS])
+            assertEquals("Import PDF", 1, counters[IMPORT])
             assertEquals("Export PDF", 1, counters[PDF])
+            assertEquals("Export PNG", 1, counters[PNG])
             assertEquals("Export SVG", 1, counters[SVG])
             assertEquals("the page list's row", 1, counters[SIDEBAR])
         } finally {
@@ -79,12 +84,20 @@ class DesktopMenuTest {
         try {
             var at = 1_000L
             tap(scene, tileCentre(2), tileCentreY(), at); at += 512L
-            tap(scene, chipCentre(0), chipCentreY(), at); at += 512L
+            tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
+            tap(scene, chipCentre(1), chipCentreY(row = 1), at); at += 512L
+            tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
             tap(scene, tileCentre(0), tileCentreY(), at)
 
             assertEquals("a clean document has nothing to save", 0, counters[SAVE])
             assertEquals("and nothing to export", 0, counters[PDF])
-            assertEquals("but New still opens a page", 1, counters[NEW])
+            assertEquals("neither PDF nor PNG", 0, counters[PNG])
+            assertEquals(
+                "but a PDF can still be brought in, which opens a tab of its own",
+                1,
+                counters[IMPORT],
+            )
+            assertEquals("and New still opens a page", 1, counters[NEW])
         } finally {
             scene.close()
         }
@@ -122,13 +135,17 @@ class DesktopMenuTest {
                 .count { (it and 0xFFFFFF) >= INK_FLOOR }
             assertTrue("tile $index draws its glyph and label", white > 12)
         }
-        val pdfChip = pixelsAround(chipCentre(0), chipCentreY(), 16)
-            .count { colour -> ((colour shr 16) and 0xFF) > (colour and 0xFF) + 60 }
-        assertTrue("the PDF chip is written in the document red", pdfChip > 12)
+        for (index in 0..1) {
+            val pdfChip = pixelsAround(chipCentre(index), chipCentreY(row = 0), 16)
+                .count { colour -> ((colour shr 16) and 0xFF) > (colour and 0xFF) + 60 }
+            assertTrue("chip $index of the PDF row is written in the document red", pdfChip > 12)
+        }
 
-        val rasterChip = pixelsAround(chipCentre(1), chipCentreY(), 16)
-            .count { colour -> (colour and 0xFF) > ((colour shr 16) and 0xFF) + 40 }
-        assertTrue("the raster chip is written in the accent", rasterChip > 12)
+        for (index in 0..1) {
+            val rasterChip = pixelsAround(chipCentre(index), chipCentreY(row = 1), 16)
+                .count { colour -> (colour and 0xFF) > ((colour shr 16) and 0xFF) + 40 }
+            assertTrue("chip $index of the page row is written in the accent", rasterChip > 12)
+        }
     }
 
     /**
@@ -161,7 +178,7 @@ class DesktopMenuTest {
         val (plain, lit) = try {
             Snapshot.sendApplyNotifications()
             val before = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
-            mouse(scene, PointerEventType.Move, chipCentre(1), chipCentreY(), 1_000L, pressed = false)
+            mouse(scene, PointerEventType.Move, chipCentre(1), chipCentreY(row = 1), 1_000L, pressed = false)
             Snapshot.sendApplyNotifications()
             val after = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
             before to after
@@ -174,8 +191,7 @@ class DesktopMenuTest {
         // label's bounds, so the chip lit only where the words were. Both ends must brighten.
         val before = ImageIO.read(ByteArrayInputStream(plain))
         val after = ImageIO.read(ByteArrayInputStream(lit))
-        val y = (MenuMetrics.padding + MenuMetrics.tileHeight + MenuMetrics.sectionGap +
-            MenuMetrics.chipHeight / 2).value.toInt()
+        val y = chipCentreY(row = 1).toInt()
         fun brightened(x: Float): Boolean {
             val px = x.toInt()
             val from = before.getRGB(px, y) and 0xFF
@@ -200,6 +216,8 @@ class DesktopMenuTest {
                     onSaveAs = {},
                     onExportPdf = {},
                     onExportSvg = {},
+                    onExportPng = {},
+                    onImportPdf = {},
                     onToggleSidebar = {},
                     onSettings = {},
                     onDismiss = {},
@@ -230,6 +248,8 @@ class DesktopMenuTest {
                     onSaveAs = { counters[SAVE_AS]++ },
                     onExportPdf = { counters[PDF]++ },
                     onExportSvg = { counters[SVG]++ },
+                    onExportPng = { counters[PNG]++ },
+                    onImportPdf = { counters[IMPORT]++ },
                     onToggleSidebar = { counters[SIDEBAR]++ },
                     onSettings = {},
                 )
@@ -246,17 +266,19 @@ class DesktopMenuTest {
         (padding + chipWidth / 2 + (chipWidth + chipGap) * index).value
     }
 
-    private fun chipCentreY(): Float = with(MenuMetrics) {
-        (padding + tileHeight + sectionGap + chipHeight / 2).value
+    /** A chip's line: the tiles, the section gap, then the first row and the second under it. */
+    private fun chipCentreY(row: Int): Float = with(MenuMetrics) {
+        (padding + tileHeight + sectionGap + (chipHeight + chipGap) * row + chipHeight / 2).value
     }
 
     /**
-     * The page-list row, by the panel's own arithmetic: the tiles, the export chips, the **Pen heading**
-     * (the block below it is the shell's settings, absent in this test), the rule, then the row.
+     * The page-list row, by the panel's own arithmetic: the tiles, the two chip rows, the rule, the
+     * **Pen heading** (its block is the shell's settings, absent in this test), the second rule, then the
+     * row.
      */
     private fun rowCentreY(): Float = with(MenuMetrics) {
         (
-            padding + tileHeight + sectionGap + chipHeight + sectionGap +
+            padding + tileHeight + sectionGap + chipsHeight + sectionGap + dividerHeight +
                 rowHeight + sectionGap + dividerHeight + rowHeight / 2
             ).value
     }
@@ -297,9 +319,11 @@ class DesktopMenuTest {
         const val OPEN = 1
         const val SAVE = 2
         const val SAVE_AS = 3
-        const val PDF = 4
-        const val SVG = 5
-        const val SIDEBAR = 6
+        const val IMPORT = 4
+        const val PDF = 5
+        const val PNG = 6
+        const val SVG = 7
+        const val SIDEBAR = 8
 
         /** Anything at or above this tone is a glyph stroke: the chrome ink is pure white. */
         const val INK_FLOOR = 0x909090

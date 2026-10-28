@@ -58,6 +58,8 @@ internal fun DesktopShell(
             // The pages go beside the document, which is the folder the user opened it from; no dialog,
             // because AWT has no folder-only picker and a file picker would ask the wrong question.
             onExportSvg = { DesktopExportQueue.request(ExportRequest.Svg()) },
+            // The raster of the same pages, one PNG each, through the same worker.
+            onExportPng = { DesktopExportQueue.request(ExportRequest.Png()) },
             // The page's two commands live in the tool strips now, after their divider
             // (`ToolStrips.PageSetupSlots`): the header keeps the file and the view.
             onToggleSidebar = { state.toggleSidebar() },

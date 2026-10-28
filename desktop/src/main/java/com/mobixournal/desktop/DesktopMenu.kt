@@ -39,13 +39,15 @@ import java.util.Locale
  * The window's **overflow menu** — the mobile bar's menu, ported and laid out the same way.
  *
  * The tablet's menu (its photo is the reference) is four **tiles** of art over a word across the top,
- * the exports as a pair of **chips** under them, and the plain commands below a hairline. The window
- * keeps that shape with its own commands: New, Open, Save and Save As on the top row; the two exports
- * as chips, in the accent the tablet gives them; the page list under the rule.
+ * the file's **chips** under them, and the plain commands below a hairline. The window keeps that shape
+ * with its own commands: New, Open, Save and Save As on the top row; then the tablet's own two rows of
+ * chips — **Import PDF** and **Export PDF** in the document red, **Export PNG** and **Export SVG** in the
+ * accent — then the page list under the rule.
  *
- * What is deliberately **not** here is the tablet's Import PDF, Page as PNG and Settings: the first two
- * are commands the window does not have yet, and a dead row in a menu is worse than one the window
- * grows into. The rows are added as the commands land (`TODO.toml`).
+ * The chips are two rows rather than one row of four because the tablet draws them so: what brings a PDF
+ * *in* beside what sends a PDF *out* (both red, both about the same file), and the two page exports
+ * beside each other in the accent. One row of four would put Import and Export PNG next to each other and
+ * make a command that opens a document look like a command that writes one.
  *
  * The panel is [MenuPanel] rather than this `Popup`'s body, because a popup cannot be rendered in a
  * headless scene: the panel is what a test draws, clicks and files as a PNG, and this wrapper only adds
@@ -63,9 +65,10 @@ internal fun HeaderMenu(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
+    onExportPng: () -> Unit = {},
     /**
-     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is a
-     * document command, not an export, which is why its row sits above the two chips.
+     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is the
+     * red chip beside Export PDF, as on the tablet: the same file, coming in rather than going out.
      */
     onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
@@ -105,6 +108,7 @@ internal fun HeaderMenu(
                     onSaveAs = { open = false; onSaveAs() },
                     onExportPdf = { open = false; onExportPdf() },
                     onExportSvg = { open = false; onExportSvg() },
+                    onExportPng = { open = false; onExportPng() },
                     onImportPdf = { open = false; onImportPdf() },
                     onToggleSidebar = { open = false; onToggleSidebar() },
                     onSettings = { open = false; onSettings() },
@@ -117,7 +121,7 @@ internal fun HeaderMenu(
     }
 }
 
-/** The menu's panel: four tiles, two chips, and the page list — the mobile menu, with its rules. */
+/** The menu's panel: four tiles, two rows of chips, and the page list — the mobile menu, with its rules. */
 @Composable
 internal fun MenuPanel(
     sidebarVisible: Boolean,
@@ -129,9 +133,11 @@ internal fun MenuPanel(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
+    /** **Export PNG**: one raster file per page, beside the document (`DesktopPngExport`). */
+    onExportPng: () -> Unit = {},
     /**
-     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is a
-     * document command, not an export, which is why its row sits above the two chips.
+     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is the
+     * red chip beside Export PDF, as on the tablet: the same file, coming in rather than going out.
      */
     onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
@@ -163,25 +169,16 @@ internal fun MenuPanel(
             MenuTile("Save As", ChromeGlyph.SAVE_AS, enabled = true, onClick = onSaveAs)
         }
         Spacer(Modifier.height(MenuMetrics.sectionGap))
-        // **Import** brings content in, so it stands beside the file commands rather than inside the row
-        // of exports: the two chips below send the document *out*, and a reader scanning for one should
-        // not find the other in the same place.
-        MenuRow(
-            label = "Import PDF",
-            glyph = ChromeGlyph.PDF,
-            enabled = true,
-            onClick = onImportPdf,
-        )
-        Spacer(Modifier.height(MenuMetrics.sectionGap))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MenuMetrics.padding),
-            horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap),
-        ) {
-            // The tablet's rule for the two exports: the PDF chip is the document red, the page raster
-            // stays in the accent. Colouring both the same made the PDF look like any other export.
+        // The tablet's two rows of chips, in its own order. **Import** sits beside **Export PDF** and
+        // they share the document red, because they are about the same file: a PDF. The page exports
+        // below are the accent, since they write the sheet rather than the PDF it may sit on.
+        MenuChipRow {
+            MenuChip("Import PDF", ChromeGlyph.PDF, true, Modifier.weight(1f), DesktopTheme.documentRed, onImportPdf)
             MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
+        }
+        Spacer(Modifier.height(MenuMetrics.chipGap))
+        MenuChipRow {
+            MenuChip("Export PNG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportPng)
             MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
         }
         // A rule between the **exports** and the **pen**: the two chips above it act on the document's
@@ -189,11 +186,12 @@ internal fun MenuPanel(
         // stops at the line, which is what the tablet's own menu does.
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
-        // The tablet's **Pen block**, and only the pen's own answers in it, in the Stylus page's order:
-        // the stream, the switch, the presets, their two numbers, the way back to the factory pair. Nothing
-        // about the **ink** lives here — a colour and a width have their capsule in the strip.
+        // The tablet's **Pen block**, and only the pen's own answers in it: the switch, the presets, their
+        // two numbers, the way back to the factory pair. Which stream the pen is read from is **not** here:
+        // it belongs to the Stylus page, and a menu's job is the pen's drawing, not the driver's identity.
+        // Nothing about the **ink** lives here either — a colour and a width have their capsule in the strip.
         MenuHeadingRow(label = "Pen", onClick = onPenParameters)
-        if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss, onPenParameters)
+        if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss)
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
         MenuRow(
@@ -216,16 +214,12 @@ internal fun MenuPanel(
 }
 
 /**
- * **The Pen block**, in the Stylus page's own order — the pen's answers, scaled to the menu.
+ * **The Pen block**: what a stroke is drawn with, scaled to the menu.
  *
- * The page asks its questions in one order and the menu keeps it: the stream it is read from, whether
- * pressure counts at all, *which* preset names the two numbers, then those numbers, then the way back to
- * the factory pair. A reader who learns one surface finds the same rows in the same places on the other
- * (`docs/desktop-settings.md`, *The Pen block*).
- *
- * The **stream is a readout here**, not a select: a select's list is a popup, and a popup opened inside the
- * menu's own popup takes the menu down with it. The row therefore states the stream in hand in the accent
- * and wears the page's door glyph, so the click that names it goes where it can be changed.
+ * It carries the pen's **drawing** answers only: whether pressure counts at all, *which* preset names the
+ * two numbers, then those numbers, then the way back to the factory pair. Which **stream** the pen is read
+ * from is deliberately absent — that is a fact about the driver on this machine, not about the stroke being
+ * made, and the menu is reached mid-drawing. It stays on the Stylus page, where the heading's glyph leads.
  *
  * The rows are [MenuSettingRow] — [SettingsRow] at the menu's 34 dp line and in the *label* role — because
  * this block sits in a menu, not on a page. The smaller line is also what stopped the old *Pressure* row
@@ -236,14 +230,7 @@ internal fun MenuPanel(
  * applies it and puts the panel away — the hand was mid-drawing.
  */
 @Composable
-private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit, onPenParameters: () -> Unit) {
-    MenuSettingRow(label = "Stream", onClick = onPenParameters) {
-        Text(policy.penStream.label, color = DesktopTheme.accent, style = DesktopTheme.label)
-        Spacer(Modifier.width(6.dp))
-        Canvas(Modifier.size(14.dp)) {
-            drawSettingsGlyph(SettingsGlyph.EDITOR, DesktopTheme.inkSecondary)
-        }
-    }
+private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
     MenuSettingRow(
         label = "Pressure sensitivity",
         onClick = { policy.choosePressureEnabled(!policy.pressureEnabled) },
@@ -329,6 +316,10 @@ internal object MenuMetrics {
     val tileHeight = 64.dp
     val chipGap = 8.dp
     val chipHeight = 38.dp
+
+    /** The two chip rows as one block: a line, the gap, a line — what the layout and the test both read. */
+    val chipsHeight: androidx.compose.ui.unit.Dp
+        get() = chipHeight * 2 + chipGap
     val sectionGap = 10.dp
 
     /** The rule between the chips and the page list, with its own air above and below. */
@@ -384,6 +375,23 @@ private fun RowScope.MenuTile(label: String, glyph: ChromeGlyph, enabled: Boolea
             maxLines = 1,
         )
     }
+}
+
+/**
+ * **One row of chips** across the panel — the tablet's own rhythm for the file commands.
+ *
+ * A row rather than four chips in one flow: each line is a pair the tablet draws as a pair, and the two
+ * lines are what tell a reader that the PDF pair and the page pair answer different questions.
+ */
+@Composable
+private fun MenuChipRow(content: @Composable RowScope.() -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MenuMetrics.padding),
+        horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap),
+        content = content,
+    )
 }
 
 /**

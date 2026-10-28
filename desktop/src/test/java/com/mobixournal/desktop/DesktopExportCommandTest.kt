@@ -7,6 +7,8 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.mobix.PageSource
 import java.io.File
+import javax.imageio.ImageIO
+import kotlin.math.roundToInt
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.junit.Assert.assertEquals
@@ -137,6 +139,42 @@ class DesktopExportCommandTest {
                 pages.all { it.name.startsWith("notes-p") },
             )
             assertTrue("and the status bar says so: ${DesktopExportNotice.text}", DesktopExportNotice.text!!.contains("SVG"))
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    /**
+     * **Export PNG**: the same pages as pictures, one file each, at twice the page's own units — and
+     * painted, not blank: the page's words are ink in the bitmap, which is what separates a rendered page
+     * from a white rectangle with a file name.
+     */
+    @Test
+    fun exportingPngWritesOneImagePerPageBesideTheDocument() {
+        val state = state()
+        try {
+            val outcome = state.exportPng()
+
+            assertTrue("the export reported success: $outcome", outcome is ExportOutcome.Written)
+            val pages = temp.root.listFiles().orEmpty().filter { it.name.endsWith(".png") }.sortedBy { it.name }
+            assertEquals("one image per page", 2, pages.size)
+            assertEquals(
+                "named after the document, in reading order",
+                listOf("notes-p001.png", "notes-p002.png"),
+                pages.map { it.name },
+            )
+            val first = ImageIO.read(pages[0])
+            assertEquals("the sheet at two pixels per point", (595.0 * 2).roundToInt(), first.width)
+            assertEquals((842.0 * 2).roundToInt(), first.height)
+            var ink = 0
+            for (y in 180 until 240) {
+                for (x in 140 until 600) {
+                    if ((first.getRGB(x, y) and 0xFF) < 0x90) ink++
+                }
+            }
+            assertTrue("the page's words are painted into the image, not left white", ink > 40)
+            assertTrue("and the status bar says so: ${DesktopExportNotice.text}", DesktopExportNotice.text!!.contains("PNG"))
+            assertNull("with no failure card", state.failure)
         } finally {
             state.tabs.closeAll()
         }

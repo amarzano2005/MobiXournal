@@ -51,7 +51,9 @@ internal fun Header(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
-    /** The menu's **Import PDF** row — the tablet's command, now that the window can carry a PDF. */
+    /** The menu's **Export PNG** chip — one raster per page, beside the document. */
+    onExportPng: () -> Unit = {},
+    /** The menu's **Import PDF** chip — the tablet's command, now that the window can carry a PDF. */
     onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
     onUndo: () -> Unit,
@@ -82,6 +84,7 @@ internal fun Header(
             onSaveAs = onSaveAs,
             onExportPdf = onExportPdf,
             onExportSvg = onExportSvg,
+            onExportPng = onExportPng,
             onImportPdf = onImportPdf,
             onToggleSidebar = onToggleSidebar,
             onSettings = onSettings,
