@@ -39,6 +39,10 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 onRemovePage = { index -> state.removePageAt(index) },
                 // A thumbnail dragged onto another row: one undo step, the same command the Pages menu runs.
                 onMovePage = { from, to -> state.movePage(from, to) },
+                // A drag on one of the picked rows carries the whole pick, as one block and one undo step.
+                onMovePages = { pages, target -> state.movePages(pages, target) },
+                // The selection bar's delete: every picked page, with the PDF reference kept.
+                onRemovePages = { pages -> state.removePages(pages) },
                 // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
                 revision = state.thumbnailRevision,
             )

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -93,6 +95,10 @@ fun PageSidebar(
     onRemovePage: (Int) -> Unit = {},
     /** A thumbnail dragged onto another row: the page moves to that row's index, one undo step. */
     onMovePage: (Int, Int) -> Unit = { _, _ -> },
+    /** A drag that carries the picked pages: they travel as one block, one undo step. */
+    onMovePages: (Set<Int>, Int) -> Unit = { _, _ -> },
+    /** The selection bar's delete: every picked page goes, one undo step. */
+    onRemovePages: (Set<Int>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -101,22 +107,11 @@ fun PageSidebar(
     val density = LocalDensity.current
     val edgePx = with(density) { PageDragMetrics.EDGE.toPx() }
     val maxStepPx = with(density) { PageDragMetrics.MAX_STEP.toPx() }
+    // A pick is the row's own state — view state, never the document's (`PageSelection`).
+    var picked by remember(tab) { mutableStateOf(PageSelection()) }
+    val selection = picked.sanitized(tab.pageCount)
 
-    // Selecting a page elsewhere (arrow keys, status bar) scrolls the sidebar to it.
-    LaunchedEffect(tab, current) {
-        if (current in 0 until tab.pageCount) listState.animateScrollToItem(current)
-    }
-
-    // A drag held against an edge scrolls the list under the pointer, so a page from the top of a long
-    // PDF can be dropped at the bottom without letting go. One frame at a time, so the rows the drop
-    // target is computed from are the rows the reader sees.
-    LaunchedEffect(drag.active) {
-        while (drag.active) {
-            withFrameNanos { }
-            val step = drag.autoScroll(edgePx, maxStepPx)
-            if (step != 0f) listState.scrollBy(step)
-        }
-    }
+    PageListScrolling(listState, tab, current, drag, edgePx, maxStepPx)
 
     Column(
         modifier
@@ -151,17 +146,63 @@ fun PageSidebar(
                     tab = tab,
                     index = index,
                     current = current,
+                    picked = index in selection.pages,
                     revision = revision,
                     cache = cache,
                     drag = drag,
-                    onSelectPage = onSelectPage,
+                    onPick = { ctrl, shift ->
+                        picked = PageSelectionRules.click(selection, index, ctrl, shift, tab.pageCount)
+                        onSelectPage(index)
+                    },
                     onRemovePage = onRemovePage,
-                    onMovePage = onMovePage,
+                    onMovePage = { from, to ->
+                        val carried = PageSelectionRules.dragging(selection, from)
+                        if (carried.size <= 1) onMovePage(from, to) else onMovePages(carried, to)
+                    },
                 )
             }
         }
         Spacer(Modifier.height(6.dp))
-        LayersSection(tab)
+        if (selection.isEmpty) {
+            LayersSection(tab)
+        } else {
+            PageSelectionBar(
+                count = selection.pages.size,
+                onDelete = {
+                    onRemovePages(selection.pages)
+                    picked = PageSelection()
+                },
+                onClear = { picked = PageSelection() },
+            )
+        }
+    }
+}
+
+/**
+ * The list's two scrolls, in one place: the row the page in view sits on, and the edge a drag holds
+ * against so a page from the top of a long PDF can be dropped at the bottom without letting go.
+ *
+ * The auto-scroll steps **one frame at a time**, so the rows the drop target is computed from are always
+ * the rows the reader sees.
+ */
+@Composable
+private fun PageListScrolling(
+    listState: LazyListState,
+    tab: DesktopTab,
+    current: Int,
+    drag: PageDragHandle,
+    edgePx: Float,
+    maxStepPx: Float,
+) {
+    LaunchedEffect(tab, current) {
+        if (current in 0 until tab.pageCount) listState.animateScrollToItem(current)
+    }
+    LaunchedEffect(drag.active) {
+        while (drag.active) {
+            withFrameNanos { }
+            val step = drag.autoScroll(edgePx, maxStepPx)
+            if (step != 0f) listState.scrollBy(step)
+        }
     }
 }
 
@@ -179,15 +220,20 @@ private fun PageRow(
     tab: DesktopTab,
     index: Int,
     current: Int,
+    picked: Boolean,
     revision: Int,
     cache: MutableMap<Int, ImageBitmap>,
     drag: PageDragHandle,
-    onSelectPage: (Int) -> Unit,
+    onPick: (Boolean, Boolean) -> Unit,
     onRemovePage: (Int) -> Unit,
     onMovePage: (Int, Int) -> Unit,
 ) {
     val preview = rememberThumbnail(tab, index, tab.hiddenOn(index), revision, cache)
     val lifted = drag.from == index
+    // The pointer handlers outlive the composition that built them, so both answers are read through a
+    // holder: a drag must carry the pick as it is **now**, not as it was when the row first appeared.
+    val move = rememberUpdatedState(onMovePage)
+    val pick = rememberSelectionTap(onPick)
     // The row the lifted page would land on wears the accent line along its top edge: one mark, in the
     // chrome's own ink, so where the page will go is readable while the list scrolls under the pointer.
     val landing = drag.active && drag.target == index && drag.target != drag.from
@@ -199,7 +245,7 @@ private fun PageRow(
             .pointerInput(index, tab.pageCount) {
                 detectDragGestures(
                     onDragStart = { offset -> drag.start(index, offset.y) },
-                    onDragEnd = { drag.drop()?.let { (from, to) -> onMovePage(from, to) } },
+                    onDragEnd = { drag.drop()?.let { (from, to) -> move.value(from, to) } },
                     onDragCancel = { drag.cancel() },
                 ) { change, amount ->
                     change.consume()
@@ -209,6 +255,7 @@ private fun PageRow(
             .background(
                 when {
                     lifted -> DesktopTheme.activeSlot
+                    picked -> DesktopTheme.accent.copy(alpha = 0.18f)
                     index == current -> DesktopTheme.accent.copy(alpha = 0.10f)
                     else -> Color.Transparent
                 },
@@ -224,20 +271,25 @@ private fun PageRow(
                     )
                 }
             }
-            .hoverFill(RoundedCornerShape(8.dp), active = index == current)
+            .hoverFill(RoundedCornerShape(8.dp), active = index == current || picked)
             .border(
                 1.dp,
-                if (index == current) DesktopTheme.accent else Color.Transparent,
+                when {
+                    picked -> DesktopTheme.accent
+                    index == current -> DesktopTheme.accent.copy(alpha = 0.55f)
+                    else -> Color.Transparent
+                },
                 RoundedCornerShape(8.dp),
             )
-            // The row is the target, padding included: a click on its air still picks the page.
-            .clickable { onSelectPage(index) }
+            // The row is the target, padding included: a click on its air still picks the page, and the
+            // keyboard decides whether it also extends the selection.
+            .then(pick)
             .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = "${index + 1}",
-            color = if (index == current) DesktopTheme.accent else DesktopTheme.inkMuted,
+            color = if (picked || index == current) DesktopTheme.accent else DesktopTheme.inkMuted,
             style = DesktopTheme.numeric,
             modifier = Modifier.width(22.dp),
         )

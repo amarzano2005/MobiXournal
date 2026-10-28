@@ -129,6 +129,52 @@ internal class DesktopPages(
     }
 
     /**
+     * Drop every page in [indices] — the sidebar's multi-page delete, one undo step.
+     *
+     * It follows [removePageAt]'s rule for the PDF reference: a document's PDF lives in one page's
+     * background, so a selection that contains that page must not take the file with it — the reference
+     * moves to a surviving pdf page ([PdfPageReferences.keep]) and the rest keeps drawing their sheets.
+     * The document is never emptied ([PageOps.removeAll] refuses a selection covering every page).
+     */
+    fun removePages(indices: Set<Int>): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        if (count <= 1 || indices.isEmpty()) return false
+        val before = tab.document.snapshot()
+        val kept = PageOps.removeAll(tab.document.model.pages, indices)
+        if (kept === tab.document.model.pages) return false
+        val pages = PdfPageReferences.keep(tab.document.model.pages, kept)
+        tab.document.replacePages(pages)
+        tab.record(before)
+        onStructure(tab)
+        val first = indices.filter { it in 0 until count }.minOrNull() ?: 0
+        selectPage(tab, first.coerceAtMost(tab.document.pageCount - 1))
+        return true
+    }
+
+    /**
+     * Move the pages in [indices], in document order, so the first of them lands at [target] — the
+     * sidebar's multi-page drag, one undo step through [PageOps.moveAll].
+     *
+     * A scattered selection travels as one block, which is what dragging two rows means: the pages you
+     * picked keep their relative order and the rest of the document closes up behind them.
+     */
+    fun movePages(indices: Set<Int>, target: Int): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        val picked = indices.filter { it in 0 until count }.toSet()
+        if (count <= 1 || picked.size >= count) return false
+        val before = tab.document.snapshot()
+        val pages = PageOps.moveAll(tab.document.model.pages, picked, target)
+        if (pages === tab.document.model.pages) return false
+        tab.document.replacePages(pages)
+        tab.record(before)
+        onStructure(tab)
+        selectPage(tab, target.coerceIn(0, tab.document.pageCount - 1))
+        return true
+    }
+
+    /**
      * Move the page at [from] to [to] — the page list's one reordering command, through
      * [PageOps.move] and one undo step.
      *
@@ -275,6 +321,13 @@ internal fun DesktopShellState.movePage(from: Int, to: Int): Boolean = pagesSect
 
 /** Drop one page by index — the sidebar row's own delete, refused for the last page. */
 internal fun DesktopShellState.removePageAt(index: Int): Boolean = pagesSection.removePageAt(index)
+
+/** Drop every picked page — the sidebar's multi-page delete, one undo step. */
+internal fun DesktopShellState.removePages(indices: Set<Int>): Boolean = pagesSection.removePages(indices)
+
+/** Move the picked pages as one block — the sidebar's multi-page drag, one undo step. */
+internal fun DesktopShellState.movePages(indices: Set<Int>, target: Int): Boolean =
+    pagesSection.movePages(indices, target)
 
 /**
  * A change to the page **list** invalidates every cached thumbnail: the bitmaps are filed by index, and an

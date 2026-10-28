@@ -102,6 +102,25 @@ class PageOpsTest {
         assertSame(empty, PageOps.moveRange(empty, 0, 0, 0))
     }
 
+    @Test fun moveAllCarriesAScatteredPickAsOneBlock() {
+        val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"), page(400.0, "d"), page(500.0, "e"))
+        val out = PageOps.moveAll(pages, setOf(1, 3), 0)
+        assertEquals("the pick keeps its own order and lands first", listOf(pages[1], pages[3], pages[0], pages[2], pages[4]), out)
+    }
+
+    @Test fun moveAllLandsWhereTheFirstPickedPageWasDropped() {
+        val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"), page(400.0, "d"), page(500.0, "e"))
+        val out = PageOps.moveAll(pages, setOf(0, 2), 3)
+        assertEquals(listOf(pages[1], pages[3], pages[4], pages[0], pages[2]), out)
+    }
+
+    @Test fun moveAllOntoItsOwnPlaceIsANoOp() {
+        val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"))
+        assertSame("a contiguous pick that starts where it lands stays put", pages, PageOps.moveAll(pages, setOf(1), 1))
+        assertSame(pages, PageOps.moveAll(pages, emptySet(), 0))
+        assertSame("and a pick covering every page has nowhere to go", pages, PageOps.moveAll(pages, setOf(0, 1, 2), 0))
+    }
+
     @Test fun removeAtDropsThePage() {
         val pages = listOf(page(100.0, "a"), page(200.0, "b"), page(300.0, "c"))
         val out = PageOps.removeAt(pages, 1)

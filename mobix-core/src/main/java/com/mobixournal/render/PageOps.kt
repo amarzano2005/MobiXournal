@@ -117,6 +117,28 @@ object PageOps {
     }
 
     /**
+     * A copy of [pages] with every page in [indices] lifted out and re-inserted, in document order, so that
+     * the **first** lifted page lands at [target] — moving a scattered selection as one block.
+     *
+     * [target] is a position in the *result*, as [move]'s and [moveRange]'s are. An empty selection, a
+     * selection covering every page, or a target that clamps onto where the block already starts returns the
+     * same instance, so callers can hand the result straight to an "only if it differs" edit.
+     */
+    fun moveAll(pages: List<Page>, indices: Set<Int>, target: Int): List<Page> {
+        val lift = indices.filter { it in pages.indices }.toSet()
+        if (lift.isEmpty() || lift.size >= pages.size) return pages
+        val ordered = lift.sorted()
+        val rest = pages.filterIndexed { index, _ -> index !in lift }
+        val at = target.coerceIn(0, rest.size)
+        // Already there: a contiguous block whose first page stays where it starts. Compared by index rather
+        // than by the rebuilt list, so a 200-page notebook is never walked to answer "did anything move?".
+        val contiguous = ordered.withIndex().all { (position, index) -> index == ordered.first() + position }
+        if (contiguous && at == ordered.first()) return pages
+        val block = ordered.map { pages[it] }
+        return rest.toMutableList().apply { addAll(at, block) }
+    }
+
+    /**
      * The pages at [indices], in ascending document order — the page-overview copy. Out-of-range
      * indices are ignored, so an empty or fully out-of-range selection yields an empty list. Pages are
      * immutable, so the "copy" shares structure with the originals and is safe to re-insert as-is:
