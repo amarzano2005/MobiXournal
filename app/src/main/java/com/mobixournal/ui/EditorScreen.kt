@@ -43,6 +43,7 @@ import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberClosingArgument
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * Push an [EditorTool] onto the surface: the three drawing tools set [Tool]; Hand toggles pan mode;
@@ -590,14 +591,16 @@ private fun EditorBody(
 /** The rail's lane: exactly the width the rail occupies, and the height it may scroll in. */
 @Composable
 private fun RailLane(toolbar: @Composable () -> Unit) {
+    val glassColor = rememberGlassSurfaceColor()
     Surface(
-        // **The lane is air, not a band.** It paints the desk the canvas paints around the page
-        // ([rememberChromeColor]), so everything under the header — lane and the canvas's own margin —
-        // is one tone, and the only thing standing in it is the rail's capsule. A second sheet of glass
-        // here made the lane a lighter column than the desk beside it: the header's bottom edge closed
-        // over the page and stopped dead against that column, a white notch at the corner where the two
-        // bands meet the canvas.
-        color = rememberChromeColor(),
+        // **The lane wears the band's own glass, never the canvas's background.** The header and this
+        // lane are the two arms of one frame around the canvas — the top band and the side one — so
+        // they have to be the same tone: the chrome charcoal (`#131313` in the dark theme, where the
+        // canvas behind the page is a deep `#000000`) and the near-white in the light one (where the
+        // canvas is the greyer desk). Composited over the chrome colour rather than laid translucent,
+        // because behind the lane there is nothing but that colour and the 12% a see-through band kept
+        // would draw the desk's edge down the rail.
+        color = glassColor.compositeOver(rememberChromeColor()),
         // **No cast shadow.** A band on the tablet does not cast: the header shades its own bottom edge
         // ([EditorTopBar]) and this lane stands on the desk beside the page, so an elevation here was a
         // shadow with nowhere to land — it went *up* onto the header, in the lane's column only, which
