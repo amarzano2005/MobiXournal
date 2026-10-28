@@ -57,10 +57,11 @@ recolour menu), plus the shortcut tables that jump straight to a colour or a too
   editable custom slot (marked with a pencil, long-press to redefine; an empty slot *opens* the
   editor on a tap, since it holds no colour to pick).
   A tap reports the colour through `onPick`; the host decides what it means (set the pen,
-  restyle the selection, colour the text). `compact` (the toolbar pop-up) lays the swatches in a
-  **single horizontally scrolling row** so the menu's height is fixed however many colours the
-  palette holds — a wrapping grid would grow the pop-up with every swatch added — and `onAdd`
-  appends the trailing add-colour swatch.
+  restyle the selection, colour the text). `compact` (the toolbar's Colour & size pop-up and the
+  selection's recolour menu) lays the swatches in a **fixed-width grid**: every colour is on screen
+  without scrolling a row, and the menu keeps one width however many colours the palette holds — an
+  extra swatch costs a second line rather than a wider menu — and `onAdd` appends the trailing
+  add-colour swatch.
 - **Colour parity with desktop.** Beyond the palette, every colour that names a *document* or *paper*
   appearance is taken from desktop Xournal++: the named `.xopp` colours (`format/XoppColor.kt`,
   upstream's `PREDEFINED_COLORS` → `Colors::xopp_royalblue` / `xopp_deepskyblue` / `lime` /
