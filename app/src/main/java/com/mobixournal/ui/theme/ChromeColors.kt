@@ -160,6 +160,26 @@ const val MENU_RIM_ALPHA_TOP = DesignTokens.RIM_ALPHA_TOP
 /** Strength of the pop-up rim along the panel's shaded bottom edge. */
 const val MENU_RIM_ALPHA_BOTTOM = DesignTokens.RIM_ALPHA_BOTTOM
 
+/**
+ * How strong a **band's own bottom edge** is at its last pixel: the shading a band draws *inside*
+ * itself (`Modifier.bandClosingEdge`, in this package), `bandShadowDp` tall, fading from nothing at
+ * the top of the strip to this at its edge.
+ *
+ * It is the tablet's answer to a cast shadow. The tablet's bands are **rows of the window**, not
+ * objects lying on the desk, so a shadow cast outside a band could only land on the bands beside it:
+ * the header's fell on the rail's lane and on the canvas (both composed after it, so they painted it
+ * over), and the lane's own fell back up onto the header in its column alone — the step at the lane's
+ * edge. The band therefore shades its own edge and casts on nothing.
+ *
+ * The two numbers are one rule seen in two themes. **0.10 in the light one** is the strength the old
+ * elevation shadow reached over the band below it (measured: the header's white 254 falling to 230 at
+ * its last row). The **dark one is heavier** because a shadow there has only the band's own levels to
+ * work with — the glass on the true-black desk is `#131313`, 19 of 255 — so a tenth of black rounds
+ * away to 17 and the edge reads as nothing at all; 0.35 takes it to 12, which is the same visible
+ * step the light theme gets.
+ */
+fun bandShadowAlpha(dark: Boolean): Float = if (dark) 0.35f else 0.10f
+
 /** Derives the canvas chrome colours from the ambient Material 3 scheme. */
 @Composable
 fun rememberCanvasChromeColors(): CanvasChromeColors {

@@ -75,13 +75,15 @@ and the gesture handle floats on the paper.
 
 **One header, one slab — and no line through it.** The bar and the row that carries the tabs are the two
 rows of *one* surface, and nothing is drawn along the header's edges or between its rows: the slab's own
-colour (the header glass) and its `4dp` shadow are the whole of its edge, and its two rows are told apart
-by their content — the tools above, the chips below. It used to wear a `BorderStroke` rim **and** a hairline
+colour (the header glass) and the `4dp` shade it draws *inside* its bottom edge are the whole of its edge,
+and its two rows are told apart by their content — the tools above, the chips below. The shade is the
+band's own and is cast on nothing, which is what the `docs/interface-contract.md` Band row now requires of
+every band on the tablet. It used to wear a `BorderStroke` rim **and** a hairline
 inside itself, between the rows (`Modifier.topHairline`), as a tab row under a top app bar is drawn; on the
 true-black dark scheme both read as grey rules across the whole window — the rim closing the header at the
 top *and* the bottom of the screen, the hairline cutting the slab in two — so what this page calls one
 header was banded by three grey lines. Both were removed on request (2026-10-13): the header's closing edge
-is its shadow. Nested surfaces with a rim each read as two bars with a seam across the middle, and that is
+is that shade. Nested surfaces with a rim each read as two bars with a seam across the middle, and that is
 measured, not theorised: with the tabs on a slab of their own, the header's bottom edge sat at 76dp over
 the rail's lane and at 114dp over the page, a 38dp step with the chips starting to one side of it. The
 rows' heights are `TOP_BAR_ROW_HEIGHT` (52dp,

@@ -17,7 +17,7 @@ Every surface is one of three objects. Pick the class from what the element *doe
 
 | Class | What it is | Recipe | Never |
 |---|---|---|---|
-| **Band** | chrome that borders the canvas — header, status bar, sidebar, a lane's dividing rule | the glass fill + **one 4 dp cast shadow**, no rim, no gradient | never lies over the page |
+| **Band** | chrome that borders the canvas — header, status bar, sidebar, a lane's dividing rule | the glass fill + **one 4 dp edge**, no rim; on the tablet the edge is drawn *inside* the band, on the window a strip's is cast outward | never lies over the page, never a shadow on the band beside it |
 | **Capsule** | an object lying *in* a band's space — the tablet's rail and ribbon, a header control | the glass fill + its own 6 dp lift + the family's rim, inside a lane of **air** | never a second sheet of glass behind it |
 | **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | the glass fill at `floatingPanelAlpha` + the rim, at the 20 dp panel corner | never an opaque Material card or a system `Toast` |
 | **None** | the page's own content being authored — a stroke being drawn, a text box being typed | the document's own ink and face, in the document's own place | no fill, no rim, no padding |
@@ -26,7 +26,17 @@ Every surface is one of three objects. Pick the class from what the element *doe
   strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract
   exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`.
 - **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads
-  as two grey rules across the window. The shadow is a band's whole edge.
+  as two grey rules across the window. The edge is a band's whole boundary.
+- **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a
+  shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's
+  lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**
+  onto the header in the lane's column alone — the header closing on a soft edge over the rail and on a
+  hard step over the page. The band therefore draws its edge **inside itself** (`BandBottomShadow`,
+  `ui/EditorRegions.kt`; strength `bandShadowAlpha`): a `4 dp` vertical fade at its closing edge, full
+  width, one direction, landing on no other surface. The desktop keeps the cast shadow, because there a
+  strip is an object lying over the page and has room to cast one.
+  `ChromeGeometryGuardTest.bandsShadeTheirOwnClosingEdgeAndCastNothing` fails the build if a tablet band
+  gains an elevation again, or loses its own edge.
 - A picker, menu or dialog that comes and goes **may** lie over the page; a band **may not**.
 - **The window's tool strips are capsules held *over* the page** (decision 2026-10-26). On the desktop the
   rail and the ribbon float on the sheet — the capsule's recipe unchanged, glass, its own 6 dp lift and the

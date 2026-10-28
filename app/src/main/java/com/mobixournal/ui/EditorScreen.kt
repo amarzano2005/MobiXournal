@@ -43,7 +43,6 @@ import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberClosingArgument
-import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
@@ -595,12 +594,14 @@ private fun RailLane(toolbar: @Composable () -> Unit) {
     val glassColor = rememberGlassSurfaceColor()
     Surface(
         // The lane wears its glass **composited over the chrome colour**, never the translucent fill:
-        // the header above casts `bandShadowDp` down onto this band, and 0.88 of glass lets 12% of that
-        // shadow through as a faint line just above the rail's first slot — the top band and the lateral
-        // one overlapping by a few dp. Behind the lane there is nothing but the chrome colour, so this is
-        // the same pixel the glass already produced, with nothing left to show through.
+        // behind it there is nothing but the chrome colour, so this is the same pixel the glass already
+        // produced — and a translucent band would let the desk's own edge show through it.
         color = glassColor.compositeOver(rememberChromeColor()),
-        shadowElevation = ModernTheme.bandShadowDp,
+        // **No cast shadow.** A band on the tablet does not cast: the header shades its own bottom edge
+        // ([EditorTopBar]) and this lane stands on the desk beside the page, so an elevation here was a
+        // shadow with nowhere to land — it went *up* onto the header, in the lane's column only, which
+        // read as a step across the header's bottom edge at x = the lane's width, and sideways onto the
+        // canvas, which the canvas painted over. The lane's own edge is the desk beside it.
         modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
     ) {
         Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) {

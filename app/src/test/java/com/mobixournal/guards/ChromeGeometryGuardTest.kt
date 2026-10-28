@@ -21,6 +21,9 @@ import org.junit.Test
  *     never starting at the top app bar row.
  *  4. [guardRejectsPreFixLayoutShapes]: Verifies that pre-fix regressions (tabs outside header column,
  *     pane-local tab bands, or rail lanes starting at bar height) are mechanically rejected.
+ *  5. [bandsShadeTheirOwnClosingEdgeAndCastNothing]: A tablet band draws its closing edge *inside*
+ *     itself, full width, and carries no elevation — so no band's shadow can land on the band beside
+ *     it (`docs/interface-contract.md`, the Band row).
  */
 class ChromeGeometryGuardTest {
 
@@ -239,10 +242,51 @@ class ChromeGeometryGuardTest {
         )
     }
 
-    private fun findSourceFile(filename: String): File {
+    @Test
+    fun bandsShadeTheirOwnClosingEdgeAndCastNothing() {
+        val regions = findSourceFile("EditorRegions.kt").readText()
+        val screen = findSourceFile("EditorScreen.kt").readText()
+
+        // The header band: no elevation, and its own edge worn on the band's content.
+        val headerBand = regions
+            .substringAfter("fun EditorTopBar(")
+            .substringBefore("@Composable\nprivate fun TopBarAudioCapsule")
+        // The band's own cast shadow is marked by its token: the controls standing *in* the band are
+        // capsules and keep their small `4.dp` lift, which is a different object in the material table.
+        assertFalse(
+            "A tablet band must not cast a shadow — the band composed after it paints it over anyway, " +
+                "and the one that shows is the neighbour's, cast back onto this band in its own column",
+            headerBand.contains("bandShadowDp"),
+        )
+        assertTrue(
+            "EditorTopBar must carry its closing edge itself (Modifier.bandClosingEdge)",
+            headerBand.contains("bandClosingEdge()"),
+        )
+
+        // The rail's lane: a band, so it shades and casts nothing either.
+        val railLane = screen.substringAfter("private fun RailLane(").substringBefore("\n}")
+        assertFalse("RailLane must not carry a band elevation", railLane.contains("bandShadowDp"))
+        assertFalse("RailLane must not cast a shadow at all", railLane.contains("shadowElevation = "))
+
+        // The edge itself: the band's own pixels, the band-shadow token's height, fading to the scrim.
+        val edge = findNestedSourceFile("theme", "BandEdge.kt").readText()
+        assertTrue("the edge must be drawn inside the band", edge.contains("drawWithContent"))
+        assertTrue("the edge is bandShadowDp tall", edge.contains("ModernTheme.bandShadowDp"))
+        assertTrue("the edge is a vertical fade", edge.contains("verticalGradient"))
+        assertTrue("the edge starts at nothing", edge.contains("Color.Transparent"))
+        assertTrue(
+            "the edge's strength is the theme's own (a shadow has 19 levels to work with on true black)",
+            edge.contains("bandShadowAlpha(chromeIsDark())"),
+        )
+    }
+
+    private fun findSourceFile(filename: String): File = findNestedSourceFile("", filename)
+
+    private fun findNestedSourceFile(directory: String, filename: String): File {
+        val dir = if (directory.isEmpty()) "ui" else "ui/$directory"
         val candidates = listOf(
-            File("src/main/java/com/mobixournal/ui", filename),
-            File("app/src/main/java/com/mobixournal/ui", filename),
+            File("src/main/java/com/mobixournal/$dir", filename),
+            File("app/src/main/java/com/mobixournal/$dir", filename),
         )
         return candidates.firstOrNull { it.isFile }
             ?: error("Cannot locate $filename in main source sets from ${File(".").absolutePath}")

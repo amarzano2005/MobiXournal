@@ -118,8 +118,10 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   XML theme declarations for `statusBarColor` and `navigationBarColor` use transparent values, ensuring
   the full-bleed canvas reaches the device edges without opaque system bar bands.
 - **`ChromeGeometryGuardTest`** (`guards/`) — validates that the chrome bands and canvas partition the window
-  across all layout combinations (rail docked Left and Right, and Full-page) without overlapping, and that
-  the header is a single continuous full-width Surface whose column contains both the tools and tabs.
+  across all layout combinations (rail docked Left and Right, and Full-page) without overlapping, that
+  the header is a single continuous full-width Surface whose column contains both the tools and tabs, and
+  that a tablet band shades its own closing edge inside itself with no elevation, so no band's shadow can
+  land on the band beside it.
 - **`FormatDriftTest`** (`format/`) — the `.xopp` mapping the docs describe against what the writers
   emit, so the format documentation cannot drift from the code.
 - **`DesktopColorParityTest`**, **`RealFileRoundTripTest`**, **`SelectionHandleRadiusTest`** and

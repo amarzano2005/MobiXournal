@@ -115,6 +115,7 @@ import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.bandClosingEdge
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
@@ -187,12 +188,13 @@ fun EditorTopBar(
     val tabsInline = settings == null || onSettingsChange == null
     val tabsUnderTheTools = !tabsInline && !ui.fullPage
     val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
+    // No `shadowElevation`: a band on the tablet closes on its own edge (`Modifier.bandClosingEdge`,
+    // `theme/BandEdge.kt`) instead of casting onto the band beside it — `docs/interface-contract.md`.
     Surface(
         color = glassColor,
-        shadowElevation = ModernTheme.bandShadowDp,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth().bandClosingEdge()) {
             Column {
                 TopAppBar(
                     navigationIcon = {
