@@ -100,9 +100,12 @@ class DesktopDocument(
     init {
         // A pdf page names the document's one PDF on the page that carries the reference and nowhere else
         // (`docs/pdf.md`), so the backdrop is told how to read those pages — once, here, rather than by
-        // every painter. It reads [model], so a merge that re-points the reference is answered without
-        // rebuilding the backdrop.
-        backdrop.pdfReference = { PdfPageReferences.of(model.pages) }
+        // every painter.
+        //
+        // `this.model` is deliberate: inside `init` a bare `model` is the **constructor parameter**, and a
+        // lambda over it would keep reading the page list the document was born with — so pages appended
+        // after construction (an import, a merge, an undo) found no reference at all and drew bare paper.
+        backdrop.pdfReference = { PdfPageReferences.of(this.model.pages) }
     }
 
     val pageCount: Int get() = window.pageCount
