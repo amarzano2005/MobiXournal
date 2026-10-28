@@ -371,6 +371,17 @@ private fun ToolSlot(
     val openSurface: () -> Unit = {
         if (family != null) onCircuitPicker(family) else onOpenPicker()
     }
+    // A surface that is up belongs to the slot that opened it, so the next click on that slot **closes**
+    // it. The popup dismisses itself on the same press, and the tap under it must not open it again
+    // (DismissGuard) — otherwise clicking the trigger of an open list read as a dead click.
+    val guard = remember { DismissGuard() }
+    val surfaceUp = pickerOpen || (family != null && circuitPickerOpen == family)
+    val toggleSurface: () -> Unit = {
+        when {
+            surfaceUp -> if (family != null) onCircuitPicker(null) else onClosePicker()
+            guard.mayOpen(group) -> openSurface()
+        }
+    }
     var hovered by remember { mutableStateOf(false) }
     val density = LocalDensity.current
     val slotPx = with(density) { ToolStripMetrics.slotSize.roundToPx() }
@@ -385,7 +396,7 @@ private fun ToolSlot(
             hovered = hovered,
             onHover = { hovered = it },
             onSelect = onSelect,
-            onOpenPicker = openSurface,
+            onOpenPicker = toggleSurface,
             opensSurface = group.opensSubmenu(),
         )
         // The pill stands aside while the slot's own surface is up — either of them, so a circuit slot's
@@ -408,6 +419,10 @@ private fun ToolSlot(
             circuitPickerOpen = circuitPickerOpen,
             onSelect = onSelect,
             onClosePicker = onClosePicker,
+            // A dismissal is the popup's own (a click outside it), and it is remembered so that same
+            // click cannot open the surface again on its way to the slot under it.
+            onDismissPicker = { guard.closed(group); onClosePicker() },
+            onDismissCircuit = { guard.closed(group); onCircuitPicker(null) },
             onCircuitKind = onCircuitKind,
             onCircuitPicker = onCircuitPicker,
             offset = when (side) {
@@ -433,6 +448,10 @@ private fun SlotPickerStack(
     circuitPickerOpen: CircuitFamily?,
     onSelect: (DesktopTool) -> Unit,
     onClosePicker: () -> Unit,
+    /** The group picker was put away by a press outside it. */
+    onDismissPicker: () -> Unit,
+    /** The circuit palette was put away by a press outside it. */
+    onDismissCircuit: () -> Unit,
     onCircuitKind: (CircuitFamily, ShapeKind) -> Unit,
     onCircuitPicker: (CircuitFamily?) -> Unit,
     offset: IntOffset,
@@ -445,7 +464,7 @@ private fun SlotPickerStack(
                 onSelect(member)
                 onClosePicker()
             },
-            onDismiss = onClosePicker,
+            onDismiss = onDismissPicker,
             offset = offset,
         )
     }
@@ -458,7 +477,7 @@ private fun SlotPickerStack(
                 onCircuitKind(family, kind)
                 onCircuitPicker(null)
             },
-            onDismiss = { onCircuitPicker(null) },
+            onDismiss = onDismissCircuit,
             offset = offset,
         )
     }
