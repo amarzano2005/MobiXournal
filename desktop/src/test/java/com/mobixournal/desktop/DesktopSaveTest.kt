@@ -305,6 +305,71 @@ class DesktopSaveTest {
         }
     }
 
+    /**
+     * **A save that cannot land costs nothing.** The write stages a whole document and then replaces the
+     * destination; when that replace fails — a locked file, a path the OS refuses, a share that went away —
+     * the staged bytes are the only copy of the author's work, so the tab reads on from them instead of
+     * reloading the old file. The work stays on screen, the tab is still **dirty** (the file does not hold
+     * these pages, and a clean dot would hide that until the window closed), and the destination is
+     * unchanged.
+     */
+    @Test
+    fun aSaveThatCannotLandKeepsTheAuthorsPages() {
+        val file = temp.newFile("stuck.mobix").apply { delete() }
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(2))
+        val loaded = DocumentLoader.load(file)
+        val edited = withExtraStroke(loaded, x = 311.0, id = "stk_unsaved")
+        val tab = DesktopTab(edited)
+        try {
+            val strokes = strokesOf(edited.model, 0)
+            // The mover fails the way a filesystem does: the staged bytes are there, the replace is not.
+            val outcome = runCatching {
+                tab.saveBack { temp, _ -> throw java.io.IOException("${temp.path} → ${file.path}") }
+            }
+            assertTrue("the failure is reported, not swallowed", outcome.isFailure)
+            assertEquals("no page is lost", 2, tab.document.pageCount)
+            assertEquals(
+                "and the stroke the save could not publish is still on the page",
+                strokes,
+                strokesOf(tab.document.model, 0),
+            )
+            assertTrue("the tab stays dirty, so closing it asks", tab.isDirty)
+            assertTrue(
+                "the pages are read from the staged copy the write produced: ${tab.document.pageSource.name}",
+                tab.document.pageSource.name.endsWith(".writing"),
+            )
+            assertEquals("and the destination is still the file the user knows", file.absoluteFile, tab.file.absoluteFile)
+            DocumentLoader.load(file).use { onDisk ->
+                assertEquals(
+                    "the file on disk was left as it was",
+                    strokes - 1,
+                    strokesOf(onDisk.model, 0),
+                )
+            }
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The staging file's name is a **fixed, short** one. It used to be the document's own name with random
+     * digits after it, which repeated a long name inside an already long path and made a save into a deep
+     * folder fail on Windows' 260-character limit.
+     */
+    @Test
+    fun theStagingNameDoesNotRepeatTheDocuments() {
+        val staged = DesktopSaves.stagingFile(temp.root)
+        try {
+            assertTrue(
+                "a staging name is a fixed prefix, not a copy of the document's: ${staged.name}",
+                staged.name.startsWith("mobix-") && staged.name.length <= 40,
+            )
+            assertEquals("and it lives beside the target, so the replace is one rename", temp.root, staged.parentFile)
+        } finally {
+            staged.delete()
+        }
+    }
+
     /** The two shortcuts the save hangs on, as the table in `docs/ui-modernization.md` states them. */
     @Test
     fun saveKeysMeaning() {

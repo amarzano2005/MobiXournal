@@ -69,7 +69,11 @@ fun describeSaveFailure(failure: Throwable): OpenFailure {
         is DesktopSaves.SaveRefused -> OpenFailure("This document cannot be saved there", detail)
         is java.io.IOException -> OpenFailure(
             "Could not write the file",
-            "$detail — the document on disk was left as it was.",
+            // The reason, not just the two paths: Windows says "Access is denied" or "used by another
+            // process" separately, and a sentence that only repeated `writing → target` left the reader
+            // (and whoever they asked) guessing which of the two it was.
+            "${ioDetail(failure)} — the document on disk was left as it was, and the window still holds " +
+                "your pages: Save As to another folder writes them.",
         )
         is OutOfMemoryError -> OpenFailure("Not enough memory", "This document is larger than the available memory: $detail")
         is LinkageError -> OpenFailure(
@@ -95,7 +99,7 @@ fun describeExportFailure(failure: Throwable): OpenFailure {
         is DesktopSaves.SaveRefused -> OpenFailure("This document cannot be exported there", detail)
         is java.io.IOException -> OpenFailure(
             "Could not write the export",
-            "$detail — nothing was written, and the document on disk was left as it was.",
+            "${ioDetail(failure)} — nothing was written, and the document on disk was left as it was.",
         )
         is OutOfMemoryError -> OpenFailure(
             "Not enough memory",
@@ -107,4 +111,18 @@ fun describeExportFailure(failure: Throwable): OpenFailure {
         )
         else -> OpenFailure("Could not export the document", "${failure::class.simpleName}: $detail")
     }
+}
+
+/**
+ * An I/O failure's own words: its message, and the **reason** the platform gave when it has one.
+ *
+ * A staged write fails as a `FileSystemException`, whose message is only `source → target`: the answer a
+ * reader needs — *access denied*, *used by another process*, *the path is too long* — sits in `reason` and
+ * was being dropped. Both are shown, because the paths are what the person recognises and the reason is
+ * what says whose fault it is.
+ */
+private fun ioDetail(failure: java.io.IOException): String {
+    val message = failure.message?.takeIf { it.isNotBlank() } ?: "no detail available"
+    val reason = (failure as? java.nio.file.FileSystemException)?.reason?.takeIf { it.isNotBlank() }
+    return if (reason == null) message else "$message ($reason)"
 }

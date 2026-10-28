@@ -34,6 +34,17 @@ disk was left as it was — the staged-then-moved write makes that true. A **`Li
 being stale, as on an open. `DesktopSaveTest` pins all three, and byte-compares the original to prove a
 refused save touched nothing.
 
+**A save that fails while replacing costs nothing.** The write stages the whole document beside the target
+and only then releases the archive and moves it into place; when that move fails (a locked file, a path the
+OS refuses, a share that went away) the old bytes are still on disk and the **staged file holds exactly what
+the author has**. The tab therefore reads on from the staged copy — every page, edits included — keeps
+`file` on the destination the user knows so Save tries it again and Save As is the way out, and stays
+**dirty**: the file does not hold those pages, and a clean dot would hide that until the window closed. Only
+the undo steps go, because their snapshots name pages of the archive just released. The staging name is a
+fixed short prefix (`mobix-<digits>.writing`) rather than the document's own name repeated: a save into a
+deep folder — `…\28-10-2026\Materiale\Le caratteristiche statiche…, il CMOS.mobix` — was reaching Windows'
+260-character limit on the copy of a name that existed only to make the temp file recognisable.
+
 A notebook **opened from Explorer** arrives as the command line's tail, and an unquoted path is split at every run of spaces — with the run **squeezed into one**, so `…/09)  21-10-2026/…` reaches `main` as `09) 21-10-2026`. `initialDocument` therefore reads the line Windows actually wrote (`rawCommandLine`, `kernel32!GetCommandLineW`) before it rearranges the arguments, so a double-clicked notebook opens with no dialog at all; `--args` splits its value on spaces too, and only when the line answers nothing are those pieces put back — `launchDocument` searching by name as a last resort, never by guessing.
 
 ## Unsaved edits: the dot, the question, and a snapshot

@@ -311,6 +311,28 @@ object DocumentLoader {
         )
     }
 
+    /**
+     * Open [staged] — a document this window wrote — as the tab for [origin].
+     *
+     * Used when a save's **replace** failed: the bytes in [staged] are the document the author has (the
+     * write produced them whole, which is what made the staged file worth keeping), while [origin] still
+     * holds the version before the edits. Reading the staged copy keeps every page, and the destination
+     * stays [origin] so the next save writes back where the user knows the file is. The container is the
+     * staged file's own — this window wrote it, in the container the tab already had.
+     */
+    fun adopt(origin: File, staged: File): DesktopDocument {
+        val copy = load(staged)
+        return DesktopDocument(
+            file = origin,
+            source = copy.source,
+            model = copy.model,
+            container = copy.container,
+            backdrop = copy.backdrop,
+            shape = copy.shape,
+            pageSource = staged,
+        )
+    }
+
     private fun openZip(file: File): DesktopDocument {
         val (declared, hasContentXml) = declaration(file)
         return when {

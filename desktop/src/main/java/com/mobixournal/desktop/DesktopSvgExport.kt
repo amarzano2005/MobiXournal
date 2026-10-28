@@ -57,7 +57,9 @@ internal object DesktopSvgExport {
             val page = document.page(index)
             val name = "$base-p${(index + 1).toString().padStart(digits, '0')}.svg"
             val target = File(folder, name)
-            val temp = File.createTempFile(".$name.", ".writing", folder)
+            // Short on purpose: a staging name that repeated the page's own long name is what a deep folder
+        // ran out of characters on (`DesktopSaves.stagingFile` owns the story).
+        val temp = DesktopSaves.stagingFile(folder)
             try {
                 temp.writeBytes(PageSvgWriter.write(page, backdrop(page.background)).toByteArray(Charsets.UTF_8))
                 DesktopSaves.replace(temp, target)

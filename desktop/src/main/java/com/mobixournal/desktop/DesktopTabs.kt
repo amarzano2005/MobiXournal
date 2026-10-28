@@ -188,12 +188,14 @@ class DesktopTab(
     }
 
     /**
-     * Drop every step and move the **save point** to where the document stands now: the file was just
-     * replaced wholesale (a save, a Save As), so it is the new baseline and the tab is clean.
+     * Drop every step. The **save point** moves to where the document stands when [dirty] is false — the
+     * file was just replaced wholesale (a save, a Save As), so it is the new baseline and the tab is
+     * clean — and stays unreachable when it is true, which is what a save that did **not** land leaves:
+     * the pages in hand are unpublished, and a clean-looking dot would hide that until the window closed.
      */
-    private fun forgetHistory() {
+    private fun forgetHistory(dirty: Boolean = false) {
         history.clear()
-        savePoint = history.stateId
+        savePoint = if (dirty) NO_SAVE_POINT else history.stateId
         syncHistory()
     }
 
@@ -211,25 +213,42 @@ class DesktopTab(
      * since it will not replace a file this process still holds open. The tab keeps its page, viewport
      * and label: what comes back is the same document, read from the file that now holds the edit.
      */
-    fun saveBack(): List<Uncompilable> {
+    fun saveBack(
+        /**
+         * The step that puts the staged bytes in place. Defaulted to the real move; a test hands it a
+         * mover that fails, which is the one case this method must survive without costing the author
+         * anything — and the case a filesystem will not stage on request.
+         */
+        replace: (File, File) -> Unit = DesktopSaves::replace,
+    ): List<Uncompilable> {
         val target = file
+        // A staged file an earlier failed save adopted, if there is one: once this save lands it is litter.
+        val adopted = document.pageSource.takeIf { it.absoluteFile != document.file.absoluteFile }
         val staged = DesktopSaves.stage(document, target)
         val failure = try {
             document.close()
-            staged.commit()
+            replace(staged.temp, target)
             null
         } catch (thrown: Throwable) {
             thrown
-        } finally {
-            staged.close()
         }
-        // The file is read again whether the move happened or not: after a failed move it is still the
-        // original, and a tab must never be left holding a document whose handle it already released.
+        if (failure != null) {
+            // **A save that cannot land must cost nothing.** The staged file *is* the document the author
+            // has — every page, including the ones whose edits exist only in this session — so the tab
+            // adopts it and reads on from there, rather than reloading the old bytes and dropping the very
+            // work the save was meant to publish. The destination is still [target], so Save tries it again
+            // and Save As is the way out; the tab stays **dirty**, because the file does not hold these
+            // pages. Only the undo steps are gone: their snapshots name pages of the archive just released.
+            document = DocumentLoader.adopt(target, staged.temp)
+            forgetHistory(dirty = true)
+            throw failure
+        }
+        staged.close()
         document = DocumentLoader.load(target)
         // The closed archive's pages are what the old steps would restore; after a save the file is the
         // new baseline, so the history starts here and the save point moves with it.
         forgetHistory()
-        failure?.let { throw it }
+        adopted?.delete()
         return staged.uncompiled
     }
 

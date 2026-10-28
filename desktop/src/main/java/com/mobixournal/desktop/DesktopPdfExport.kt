@@ -65,7 +65,7 @@ internal object DesktopPdfExport {
         if (!folder.exists() && !folder.mkdirs()) {
             throw DesktopSaves.SaveRefused("Could not create the folder for the PDF: ${folder.path}.")
         }
-        val temp = File.createTempFile(".${target.name}.", ".writing", folder)
+        val temp = DesktopSaves.stagingFile(folder)
         try {
             val painter = DesktopPdfPainter()
             PDDocument().use { doc ->

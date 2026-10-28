@@ -118,7 +118,7 @@ object DesktopSaves {
         }
         val folder = target.absoluteFile.parentFile
             ?: throw SaveRefused("That destination has no folder to write into.")
-        val temp = File.createTempFile(".${target.name}.", ".writing", folder)
+        val temp = stagingFile(folder)
         return try {
             val uncompiled = temp.outputStream().use { out ->
                 DocumentEncoder.write(
@@ -140,6 +140,18 @@ object DesktopSaves {
 
     /** A save that would produce a file it could not open again, said in words the user can act on. */
     class SaveRefused(message: String) : IllegalStateException(message)
+
+    /**
+     * A staging file in [folder] — the same folder as the target, so the replace is one rename.
+     *
+     * Its name is deliberately **short and fixed**: it used to be the document's own name with 19 random
+     * digits appended, which repeated a long name inside a path that was already long. On Windows a save
+     * into a deep folder (`…\28-10-2026\Materiale\Le caratteristiche statiche…, il CMOS.mobix`) then
+     * failed on the staging file, and again on the move — the 260-character limit, reached by the copy of
+     * a name that was only there to make the temp file recognisable. A fixed prefix costs nothing: the
+     * file lives beside the target for the length of one write.
+     */
+    internal fun stagingFile(folder: File): File = File.createTempFile("mobix-", ".writing", folder)
 
     /** Move [temp] over [target] — one rename where the filesystem allows it. */
     internal fun replace(temp: File, target: File) {
