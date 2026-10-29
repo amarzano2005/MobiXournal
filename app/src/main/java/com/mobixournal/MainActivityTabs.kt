@@ -264,6 +264,9 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     lastAudioRef = null
     miniPlayerVisible.value = false
     audioTick.value++
+    // Closing the tab whose take is running finishes that take: a recording outliving the document whose
+    // strokes it stamps has no tab to belong to (`docs/audio.md`).
+    if (p.tabs.tabs.getOrNull(index)?.id == recordingTabId) stopRecordingTake()
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
     if (p.tabs.isEmpty) p.tabs.open(blankTab(p))

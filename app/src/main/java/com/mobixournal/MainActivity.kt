@@ -195,6 +195,15 @@ class MainActivity : ComponentActivity() {
     /** Audio recordings created per-tab during this session, mapped by tab id. */
     internal val tabAudioRefs = mutableMapOf<String, AudioRef>()
 
+    /**
+     * The tab ([OpenTab.id]) whose strokes the running take stamps, or null when nothing is recording.
+     *
+     * **A recording is the tab's**: the take started in one document stamps that document's ink and no
+     * other, and switching tabs shows a capsule that says where the recording is running rather than
+     * offering to stop it from here (`MainActivityAudio.toggleRecording`).
+     */
+    internal var recordingTabId: String? = null
+
     /** The duration in ms of the most recent audio recording played or referenced. */
     internal var lastDurationMs: Int? = null
 
@@ -507,7 +516,7 @@ class MainActivity : ComponentActivity() {
                         // A PDF dropped on the page joins the open document (the drop's own gesture is
                         // "put this here", not "replace everything I have").
                         view.onExternalPdf = { uri -> importPdf(uri, ImportPdfMode.APPEND) }
-                        attachAudio(view)
+                        attachAudio(view, p)
                         // Restore is asynchronous now, so a file handed to us by another app is opened
                         // once the session is back — otherwise it would be shoved aside by the restore.
                         restoreTabs(p) {
