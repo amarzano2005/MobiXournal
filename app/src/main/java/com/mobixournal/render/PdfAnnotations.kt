@@ -22,9 +22,9 @@ import kotlin.math.min
  * dictionaries beside the flattened drawing, so a reader such as Acrobat or Okular shows the marks in
  * its own annotation list (and can hide, reply to or export them) instead of only seeing paint.
  *
- * The page's ink is still flattened by [PdfVectorPainter]: an annotation a viewer cannot render must
- * never be the only copy of a stroke. Adding these dictionaries is therefore additive — the visual
- * result of the export does not change.
+ * The page's ink is still flattened into the exported page's own picture ([PdfExporter]): an
+ * annotation a viewer cannot render must never be the only copy of a stroke. Adding these
+ * dictionaries is therefore additive — the visual result of the export does not change.
  *
  * Mapping is the same arithmetic the overlay uses: page points are flipped into PDF user space by
  * [PdfPageTransform], then pre-multiplied by [PdfOverlayMatrix] for a rotated source page. Quad points

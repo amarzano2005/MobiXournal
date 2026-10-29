@@ -19,8 +19,7 @@ and a `pdf` background now always goes through the raster cache and its tiles ab
 other PDF page, and exactly the smooth, cached rendering desktop Xournal++ uses. Nothing is lost in
 sharpness: the whole-page bitmap is bucketed and capped, and past that ceiling the **visible tiles are
 rasterised at the true on-screen resolution**, so text and line art stay sharp however far you zoom.
-`PdfVectorPainter`/`PdfBackgroundPainter` (the *export* path) still emit real vector PDF pages; only
-the on-screen replay is gone.
+`PdfVectorPainter`/`PdfBackgroundPainter` (the *export* path) went after it — see *Export PDF* below.
 Both bitmap caches allocate through **one** `BitmapBudget` (`BitmapBudget.shared`, sized at startup
 from `ActivityManager.memoryClass`), so a PDF-backed document has a single memory bound rather than
 two independent guesses. A cache `charge`s each bitmap it rasterises; when the total goes over, the
@@ -91,37 +90,25 @@ undoable edit** — the two halves must move together, since the appended `pagen
 joined document. Existing pages keep their `pageno`, being at the front of the join. `Save`
 (`ORIGINAL`) links the joined PDF by path; `Save As` (`ZIPPED`) embeds it as `bg.pdf` through the
 usual `documentWithPdfDomain` rewrite, which is the easy case. **Export
-PDF** (`PdfExporter`) flattens the document back out with **PDFBox** (`com.tom-roush:pdfbox-android`,
-the one non-framework runtime dependency — see the note below): a `pdf`-backed page whose source PDF
-is available (`PdfPageCache.source`, the cached import) is **imported verbatim so its original vector
-content is preserved** (`PDDocument.importPage`), and the annotations are appended over it as a
-**vector overlay** (`PdfVectorPainter`, an `APPEND`-mode content stream); every other page becomes a
-fresh sheet whose background ruling is drawn as vectors (`PdfBackgroundPainter`) with the same
-overlay. A `pixmap`-backed page additionally gets its picture embedded over that sheet —
-`PdfExporter` decodes it synchronously through `ImageBackgroundCache.render` at 2× the page's point
-size (~150 dpi) and draws it to the page box, so an image-backed document flattens to what the
-editor shows; a picture that no longer decodes leaves the bare sheet. The geometry is **not** in the
-painter: `PdfPagePlan` (in `mobix-core`) compiles the page into the ordered ops — fills, paths, text
-runs, image placements — at scale 1 (the `.xopp` unit == the PDF unit, 1/72"), flipping y into PDF's
-bottom-left space through the shared `PdfPageTransform`, and `PdfVectorPainter` replays those ops
-through the Android port of PDFBox, one arm per op. Pen strokes taper per segment, the highlighter is
-one constant-width translucent path, `.xopp` text elements use the base-14 fonts (see **Fonts in
-generated PDFs** below), and images embed losslessly. That split is why the desktop can emit the same
-page with `org.apache.pdfbox`: one geometry, two writers, no second opinion about a stroke. **Nothing is rasterised** except
-bitmaps that were already raster (user images and `pixmap` backgrounds), so a no-op import→export round-trips a PDF at ~its original size
-and fidelity instead of bloating ~10× from a raster flatten. **Rotated source pages** (`/Rotate`
-90/180/270) are handled: since the on-screen renderer already applies `/Rotate`, annotations are
-authored in the page's *visual* space, so `PdfExporter` pre-multiplies the overlay content stream by
-a `PdfOverlayMatrix` (a pure, unit-tested `cm` matrix — the inverse of the display rotation, with the
-crop-box origin folded in) that maps visual coordinates into the page's unrotated content space; the
-viewer's `/Rotate` then cancels back to the drawn position, so strokes, text, and images all land
-correctly. For `/Rotate 0` the matrix is just the crop-origin shift.
+PDF** (`PdfExporter`) writes a **normal** PDF with **PDFBox** (`com.tom-roush:pdfbox-android`, the one
+non-framework runtime dependency — see the note below): every page is drawn by the canvas's own
+rasteriser — the page's sheet, its ruling or its `pdf`/`pixmap` background, and
+every layer of ink become **one image** at 2× the page's point size (~150 dpi), embedded in a page of
+the page's own size. What leaves is what the reader sees, so a page cannot disagree with itself between
+the tablet and the file, and an imported PDF page keeps its text **selectable** because the picture sits
+under the real annotation dictionaries below. The vector path this replaces — `PdfPagePlan` replayed by
+`PdfVectorPainter`, the source PDF imported verbatim with an `APPEND`-mode overlay, a fresh sheet's
+ruling emitted by `PdfBackgroundPainter` — went with those two painters and their own suite; the
+plan itself stays in `mobix-core` because the window still emits it (see below). The `/Rotate` arithmetic
+is no longer needed on this side: the exported page is ours and carries no rotation, and both the
+picture and the annotation dictionaries are authored in the page's visual space. A background that no
+longer resolves (a missing PDF, a picture that will not decode) leaves the bare sheet, never a blank file.
 
 **The PC writes the same page with the same plan.** `PdfPagePlan.paper` compiles the sheet and its
-ruling into ops beside the elements, so the paper is no longer an arm of the app's painter: `DesktopPdfExport`
+ruling into ops beside the elements, so the paper is compiled with the page rather than by a shell's painter: `DesktopPdfExport`
 writes each page as paper, then picture, then ink, and `DesktopPdfPainter` replays every op through
 `org.apache.pdfbox` (see [stack.md](stack.md) for why the two shells carry two libraries). A page over an
-imported PDF keeps that PDF's **own vectors** here too: the source page is imported verbatim and only the
+imported PDF keeps that PDF's **own vectors** on the window: the source page is imported verbatim and only the
 overlay is written over it, with `PdfOverlayMatrix` (now in `mobix-core`, so one rotation rule serves both
 shells) cancelling a `/Rotate` back to the drawn position — an annotated 200-page scan neither bloats nor
 loses its text layer, and `DesktopPdfExportVectorsTest` proves it by reading the source's words back out of
@@ -144,10 +131,10 @@ document, and a reorder changes only the order the export writes.
 
 ## Fonts in generated PDFs
 
-**Fonts in generated PDFs.** The PDF **base-14** fonts (`PDType1Font.HELVETICA` and friends) only
-encode WinAnsi, so `PdfVectorPainter` drops any codepoint outside `0x20..0xFF`. That is acceptable
-for `.xopp` `<text>` elements — desktop Xournal++ owns their font description and the element is
-preserved in the file regardless — but **not** for **text import**, where the source is arbitrary
+**Fonts in generated PDFs.** A PDF's built-in **base-14** fonts (`PDType1Font.HELVETICA` and friends) only
+encode WinAnsi, so any codepoint outside `0x20..0xFF` is lost wherever text is typeset **into** a PDF —
+which is now only the **text import**'s generated background (the export paints text as part of the
+page image, so a `.xopp` `<text>` element keeps every codepoint it holds), where the source is arbitrary
 UTF-8 and the glyphs only exist in the generated PDF. So the text-import path draws with fonts
 **bundled as app assets** and embedded per document by `PdfFonts`
 (`PDType0Font.load(doc, stream, subset = true)`): PDFBox subsets them into the output, so a CJK or

@@ -121,23 +121,21 @@ native for stylus latency and platform fit).
   own private copy.
 - **PDF backgrounds on the desktop — PDFBox for the JVM (`org.apache.pdfbox:pdfbox 2.0.31`).** The
   Android port cannot rasterise outside Android, so the `desktop/` module links the same 2.0 API on a
-  plain JVM; the app keeps `pdfbox-android`, and the two never share a classpath. The **same split**
-  covers writing: the geometry is `PdfPagePlan` in `mobix-core` and each shell replays it with its own
-  library (`PdfVectorPainter` in the app, `DesktopPdfPainter` in the window), so no painter holds a
-  second opinion about a pressure taper or a highlighter band. Two differences are real and stay
-  shell-side: images decode with `BitmapFactory` there and `ImageIO` here, and Apache PDFBox has no
-  `setStrokingArgb` (the port's helper), so the window splits the colour into three channels and keeps
-  the alpha in the graphics state.
-- **PDF export — PDFBox (`com.tom-roush:pdfbox-android`).** *Decision (2026-07-31):* the one
-  non-framework runtime dependency, taken deliberately. The framework `android.graphics.pdf`
-  writer (`PdfDocument`) can only paint onto a canvas, so exporting an imported PDF forced every
-  page through a raster bitmap — a no-op import→export bloated files ~10× and discarded vector
-  content. PDFBox is the only mature, permissively-licensed (Apache-2.0) library that can import
-  an existing PDF page **preserving its vector content** and append a vector overlay; iText's
-  AGPL licence ruled it out.  Scope is contained to `PdfExporter`/`PdfVectorPainter`/
-  `PdfBackgroundPainter` — the *export* path only. (An experiment that also used PDFBox to draw a
-  page **on screen** through its Android `PDFRenderer` was retired in 2026-10-11 — a per-frame
-  content-stream replay that made interaction laggy; see the vector-PDF note in [`pdf.md`](pdf.md)). The `.xopp` I/O
+  plain JVM; the app keeps `pdfbox-android`, and the two never share a classpath. `PdfPagePlan` in
+  `mobix-core` is the geometry and the window's `DesktopPdfPainter` is the only replayer of it, so that
+  painter holds no second opinion about a pressure taper or a highlighter band. The tablet emits no
+  content stream at all — its export paints the page as its canvas draws it (the shape [`pdf.md`](pdf.md)
+  owns) — so the port is kept for importing a source page, the annotation dictionaries, embedded text
+  fonts and text extraction, and for nothing on screen.
+- **PDF export — PDFBox (`com.tom-roush:pdfbox-android`).** *Decision (2026-07-31), narrowed
+  2026-10-29:* the one non-framework runtime dependency, taken deliberately. The framework
+  `android.graphics.pdf` writer (`PdfDocument`) can only paint onto a canvas: it cannot import a
+  source page, write annotation dictionaries, embed a font, or read a PDF's words and outline.
+  PDFBox is the only mature, permissively-licensed (Apache-2.0) library that does all four; iText's
+  AGPL licence ruled it out. Scope is contained to `PdfExporter`, `PdfAnnotations`, `PdfFonts` and
+  the text/outline extractors. (An experiment that also used PDFBox to draw a page **on screen**
+  through its Android `PDFRenderer` was retired in 2026-10-11 — a per-frame content-stream replay
+  that made interaction laggy; see the vector-PDF note in [`pdf.md`](pdf.md)). The `.xopp` I/O
   layer stays dependency-free, and the display path is the framework `PdfRenderer` alone.
 - **File access:** the Storage Access Framework (`ACTION_OPEN_DOCUMENT` /
   `ACTION_CREATE_DOCUMENT`) so a `.xopp` opens/saves in place on the device — the file on disk

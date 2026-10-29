@@ -30,7 +30,7 @@ colour keys, anything a future desktop adds — are preserved in place exactly l
 `extraAttrs`, while the keys we do understand are edited by key and written back with three decimals.
 `BackgroundRulings` resolves the numbers a renderer needs (`r1` else the style's default from
 `BackgroundGrid`, `m1`, `lw`, `bli`/`blw`), and the three consumers — `BackgroundRenderer` on screen,
-`PageSvgWriter` for the SVG export (now shared in `mobix-core`), `PdfBackgroundPainter` for the PDF flatten — all go through it,
+`PageSvgWriter` for the SVG export (now shared in `mobix-core`), `PdfPagePlan.paper` for the window's PDF — all go through it,
 so a custom grid can't rule one way on screen and another in the export. `Snapping` resolves the same
 numbers — as a lattice, spacing *and* phase — so *Snap to grid* and the guide's **Ruling** mode both
 land on the lines the user can actually see. An **isometric** sheet is resolved as a `Snapping.Mesh`

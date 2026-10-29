@@ -8,7 +8,7 @@ import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
 /**
  * Loads the app's bundled Unicode fonts and embeds them into a [PDDocument].
  *
- * The base-14 PDF fonts used by [PdfVectorPainter] for `.xopp` text elements only encode WinAnsi, so
+ * A PDF's built-in base-14 fonts only encode WinAnsi, so
  * anything outside Latin-1 — CJK, Cyrillic, Greek, box drawing, emoji — is lost. An imported plain
  * text file is arbitrary UTF-8, so the text-import path (see [TextPaginator] and the generated PDF
  * background) draws with these embedded `PDType0Font`s instead: PDFBox subsets them into the output,

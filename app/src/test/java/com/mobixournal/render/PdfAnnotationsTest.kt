@@ -85,16 +85,23 @@ class PdfAnnotationsTest {
         assertEquals("Remember this", pdPage.annotations.last().contents)
     }
 
+    /**
+     * The file's structure: one page per document page, at the page's own size, carrying the three
+     * annotation dictionaries. The flattened picture itself is a device bitmap and is not asserted
+     * here — the injectable rasteriser is what keeps this suite on the JVM (`PdfExporter`).
+     */
     @Test
-    fun theExportedDocumentStillHasItsPaintAndItsAnnotations() {
+    fun theExportedDocumentHasAPagePerPageWithItsAnnotations() {
         val document = Document(pages = listOf(page(pen(), note(), highlighter())))
         val out = ByteArrayOutputStream()
-        PdfExporter(null, null, null, null).export(document, out)
+        PdfExporter(null, null, null) { null }.export(document, out)
 
         PDDocument.load(out.toByteArray()).use { exported ->
-            val annotations = exported.getPage(0).annotations
-            assertEquals(3, annotations.size)
-            assertTrue(exported.getPage(0).contents.use { it.readBytes().isNotEmpty() })
+            assertEquals("one page per document page", 1, exported.numberOfPages)
+            val exportedPage = exported.getPage(0)
+            assertEquals(width.toFloat(), exportedPage.mediaBox.width, 0.01f)
+            assertEquals(height.toFloat(), exportedPage.mediaBox.height, 0.01f)
+            assertEquals(3, exportedPage.annotations.size)
         }
     }
 }

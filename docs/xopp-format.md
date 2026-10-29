@@ -187,7 +187,8 @@ format attribute — it's a view-only editor state (a hidden layer still round-t
   muddy. On API 26–28, where `BlendMode` is unavailable, the band falls back to a plain alpha-over at
   the same 0.47 (`StrokePainter.highlighterMultiply`). On disk the colour alpha is **`0x7f`** (`XoppColor.HIGHLIGHTER_ALPHA`, the byte
   upstream's `SaveHandler` writes), even though the renderer paints at 0.47 regardless — as the
-  desktop does. PDF export uses the same multiply blend (`PdfVectorPainter.alphaState`).
+  desktop does. The window's PDF writer takes the same multiply blend from `StrokePainter.highlighterMultiply`
+  when it replays the page plan.
   Eraser strokes exist in the format but desktop rarely persists them.
 - `color` — hex/named as above.
 - `width` — **space-separated list of doubles (pt)**. The **first value is the nominal stroke
@@ -196,7 +197,7 @@ format attribute — it's a view-only editor state (a hidden layer still round-t
 - `capStyle` — `round` | `butt` | `square` (line cap; desktop attribute, default `round`).
 - `style` — line pattern ∈ `plain | dash | dashdot | dot` (default `plain`, omitted when plain).
   Dashed/dotted strokes render as one constant-width path with a width-proportional dash pattern
-  (`StrokePainter.dashIntervalsPt`, shared by screen and PDF export).
+  (`StrokePainter.dashIntervalsPt`, which the window's PDF writer replays from the page plan).
 - `fill` — fill alpha `0..255` painted inside the closed stroke (shapes/highlighter fill), or absent
   for no fill.
 - `ts`, `fn` — audio-recording offset (**milliseconds**) and sidecar **file name** for pen-replay;

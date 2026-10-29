@@ -22,7 +22,7 @@ object TextPaginator {
         val heightPt: Double = DrawingSurfaceDefaults.A4_HEIGHT_PT,
         val marginPt: Double = 72.0,
         val fontSizePt: Double = 10.0,
-        /** Matches `PdfVectorPainter.LINE_HEIGHT_RATIO`, which is private to that painter. */
+        /** One and a fifth of the type size — the leading a wrapped page reads with. */
         val lineHeightRatio: Double = 1.2,
     ) {
         val contentWidthPt: Double get() = widthPt - 2 * marginPt

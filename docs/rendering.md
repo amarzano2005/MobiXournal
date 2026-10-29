@@ -38,21 +38,12 @@ Eraser tool is active, deleting every stroke the eraser disc touches (hit geomet
 tested `StrokeHitTester`), or **pans** when the Hand tool is active; **two fingers pan** in any
 tool. A **zoom** factor multiplies the fit-to-width scale (`PageStacker` takes it as a parameter);
 when a page is wider than the view the same pan gesture scrolls horizontally, and narrower pages
-are centred in the content band (`PageBox.leftPx`). A **column count** (`PageStacker.stack(columns=)`,
-driven by `DrawingSurfaceView.setColumns` and persisted as `AppSettings.pageColumns`) turns that stack
-into the **page overview**: pages are chunked into rows of N, each fit to `viewWidth/N` and the row
-centred, so 1 is the plain stack and 2-4 a grid of page thumbnails. Because a row now holds several
-pages, hit-testing takes both axes — `StackedLayout.pageAt(x, y)` picks the page under a touch and
-`nearestPage(x, y)` resolves a probe that lands in a gap (e.g. the viewport centre). Those two hit-tests
-also drive the overview's **edit mode**. The grid has two modes, held in
-`PageOverview.editMode` (view-only, default off, toggled from the Pages menu via
-`setPagesEditMode`): in **view mode** the grid is display/navigation only — a confirmed Hand-tap
-`goToPage`s the page it hit and neither selection nor reordering is armed; **edit mode** enables the
-page tooling below, and leaving it cancels any lift and clears the selection. In edit mode those
-hit-tests drive **drag-to-reorder**: a finger long-press (`ViewConfiguration`'s timeout,
-disarmed by touch-slop travel or a second pointer, and never armed for a stylus or at one column)
-lifts the page under it, the drag tracks a drop slot with `nearestPage`, and the release commits one
-undoable `PageOps.move(pages, from, to)` through `editPages`. The same `pageAt(x, y)` hit-test drives
+are centred in the content band (`PageBox.leftPx`). The stack is **one column**: `PageStacker` lays every
+page under the one above it, each fit to the view width, so `StackedLayout.pageAt(x, y)` is the only
+hit-test a touch needs and `nearestPage(x, y)` resolves a probe that lands in the gap between two pages
+(e.g. the viewport centre). The Pages menu navigates — a page list, `goToPage`, add/delete of a page —
+and there is no page grid, no multi-page selection and no drag-to-reorder: a page is moved by editing the
+document, not by dragging its thumbnail. The same `pageAt(x, y)` hit-test drives
 
 ## One rule book for a stroke (`mobix-core/.../render/InkGeometry.kt`)
 
@@ -71,22 +62,21 @@ the window does the same in `DesktopInkState.pageInk`: the strip's dots and the 
 slot, while the stroke, the live preview and the ring take the tip, so a highlighter on the PC is the
 band it is on the phone (`DesktopInkSplitTest`, `DesktopColorParityTest`).
 
-**One plan, two emitters.** The PDF half of a page is not a painter's opinion: `PdfPagePlan` in
-`mobix-core` compiles a page into an ordered list of ops (a filled outline, a stroked polyline with the
-pressure's per-segment widths, a text run at its baseline, an image at its box) and each shell replays
-that list with one arm per op and `runCatching` around each, so one unencodable op is skipped instead of
-losing the page. `PdfVectorPainter` is the app's replay through `pdfbox-android`; `DesktopPdfPainter` is
-the window's through `org.apache.pdfbox` — arms in the same order, the same graphics state, and the only
-differences the ones the platforms force (images decode with `ImageIO` rather than `BitmapFactory`, and
-Apache PDFBox has no `setStrokingArgb`, so the colour is split into three channels while the alpha stays
-in the state). `DesktopPdfPainterTest` reads the produced content stream, so the claim that the PC prints
-the tablet's page is checked against the plan's own colours rather than against a guess.
+**One plan, and the window is its only emitter.** The PDF half of a page is not a painter's opinion:
+`PdfPagePlan` in `mobix-core` compiles a page into an ordered list of ops (a filled outline, a stroked
+polyline with the pressure's per-segment widths, a text run at its baseline, an image at its box), and
+`DesktopPdfPainter` replays that list through `org.apache.pdfbox` with one arm per op and `runCatching`
+around each, so one unencodable op is skipped instead of losing the page. The tablet writes no such
+stream any more: its export paints each page with the canvas's own `PageRenderer`/`BackgroundRenderer`
+pair, one image per PDF page, plus the real annotation dictionaries — the shape [pdf.md](pdf.md) owns.
+`DesktopPdfPainterTest` reads the content stream the window produces, so the claim that the PC prints
+the page is checked against the plan's own colours rather than against a guess.
 
 **A page is its paper and its ink, and both come from the plan.** `PdfPagePlan.paper` compiles the sheet
 fill and its ruling — the page's own spacing, bold interval, margin and widths, the dotted sheet's small
 squares and the isometric mesh — into the same op list, so a ruled page cannot print blank on one shell
-(`PdfPagePlanTest` counts the rules against the sheet's own spacing). `PdfBackgroundPainter` is now a
-one-line replay of it: the geometry has no second home to drift into.
+(`PdfPagePlanTest` counts the rules against the sheet's own spacing). `DesktopPdfPainter` replays that
+paper list too, one path per op: the geometry has no second home to drift into.
 
 **The window smooths its own line — but never a corner.** A page stores *samples*, and on the desktop they
 are 8 ms apart at best, so joining them with `lineTo` drew the sampling rate as facets along every
