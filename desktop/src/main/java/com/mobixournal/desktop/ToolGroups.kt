@@ -122,7 +122,7 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
  * (Plot, Table, Circuit) with `desktop-stem-slot-placement`, and [DesktopTool.TEXT] with
  * `desktop-text-slot-and-in-place-field` — the last slot of the strip that did nothing, which is what
  * closes `desktop-every-tool-does-what-it-does-on-the-tablet`. The audio tap still waits for
- * `desktop-audio-replay`.
+ * `desktop-audio-tap-and-y-key`, the child of the closed audio scope that owns it.
  */
 val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.PEN,
