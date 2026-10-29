@@ -28,9 +28,9 @@ internal class DesktopKaraoke {
     var state by mutableStateOf<KaraokeStrokeAnimator.State?>(null)
         private set
 
-    /** Copy the player's own reading: the clip it holds, where it is, and whether it sounds. */
-    fun publish(audio: DesktopAudioSession) {
-        publish(audio.clipName, audio.player.positionMs() ?: audio.positionMs, audio.playing)
+    /** Copy one tab's reading — its clip, where that clip is now, and whether it sounds. */
+    fun publish(sound: DesktopTabAudio, positionMs: Int) {
+        publish(sound.clipName, positionMs, sound.playing)
     }
 
     /** The same write for a reader with the three numbers already in hand — a test, or a caller's clock. */
@@ -53,32 +53,36 @@ internal class DesktopKaraoke {
 }
 
 /**
- * The karaoke state for [tab]'s page, driven while the clip [audio] holds sounds.
+ * The karaoke state for [tab]'s page, driven while **that tab's** clip sounds.
  *
  * Keyed on the tab so a tab switch (or a page change, which is remembered with it in [PageCanvas]) starts
  * from "nothing is on": a state left behind would dim another page's strokes for a recording it does not
- * own.
+ * own — and the reading is [DesktopAudioSession.of]'s, so a clip that belongs to a different document is
+ * never published here at all.
  */
 @Composable
 internal fun rememberKaraoke(audio: DesktopAudioSession, tab: DesktopTab, page: Int): DesktopKaraoke {
     val karaoke = remember(tab, page) { DesktopKaraoke() }
-    LaunchedEffect(karaoke, audio.clipName, audio.playing) {
-        if (audio.clipName == null) {
+    val sound = audio.of(tab)
+    LaunchedEffect(karaoke, sound.clipName, sound.playing) {
+        if (sound.clipName == null) {
             karaoke.clear()
             return@LaunchedEffect
         }
         // One publish per frame while it sounds; the loop ends on the frame where the playhead stopped,
         // which is also the pause's single publish.
         while (true) {
-            karaoke.publish(audio)
-            if (!audio.playing) break
+            karaoke.publish(sound, audio.clipPositionMs(tab) ?: sound.positionMs)
+            if (!sound.playing) break
             withFrameNanos { }
         }
     }
     // A scrub moves a *held* clip: the player is not playing, so no frame loop is running, and this is
     // the write that walks the page to the position the pointer asked for.
-    LaunchedEffect(karaoke, audio.clipName, audio.playing, audio.positionMs) {
-        if (!audio.playing && audio.clipName != null) karaoke.publish(audio)
+    LaunchedEffect(karaoke, sound.clipName, sound.playing, sound.positionMs) {
+        if (!sound.playing && sound.clipName != null) {
+            karaoke.publish(sound, audio.clipPositionMs(tab) ?: sound.positionMs)
+        }
     }
     return karaoke
 }

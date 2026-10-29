@@ -50,7 +50,13 @@ import java.util.Locale
  * and a level bar under the take's time so a silent microphone is visible before the take is over.
  *
  * What the buttons **do** is [DesktopAudioSession]'s, not this file's: record/stop starts or finalises a
- * `.wav` in the store, pause mutes it, and play holds or resumes the recording the page's strokes name.
+ * `.wav` in the store, pause mutes **that take** (the tablet's second button does nothing else:
+ * `AudioMiniCapsule`'s own rule, and the reason this pill used to draw two pause marks side by side), and
+ * play holds or resumes the recording the page's strokes name.
+ *
+ * The pill also **arms the audio tap** ([onAudioTap], the tablet's Play object): picking Play puts the
+ * window in "tap a stroke to hear it" mode, which is where `docs/audio.md` says that tool is reached —
+ * the tool strip has no slot for it.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -58,6 +64,8 @@ internal fun HeaderAudioPill(
     audio: DesktopAudioSession,
     /** The tab a recording belongs to, asked at the click — switching tabs mid-take keeps it honest. */
     tab: () -> DesktopTab?,
+    /** Pick the tablet's Play-object tool, so a tap on the page replays from the point touched. */
+    onAudioTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // The engines' own clocks are not Compose state: one poll per tick is cheaper than a state write per
@@ -68,15 +76,8 @@ internal fun HeaderAudioPill(
             delay(100)
         }
     }
-    val recording = audio.recording
-    val paused = audio.recordingPaused
-    val playing = audio.playing
-    val clipOn = audio.clipName != null
-    val time = when {
-        recording -> formatTime(audio.recordedMs)
-        clipOn -> "${formatTime(audio.positionMs)} / ${formatTime(audio.durationMs)}"
-        else -> null
-    }
+    // The **tab's** audio, not the window's: a take or a clip belongs to the document it was started in.
+    val sound = audio.of(tab())
 
     Row(
         modifier
@@ -90,11 +91,40 @@ internal fun HeaderAudioPill(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PillButton(
-            description = if (recording) "Stop recording" else "Start audio recording",
+        TransportButtons(audio, tab, sound, onAudioTap)
+        TransportReadout(audio, tab, sound)
+    }
+}
+
+/**
+ * The tablet's **three buttons**, in its order and with its meanings: record/stop, hold the take, play.
+ *
+ * Split out of [HeaderAudioPill] so the capsule's layout stays one row and each button's states are read
+ * in one place (`SourceStructureTest` counts both halves).
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun TransportButtons(
+    audio: DesktopAudioSession,
+    tab: () -> DesktopTab?,
+    sound: DesktopTabAudio,
+    onAudioTap: () -> Unit,
+) {
+    val recording = sound.recording
+    val paused = sound.recordingPaused
+    val playing = sound.playing
+    val clipOn = sound.clipName != null
+    PillButton(
+            description = when {
+                recording -> "Stop recording"
+                sound.takeElsewhere -> "Recording in another tab"
+                else -> "Start audio recording"
+            },
+            // Another tab's take owns the one microphone: this document may not open a second one.
+            enabled = !sound.takeElsewhere,
             fill = if (recording) DesktopTheme.documentRed else Color.Transparent,
             tint = if (recording) Color.White else DesktopTheme.chromeInk,
-            onClick = { audio.toggleRecord(tab()?.document?.model) },
+            onClick = { audio.toggleRecord(tab()) },
         ) { colour, size ->
             if (recording) {
                 drawRecordStop(colour, size)
@@ -103,17 +133,17 @@ internal fun HeaderAudioPill(
             }
         }
         PillButton(
-            description = if (paused) "Resume recording" else "Pause",
-            enabled = recording || clipOn,
+            description = if (paused) "Resume recording" else "Pause recording",
+            // **Recording only** — the tablet's rule. A clip's pause is the play button's, so no two
+            // buttons ever offer the same act (which is what left two pause marks side by side).
+            enabled = recording,
             fill = if (paused && recording) DesktopTheme.accent else if (recording && !paused) DesktopTheme.danger else Color.Transparent,
             tint = when {
                 (recording && !paused) || (paused && recording) -> Color.White
-                recording || clipOn -> DesktopTheme.chromeInk
+                recording -> DesktopTheme.chromeInk
                 else -> DesktopTheme.inkMuted
             },
-            onClick = {
-                if (recording) audio.toggleRecordPause() else if (playing) audio.togglePlay(tab())
-            },
+            onClick = { audio.toggleRecordPause(tab()) },
         ) { colour, size ->
             // A **resume-recording** mark is the record dot, not the play triangle: a triangle here
             // would read as "start playback", which is the button beside it (`AudioMiniCapsule`'s own
@@ -122,34 +152,59 @@ internal fun HeaderAudioPill(
         }
         PillButton(
             description = if (playing) "Pause playback" else "Play audio",
-            enabled = clipOn || audio.hasAudio || recording,
+            enabled = clipOn || sound.hasAudio || recording,
             fill = if (playing) DesktopTheme.accent.copy(alpha = 0.25f) else Color.Transparent,
             tint = if (playing) DesktopTheme.accent else DesktopTheme.chromeInk,
-            onClick = { audio.togglePlay(tab()) },
+            // The tablet's Play both **arms the tap** and plays, so picking it is one act.
+            onClick = {
+                onAudioTap()
+                audio.togglePlay(tab())
+            },
         ) { colour, size ->
             if (playing) drawPauseBars(colour, size) else drawPlayTriangle(colour, size)
         }
-        if (clipOn) {
-            Spacer(Modifier.width(2.dp))
-            PillScrubber(audio)
-        }
-        if (recording || clipOn) {
-            Spacer(Modifier.width(2.dp))
-            Text(
-                text = time ?: "",
-                color = if (recording) DesktopTheme.documentRed else DesktopTheme.inkSecondary,
-                style = DesktopTheme.numeric,
-            )
-        }
-        if (clipOn) {
-            Spacer(Modifier.width(2.dp))
-            SpeedButton(audio.speed, onClick = audio::cycleSpeed)
-        }
-        if (recording) {
-            Spacer(Modifier.width(4.dp))
-            LevelBars(audio.level)
-            Spacer(Modifier.width(4.dp))
-        }
+}
+
+/**
+ * What the capsule **says** about the sound it holds: the clip's scrubber, its `mm:ss` (or the take's),
+ * the speed and the take's level bar.
+ *
+ * A `RowScope` extension because it is the second half of the pill's one row, not a row of its own.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.TransportReadout(
+    audio: DesktopAudioSession,
+    tab: () -> DesktopTab?,
+    sound: DesktopTabAudio,
+) {
+    val recording = sound.recording
+    val clipOn = sound.clipName != null
+    val time = when {
+        recording -> formatTime(sound.recordedMs)
+        clipOn -> "${formatTime(sound.positionMs)} / ${formatTime(sound.durationMs)}"
+        else -> null
+    }
+    if (clipOn) {
+        Spacer(Modifier.width(2.dp))
+        PillScrubber(audio, tab(), sound)
+    }
+    if (recording || clipOn) {
+        Spacer(Modifier.width(2.dp))
+        Text(
+            text = time ?: "",
+            color = if (recording) DesktopTheme.documentRed else DesktopTheme.inkSecondary,
+            style = DesktopTheme.numeric,
+        )
+    }
+    if (clipOn) {
+        Spacer(Modifier.width(2.dp))
+        SpeedButton(sound.speed, onClick = { audio.cycleSpeed(tab()) })
+    }
+    if (recording) {
+        Spacer(Modifier.width(4.dp))
+        LevelBars(sound.level)
+        Spacer(Modifier.width(4.dp))
     }
 }
 
@@ -195,9 +250,9 @@ internal fun speedLabel(speed: Float): String =
  * so a drag past either end settles on the clip's ends rather than on a negative or an overrun.
  */
 @Composable
-private fun PillScrubber(audio: DesktopAudioSession) {
-    val duration = audio.durationMs
-    val progress = if (duration > 0) (audio.positionMs.toFloat() / duration).coerceIn(0f, 1f) else 0f
+private fun PillScrubber(audio: DesktopAudioSession, tab: DesktopTab?, sound: DesktopTabAudio) {
+    val duration = sound.durationMs
+    val progress = if (duration > 0) (sound.positionMs.toFloat() / duration).coerceIn(0f, 1f) else 0f
     Canvas(
         Modifier
             .width(56.dp)
@@ -205,7 +260,7 @@ private fun PillScrubber(audio: DesktopAudioSession) {
             .pointerInput(duration) {
                 if (duration <= 0) return@pointerInput
                 fun scrub(x: Float) {
-                    audio.seek(audio.scrubTargetMs(x / size.width))
+                    audio.seek(tab, audio.scrubTargetMs(tab, x / size.width))
                 }
                 awaitEachGesture {
                     val down = awaitFirstDown()

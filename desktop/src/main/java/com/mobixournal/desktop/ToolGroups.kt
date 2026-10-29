@@ -92,10 +92,9 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     // Typing on the page: a slot of its own, because a text box is neither ink nor a figure. It carries the
     // tablet's two members — prose and a formula — with Text as its face.
     ToolGroup(listOf(DesktopTool.TEXT, DesktopTool.MATH)),
-    // The tablet's **Play object**: a slot that does not write, it replays — a tap skips to the stroke
-    // under it and plays from that point. Its own slot, because picking it changes what a click on the
-    // page means rather than what the pen draws.
-    ToolGroup(listOf(DesktopTool.AUDIO)),
+    // **No audio slot.** The tablet's Play object is reached from the header pill's Play and from `Y`
+    // (`DESKTOP_TOOLS_WITHOUT_A_SLOT`): the capsule owns audio on both shells, and a strip button beside
+    // it was the same act twice (`docs/audio.md`).
     // Every figure is a slot of its own, as the tablet's rail draws them: one click picks a figure,
     // never a picker. The strip scrolls, so the seven slots cost no reachability.
     ToolGroup(listOf(DesktopTool.LINE)),
@@ -126,7 +125,10 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
  * (Plot, Table, Circuit) with `desktop-stem-slot-placement`, and [DesktopTool.TEXT] with
  * `desktop-text-slot-and-in-place-field` — the last slot of the strip that did nothing, which is what
  * closes `desktop-every-tool-does-what-it-does-on-the-tablet`, and the audio tap arrived with
- * `desktop-audio-tap-and-y-key` — the play triangle on the strip, `Y` on the keyboard.
+ * `desktop-audio-tap-and-y-key` — the pill's Play and `Y` on the keyboard.
+ *
+ * It is **not** the set of slots: [DESKTOP_TOOLS_WITHOUT_A_SLOT] names the acting tools another surface
+ * owns, so "acts" and "has a button on the strip" are two different claims.
  */
 val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.PEN,
@@ -142,7 +144,8 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.TEXT,
     // Its second member asks for a formula's source and writes one math block.
     DesktopTool.MATH,
-    // The audio tap replays the recording a stroke was drawn over — a click on the page, no ink.
+    // The audio tap replays the recording a stroke was drawn over — a click on the page, no ink. It acts
+    // from the header pill (and `Y`), so it is not in the slots (see `DESKTOP_TOOLS_WITHOUT_A_SLOT`).
     DesktopTool.AUDIO,
     DesktopTool.LINE,
     DesktopTool.ARROW,
@@ -158,6 +161,16 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.CIRCUIT_ACTIVE,
     DesktopTool.CIRCUIT_LOGIC,
 )
+
+/**
+ * The acting tools the strip does **not** offer, because another surface owns them.
+ *
+ * The tablet's **Play object** ([DesktopTool.AUDIO]) is the one: its door is the audio pill's Play —
+ * the header capsule owns audio, exactly as `AudioMiniCapsule` does on the tablet, and `Y` — so a strip
+ * button beside it was the same act twice. Removing it is a decision about **where** a tool is reached,
+ * not about whether it works: the tool still acts on the page (`docs/audio.md`).
+ */
+val DESKTOP_TOOLS_WITHOUT_A_SLOT: Set<DesktopTool> = setOf(DesktopTool.AUDIO)
 
 /**
  * [DESKTOP_TOOL_GROUPS] in the reader's own order.

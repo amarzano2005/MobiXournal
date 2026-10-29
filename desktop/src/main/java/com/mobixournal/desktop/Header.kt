@@ -69,6 +69,11 @@ internal fun Header(
      * header, so their coordinates stay the four file and history capsules.
      */
     audio: DesktopAudioSession? = null,
+    /**
+     * The pill's Play also picks the tablet's **Play object**, since the tool strip carries no slot for
+     * it (`docs/audio.md`): a tap on the page then replays from the point touched.
+     */
+    onAudioTap: () -> Unit = {},
 ) {
     val tab = tabs.active
     Row(
@@ -111,7 +116,7 @@ internal fun Header(
         Spacer(Modifier.width(12.dp))
         HeaderHistory(tab, onUndo, onRedo)
         Spacer(Modifier.width(12.dp))
-        HeaderAudioSlot(audio, tabs)
+        HeaderAudioSlot(audio, tabs, onAudioTap)
         // The tablet's colours for the two file commands: Save in the accent, PDF in the document red.
         // They were both chrome ink here, which made the one command that writes a PDF look like the
         // history steps beside it. The rule is `docs/ui-modernization.md`'s, not the window's.
@@ -155,9 +160,10 @@ private fun HeaderHistory(tab: DesktopTab?, onUndo: () -> Unit, onRedo: () -> Un
 private fun androidx.compose.foundation.layout.RowScope.HeaderAudioSlot(
     audio: DesktopAudioSession?,
     tabs: DesktopTabs,
+    onAudioTap: () -> Unit,
 ) {
     audio ?: return
-    HeaderAudioPill(audio = audio, tab = { tabs.active })
+    HeaderAudioPill(audio = audio, tab = { tabs.active }, onAudioTap = onAudioTap)
     Spacer(Modifier.width(6.dp))
 }
 

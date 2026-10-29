@@ -41,10 +41,12 @@ internal fun DesktopShell(
 ) {
     ThumbnailRefresh(state)
     RecoverySnapshots(state)
-    // Which document is on screen decides whether the audio pill has something to play: asked when the
-    // tab changes, never per frame, because it walks the pages.
+    // Which document is on screen decides what the audio pill shows: the tab's own `hasAudio` (asked here,
+    // never per frame: it walks the pages) and its own take and clip. A clip belonging to the tab being
+    // left is let go, because sound out of a document nobody is looking at has no transport in sight.
     LaunchedEffect(state.active?.key) {
-        DesktopAudioSession.noteAudioPresence(state.active?.document?.model)
+        DesktopAudioSession.leaveTab()
+        DesktopAudioSession.noteAudioPresence(state.active)
     }
     // The one export in flight, written off the UI thread (`DesktopExportCommands.kt`).
     ExportWorker(state)
@@ -79,8 +81,10 @@ internal fun DesktopShell(
             onPenParameters = { state.openPenSettings() },
             // The menu's own pressure rows: the same settings the Stylus page edits.
             penPolicy = state.prefs,
-            // The recording pill, left of Save: record, pause, play, the take's clock and its level.
+            // The recording pill, left of Save: record, pause, play, the take's clock and its level — and
+            // the door to the audio tap, now that the tool strip has no slot for it.
             audio = DesktopAudioSession,
+            onAudioTap = { state.selectTool(DesktopTool.AUDIO) },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             // The page is always drawn: Settings is a **floating surface** over it, not a second window

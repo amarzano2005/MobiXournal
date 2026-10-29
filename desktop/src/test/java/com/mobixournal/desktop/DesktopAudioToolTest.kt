@@ -8,20 +8,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The tablet's **Play object** as a window slot: it is on a strip, it is not ink, and `Y` picks it.
+ * The tablet's **Play object** on the window: reached from the audio pill's Play and from `Y`, it is not
+ * ink, and the tool strip deliberately carries **no** button for it.
  *
- * The slot test is deliberately about *what a click means* rather than about pixels: a tap tool that
- * claimed the pen's packets would ink the page instead of replaying it, and a tool missing from
- * [DESKTOP_TOOLS_THAT_ACT] would be a slot the strip must not offer at all
- * (`desktop-every-tool-does-what-it-does-on-the-tablet`'s rule, checked by `ToolGroupsTest`).
+ * The claim is about *where* a tool is reached rather than about pixels: a tap tool that claimed the pen's
+ * packets would ink the page instead of replaying it, and the strip's second door to audio was the same
+ * act twice beside the capsule that owns it (`docs/audio.md`, and `ToolGroupsTest` for the slot rule).
  */
 class DesktopAudioToolTest {
 
     @Test
-    fun `the audio tap has a slot, a picture and no ink`() {
-        val groups = DESKTOP_TOOL_GROUPS.filter { DesktopTool.AUDIO in it.members }
-        assertEquals("one slot, not two", 1, groups.size)
-        assertTrue("and it is a slot the strip may offer", DesktopTool.AUDIO in DESKTOP_TOOLS_THAT_ACT)
+    fun `the audio tap is reached from the pill, not from a slot`() {
+        val slots = DESKTOP_TOOL_GROUPS.filter { DesktopTool.AUDIO in it.members }
+        assertEquals("the strip carries no second door to audio", 0, slots.size)
+        assertEquals(
+            "the pill and `Y` are its doors, named in one place",
+            setOf(DesktopTool.AUDIO),
+            DESKTOP_TOOLS_WITHOUT_A_SLOT,
+        )
+        assertTrue("and it still acts on the page", DesktopTool.AUDIO in DESKTOP_TOOLS_THAT_ACT)
         assertEquals("wearing the catalogue's play mark", ToolGlyph.PLAY, DesktopTool.AUDIO.glyph)
         assertNull("a tap lays down no ink", DesktopTool.AUDIO.inkTool())
         assertFalse("so the pen's packets stand aside", DesktopTool.AUDIO.inksByPackets())
