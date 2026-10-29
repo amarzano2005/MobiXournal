@@ -167,8 +167,9 @@ the start of a task, then follow the matching profile below:
 
 ### Profile B and D — the Windows 11 machines
 Both run Windows 11 `10.0.26300` in `pwsh` with the same toolchain paths (below); they differ in
-hardware. **Profile D is the machine to verify desktop-app work on**: it has the 21:9 monitor and a
-Huion tablet attached, which Profile B lacks.
+hardware. **Profile D is the machine to verify desktop-app work on**: it has the 21:9 monitor, which
+Profile B lacks. Both Windows machines carry the same **Gaomon WH851** tablet — the pen they use on
+the Android tablet as well.
 
 #### Profile D — Windows 11 desktop PC (`ANTONIOFISSO-PC`)
 - **Hardware**: 12th Gen Intel Core **i9-12900KF** (16 cores, 24 threads), **32 GB RAM**, NVIDIA
@@ -176,8 +177,8 @@ Huion tablet attached, which Profile B lacks.
 - **Display**: one **3440×1440 (21:9)** monitor; Windows reports **120 Hz** for it, so the 144 Hz
   target of `docs/desktop-workstation.md` needs the refresh rate raised in Windows display settings
   (or a check that the monitor supports it) before it can be measured here.
-- **Tablet**: a **Huion** device shows up as a HID device (driver and Wintab/Windows Ink support not
-  yet checked — that is the `desktop-tablet-and-dial-input` spike).
+- **Tablet**: **Gaomon WH851** — reaches Compose as a mouse (pressure `1.0`, no tilt); its pen's own
+  stream is **Wintab** (`docs/desktop-tablet.md` owns the readers). Express keys are the vendor's.
 - **Python trap**: `python` on `PATH` resolves to the Microsoft Store stub in `WindowsApps` and prints
   a Store prompt instead of running. The real interpreter is
   `C:\Users\amarz\AppData\Local\Python\bin\python.exe` (3.14), e.g.

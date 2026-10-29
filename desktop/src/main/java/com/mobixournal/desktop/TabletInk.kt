@@ -17,7 +17,7 @@ import kotlin.math.hypot
  * **Windows Ink** — the pen's own stream, read from `WM_POINTER`.
  *
  * `desktop-tablet-pressure-spike` measured what the window was getting before this file existed
- * (`docs/desktop-workstation.md`): Compose reported the Huion as a **mouse** with `pressure = 1.0` and
+ * (`docs/desktop-workstation.md`): Compose reported the Gaomon WH851 as a **mouse** with `pressure = 1.0` and
  * no tilt, because AWT's pointer model has no pen in it, and the Wintab context the first probe tried
  * opened without a single device axis. The pen's real readings are in Win32's pointer messages, which
  * Windows sends to the window *beside* the mouse messages it also sends: `WM_POINTERDOWN` /

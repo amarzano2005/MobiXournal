@@ -27,7 +27,7 @@ import kotlin.math.sin
  * [PenPacketStroke] and records, per sample, the packet's time and the `nanoTime` of the frame that
  * first drew it. The samples are synthetic by design on a host without the tablet: a side effect of the
  * measurement should not depend on the pen being on the glass. When run on the owner's PC with the
- * Huion, the same window draws whatever the real driver sends for the strokes drawn by hand.
+ * Gaomon WH851, the same window draws whatever the real driver sends for the strokes drawn by hand.
  *
  * **What it writes**: `ink-probe.csv` beside the running directory, one row per painted sample —
  * `stroke,sample,packetMs,paintMs,deltaMs` — and a one-line summary on stdout with the median and

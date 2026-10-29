@@ -137,7 +137,7 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   The probe paints with the editor's own `PageCanvas` and feeds the real `PenPacketStroke`, recording for
   every sample the packet's time and the `nanoTime` of the frame that first drew it. On a host with no
   tablet the packets are synthetic (400 Hz, the same rate the driver reports), so the numbers below
-  measure the canvas, not a driver; on the owner's PC the same window takes the Huion's own stream.
+  measure the canvas, not a driver; on the owner's machines the same window takes the Gaomon WH851's own stream.
   The first run on the Windows 11 laptop (`i7-12650H`, display refresh the bound this host can measure)
   measured the blank A4 page at **median 12.9 ms / p95 17.9 ms**, but `udiff.xopp`'s dense first page at
   **median 17.7 ms / p95 29.4 ms / max 47.6 ms** — and that gap *was* the felt lag: every frame re-painted

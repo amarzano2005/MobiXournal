@@ -57,5 +57,5 @@ Read literally: at the median the two land in the same place, **two 8.33 ms fram
 one frame to paint, one to present — so this metric cannot separate them. The difference is in the
 **tail and the floor**: MobiXournal reaches a single frame at its best (4.2 ms) where Xournal++'s
 floor is 11.6 ms, and its worst case is 34.9 ms against 40.5 ms. The mouse is a *proxy*: the tablet
-cannot be automated, so these numbers say nothing about the Huion's own path, whose packet → painted
+cannot be automated, so these numbers say nothing about the Gaomon WH851's own path, whose packet → painted
 figure is the 1.48 ms median above and which is measured at a different boundary (before the present).
