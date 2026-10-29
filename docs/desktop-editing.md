@@ -27,7 +27,10 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
 - **Seven geometry slots draw figures.** Line, Arrow, Double arrow, Axes (the shared
   `ShapeKind.COORDINATE_AXIS`), Rectangle, Ellipse and Spline each turn one drag into an ordinary
   constant-width stroke through `ShapeBuilder` — the tablet's own builder — so a figure made here
-  round-trips through `.xopp` as ink. The preview is the **same draft list** the sheet already paints,
+  round-trips through `.xopp` as ink. The preview is the **same draft list** the sheet already paints, and
+  the outline cached for it is keyed by the **box the draft covers**, not by its last vertex: a closed
+  figure's last vertex is the corner the press landed on, so a key of that handed back one frame's outline
+  for the whole drag (`StrokePathCacheTest`).
   `Shift` snaps the drag's direction to 45°, a drag shorter than 4 pt draws nothing, and `Esc` cancels
   through `DesktopShellState.liveDrag`. With a geometry slot picked the tablet's **packets stand
   aside**: a pen contact must not ink under a figure being dragged.

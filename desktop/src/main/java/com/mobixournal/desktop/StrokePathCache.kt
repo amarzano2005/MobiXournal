@@ -24,8 +24,8 @@ import java.util.IdentityHashMap
  * stroke is tiny (a page is drawn at one or two scales) and the whole cache is weak, so a closed document's
  * strokes are collected with the page that held them.
  *
- * Live drafts are cached too, by the list's identity and its size, which is what makes a frame that only
- * redraws (a scroll, a hover, a selection moving) cost nothing to paint.
+ * Live drafts are cached too, by the list's identity and the box its points cover, which is what makes a
+ * frame that only redraws (a scroll, a hover, a selection moving) cost nothing to paint.
  */
 internal object StrokePathCache {
 
@@ -48,19 +48,26 @@ internal object StrokePathCache {
         private set
 
     /**
-     * A draft's identity plus the length and the **last sample** it has reached.
+     * A draft's identity plus what its geometry currently **is**: the length it has reached, the box it
+     * covers, the scale and the rule it is drawn with.
      *
-     * Both are needed. A pen's draft grows, so its length says what it is; a **figure's** draft is
-     * rewritten each frame at the same length (a rectangle is four corners however far it is dragged), so
-     * a key of length alone handed back the first frame's geometry for the whole drag — the preview stood
-     * still and jumped at the lift, which reads as a lag. The last point moves with the hand in both cases.
+     * The **box**, not the last sample. A figure's draft is rewritten each frame at the same length (a
+     * rectangle is four corners however far it is dragged), so a key of length alone handed back the first
+     * frame's geometry for the whole drag — the preview stood still and jumped at the lift. The last sample
+     * seems to answer that, and does for an open figure, but **not for a closed one**: a rectangle's and an
+     * ellipse's last vertex is the figure's first one, the corner the press landed on, which never moves.
+     * Every frame of such a drag matched the first, so the preview stayed a few points wide until the lift.
+     * A box moves with the pointer whatever the figure's point order is.
      */
     private data class DraftKey(
         val size: Int,
         val scale: Float,
         val tool: Tool,
         val dash: LineStyle,
-        val last: StrokePoint?,
+        val left: Float,
+        val top: Float,
+        val right: Float,
+        val bottom: Float,
     )
 
     /** The shapes of one recorded stroke at [scale]. */
@@ -85,7 +92,21 @@ internal object StrokePathCache {
      */
     @Synchronized
     fun draft(identity: Any, size: Int, tool: Tool, lineStyle: LineStyle, points: List<StrokePoint>, scale: Float): Shapes {
-        val key = DraftKey(size, scale, tool, lineStyle, points.lastOrNull())
+        // One numeric pass for the box: a fraction of the cost of building the path it guards against
+        // rebuilding, and it is the only part of a draft that changes for every figure that is dragged.
+        var left = Float.POSITIVE_INFINITY
+        var top = Float.POSITIVE_INFINITY
+        var right = Float.NEGATIVE_INFINITY
+        var bottom = Float.NEGATIVE_INFINITY
+        for (point in points) {
+            val x = point.x.toFloat()
+            val y = point.y.toFloat()
+            if (x < left) left = x
+            if (x > right) right = x
+            if (y < top) top = y
+            if (y > bottom) bottom = y
+        }
+        val key = DraftKey(size, scale, tool, lineStyle, left, top, right, bottom)
         val perDraft = byDraft.getOrPut(identity) { HashMap(4) }
         perDraft[key]?.let { return it }
         if (perDraft.size >= 4) perDraft.clear()
