@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-native-file-dialogs"
+title = "The desktop asks files with the shell's own dialog"
+description = "The window's file dialogs are the shell's own on Windows: DesktopFilePicker is the one seam, DesktopFilePickerWindows calls IFileOpenDialog/IFileSaveDialog through the JNA the module already ships (hand-written vtable binding, COM's this passed explicitly), DesktopFilePickerJava is the fallback on hosts without it, and DesktopPickerTypes holds the pure rows (three containers, one open row covering .mobix and .xopp, PDF, settings backup) with formatOf/documentTypeIndexOf mappings. Open's filter now narrows for real; Save As is one native dialog with a type box (the Swing chooser is gone and SaveAsPicker keeps only saveAsName/saveAsRenamed); Export PNG and Export SVG ask which folder through FOS_PICKFOLDERS (DesktopExportQueue.pickFolder) instead of always writing beside the document. DesktopFilePickerTest proves the rows and probes the binding for real — create the dialog, set and read back the type box, release it without showing — which is how the missing this and the unset type index were found. Green: :app 1418, :mobix-core 549, :desktop 688 (the one failure, DesktopPdfImportCommandsTest, is pre-existing on Windows and red on HEAD too). The distributable was regenerated."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = []
+
+[[task]]
 id = "audio-per-tab-and-desktop-pill"
 title = "Audio belongs to its tab, on both shells"
 description = "Audio is per tab on both shells. mobix-core/audio/AudioFiles.kt holds ownsRecording(ownerTab, drawnInTab), asked at the one commit funnel in each shell, so a take only stamps its own tab's ink (AudioOwnershipTest). DesktopAudioSession now names the tab that owns the take and the tab that holds the clip and answers per tab through DesktopTabAudio (DesktopAudioSession.of): the pill, the transport and the karaoke read that tab's state, switching tabs lets the clip go, and closing a tab finishes its take (closeActiveTab / settle). The desktop pill adopts AudioMiniCapsule's meanings — pause holds the take only (no second pause mark beside the play button) and Play also picks the audio tap — and the tool strip no longer offers an audio slot (DESKTOP_TOOLS_WITHOUT_A_SLOT; ToolGroupsTest, DesktopAudioToolTest). On the tablet the take is keyed to recordingTabId: MainActivityAudio stamps and stops only inside that tab, the finished file is filed under it, closing that tab finishes it, and AudioUiState.recordingElsewhere disables the capsule's microphone on any other tab while the shade's Stop still ends the take wherever it runs. Both suites green (:app 1418, :mobix-core 549); :desktop 683 with one pre-existing Windows-only PDF reference failure (DesktopPdfImportCommandsTest, also red on HEAD)."
