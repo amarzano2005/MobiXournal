@@ -124,10 +124,11 @@ write an infinite point into the `.xopp`.
 The recogniser itself lives in **`mobix-core`** (`render/ShapeRecognizer.kt` and its companions), not in the
 app module: it was always pure, and both shells run the same dwell. The rule they share is
 `ShapeDwell` (the 300 ms, the 3 pt slop, and the figure a stroke is offered to); what differs is the
-clock. The tablet posts a `postDelayed` from `DrawingSurfaceHoldSnap`; the window has no such thing, and
-its pen sends **nothing at all** while it is held still, so there the rest is the silence —
-`PageInkGesture.dwellCheck` measures the newest sample against a `System.nanoTime`, called from the
-canvas's silent timer, from the packet path's flush, and once before a lift.
+clock. The tablet posts a `postDelayed` from `DrawingSurfaceHoldSnap`; the window has no such thing, so
+`PageInkGesture.dwellCheck` times the rest itself — from the last **move**, with the slop deciding
+(`System.nanoTime`), because a Wintab driver keeps reporting the same position while the pen rests on
+the glass and a clock stamped on every sample never aged at all. It is called from the canvas's silent
+timer, from the packet path's flush, and once before a lift.
 
 - **Live**: dwell (300 ms) and lift-off recognition, all seven classes, the tremor filter, the switch,
   the pen/highlighter filter, the polygon agreement test and the corner fallback, and the step that

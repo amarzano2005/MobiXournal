@@ -647,8 +647,8 @@ internal fun PenPacketStrokes(
             while (true) {
                 delay(PenPacketStroke.STALE_CHECK_MS)
                 val now = System.nanoTime()
-                // Rest is the one event with no sample to wait for — a pen held still sends nothing —
-                // so the same silent timer is what lets a dwell replace the preview (`ShapeDwell`).
+                // Rest is the one event with no *move* to wait for — a held pen repeats its position, or
+                // says nothing — so this silent timer is what lets a dwell replace the preview (`ShapeDwell`).
                 gesture.dwellCheck(now)
                 stroke.finishIfStale(now)
             }

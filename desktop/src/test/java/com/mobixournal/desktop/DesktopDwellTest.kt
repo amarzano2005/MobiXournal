@@ -174,6 +174,32 @@ class DesktopDwellTest {
     }
 
     /**
+     * The case a real tablet makes, and the one a test without packets would miss: Wintab **keeps
+     * sending packets** while the pen rests on the glass, at its own rate and with the same position.
+     *
+     * Stamping the dwell's clock on every sample made the rest impossible to reach — the age was always
+     * a few milliseconds — so the window never snapped a held stroke, which is exactly what a hand saw.
+     * A repeat inside the slop must leave the clock (and a preview it has already produced) alone.
+     */
+    @Test
+    fun aDriverThatKeepsReportingWhileThePenRestsStillSnaps() {
+        val (tab, gesture, draft) = fixture()
+        try {
+            drawSquare(gesture)
+            Thread.sleep(ShapeDwell.MS + 60)
+            // The pen does not move; the driver keeps talking about it.
+            repeat(20) { i ->
+                gesture.move(pointer(100f, 100f, InkPointerPhase.MOVE, 9_000L + i))
+            }
+            gesture.dwellCheck()
+            assertEquals("the rest held under a repeating driver", 5, draft.size)
+            assertEquals("and it is the figure's own corners", 2, draft.map { it.x.toInt() }.distinct().size)
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    /**
      * The whole canvas, end to end: a pen that rests on the glass and then lifts — the case where no
      * sample follows the rest — is recognised on the way out, so the window needs no timer to be
      * correct, only to *show* the figure while the pen is still down.

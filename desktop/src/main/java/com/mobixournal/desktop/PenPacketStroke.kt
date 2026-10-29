@@ -130,9 +130,10 @@ internal class PenPacketStroke(
      * longer than [STALE_MS] is a **new** stroke: the lift of the previous one never arrived, so that one
      * is finished where it stopped rather than continued by a pen that has been lifted and put back down.
      *
-     * The driver reports *changes*, so a pen held still on the glass sends nothing at all: silence is not
-     * evidence that the lift came, which is why [STALE_MS] is generous and why a silence **finishes** the
-     * stroke instead of throwing the hand's ink away.
+     * The driver reports *changes*, so a pen held still on the glass either repeats its position or says
+     * nothing at all (the driver decides, and this one does both): silence is not evidence that the lift
+     * came, which is why [STALE_MS] is generous and why a silence **finishes** the stroke instead of
+     * throwing the hand's ink away.
      */
     fun packet(packet: PenPacket) {
         // The driver's thread does nothing but this: no state, no lock, no gesture. Anything more here

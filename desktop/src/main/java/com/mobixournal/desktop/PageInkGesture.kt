@@ -14,6 +14,7 @@ import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.RecognisedFigure
 import com.mobixournal.render.ShapeDwell
+import kotlin.math.hypot
 import com.mobixournal.render.eraserRadiusPt
 
 /**
@@ -81,8 +82,19 @@ internal class PageInkGesture(
     private var dwellFigure: RecognisedFigure? = null
     private var drawnSamples: List<InkSample> = emptyList()
 
-    /** When the newest sample arrived, on the monotonic clock the dwell is measured with. */
+    /**
+     * When the tip last **moved** ([ShapeDwell.SLOP_PT] away from the anchor), on the monotonic clock
+     * the dwell is measured with — and where that anchor is.
+     *
+     * Not the newest sample's age: a Wintab driver keeps sending packets while the pen rests on the
+     * glass, at its own rate and with the same position, so stamping the clock on every sample made the
+     * dwell impossible to reach — the tip was reported "resting" only because no packet arrived, which
+     * on a real tablet is the one thing it does send. A repeat sample inside the slop leaves the clock
+     * alone, exactly as it leaves the slate's timer armed (`docs/shape-perfection-engine.md`).
+     */
     private var lastSampleNanos = 0L
+    private var anchorX = 0.0
+    private var anchorY = 0.0
 
     /** The bites gathered for this frame: one page edit per frame, not one per pointer move. */
     private val eraser = EraseBatch()
@@ -253,6 +265,8 @@ internal class PageInkGesture(
         draft.clear()
         dwellFigure = null
         drawnSamples = emptyList()
+        anchorX = 0.0
+        anchorY = 0.0
         if (drawing) addSample(x, y, event.widthFactor, start)
     }
 
@@ -263,14 +277,21 @@ internal class PageInkGesture(
      * of a stroke that no longer exists, so the hand's own ink comes back and the dwell starts over.
      */
     private fun addSample(x: Double, y: Double, factor: Float, pointer: InkPointer) {
+        val moved = draft.isEmpty() || hypot(x - anchorX, y - anchorY) >= ShapeDwell.SLOP_PT
         if (dwellFigure != null) {
+            // A driver repeating a resting pen must not undo the preview: the hand has not moved.
+            if (!moved) return
             dwellFigure = null
             draft.clear()
             draft.addAll(drawnSamples)
             drawnSamples = emptyList()
         }
+        if (moved) {
+            anchorX = x
+            anchorY = y
+            lastSampleNanos = System.nanoTime()
+        }
         draft.add(InkSample(x, y, factor, pointer))
-        lastSampleNanos = System.nanoTime()
     }
 
     /**
