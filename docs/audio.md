@@ -90,8 +90,20 @@ was asked for until the sound arrives.
 
 *The pill.* The audio controls are the tablet's capsule, in the header immediately left of Save:
 record/stop, pause, play, the take's `mm:ss` and a level bar, in the same three-button order and the
-same state colours `AudioMiniCapsule` uses. The status bar carries the take indicator (a record dot,
-the clock and the level) and the one sentence a failure has to say.
+same state colours `AudioMiniCapsule` uses — and with its **meanings**, which is what the window's first
+cut got wrong: pause holds the **take** and does nothing when no take is running, because a clip's pause
+is the play button's (two pause marks side by side were the same act twice), and Play also **picks the
+audio tap**, since the tool strip carries no slot for it. The status bar carries the take indicator (a
+record dot, the clock and the level) and the one sentence a failure has to say.
+
+*One document's audio, not the window's.* A machine has one microphone and one output, but a take belongs
+to the **tab it was started in** — `ownsRecording` in `mobix-core/audio/` is that rule, asked by both shells
+at the one place a stroke is committed. Its `fn`/`ts` land only on its own tab's ink; it is paused and
+stopped only from that tab, whose capsule shows the red stop while every other tab shows a disabled
+microphone naming the recording tab (`DesktopTabAudio.takeElsewhere`, `AudioUiState.recordingElsewhere`);
+and closing that tab finishes the take. A **clip** belongs to its tab too: switching documents lets the
+sound go, so the pill, the transport and the karaoke always describe the document on screen
+(`DesktopAudioSession.of` answers per tab).
 
 *The devices.* **Settings → Audio** picks the microphone and the output by the platform's own names, with
 **System default** first; the choice is stored as `audio.inputDevice` / `audio.outputDevice` and reaches the

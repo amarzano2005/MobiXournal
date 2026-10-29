@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "audio-per-tab-and-desktop-pill"
+title = "Audio belongs to its tab, on both shells"
+description = "Audio is per tab on both shells. mobix-core/audio/AudioFiles.kt holds ownsRecording(ownerTab, drawnInTab), asked at the one commit funnel in each shell, so a take only stamps its own tab's ink (AudioOwnershipTest). DesktopAudioSession now names the tab that owns the take and the tab that holds the clip and answers per tab through DesktopTabAudio (DesktopAudioSession.of): the pill, the transport and the karaoke read that tab's state, switching tabs lets the clip go, and closing a tab finishes its take (closeActiveTab / settle). The desktop pill adopts AudioMiniCapsule's meanings — pause holds the take only (no second pause mark beside the play button) and Play also picks the audio tap — and the tool strip no longer offers an audio slot (DESKTOP_TOOLS_WITHOUT_A_SLOT; ToolGroupsTest, DesktopAudioToolTest). On the tablet the take is keyed to recordingTabId: MainActivityAudio stamps and stops only inside that tab, the finished file is filed under it, closing that tab finishes it, and AudioUiState.recordingElsewhere disables the capsule's microphone on any other tab while the shade's Stop still ends the take wherever it runs. Both suites green (:app 1418, :mobix-core 549); :desktop 683 with one pre-existing Windows-only PDF reference failure (DesktopPdfImportCommandsTest, also red on HEAD)."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-29
+completed = 2026-10-29
+tags = []
+
+[[task]]
 id = "desktop-settings-audio"
 title = "Desktop: Audio section (when recording lands)"
 description = "The window's Settings gained an eleventh section, Audio, under Input. Its Microphone and Output rows list this machine's devices by the platform's own names through javax.sound.sampled mixers, with System default first (stored as the absence of audio.inputDevice / audio.outputDevice, never an empty name). The list is re-read every time the page opens, so a headset plugged in mid-session is offered. A stored device that is no longer on the machine is dropped to the system default in the store as well, with the row saying which name went missing, and the open call (openLine) falls back again if a device disappears mid-session; the engines read one AudioRoute object, so a take or a clip opens the picked device without reading settings. The page also shows the running take's input level (the capsule's own peak) with a note when nothing is recording, the WAV format and the recordings folder. Added SettingsGlyph.AUDIO (microphone mark) to the shared catalogue, kept DesktopSettingsState under its 700-line budget by putting the page's state in DesktopAudioSettings, and covered it with DesktopAudioSettingsTest (round-trip per key, vanished-device fallback, hot-plug, resolveDevice) plus the docs in desktop-settings.md and audio.md."

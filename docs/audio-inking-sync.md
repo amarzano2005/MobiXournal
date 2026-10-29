@@ -59,6 +59,12 @@ Rather than relying on vulnerable loose sidecars in user folders:
   ~160 MB for half an hour). Because nothing is transcoded, that file is as big as its WAV, not as big
   as an Opus recording would have been.
 
+### One take, one tab
+- **A take belongs to the tab it started in** (`com.mobixournal.audio.ownsRecording`). Switching tabs does
+  not hand the microphone to the new document: the running take keeps its owner, ink drawn elsewhere carries
+  no `fn`, and the other tab's capsule shows a disabled microphone naming the tab that is recording. The
+  shade's Stop ends it wherever it was started, and closing its tab finishes it.
+
 ### Background capture and standalone media export
 - **Background capture (`AudioRecordingService`)**: Android foreground service (`FOREGROUND_SERVICE_MICROPHONE`)
   holding a partial wake lock and showing an ongoing notification with an elapsed chronometer and two actions —
