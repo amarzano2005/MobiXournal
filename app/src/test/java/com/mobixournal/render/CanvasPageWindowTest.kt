@@ -150,13 +150,12 @@ class CanvasPageWindowTest {
         val pages = List(pageCount) { page(it) }
         val source = PageSource.of(Document(pages = pages))
         try {
-            val layout = PageStacker.stack(source, viewWidthPx = 600, gapPx = 10f, zoom = 1.5f, columns = 2)
+            val layout = PageStacker.stack(source, viewWidthPx = 600, gapPx = 10f, zoom = 1.5f)
             assertEquals(pageCount, layout.boxes.size)
-            assertEquals(2, layout.columns)
             assertSame(pages[0], layout.boxes[0].page)
             assertSame(pages[1], layout.boxes[1].page)
-            // Each column is (600 - 10) / 2 = 295 px wide, scaled by the 1.5 zoom.
-            assertEquals(295f * 1.5f, layout.boxes[0].widthPx, 1e-3f)
+            // The page is fitted to the 600 px view, scaled by the 1.5 zoom.
+            assertEquals(600f * 1.5f, layout.boxes[0].widthPx, 1e-3f)
         } finally {
             source.close()
         }

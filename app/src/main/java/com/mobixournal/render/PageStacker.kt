@@ -4,9 +4,9 @@ import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Page
 
 /**
- * Placement of one page in the canvas, in view pixels. Each page is scaled to fit its column (the
- * view width divided by the column count, times the zoom factor); [topPx] is its top edge and
- * [leftPx] its left edge in content space (before scroll is applied). Rows are centred horizontally.
+ * Placement of one page in the canvas, in view pixels. Each page is scaled to fit the view width (times
+ * the zoom factor); [topPx] is its top edge and [leftPx] its left edge in content space (before scroll is
+ * applied). A page narrower than the view is centred.
  *
  * The box holds the page's **geometry**, not the page model: its [page] is read through the [source]
  * every time it is asked for, so a layout of a 200-page notebook keeps no page alive on its own — the
@@ -47,31 +47,26 @@ internal class PageBox(
 }
 
 /**
- * The laid-out document: one [PageBox] per page, the total content height, the content width (the
- * widest row, or the view width if wider — used to bound horizontal panning), and how many pages sit
- * side by side in a row.
+ * The laid-out document: one [PageBox] per page, the total content height and the content width (the
+ * widest page, or the view width if wider — used to bound horizontal panning).
  */
 internal data class StackedLayout(
     val boxes: List<PageBox>,
     val totalHeightPx: Float,
     val contentWidthPx: Float,
-    val columns: Int = 1,
 ) {
 
     /** The page whose vertical band contains [contentY] (content space), or null in a gap. */
     fun pageAt(contentY: Float): PageBox? =
         boxes.firstOrNull { contentY >= it.topPx && contentY < it.bottomPx }
 
-    /**
-     * The page under the content-space point, or null if the point falls in a gap. With one column
-     * this is [pageAt]; with several it is the only way to tell the columns apart.
-     */
+    /** The page under the content-space point, or null if the point falls in a gap (or beside a page). */
     fun pageAt(contentX: Float, contentY: Float): PageBox? =
         boxes.firstOrNull { it.contains(contentX, contentY) }
 
     /**
-     * The page under the point, falling back to the nearest one in the same row (and then to the
-     * band) so a point in a gap still resolves — used for "which page am I looking at".
+     * The page a probe lands on, falling back to the nearest page when the point is beside it — used for
+     * "which page am I looking at", where a point in the margin still belongs to the sheet next to it.
      */
     fun nearestPage(contentX: Float, contentY: Float): PageBox? =
         pageAt(contentX, contentY)
@@ -84,9 +79,9 @@ internal data class StackedLayout(
 }
 
 /**
- * Lays document pages out in rows of [columns] pages, top-to-bottom, each fit to its column width
- * scaled by [zoom] and separated by [gapPx]. One column is the plain vertical stack; two or more is
- * the page-overview grid. Rows are centred, and pages shorter than their row sit at the row's top.
+ * Lays document pages out in one vertical stack, top-to-bottom, each fit to the view width scaled by
+ * [zoom] and separated by [gapPx]. Pages narrower than the view are centred; the document is a single
+ * sheet after another, which is the only arrangement the editor has.
  *
  * The placement is computed from each page's **size** ([PageSource.pageSize]), never from the page
  * itself, so a `.mobix` whose page size its envelope declares is stacked without opening a single
@@ -95,26 +90,13 @@ internal data class StackedLayout(
  */
 internal object PageStacker {
 
-    /** Column counts the UI offers; index 0 is the plain single-page stack. */
-    val COLUMN_CHOICES = listOf(1, 2, 3, 4)
-
-    /** One page's placement while a row is being built, before the rows know their centring. */
-    private data class Placed(
-        val index: Int,
-        val top: Float,
-        val width: Float,
-        val height: Float,
-        val scale: Float,
-    )
-
     /** Stack the pages already in memory — the same layout as [stack] with an in-memory source. */
     fun stack(
         pages: List<Page>,
         viewWidthPx: Int,
         gapPx: Float,
         zoom: Float = 1f,
-        columns: Int = 1,
-    ): StackedLayout = stack(PageSource.of(pages), viewWidthPx, gapPx, zoom, columns)
+    ): StackedLayout = stack(PageSource.of(pages), viewWidthPx, gapPx, zoom)
 
     /**
      * Stack every page [source] declares, reading only each page's size.
@@ -127,47 +109,26 @@ internal object PageStacker {
         viewWidthPx: Int,
         gapPx: Float,
         zoom: Float = 1f,
-        columns: Int = 1,
     ): StackedLayout {
-        if (viewWidthPx <= 0) return StackedLayout(emptyList(), 0f, 0f, 1)
-        val cols = columns.coerceIn(1, COLUMN_CHOICES.last())
-        // Each column gets an equal share of the width left over once the gaps between the columns
-        // are taken out; one column is therefore the full view width, as before.
-        val cellWidth = ((viewWidthPx - gapPx * (cols - 1)) / cols).coerceAtLeast(1f)
-
-        val rows = ArrayList<List<Placed>>()
-        // The **first** row starts at the content's own top, so the page begins directly under the
-        // frame's closing edge with no strip of desk between them — `docs/chrome-frame.md` owns the rod.
-        // [gapPx] therefore separates pages (and rows), it is not a margin around the document.
+        if (viewWidthPx <= 0) return StackedLayout(emptyList(), 0f, 0f)
+        // Each page's own size first: the content band is the widest page or the view, so a page wider
+        // than the view (a zoom above 100 %) anchors the band and a narrower one is centred in it.
+        class Placed(val index: Int, val scale: Float, val width: Float, val height: Float)
+        val placed = List(source.pageCount) { index ->
+            val size = source.pageSize(index)
+            val scale = if (size.widthPt > 0) (viewWidthPx / size.widthPt).toFloat() * zoom else zoom
+            Placed(index, scale, (size.widthPt * scale).toFloat(), (size.heightPt * scale).toFloat())
+        }
+        val contentWidth = maxOf(viewWidthPx.toFloat(), placed.maxOfOrNull { it.width } ?: 0f)
+        val boxes = ArrayList<PageBox>(placed.size)
+        // The **first** page starts at the content's own top, so it begins directly under the frame's
+        // closing edge with no strip of desk between them — `docs/chrome-frame.md` owns the rod.
+        // [gapPx] therefore separates pages, it is not a margin around the document.
         var top = 0f
-        for (start in 0 until source.pageCount step cols) {
-            val row = (start until minOf(start + cols, source.pageCount)).map { index ->
-                val size = source.pageSize(index)
-                val scale = if (size.widthPt > 0) (cellWidth / size.widthPt).toFloat() * zoom else zoom
-                Placed(
-                    index = index,
-                    top = top,
-                    width = (size.widthPt * scale).toFloat(),
-                    height = (size.heightPt * scale).toFloat(),
-                    scale = scale,
-                )
-            }
-            rows += row
-            top += (row.maxOfOrNull { it.height } ?: 0f) + gapPx
+        for (page in placed) {
+            boxes += PageBox(page.index, top, (contentWidth - page.width) / 2f, page.width, page.height, page.scale, source)
+            top += page.height + gapPx
         }
-
-        // Centre each row in the content band, which is the widest row or the view itself if wider.
-        val rowWidth = rows.maxOfOrNull { row -> row.sumOf { it.width.toDouble() }.toFloat() + gapPx * (row.size - 1) }
-        val contentWidth = maxOf(viewWidthPx.toFloat(), rowWidth ?: 0f)
-        val boxes = ArrayList<PageBox>(rows.sumOf { it.size })
-        for (row in rows) {
-            val rowWidthPx = row.sumOf { it.width.toDouble() }.toFloat() + gapPx * (row.size - 1)
-            var left = (contentWidth - rowWidthPx) / 2f
-            for (placed in row) {
-                boxes += PageBox(placed.index, placed.top, left, placed.width, placed.height, placed.scale, source)
-                left += placed.width + gapPx
-            }
-        }
-        return StackedLayout(boxes, top, contentWidth, cols)
+        return StackedLayout(boxes, top, contentWidth)
     }
 }

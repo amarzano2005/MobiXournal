@@ -1360,20 +1360,6 @@ private fun toolbarPagesCallbacks(
         pageSize = pane.pageSize,
         onPageSize = { w, h -> surface?.setPageSize(w, h) },
         defaultPageSize = settings.defaultPageWidthPt to settings.defaultPageHeightPt,
-        pageColumns = settings.pageColumns,
-        onPageColumns = {
-            surface?.setColumns(it)
-            liveSettings = liveSettings.copy(pageColumns = it)
-            onSettingsChange(liveSettings)
-        },
-        pagesEditMode = pane.pagesEditMode,
-        onPagesEditMode = { pane.pagesEditMode = it; surface?.setPagesEditMode(it) },
-        selectedPages = pane.selectedPages,
-        onDeleteSelectedPages = { surface?.deleteSelectedPages() },
-        onClearPageSelection = { surface?.clearPageSelection() },
-        copiedPages = pane.copiedPages,
-        onCopySelectedPages = { surface?.copySelectedPages() },
-        onPastePages = { surface?.pasteCopiedPages() },
         onSaveAsDefault = { w, h ->
             liveSettings = liveSettings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h)
             onSettingsChange(liveSettings)
@@ -1456,8 +1442,6 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     // pushed by every adoption after that ([setInfiniteCanvas] / [clearInfiniteCanvas]).
     state.canvasExtentPt = boardFixedExtentPt()
     onCanvasExtentChanged = { pt -> state.canvasExtentPt = pt }
-    onPageSelectionChanged = { n -> state.selectedPages = n }
-    onPageClipboardChanged = { n -> state.copiedPages = n }
     onCurrentPageChanged = { page ->
         state.currentPage = page
         state.backgroundStyle = visiblePageBackgroundStyle()

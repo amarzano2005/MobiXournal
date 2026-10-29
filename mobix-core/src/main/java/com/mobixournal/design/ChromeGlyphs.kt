@@ -42,6 +42,22 @@ enum class ChromeGlyph {
     /** The framed picture: the image and page-raster pictures. */
     PICTURE,
 
+    /**
+     * The sheet's proportions: the **Page format** row, which sets how big a page is.
+     *
+     * It is a catalogue entry rather than a Material icon so the window can draw the same picture when
+     * its page menu wears one — the tablet's `Icons.Outlined.AspectRatio` transcribed, not redrawn.
+     */
+    PAGE_FORMAT,
+
+    /**
+     * The paper under the ink: the **Page background** row — ruling, spacing, stationery.
+     *
+     * The tablet's `Icons.Outlined.GridOn`, in the same catalogue as [PAGE_FORMAT] and every other
+     * mark, so the two page questions are answered by one set of pictures on both shells.
+     */
+    PAGE_BACKGROUND,
+
     /** The three lines of the overflow button. */
     MENU,
 
@@ -155,6 +171,13 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.PICTURE ->
             "M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.86 " +
                 "8.86-3 3.87L9 13.14 6 17h12l-3.86-5.14z"
+        ChromeGlyph.PAGE_FORMAT ->
+            "M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 " +
+                "2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"
+        ChromeGlyph.PAGE_BACKGROUND ->
+            "M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4z" +
+                "m0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4z" +
+                "m0-6h-4v-4h4v4zm0-6h-4V4h4v4z"
         ChromeGlyph.MENU -> "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
         ChromeGlyph.UNDO ->
             "M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 " +

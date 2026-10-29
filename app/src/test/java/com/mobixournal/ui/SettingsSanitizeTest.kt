@@ -114,15 +114,6 @@ class SettingsSanitizeTest {
         assertEquals(TrapezoidKind.ISOSCELES, AppSettings().trapezoidKind)
     }
 
-    @Test fun pageColumnsStayWithinTheChoicesTheUiOffers() {
-        assertEquals(1, AppSettings(pageColumns = 0).sanitized().pageColumns)
-        assertEquals(1, AppSettings(pageColumns = -7).sanitized().pageColumns)
-        assertEquals(
-            PageStacker.COLUMN_CHOICES.last(),
-            AppSettings(pageColumns = 99).sanitized().pageColumns,
-        )
-    }
-
     @Test fun valuesAlreadyInRangeAreUntouched() {
         val s = AppSettings()
         assertEquals(s, s.sanitized())

@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Toc
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.AspectRatio
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChevronLeft
@@ -21,11 +20,8 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,7 +40,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
-import com.mobixournal.render.PageStacker
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.FloatingDialog
@@ -147,18 +142,6 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             enabled = callbacks.pageCount > 1,
             onClick = { callbacks.onRemovePage(); dismiss() },
         )
-        PageClipboardItems(
-            pageCount = callbacks.pageCount,
-            selectedPages = callbacks.selectedPages,
-            copiedPages = callbacks.copiedPages,
-            onCopySelectedPages = { callbacks.onCopySelectedPages(); dismiss() },
-            onDeleteSelectedPages = { callbacks.onDeleteSelectedPages(); dismiss() },
-            onClearPageSelection = { callbacks.onClearPageSelection(); dismiss() },
-            onPastePages = { callbacks.onPastePages(); dismiss() },
-        )
-        HorizontalDivider()
-        PagesPerRowRow(callbacks.pageColumns, callbacks.onPageColumns)
-        OverviewModeRow(callbacks.pageColumns, callbacks.pagesEditMode, callbacks.onPagesEditMode)
         HorizontalDivider()
         PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
         // The sheet's graphics are the other question about the page — so they are the one row that
@@ -320,7 +303,7 @@ private fun PageFormatRow(
 ) {
     DropdownMenuItem(
         text = { Text("Page format") },
-        leadingIcon = { Icon(Icons.Outlined.AspectRatio, contentDescription = null) },
+        leadingIcon = { Icon(ChromeGlyph.PAGE_FORMAT.imageVector(), contentDescription = null) },
         trailingIcon = {
             // On a page list the useful fact is the paper; on a board there is no page to measure, so
             // the row names the geometry instead — the thing that chose that board's sheet.
@@ -344,7 +327,7 @@ private fun PageFormatRow(
 private fun PageBackgroundRow(callbacks: ToolbarPagesCallbacks, open: () -> Unit, dismiss: () -> Unit) {
     DropdownMenuItem(
         text = { Text("Page background") },
-        leadingIcon = { Icon(Icons.Outlined.GridOn, contentDescription = null) },
+        leadingIcon = { Icon(ChromeGlyph.PAGE_BACKGROUND.imageVector(), contentDescription = null) },
         trailingIcon = { paperStyleLabel(callbacks.backgroundStyle)?.let { Text(it) } },
         onClick = { open(); dismiss() },
     )
@@ -369,48 +352,6 @@ private fun PageNavRow(pageCount: Int, currentPage: Int, onGoToPage: (Int) -> Un
             onClick = { onGoToPage(currentPage + 1); dismiss() },
             enabled = currentPage < pageCount - 1,
         ) { Icon(Icons.Outlined.ChevronRight, contentDescription = "Next page") }
-    }
-}
-
-/**
- * The copy / delete / clear / paste rows. Copy-and-friends only appear once pages have been tapped
- * in the overview grid; paste appears whenever something is on the page clipboard, and lands after
- * the last selected page (or after the page in view when nothing is selected).
- */
-@Composable
-private fun PageClipboardItems(
-    pageCount: Int,
-    selectedPages: Int,
-    copiedPages: Int,
-    onCopySelectedPages: () -> Unit,
-    onDeleteSelectedPages: () -> Unit,
-    onClearPageSelection: () -> Unit,
-    onPastePages: () -> Unit,
-) {
-    if (selectedPages > 0) {
-        DropdownMenuItem(
-            text = { Text("Copy $selectedPages selected") },
-            leadingIcon = { Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null) },
-            onClick = onCopySelectedPages,
-        )
-        DropdownMenuItem(
-            text = { Text("Delete $selectedPages selected") },
-            leadingIcon = { Icon(ChromeGlyph.DELETE.imageVector(), contentDescription = null) },
-            enabled = selectedPages < pageCount,
-            onClick = onDeleteSelectedPages,
-        )
-        DropdownMenuItem(
-            text = { Text("Clear selection") },
-            leadingIcon = { Icon(ChromeGlyph.CLOSE.imageVector(), contentDescription = null) },
-            onClick = onClearPageSelection,
-        )
-    }
-    if (copiedPages > 0) {
-        DropdownMenuItem(
-            text = { Text(if (copiedPages == 1) "Paste page" else "Paste $copiedPages pages") },
-            leadingIcon = { Icon(ChromeGlyph.PASTE.imageVector(), contentDescription = null) },
-            onClick = onPastePages,
-        )
     }
 }
 
@@ -445,52 +386,3 @@ internal fun matchesPageSize(widthPt: Double, heightPt: Double, presetWidthPt: D
         (near(widthPt, presetHeightPt) && near(heightPt, presetWidthPt))
 }
 
-/**
- * The page-overview control: how many pages sit side by side. One is the plain single-page stack;
- * two or more zooms out to a grid of page thumbnails.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PagesPerRowRow(pageColumns: Int, onPageColumns: (Int) -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-        Text("Pages per row", style = MaterialTheme.typography.labelMedium)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            PageStacker.COLUMN_CHOICES.forEach { n ->
-                FilterChip(
-                    selected = n == pageColumns,
-                    onClick = { onPageColumns(n) },
-                    label = { Text("$n") },
-                    modifier = Modifier.padding(end = 4.dp),
-                )
-            }
-        }
-    }
-}
-
-/**
- * The page-overview mode control: **View** keeps the grid a pure display/navigation surface (a tap
- * jumps to the page you hit), **Edit** turns on selection, drag-to-reorder and the copy/delete
- * tooling. Only meaningful in the grid, so it's disabled at a single column.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun OverviewModeRow(pageColumns: Int, editMode: Boolean, onEditMode: (Boolean) -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-        Text("Overview mode", style = MaterialTheme.typography.labelMedium)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            FilterChip(
-                selected = !editMode,
-                enabled = pageColumns > 1,
-                onClick = { onEditMode(false) },
-                label = { Text("View") },
-                modifier = Modifier.padding(end = 4.dp),
-            )
-            FilterChip(
-                selected = editMode,
-                enabled = pageColumns > 1,
-                onClick = { onEditMode(true) },
-                label = { Text("Edit") },
-            )
-        }
-    }
-}

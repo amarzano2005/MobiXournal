@@ -48,16 +48,6 @@ data class ToolbarPagesCallbacks(
     val onPageSize: (Double, Double) -> Unit,
     /** The app's default page size (Settings ▸ Editor); backs the page-size dialog's **Default** tab. */
     val defaultPageSize: Pair<Double, Double>,
-    val pageColumns: Int,
-    val onPageColumns: (Int) -> Unit,
-    val pagesEditMode: Boolean,
-    val onPagesEditMode: (Boolean) -> Unit,
-    val selectedPages: Int,
-    val onDeleteSelectedPages: () -> Unit,
-    val onClearPageSelection: () -> Unit,
-    val copiedPages: Int,
-    val onCopySelectedPages: () -> Unit,
-    val onPastePages: () -> Unit,
     val onSaveAsDefault: (Double, Double) -> Unit,
     /** The global default canvas mode for new documents from settings. */
     val defaultCanvas: NewDocumentCanvas = NewDocumentCanvas.PAGINATED,

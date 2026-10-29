@@ -48,7 +48,6 @@ object AppSettingsBackup {
         b.append("  \"minimumPressure\": ").append(settings.minimumPressure).append(",\n")
         b.append("  \"strokePrecision\": \"").append(settings.strokePrecision.name).append("\",\n")
         b.append("  \"recognizeShapes\": ").append(settings.recognizeShapes).append(",\n")
-        b.append("  \"pageColumns\": ").append(settings.pageColumns).append(",\n")
         b.append("  \"snapToGrid\": ").append(settings.snapToGrid).append(",\n")
         b.append("  \"snapRotation\": ").append(settings.snapRotation).append(",\n")
         b.append("  \"guideKind\": \"").append(settings.guideKind.name).append("\",\n")
@@ -259,7 +258,6 @@ object AppSettingsBackup {
             minimumPressure = root.getFloat("minimumPressure", fallback.minimumPressure),
             strokePrecision = readEnum("strokePrecision", StrokePrecision.values(), fallback.strokePrecision),
             recognizeShapes = root.getBool("recognizeShapes", fallback.recognizeShapes),
-            pageColumns = root.getInt("pageColumns", fallback.pageColumns),
             snapToGrid = root.getBool("snapToGrid", fallback.snapToGrid),
             snapRotation = root.getBool("snapRotation", fallback.snapRotation),
             guideKind = readEnum("guideKind", GuideKind.values(), fallback.guideKind),

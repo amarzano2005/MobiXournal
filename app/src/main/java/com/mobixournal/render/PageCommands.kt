@@ -32,10 +32,8 @@ internal class PageCommands(
     private val commit: (Document) -> Unit,
     /** Index of the page under the viewport centre — what the per-page commands act on. */
     private val visiblePage: () -> Int,
-    /** Index of the page nearest the viewport centre — where add/remove/paste land. */
+    /** Index of the page nearest the viewport centre — where add/remove land. */
     private val currentPage: () -> Int,
-    /** The page-overview view state (selection and clipboard) the page commands read and clear. */
-    private val overview: PageOverview,
     /** Drop the per-(page,layer) visibility overrides — page indices or layer indices just moved. */
     private val resetLayerVisibility: () -> Unit,
     /** Reset the active layer to "the top one" — same reason. */
@@ -104,48 +102,6 @@ internal class PageCommands(
      * Invariant: document always has at least one page.
      */
     fun removePage() = editPages(PageOps.removeAt(document().pages, currentPage()))
-
-    /**
-     * Reorder page [from] to [to] as one undoable edit (the overview's drag-to-reorder drop).
-     * @param from Source page index (0-based).
-     * @param to Destination page index (0-based, after reordering).
-     */
-    fun movePage(from: Int, to: Int) = editPages(PageOps.move(document().pages, from, to))
-
-    /**
-     * Delete every selected page as one undoable edit and clear the selection. A selection covering
-     * the whole document is refused by [PageOps.removeAll] (a document always keeps a page), so
-     * nothing is deleted in that case.
-     * Invariant: document always has at least one page after this call.
-     */
-    fun deleteSelectedPages() {
-        val pages = PageOps.removeAll(document().pages, overview.selected)
-        overview.clearSelection()
-        editPages(pages)
-    }
-
-    /**
-     * Put the selected pages on the page clipboard, in document order. Nothing is edited yet — the
-     * clipboard is view state that survives until the next copy (or the editor closing), so a copy can
-     * be pasted repeatedly.
-     */
-    fun copySelectedPages() = overview.copyToClipboard(PageOps.copyOf(document().pages, overview.selected))
-
-    /**
-     * Paste the clipboard pages as one undoable edit, directly after the last selected page — or after
-     * the page nearest the viewport centre when nothing is selected. The pasted pages carry their
-     * strokes, layers, size and background verbatim (see [PageOps.copyOf]), so they round-trip.
-     * @return Index of the first pasted page, or null when the clipboard is empty.
-     */
-    fun pasteCopiedPages(): Int? {
-        val copied = overview.clipboard
-        if (copied.isEmpty()) return null
-        val pages = document().pages
-        val after = overview.selected.maxOrNull() ?: currentPage()
-        val inserted = PageOps.insertAfter(pages, after, copied)
-        editPages(inserted.pages)
-        return inserted.index
-    }
 
     /**
      * Set the visible page's paper [style] (plain/lined/ruled/graph/dotted/isograph) as one undoable
@@ -261,7 +217,7 @@ internal class PageCommands(
 
     /**
      * Apply a new page list as one undoable edit, if it actually differs.
-     * Side effects: clears selection, resets layer visibility and active layer, refreshes layout.
+     * Side effects: resets layer visibility and active layer, refreshes layout.
      * @param pages New page list; no-op if identical to current.
      */
     fun editPages(pages: List<Page>) {
@@ -272,7 +228,6 @@ internal class PageCommands(
         commit(doc.copy(pages = pages))
         onPageCountChanged(pages.size)
         // Page indices shifted: view state keyed by page index is no longer valid.
-        overview.clearSelection()
         resetLayerVisibility()
         clearActiveLayer()
         refresh()

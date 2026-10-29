@@ -37,9 +37,6 @@ import java.util.concurrent.Executors
  * one bound instead of two independent guesses; when the total goes over, [trim] hands back the
  * off-screen pages first.
  *
- * In **overview mode** (columns > 1), the cache tightens its bounds: bucket widths are capped and
- * the entry count is limited, so a multi-page grid on a large document can't blow the bitmap budget.
- *
  * **Threading rules** (the same ones [BitmapLruCache] states): [lock] is held only for map
  * operations and is *never* held while rasterising, while blitting or while charging the budget —
  * a charge can call straight back into another cache's [trim], and holding ours across that call
@@ -49,7 +46,6 @@ import java.util.concurrent.Executors
  */
 class InkCache(
     private val budget: BitmapBudget = BitmapBudget.shared,
-    private val columns: () -> Int = { 1 },
     /** Invoked on the worker thread when a raster lands — the host asks for one more frame. */
     onReady: () -> Unit = {},
 ) : BitmapBudget.Client {
@@ -57,9 +53,6 @@ class InkCache(
     /** Max pixels in one cached page raster, from this device's share of the shared budget. */
     private val budgetPx: Int =
         (budget.perEntryBytes(BitmapLruCache.PAGE_SHARE) / BYTES_PER_PX).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-
-    /** Max entries in overview mode; null in single-page mode (byte budget only). */
-    private val maxEntries = { if (columns() > 1) OVERVIEW_MAX_ENTRIES else null }
 
     /** One cached raster: the bitmap, the page identity it was drawn from, and the hidden-layer set. */
     private class Entry(
@@ -267,23 +260,16 @@ class InkCache(
      * (its bucket is already the one nobody is asking for).
      */
     private fun publish(job: Raster, entry: Entry) {
-        var released = 0L
         var replaced = 0L
         synchronized(lock) {
             inFlight.remove(job.index)
             if (closed) return
             val newer = jobs[job.index]
             if (newer != null && newer.widthPx != job.widthPx) return
-            // Overview mode also caps how many previews are held, not only how big they may be.
-            val limit = maxEntries()
-            if (limit != null && entries.size >= limit && job.index !in entries) {
-                val eldest = entries.keys.firstOrNull()
-                if (eldest != null) released = entries.remove(eldest)?.bitmap?.byteCount?.toLong() ?: 0L
-            }
             replaced = entries.put(job.index, entry)?.bitmap?.byteCount?.toLong() ?: 0L
         }
         // Outside the lock: a charge reaches into every other client's trim (see the class note).
-        if (released + replaced > 0) budget.credit(released + replaced)
+        if (replaced > 0) budget.credit(replaced)
         budget.charge(this, entry.bitmap.byteCount.toLong())
         onReady?.invoke()
     }
@@ -304,17 +290,15 @@ class InkCache(
 
     /**
      * The smallest bucket width at or above [widthPx], or null once that would blow the budget on
-     * width alone. Buckets start at [BUCKET_BASE] and step by [BUCKET_RATIO]. In overview mode
-     * (columns > 1), the width is capped to keep memory bounded across many visible pages.
+     * width alone. Buckets start at [BUCKET_BASE] and step by [BUCKET_RATIO].
      */
     private fun bucketWidth(widthPx: Float): Int? {
         var w = BUCKET_BASE.toFloat()
-        val cap = if (columns() > 1) OVERVIEW_BUCKET_CAP.toFloat() else Float.POSITIVE_INFINITY
         while (w < widthPx) {
             w *= BUCKET_RATIO
-            if (w > budgetPx || w > cap) return null
+            if (w > budgetPx) return null
         }
-        return w.toInt().coerceAtMost(cap.toInt())
+        return w.toInt()
     }
 
     private companion object {
@@ -326,12 +310,6 @@ class InkCache(
 
         /** Geometric step between buckets: ≤19% upscale between rasterisations. */
         const val BUCKET_RATIO = 1.19f
-
-        /** Max bucket width in overview mode (columns > 1), keeping previews memory-bounded. */
-        private const val OVERVIEW_BUCKET_CAP = 200
-
-        /** Max cached entries in overview mode; single-page mode is byte-budget only. */
-        private const val OVERVIEW_MAX_ENTRIES = 12
     }
 }
 

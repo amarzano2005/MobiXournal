@@ -41,15 +41,6 @@ class PaneState {
      */
     var board by mutableStateOf<BoardReading?>(null)
 
-    /** How many pages are picked in the overview grid — drives the bulk-delete entries in the Pages menu. */
-    var selectedPages by mutableStateOf(0)
-    
-    /** How many pages are on the page clipboard (after copy in the overview). */
-    var copiedPages by mutableStateOf(0)
-
-    /** Overview edit mode: off means the grid is display/navigation only (see `DrawingSurfaceView`). */
-    var pagesEditMode by mutableStateOf(false)
-    
     /** Current page index, 0-based. */
     var currentPage by mutableStateOf(0)
 

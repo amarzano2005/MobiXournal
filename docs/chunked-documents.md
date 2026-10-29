@@ -133,7 +133,7 @@ What the app does with this geometry today, so the mode is not a format the edit
 - **It can be written on.** Ink lands in the chunk under the pen, and the eraser loads a chunk the
   viewport evicted before it rubs ([Writing on a board](#writing-on-a-board)).
 - **The chrome tells the truth for it.** The position badge reads the tile's coordinate instead of a page
-  count, the Pages menu becomes a tiles reading, bookmarks and the page grid are not offered, the scroll
+  count, the Pages menu becomes a tiles reading, bookmarks are not offered, the scroll
   thumb is gone, find still works in tile space, and split view mirrors a board as a second view of the
   same grid — the decisions per surface, and why each is what it is, are
   [chrome-frame.md](chrome-frame.md#a-document-with-no-pages)'s (one home per fact).
@@ -148,8 +148,8 @@ What the app does with this geometry today, so the mode is not a format the edit
   pen went down in, and a stroke started in `(1, 0)` is stored the same way with a **negative** `x`;
   the save that follows repacks `chunks/` at each cell's own coordinate and writes no `pages/` entry;
   the rail's Pages button is **Tiles**, the position badge reads a coordinate (`1, 0`) rather than
-  `n / m`, and the menu behind it reads *Tile 1, 0* and *3 tiles* with no page rows, no bookmarks and
-  no overview grid. **Find and split view on a board** are the two surfaces of that pass still
+  `n / m`, and the menu behind it reads *Tile 1, 0* and *3 tiles* with no page rows and no bookmarks.
+  **Find and split view on a board** are the two surfaces of that pass still
   unexercised (`check-find-and-split-view-on-a-board`).
 
 ### Writing on a board

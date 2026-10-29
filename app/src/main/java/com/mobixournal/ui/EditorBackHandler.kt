@@ -53,10 +53,6 @@ fun EditorBackHandler(
             pane.hasSelection -> surface?.clearSelection()
             pane.hasBackgroundRegion -> surface?.clearBackgroundRegion()
 
-            // In the page overview: drop the picked pages first, then leave edit mode.
-            pane.selectedPages > 0 -> surface?.clearPageSelection()
-            pane.pagesEditMode -> surface?.setPagesEditMode(false)
-
             // Immersive view: back brings the chrome back rather than closing the document.
             ui.fullPage -> ui.fullPage = false
 

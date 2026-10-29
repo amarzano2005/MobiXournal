@@ -71,7 +71,6 @@ private fun DrawingSurfaceView.startSelectionDrag() {
     // The lift replaces the move this down began: no handle follows the finger, and the release
     // must not commit a transform that never happened.
     gestures.reset()
-    cancelPageDrag()
     performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     startDragAndDrop(
         clip,

@@ -138,19 +138,18 @@ app/
       DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)
       InkCache.kt            # page-ink rasters built on a worker (zoom buckets), so panning blits instead of re-drawing
       StrokeSmoother.kt      # streaming jitter filter for freehand position and pressure (pure)
-      CanvasChrome.kt        # the canvas's non-document brushes: selection, band, guide, overview, hover, the radial HUD
+      CanvasChrome.kt        # the canvas's non-document brushes: selection, band, guide, hover, the radial HUD
       RadialHud.kt           # the pen-tip HUD's slot ring and its angle-to-slot geometry (pure, tested)
       DrawingSurfaceHud.kt   # the HUD's view half: summon at the nib, track the flick, commit or cancel; ToolGlyphPainter.kt draws a catalogue glyph into a Canvas
       ViewportState.kt       # scroll offsets, zoom, and their clamps (pure, tested)
       MomentumDriver.kt      # the fling loop: velocity tracking, release seed, per-frame glide
-      PageOverview.kt        # the overview grid's view state: edit mode, selection, clipboard, lift
       PageCommands.kt        # the page/layer edit commands and the two undoable commit pipelines
       SelectionGestureController.kt # the marquee/lasso pick and the move/resize/rotate drags
       VerticalSpaceDrag.kt   # the vertical-space tool's live grab-line drag
       GuideDrag.kt           # the setsquare/compass/protractor (and ruling/chemistry) guide pose and the finger that moves it
       TextEditController.kt  # placing/editing text boxes, images and LaTeX images from a tap
       ElementEdits.kt        # the document edits behind those placements (pure, tested)
-      PageStacker.kt         # lays pages out in rows of N columns, fit to column (pure geometry)
+      PageStacker.kt         # lays the pages in one vertical column, each fit to the view width (pure geometry)
       PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
       DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling and chemistry snaps: project a drawn point onto an edge, a ray, the page's ruling or a 60° lattice node (pure)
       ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
@@ -175,9 +174,7 @@ app/
       PdfTextIndexCache.kt   # one extracted text layer per PDF file, shared across mirrored views
       PdfOutline.kt          # the Contents model: one row per bookmark + the tree flattening (pure)
       PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox; PdfOutlineCache.kt mirrors the text cache
-      PdfExporter.kt         # flattens a Document to a PDF (PDFBox; preserves source vector pages)
-      PdfVectorPainter.kt    # the Android emitter: replays the core's PdfPagePlan onto a PDFBox stream, one arm per op
-      PdfBackgroundPainter.kt # draws a fresh (non-PDF) page's background ruling as PDFBox vectors
+      PdfExporter.kt         # exports a Document as a normal PDF: each page painted as the canvas shows it, one image per page (PDFBox), annotations over it
       PdfOverlayMatrix.kt    # overlay cm-matrix that aligns annotations on /Rotate 90/180/270 pages (pure); PdfAnnotations.kt writes the /Highlight, /Ink and /Text dictionaries
       TextPaginator.kt       # text-import word-wrap + A4 pagination, injected measurement; TextWrapping.kt is the shared tab-expansion/hard-break (pure)
       PdfFonts.kt            # embeds the bundled Unicode fonts (DejaVu) into a PDDocument, cached per doc
@@ -242,7 +239,7 @@ app/
       ToolGlyphs.kt          # the triangle/trapezoid variants' catalogue mapping; every tool's art lives in mobix-core's ToolGlyphCatalogue now
       DrawingGuidePopup.kt   # drawing guide popups (rail + compact) with categorized instruments/lattices & custom glyphs
       ToolbarViewPopups.kt   # rail slots: zoom, page background, audio
-      ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, overview grid controls, page-size dialog
+      ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, page-size dialog
       ToolbarLayersPopup.kt  # rail slot: the layer manager list + rename dialog
       TopBarItems.kt         # Secondary Toolbar buttons definition (figures & tools), default order, and codecs
       TabStrip.kt            # the horizontal strip of open-tab titles: select, reorder, close, long-press menu

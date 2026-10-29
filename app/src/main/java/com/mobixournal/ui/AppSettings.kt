@@ -64,7 +64,6 @@ enum class ThemeMode(val label: String) {
  * @property minimumPressure The floor under the filtered pressure — desktop Xournal++'s "minimum pressure".
  * @property strokePrecision How much digitiser detail a freehand stroke keeps (fidelity vs. file size).
  * @property recognizeShapes Snap a finished freehand stroke to the primitive it resembles — line, triangle, rectangle or circle, classified by desktop Xournal++'s own recognizer. On by default.
- * @property pageColumns Pages shown side by side in the page overview: 1 is the plain single-page stack.
  * @property snapToGrid Pull shape-tool endpoints onto the page background's ruling (grid/lined sheets only).
  * @property snapRotation Pull a selection's rotate handle onto 15-degree increments.
  * @property guideKind Which on-canvas drawing guide (setsquare/compass) is laid on the page, restored on launch.
@@ -160,8 +159,6 @@ data class AppSettings(
     val strokePrecision: StrokePrecision = StrokePrecision.DEFAULT,
     /** Snap a finished freehand stroke to the primitive it resembles (line, circle, rectangle…). */
     val recognizeShapes: Boolean = true,
-    /** Pages shown side by side in the page overview: 1 is the plain single-page stack. */
-    val pageColumns: Int = 1,
     /** Pull shape-tool endpoints onto the page background's ruling (grid/lined sheets only). */
     val snapToGrid: Boolean = false,
     /** Pull a selection's rotate handle onto 15-degree increments. */
@@ -331,8 +328,8 @@ data class AppSettings(
      * This settings object with every numeric field forced back into the range the UI assumes —
      * what [SettingsStore.load] applies to whatever the pref file happens to hold.
      *
-     * A stored value out of range isn't cosmetic: a stored `pageColumns` of 0 makes the pages
-     * popup's mode rows unreachable.
+     * A stored value out of range isn't cosmetic: it is a control the user cannot reach a valid
+     * setting from.
      */
     fun sanitized(): AppSettings {
         val cleanPresets = penPresets.ifEmpty { PenPreset.DEFAULT_PRESETS }.map { preset ->
@@ -373,7 +370,6 @@ data class AppSettings(
             minimumPressure = minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX),
             penPresets = cleanPresets,
             selectedPenPresetId = cleanSelectedId,
-            pageColumns = pageColumns.coerceIn(1, PageStacker.COLUMN_CHOICES.last()),
             // A pose belongs to the instrument it was taken from: one left over from another guide kind
             // (a hand-edited preference, an older backup) would place the wrong instrument's geometry.
             guidePose = guidePose?.takeIf { it.guide.guideKind == guideKind },
@@ -545,7 +541,6 @@ class SettingsStore(context: Context) {
             minimumPressure = prefs.getFloat(KEY_MINIMUM_PRESSURE, d.minimumPressure),
             strokePrecision = enumOr(prefs.getString(KEY_STROKE_PRECISION, null), d.strokePrecision),
             recognizeShapes = prefs.getBoolean(KEY_RECOGNIZE_SHAPES, d.recognizeShapes),
-            pageColumns = prefs.getInt(KEY_PAGE_COLUMNS, d.pageColumns),
             snapToGrid = prefs.getBoolean(KEY_SNAP_GRID, d.snapToGrid),
             snapRotation = prefs.getBoolean(KEY_SNAP_ROTATION, d.snapRotation),
             guideKind = enumOr(prefs.getString(KEY_GUIDE_KIND, null), d.guideKind),
@@ -697,7 +692,6 @@ class SettingsStore(context: Context) {
             .putFloat(KEY_MINIMUM_PRESSURE, s.minimumPressure)
             .putString(KEY_STROKE_PRECISION, s.strokePrecision.name)
             .putBoolean(KEY_RECOGNIZE_SHAPES, s.recognizeShapes)
-            .putInt(KEY_PAGE_COLUMNS, s.pageColumns)
             .putBoolean(KEY_SNAP_GRID, s.snapToGrid)
             .putBoolean(KEY_SNAP_ROTATION, s.snapRotation)
             .putString(KEY_GUIDE_KIND, s.guideKind.name)
@@ -812,7 +806,6 @@ class SettingsStore(context: Context) {
         const val KEY_MINIMUM_PRESSURE = "minimum_pressure"
         const val KEY_STROKE_PRECISION = "stroke_precision"
         const val KEY_RECOGNIZE_SHAPES = "recognize_shapes"
-        const val KEY_PAGE_COLUMNS = "page_columns"
         const val KEY_SNAP_GRID = "snap_to_grid"
         const val KEY_SNAP_ROTATION = "snap_rotation"
         const val KEY_GUIDE_KIND = "guide_kind"

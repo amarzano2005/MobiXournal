@@ -38,18 +38,15 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 event.eventTime, event.x, event.y, event.getPointerId(0),
                 maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
             )
-            beginPointer(event, 0); beginHandTap(event); armPageDrag(event); armSelectionDrag(event)
+            beginPointer(event, 0); beginHandTap(event); armSelectionDrag(event)
         }
         MotionEvent.ACTION_POINTER_DOWN -> {
-            handTapCandidate = false; cancelPageDrag(); cancelSelectionDrag(); onPointerDown(event)
+            handTapCandidate = false; cancelSelectionDrag(); onPointerDown(event)
         }
         MotionEvent.ACTION_MOVE -> {
             if (handTapCandidate) trackHandTapMove(event)
             multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)
-            trackPageDragArm(event)
             trackSelectionDragArm(event)
-            // A lifted page owns the gesture outright — no panning, drawing or erasing underneath it.
-            if (overview.dragging) { pageDragMove(event); return true }
             // The guide is dragged by its own finger and runs *alongside* the other gestures —
             // holding it steady while the pen rules along it is the whole point.
             if (guideDrag.dragging) guideDrag.move(event)
@@ -89,11 +86,10 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
         MotionEvent.ACTION_POINTER_UP -> onPointerUp(event)
         // A spline node is still mid-curve on release — it must not run the commit-and-finish path.
         MotionEvent.ACTION_UP -> when {
-            overview.dragging -> { overview.disarm(); removeCallbacks(pageDragArm); finishPageDrag() }
             splineDragging -> splineUp(event)
-            backgroundSelecting -> { cancelPageDrag(); commitBackgroundSelect() }
+            backgroundSelecting -> commitBackgroundSelect()
             else -> {
-                cancelPageDrag(); cancelSelectionDrag()
+                cancelSelectionDrag()
                 if (scrolling && finishMultiFingerTap(event)) { cancelGesture(); render(); return true }
                 captureReleaseVelocity(event); handleHandTapUp(event)
                 // The router hears the lift too, so its contact map is empty for the next gesture.
@@ -102,7 +98,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             }
         }
         MotionEvent.ACTION_CANCEL -> {
-            handTapCandidate = false; cancelPageDrag(); cancelSelectionDrag(); cancelGesture()
+            handTapCandidate = false; cancelSelectionDrag(); cancelGesture()
         }
         else -> return null
     }
@@ -552,14 +548,6 @@ internal fun DrawingSurfaceView.handleHandTapUp(event: MotionEvent) {
     // a short-but-fast swipe in the overview grid would count as a tap and jump back to the page
     // under the finger, cancelling the glide it should have started.
     if (handTapMoved || momentum.hasRelease) { handFirstTapTime = 0L; return }
-    // In the overview grid a tap is about pages, not paging/zooming around: in edit mode it picks
-    // pages out for a bulk edit, in view mode it just jumps to the page you tapped.
-    if (columns > 1) {
-        handFirstTapTime = 0L
-        val box = layout.pageAt(scrollX + handTapDownX, scrollY + handTapDownY) ?: return
-        if (overview.editMode) overview.toggleSelection(box.index, pageSource.pageCount) else goToPage(box.index)
-        return
-    }
     val pairsWithPrevious = handFirstTapTime != 0L &&
         handTapDownTime - handFirstTapTime <= doubleTapTimeoutMs &&
         hypot(handTapDownX - handFirstTapX, handTapDownY - handFirstTapY) <= doubleTapSlopPx

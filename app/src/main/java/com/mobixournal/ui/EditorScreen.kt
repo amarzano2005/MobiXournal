@@ -202,7 +202,6 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
         widths = s.penWidths,
         tools = listOf(Tool.PEN, Tool.HIGHLIGHTER, Tool.ERASER),
     )
-    setColumns(s.pageColumns)
     snapToGrid = s.snapToGrid
     snapRotation = s.snapRotation
     tableRows = s.tableRows

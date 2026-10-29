@@ -32,7 +32,6 @@ class AppSettingsBackupTest {
             minimumPressure = 0.1f,
             strokePrecision = com.mobixournal.render.StrokePrecision.HIGH,
             recognizeShapes = false,
-            pageColumns = 2,
             snapToGrid = true,
             snapRotation = true,
             guideKind = com.mobixournal.render.GuideKind.SETSQUARE,

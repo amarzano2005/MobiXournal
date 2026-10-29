@@ -22,7 +22,7 @@ import kotlin.math.min
 internal fun DrawingSurfaceView.relayout() {
     applyQueuedScaleKeep()
     fitBoardIfPending()
-    layout = PageStacker.stack(pageSource, width, DrawingSurfaceDefaults.GAP_PX, zoom, columns)
+    layout = PageStacker.stack(pageSource, width, DrawingSurfaceDefaults.GAP_PX, zoom)
     pushExtentToViewport()
 }
 
@@ -95,7 +95,7 @@ internal fun DrawingSurfaceView.paint() {
     val stackStale = viewport.viewWidth != width.toFloat() || viewport.viewHeight != height.toFloat()
     if (stackStale) {
         relayout()
-        if (columns == 1) viewport.centerHorizontal()
+        viewport.centerHorizontal()
     }
     val provisional = stackStale || canvas.width != width || canvas.height != height
     try {
@@ -128,8 +128,6 @@ internal fun DrawingSurfaceView.paint() {
         if (splineNodes.isNotEmpty()) drawSplineOverlay(canvas)
         drawTextSelection(canvas)
         selection?.let { drawSelectionBox(canvas, it) }
-        if (overview.selected.isNotEmpty()) drawPageSelection(canvas)
-        if (overview.dragging) drawPageDrag(canvas)
         if (backgroundSelecting) drawBackgroundSelectBand(canvas) else drawBackgroundRegion(canvas)
         if (gestures.banding) drawBand(canvas)
         if (vspace.active) drawVerticalSpaceGuide(canvas)
@@ -173,12 +171,9 @@ private fun DrawingSurfaceView.reportMissingBackgrounds() {
  * The picture to blit behind [box] — the rasterised PDF page for a `pdf` background, the decoded
  * image for a `pixmap` one, null for anything else (the renderer then draws sheet and ruling).
  * Both caches fill asynchronously, so this never stalls a frame.
- *
- * In overview mode (columns > 1), the width is capped to keep memory bounded across many visible
- * pages.
  */
 internal fun DrawingSurfaceView.pageBitmapFor(box: PageBox): Bitmap? {
-    val width = if (columns > 1) box.widthPx.toInt().coerceAtMost(OVERVIEW_PREVIEW_CAP) else box.widthPx.toInt()
+    val width = box.widthPx.toInt()
     return when (val bg = box.page.background) {
         is Background.Pdf -> pdfSourceFor(bg)?.request(bg.pageNo, width)
         is Background.Pixmap -> imageSource.request(bg.filename, width)
@@ -200,9 +195,6 @@ private fun DrawingSurfaceView.pdfSourceFor(background: Background.Pdf): PdfPage
     setPdfSource(PdfPageCache.shared(file))
     return pdfSource
 }
-
-/** Max preview width in overview mode (columns > 1). */
-private const val OVERVIEW_PREVIEW_CAP = 200
 
 /**
  * Open the bytes a `pixmap` background's `filename` points at. The local copy the loader made
@@ -284,7 +276,7 @@ internal fun DrawingSurfaceView.drawPageOutline(canvas: Canvas, box: PageBox) {
 
 /**
  * The coloured **flag** of a bookmarked page: a small tab lying against the sheet's top-right corner,
- * in the bookmark's own colour, so a bookmarked page is recognisable both in the overview grid and
+ * in the bookmark's own colour, so a bookmarked page is recognisable while you write on it and in
  * while writing on it.
  *
  * It is chrome, not content: the flag is painted from [DrawingSurfaceView.bookmarkedPages], which the
@@ -524,35 +516,6 @@ internal fun DrawingSurfaceView.drawGuide(canvas: Canvas) {
     }
     val tip = guideDrag.tipOf(g)
     canvas.drawCircle(vx(tip.first), vy(tip.second), HANDLE_DRAW_PX, chrome.guideHandle)
-}
-
-/** Grey out the lifted page and outline the slot it would drop into. */
-internal fun DrawingSurfaceView.drawPageDrag(canvas: Canvas) {
-    layout.boxes.getOrNull(overview.dragIndex)?.let { box ->
-        canvas.drawRect(
-            box.leftPx - scrollX, box.topPx - scrollY,
-            box.rightPx - scrollX, box.bottomPx - scrollY, chrome.pageLift,
-        )
-    }
-    layout.boxes.getOrNull(overview.dropIndex)?.let { box ->
-        canvas.drawRect(
-            box.leftPx - scrollX, box.topPx - scrollY,
-            box.rightPx - scrollX, box.bottomPx - scrollY, chrome.pageDrop,
-        )
-    }
-}
-
-/** Tint and outline every selected page, so the pending bulk delete's targets are obvious. */
-internal fun DrawingSurfaceView.drawPageSelection(canvas: Canvas) {
-    for (index in overview.selected) {
-        val box = layout.boxes.getOrNull(index) ?: continue
-        val l = box.leftPx - scrollX
-        val t = box.topPx - scrollY
-        val r = box.rightPx - scrollX
-        val b = box.bottomPx - scrollY
-        canvas.drawRect(l, t, r, b, chrome.pageSelectFill)
-        canvas.drawRect(l, t, r, b, chrome.pageSelect)
-    }
 }
 
 /**

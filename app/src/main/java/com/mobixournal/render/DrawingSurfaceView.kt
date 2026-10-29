@@ -116,9 +116,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         get() = viewport.scrollX
         set(value) { viewport.scrollX = value }
     internal val zoom: Float get() = viewport.zoom
-    /** Pages shown side by side: 1 is the single-page stack, 2+ the page-overview grid. */
-    internal var columns = 1
-
     /** Rasteriser for the PDF that backs this document's `pdf` pages (set on import), or null. */
     internal var pdfSource: PdfPageCache? = null
 
@@ -307,19 +304,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var handFirstTapX = 0f
     internal var handFirstTapY = 0f
 
-    // Page-overview drag-to-reorder: in the multi-column grid a finger long-press lifts a page and the
-    // drag drops it at another slot. Armed on touch-down, fired by [pageDragArm] after the long-press
-    // timeout; see [startPageDrag]. The state it moves through lives in [overview].
     internal val longPressMs = ViewConfiguration.getLongPressTimeout().toLong()
     internal val touchSlopPx = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
-    internal val pageDragArm = Runnable { startPageDrag() }
-
-    /** The page-overview grid's view state: edit mode, selection, clipboard, lift (see [PageOverview]). */
-    internal val overview = PageOverview(
-        onSelectionChanged = { onPageSelectionChanged?.invoke(it) },
-        onClipboardChanged = { onPageClipboardChanged?.invoke(it) },
-        invalidate = { render() },
-    )
 
     /** Places and edits text boxes, images and LaTeX images (see [TextEditController]). */
     internal val textEdits = TextEditController(
@@ -367,7 +353,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         },
         visiblePage = { visiblePageIndex() },
         currentPage = { currentPageIndex() },
-        overview = overview,
         resetLayerVisibility = { hiddenLayers.clear() },
         clearActiveLayer = { activeLayerIndex = -1 },
         refresh = {
@@ -432,16 +417,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onExternalPdf: ((android.net.Uri) -> Unit)? = null
     /** Notified with the current zoom factor whenever it changes, so the chrome can show the level. */
     var onZoomChanged: ((Float) -> Unit)? = null
-    /** Notified with the page-overview column count whenever it changes. */
-    var onColumnsChanged: ((Int) -> Unit)? = null
     /** Notified with the page count whenever it changes (load, add, remove). */
     var onPageCountChanged: ((Int) -> Unit)? = null
     /** Notified with the index of the page nearest the viewport centre whenever it changes. */
     var onCurrentPageChanged: ((Int) -> Unit)? = null
-    /** Notified with how many overview pages are selected whenever the selection changes. */
-    var onPageSelectionChanged: ((Int) -> Unit)? = null
-    /** Notified with how many pages are on the page clipboard whenever a copy changes it. */
-    var onPageClipboardChanged: ((Int) -> Unit)? = null
     /** Notified with (scrollY, totalHeightPx, viewportPx, scrollX) whenever the scroll (vertical or horizontal) or content extent changes —­ drives the right-edge scroll thumb and keeps view-anchored overlays (table cell inspector) tracking the pan. */
     var onScrollChanged: ((Float, Float, Float, Float) -> Unit)? = null
     /** Notified when a placement tap lands, so the editor can prompt for content / pick an image. */
@@ -768,7 +747,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal val elementRenderer = ElementRenderer()
 
     /** Off-screen ink rasters, so a pan/fling frame blits pages instead of re-submitting strokes. */
-    internal val inkCache = InkCache(columns = { columns }, onReady = { requestRender() })
+    internal val inkCache = InkCache(onReady = { requestRender() })
 
     /** Set while a coalesced redraw is queued — see [requestRender]. */
     internal val renderPosted = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -1177,7 +1156,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Flatten the current document (backgrounds, PDF pages, and all annotations) to a PDF. */
     fun exportPdf(out: java.io.OutputStream) =
-        PdfExporter(pdfSource, imageSource, pdfTextIndex, canvasGeometry()).export(doc, out)
+        PdfExporter(pdfSource, imageSource, pdfTextIndex).export(doc, out)
 
     /** Flatten one page (sheet, ruling, PDF/image background and every annotation) to a PNG. */
     fun exportPagePng(pageIndex: Int, out: java.io.OutputStream): Boolean = writePagePng(pageIndex, out)
@@ -1213,28 +1192,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onHistoryChanged?.invoke(history.canUndo, history.canRedo)
     }
 
-    // --- page overview -------------------------------------------------------------------------
-
-    /**
-     * Show [n] pages side by side (1 = the plain single-page stack, 2+ = the page overview grid).
-     * The current page is kept in view, so zooming out to the grid and back doesn't lose your place.
-     */
-    fun setColumns(n: Int) {
-        val next = n.coerceIn(1, PageStacker.COLUMN_CHOICES.last())
-        if (next == columns) return
-        val at = currentPageIndex()
-        cancelPageDrag() // leaving (or reshaping) the grid abandons any lift in flight
-        if (next == 1) clearPageSelection() // no grid, no way to see or extend a selection
-        columns = next
-        relayout()
-        if (next == 1) viewport.centerHorizontal()
-        goToPage(at)
-        onColumnsChanged?.invoke(columns)
-        render()
-    }
-
-    fun columns(): Int = columns
-
     // --- zoom: `render/ZoomControls.kt` ---------------------------------------------------------
 
     // --- pages ---------------------------------------------------------------------------------
@@ -1268,41 +1225,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Delete the page currently in view. No-op when only one page remains. */
     fun removePage() = pages.removePage()
-
-    // --- page-overview selection -----------------------------------------------------------------
-    // In the multi-column grid a Hand-tool finger tap picks pages out; the picked set is what
-    // [deleteSelectedPages] removes in one undoable edit. Purely view state — nothing is written to
-    // the `.xopp` until a delete commits.
-
-    /**
-     * Turn overview editing on or off. Leaving edit mode abandons any lift in flight and clears the
-     * selection, so coming back to the grid to read never has stale selection chrome on it.
-     */
-    fun setPagesEditMode(on: Boolean) {
-        if (overview.setEditMode(on)) cancelPageDrag()
-    }
-
-    fun pagesEditMode(): Boolean = overview.editMode
-
-    /** How many overview pages are currently selected. */
-    fun selectedPageCount(): Int = overview.selected.size
-
-    /** Drop the overview selection (e.g. on leaving the grid, or after a delete). */
-    fun clearPageSelection() = overview.clearSelection()
-
-    /** Delete every selected page as one undoable edit and clear the selection. */
-    fun deleteSelectedPages() = pages.deleteSelectedPages()
-
-    /** Put the selected pages on the page clipboard, in document order (no document edit yet). */
-    fun copySelectedPages() = pages.copySelectedPages()
-
-    /** How many pages are on the page clipboard (0 when nothing has been copied). */
-    fun copiedPageCount(): Int = overview.clipboard.size
-
-    /** Paste the clipboard pages as one undoable edit and scroll to the first pasted page. */
-    fun pasteCopiedPages() {
-        pages.pasteCopiedPages()?.let { goToPage(it) }
-    }
 
     /**
      * The visible page's background style (plain/lined/ruled/graph/dotted), or null when the page
@@ -1413,7 +1335,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun goToPage(index: Int) {
         val box = layout.boxes.getOrNull(index) ?: return
         viewport.scrollToY(box.topPx)
-        if (columns == 1) viewport.centerHorizontal()
+        viewport.centerHorizontal()
         render()
     }
 
@@ -1678,62 +1600,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal fun captureReleaseVelocity(event: MotionEvent) =
         momentum.captureRelease(event.eventTime, focusX(event, skip = -1), focusY(event, skip = -1))
 
-    // --- page-overview drag-to-reorder -----------------------------------------------------------
-    // Only in the multi-column grid, and only for a finger: a long-press lifts the page under it, the
-    // drag tracks a drop slot, and the release commits one undoable [PageOps.move]. The pen is never a
-    // candidate, so drawing on a grid page is untouched.
-
-    /** Arm the long-press that lifts a page, for a single finger down on the overview grid. */
-    internal fun armPageDrag(event: MotionEvent) {
-        cancelPageDrag()
-        if (columns <= 1 || !overview.editMode || event.pointerCount != 1) return
-        if (pointerKindOf(event, 0) != PointerKind.FINGER) return
-        overview.arm(event.x, event.y)
-        postDelayed(pageDragArm, longPressMs)
-    }
-
-    /** A touch that travels past slop before the timeout is a pan, not a page lift. */
-    internal fun trackPageDragArm(event: MotionEvent) {
-        if (!overview.armed) return
-        if (hypot(event.x - overview.armDownX, event.y - overview.armDownY) > touchSlopPx) cancelPageDrag()
-    }
-
-    /** The long-press fired: lift the page under the finger and take the gesture away from panning. */
-    private fun startPageDrag() {
-        overview.disarm()
-        if (columns <= 1 || pageSource.pageCount < 2) return
-        val box = layout.pageAt(scrollX + overview.armDownX, scrollY + overview.armDownY) ?: return
-        momentum.stop()
-        scrolling = false
-        overview.lift(box.index)
-        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        render()
-    }
-
-    /** Track the finger to the page it is hovering over — that slot is where the drop lands. */
-    internal fun pageDragMove(event: MotionEvent) {
-        val target = layout.nearestPage(scrollX + event.x, scrollY + event.y) ?: return
-        if (overview.moveDropTo(target.index)) render()
-    }
-
-    /** Commit the drop as one undoable reorder and follow the page to its new home. */
-    internal fun finishPageDrag() {
-        val move = overview.endDrag()
-        if (move == null) { render(); return }
-        val (from, to) = move
-        pages.movePage(from, to)
-        goToPage(to)
-    }
-
-    /** Disarm the pending long-press and drop any in-flight lift without reordering. */
-    internal fun cancelPageDrag() {
-        if (overview.armed) removeCallbacks(pageDragArm)
-        overview.disarm()
-        val wasDragging = overview.dragging
-        overview.endDrag()
-        if (wasDragging) render()
-    }
-
     // --- barrel double-click ---------------------------------------------------------------------
     // Recognised only while the tip is *off* the glass (hover / button-only events): with the tip
     // down the button is the held modifier ([BarrelAction]), and firing an undo mid-stroke would be
@@ -1817,7 +1683,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     override fun surfaceCreated(holder: SurfaceHolder) = render()
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, w: Int, h: Int) {
         relayout()
-        if (columns == 1) viewport.centerHorizontal()
+        viewport.centerHorizontal()
         // A guide restored from settings before the first layout had no viewport to centre on; now
         // there is one, so place it for real rather than leaving it wherever the fallback guessed.
         pendingGuide?.let { pendingGuide = null; placeGuide(it) }

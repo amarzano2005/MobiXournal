@@ -1,25 +1,12 @@
 # The drawing tools and what they do to the page
 
-> Read when you work on a tool: shapes and their styles, the eraser, layers, hold-to-snap, function plots, or tapping to delete.
+> Read when you work on a tool: shapes and their styles, the eraser, layers, hold-to-snap, function plots, or how a page is zoomed.
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-## Tapping an element to delete it
+## Zooming the page stack
 
-**multi-select delete**: at more than one column a confirmed Hand-tool tap (the double-tap tracker's
-tap, rather than a second gesture) toggles the page under it in `PageOverview.selected`,
-and `deleteSelectedPages()` commits one `PageOps.removeAll(pages, indices)` through `editPages`.
-`removeAll` refuses a selection covering every page, so the document is never emptied. The same
-selection feeds **copy/paste**: `copySelectedPages()` stashes `PageOps.copyOf(pages, indices)` (the
-picked pages in ascending order) in the view-only `PageOverview.clipboard`, and `pasteCopiedPages()` commits
-one `PageOps.insertAfter(pages, after, clipboard)` through `editPages`, inserting after the
-highest-numbered selected page (or `currentPageIndex()` when nothing is picked). Pages are immutable,
-so a "copy" is a shared reference — the duplicate carries the same strokes, layers, size and
-background object, and `XoppWriter` serialises each page position independently, so the paste
-round-trips with no deep copy needed. The selection
-is view-only (never written) and is cleared by `editPages` and by dropping back to one column, since
-both invalidate page indices; the clipboard is not cleared, so one copy can be pasted repeatedly. Page order *is* list order in
-`Document.pages` — `XoppWriter` writes no index — so the reorder round-trips by construction. Zoom keeps the viewport-centre point roughly
+Zoom keeps the viewport-centre point roughly
 fixed, and is clamped to 25%–1000% (`DrawingSurfaceDefaults.MIN_ZOOM`/`MAX_ZOOM`). Strokes and other
 elements are re-rendered vectorially at the zoomed scale, so they stay sharp at any level; PDF
 backgrounds are re-rasterised per zoomed width up to `BitmapLruCache.MAX_RASTER_WIDTH` (4096 px) and
@@ -204,7 +191,7 @@ its own pointer id, running alongside the drawing gesture rather than replacing 
 lets the pen rule along a guide the other hand is holding; the edges are deliberately excluded from
 the grab test so drawing against one never drags the instrument away with it. Nothing about a guide reaches the document. Which axes snap is a property of
 the background style, so the pt spacings live once in `BackgroundGrid` and are shared by
-`BackgroundRenderer`, `PdfBackgroundPainter` and `Snapping`. The **setsquare/compass guides**
+`BackgroundRenderer`, `Snapping` and the `PdfPagePlan` the window's export replays. The **setsquare/compass guides**
 (`DrawingGuide`, pure and tested) are a third constraint at that same input edge: the surface holds
 one live pose pinned to a page, and every drawn vertex — freehand via `point()` and line/shape
 endpoints alike — passes through `guided()`, which projects the point onto the guide's nearest edge
@@ -237,8 +224,8 @@ Protractor with 15° radial snapping) and Lattices (page ruling, 60°/120° chem
 glyphs; tapping an active guide toggles it off, and placement operates cleanly without triggering asynchronous
 settings feedback loops. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
-constant-width dashed path and floods a fill under the outline, and `PdfVectorPainter` mirrors both for
-export (a `setLineDashPattern` stroke and a `fill()` polygon). The **partial eraser** (`StrokeEraser`,
+constant-width dashed path and floods a fill under the outline, and the window's `DesktopPdfPainter`
+mirrors both for its export (a `setLineDashPattern` stroke and a `fill()` polygon). The **partial eraser** (`StrokeEraser`,
 pure, tested) rubs out only the touched part of a stroke and splits it into the surviving pieces (each
 inheriting the original's colour/style/fill), alongside the original whole-stroke delete
 (`StrokeHitTester`). It hit-tests **segments**, not just vertices, and cuts where a segment crosses the

@@ -30,7 +30,7 @@ import android.view.ViewTreeObserver
 internal fun DrawingSurfaceView.repaintAfterResize() {
     holder.setSizeFromLayout()
     relayout()
-    if (columns == 1) viewport.centerHorizontal()
+    viewport.centerHorizontal()
     requestRender()
     repaintWhenSurfaceSettles()
 }
@@ -45,7 +45,7 @@ internal fun DrawingSurfaceView.repaintWhenSurfaceSettles() {
     if (!observer.isAlive) {
         post {
             relayout()
-            if (columns == 1) viewport.centerHorizontal()
+            viewport.centerHorizontal()
             requestRender()
         }
         return
@@ -61,7 +61,7 @@ internal fun DrawingSurfaceView.repaintWhenSurfaceSettles() {
                 // new one.
                 post {
                     relayout()
-                    if (columns == 1) viewport.centerHorizontal()
+                    viewport.centerHorizontal()
                     requestRender()
                 }
                 return true

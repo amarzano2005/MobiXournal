@@ -160,29 +160,6 @@ internal class CanvasChrome {
         isFakeBoldText = true
     }
 
-    /** Page-overview reorder: lifted page wash (translucent white). */
-    val pageLift = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = 0x66FFFFFF
-    }
-    /** Page-overview reorder: drop slot outline, 6 px amber stroke. */
-    val pageDrop = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 6f
-        color = GUIDE_COLOR
-    }
-    /** Page-overview multi-select: picked page tint ([PAGE_SELECT_FILL_ALPHA] amber wash). */
-    val pageSelectFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = GUIDE_COLOR.withAlpha(PAGE_SELECT_FILL_ALPHA)
-    }
-    /** Page-overview multi-select: picked page outline, 6 px amber stroke. */
-    val pageSelect = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 6f
-        color = GUIDE_COLOR
-    }
-
     /** Hover dot; its colour tracks the pen, so it is set per frame rather than by the scheme. */
     val hover = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
