@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.io.File
 
 /**
  * The shell as the drawing in `docs/ui-modernization.md` lays it out: a header carrying the tab strip,
@@ -63,11 +64,11 @@ internal fun DesktopShell(
             onSaveAs = onSavePicker,
             onExportPdf = onExportPdfPicker,
             onImportPdf = onImportPdfPicker,
-            // The pages go beside the document, which is the folder the user opened it from; no dialog,
-            // because AWT has no folder-only picker and a file picker would ask the wrong question.
-            onExportSvg = { DesktopExportQueue.request(ExportRequest.Svg()) },
+            // The pages' folder is the picker's question — the one the native dialog can ask and AWT
+            // could not, which is why this used to write beside the document without asking.
+            onExportSvg = { exportPages("Export the pages as SVG into a folder") { folder -> ExportRequest.Svg(folder) } },
             // The raster of the same pages, one PNG each, through the same worker.
-            onExportPng = { DesktopExportQueue.request(ExportRequest.Png()) },
+            onExportPng = { exportPages("Export the pages as PNG into a folder") { folder -> ExportRequest.Png(folder) } },
             // The page's two commands live in the tool strips now, after their divider
             // (`ToolStrips.PageSetupSlots`): the header keeps the file and the view.
             onToggleSidebar = { state.toggleSidebar() },
@@ -134,4 +135,21 @@ private fun BoxScope.WorkspaceBody(state: DesktopShellState, tablet: DesktopTabl
     ImportPdfHost(state)
     PageRangeHost(state)
     CloseDialogHost(state)
+}
+
+/**
+ * `Export pages as SVG/PNG`: the pages go into the folder the window's picker names, and a **cancel writes
+ * nothing**.
+ *
+ * The picker is the window's ([DesktopExportQueue.pickFolder], installed in `DesktopApp`); a headless shell
+ * has none, and there the document's own folder is the answer — the behaviour every page export had before
+ * the native dialog could ask the question at all.
+ */
+private fun exportPages(title: String, request: (File?) -> ExportRequest) {
+    val picker = DesktopExportQueue.pickFolder
+    if (picker == null) {
+        DesktopExportQueue.request(request(null))
+        return
+    }
+    picker(title)?.let { folder -> DesktopExportQueue.request(request(folder)) }
 }

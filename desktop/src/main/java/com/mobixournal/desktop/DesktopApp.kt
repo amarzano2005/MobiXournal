@@ -15,7 +15,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.window.FrameWindowScope
 import java.awt.EventQueue
-import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
 
@@ -83,7 +82,13 @@ fun FrameWindowScope.DesktopApp(
     // as long as it is up.
     DisposableEffect(Unit) {
         DesktopExportQueue.pickPdfDestination = dialogs::exportPdf
-        onDispose { DesktopExportQueue.pickPdfDestination = null }
+        // The page exports ask where their one file per page goes — a folder, which is the question the
+        // native picker can put and AWT could not.
+        DesktopExportQueue.pickFolder = dialogs::exportFolder
+        onDispose {
+            DesktopExportQueue.pickPdfDestination = null
+            DesktopExportQueue.pickFolder = null
+        }
     }
     // The Backup section's two rows need the same thing the PDF export does: a window to hang a native
     // dialog on. The state has none, so the window lends it one for as long as it is up.
@@ -125,7 +130,7 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
 
     /** The system picker for a document to open. */
     fun openDocument() {
-        chooseDocument(window)?.let(state::open)
+        DesktopFilePicker.openFile(window, "Open a document", DOCUMENT_OPEN_TYPES)?.let(state::open)
     }
 
     /**
@@ -136,9 +141,17 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
     fun exportPdf() {
         val tab = state.active ?: return
         val proposed = "${tab.file.nameWithoutExtension}.pdf"
-        chooseSave(window, "Export the document as a PDF", proposed)
-            ?.let { DesktopExportQueue.request(ExportRequest.Pdf(it)) }
+        DesktopFilePicker.saveFile(
+            window = window,
+            title = "Export the document as a PDF",
+            types = PDF_TYPES,
+            proposedName = proposed,
+            startIn = tab.file.absoluteFile.parentFile,
+        )?.let { DesktopExportQueue.request(ExportRequest.Pdf(it.file)) }
     }
+
+    /** The folder the page exports (SVG, PNG) write into, asked by the picks and answered off the queue. */
+    fun exportFolder(title: String): File? = DesktopFilePicker.chooseFolder(window, title)
 
     /**
      * Save As: one dialog names the file **and** carries the container in its type box, and the write uses
@@ -157,13 +170,24 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
      * bytes are what decide whether it can be read.
      */
     fun importPdf() {
-        val chosen = choosePdf(window) ?: return
+        val chosen = DesktopFilePicker.openFile(window, "Import a PDF", PDF_TYPES) ?: return
         state.askImportPdf(chosen)
     }
 
     /** The settings backup's own file: **save** asks where to write one, **load** which to read. */
     fun backup(save: Boolean, onPicked: (File?) -> Unit) {
-        onPicked(chooseBackupFile(window, save))
+        val proposed = "MobiXournal-settings" + DesktopSettingsBackup.EXTENSION
+        val chosen = if (save) {
+            DesktopFilePicker.saveFile(window, "Export settings", BACKUP_TYPES, proposed)?.file
+        } else {
+            DesktopFilePicker.openFile(window, "Import settings", BACKUP_TYPES)
+        }
+        // A name typed without a suffix is given it: a file whose name does not say what it is would be
+        // the one thing the import's own stamp test then has to explain.
+        onPicked(
+            if (!save || chosen == null || chosen.name.contains('.')) chosen
+            else File(chosen.parentFile, chosen.name + DesktopSettingsBackup.EXTENSION),
+        )
     }
 }
 
@@ -196,58 +220,3 @@ private fun rememberTablet(window: Frame, state: DesktopShellState): DesktopTabl
     return tablet
 }
 
-/**
- * The native open dialog, or null when it was cancelled.
- *
- * `FileDialog`'s filter is ignored on Windows, so the `.xopp`/`.mobix` suffix test is a convenience for the
- * platforms that honour it and never a restriction: the loader identifies a document by its bytes.
- */
-private fun chooseDocument(window: Frame): File? {
-    val dialog = FileDialog(window, "Open a document", FileDialog.LOAD)
-    dialog.setFilenameFilter { _, name ->
-        name.endsWith(".xopp", ignoreCase = true) || name.endsWith(".mobix", ignoreCase = true)
-    }
-    return awaitChoice(dialog)
-}
-
-/**
- * The settings backup's own file dialog: **save** asks where to write one, **load** which to read.
- *
- * The proposed name carries the backup suffix, and a name typed without one is given it: a file whose
- * name does not say what it is would be the one thing the import's own stamp test then has to explain.
- */
-private fun chooseBackupFile(window: Frame, save: Boolean): File? {
-    val dialog = FileDialog(
-        window,
-        if (save) "Export settings" else "Import settings",
-        if (save) FileDialog.SAVE else FileDialog.LOAD,
-    )
-    dialog.file = "MobiXournal-settings" + DesktopSettingsBackup.EXTENSION
-    dialog.setFilenameFilter { _, name -> name.endsWith(DesktopSettingsBackup.EXTENSION, ignoreCase = true) }
-    val chosen = awaitChoice(dialog) ?: return null
-    if (!save) return chosen
-    return if (chosen.name.contains('.')) chosen
-    else File(chosen.parentFile, chosen.name + DesktopSettingsBackup.EXTENSION)
-}
-
-/** The native picker for a PDF to import — a name box, like the other browsers here. */
-private fun choosePdf(window: Frame): File? {
-    val dialog = FileDialog(window, "Import a PDF", FileDialog.LOAD)
-    dialog.setFilenameFilter { _, name -> name.endsWith(".pdf", ignoreCase = true) }
-    return awaitChoice(dialog)
-}
-
-/** The native save dialog with [proposed] already in its name field, or null when it was cancelled. */
-private fun chooseSave(window: Frame, title: String, proposed: String): File? {
-    val dialog = FileDialog(window, title, FileDialog.SAVE)
-    dialog.file = proposed
-    return awaitChoice(dialog)
-}
-
-/** Show [dialog] modally and answer the file it chose — null covers Cancel and an unnamed field alike. */
-private fun awaitChoice(dialog: FileDialog): File? {
-    dialog.isVisible = true
-    val dir = dialog.directory ?: return null
-    val name = dialog.file ?: return null
-    return File(dir, name)
-}
