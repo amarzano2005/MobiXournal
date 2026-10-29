@@ -134,15 +134,14 @@ internal fun PageCanvas(
     // Read once here: the gesture scope and the packet path both need it, and neither is in a draw scope.
     val density = LocalDensity.current.density
     val page = rememberedPage(tab)
-    // The strokes in progress and where the canvas sits in the window — the readings a packet needs.
-    val memory = remember(tab, tab.page) { CanvasMemory() }
-    val sheetPicture = rememberSheetPicture(tab)
+    // The drafts, the recorded picture and the karaoke driver: one call, keyed on the page itself.
+    val canvas = rememberCanvasState(tab)
 
     BoxWithConstraints(
         modifier
             .background(DESK)
             .clipToBounds()
-            .onGloballyPositioned(memory::track),
+            .onGloballyPositioned(canvas.memory::track),
     ) {
         CanvasBox(
             tab = tab,
@@ -154,11 +153,12 @@ internal fun PageCanvas(
             placeLiving = placeLiving,
             placeCircuit = onPlaceCircuit,                text = text,
                 onEditLiving = onEditLiving,
-                draft = memory.draft,
-                penDraft = memory.penDraft,
+                draft = canvas.memory.draft,
+                penDraft = canvas.memory.penDraft,
                 pen = pen,
-            pointer = memory.pointer,
-            sheetPicture = sheetPicture,
+            pointer = canvas.memory.pointer,
+            sheetPicture = canvas.picture,
+            karaoke = canvas.karaoke,
             paintProbe = paintProbe,
             measurer = measurer,
             density = density,
@@ -166,8 +166,8 @@ internal fun PageCanvas(
             dialWheel = dialWheel,
             onLiveDrag = onLiveDrag,
             selectionBar = selectionBar,
-            origin = { memory.origin },
-            extent = { memory.extent },
+            origin = { canvas.memory.origin },
+            extent = { canvas.memory.extent },
             onViewport = onViewport,
             onFit = onFit,
             onEdited = onEdited,
@@ -177,75 +177,6 @@ internal fun PageCanvas(
     }
 }
 
-/**
- * The pen's own state, lifted out of [PageCanvas]: whether the tablet's packets own the stroke in
- * progress, where the ring is, when the driver last spoke, and the vertical-space grab line.
- *
- * Two input paths write these (the packets, and the Compose moves of a window with no stream), which is
- * why they are remembered by the canvas rather than by the path that happens to run.
- */
-internal class PenPointer {
-    val owns = mutableStateOf(false)
-    val hover = mutableStateOf<Offset?>(null)
-    val atNanos = mutableStateOf(0L)
-    val grabLine = mutableStateOf<Double?>(null)
-    /** The region a selection drag is tracing right now: the sheet paints it, the gesture writes it. */
-    val previewRegion = mutableStateOf<SelectionRegion?>(null)
-    /**
-     * The living element a placement drag is drawing right now — a component being pulled out along the
-     * pen, shown exactly as it will land. Nothing of it is on the page until the lift.
-     */
-    val previewLiving = mutableStateOf<Element?>(null)
-}
-
-/**
- * The page state a canvas keeps across recompositions: the two strokes in progress and the pen's own
- * readings.
- *
- * Remembered **per tab and page**, so a page change starts clean, and lifted out of the composable because
- * the canvas is already the page's layout and wiring (`SourceStructureTest` counts both).
- */
-private class CanvasMemory {
-    /** The Compose pointer's stroke, in page pt. */
-    val draft: SnapshotStateList<InkSample> = mutableStateListOf()
-
-    /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
-    val penDraft: SnapshotStateList<InkSample> = mutableStateListOf()
-
-    val pointer = PenPointer()
-
-    /**
-     * Where this canvas sits in the window, in its client pixels — a packet arrives in the window's own
-     * space and the canvas resolves it against this (`PenPacketStroke`). Kept here rather than as two
-     * locals so both readings are written by one call and a canvas keeps them across recompositions.
-     */
-    var origin by mutableStateOf(Offset.Zero)
-        private set
-    var extent by mutableStateOf(Size.Zero)
-        private set
-
-    /** The canvas's box, as the layout reports it: its corner and its size. */
-    fun track(coordinates: LayoutCoordinates) {
-        origin = coordinates.boundsInWindow().topLeft
-        extent = coordinates.size.toSize()
-    }
-}
-
-/** The page the tab is on, re-read when the document is edited; a failure is why it could not be read. */
-@Composable
-private fun rememberedPage(tab: DesktopTab): Result<Page> =
-    remember(tab, tab.page, tab.document.edits) { runCatching { tab.document.page(tab.page) } }
-
-/**
- * The page's recorded picture, released with the page it belongs to: it holds native drawing
- * instructions, so a page outliving its picture would leak them.
- */
-@Composable
-internal fun rememberSheetPicture(tab: DesktopTab): PagePicture {
-    val picture = remember(tab, tab.page) { PagePicture() }
-    DisposableEffect(picture) { onDispose { picture.close() } }
-    return picture
-}
 
 
 /**
@@ -357,6 +288,8 @@ internal fun SheetCanvas(
     pointer: PenPointer,
     /** The page's recorded picture, so a frame replays the sheet instead of re-painting it. */
     sheetPicture: PagePicture,
+    /** The karaoke driver, while a clip sounds: the page is then painted directly, directive per stroke. */
+    karaoke: DesktopKaraoke? = null,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     measurer: TextMeasurer,
     density: Float,
@@ -367,11 +300,8 @@ internal fun SheetCanvas(
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
-    // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`DesktopCursor.kt`).
-    // Its position is `pointer.hover`, lifted into `PageCanvas` so the driver's own readings can move it.
-    val ringPx = toolCursorDiameterPx(tool, tool.ringWidthPt(ink, shapeInk), sheet.zoom, density)
-    // A mouse move that copies the contact must not drag the ring behind the packets still arriving.
-    val followMouse = { System.nanoTime() - pointer.atNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
+    // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`SheetMark`).
+    val mark = sheetMark(tool, ink, shapeInk, sheet, density, pointer)
 
     Canvas(
         Modifier.fillMaxSize().sheetInput(
@@ -384,8 +314,8 @@ internal fun SheetCanvas(
             sheet = sheet,
             pointer = pointer,
             draft = draft,
-            ringVisible = ringPx != null,
-            followMouse = followMouse,
+            ringVisible = mark.ringPx != null,
+            followMouse = mark.followMouse,
             dialWheel = dialWheel,
             targets = PagePressTargets(
                 onPlaceLiving = onPlaceLiving,
@@ -425,10 +355,11 @@ internal fun SheetCanvas(
             previewLiving = pointer.previewLiving.value,
             paintProbe = paintProbe,
             skip = editingText,
+            karaoke = karaoke,
         )
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings are
         // taken **here**, in the draw scope, so a hover reading repaints the sheet and never recomposes it.
-        val ring = ringPx ?: return@Canvas
+        val ring = mark.ringPx ?: return@Canvas
         pointer.hover.value?.let { at -> drawToolCursor(at, ring) }
     }
 }
@@ -523,6 +454,8 @@ private fun DrawScope.paintSheet(
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     /** The element the in-place field is retyping, left out of the recorded sheet. */
     skip: Element? = null,
+    /** The karaoke driver: when it holds a clip, the sheet is painted directly rather than replayed. */
+    karaoke: DesktopKaraoke? = null,
 ) {
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
@@ -530,7 +463,27 @@ private fun DrawScope.paintSheet(
     val pxPerPt = zoom * density
     // The sheet: recorded once per viewport, replayed per frame (see `PagePicture`). Recording is the
     // Kotlin cost — `LivingInk`, text measurement, a `Path` per stroke — and a frame must not pay it.
-    sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer, skip)
+    val karaokeState = karaoke?.state
+    if (karaokeState == null) {
+        sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer, skip)
+    } else {
+        // A recorded picture says every stroke as it was written, so it cannot show a page being written:
+        // while a clip sounds the sheet is painted from the elements, under the picture's own matrix.
+        withTransform({
+            translate(viewport.offsetX * density, viewport.offsetY * density)
+            scale(zoom, zoom, pivot = Offset.Zero)
+        }) {
+            drawPageContent(
+                page = page,
+                pxPerPt = density,
+                textMeasurer = measurer,
+                backdrop = backdrop,
+                hiddenLayers = hiddenLayers,
+                skip = skip,
+                karaoke = karaokeState,
+            )
+        }
+    }
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
         paintLiveOverlay(
             page = page,

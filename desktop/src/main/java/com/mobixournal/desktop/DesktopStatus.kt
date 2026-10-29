@@ -10,12 +10,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import java.awt.GraphicsEnvironment
 import java.util.Locale
@@ -85,7 +89,13 @@ internal fun displayRefreshHz(): Int? {
 
 /** The bottom bar: page, zoom, container and how far through the document the page is. */
 @Composable
-internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null, frameTime: Boolean = true) {
+internal fun StatusBar(
+    tab: DesktopTab?,
+    tablet: DesktopTablet? = null,
+    frameTime: Boolean = true,
+    /** The window's audio, whose take indicator and one-sentence report live on this band. */
+    audio: DesktopAudioSession? = null,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -94,6 +104,7 @@ internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null, frameTim
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        audio?.let { session -> AudioStatus(session) }
         if (tab == null) {
             Text("no document", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
             return@Row
@@ -150,6 +161,41 @@ internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null, frameTim
         )
         Spacer(Modifier.width(12.dp))
         ProgressBar(pageProgress(tab.page, tab.pageCount))
+    }
+}
+
+/**
+ * The recording indicator: a record dot in the document red, the take's own `mm:ss`, and a thin level
+ * bar — or, when nothing is being recorded, the one sentence the audio had to say (a recording this
+ * machine does not have, a microphone that would not open).
+ *
+ * It is here rather than only on the pill because a take can start while the pill is scrolled out of
+ * sight on a narrow window, and "is the microphone on" must never be a guess.
+ */
+@Composable
+private fun AudioStatus(session: DesktopAudioSession) {
+    val message = session.message
+    if (session.recording) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(DesktopTheme.documentRed))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = if (session.recordingPaused) "recording paused" else "recording ${formatTime(session.recordedMs)}",
+            color = DesktopTheme.documentRed,
+            style = DesktopTheme.numeric,
+        )
+        Spacer(Modifier.width(6.dp))
+        Box(Modifier.width(40.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(DesktopTheme.activeSlot)) {
+            Box(
+                Modifier
+                    .width((40f * session.level.coerceIn(0f, 1f)).dp)
+                    .height(4.dp)
+                    .background(DesktopTheme.accent),
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+    } else if (message != null) {
+        Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
+        Spacer(Modifier.width(14.dp))
     }
 }
 

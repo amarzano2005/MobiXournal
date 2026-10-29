@@ -21,7 +21,6 @@ import kotlin.math.min
 
 internal fun DrawingSurfaceView.relayout() {
     applyQueuedScaleKeep()
-    fitBoardIfPending()
     layout = PageStacker.stack(pageSource, width, DrawingSurfaceDefaults.GAP_PX, zoom)
     pushExtentToViewport()
 }
@@ -100,27 +99,19 @@ internal fun DrawingSurfaceView.paint() {
     val provisional = stackStale || canvas.width != width || canvas.height != height
     try {
         canvas.drawColor(chrome.backdropColor)
-        // Two passes, never both: a chunked `.mobix` is drawn as an unbounded sheet with its tiles on
-        // it, and everything else as the page stack it is. A board is not a page list that happens to
-        // be long — see [paintBoard].
-        val board = board
-        if (board != null) {
-            paintBoard(canvas, board)
-        } else {
-            val visible = layout.visible(scrollY, height.toFloat())
-            for (box in visible) {
-                BackgroundRenderer.draw(
-                    canvas, box, scrollX, scrollY, pageBitmapFor(box), pdfTilesFor(box),
-                    width.toFloat(), height.toFloat(),
-                )
-                drawPageElements(canvas, box)
-                drawPageOutline(canvas, box)
-                drawBookmarkFlag(canvas, box)
-            }
-            inkCache.retain(retainedAround(visible, layout.boxes.size))
-            retainPdfPins(visible)
-            prefetchAround(visible)
+        val visible = layout.visible(scrollY, height.toFloat())
+        for (box in visible) {
+            BackgroundRenderer.draw(
+                canvas, box, scrollX, scrollY, pageBitmapFor(box), pdfTilesFor(box),
+                width.toFloat(), height.toFloat(),
+            )
+            drawPageElements(canvas, box)
+            drawPageOutline(canvas, box)
+            drawBookmarkFlag(canvas, box)
         }
+        inkCache.retain(retainedAround(visible, layout.boxes.size))
+        retainPdfPins(visible)
+        prefetchAround(visible)
         drawSearchHighlights(canvas)
         drawCurrent(canvas)
         // Where a wire or a component can actually land, while a connector is armed.
@@ -412,8 +403,7 @@ internal fun DrawingSurfaceView.drawSplineOverlay(canvas: Canvas) {
 
 /**
  * Highlight every search hit with rounded pill highlights, with a focused outline around the current
- * result. The boxes come from [chromeBoxFor], so a hit found in a board's tile is highlighted where that
- * tile actually is rather than at the stack position the file's part order would put it in.
+ * result. The boxes come from [chromeBoxFor], so a hit is highlighted where its page actually is.
  */
 internal fun DrawingSurfaceView.drawSearchHighlights(canvas: Canvas) {
     val cornerRadius = 6f
@@ -618,7 +608,7 @@ private const val EXPORT_PAGE_SCALE = 2f
  * Returns false for a missing/degenerate page or a bitmap the heap could not take.
  */
 internal fun DrawingSurfaceView.writePagePng(pageIndex: Int, out: java.io.OutputStream): Boolean {
-    val page = (if (board != null) sheetDocument(doc, canvasGeometry()).pages.firstOrNull() else pageAt(pageIndex)) ?: return false
+    val page = pageAt(pageIndex) ?: return false
     if (page.width <= 0.0 || page.height <= 0.0) return false
     val width = (page.width * EXPORT_PAGE_SCALE).toInt().coerceAtLeast(1)
     val height = (page.height * EXPORT_PAGE_SCALE).toInt().coerceAtLeast(1)
@@ -651,7 +641,7 @@ internal fun DrawingSurfaceView.writePagePng(pageIndex: Int, out: java.io.Output
 
 /** Serialise one page to SVG (see [PageSvgWriter]) and write it to [out]. */
 internal fun DrawingSurfaceView.writePageSvg(pageIndex: Int, out: java.io.OutputStream): Boolean {
-    val page = (if (board != null) sheetDocument(doc, canvasGeometry()).pages.firstOrNull() else pageAt(pageIndex)) ?: return false
+    val page = pageAt(pageIndex) ?: return false
     return runCatching {
         out.write(PageSvgWriter.write(page).toByteArray(Charsets.UTF_8))
         true

@@ -177,6 +177,16 @@ private suspend fun PointerInputScope.pageGestureLoop(
             }
             return@awaitEachGesture
         }
+        // The **Audio tap** slot replays rather than draws: a press picks the topmost stroke under the point
+        // and plays its recording from the point touched, exactly as the tablet's Play object does. It is
+        // never ink and never a drag, so the gesture ends at the click.
+        if (tool == DesktopTool.AUDIO) {
+            val (ax, ay) = pagePointOf(down.position.x, down.position.y, density, vp)
+            if (ax in 0.0..pageW.toDouble() && ay in 0.0..pageH.toDouble()) {
+                DesktopAudioSession.tapAt(tab, ax, ay)
+            }
+            return@awaitEachGesture
+        }
         // A **circuit** slot pulls the part out along the pen, from the press to the pointer, aimed at the
         // page's pins: its own two ends, not a box — the tablet's rule, and the one a rotated part needs
         // (`CircuitGesture.circuitPress`).

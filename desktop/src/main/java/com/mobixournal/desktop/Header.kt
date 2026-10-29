@@ -64,6 +64,11 @@ internal fun Header(
     onPenParameters: () -> Unit = {},
     /** The settings the menu's Pen block changes, so its pressure rows act on the open window. */
     penPolicy: DesktopSettingsState? = null,
+    /**
+     * The window's audio, or null in a band that has no audio — the render tests draw the pre-audio
+     * header, so their coordinates stay the four file and history capsules.
+     */
+    audio: DesktopAudioSession? = null,
 ) {
     val tab = tabs.active
     Row(
@@ -104,18 +109,9 @@ internal fun Header(
         // different questions ("what did I just do" and "where does this go"), and the wider gap is the
         // whole of the difference this band has room to draw.
         Spacer(Modifier.width(12.dp))
-        HeaderGlyph(
-            active = false,
-            enabled = tab?.canUndo == true,
-            onClick = onUndo,
-        ) { color -> drawChromeGlyph(ChromeGlyph.UNDO, color) }
-        Spacer(Modifier.width(6.dp))
-        HeaderGlyph(
-            active = false,
-            enabled = tab?.canRedo == true,
-            onClick = onRedo,
-        ) { color -> drawChromeGlyph(ChromeGlyph.REDO, color) }
+        HeaderHistory(tab, onUndo, onRedo)
         Spacer(Modifier.width(12.dp))
+        HeaderAudioSlot(audio, tabs)
         // The tablet's colours for the two file commands: Save in the accent, PDF in the document red.
         // They were both chrome ink here, which made the one command that writes a PDF look like the
         // history steps beside it. The rule is `docs/ui-modernization.md`'s, not the window's.
@@ -133,6 +129,36 @@ internal fun Header(
             onClick = onExportPdf,
         ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
     }
+}
+
+/** The two history steps, which answer "what did I just do" rather than "where does this go". */
+@Composable
+private fun HeaderHistory(tab: DesktopTab?, onUndo: () -> Unit, onRedo: () -> Unit) {
+    HeaderGlyph(
+        active = false,
+        enabled = tab?.canUndo == true,
+        onClick = onUndo,
+    ) { color -> drawChromeGlyph(ChromeGlyph.UNDO, color) }
+    Spacer(Modifier.width(6.dp))
+    HeaderGlyph(
+        active = false,
+        enabled = tab?.canRedo == true,
+        onClick = onRedo,
+    ) { color -> drawChromeGlyph(ChromeGlyph.REDO, color) }
+}
+
+/**
+ * The tablet's audio capsule, in its own place: immediately **left of Save**, because the three buttons
+ * act on the document the file command is about to write. A band with no session draws nothing.
+ */
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.HeaderAudioSlot(
+    audio: DesktopAudioSession?,
+    tabs: DesktopTabs,
+) {
+    audio ?: return
+    HeaderAudioPill(audio = audio, tab = { tabs.active })
+    Spacer(Modifier.width(6.dp))
 }
 
 /**

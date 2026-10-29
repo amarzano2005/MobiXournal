@@ -59,6 +59,8 @@ class ToolStripsTest {
         "Lasso" to "V",
         "Marquee" to "S",
         "Text" to "X",
+        // The tablet's Play object, between the Text group and the figures, as the strip offers it.
+        "Audio tap" to "Y",
         "Formula" to "Shift+T",
         "Line" to "L",
         "Arrow" to "A",

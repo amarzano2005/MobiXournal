@@ -41,25 +41,14 @@ class SourceStructureTest {
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
         // +7 deliberate: the lazy "this page's background is missing" report the resolver drains.
-        // +12 deliberate: the board the canvas draws is one field (`board`, a whole geometry + tiles +
-        // paper in `render/DrawingSurfaceInfinite.kt`), the eviction it drives, and the wholesale-swap
-        // reset that keeps a board from surviving the document it belonged to.
-        // +48 deliberate: a board is written into, so the view gained the cell the gesture is writing in
-        // (`gestureCell`, the one thing the page index cannot say for a cell with no page yet), the
-        // grid reconciliation in the `doc` setter that keeps the cells in step with an undo, the shape a
-        // save reads back (`canvasGeometry`), and the refusal a page-shaped gesture gets on a board. The
-        // coordinate and commit arithmetic itself lives in BoardGrid / BoardInk / DrawingSurfaceBoardInk.
-        // +83 more, the same feature's other half: the board's reading of "where you are" (BoardReading,
-        // reported instead of a page), the part-in-view reads the layer panel and a tab snapshot need
-        // (currentPageIndex / visiblePageIndex over the grid), the search jump through the chrome box,
-        // and the mirrored pane being handed the board's grid along with the document.
         // -6: the shape-endpoint snap takes an explicit connector switch rather than carrying the
         // stale duplicate doc block it had.
         // +15 deliberate: the two panes of one document — the docKey it was opened as (so a mirror can
         // look its session up) and the shared-session handle it reports an edit through. The sharing
         // itself lives in `panes/DocumentSessions.kt`.
         // +3: the armed selection lift, one field, beside the clipboard it ends up on.
-        "render/DrawingSurfaceView.kt" to 1841,
+        // -277: the infinite-canvas half of the view retired with the canvas itself.
+        "render/DrawingSurfaceView.kt" to 1564,
         "render/CircuitShapes.kt" to 1180,
         "ui/AppSettings.kt" to 997,
         "ui/EditorDialogs.kt" to 920,

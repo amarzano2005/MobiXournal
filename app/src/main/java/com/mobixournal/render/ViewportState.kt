@@ -1,8 +1,5 @@
 package com.mobixournal.render
 
-import com.mobixournal.format.mobix.CanvasMode
-import com.mobixournal.format.mobix.MobixCanvasFile
-import kotlin.math.floor
 
 /**
  * The viewport: where the document is scrolled to ([scrollX], [scrollY]) and how far it's zoomed.
@@ -15,19 +12,12 @@ import kotlin.math.floor
  * them in with [setBounds] after every relayout. Zoom changes need a relayout in the middle (the
  * stacked layout's px scale with the zoom), so [zoomTo] and [zoomAbout] take that as a callback and
  * re-clamp against the *new* extent afterwards.
- *
- * Supports [CanvasMode.PAGINATED] (bounded page stack), [CanvasMode.INFINITE_VERTICAL] (strip-locked width,
- * unbounded downward expansion), [CanvasMode.INFINITE_HORIZONTAL] (strip-locked height, unbounded rightward
- * expansion), and [CanvasMode.INFINITE_2D] (unbounded Cartesian board).
  */
 internal class ViewportState {
 
-    /** Current canvas geometry mode (defaults to [CanvasMode.PAGINATED]). */
-    var canvasMode: CanvasMode = CanvasMode.PAGINATED
-
-    /** Horizontal scroll offset in pixels (clamped to 0..maxScrollX in paginated/vertical modes). */
+    /** Horizontal scroll offset in pixels (clamped to 0..maxScrollX). */
     var scrollX = 0f
-    /** Vertical scroll offset in pixels (clamped to 0..maxScrollY in paginated/horizontal modes). */
+    /** Vertical scroll offset in pixels (clamped to 0..maxScrollY). */
     var scrollY = 0f
     /** Zoom scale factor (clamped to [MIN_ZOOM]..[MAX_ZOOM]); 1.0 = 100%. */
     var zoom = 1f
@@ -86,47 +76,28 @@ internal class ViewportState {
     fun maxScrollY(): Float = (contentHeightPx - viewHeight).coerceAtLeast(0f)
 
     /** True when there is anywhere left to scroll in either axis. */
-    fun canScroll(): Boolean = when (canvasMode) {
-        CanvasMode.PAGINATED -> maxScrollX() > 0f || maxScrollY() > 0f
-        CanvasMode.INFINITE_VERTICAL, CanvasMode.INFINITE_HORIZONTAL, CanvasMode.INFINITE_2D -> true
-    }
+    fun canScroll(): Boolean = maxScrollX() > 0f || maxScrollY() > 0f
 
-    /** Pull offsets back inside the scrollable range according to [canvasMode]. */
+    /** Pull offsets back inside the scrollable range. */
     fun clamp() {
-        scrollX = when (canvasMode) {
-            CanvasMode.PAGINATED, CanvasMode.INFINITE_VERTICAL -> scrollX.coerceIn(0f, maxScrollX())
-            CanvasMode.INFINITE_HORIZONTAL -> scrollX.coerceAtLeast(0f)
-            CanvasMode.INFINITE_2D -> scrollX
-        }
-        scrollY = when (canvasMode) {
-            CanvasMode.PAGINATED, CanvasMode.INFINITE_HORIZONTAL -> scrollY.coerceIn(0f, maxScrollY())
-            CanvasMode.INFINITE_VERTICAL -> scrollY.coerceAtLeast(0f)
-            CanvasMode.INFINITE_2D -> scrollY
-        }
+        scrollX = scrollX.coerceIn(0f, maxScrollX())
+        scrollY = scrollY.coerceIn(0f, maxScrollY())
     }
 
     /**
-     * Set the vertical offset (clamped according to [canvasMode]).
+     * Set the vertical offset.
      * @param y Target scroll position in pixels.
      */
     fun scrollToY(y: Float) {
-        scrollY = when (canvasMode) {
-            CanvasMode.PAGINATED, CanvasMode.INFINITE_HORIZONTAL -> y.coerceIn(0f, maxScrollY())
-            CanvasMode.INFINITE_VERTICAL -> y.coerceAtLeast(0f)
-            CanvasMode.INFINITE_2D -> y
-        }
+        scrollY = y.coerceIn(0f, maxScrollY())
     }
 
     /**
-     * Set the horizontal offset (clamped according to [canvasMode]).
+     * Set the horizontal offset.
      * @param x Target scroll position in pixels.
      */
     fun scrollToX(x: Float) {
-        scrollX = when (canvasMode) {
-            CanvasMode.PAGINATED, CanvasMode.INFINITE_VERTICAL -> x.coerceIn(0f, maxScrollX())
-            CanvasMode.INFINITE_HORIZONTAL -> x.coerceAtLeast(0f)
-            CanvasMode.INFINITE_2D -> x
-        }
+        scrollX = x.coerceIn(0f, maxScrollX())
     }
 
     /** Centre horizontal scroll so content is balanced across [viewWidth]. */
@@ -143,38 +114,9 @@ internal class ViewportState {
     fun scrollBy(dx: Float, dy: Float): Boolean {
         val prevX = scrollX
         val prevY = scrollY
-        val newX = scrollX + dx
-        val newY = scrollY + dy
-        scrollX = when (canvasMode) {
-            CanvasMode.PAGINATED, CanvasMode.INFINITE_VERTICAL -> newX.coerceIn(0f, maxScrollX())
-            CanvasMode.INFINITE_HORIZONTAL -> newX.coerceAtLeast(0f)
-            CanvasMode.INFINITE_2D -> newX
-        }
-        scrollY = when (canvasMode) {
-            CanvasMode.PAGINATED, CanvasMode.INFINITE_HORIZONTAL -> newY.coerceIn(0f, maxScrollY())
-            CanvasMode.INFINITE_VERTICAL -> newY.coerceAtLeast(0f)
-            CanvasMode.INFINITE_2D -> newY
-        }
+        scrollX = (scrollX + dx).coerceIn(0f, maxScrollX())
+        scrollY = (scrollY + dy).coerceIn(0f, maxScrollY())
         return scrollX != prevX || scrollY != prevY
-    }
-
-    /**
-     * Compute active visible chunk coordinates [cxMin..cxMax, cyMin..cyMax] based on viewport bounds
-     * and current zoom scale.
-     */
-    fun visibleChunkRange(chunkSizePt: Double = MobixCanvasFile.DEFAULT_CHUNK_SIZE_PT): ChunkRange {
-        if (viewWidth <= 0f || viewHeight <= 0f || zoom <= 0f || chunkSizePt <= 0.0) {
-            return ChunkRange(0, 0, 0, 0)
-        }
-        val minPtX = (scrollX / zoom).toDouble()
-        val minPtY = (scrollY / zoom).toDouble()
-        val maxPtX = ((scrollX + viewWidth) / zoom).toDouble()
-        val maxPtY = ((scrollY + viewHeight) / zoom).toDouble()
-        val cxMin = floor(minPtX / chunkSizePt).toInt()
-        val cxMax = floor(maxPtX / chunkSizePt).toInt()
-        val cyMin = floor(minPtY / chunkSizePt).toInt()
-        val cyMax = floor(maxPtY / chunkSizePt).toInt()
-        return ChunkRange(cxMin, cxMax, cyMin, cyMax)
     }
 
     /**
@@ -199,22 +141,13 @@ internal class ViewportState {
     fun zoomAbout(focusVx: Float, focusVy: Float, factor: Float, relayout: () -> Unit): Boolean {
         val next = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
         if (next == zoom) return false
-        val oldZoom = zoom
         // Work in zoom-invariant fractions so the anchor survives the relayout (layout px scale with zoom).
         val xFrac = if (contentWidthPx > 0f) (scrollX + focusVx) / contentWidthPx else 0f
         val yFrac = if (contentHeightPx > 0f) (scrollY + focusVy) / contentHeightPx else 0f
         zoom = next
         relayout()
-        if (canvasMode == CanvasMode.PAGINATED) {
-            scrollX = (xFrac * contentWidthPx - focusVx).coerceIn(0f, maxScrollX())
-            scrollY = (yFrac * contentHeightPx - focusVy).coerceIn(0f, maxScrollY())
-        } else {
-            val ptX = (scrollX + focusVx) / oldZoom
-            val ptY = (scrollY + focusVy) / oldZoom
-            scrollX = ptX * next - focusVx
-            scrollY = ptY * next - focusVy
-            clamp()
-        }
+        scrollX = (xFrac * contentWidthPx - focusVx).coerceIn(0f, maxScrollX())
+        scrollY = (yFrac * contentHeightPx - focusVy).coerceIn(0f, maxScrollY())
         return true
     }
 
@@ -223,7 +156,6 @@ internal class ViewportState {
         scrollX = 0f
         scrollY = 0f
         zoom = 1f
-        canvasMode = CanvasMode.PAGINATED
     }
 
     companion object {

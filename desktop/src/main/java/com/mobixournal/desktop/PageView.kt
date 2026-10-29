@@ -23,11 +23,13 @@ import kotlin.math.roundToInt
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke as InkStroke
+import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import com.mobixournal.format.model.isLivingEntity
 import com.mobixournal.render.InkGeometry
+import com.mobixournal.render.KaraokeStrokeAnimator
 import com.mobixournal.render.LivingInk
 
 /**
@@ -75,6 +77,14 @@ internal fun DrawScope.drawPageContent(
     hiddenLayers: Set<Int> = emptySet(),
     /** The one element not to paint — the text box the in-place field is retyping, if any. */
     skip: Element? = null,
+    /**
+     * The recording sounding over this page, or null for a page painted as finished.
+     *
+     * Karaoke is the one thing a recorded sheet cannot be replayed from: [PagePicture]'s commands say
+     * every stroke as it was written, so a page with a clip sounding is painted from the elements
+     * directly, one directive per stroke (`DesktopKaraoke`).
+     */
+    karaoke: KaraokeStrokeAnimator.State? = null,
 ) {
     // The sheet is the *page's* box, not the canvas': a zoomed page is drawn inside a clip that is the
     // window, so `size` here would paint the paper across the whole viewport.
@@ -92,7 +102,7 @@ internal fun DrawScope.drawPageContent(
     // not paint them (the same view state that hides it in the sidebar's list).
     for ((index, layer) in page.layers.withIndex()) {
         if (index in hiddenLayers) continue
-        drawElements(layer.elements, pxPerPt, textMeasurer, skip)
+        drawElements(layer.elements, pxPerPt, textMeasurer, skip, karaoke)
     }
 }
 
@@ -110,12 +120,14 @@ internal fun DrawScope.drawElements(
     textMeasurer: TextMeasurer,
     /** The element the live field has taken over, or null to paint them all. */
     skip: Element? = null,
+    /** The clip sounding over the page, or null when every stroke is drawn as finished. */
+    karaoke: KaraokeStrokeAnimator.State? = null,
 ) {
     for (element in elements) {
         // Identity: the field holds the very element the page holds, so "the box being retyped" is one
         // reference, not a search for an element that looks the same.
         if (element === skip) continue
-        drawElement(element, pxPerPt, textMeasurer)
+        drawElement(element, pxPerPt, textMeasurer, karaoke)
     }
 }
 
@@ -142,9 +154,14 @@ private fun DrawScope.drawPageShadow(sheet: Size) {
     }
 }
 
-private fun DrawScope.drawElement(element: Element, scale: Float, textMeasurer: TextMeasurer) {
+private fun DrawScope.drawElement(
+    element: Element,
+    scale: Float,
+    textMeasurer: TextMeasurer,
+    karaoke: KaraokeStrokeAnimator.State? = null,
+) {
     when (element) {
-        is InkStroke -> drawInkStroke(element, scale)
+        is InkStroke -> drawKaraokeInk(element, scale, karaoke)
         is TextElement -> drawTextBox(element, scale, textMeasurer)
         // A formula: a `<teximage>` read from a `.xopp`, and the one a living math block compiles to
         // (`LivingInk`). Typeset from its source through the shared layout, never left blank.
@@ -155,7 +172,7 @@ private fun DrawScope.drawElement(element: Element, scale: Float, textMeasurer: 
         // renderer to drift: this shell only knows how to paint strokes and text, which is all a
         // compiled entity is.
         else -> if (element.isLivingEntity) {
-            for (ink in LivingInk.of(element).elements) drawElement(ink, scale, textMeasurer)
+            for (ink in LivingInk.of(element).elements) drawElement(ink, scale, textMeasurer, karaoke)
         }
     }
 }
@@ -169,6 +186,55 @@ internal fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
 }
 
 /**
+ * One stroke under the **karaoke** directive: whole, dimmed because the recording has not reached it,
+ * or cut at the point being written.
+ *
+ * The in-progress stroke is drawn as its **prefix** through the draft cache (the recorded stroke is the
+ * cache's identity, so each frame of the animation builds only the outline of the points that are new),
+ * and its nib is marked with a glow the way the tablet's own tip painter does: a stroke that grew with no
+ * head would read as the page moving rather than as writing.
+ */
+private fun DrawScope.drawKaraokeInk(
+    stroke: InkStroke,
+    scale: Float,
+    karaoke: KaraokeStrokeAnimator.State?,
+) {
+    if (karaoke == null) {
+        drawInkStroke(stroke, scale)
+        return
+    }
+    when (val directive = KaraokeStrokeAnimator.resolve(stroke, karaoke)) {
+        KaraokeStrokeAnimator.RenderDirective.Normal -> drawInkStroke(stroke, scale)
+        is KaraokeStrokeAnimator.RenderDirective.Dimmed ->
+            drawStrokeShapes(stroke, StrokePathCache.of(stroke, scale), scale, Color(directive.colorArgb))
+        is KaraokeStrokeAnimator.RenderDirective.Animating -> {
+            val visible = directive.visiblePoints
+            if (visible.size >= 2) {
+                val shapes = StrokePathCache.draft(
+                    identity = stroke,
+                    size = visible.size,
+                    tool = stroke.tool,
+                    lineStyle = stroke.lineStyle,
+                    points = visible,
+                    scale = scale,
+                )
+                drawStrokeShapes(stroke, shapes, scale, points = visible)
+            }
+            directive.activeTip?.let { drawWrittenTip(stroke, it, scale) }
+        }
+    }
+}
+
+/** The nib of the stroke being written: a soft halo and its own head, at the last point reached. */
+private fun DrawScope.drawWrittenTip(stroke: InkStroke, tip: StrokePoint, scale: Float) {
+    val colour = Color(InkGeometry.renderColor(stroke.tool, stroke.color))
+    val at = Offset((tip.x * scale).toFloat(), (tip.y * scale).toFloat())
+    val radius = (tip.width * scale).toFloat().coerceAtLeast(1f)
+    drawCircle(colour.copy(alpha = 0.22f), radius = radius * 2f, center = at)
+    drawCircle(colour, radius = radius * 0.55f, center = at)
+}
+
+/**
  * One stroke's cached geometry, painted — the half [drawInkStroke] and the live draft share.
  *
  * The paths come from [StrokePathCache], so a re-recorded page replays outlines it already built instead
@@ -178,10 +244,14 @@ internal fun DrawScope.drawStrokeShapes(
     stroke: InkStroke,
     shapes: StrokePathCache.Shapes,
     scale: Float,
+    /** A colour the stroke is drawn in instead of its own — the karaoke dimming. */
+    colour: Color? = null,
+    /** The points [shapes] were built from, when they are a **prefix** of the stroke's own. */
+    points: List<StrokePoint> = stroke.points,
 ) {
-    val pts = stroke.points
+    val pts = points
     if (pts.size < 2) return
-    val color = Color(InkGeometry.renderColor(stroke.tool, stroke.color))
+    val color = colour ?: Color(InkGeometry.renderColor(stroke.tool, stroke.color))
 
     if (stroke.tool == Tool.HIGHLIGHTER) {
         // One translucent band, multiplied into the paper: the marker reads over ink instead of

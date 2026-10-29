@@ -8,7 +8,6 @@ import com.mobixournal.format.FileKind
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.XoppZip
-import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.mobix.MobixConflictDetector
 import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
@@ -281,7 +280,6 @@ class DocumentIo(
                 needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion),
                 conflictNotification = conflictNote,
                 backgrounds = backgrounds,
-                canvasMode = mobixDoc.manifest.canvasMode,
             )
         } catch (e: Throwable) {
             reader.close()
@@ -435,14 +433,12 @@ class DocumentIo(
     fun identifyForSave(
         document: Document,
         target: Uri?,
-        /** See [encode]: the geometry a document this session never opened is written in. */
-        canvasMode: CanvasMode = CanvasMode.PAGINATED,
     ): Document {
         val source = openSessions.sourceFor(document, target)
             ?: return document.withIdentity()
         return runCatching {
             entrySources(source.staged).use { from ->
-                MobixPageReuse.of(document.pages, from, openSessions.canvasModeOf(document, canvasMode))
+                MobixPageReuse.of(document.pages, from, openedCanvasMode(document))
                     .identified(document)
             }
         }.getOrElse { document.withIdentity() }
@@ -461,13 +457,9 @@ class DocumentIo(
      *   background or a recording the stores hold a copy of travels with the file instead of being
      *   linked (see [backgroundBytesOf]).
      *
-     * @param canvasMode The canvas geometry [document] is written in **when this session never opened
-     *   it** — a document created in the editor, whose mode the tab carries ([OpenTab.canvasMode], from
-     *   `AppSettings.newDocumentCanvas`), or one that came in as a `.xopp`. A document this session *did*
-     *   open keeps the mode its own file declares, because a chunked `.mobix` written back as a
-     *   paginated one is the rewrite `docs/mobix-format.md` refuses a document to avoid
-     *   ([MobixOpenSessions.canvasModeOf]). Ignored by every format but [SaveFormat.MOBIX], which is the
-     *   only one with a chunk container.
+     * A document this session opened keeps the container its own file declares, because a chunked
+     * `.mobix` written back as a paginated one is the rewrite `docs/mobix-format.md` refuses a document
+     * to avoid ([MobixOpenSessions.canvasModeOf]). Only [SaveFormat.MOBIX] has a chunk container.
      */
     fun encode(
         document: Document,
@@ -481,7 +473,6 @@ class DocumentIo(
          * long lecture is never a `ByteArray` on the way to disk ([MobixPayload]).
          */
         audioFiles: (String) -> File? = { null },
-        canvasMode: CanvasMode = CanvasMode.PAGINATED,
     ): Encoded {
         val out = staging.newFile("save")
         // The three formats are the core's own writers; what this class adds is the staging file and the
@@ -494,7 +485,7 @@ class DocumentIo(
                 target = target?.let { UriSaveTarget(it, displayName(it, "document"), refs) },
                 out = output,
                 appVersion = appVersion,
-                shape = saveShapeOf(document, target, canvasMode),
+                shape = saveShapeOf(document, target),
                 pdf = pdf,
                 images = images,
                 audioFiles = audioFiles,
@@ -517,12 +508,11 @@ class DocumentIo(
     private fun saveShapeOf(
         document: Document,
         target: Uri?,
-        canvasMode: CanvasMode,
     ): DocumentEncoder.SaveShape = DocumentEncoder.SaveShape(
-        mode = openSessions.canvasModeOf(document, canvasMode),
+        mode = openedCanvasMode(document),
         chunkCoords = openSessions.chunkCoordsOf(document),
         canvas = openSessions.canvasOf(document),
-        geometry = canvasGeometryOf(document, canvasMode),
+        geometry = canvasGeometryOf(document),
         carriedFrom = openSessions.stagedOf(document),
         repackOver = openSessions.sourceFor(document, target)?.staged,
     )

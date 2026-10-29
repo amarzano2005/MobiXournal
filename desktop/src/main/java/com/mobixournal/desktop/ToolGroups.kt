@@ -92,6 +92,10 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     // Typing on the page: a slot of its own, because a text box is neither ink nor a figure. It carries the
     // tablet's two members — prose and a formula — with Text as its face.
     ToolGroup(listOf(DesktopTool.TEXT, DesktopTool.MATH)),
+    // The tablet's **Play object**: a slot that does not write, it replays — a tap skips to the stroke
+    // under it and plays from that point. Its own slot, because picking it changes what a click on the
+    // page means rather than what the pen draws.
+    ToolGroup(listOf(DesktopTool.AUDIO)),
     // Every figure is a slot of its own, as the tablet's rail draws them: one click picks a figure,
     // never a picker. The strip scrolls, so the seven slots cost no reachability.
     ToolGroup(listOf(DesktopTool.LINE)),
@@ -121,8 +125,8 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
  * the selection pair arrived with `desktop-eraser-and-selection-on-shared-geometry`, the living entities
  * (Plot, Table, Circuit) with `desktop-stem-slot-placement`, and [DesktopTool.TEXT] with
  * `desktop-text-slot-and-in-place-field` — the last slot of the strip that did nothing, which is what
- * closes `desktop-every-tool-does-what-it-does-on-the-tablet`. The audio tap still waits for
- * `desktop-audio-tap-and-y-key`, the child of the closed audio scope that owns it.
+ * closes `desktop-every-tool-does-what-it-does-on-the-tablet`, and the audio tap arrived with
+ * `desktop-audio-tap-and-y-key` — the play triangle on the strip, `Y` on the keyboard.
  */
 val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.PEN,
@@ -138,6 +142,8 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.TEXT,
     // Its second member asks for a formula's source and writes one math block.
     DesktopTool.MATH,
+    // The audio tap replays the recording a stroke was drawn over — a click on the page, no ink.
+    DesktopTool.AUDIO,
     DesktopTool.LINE,
     DesktopTool.ARROW,
     DesktopTool.DOUBLE_ARROW,

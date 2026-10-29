@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,11 @@ internal fun DesktopShell(
 ) {
     ThumbnailRefresh(state)
     RecoverySnapshots(state)
+    // Which document is on screen decides whether the audio pill has something to play: asked when the
+    // tab changes, never per frame, because it walks the pages.
+    LaunchedEffect(state.active?.key) {
+        DesktopAudioSession.noteAudioPresence(state.active?.document?.model)
+    }
     // The one export in flight, written off the UI thread (`DesktopExportCommands.kt`).
     ExportWorker(state)
     Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
@@ -73,6 +79,8 @@ internal fun DesktopShell(
             onPenParameters = { state.openPenSettings() },
             // The menu's own pressure rows: the same settings the Stylus page edits.
             penPolicy = state.prefs,
+            // The recording pill, left of Save: record, pause, play, the take's clock and its level.
+            audio = DesktopAudioSession,
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             // The page is always drawn: Settings is a **floating surface** over it, not a second window
@@ -82,7 +90,7 @@ internal fun DesktopShell(
             WorkspaceBody(state, tablet)
             if (state.prefs.open) SettingsSurface(state.prefs)
         }
-        StatusBar(state.active, tablet, state.prefs.frameTime)
+        StatusBar(state.active, tablet, state.prefs.frameTime, DesktopAudioSession)
     }
 }
 

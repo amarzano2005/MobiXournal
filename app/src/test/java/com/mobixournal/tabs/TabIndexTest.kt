@@ -1,7 +1,6 @@
 package com.mobixournal.tabs
 
 import com.mobixournal.format.SaveFormat
-import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
@@ -78,24 +77,12 @@ class TabIndexTest {
     }
 
     @Test
-    fun `the canvas geometry survives a round trip`() {
-        val session = TabSession(
-            listOf(OpenTab("t1", "board.mobix", doc(), canvasMode = CanvasMode.INFINITE_VERTICAL)),
-            0,
-        )
-        assertEquals(CanvasMode.INFINITE_VERTICAL, roundTrip(session).tabs[0].canvasMode)
-    }
-
-    @Test
-    fun `a record written before the geometry existed is paged`() {
-        val back = TabIndex.decode("active\t0\nt1\tone\t\tORIGINAL\t\t0\n") { doc() }
-        assertEquals(CanvasMode.PAGINATED, back.tabs[0].canvasMode)
-    }
-
-    @Test
-    fun `a mode this build does not know is paged rather than fatal`() {
-        val back = TabIndex.decode("active\t0\nt1\tone\t\tORIGINAL\t\t0\tSPIRAL\n") { doc() }
-        assertEquals(CanvasMode.PAGINATED, back.tabs[0].canvasMode)
+    fun `a record written with a trailing canvas mode is still read`() {
+        // A build that carried a canvas geometry wrote one extra field at the end; it is ignored now
+        // that every document is a page stack.
+        val back = TabIndex.decode("active\t0\nt1\tone\t\tORIGINAL\t\t0\t\ttrue\tINFINITE_2D\n") { doc() }
+        assertEquals("t1", back.tabs[0].id)
+        assertEquals(true, back.tabs[0].isReadOnly)
     }
 
     @Test

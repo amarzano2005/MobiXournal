@@ -25,6 +25,116 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-settings-audio"
+title = "Desktop: Audio section (when recording lands)"
+description = "The window's Settings gained an eleventh section, Audio, under Input. Its Microphone and Output rows list this machine's devices by the platform's own names through javax.sound.sampled mixers, with System default first (stored as the absence of audio.inputDevice / audio.outputDevice, never an empty name). The list is re-read every time the page opens, so a headset plugged in mid-session is offered. A stored device that is no longer on the machine is dropped to the system default in the store as well, with the row saying which name went missing, and the open call (openLine) falls back again if a device disappears mid-session; the engines read one AudioRoute object, so a take or a clip opens the picked device without reading settings. The page also shows the running take's input level (the capsule's own peak) with a note when nothing is recording, the WAV format and the recordings folder. Added SettingsGlyph.AUDIO (microphone mark) to the shared catalogue, kept DesktopSettingsState under its 700-line budget by putting the page's state in DesktopAudioSettings, and covered it with DesktopAudioSettingsTest (round-trip per key, vanished-device fallback, hot-plug, resolveDevice) plus the docs in desktop-settings.md and audio.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-29
+tags = []
+
+[[task]]
+id = "desktop-karaoke-replay"
+title = "Desktop: karaoke replay, the writing follows the recording"
+description = "While a clip sounds the page is painted directly from its elements instead of from PagePicture, one KaraokeStrokeAnimator directive per stroke: dimmed ahead of the playhead, cut at it with a glowing nib, whole behind it. DesktopKaraoke publishes once per vsync while sound is coming out and once when held; a tab or page change drops the state. Render tests measure the dimmed, the cut and the finished page."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-tap-and-y-key"
+title = "Desktop: tap a stroke and hear the moment it was written"
+description = "DesktopTool.AUDIO is on the strip with ToolGlyphs.PLAY and Y, acts at a point rather than laying ink (inksByPackets false, no ring — a pen-sized circle would promise ink it never draws), picks the topmost stroke through SelectionTester.pickTopmost and plays from KaraokeStrokeAnimator.seekTimeMs, so the tap lands on the word it touched. A stroke with no recording and a tap on the desk each say one sentence; a tap while a clip sounds seeks that clip."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-playback-and-transport"
+title = "Desktop: play a recording back, with a transport"
+description = "The transport lives in the header's audio capsule, immediately left of Save, as the owner asked — not a floating panel. A clip on screen makes it the transport: position/length, a scrubber whose drag calls seek and lands on the clip's ends (scrubMs), and a speed button walking 1x, 1.25x, 1.5x and 2x. The speed is resampled in the feeder while the clock keeps counting the recording's own source frames, so the playhead and the karaoke stay in the clip's time at every speed; a held clip publishes once. Engine, session and composable stay in separate files, and the dial still means zoom or width only."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-stamp-strokes"
+title = "Desktop: a stroke committed while recording carries its offset"
+description = "A stroke committed while a take runs now carries fn/ts, stamped at the one funnel every committed stroke passes through (PageInkGesture.commit) with the shared Stroke.withAudio and DesktopAudioSession.stamp — the offset is the bytes written, never wall time, and a paused take stamps nothing. The per-point dtMs the window already writes is untouched, so point-precise seek still works."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-record-slot-and-status"
+title = "Desktop: the Record slot and the recording indicator"
+description = "The audio controls are not a strip slot but the tablet's capsule in the header, immediately left of Save (the owner's placement): HeaderAudioPill draws record/stop, pause and play, the take's mm:ss and a level bar, with the same three-button order and state colours as AudioMiniCapsule. The status bar carries the take indicator (record dot, clock, level) and the one sentence a failure has to say (DesktopStatus.AudioStatus), so a running microphone is never a guess. A render test (DesktopHeaderAudioTest) pins the pill left of Save."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-wav-recorder"
+title = "Desktop: record from the microphone through javax.sound.sampled"
+description = "DesktopAudioRecorder captures through javax.sound.sampled (TargetDataLine) in the .xopp shape — 44.1 kHz, mono, 16-bit little-endian PCM — and frames it with the shared WavWriter, so a recording made here is the file desktop Xournal++ plays. Pause mutes the open line instead of closing it, elapsedMs is the bytes written (the clock a stroke's ts carries) and the level is the chunk's peak. A line that cannot open answers one English sentence and leaves no file; DesktopAudioRecorderTest proves the WAV's header and length, the pause clock, and both failure paths with a fake line. Device choice stays on desktop-settings-audio."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-sidecars-and-bundling"
+title = "Desktop: recordings travel with the document (sidecar and bundled)"
+description = "DesktopAudioStore keeps recordings in %APPDATA%\\MobiXournal\\audio and every open adopts what the document carries: a .mobix's assets/ entries are copied out under the strokes' fn names and a .xopp's sidecars are pulled from the document's folder; DesktopSaves passes audioFiles to the encoder (so a .mobix bundles them) and pushes sidecars beside a saved .xopp, and a recording the machine lacks is reported in one sentence. This fixes the data loss: DesktopAudioStoreTest proves an edited .mobix still carries its recording, and a saved .xopp still finds its sidecar."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-opus-via-concentus"
+title = "Desktop: Opus through Concentus and our own Ogg framing"
+description = "Concentus 1.0.2 is a desktop dependency and the Ogg layer is ours: mobix-core/audio/OggOpus.kt reads pages with CRC-32 (0x04c11db7) and writes a single-stream file, with OggOpusTest proving the round trip, truncation and corrupt-CRC refusals; DesktopAudioSources decodes the packets with Concentus at 48 kHz and DesktopAudioPlayer streams the result, so a tablet's .ogg plays on the window. An .m4a is refused in one sentence (no AAC decoder on a plain JVM, no transcode, no rename)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
+id = "desktop-audio-shared-seam"
+title = "Desktop: the audio facts move into mobix-core (the shared seam)"
+description = "Moved the audio facts both shells must agree on into mobix-core/audio: AudioFiles.kt (Stroke.withAudio, documentAudioFiles, audioFileName, the AudioRef alias), Playhead.kt (ClipClock + Playhead) and WavWriter.kt, with PlayheadTest and WavWriterTest beside them. Same package, so no app call site changed meaning; :mobix-core:test and :app:testDebugUnitTest green, docs/audio.md says where the facts live."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-29
+completed = 2026-10-29
+tags = ["desktop", "audio"]
+
+[[task]]
 id = "desktop-hold-to-perfect-a-stroke"
 title = "Desktop: hold the pen still and the stroke perfects itself"
 description = "The window now perfects a stroke the way the slate does. The rule both shells share is mobile-free: ShapeDwell in mobix-core holds the 300 ms and the 3 pt slop, restAnchor/resting (the geometric stillness test, for a stream that repeats while the pen rests) and figureFor (the recogniser's answer, ungated, because who may snap is the caller's clock). The tablet's SHAPE_DWELL_MS/SHAPE_DWELL_SLOP_PT constants were folded into it, so one number defines the dwell for both. On the desktop the rest is the silence: a Wintab pen held still sends nothing, so PageInkGesture.dwellCheck stamps the newest sample with System.nanoTime and is called from the canvas's silent 200 ms timer, from PenPacketStroke.flush, and once more before a lift or a finish — a rest followed by a lift is recognised even if no timer ticked. The preview is the very draft list the sheet paints, so the figure the hand sees is the figure the lift writes: a closed polygon drawn with the pen on a plain line becomes a ParametricShapeElement (ParametricShapes.elementFor, four draggable corners for a rectangle), a line/arrow/arc commits as the cleaned stroke, and a highlighter or a dashed line keeps its ink. The figure is carried to the commit rather than re-derived from its clean points (four corners plus the closing repeat is a round set for the circle fit — the trap the tablet hit), and a sample arriving while a figure is previewed restores the hand's own samples, so carrying on drawing gives the ink back. Tests: ShapeDwellTest (7) pins the rule — a drawn square is a rectangle, a held square has rested, a line is a line and not a polygon, a letter-sized C is nothing, 4 pt re-arms, tremor inside the slop is stillness, the slop is a distance; DesktopDwellTest (3) drives PageInkGesture for the preview and the grew-after-snap restore, and pushes real Compose pointers through an ImageComposeScene for the rest-then-lift case (a real 380 ms hold, one element, one undo step). Docs: shape-perfection-engine.md (the shared rule and the two clocks, the window in Live), desktop-workstation.md (the dwell in the drawing bullet) and README's desktop paragraph. :mobix-core:test and :app:testDebugUnitTest green; :desktop:test green apart from the pre-existing Windows failure in DesktopPdfImportCommandsTest ('a plain xopp names the PDF beside it' expects a relative name and gets an absolute temp path), which this change does not touch. Distributable regenerated."

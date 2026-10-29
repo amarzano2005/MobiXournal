@@ -90,7 +90,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.DrawingSurfaceView
@@ -100,13 +99,11 @@ import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
-import com.mobixournal.render.boardFixedExtentPt
 import com.mobixournal.render.applyChromeColors
 import com.mobixournal.render.clearPenDebug
 import com.mobixournal.render.replaceMathBlock
 import com.mobixournal.render.replaceShapeElement
 import com.mobixournal.render.repaintAfterResize
-import com.mobixournal.render.setBoardFixedExtent
 import com.mobixournal.render.setPenDebug
 import com.mobixournal.render.resetZoom
 import com.mobixournal.render.zoomIn
@@ -756,8 +753,6 @@ fun EditorToolbar(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     modifier: Modifier = Modifier,
-    /** Applied to the showing document when the page-format dialog picks a new canvas geometry. */
-    onCanvasMode: (NewDocumentCanvas, Double?) -> Unit = { _, _ -> },
 ) {
     val surface = pane.surface
     SideToolbar(
@@ -800,7 +795,7 @@ fun EditorToolbar(
         onZoomIn = { surface?.zoomIn() },
         onZoomOut = { surface?.zoomOut() },
         onZoomReset = { surface?.resetZoom() },
-        pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, surface, onCanvasMode),
+        pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, surface),
     )
 }
 
@@ -1339,13 +1334,11 @@ private fun toolbarPagesCallbacks(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     surface: DrawingSurfaceView?,
-    onCanvasMode: (NewDocumentCanvas, Double?) -> Unit,
 ): ToolbarPagesCallbacks {
     var liveSettings = settings
     return ToolbarPagesCallbacks(
         pageCount = pane.pageCount,
         currentPage = pane.currentPage,
-        board = pane.board,
         // A page added or removed moves every bookmark at or after it, so the flags stay on the pages
         // they were put on (a page added goes *after* the one in view, a removal takes the one in view).
         onAddPage = {
@@ -1362,17 +1355,6 @@ private fun toolbarPagesCallbacks(
         defaultPageSize = settings.defaultPageWidthPt to settings.defaultPageHeightPt,
         onSaveAsDefault = { w, h ->
             liveSettings = liveSettings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h)
-            onSettingsChange(liveSettings)
-        },
-        defaultCanvas = settings.newDocumentCanvas,
-        canvasMode = pane.canvasMode,
-        canvasExtentPt = pane.canvasExtentPt,
-        onCanvasExtent = { surface?.setBoardFixedExtent(it) },
-        canvasEditable = pane.canvasEditable,
-        onCanvasMode = onCanvasMode,
-        onCanvasModeDefault = { mode ->
-            val fmt = if (mode != NewDocumentCanvas.PAGINATED) NewDocumentFormat.MOBIX else liveSettings.newDocumentFormat
-            liveSettings = liveSettings.copy(newDocumentCanvas = mode, newDocumentFormat = fmt)
             onSettingsChange(liveSettings)
         },
         bookmarks = pane.bookmarks,
@@ -1430,18 +1412,6 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     onHistoryChanged = { u, r -> state.canUndo = u; state.canRedo = r }
     onZoomChanged = { z -> state.zoom = z }
     onPageCountChanged = { n -> state.pageCount = n }
-    // A board reports where its view is instead of a page (the badge and the pages menu read this);
-    // null comes back the moment a page list takes its place.
-    onBoardReading = { reading -> state.board = reading }
-    // The geometry the canvas is really drawing in — the page-format dialog starts from this rather
-    // than from the setting, which may have moved since the document was created.
-    state.canvasMode = canvasMode
-    onCanvasModeChanged = { mode -> state.canvasMode = mode }
-    // The bound on the non-infinite axis, mirrored for the page-format dialog (null for a page list and
-    // for a 2D board, which locks nothing): read once here for a document already on the canvas, and
-    // pushed by every adoption after that ([setInfiniteCanvas] / [clearInfiniteCanvas]).
-    state.canvasExtentPt = boardFixedExtentPt()
-    onCanvasExtentChanged = { pt -> state.canvasExtentPt = pt }
     onCurrentPageChanged = { page ->
         state.currentPage = page
         state.backgroundStyle = visiblePageBackgroundStyle()
@@ -1666,17 +1636,15 @@ fun EditorPaneView(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            if (state.canvasMode == CanvasMode.PAGINATED) {
-                ScrollThumb(
-                    scrollY = state.scrollY,
-                    totalHeightPx = state.contentHeight,
-                    viewportPx = state.viewportHeight,
-                    currentPage = state.currentPage,
-                    pageCount = state.pageCount,
-                    onScrollTo = { state.surface?.scrollToY(it) },
-                    modifier = Modifier.matchParentSize(),
-                )
-            }
+            ScrollThumb(
+                scrollY = state.scrollY,
+                totalHeightPx = state.contentHeight,
+                viewportPx = state.viewportHeight,
+                currentPage = state.currentPage,
+                pageCount = state.pageCount,
+                onScrollTo = { state.surface?.scrollToY(it) },
+                modifier = Modifier.matchParentSize(),
+            )
             // The badges take the canvas edge opposite the Main Toolbar (see
             // [pageCounterAlignment]), so they never sit under the tools or the writing hand. The zoom
             // badge rides directly above the page badge and shares its look, so the pair reads as one
@@ -1691,13 +1659,10 @@ fun EditorPaneView(
                     zoom = state.zoom,
                     onClick = { state.surface?.resetZoom() },
                 )
-                if (state.canvasMode == CanvasMode.PAGINATED) {
-                    PageCounter(
-                        currentPage = state.currentPage,
-                        pageCount = state.pageCount,
-                        tile = state.board?.cell,
-                    )
-                }
+                PageCounter(
+                    currentPage = state.currentPage,
+                    pageCount = state.pageCount,
+                )
             }
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the
             // chrome leaves free — the events it logs are then exactly the ones it describes.

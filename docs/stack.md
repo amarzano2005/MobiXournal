@@ -123,20 +123,27 @@ native for stylus latency and platform fit).
   Android port cannot rasterise outside Android, so the `desktop/` module links the same 2.0 API on a
   plain JVM; the app keeps `pdfbox-android`, and the two never share a classpath. `PdfPagePlan` in
   `mobix-core` is the geometry and the window's `DesktopPdfPainter` is the only replayer of it, so that
-  painter holds no second opinion about a pressure taper or a highlighter band. The tablet emits no
-  content stream at all — its export paints the page as its canvas draws it (the shape [`pdf.md`](pdf.md)
-  owns) — so the port is kept for importing a source page, the annotation dictionaries, embedded text
-  fonts and text extraction, and for nothing on screen.
+  painter holds no second opinion about a pressure taper or a highlighter band. The tablet's export
+  replays the same plan through `PdfVectorPainter` and writes no annotation dictionaries either (the
+  shape [`pdf.md`](pdf.md) owns), so the port is kept for writing a page, importing a source page,
+  embedding text fonts and extracting a PDF's text and outline — and for nothing on screen.
 - **PDF export — PDFBox (`com.tom-roush:pdfbox-android`).** *Decision (2026-07-31), narrowed
   2026-10-29:* the one non-framework runtime dependency, taken deliberately. The framework
   `android.graphics.pdf` writer (`PdfDocument`) can only paint onto a canvas: it cannot import a
-  source page, write annotation dictionaries, embed a font, or read a PDF's words and outline.
-  PDFBox is the only mature, permissively-licensed (Apache-2.0) library that does all four; iText's
-  AGPL licence ruled it out. Scope is contained to `PdfExporter`, `PdfAnnotations`, `PdfFonts` and
-  the text/outline extractors. (An experiment that also used PDFBox to draw a page **on screen**
+  source page, embed a font, or read a PDF's words and outline.
+  PDFBox is the only mature, permissively-licensed (Apache-2.0) library that does all three; iText's
+  AGPL licence ruled it out. Scope is contained to `PdfExporter`, `PdfVectorPainter`,
+  `PdfBackgroundPainter`, `PdfFonts` and the text/outline extractors. (An experiment that also used PDFBox to draw a page **on screen**
   through its Android `PDFRenderer` was retired in 2026-10-11 — a per-frame content-stream replay
   that made interaction laggy; see the vector-PDF note in [`pdf.md`](pdf.md)). The `.xopp` I/O
   layer stays dependency-free, and the display path is the framework `PdfRenderer` alone.
+- **Audio on the window — Java Sound plus Concentus (`io.github.jaredmdobson:concentus 1.0.2`).**
+  *Decision (2026-10-29):* capture and playback use `javax.sound.sampled`, which the packaged window
+  already has through `java.desktop` — no native audio stack in the MSI. What a plain JVM lacks is
+  **Opus**: the tablet records it in an Ogg container, so the window links Concentus, a pure-Java
+  opus decoder and encoder, and keeps the container layer itself (`audio/OggOpus.kt`, pure Kotlin with
+  the page framing and CRC). No codec is transcoded and nothing is renamed: an AAC recording is refused
+  in words ([`audio.md`](audio.md) owns the format facts).
 - **File access:** the Storage Access Framework (`ACTION_OPEN_DOCUMENT` /
   `ACTION_CREATE_DOCUMENT`) so a `.xopp` opens/saves in place on the device — the file on disk
   is the only source of truth (per `AGENTS.md` non-goals: no cloud, no custom format).

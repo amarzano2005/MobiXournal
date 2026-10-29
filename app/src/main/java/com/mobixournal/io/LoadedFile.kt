@@ -1,7 +1,6 @@
 package com.mobixournal.io
 
 import com.mobixournal.format.SaveFormat
-import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.BackgroundResolver
 import java.io.File
@@ -55,16 +54,6 @@ sealed interface LoadedFile {
          * resolved at open: a `.xopp`, or a `.mobix` opened whole.
          */
         val backgrounds: BackgroundResolver? = null,
-
-        /**
-         * The canvas geometry the file declares — `PAGINATED` for every `.xopp` and for the ordinary
-         * `.mobix`, and one of the infinite modes for a document stored as spatial chunks
-         * (`docs/infinite-canvas.md`). It travels with the loaded document because it is a **`.mobix`**
-         * fact, not a document-model one: a `.xopp` has no notion of an unbounded canvas, so the model
-         * stays exactly what it mirrors (`format/model/Document.kt`), and the mode rides here, on the
-         * tab, and into the save.
-         */
-        val canvasMode: CanvasMode = CanvasMode.PAGINATED,
     ) : LoadedFile
 }
 

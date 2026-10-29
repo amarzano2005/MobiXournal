@@ -121,13 +121,6 @@ data class AppSettings(
      */
     val newDocumentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
     /**
-     * The canvas geometry a **new** document is born in ([NewDocumentCanvas]): fixed pages, or one of
-     * the three infinite modes. It pairs with [newDocumentFormat] and is pushed down with it, so a new
-     * document written as a `.xopp` is paged whatever this says — a `.xopp` has no chunks to hold a
-     * board ([NewDocumentCanvas.modeFor]).
-     */
-    val newDocumentCanvas: NewDocumentCanvas = NewDocumentCanvas.PAGINATED,
-    /**
      * When false, fingers only pan/zoom — never draw (palm-safe for stylus users). Off by default
      * on a first launch, so a hand resting on the glass never inks a page written on with a stylus.
      */
@@ -529,7 +522,6 @@ class SettingsStore(context: Context) {
             defaultPageWidthPt = prefs.getFloat(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt.toFloat()).toDouble(),
             defaultPageHeightPt = prefs.getFloat(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt.toFloat()).toDouble(),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
-            newDocumentCanvas = enumOr(prefs.getString(KEY_NEW_DOCUMENT_CANVAS, null), d.newDocumentCanvas),
             penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
             handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
             fingerDraws = prefs.getBoolean(KEY_FINGER_DRAWS, d.fingerDraws),
@@ -680,7 +672,9 @@ class SettingsStore(context: Context) {
             .putFloat(KEY_DEFAULT_PAGE_WIDTH, s.defaultPageWidthPt.toFloat())
             .putFloat(KEY_DEFAULT_PAGE_HEIGHT, s.defaultPageHeightPt.toFloat())
             .putString(KEY_NEW_DOCUMENT_FORMAT, s.newDocumentFormat.name)
-            .putString(KEY_NEW_DOCUMENT_CANVAS, s.newDocumentCanvas.name)
+        // The canvas geometry is retired: every document is a page stack now, so a save clears the
+        // preference an older install still carries.
+        e.remove(KEY_NEW_DOCUMENT_CANVAS)
             .putString(KEY_PEN_ERASER_TOGGLE, s.penEraserToggleKey)
             .putString(KEY_HAND_TOGGLE, s.handToggleKey)
             .putBoolean(KEY_FINGER_DRAWS, s.fingerDraws)

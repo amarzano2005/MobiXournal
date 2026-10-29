@@ -165,6 +165,16 @@ offset. A gap *inside* a stroke's deltas is read the same way, point by point: t
 are trusted and the ones after it are not, because summing a missing delta as zero would start the
 recording too early rather than say it does not know.
 
+**The window runs both modes from the same objects.** `DesktopKaraoke` publishes the player's own
+position — once per vsync while sound is coming out, once when it is held — and `PageCanvas` paints the
+page **directly** for as long as a clip is on, because a `PagePicture` holds the recording as finished;
+`PageView`'s element loop applies `KaraokeStrokeAnimator.resolve` per stroke, so the dimming, the cut
+prefix and the glowing nib are the tablet's own rules. When the clip is let go of, the recorded picture
+is replayed again. The transport is the header's audio capsule: its scrubber walks a held or sounding
+clip through the same `seek` (one publish per step, no frame loop), and its speed button resamples in
+the player's feeder while the clock keeps counting the *recording's* frames, so the karaoke stays in the
+clip's own time at every speed.
+
 ### 1. Inking Karaoke (Stroke Playback Animation)
 During playback of a lecture or meeting:
 - As the audio playhead advances to time $t$, strokes written after $t$ are rendered with lowered opacity
@@ -202,5 +212,6 @@ During playback of a lecture or meeting:
   gap instead of naming a `.wav` that does not exist or writing silence under a `.wav` name: "N
   recording(s) here are compressed — desktop Xournal++ plays WAV only". A `.xopp` document records WAV
   from the start, so a `.xopp` authored here never hits it ([audio.md](audio.md)).
-- **To PDF**: The document exporter generates standard PDF annotations with embedded hyperlink actions or
-  multimedia stream clips where supported.
+- **To PDF**: audio does not travel. Neither shell writes PDF annotation dictionaries — the page is its
+  ink and nothing else (`docs/pdf.md`) — so a recording lives in the `.mobix` or `.xopp` beside the
+  document, never in the exported PDF.

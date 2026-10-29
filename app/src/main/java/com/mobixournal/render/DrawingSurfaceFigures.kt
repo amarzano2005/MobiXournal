@@ -54,8 +54,7 @@ internal fun DrawingSurfaceView.drawShapeVertexHandles(canvas: Canvas, box: Page
  * Only the pen and a plain line qualify:
  *  - a highlighter's ink is its own thing (alpha, blending) and a `parametricShape` has no such field,
  *  - a dashed line style is not carried by the element either, so keeping the figure would silently
- *    straighten a dashed outline into a solid one,
- *  - a board's ink lives in chunks rather than on a page, which the element cannot address.
+ *    straighten a dashed outline into a solid one.
  *
  * The stroke is adopted through the gesture's own bookkeeping (as a stroke is), so one drawn figure is
  * one undo step.
@@ -64,7 +63,7 @@ internal fun DrawingSurfaceView.commitRecognisedFigure(
     figure: RecognisedFigure,
     raw: List<StrokePoint>,
 ): Boolean {
-    if (shaping || tool != Tool.PEN || currentLineStyle != LineStyle.PLAIN || board != null) return false
+    if (shaping || tool != Tool.PEN || currentLineStyle != LineStyle.PLAIN) return false
     val shape = ParametricShapes.elementFor(
         figure = figure,
         strokeColor = strokeColor(),

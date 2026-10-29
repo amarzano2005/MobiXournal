@@ -64,7 +64,7 @@ private fun DrawingSurfaceView.drawKaraokeStroke(
                 offsetX, offsetY, stroke.lineStyle, stroke.fill,
             )
             directive.activeTip?.let { tip ->
-                KaraokeStrokeAnimator.drawTipIndicator(canvas, tip, box.scale, offsetX, offsetY, stroke.color)
+                drawKaraokeTipIndicator(canvas, tip, box.scale, offsetX, offsetY, stroke.color)
             }
             true
         }

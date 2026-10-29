@@ -36,7 +36,7 @@ type changes with it, since a `.mobix` offered to the system as `application/x-x
 desktop Xournal++ to open something it cannot). The `desktop/` window follows the same rule through the same encoder, and its Save As switches it through the **type chosen in its save window** — which names the file in the same dialog; how it stages and moves the write is [desktop-documents.md](desktop-documents.md)'s.
 
 **The write itself is platform-free** (`io/DocumentEncoder.kt` in `mobix-core`): one `write` holds the three format arms, and what is Android-shaped arrives through two seams — a `SaveTarget` (the name and the reference arithmetic: `UriSaveTarget` on a SAF id, `FileSaveTarget` on a path)
-and a `SaveShape` (the container, the board geometry, the archive to carry `assets/` from and the archive to repack over) — while `DocumentIo.encode` keeps its staging file and delegates the bytes.
+and a `SaveShape` (the container, the canvas geometry, the archive to carry `assets/` from and the archive to repack over) — while `DocumentIo.encode` keeps its staging file and delegates the bytes.
 
 A `.mobix` is read as its own document, not through the `.xopp` model:
 
@@ -66,23 +66,20 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   a page whose bytes can be reached neither way draws its bare sheet, silently — the report the eager
   walk used to give ("Background PDF not found") would cost that walk back, and is owed its own lazy
   version.
-- **An infinite-canvas document travels the same road.** A `.mobix` whose content is `chunks/` opens
-  as a document whose pages *are* those chunks, in manifest order, and a save keeps it chunked **at its
-  own coordinates** (`MobixOpenSessions` remembers the canvas mode and the grid the open read out of the
-  manifest's entry names, and hands both to the write): a chunk is named after where it sits, so a write
-  deriving coordinates from the page index would move every chunk of a 2D board to the first column. An
-  untouched chunk is copied out of the source archive rather than rebuilt, the chunk half of the reuse
-  plan ([mobix-format.md](mobix-format.md), [infinite-canvas.md](infinite-canvas.md)). A document the
-  app **creates** is born on the geometry Settings chooses for new documents (paged, or one of the three
-  infinite modes), and the mode rides on the tab with the format (`OpenTab.canvasMode`, persisted in
-  `TabIndex`), so its first save already writes `chunks/` rather than converting a paginated file later.
-  A `.xopp` has no chunk container and is always paged. The session's own record of the mode wins for a
-  document it opened, the tab's for one it did not — so neither a stale tab nor a stale session can turn
-  a chunked document into a paginated rewrite. The same answer goes to the **canvas**, as a
-  `CanvasGeometry` (`io/CanvasGeometry.kt`, resolved by `DocumentIo.canvasGeometryOf` and adopted with
-  `setInfiniteCanvas`): the renderer cannot derive a board from its pages — a page does not know which
-  cell it sits in — so the layer that read the file is the only one that can say, and a board is then
-  drawn as one sheet with its tiles on it ([infinite-canvas.md](infinite-canvas.md)).
+- **A chunked document travels the same road.** A `.mobix` whose content is `chunks/` opens
+  as a document whose pages *are* those chunks, in manifest order — one page per chunk — and a save
+  keeps it chunked **at its own coordinates** (`MobixOpenSessions` remembers the canvas mode and the
+  grid the open read out of the manifest's entry names, and hands both to the write): a chunk is named
+  after where it sits, so a write deriving coordinates from the page index would move every chunk of a
+  2D board to the first column. An untouched chunk is copied out of the source archive rather than
+  rebuilt, the chunk half of the reuse plan ([mobix-format.md](mobix-format.md),
+  [chunked-documents.md](chunked-documents.md)). The app creates **paged** documents only, so its own
+  files are born on `pages/`; a chunked file it opens is read and kept rather than converted. A `.xopp`
+  has no chunk container and is always paged. The session's own record of the mode wins, so a stale
+  tab cannot turn a chunked document into a paginated rewrite. The same answer goes to the **write**, as
+  a `CanvasGeometry` (`io/CanvasGeometry.kt`, resolved by `DocumentIo.canvasGeometryOf` and carried in the
+  encoder's `SaveShape`): a page does not know which cell it sits in, so the layer that read the file is
+  the only one that can say ([infinite-canvas.md](infinite-canvas.md)).
 - **What it refuses, it refuses loudly.** A `.mobix` whose `formatVersion` is newer, whose
   `canvas.json` disagrees with the manifest, or that carries `pages/` and `chunks/` both fails the open
   with the reason, rather than being opened as something it is not.

@@ -201,7 +201,7 @@ format attribute — it's a view-only editor state (a hidden layer still round-t
 - `fill` — fill alpha `0..255` painted inside the closed stroke (shapes/highlighter fill), or absent
   for no fill.
 - `ts`, `fn` — audio-recording offset (**milliseconds**) and sidecar **file name** for pen-replay;
-  `ts="0" fn=""` when unused. Read/written as a pair by `audio/AudioAnnotation.kt`; any stroke we
+  `ts="0" fn=""` when unused. Read/written as a pair by the shared `audio/AudioFiles.kt`; any stroke we
   don't stamp keeps whatever the file had, verbatim. The named file is **not** in the `.xopp` — it
   is a `.wav` sidecar beside it (see [`audio.md`](audio.md)). No rendering meaning.
 - **Inner text**: a flat space-separated coordinate list `x0 y0 x1 y1 …` (pt). Vertex *i* is

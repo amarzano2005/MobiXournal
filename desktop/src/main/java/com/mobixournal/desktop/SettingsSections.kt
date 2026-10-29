@@ -1,12 +1,18 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -87,6 +93,12 @@ enum class DesktopSettingSection(
         "shortcuts keys keyboard binding remap conflict reset",
         SettingsGlyph.SHORTCUTS,
     ),
+    AUDIO(
+        "Audio",
+        "The microphone it records from and the output it plays through.",
+        "audio microphone mic input output device speaker headphones level meter record playback",
+        SettingsGlyph.AUDIO,
+    ),
     NAVIGATION(
         "Navigation",
         "How a document opens and how the page list behaves.",
@@ -122,7 +134,7 @@ enum class DesktopSettingSection(
     /** The area of the index this section is listed under. */
     val area: DesktopSettingArea
         get() = when (this) {
-            STYLUS, SHORTCUTS -> DesktopSettingArea.INPUT
+            STYLUS, SHORTCUTS, AUDIO -> DesktopSettingArea.INPUT
             FIGURES, COLORS -> DesktopSettingArea.DRAWING
             TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
             DOCUMENTS, BACKUP, ABOUT -> DesktopSettingArea.APP
@@ -167,6 +179,7 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
         DesktopSettingSection.FIGURES -> FiguresSettings(policy)
         DesktopSettingSection.COLORS -> ColorsSettings()
         DesktopSettingSection.SHORTCUTS -> ShortcutsSettings(policy)
+        DesktopSettingSection.AUDIO -> AudioSettings(policy)
         DesktopSettingSection.NAVIGATION -> NavigationSettings(policy)
         DesktopSettingSection.APPEARANCE -> AppearanceSettings(policy)
         DesktopSettingSection.DOCUMENTS -> DocumentsSettings(policy)
@@ -505,6 +518,98 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
             )
         }
         Readout("Destination", "Documents\\MobiXournal\\Untitled n" + policy.newDocumentFormat.extension)
+    }
+}
+
+/**
+ * **Audio**: the microphone a take comes from, the output a clip sounds through, and the meter that shows
+ * whether the microphone is really hearing anything.
+ *
+ * Both rows are the platform's **own device names** ([AudioDevices]) with the system default as the first
+ * answer, because that is the answer a fresh install has. A device that has disappeared is dropped to the
+ * default **here**, on the page that shows it, and the note under the row says which name went missing —
+ * the recorder is then never asked to open something the window already knows is gone
+ * (`DesktopSettingsState.refreshAudioDevices`).
+ *
+ * The meter is the take's own peak ([DesktopAudioSession.level]), so the page answers the one question a
+ * device list cannot: is this microphone picking anything up? It reads zero until a take runs, and the
+ * note says so rather than showing a dead bar with no explanation.
+ */
+@Composable
+private fun AudioSettings(policy: DesktopSettingsState) {
+    // Read again on the way in: a headset plugged in while the window runs is in this list.
+    LaunchedEffect(policy) { policy.audio.refresh() }
+    val audio = policy.audio
+    SettingsGroup("Devices") {
+        SettingsSelect(
+            label = "Microphone",
+            note = deviceNote(
+                picked = audio.input,
+                fellBackFrom = audio.inputFellBackFrom,
+                missing = "The microphone this window was using is not on this machine any more, " +
+                    "so the system default is used.",
+            ),
+            options = listOf("") + audio.devices.inputs,
+            picked = audio.input,
+            optionLabel = ::deviceLabel,
+            onPick = audio::chooseInput,
+        )
+        SettingsSelect(
+            label = "Output",
+            note = deviceNote(
+                picked = audio.output,
+                fellBackFrom = audio.outputFellBackFrom,
+                missing = "The output this window was using is not on this machine any more, " +
+                    "so the system default is used.",
+            ),
+            options = listOf("") + audio.devices.outputs,
+            picked = audio.output,
+            optionLabel = ::deviceLabel,
+            onPick = audio::chooseOutput,
+        )
+    }
+    SettingsGroup("The take") {
+        SettingsRow(
+            label = "Input level",
+            note = if (DesktopAudioSession.recording) {
+                "What the microphone is hearing right now."
+            } else {
+                "Start a take from the capsule beside Save to watch the level."
+            },
+        ) {
+            PillLevelMeter(if (DesktopAudioSession.recording) DesktopAudioSession.level else 0f)
+        }
+        Readout("Recording format", "44.1 kHz · mono · 16-bit WAV")
+        Readout("Recordings", "%APPDATA%\\MobiXournal\\audio")
+    }
+}
+
+/** `System default` for the empty answer — the name the store keeps for "let the platform choose". */
+private fun deviceLabel(name: String): String = name.ifEmpty { "System default" }
+
+/** The row's note: the ordinary sentence, or the one that says which device went missing. */
+private fun deviceNote(picked: String, fellBackFrom: String?, missing: String): String = when {
+    fellBackFrom != null -> missing
+    picked.isEmpty() -> "The device Windows picks by default."
+    else -> "Used for every take and every clip."
+}
+
+/** A thin level bar for the Audio page — the take's peak, drawn as the capsule's own bar is. */
+@Composable
+private fun PillLevelMeter(level: Float) {
+    Box(
+        Modifier
+            .width(120.dp)
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(DesktopTheme.activeSlot),
+    ) {
+        Box(
+            Modifier
+                .width((120f * level.coerceIn(0f, 1f)).dp)
+                .height(6.dp)
+                .background(DesktopTheme.accent),
+        )
     }
 }
 

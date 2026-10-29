@@ -39,6 +39,8 @@ internal fun PageSheet(
     pen: PenContactStream?,
     pointer: PenPointer,
     sheetPicture: PagePicture,
+    /** The karaoke driver, while a clip sounds — the page is then drawn from its elements, per stroke. */
+    karaoke: DesktopKaraoke? = null,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)?,
     measurer: TextMeasurer,
     density: Float,
@@ -88,6 +90,7 @@ internal fun PageSheet(
         pen = pen,
         pointer = pointer,
         sheetPicture = sheetPicture,
+        karaoke = karaoke,
         paintProbe = paintProbe,
         measurer = measurer,
         density = density,
@@ -199,6 +202,8 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     pen: PenContactStream?,
     pointer: PenPointer,
     sheetPicture: PagePicture,
+    /** The karaoke driver, while a clip sounds — the sheet is then painted per stroke. */
+    karaoke: DesktopKaraoke? = null,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)?,
     measurer: TextMeasurer,
     density: Float,
@@ -239,6 +244,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
         pen = pen,
         pointer = pointer,
         sheetPicture = sheetPicture,
+        karaoke = karaoke,
         paintProbe = paintProbe,
         measurer = measurer,
         density = density,

@@ -42,13 +42,13 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`gestures.md`](gestures.md) | pointer motion: wheel, palm rejection, pressure → width, smoothing, hover, momentum, multi-finger taps, telemetry | you change how a pointer's movement is read |
 | [`colours.md`](colours.md) | shared colour picker, palette state, desktop colour parity | you change colour selection or palettes |
 | [`chrome.md`](chrome.md) | the editor screen, the rail's Colour & size slot and its sizing, the Material 3 dock | you change the editor's chrome or the rail |
-| [`chrome-frame.md`](chrome-frame.md) | the bands around the page, the saved toolbar order, a canvas with no pages | you change where the chrome sits or what an empty document shows |
+| [`chrome-frame.md`](chrome-frame.md) | the bands around the page and the saved toolbar order | you change where the chrome sits |
 | [`chrome-settings.md`](chrome-settings.md) | the phone's Settings shell: its areas, sidebar and search | you change how Settings is presented on the tablet |
 | [`ui-modernization.md`](ui-modernization.md) | the design system: tokens, glass material, true-black depth, type, motion | you change the look of the chrome, on either shell |
 | [`desktop-ui-layout.md`](desktop-ui-layout.md) | the PC window's layout: panes, strip placement, universal shortcuts | you change the window's arrangement |
 | [`interface-contract.md`](interface-contract.md) | what every **new** UI element must satisfy: material, colour, geometry, glyphs, text, states, motion, keyboard, parity | you add anything to the interface |
-| [`infinite-canvas.md`](infinite-canvas.md) | canvas modes (vertical, horizontal, 2D), fitting, the bound, auto-pagination and export slicing | you work on canvas scrolling or pagination boundaries |
-| [`chunked-documents.md`](chunked-documents.md) | how a board is stored, opened, written and queried as spatial chunks | you change chunk files, `canvas.json` or board saving |
+| [`infinite-canvas.md`](infinite-canvas.md) | the file's geometry modes (vertical, horizontal, 2D) and how a chunked document exports as pages | you work on chunk geometry or export slicing |
+| [`chunked-documents.md`](chunked-documents.md) | how a chunked document is stored, opened, written and queried as spatial chunks | you change chunk files, `canvas.json` or chunked saving |
 | [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus, parametric curves, plot interaction | you work on mathematical plotting or formula parsing |
 | [`audio.md`](audio.md) | audio recording (Opus in a `.mobix`, WAV for a `.xopp`), replay, sidecars | you touch audio annotation features |
 | [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, karaoke replay | you work on synchronized audio playback |

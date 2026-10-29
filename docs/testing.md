@@ -35,7 +35,7 @@ audio links, backgrounds and rule parameters — so a conversion cannot quietly 
 pins the document layer's bookkeeping (a page keeps the identity it was given across saves, a page
 whose bytes did not change keeps its `modified` stamp, the same picture on two pages is one asset) and
 its refusals (a page the manifest names but the archive lacks, a newer `formatVersion`, a
-`canvas.json` disagreeing with the manifest, an infinite-canvas document). The `render/` tests cover the pure geometry — page layout,
+`canvas.json` disagreeing with the manifest, a chunked document). The `render/` tests cover the pure geometry — page layout,
 gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/redo history — and
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.

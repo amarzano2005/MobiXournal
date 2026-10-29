@@ -451,6 +451,8 @@ class DesktopShellState(
     fun open(file: File) {
         runCatching { DocumentLoader.load(file) }
             .onSuccess { document ->
+                // Adopted before the tab exists: a save can only write back what the window can find.
+                DesktopAudioSession.adopt(document)
                 tabs.open(document, prefs.fitOnOpen)
                 failure = null
             }

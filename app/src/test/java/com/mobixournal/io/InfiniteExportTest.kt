@@ -23,8 +23,8 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * A board leaves the app as pages: the `.xopp` a Save As writes is the document sliced through the
- * auto-slicer, laid out at the coordinates its chunks sit at (`docs/infinite-canvas.md` →
- * *Auto-pagination and export slicing*).
+ * slicer, laid out at the coordinates its chunks sit at (`docs/infinite-canvas.md` →
+ * *Export slicing*).
  *
  * What the export has to get right is that the file it writes is an **ordinary** one — a reader that
  * knows nothing about chunks opens it — while the `.mobix` it came from keeps its chunks, untouched.
@@ -115,7 +115,6 @@ class InfiniteExportTest {
             loaded.document,
             pdf = null,
             format = SaveFormat.ORIGINAL,
-            canvasMode = loaded.canvasMode,
         )
         assertTrue("a board cooks into plain ink, with nothing left undrawn", encoded.uncompiled.isEmpty())
         return Xopp.parseXml(xmlOf(encoded.file))
@@ -177,7 +176,7 @@ class InfiniteExportTest {
         val io = createIo()
         val loaded = io.read(file) as LoadedFile.Doc
 
-        io.encode(loaded.document, pdf = null, format = SaveFormat.ORIGINAL, canvasMode = loaded.canvasMode)
+        io.encode(loaded.document, pdf = null, format = SaveFormat.ORIGINAL)
 
         assertEquals("the pages the export cut are not the document's", 2, loaded.document.pages.size)
         assertTrue("and the .mobix on disk is untouched", before.contentEquals(file.readBytes()))

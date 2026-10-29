@@ -45,6 +45,9 @@ enum class SettingsGlyph {
     /** The key table. */
     SHORTCUTS,
 
+    /** The microphone and the output: what the window records and plays through. */
+    AUDIO,
+
     /** Moving around a page: zoom, panning, momentum. */
     NAVIGATION,
 
@@ -76,6 +79,7 @@ object SettingsGlyphCatalogue {
         SettingsGlyph.COLORS -> droplet()
         SettingsGlyph.GESTURES -> tap()
         SettingsGlyph.SHORTCUTS -> keyboard()
+        SettingsGlyph.AUDIO -> microphone()
         SettingsGlyph.NAVIGATION -> move()
         SettingsGlyph.APPEARANCE -> contrast()
         SettingsGlyph.DOCUMENTS -> page()
@@ -176,6 +180,22 @@ object SettingsGlyphCatalogue {
         GlyphPart.Circle(12f, 11f, 0.9f),
         GlyphPart.Circle(16.5f, 11f, 0.9f),
         GlyphPart.Line(8.5f, 14.5f, 15.5f, 14.5f),
+    )
+
+    /**
+     * A microphone: the body, its cradle and the stand — the mark the header's capsule wears when a take
+     * is not running, so the settings page for it shows the same picture the button does.
+     */
+    private fun microphone(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(9.2f, 4.6f), GlyphPoint(9.2f, 11.6f), GlyphPoint(14.8f, 11.6f), GlyphPoint(14.8f, 4.6f),
+            ),
+            closed = true,
+        ),
+        GlyphPart.Cubic(6.4f, 10f, 6.4f, 17.4f, 17.6f, 17.4f, 17.6f, 10f),
+        GlyphPart.Line(12f, 17.4f, 12f, 20.4f),
+        GlyphPart.Line(8.6f, 20.4f, 15.4f, 20.4f),
     )
 
     /** Four arrowed directions from one centre: moving around the page. */

@@ -5,7 +5,6 @@ import com.mobixournal.format.json.JsonWriter
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.mobix.MobixAssetSink
 import com.mobixournal.format.mobix.MobixCanvasFile
-import com.mobixournal.format.mobix.MobixChunk
 import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixFormat
@@ -14,7 +13,6 @@ import com.mobixournal.format.mobix.MobixPageCodec
 import com.mobixournal.format.mobix.MobixPart
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Background
-import com.mobixournal.format.model.Layer
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -31,10 +29,9 @@ import org.junit.Test
  *
  * It exists because the tasks these files serve are *runtime* claims that no JVM test can settle: a
  * two-hundred-page notebook proves the counter comes from the manifest without a page being read only
- * when it is opened on a screen, and a board's chunk has to be written across a boundary by a pen
- * before "a stroke lands in the chunk under the pen" is anything but a unit test. Generating them here
- * rather than by hand keeps the device fixture and the unit fixture from drifting apart, which is the
- * only way the two passes end up talking about the same document.
+ * when it is opened on a screen. Generating them here rather than by hand keeps the device fixture and
+ * the unit fixture from drifting apart, which is the only way the two passes end up talking about the
+ * same document.
  *
  * Not a test of anything in the app: the assertion is that the files were written.
  */
@@ -56,8 +53,8 @@ class DeviceFixturesTest {
      * A paginated notebook of [pageCount] pages, each with its own stroke so a page is recognisable in
      * a screenshot, page 3 ruled and page 2 carrying a **bundled picture** — the background the paged
      * open adopts when that page is read, and never before (`BackgroundResolver`). Its
-     * `minAppVersion` is this build's, like the board's, so neither fixture depends on what the
-     * writer's default happens to be.
+     * `minAppVersion` is this build's, so the fixture does not depend on what the writer's default
+     * happens to be.
      */
     private fun paginated(file: File, pageCount: Int = 200): File {
         val sink = MobixAssetSink()
@@ -107,40 +104,6 @@ class DeviceFixturesTest {
         }
         return file
     }
-
-    /**
-     * A 2D board with three occupied cells — `(0, 0)`, `(1, 0)` beside it so a stroke can be drawn
-     * **across** their shared edge, and `(-1, 0)` so the archive carries a signed chunk name — one
-     * stroke per cell, plus the one the passes write.
-     */
-    private fun board(file: File): File {
-        val chunks = listOf(
-            chunk(0, 0, "stk_0_0"),
-            chunk(1, 0, "stk_1_0"),
-            chunk(-1, 0, "stk_-1_0"),
-        )
-        val document = MobixDocument.forInfinite(
-            documentId = "doc_device_board",
-            canvasMode = CanvasMode.INFINITE_2D,
-            widthPt = MobixCanvasFile.DEFAULT_CHUNK_SIZE_PT,
-            heightPt = MobixCanvasFile.DEFAULT_CHUNK_SIZE_PT,
-            chunks = chunks,
-            title = "Device board",
-            // The app's own version, not the writer's default: a fixture that declares a newer one
-            // than the build under test opens read-only, which is not the pass this file is for.
-            appVersion = appVersion,
-        )
-        FileOutputStream(file).use { out -> MobixContainer.save(document.encode(nowMillis = 1L).entries, out) }
-        return file
-    }
-
-    /** One occupied cell: a stroke near its inner edge, so the tile it belongs to is visible. */
-    private fun chunk(cx: Int, cy: Int, strokeId: String) = MobixChunk(
-        cx = cx,
-        cy = cy,
-        layers = listOf(Layer(listOf(SyntheticNotebook.stroke(40.0, id = strokeId)))),
-        id = "ch_${cx}_$cy",
-    )
 
     /**
      * A picture a person can see, and a PNG the app can decode (`MobixAssetSink.suffixFor` says so).
@@ -207,11 +170,9 @@ class DeviceFixturesTest {
     fun writesTheDeviceFixtures() {
         dir.mkdirs()
         val pages = paginated(File(dir, "paged-200.mobix"))
-        val board = board(File(dir, "board-2d.mobix"))
 
-        println("device fixtures: ${pages.absolutePath} (${pages.length()} B), ${board.absolutePath} (${board.length()} B)")
+        println("device fixtures: ${pages.absolutePath} (${pages.length()} B)")
         assertTrue("the 200-page notebook must be written", pages.length() > 0)
-        assertTrue("the board must be written", board.length() > 0)
 
         // The notebook's pages are the fixture's, not this build's, and one of them names a picture.
         val pageNames = pages.inputStream().use { MobixContainer.open(it.buffered()).names.toList() }
@@ -221,29 +182,15 @@ class DeviceFixturesTest {
             pageNames.any { MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.IMAGE) && it.endsWith(".png") },
         )
 
-        // Both must open **writable** in the build under test: a document whose `minAppVersion` is
-        // newer than the app is offered read-only, and a read-only board cannot be drawn on.
-        for ((label, file) in listOf("paged-200.mobix" to pages, "board-2d.mobix" to board)) {
-            val manifest = file.inputStream().use { MobixContainer.open(it.buffered()) }
-                .let { archive ->
-                    MobixManifest.decode(archive.require(MobixFormat.MANIFEST_ENTRY).bytes.toString(Charsets.UTF_8))
-                }
-            assertTrue(
-                "$label declares ${manifest.minAppVersion}, which is newer than $appVersion",
-                !manifest.requiresAppNewerThan(appVersion),
-            )
-        }
-
-        // The board carries its cells under signed names, one entry each.
-        val names = board.inputStream().use { MobixContainer.open(it.buffered()).names.toList() }
-        assertEquals(
-            "the board carries its three cells under signed names",
-            listOf(
-                MobixFormat.chunkEntry(0, 0),
-                MobixFormat.chunkEntry(1, 0),
-                MobixFormat.chunkEntry(-1, 0),
-            ).sorted(),
-            names.filter { MobixFormat.isChunkEntry(it) }.sorted(),
+        // The fixture must open **writable** in the build under test: a document whose `minAppVersion`
+        // is newer than the app is offered read-only.
+        val manifest = pages.inputStream().use { MobixContainer.open(it.buffered()) }
+            .let { archive ->
+                MobixManifest.decode(archive.require(MobixFormat.MANIFEST_ENTRY).bytes.toString(Charsets.UTF_8))
+            }
+        assertTrue(
+            "the notebook declares ${manifest.minAppVersion}, which is newer than $appVersion",
+            !manifest.requiresAppNewerThan(appVersion),
         )
     }
 }

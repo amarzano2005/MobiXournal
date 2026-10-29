@@ -24,7 +24,7 @@ class EditorPane(
     /**
      * What the live canvas can hand a snapshot for the document on it ([SnapshotSources]) — the app
      * wires this because the answer comes from two layers this pane does not know: the document I/O
-     * that owns a board's shape, and the canvas that holds the imported sources.
+     * that owns a chunked document's shape, and the canvas that holds the imported sources.
      */
     private val sourcesOf: (DrawingSurfaceView) -> SnapshotSources = { SnapshotSources() },
 ) {

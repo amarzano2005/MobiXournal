@@ -3,17 +3,17 @@ package com.mobixournal.render
 import com.mobixournal.format.mobix.CanvasMode
 
 /**
- * Everything a **canvas** needs to lay out a chunked `.mobix` as an unbounded board, and nothing else:
- * the mode, the two paper dimensions, the tile grid the document's chunk names were computed against,
- * and those coordinates in the document's own order.
+ * Everything a chunked `.mobix` declares about its geometry, and nothing else: the mode, the two paper
+ * dimensions, the tile grid the document's chunk names were computed against, and those coordinates in
+ * the document's own order.
  *
  * It exists because the geometry is *not* derivable from the pages. A page says how big its content
  * is; it does not say which cell of the board that content sits in, and a chunk's place in the
  * manifest is not its place on the board (a 2D board goes negative, and a reordered chunk keeps its
  * coordinate). So the one layer that read the file — `canvas.json` plus the manifest's entry names —
- * hands the answer over, and the renderer never has to guess ([DocumentIo.canvasGeometryOf]). It is
- * platform-free because two callers need the same answer: the Android canvas, and the export that cuts
- * a board into sheets ([BoardSlicer]).
+ * hands the answer over, and the reader never has to guess ([DocumentIo.canvasGeometryOf]). It is
+ * platform-free because two callers need the same answer: the save that writes the chunks back at their
+ * own coordinates, and the export that assembles them onto one sheet ([BoardSlicer]).
  *
  * `null` is how this is expressed for everything that is not a board: a `.xopp`, a paginated `.mobix`,
  * a PDF or an image. There is no "paginated geometry" to carry, because a paginated document is laid
@@ -29,13 +29,13 @@ import com.mobixournal.format.mobix.CanvasMode
  * @property chunkSizePt The spatial tile size, in pt, the document's `chunk_<cx>_<cy>` names were
  *   computed against (`docs/infinite-canvas.md` → *`canvas.json`*).
  * @property chunkCoords The occupied cells, **in the document's order** — index `i` here is page `i`
- *   of the document (`docs/infinite-canvas.md` → *A chunk is a part*), which is what lets the renderer
- *   materialise the tile under the pen without opening the board.
+ *   of the document (`docs/chunked-documents.md` → *A chunked document opens, is edited and saves as
+ *   chunks*), which is what lets the write land each chunk where the file had it.
  * @property originOffsetPt Where document `(0, 0)` sits on the **printed sheet**, in pt — the vertical
  *   (or, for a horizontal strip, horizontal) margin page 1 begins with. It is the one half of
  *   `canvas.json`'s `origin` an export can use: the other, its 1-based `pageNo`, numbers the sheet a
  *   document lands on inside a bigger job, and a standalone export has nothing before its page 1 to
- *   number against (`docs/infinite-canvas.md` → *Auto-pagination and export slicing*).
+ *   number against (`docs/infinite-canvas.md` → *Export slicing*).
  */
 data class CanvasGeometry(
     val mode: CanvasMode,
@@ -47,36 +47,4 @@ data class CanvasGeometry(
 ) {
     /** True for the three modes whose content is spatial tiles rather than a page list. */
     val isBoard: Boolean get() = mode != CanvasMode.PAGINATED
-
-    /**
-     * The mode's **non-infinite** axis, in pt, or null when both axes run on forever.
-     *
-     * A strip locks one dimension: [CanvasMode.INFINITE_VERTICAL] fixes the width (the strip runs
-     * down) and [CanvasMode.INFINITE_HORIZONTAL] fixes the height. That fixed dimension is the board's
-     * *bound* — the one edge you cannot scroll past, because `ViewportState` clamps the locked axis and
-     * the sheet is drawn exactly that wide ([BoardViewport.sheet]). [CanvasMode.INFINITE_2D] locks
-     * nothing, and a paginated document is not a board at all.
-     */
-    val fixedExtentPt: Double?
-        get() = when (mode) {
-            CanvasMode.INFINITE_VERTICAL -> widthPt
-            CanvasMode.INFINITE_HORIZONTAL -> heightPt
-            CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> null
-        }
-
-    /** True when [fixedExtentPt] is the **width** (a strip running down) rather than the height. */
-    val fixedExtentIsWidth: Boolean get() = mode == CanvasMode.INFINITE_VERTICAL
-
-    /**
-     * This geometry with its fixed dimension set to [pt] — the page-format dialog's *fixed width / fixed
-     * height*, which is how the bound on the non-infinite axis is chosen a priori.
-     *
-     * Only the locked axis moves: an [CanvasMode.INFINITE_2D] board has none, so it is returned
-     * unchanged rather than having one invented for it.
-     */
-    fun withFixedExtent(pt: Double): CanvasGeometry = when (mode) {
-        CanvasMode.INFINITE_VERTICAL -> copy(widthPt = pt)
-        CanvasMode.INFINITE_HORIZONTAL -> copy(heightPt = pt)
-        CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> this
-    }
 }

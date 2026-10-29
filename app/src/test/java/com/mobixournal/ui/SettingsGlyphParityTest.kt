@@ -41,12 +41,24 @@ class SettingsGlyphParityTest {
         }
     }
 
-    /** The catalogue is the product's, so every mark it has is used by a section of this list. */
+    /**
+     * The catalogue is the product's, so every mark it has is used by a settings section.
+     *
+     * [WINDOW_ONLY] is the exception the two shells need: the window's Settings has an **Audio** page — the
+     * microphone and the output a take and a clip use — that the tablet answers from its own capture
+     * pipeline instead of a page, so its mark is shared but not listed here (`docs/desktop-settings.md`).
+     */
     @Test
     fun `the catalogue carries no mark the settings cannot reach`() {
         val used = SettingsSection.entries.map { it.name }.toSet()
         for (glyph in SettingsGlyph.entries) {
+            if (glyph.name in WINDOW_ONLY) continue
             assertTrue("${glyph.name} belongs to a settings section", glyph.name in used)
         }
+    }
+
+    private companion object {
+        /** The marks only the window's section list reaches. */
+        val WINDOW_ONLY = setOf("AUDIO")
     }
 }

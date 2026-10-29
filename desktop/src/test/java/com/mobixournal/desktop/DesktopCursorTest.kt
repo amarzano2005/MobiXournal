@@ -106,12 +106,15 @@ class DesktopCursorTest {
      *
      * **Text** is the one marking slot that is not a band of ink: a circle the size of the nib promised a
      * width no character has, so it wears the text cursor instead and the field shows the caret.
+     *
+     * **Audio tap** is the other: it picks the stroke under the pointer and replays it, so a ring the pen's
+     * size would promise ink it never lays down (`desktop-audio-tap-and-y-key`).
      */
     @Test
     fun `the ring is for the tools that lay ink at a width`() {
         for (tool in DesktopTool.entries) {
             val ring = toolCursorDiameterPx(tool, 4f, zoom = 1f, density = 1f)
-            if (tool == DesktopTool.HAND || tool == DesktopTool.TEXT) {
+            if (tool == DesktopTool.HAND || tool == DesktopTool.TEXT || tool == DesktopTool.AUDIO) {
                 assertNull("$tool is not a band of ink, so it has no ring", ring)
             } else {
                 assertTrue("$tool marks the page, so it wears a ring", ring != null && ring > 0f)

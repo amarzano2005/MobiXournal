@@ -112,8 +112,9 @@ tested as a library.
 **What a reader refuses, rather than opening something it cannot keep:** a page (or chunk) the manifest
 names but the archive does not carry (a corrupt file, never an empty page), a `formatVersion` from a
 newer schema, a `canvas.json` that disagrees with the manifest about the mode, and a file that carries
-both `pages/` and `chunks/` — the entries and the declared mode have to agree with each other. The
-canvas *engine* does not yet draw that geometry unbounded ([infinite-canvas.md](infinite-canvas.md)).
+both `pages/` and `chunks/` — the entries and the declared mode have to agree with each other. A
+chunked document is drawn one part at a time, as the pages its chunks stand for; the app offers no
+unbounded canvas ([chunked-documents.md](chunked-documents.md)).
 `minAppVersion` is a
 **caller's** question, not this layer's: the document layer exposes
 `manifest.requiresAppNewerThan(appVersion)`, and whether that means "open read-only" or "refuse" is the

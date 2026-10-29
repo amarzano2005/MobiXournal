@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,11 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.mobixournal.format.mobix.CanvasMode
-import com.mobixournal.render.BoardReading
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DialogPresence
-import com.mobixournal.ui.theme.FloatingDialog
 import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.abs
 
@@ -102,24 +98,10 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var sizing by remember { mutableStateOf(false) }
     var contents by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
-    // A geometry picked in the page-format dialog, waiting on "this document or new documents only".
-    // The fixed width/height the dialog was showing rides along: a strip created from this answer has
-    // to be born on the bound the user just typed, not on the pane's own extent.
-    var pendingCanvas by remember { mutableStateOf<NewDocumentCanvas?>(null) }
-    var pendingExtent by remember { mutableStateOf<Double?>(null) }
-    val board = callbacks.board
-    val isInfinite = callbacks.canvasMode != CanvasMode.PAGINATED
     ToolbarPopupButton(
         icon = ChromeGlyph.DESCRIPTION.imageVector(),
         contentDescription = "Pages",
     ) { dismiss ->
-        if (isInfinite) {
-            PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
-            // A board has no page list, but it does have a sheet: its paper and ruling are still
-            // settable, so the row travels with the format one rather than vanishing with the pages.
-            PageBackgroundRow(callbacks, open = { sheet = true }, dismiss = dismiss)
-            return@ToolbarPopupButton
-        }
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
         // The PDF's own table of contents sits right above the app-side bookmarks: both are "jump to a
         // page", and the nearer one to the page navigator is the one that came with the document.
@@ -169,131 +151,25 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         onStationery = { callbacks.onStationery(it); sheet = false },
         onDone = { sheet = false },
     )
-    PageFormatDialogs(
-        callbacks = callbacks,
-        open = sizing,
-        board = board,
-        onOpen = { sizing = it },
-        pending = pendingCanvas,
-        pendingExtent = pendingExtent,
-        onPending = { canvas, extent -> pendingCanvas = canvas; pendingExtent = extent },
-    )
-}
-
-/**
- * The page-format dialog: the paper (when there is a page to size) and the document's canvas geometry,
- * which is the same question — *what is a page of this document* — answered twice. Behind it sits the
- * second half of a geometry change: **this document, or the next ones?**
- *
- * Both are driven through the caller's own state ([open], [pending]) rather than held here, because
- * `PagesPopupButton` owns the two and has to keep them across recompositions of the menu behind them.
- */
-@Composable
-private fun PageFormatDialogs(
-    callbacks: ToolbarPagesCallbacks,
-    open: Boolean,
-    board: BoardReading?,
-    onOpen: (Boolean) -> Unit,
-    pending: NewDocumentCanvas?,
-    /** The fixed width/height the dialog had when the geometry was picked, for the new document. */
-    pendingExtent: Double?,
-    onPending: (NewDocumentCanvas?, Double?) -> Unit,
-) {
-    DialogPresence(open) {
+    DialogPresence(sizing) {
         PageFormatDialog(
             initialWidthPt = callbacks.pageSize?.first ?: callbacks.defaultPageSize.first,
             initialHeightPt = callbacks.pageSize?.second ?: callbacks.defaultPageSize.second,
             defaultWidthPt = callbacks.defaultPageSize.first,
             defaultHeightPt = callbacks.defaultPageSize.second,
-            defaultCanvas = callbacks.defaultCanvas,
-            sized = callbacks.pageSize != null && board == null,
-            canvasMode = callbacks.canvasMode,
-            extentPt = callbacks.canvasExtentPt,
-            extentEditable = callbacks.canvasEditable,
-            onExtent = callbacks.onCanvasExtent,
-            onConfirm = { w, h, canvas ->
-                onOpen(false)
-                val currentCanvas = NewDocumentCanvas.of(callbacks.canvasMode)
-                if (canvas != currentCanvas) {
-                    // The bound travels with the choice: on a vertical strip or a 2D board it is the
-                    // dialog's *width*, on a horizontal one its *height*, and a page list has none.
-                    onPending(
-                        canvas,
-                        when (canvas) {
-                            NewDocumentCanvas.INFINITE_VERTICAL, NewDocumentCanvas.INFINITE_2D -> w
-                            NewDocumentCanvas.INFINITE_HORIZONTAL -> h
-                            NewDocumentCanvas.PAGINATED -> null
-                        },
-                    )
-                } else {
-                    when (canvas) {
-                        NewDocumentCanvas.PAGINATED -> {
-                            if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
-                        }
-                        NewDocumentCanvas.INFINITE_VERTICAL, NewDocumentCanvas.INFINITE_2D -> {
-                            callbacks.onCanvasExtent(w)
-                        }
-                        NewDocumentCanvas.INFINITE_HORIZONTAL -> {
-                            callbacks.onCanvasExtent(h)
-                        }
-                    }
-                }
+            onConfirm = { w, h ->
+                sizing = false
+                if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
             },
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
-            onSaveDefaultSettings = { w, h, canvas ->
-                callbacks.onSaveAsDefault(w, h)
-                callbacks.onCanvasModeDefault(canvas)
-            },
-            onDismiss = { onOpen(false) },
-        )
-    }
-    DialogPresence(pending != null) {
-        // The chosen geometry is held past the flag so the question keeps naming it while it closes.
-        val chosen = rememberClosingArgument(pending) ?: return@DialogPresence
-        CanvasModeChangeDialog(
-            canvas = chosen,
-            onNewBlankPage = {
-                onPending(null, null)
-                callbacks.onCanvasMode(chosen, pendingExtent)
-            },
-            onDismiss = { onPending(null, null) },
+            onDismiss = { sizing = false },
         )
     }
 }
 
 /**
- * Dialog opened when setting a new canvas mode from an active page.
- * Prompts the user to start a new blank page with the selected canvas mode
- * or cancel the operation, as modifying the canvas geometry on the current page is not possible.
- */
-@Composable
-private fun CanvasModeChangeDialog(
-    canvas: NewDocumentCanvas,
-    onNewBlankPage: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    FloatingDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Canvas mode") },
-        text = {
-            Text(
-                "The canvas can't be changed on the current page.\n\n" +
-                    "Start a new blank page with the new canvas type («${canvas.label}»), or cancel the operation?",
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onNewBlankPage) { Text("New blank page") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
-}
-
-/**
- * The **Page format** row — the paper's size as its trailing hint on a page list, and the canvas
- * geometry's name on a board (which has no paper to label). The one entry point into the page-format
- * dialog from both geometries.
+ * The **Page format** row — the paper's size as its trailing hint, and the one entry point into the
+ * page-format dialog.
  */
 @Composable
 private fun PageFormatRow(
@@ -305,14 +181,7 @@ private fun PageFormatRow(
         text = { Text("Page format") },
         leadingIcon = { Icon(ChromeGlyph.PAGE_FORMAT.imageVector(), contentDescription = null) },
         trailingIcon = {
-            // On a page list the useful fact is the paper; on a board there is no page to measure, so
-            // the row names the geometry instead — the thing that chose that board's sheet.
-            val size = callbacks.pageSize
-            if (size != null && callbacks.canvasMode == CanvasMode.PAGINATED) {
-                Text(pageSizeLabel(size.first, size.second))
-            } else {
-                Text(NewDocumentCanvas.of(callbacks.canvasMode).label)
-            }
+            callbacks.pageSize?.let { Text(pageSizeLabel(it.first, it.second)) }
         },
         onClick = { openSize(); dismiss() },
     )

@@ -119,6 +119,8 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.LASSO -> ToolGlyph.LASSO
         DesktopTool.MARQUEE -> ToolGlyph.MARQUEE
         DesktopTool.TEXT -> ToolGlyph.TEXT
+        // The catalogue's own Audio Tap / Replay mark: the play triangle both shells draw.
+        DesktopTool.AUDIO -> ToolGlyph.PLAY
         // The tablet's own picture of the formula tool.
         DesktopTool.MATH -> ToolGlyph.TEXIMAGE
         DesktopTool.LINE -> ToolGlyph.LINE

@@ -17,7 +17,6 @@ import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.XoppColor.withAlpha
-import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
@@ -79,10 +78,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
             if (value === docValue) return
             docValue = value
             syncPageWindow(value)
-            // A board's cells follow its page list, and this is the one place every edit lands: an
-            // undo or a redo moves the pages, so the grid has to move with them or a chunk would keep a
-            // coordinate its page no longer sits at ([BoardGrid.fit]).
-            board?.grid?.fit(value.pages.size)
             indexingGeneration++
             handwritingIndex = null
             indexingDoc = null
@@ -100,13 +95,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
-    /**
-     * The **board** this canvas draws — its geometry, the materialised tiles and the paper the sheet is
-     * ruled with — or null in paginated mode, which is every `.xopp`, every paginated `.mobix` and
-     * every imported PDF or image ([setInfiniteCanvas]). One field holds the whole board state, so a
-     * paginated canvas carries none of it and every board path is one null check away.
-     */
-    internal var board: BoardCanvas? = null
 
     @VisibleForTesting
     internal var scrollY: Float
@@ -147,17 +135,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** In-progress multi-stroke shape (e.g. capacitor with an open gap). */
     internal var currentStrokes: List<List<StrokePoint>>? = null
     internal var currentPage = 0
-    /**
-     * The **cell** the current gesture is writing in, when this canvas is drawing a board: the tile the
-     * ink belongs to, fixed at pointer-down (a stroke is stored under the chunk the pen went down in,
-     * like every element the format holds).
-     *
-     * It says the one thing [currentPage] cannot: which cell a gesture that landed in a cell the
-     * document has no page for yet is going to be written into — the page for it only exists once the
-     * stroke is committed ([BoardInk.writeAt]). Null on every document that is not a board, and between
-     * gestures.
-     */
-    internal var gestureCell: Pair<Int, Int>? = null
     /** While drawing a shape ([shapeKind] set), the drag anchor in page-local pt and the live flag. */
     internal var shaping = false
     internal var shapeStartX = 0.0
@@ -313,24 +290,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
         activeLayerOf = { resolvedActiveLayer(it) },
         commit = { commitElementEdit(it) },
     )
-    /**
-     * Told the host where a **board**'s view is — the tile under the viewport centre and how many
-     * tiles the document holds — and told `null` when the canvas goes back to a page list
-     * ([reportBoardReading]). Fired once per change, from the same pass that reports the current page
-     * for a page stack.
-     */
-    var onBoardReading: ((BoardReading?) -> Unit)? = null
-    /** The geometry this view draws in: the board's mode, or [CanvasMode.PAGINATED] for a page list. */
-    val canvasMode: CanvasMode get() = board?.geometry?.mode ?: CanvasMode.PAGINATED
-    /** Told when [canvasMode] changes — a board adopted, or a canvas going back to pages. */
-    var onCanvasModeChanged: ((CanvasMode) -> Unit)? = null
-    /** Told the board's bound in pt whenever a document is adopted or the bounded side moves — or null
-     * when the canvas locks nothing (a page list, an `INFINITE_2D` board): *is there a bound to offer*. */
-    var onCanvasExtentChanged: ((Double?) -> Unit)? = null
     /** Which page index was last reported to [onCurrentPageChanged], to suppress duplicate calls. */
     private var lastReportedPage = -1
-    /** The last [BoardReading] reported, so the chrome is told only what moved. */
-    private var lastBoardReading: BoardReading? = null
     /** Last (scrollY, totalHeightPx, viewportPx) reported to [onScrollChanged], to suppress duplicate calls. */
     private var lastScrollReport = ScrollReport(-1f, -1f, -1f, -1f)
     /** Last selection box reported to [onSelectionRectChanged], to suppress duplicate calls. */
@@ -375,23 +336,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         }
     var onReadOnlyChanged: ((Boolean) -> Unit)? = null
     var onReadOnlyBlocked: (() -> Unit)? = null
-
-    /** Told when a gesture was refused because the document is a **board** and the gesture is page-shaped;
-     * set by the host, which is the only layer that can speak to the user. */
-    var onBoardBlocked: (() -> Unit)? = null
-
-    /** Report a gesture a board cannot carry out once per attempt, like [notifyReadOnlyBlocked]. */
-    fun notifyBoardBlocked() {
-        onBoardBlocked?.invoke() ?: run {
-            post {
-                android.widget.Toast.makeText(
-                    context,
-                    "Infinite canvases are drawing only for now",
-                    android.widget.Toast.LENGTH_SHORT,
-                ).show()
-            }
-        }
-    }
 
     fun notifyReadOnlyBlocked() {
         onReadOnlyBlocked?.invoke() ?: run {
@@ -783,11 +727,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onSelectionChanged?.invoke(false)
         hiddenLayers.clear()
         activeLayerIndex = -1
-        // A wholesale document swap ends any board: the caller that knows the incoming document's
-        // geometry adopts it right after this ([setInfiniteCanvas]), and one that does not (a PDF or an
-        // image import) leaves the canvas paginated rather than drawing the previous board's sheet
-        // under the new document.
-        clearInfiniteCanvas()
         history.clear()
         notifyHistory()
         resetPageWindow()
@@ -815,16 +754,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * The undo history is dropped, because it holds snapshots taken before the other view's edit and
      * undoing to one would silently throw that edit away. Undo therefore lives in the pane doing the
      * editing, and follows the user as they switch panes.
-     *
-     * [geometry] is the **board** the document is, as the pane that edited it holds it: a mirrored pane
-     * is a second view of the *same* infinite canvas, so it has to be given the same cells. The document
-     * alone cannot say where a chunk sits (`MobixOpenSessions.chunkGrids`), so a pane that only took the
-     * document would keep the grid it was opened with and draw — and save — a cell this session created
-     * at the wrong place. Null for a page list, and for a mirror that has no board to hand over.
      */
     internal fun applyMirroredDocument(
         incoming: Document,
-        geometry: CanvasGeometry? = null,
         sharedHistory: EditHistory<Document>? = null,
     ) {
         if (incoming === docValue) return
@@ -852,10 +784,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
             triggerBackgroundIndexing(docValue)
         }
         relayout()
-        // A board is re-adopted rather than reconciled: a mirrored pane's own grid cannot know a cell the
-        // other pane created, and the source's grid answers for every cell there is. Adopting it also
-        // drops the tile cache, so the mirrored view reads the chunks it is about to draw again.
-        if (geometry != null && geometry.isBoard) setInfiniteCanvas(geometry)
         render()
         onLayersChanged?.invoke()
         onDocumentLoaded?.invoke()
@@ -863,18 +791,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** The current working document — every page, layer, and preserved element, ready to save. */
     fun toDocument(): Document = doc
-
-    /**
-     * The board this canvas draws, as it stands **now** — its geometry with the cells this session grew
-     * ([BoardGrid]) — or null when the document is not a board.
-     *
-     * A save asks for it because the coordinates are not derivable from the pages: a chunk is named after
-     * its cell, so a board written from the grid the *file* declared would drop every cell created since
-     * the open and leave the ink that was written into it unnamable
-     * (`docs/infinite-canvas.md` → *A chunked document opens, is edited and saves as chunks*).
-     */
-    internal fun canvasGeometry(): CanvasGeometry? =
-        board?.let { it.geometry.copy(chunkCoords = it.grid.toList()) }
 
     /**
      * Adopt the identity a `.mobix` write needs — an id on every page and element, and a document id —
@@ -1127,20 +1043,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
     private fun notifySearchChanged(): SearchStatus =
         searchStatus().also { onSearchChanged?.invoke(it) }
 
-    /**
-     * Bring the current hit under the eye. A hit names a document part, and the part's box comes from
-     * [chromeBoxFor]: on a board it is the **tile** the match was found in, so a search on an infinite
-     * canvas takes you to the cell the words are in rather than to a page box of a stack that is not
-     * drawn.
-     */
+    /** Bring the current hit under the eye. A hit names a document part; [chromeBoxFor] says where it is. */
     private fun jumpToSearchHit() {
         val hit = searchHits.getOrNull(currentSearchHit) ?: return
         val box = chromeBoxFor(hit.pageIndex) ?: return
         val bounds = hit.boxes.firstOrNull() ?: return
         val centerX = box.toViewX((bounds.left + bounds.right) / 2, 0f)
         val centerY = box.toViewY((bounds.top + bounds.bottom) / 2, 0f)
-        // Scrolled through the viewport so each mode's own clamps apply: a page stack is bounded, a 2D
-        // board is not, and a strip is bounded on one axis only.
         viewport.scrollToX(centerX - width / 2f)
         viewport.scrollToY(centerY - height / 2f)
         render()
@@ -1154,9 +1063,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** How many pages the backing PDF has — where an appended PDF's pages start once merged in. */
     fun pdfSourcePageCount(): Int = pdfSource?.pageCount ?: 0
 
-    /** Flatten the current document (backgrounds, PDF pages, and all annotations) to a PDF. */
+    /** Write the current document (backgrounds, PDF pages, and every mark) to a vector PDF. */
     fun exportPdf(out: java.io.OutputStream) =
-        PdfExporter(pdfSource, imageSource, pdfTextIndex).export(doc, out)
+        PdfExporter(pdfSource, imageSource).export(doc, out)
 
     /** Flatten one page (sheet, ruling, PDF/image background and every annotation) to a PNG. */
     fun exportPagePng(pageIndex: Int, out: java.io.OutputStream): Boolean = writePagePng(pageIndex, out)
@@ -1265,10 +1174,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Index of the page nearest the viewport centre — the one add/remove act on. */
     internal fun currentPageIndex(): Int {
-        // A board's part in view is the tile under the eye, or the nearest tile the board has when that
-        // cell is empty — never a page index, which is what the stack below would hand back
-        // (`docs/infinite-canvas.md` → *Writing on a board*).
-        viewportCell()?.let { cell -> return board?.grid?.nearestIndex(cell) ?: -1 }
         return layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index
             ?: (pageSource.pageCount - 1).coerceAtLeast(0)
     }
@@ -1360,30 +1265,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         render()
     }
 
-    /**
-     * Emit [onCurrentPageChanged] if the page under the viewport centre changed since last time, or
-     * [onBoardReading] when this canvas draws a board.
-     *
-     * A board reports **both** its reading and the part in view: the reading is what the page-shaped
-     * chrome shows instead of a page (the badge, the pages menu), while `onCurrentPageChanged` still
-     * carries "which document part is under the eye" — the tile, whose index is what a layer panel or a
-     * tab's remembered position means on a board.
-     */
+    /** Emit [onCurrentPageChanged] if the page under the viewport centre changed since last time. */
     internal fun reportCurrentPage() {
         if (pageSource.pageCount == 0) return
-        val board = board
-        if (board != null) {
-            val cell = viewportCell() ?: return
-            val reading = BoardReading(cell = cell, tiles = board.grid.size)
-            if (reading != lastBoardReading) {
-                lastBoardReading = reading
-                onBoardReading?.invoke(reading)
-            }
-        } else if (lastBoardReading != null) {
-            // The board is gone: a page list took its place, so the chrome goes back to pages.
-            lastBoardReading = null
-            onBoardReading?.invoke(null)
-        }
         val idx = currentPageIndex()
         if (idx != lastReportedPage) {
             lastReportedPage = idx
@@ -1392,20 +1276,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Emit [onScrollChanged] if the scroll offset or content extent changed since last time.
-     *
-     * A board has **no scrollable extent**: its content is unbounded in every direction, so a thumb
-     * fraction of "how far down the document" would be a number about nothing. It reports the viewport
-     * as the whole extent, which is what hides the right-edge scroll thumb and its page bubble, and it
-     * is the same report a document shorter than the screen makes.
-     */
+    /** Emit [onScrollChanged] if the scroll offset or content extent changed since last time. */
     internal fun reportScroll() {
-        val t = if (board != null) {
-            ScrollReport(scrollY, height.toFloat(), height.toFloat(), scrollX)
-        } else {
-            ScrollReport(scrollY, layout.totalHeightPx, height.toFloat(), scrollX)
-        }
+        val t = ScrollReport(scrollY, layout.totalHeightPx, height.toFloat(), scrollX)
         if (t != lastScrollReport) {
             lastScrollReport = t
             onScrollChanged?.invoke(t.scrollY, t.totalPx, t.viewportPx, t.scrollX)
@@ -1489,13 +1362,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * re-selecting it lands back where you left off (see `com.mobixournal.tabs`).
      */
     fun visiblePageIndex(): Int {
-        // A board answers with the tile in view, like [currentPageIndex]: the layer panel, the paste
-        // target and a tab's remembered position all mean "the part I am looking at", and on a board
-        // that is a tile rather than a place in a stack that is not drawn.
-        viewportCell()?.let { cell ->
-            val index = board?.grid?.nearestIndex(cell) ?: -1
-            if (index >= 0) return index
-        }
         return layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index ?: currentPage
     }
 
@@ -1666,17 +1532,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     override fun onHoverEvent(event: MotionEvent): Boolean =
         handleHover(event) ?: super.onHoverEvent(event)
 
-    /** Scroll the viewport (a pan step or one glide step), clamped per mode; false when it didn't move. */
-    internal fun scrollViewportBy(dx: Float, dy: Float): Boolean {
-        val moved = viewport.scrollBy(dx, dy)
-        if (moved) {
-            expandBoardOnScroll()
-            // A board drops the tiles it has scrolled away from, on the document's own grid rather
-            // than this build's default ([ChunkTileManager.evictOffscreen]).
-            board?.let { it.tiles.evictOffscreen(viewport.visibleChunkRange(it.geometry.chunkSizePt)) }
-        }
-        return moved
-    }
+    /** Scroll the viewport (a pan step or one glide step); false when it didn't move. */
+    internal fun scrollViewportBy(dx: Float, dy: Float): Boolean = viewport.scrollBy(dx, dy)
 
     // --- surface + rendering -------------------------------------------------------------------
 

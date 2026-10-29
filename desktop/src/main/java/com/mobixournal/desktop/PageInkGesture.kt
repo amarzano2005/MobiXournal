@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.input.pointer.PointerInputChange
+import com.mobixournal.audio.withAudio
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
@@ -315,7 +316,11 @@ internal class PageInkGesture(
         } else {
             val stroke = strokeOf(drawnTool, ink.colour, ink.width, samples, ink.lineStyle)
                 ?: return
-            tab.document.editPage(index) { page -> page.withElement(stroke) } != null
+            // A stroke drawn while a take runs carries its `fn`/`ts` from the **one funnel** every
+            // committed stroke passes through — not per tool, so a highlighter and a pen cannot stamp
+            // differently. A paused take stamps nothing (`DesktopAudioSession.stamp`).
+            val stamped = DesktopAudioSession.stamp()?.let { stroke.withAudio(it) } ?: stroke
+            tab.document.editPage(index) { page -> page.withElement(stamped) } != null
         }
         if (!wrote) return
         tab.record(before)

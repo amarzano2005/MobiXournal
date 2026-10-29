@@ -122,7 +122,6 @@ class TabSnapshotsTest {
                     document = tab.document,
                     appVersion = appVersion,
                     nowMillis = 1L,
-                    canvasMode = tab.canvasMode,
                     payloads = carried().mapValues { (_, bytes) -> MobixPayload.of(bytes) },
                 ).toBytes(1L),
             )

@@ -1,8 +1,6 @@
 package com.mobixournal.ui
 
-import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.LineStyle
-import com.mobixournal.render.BoardReading
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.LayerInfo
 import com.mobixournal.render.PdfOutline
@@ -30,15 +28,6 @@ data class ToolbarLayerCallbacks(
  * [SideToolbar].
  */
 data class ToolbarPagesCallbacks(
-    /**
-     * Where the view is when the document is an **infinite canvas**, or null when it is a page list
-     * ([BoardReading]).
-     *
-     * Non-null is what turns the menu from a page navigator into a board's own reading: pages cannot be
-     * added, removed, reordered or bookmarked on a board without rewriting the chunk grid, and a menu
-     * offering them would be offering commands that either lie or lose data (`docs/chrome.md`).
-     */
-    val board: BoardReading? = null,
     val pageCount: Int,
     val currentPage: Int,
     val onAddPage: () -> Unit,
@@ -49,8 +38,6 @@ data class ToolbarPagesCallbacks(
     /** The app's default page size (Settings ▸ Editor); backs the page-size dialog's **Default** tab. */
     val defaultPageSize: Pair<Double, Double>,
     val onSaveAsDefault: (Double, Double) -> Unit,
-    /** The global default canvas mode for new documents from settings. */
-    val defaultCanvas: NewDocumentCanvas = NewDocumentCanvas.PAGINATED,
     /** The document's page bookmarks, in page order (see [PageBookmarks]). */
     val bookmarks: List<PageBookmark> = emptyList(),
     /** Open the bookmark editor for a page — adding one, or editing/deleting the one it has. */
@@ -63,34 +50,6 @@ data class ToolbarPagesCallbacks(
     val outline: PdfOutline? = null,
     /** Jump to the page a Contents entry names — a **PDF** page index, resolved by the canvas. */
     val onGoToPdfPage: (Int) -> Unit = {},
-    /**
-     * The geometry the showing document is drawn in, so the page-format dialog opens on the choice
-     * the document is *really* in rather than on a setting that may have moved since.
-     */
-    val canvasMode: CanvasMode = CanvasMode.PAGINATED,
-    /**
-     * Whether this document's geometry can still be changed in place: true for a document that has
-     * never been saved to a file, whose shape is still the tab's to decide. A saved `.mobix` keeps the
-     * geometry its `canvas.json` declares — rewriting a file's container is the conversion
-     * `docs/mobix-format.md` refuses to do behind the user's back.
-     */
-    val canvasEditable: Boolean = false,
-    /**
-     * The page-format dialog chose a new geometry for this document, with the **fixed extent** it was
-     * showing (a strip's width or height in pt; null for a page list). The extent is the one the new
-     * document is born on: a strip must keep the paper the user just sized in the dialog rather than
-     * silently take the pane's own width.
-     */
-    val onCanvasMode: (NewDocumentCanvas, Double?) -> Unit = { _, _ -> },
-    /** The dialog chose a geometry for documents created from now on (Settings' own default). */
-    val onCanvasModeDefault: (NewDocumentCanvas) -> Unit = {},
-    /**
-     * The board's **bound**: the size of its non-infinite axis in pt (a strip's width or height), or
-     * null when the mode locks nothing ([CanvasMode.INFINITE_2D]) or the document is a page list.
-     */
-    val canvasExtentPt: Double? = null,
-    /** Set the bound on the non-infinite axis; only meaningful while [canvasEditable]. */
-    val onCanvasExtent: (Double) -> Unit = {},
     /**
      * The page in view's paper style (`plain`, `lined`, `graph`, …), or null on a PDF/pixmap page that
      * has no solid sheet to re-rule. Drives the Pages menu's **Sheet** section, which is where the rail's

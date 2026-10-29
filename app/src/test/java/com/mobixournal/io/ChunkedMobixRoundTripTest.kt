@@ -137,7 +137,7 @@ class ChunkedMobixRoundTripTest {
         val loaded = createIo(counter.open).read(file) as LoadedFile.Doc
 
         assertEquals(SaveFormat.MOBIX, loaded.format)
-        assertEquals("the mode travels with the loaded document", CanvasMode.INFINITE_2D, loaded.canvasMode)
+        assertEquals("the mode is the file's own", CanvasMode.INFINITE_2D, canvasOf(file).mode)
         assertEquals("a chunk is a page, in manifest order", 3, loaded.document.pages.size)
         assertEquals(
             "the open reads the envelope and no part of the document",
@@ -212,7 +212,7 @@ class ChunkedMobixRoundTripTest {
 
         // The edit is in the file that comes back, at the coordinate the original had it at.
         val reopened = createIo().read(encoded.file) as LoadedFile.Doc
-        assertEquals(CanvasMode.INFINITE_2D, reopened.canvasMode)
+        assertEquals(CanvasMode.INFINITE_2D, canvasOf(encoded.file).mode)
         assertEquals(3, reopened.document.pages.size)
         val stroke = reopened.document.pages[0].layers.single().elements.single() as Stroke
         assertEquals(99.0, stroke.points.first().x, 0.001)
@@ -247,7 +247,7 @@ class ChunkedMobixRoundTripTest {
 
         // …and the file that comes out is still a chunked document when it is reopened.
         val reopened = createIo().read(out) as LoadedFile.Doc
-        assertEquals(CanvasMode.INFINITE_2D, reopened.canvasMode)
+        assertEquals(CanvasMode.INFINITE_2D, canvasOf(out).mode)
         assertEquals(3, reopened.document.pages.size)
         assertNotNull(reopened.document.pages[0].layers.single().elements.single())
     }
@@ -276,7 +276,7 @@ class ChunkedMobixRoundTripTest {
 
         // Nothing is remembered for a document the session never opened, and a document the session
         // has let go is forgotten — its next save would build the archive afresh rather than repack.
-        assertEquals(CanvasMode.PAGINATED, sessions.canvasModeOf(document.copy(documentId = "other")))
+        assertEquals(null, sessions.canvasModeOf(document.copy(documentId = "other")))
         assertEquals(null, sessions.chunkCoordsOf(document.copy(documentId = "other")))
         sessions.prune(listOf(document.documentId))
         assertEquals(coords, sessions.chunkCoordsOf(document))
@@ -392,7 +392,7 @@ class ChunkedMobixRoundTripTest {
 
         // The board reads back with the edit at the coordinate it happened at, and the rest untouched.
         val reopened = createIo().read(out) as LoadedFile.Doc
-        assertEquals(CanvasMode.INFINITE_2D, reopened.canvasMode)
+        assertEquals(CanvasMode.INFINITE_2D, canvasOf(out).mode)
         val xs = reopened.document.pages.map { page ->
             ((page.layers.single().elements.single()) as Stroke).points.first().x
         }

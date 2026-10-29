@@ -41,10 +41,6 @@ class MobixTabSnapshots(
             XoppSnapshots.write(file, tab, sources)
             return
         }
-        // A board's cells are a fact of the board, not of its pages: the save hands the write the grid
-        // the board holds now, and a snapshot has to do the same or a cell created since the open would
-        // come back laid out on the mode's strip, with the ink written into it moved.
-        sources.rememberBoardShape(tab.document)
         val encoded = io.encode(
             document = tab.document,
             pdf = sources.pdf,
@@ -54,7 +50,6 @@ class MobixTabSnapshots(
             target = null,
             images = sources.images,
             audioFiles = audio,
-            canvasMode = tab.canvasMode,
         )
         try {
             encoded.file.copyTo(file, overwrite = true)

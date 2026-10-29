@@ -24,18 +24,6 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             onSelect = { onChange(settings.copy(defaultTool = it)) },
         )
         SettingsDivider()
-        OptionGroup(
-            title = "Default canvas",
-            subtitle = "The canvas geometry newly created documents open on: fixed pages or an infinite board.",
-            options = NewDocumentCanvas.entries,
-            selected = settings.newDocumentCanvas,
-            label = { it.label },
-            onSelect = { mode ->
-                val fmt = if (mode != NewDocumentCanvas.PAGINATED) NewDocumentFormat.MOBIX else settings.newDocumentFormat
-                onChange(settings.copy(newDocumentCanvas = mode, newDocumentFormat = fmt))
-            },
-        )
-        SettingsDivider()
         DefaultDimensionsControl(settings, onChange)
     }
     SettingsGroup("Drawing aids") {
@@ -80,7 +68,6 @@ private fun DefaultDimensionsControl(settings: AppSettings, onChange: (AppSettin
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
         PaperSection(
             paper = paper,
-            canvas = settings.newDocumentCanvas,
             onChanged = { w, h ->
                 onChange(settings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h))
             },

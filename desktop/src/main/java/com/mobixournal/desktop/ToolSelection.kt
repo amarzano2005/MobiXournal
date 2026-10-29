@@ -26,6 +26,9 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     LASSO("Lasso", "V"),
     MARQUEE("Marquee", "S"),
     TEXT("Text", "X"),
+    // The tablet's **Play object**: a tap on the page seeks to the stroke under it (its own point's
+    // time), and plays from there. A tap is not ink, so the pen's packets stand aside for it.
+    AUDIO("Audio tap", "Y"),
     // The tablet's Text group carries both halves of typing on the page: prose and a formula. Here they
     // share the slot too, so the window has the tablet's two members rather than a second strip entry.
     MATH("Formula", "Shift+T"),

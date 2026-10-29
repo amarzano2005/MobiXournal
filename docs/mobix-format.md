@@ -107,9 +107,9 @@ desktop round trip safe:
    the bridge ([xopp-bridge.md](xopp-bridge.md)) has to be lossless in *both* directions: a `.xopp`
    that went through a phone is still a `.xopp`.
 2. **New documents are born in the default format**, which the user picks **on first launch** (the
-   onboarding flow, [chrome.md](chrome.md)) and can change under Settings → App & data; a `.mobix` is
-   born on a default **canvas geometry** too ([infinite-canvas.md](infinite-canvas.md)), a `.xopp`
-   always paged. The recommended format — **`.mobix`** — keeps living elements, telemetry, streaming.
+   onboarding flow, [chrome.md](chrome.md)) and can change under Settings → App & data. Every
+   document the app creates is paged, in either format. The recommended format — **`.mobix`** — keeps
+   living elements, telemetry, streaming.
 3. **"Save As" switches the format in either direction**, and that switch is the documented way to
    convert: a `.xopp` opened from a colleague's desktop can become the user's own `.mobix`, and a
    `.mobix` can be flattened out to `.xopp` to hand back to Xournal++.
@@ -155,8 +155,8 @@ The container's layout is what makes these four engine properties possible. Each
      204, the old streaming open in 3 ms inflating 203, and **the shipped open in 1 ms inflating 3**.
    - The reader, the asset sources and the save are a **published contract** ([mobix-streaming-api.md](mobix-streaming-api.md)),
      not app internals: the desktop shell opens a notebook through them with no Android on its classpath.
-   - It is a property of the container's part-per-page layout; the same reader serves the infinite-canvas
-     chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
+   - It is a property of the container's part-per-page layout; the same reader serves a chunked document
+     ([chunked-documents.md](chunked-documents.md)) with chunks in place of pages.
 2. **Incremental Delta-Writes (Zero save latency)** — **live** when the save lands back on the file the
    document came from: the manifest and the entries that moved are written, everything else — untouched
    pages, background PDFs, pictures — is copied as the bytes the archive already holds, and a page the

@@ -88,12 +88,6 @@ data class TabsUiState(
     val paneCount: Int = 1,
     /** Whether this pane is the one the top bar and the rail drive. */
     val focused: Boolean = true,
-    /**
-     * Whether the showing tab may still change its **canvas geometry** in place — true while the
-     * document has never been written to a file. A saved document's shape is its own `canvas.json`'s,
-     * so the page-format dialog only offers "this document" here (`docs/infinite-canvas.md`).
-     */
-    val canvasEditable: Boolean = false,
     /** Make this pane the focused one — a touch anywhere on its strip does it. */
     val onFocus: () -> Unit = {},
     val onSelect: (Int) -> Unit = {},

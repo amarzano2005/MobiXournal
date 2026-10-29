@@ -304,12 +304,6 @@ fun EditorScreen(
     onExit: () -> Unit = {},
     /** The top app bar content; defaults to [EditorTopBar]. */
     topBar: (@Composable (EditorUiState, PaneState, TabsUiState) -> Unit)? = null,
-    /**
-     * The page-format dialog chose a canvas geometry **for the showing document** (the other answer,
-     * "new documents only", is a settings write the toolbar makes itself). The activity owns the tabs,
-     * so it is the one that can re-shape the open document.
-     */
-    onCanvasModeForDocument: (NewDocumentCanvas, Double?) -> Unit = { _, _ -> },
     /** The rail/toolbar content; defaults to [EditorToolbar]. */
     paneChrome: @Composable (EditorUiState, PaneState, AppSettings, (AppSettings) -> Unit, AudioUiState) -> Unit = { ui, pane, settings, onSettingsChange, _ ->
         EditorToolbar(
@@ -317,7 +311,6 @@ fun EditorScreen(
             pane = pane,
             settings = settings,
             onSettingsChange = onSettingsChange,
-            onCanvasMode = onCanvasModeForDocument,
         )
     },
 ) {
@@ -329,11 +322,6 @@ fun EditorScreen(
     // split view keeps each document's bookmarks to itself.
     val context = LocalContext.current
     val bookmarkStore = remember(context) { BookmarkStore(context) }
-    // Whether the page-format dialog may re-shape the showing document: only a never-saved one, whose
-    // geometry is still the tab's to decide (see `TabsUiState.canvasEditable`).
-    LaunchedEffect(pane, tabs, activePane) {
-        pane.canvasEditable = tabs.getOrNull(activePane)?.canvasEditable == true
-    }
     LaunchedEffect(pane, bookmarkKey) {
         pane.bookmarks = bookmarkStore.load(bookmarkKey)
         pane.onBookmarksChange = { updated ->

@@ -18,6 +18,9 @@ mlkitDigitalInk = "19.0.0"
 # The tablet's raw pen stream (pressure, tilt, the dial's ring, ExpressKeys) is not on AWT's pointer,
 # so the Windows window reads it through Wintab — the same API desktop Xournal++ uses there.
 jna = "5.14.0"
+# Opus on the window: a pure-Java encoder/decoder, so a recording made on the tablet plays here and the
+# packaged MSI ships no native binary to find (decision 2026-10-29, `docs/audio.md`).
+concentus = "1.0.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -39,6 +42,7 @@ pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref
 pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 mlkit-digital-ink = { group = "com.google.mlkit", name = "digital-ink-recognition", version.ref = "mlkitDigitalInk" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+concentus = { module = "io.github.jaredmdobson:concentus", version.ref = "concentus" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

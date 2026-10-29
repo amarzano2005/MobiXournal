@@ -2,22 +2,15 @@ package com.mobixournal
 
 import android.graphics.Bitmap
 import android.net.Uri
-import com.mobixournal.format.mobix.CanvasMode
-import com.mobixournal.format.model.Document
-import com.mobixournal.io.canvasGeometryOf
-import com.mobixournal.io.rememberCanvasMode
 import com.mobixournal.panes.EditorPane
-import com.mobixournal.render.DrawingSurfaceDefaults
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.setBackgroundResolver
-import com.mobixournal.render.setInfiniteCanvas
 import com.mobixournal.tabs.DocColors
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
-import com.mobixournal.ui.NewDocumentCanvas
 import com.mobixournal.ui.TabsUiState
 import java.io.File
 
@@ -50,8 +43,6 @@ internal fun MainActivity.tabsUiState(p: EditorPane): TabsUiState {
         paneIndex = index.coerceAtLeast(0),
         paneCount = if (splitView.value) panes.size else 1,
         focused = activePane.value == index,
-        // Never-saved: the shape is still the tab's to decide (see `TabsUiState.canvasEditable`).
-        canvasEditable = p.tabs.active?.uri == null,
         onFocus = { if (index >= 0) activePane.value = index },
         onSelect = { selectTab(it, p) },
         onClose = { closeTab(it, p) },
@@ -194,12 +185,6 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
     view.load(tab.document)
-    // …and whether it is a **board**: the tab carries the mode it was born on or opened with, and the
-    // rest of the geometry comes from the file's own `canvas.json` (a document this session opened) or
-    // from the strip its mode runs in (one created here). Without this, switching away from a chunked
-    // document and back would draw it as a page stack — the rewrite `docs/mobix-format.md` refuses the
-    // *save* over, showing up in the *view*.
-    view.setInfiniteCanvas(io.canvasGeometryOf(tab.document, tab.canvasMode))
     if (tab.page > 0) view.goToPage(tab.page)
     if (pdf != null) analyzePdfInBackground(pdf, view)
 }
@@ -289,108 +274,33 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
 }
 
 /** Open a fresh blank document in a new tab of [p] and switch to it. */
-internal fun MainActivity.newTab(
-    p: EditorPane = pane,
-    canvasMode: CanvasMode = newDocumentCanvas,
-    fixedExtentPt: Double? = null,
-) {
+internal fun MainActivity.newTab(p: EditorPane = pane) {
     // The "+" belongs to a lane, so the new document opens — and the tools land — in that pane.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
-    p.tabs.open(blankTab(p, canvasMode, fixedExtentPt))
+    p.tabs.open(blankTab(p))
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
     p.persist()
 }
 
 /**
- * A fresh blank document in the format **new documents are born in**, on the canvas geometry they are
- * born **on** — the two choices made in Settings → App & data ([newDocumentFormat] and
- * [newDocumentCanvas], pushed down by [applyNewDocumentFormat] and [applyNewDocumentCanvas]).
+ * A fresh blank document in the format **new documents are born in** — the choice made in Settings →
+ * App & data ([newDocumentFormat], pushed down by [applyNewDocumentFormat]).
  *
- * Both are set on the tab rather than left to the pane's defaults because the tab's values *are* the
- * sticky ones ([OpenTab.format], [OpenTab.canvasMode], restored with the tab): a new document started
- * as `.mobix` stays one, one started as `.xopp` is what plain Save offers to write, and a document
- * started on an infinite canvas is **written as chunks from its first save** rather than converted
- * later — which is the whole point of creating it in the mode (`docs/infinite-canvas.md`).
+ * It is set on the tab rather than left to the pane's default because the tab's value *is* the sticky
+ * one ([OpenTab.format], restored with the tab): a new document started as `.mobix` stays one, and one
+ * started as `.xopp` is what plain Save offers to write.
  *
- * The document itself is still one blank page: on a board that page *is* the first chunk (the strip
- * coordinates come from the page index, `MobixDocument.of`), so the same blank sheet is a page in one
- * geometry and chunk `(0, 0)` in another.
- *
- * **A strip is born the size of the pane, unless the page format named a bound.** On a page list the
- * sheet's size is the paper — A4 is A4 because a printer will see it — but an infinite canvas has no
- * printer in its future until an export, and a strip drawn at A4 width on a 2400 px screen is a narrow
- * band of paper with grey down both sides: "infinite" paper that visibly ends a quarter of the way
- * across. So the **bound** of a strip is its [fixedExtentPt] — the fixed width (or height) the
- * page-format dialog was showing when the geometry was chosen — and only when that names nothing does
- * the pane's own extent in pt (px at 100%, which is what the sheet's scale is) stand in: the sheet
- * covers the whole canvas the moment it opens, scrolling adds more of it, and the page-format dialog is
- * where that number is changed afterwards. A width typed in the dialog that created the document would
- * otherwise be thrown away by the very screen that collected it.
- *
- * Only the *locked* axis moves. The running one carries no size of the sheet (it goes on forever) and is
- * read only by an export — its cut length — so it keeps the default paper rather than inheriting a screen
- * height, and a 2D board covers the canvas by construction and so keeps it too.
+ * The document itself is one blank page of the default paper.
  */
-internal fun MainActivity.blankTab(
-    p: EditorPane = pane,
-    canvasMode: CanvasMode = newDocumentCanvas,
-    fixedExtentPt: Double? = null,
-): OpenTab {
-    val format = if (canvasMode != CanvasMode.PAGINATED) {
-        com.mobixournal.format.SaveFormat.MOBIX
-    } else {
-        newDocumentFormat
-    }
-    val surface = p.surface
-    val panePt = if (surface != null && surface.width > 0 && surface.height > 0) {
-        Pair(surface.width.toDouble(), surface.height.toDouble())
-    } else {
-        Pair(DrawingSurfaceDefaults.defaultPageWidth, DrawingSurfaceDefaults.defaultPageHeight)
-    }
-    val doc = boundToPane(blankDocument(), canvasMode, panePt, fixedExtentPt)
-    return OpenTab(
+internal fun MainActivity.blankTab(p: EditorPane = pane): OpenTab =
+    OpenTab(
         TabStore.newId(),
         MainActivity.UNTITLED,
-        doc,
-        format = format,
-        canvasMode = canvasMode,
+        blankDocument(),
+        format = newDocumentFormat,
     )
-}
-
-/**
- * [document] with the fixed side of [mode]'s strip set to [fixedExtentPt] — the width (or height) the
- * page-format dialog was showing — falling back to the pane's own extent when it names none, which is
- * the one number a board's birth (and its conversion, [applyCanvasModeToDocument]) takes from the screen.
- *
- * Applied to **every** page, so a document converted into a strip has all its cells on the same sheet
- * (they share one bound: the axis is a property of the board, not of a tile), and left alone for a page
- * list (whose paper is the printer's) and for a 2D board (which locks nothing, so it has no side to
- * take: `CanvasGeometry.fixedExtentPt`). The running axis is deliberately untouched — it carries no
- * size of the sheet and is read only by an export, as its cut length.
- */
-internal fun boundToPane(
-    document: Document,
-    mode: CanvasMode,
-    panePt: Pair<Double, Double>,
-    fixedExtentPt: Double? = null,
-): Document {
-    // Clamped exactly as the live setter is (`setBoardFixedExtent`): a bound outside the paper range
-    // would make the fit-to-screen zoom absurd in one direction or the band invisible in the other.
-    fun bound(fallback: Double): Double =
-        (fixedExtentPt ?: fallback).coerceIn(
-            DrawingSurfaceDefaults.PAGE_SIZE_MIN_PT,
-            DrawingSurfaceDefaults.PAGE_SIZE_MAX_PT,
-        )
-    return when (mode) {
-        CanvasMode.INFINITE_VERTICAL ->
-            document.copy(pages = document.pages.map { it.copy(width = bound(panePt.first)) })
-        CanvasMode.INFINITE_HORIZONTAL ->
-            document.copy(pages = document.pages.map { it.copy(height = bound(panePt.second)) })
-        CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> document
-    }
-}
 
 /**
  * Bring back the tabs [p] was last closed with, or start it on a single blank one. Called once
@@ -491,20 +401,6 @@ internal fun MainActivity.toggleSplitView() {
     }
     splitView.value = on
     panes.forEach { pane -> pane.surface?.post { pane.surface?.repaintAfterResize() } }
-}
-
-/**
- * Starts a fresh blank page/tab with [mode]'s canvas geometry.
- *
- * Called when the user confirms the canvas mode change popup:
- * because modifying the canvas geometry on the current page is not possible,
- * a new blank document opens on the chosen canvas mode.
- */
-internal fun MainActivity.applyCanvasModeToDocument(
-    mode: NewDocumentCanvas,
-    fixedExtentPt: Double? = null,
-) {
-    newTab(pane, mode.mode, fixedExtentPt)
 }
 
 /** The file name behind a `content://` URI, for the tab's label. Falls back to `UNTITLED`. */

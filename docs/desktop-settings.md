@@ -14,9 +14,9 @@ cannot be lost off an edge (and it is not stored — a window that opened with i
 would be the setting nobody chose). Its fill is `DesktopTheme.settingsPanel`, the glass at **0.97**: at the
 floating alpha the page's own ink came up through the labels.
 
-Its index is **ten sections** — Stylus, Shortcuts, Figures, Colors, Toolbar, Navigation, Appearance,
-Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each wearing the
-shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). They are listed under the tablet's **four
+Its index is **eleven sections** — Stylus, Shortcuts, Audio, Figures, Colors, Toolbar, Navigation,
+Appearance, Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each
+wearing the shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). They are listed under the tablet's **four
 areas** — *Input*, *Drawing*, *Interface*, *App & data* (`DesktopSettingArea`) — because ten names in one
 flat column is a list read top to bottom while four short groups is one scanned by its shape, and a reader
 who uses both shells finds the same subjects under the same headings. What the window does **not** carry is
@@ -253,6 +253,23 @@ keeps figures and tables as recipes, **`.xopp`** is a plain gzip document for de
 that container, and its proposed name carries the same suffix (`Untitled 1.mobix`), so the first save writes
 what the setting promised. **Save As** still switches either way, and an opened document keeps its own
 format whatever this row says (`docs/mobix-format.md`).
+
+## Audio — the microphone and the output
+
+Under **Audio**, **Microphone** (`audio.inputDevice`) and **Output** (`audio.outputDevice`) are the devices
+this machine has, by the platform's own names, with **System default** as the first answer — the answer a
+fresh install has, stored as the *absence* of the key rather than as an empty name. The list is read again
+every time the page opens, because a headset can be plugged in while the window runs.
+
+A name that is **no longer on the machine** is dropped to the system default on this page, in the store as
+well, and the row says so; the recorder and the player then fall back to the default themselves if a device
+disappears mid-session (`DesktopAudioDevices.kt`, `chooseDevice`). That is the whole reason the rows exist:
+a device list that let a take fail on a missing microphone would be a list of names, not a setting.
+
+**Input level** under *The take* is the running take's peak, the same number the header capsule's bar shows,
+and it reads zero with the note that a take has to be started from the capsule — a dead bar with no
+explanation is indistinguishable from a broken microphone. The group also states the file the take is written
+as (44.1 kHz mono 16-bit WAV) and where it lives.
 
 ## Backup — the settings, in a file
 

@@ -17,8 +17,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,8 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.mobixournal.format.mobix.CanvasMode
-import com.mobixournal.render.DrawingSurfaceDefaults
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -70,7 +66,7 @@ internal fun fmtDim(value: Double): String {
 
 /**
  * A short label for the current page size: the matching preset's name (either orientation), else the
- * dimensions in millimetres — used as the trailing hint on the "Page size…" menu row.
+ * dimensions in millimetres — used as the trailing hint on the "Page format" menu row.
  */
 internal fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
     PAGE_PRESETS.firstOrNull { matchesPageSize(widthPt, heightPt, it.widthPt, it.heightPt) }
@@ -78,21 +74,6 @@ internal fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
     return "${fmtDim(widthPt * SizeUnit.MM.perPt)}×${fmtDim(heightPt * SizeUnit.MM.perPt)} mm"
 }
 
-/**
- * The **page format** of the document: its paper (preset tabs A4/A5/Letter/Legal plus **Default**, a
- * unit toggle, width/height fields and a swap button) and its **canvas geometry** — fixed pages, or one
- * of the infinite boards.
- *
- * The two belong together because they answer one question — *what is a page of this document* — and
- * because a geometry is not a per-app preference: a document is written in the shape it was created
- * in, so the choice is made here, next to the paper it replaces, and asked about on confirm
- * ([CanvasModeChangeDialog]). The paper half is hidden for a board ([sized] false), which has no page to
- * measure; the geometry half is always there, so a board can be turned back into pages.
- *
- * [onConfirm] reports the paper **and** the chosen geometry; the caller decides whether the paper is
- * applied (only when there is a page to apply it to) and asks where the geometry goes.
- * [onSaveAsDefault] stores the paper as the default new documents and pages are born with.
- */
 /**
  * The paper half of the page format, as one piece of state: the unit the fields are written in, the
  * size the user has settled on, and the two field strings that carry what they typed (kept separate
@@ -119,6 +100,13 @@ internal class PaperState(widthPt: Double, heightPt: Double) {
     }
 }
 
+/**
+ * The **page format** of the document: its paper (preset tabs A4/A5/Letter/Legal plus **Default**, a
+ * unit toggle, width/height fields and a swap button).
+ *
+ * [onConfirm] reports the paper; the caller applies it to the page in view. [onSaveAsDefault] stores
+ * the paper as the default new documents and pages are born with.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PageFormatDialog(
@@ -126,27 +114,15 @@ internal fun PageFormatDialog(
     initialHeightPt: Double,
     defaultWidthPt: Double,
     defaultHeightPt: Double,
-    defaultCanvas: NewDocumentCanvas = NewDocumentCanvas.PAGINATED,
-    sized: Boolean,
-    canvasMode: CanvasMode,
-    /** The bound on a strip's non-infinite axis, or null when nothing is locked. */
-    extentPt: Double?,
-    extentEditable: Boolean,
-    onExtent: (Double) -> Unit,
-    onConfirm: (Double, Double, NewDocumentCanvas) -> Unit,
+    onConfirm: (Double, Double) -> Unit,
     onSaveAsDefault: (Double, Double) -> Unit,
-    onSaveDefaultSettings: (Double, Double, NewDocumentCanvas) -> Unit = { w, h, _ -> onSaveAsDefault(w, h) },
     onDismiss: () -> Unit,
 ) {
-    val startWidthPt = if ((canvasMode == CanvasMode.INFINITE_VERTICAL || canvasMode == CanvasMode.INFINITE_2D) && extentPt != null) extentPt else initialWidthPt
-    val startHeightPt = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL && extentPt != null) extentPt else initialHeightPt
-    val paper = remember(startWidthPt, startHeightPt) { PaperState(startWidthPt, startHeightPt) }
-    var canvas by remember(canvasMode) { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
+    val paper = remember(initialWidthPt, initialHeightPt) { PaperState(initialWidthPt, initialHeightPt) }
     val defaultPaper = remember { PaperState(defaultWidthPt, defaultHeightPt) }
     LaunchedEffect(defaultWidthPt, defaultHeightPt) {
         defaultPaper.updateFromExternal(defaultWidthPt, defaultHeightPt)
     }
-    var defaultCanvasChoice by remember(defaultCanvas) { mutableStateOf(defaultCanvas) }
     var inDefaultSection by remember { mutableStateOf(false) }
 
     com.mobixournal.ui.theme.FloatingDialog(
@@ -155,7 +131,7 @@ internal fun PageFormatDialog(
             if (inDefaultSection) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = {
-                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvasChoice)
+                        onSaveAsDefault(defaultPaper.widthPt, defaultPaper.heightPt)
                         inDefaultSection = false
                     }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
@@ -171,29 +147,22 @@ internal fun PageFormatDialog(
             if (inDefaultSection) {
                 DefaultFormatContent(
                     defaultPaper = defaultPaper,
-                    defaultCanvas = defaultCanvasChoice,
-                    onSelectCanvas = {
-                        defaultCanvasChoice = it
-                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, it)
-                    },
-                    onPaperChanged = { w, h ->
-                        onSaveDefaultSettings(w, h, defaultCanvasChoice)
-                    },
+                    onPaperChanged = { w, h -> onSaveAsDefault(w, h) },
                 )
             } else {
-                ActiveFormatContent(paper, canvas, onSelectCanvas = { canvas = it })
+                ActiveFormatContent(paper)
             }
         },
         confirmButton = {
             if (inDefaultSection) {
                 DefaultFormatActionButtons(
                     onBack = {
-                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvasChoice)
+                        onSaveAsDefault(defaultPaper.widthPt, defaultPaper.heightPt)
                         inDefaultSection = false
                     },
                     onCancel = onDismiss,
                     onSave = {
-                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvasChoice)
+                        onSaveAsDefault(defaultPaper.widthPt, defaultPaper.heightPt)
                         inDefaultSection = false
                     },
                 )
@@ -205,41 +174,20 @@ internal fun PageFormatDialog(
                         defaultPaper.widthPt = paper.widthPt
                         defaultPaper.heightPt = paper.heightPt
                         defaultPaper.resync()
-                        defaultCanvasChoice = canvas
-                        onSaveDefaultSettings(paper.widthPt, paper.heightPt, canvas)
+                        onSaveAsDefault(paper.widthPt, paper.heightPt)
                     },
-                    onSet = { onConfirm(paper.widthPt, paper.heightPt, canvas) },
+                    onSet = { onConfirm(paper.widthPt, paper.heightPt) },
                 )
             }
         },
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ActiveFormatContent(
-    paper: PaperState,
-    canvas: NewDocumentCanvas,
-    onSelectCanvas: (NewDocumentCanvas) -> Unit,
-) {
+private fun ActiveFormatContent(paper: PaperState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Canvas", style = MaterialTheme.typography.labelMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            for (option in NewDocumentCanvas.entries) {
-                FilterChip(
-                    selected = option == canvas,
-                    onClick = { onSelectCanvas(option) },
-                    label = { Text(option.label) },
-                )
-            }
-        }
-        Text(
-            "Paged breaks the writing into sheets; the infinite canvases keep one running " +
-                "sheet that grows as you scroll, so nothing is cut at a page edge.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        HorizontalDivider()
-        PaperSection(paper, canvas)
+        Text("Paper", style = MaterialTheme.typography.labelMedium)
+        PaperSection(paper)
     }
 }
 
@@ -247,28 +195,11 @@ private fun ActiveFormatContent(
 @Composable
 private fun DefaultFormatContent(
     defaultPaper: PaperState,
-    defaultCanvas: NewDocumentCanvas,
-    onSelectCanvas: (NewDocumentCanvas) -> Unit,
     onPaperChanged: (Double, Double) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Default canvas", style = MaterialTheme.typography.labelMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            for (option in NewDocumentCanvas.entries) {
-                FilterChip(
-                    selected = option == defaultCanvas,
-                    onClick = { onSelectCanvas(option) },
-                    label = { Text(option.label) },
-                )
-            }
-        }
-        Text(
-            "The default canvas geometry used when creating new documents.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        HorizontalDivider()
         Text("Default dimensions", style = MaterialTheme.typography.labelMedium)
-        PaperSection(defaultPaper, defaultCanvas, onChanged = onPaperChanged)
+        PaperSection(defaultPaper, onChanged = onPaperChanged)
     }
 }
 
@@ -328,14 +259,12 @@ private fun DefaultFormatActionButtons(
 }
 
 /**
- * The paper dimensions and presets for the selected [canvas] mode: preset tabs, unit selector, and
- * the relevant width/height field(s) for that mode.
+ * The paper dimensions and presets: preset tabs, unit selector, and the width/height fields.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PaperSection(
     paper: PaperState,
-    canvas: NewDocumentCanvas,
     onChanged: ((Double, Double) -> Unit)? = null,
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -363,49 +292,41 @@ internal fun PaperSection(
             }
         }
     }
-    val showWidth = canvas != NewDocumentCanvas.INFINITE_HORIZONTAL
-    val showHeight = canvas != NewDocumentCanvas.INFINITE_VERTICAL
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (showWidth) {
-            SizeField(
-                label = if (canvas == NewDocumentCanvas.INFINITE_VERTICAL) "Fixed width" else "Width",
-                text = paper.widthText,
-                unit = paper.unit,
-                onText = { entered ->
-                    paper.widthText = entered
-                    entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
-                        paper.widthPt = paper.unit.toPt(it).coerceIn(72.0, 14400.0)
-                        onChanged?.invoke(paper.widthPt, paper.heightPt)
-                    }
-                },
-            )
-        }
-        if (showWidth && showHeight) {
-            IconButton(onClick = {
-                val w = paper.widthPt
-                paper.widthPt = paper.heightPt
-                paper.heightPt = w
-                paper.resync()
-                onChanged?.invoke(paper.widthPt, paper.heightPt)
-            }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
-        }
-        if (showHeight) {
-            SizeField(
-                label = if (canvas == NewDocumentCanvas.INFINITE_HORIZONTAL) "Fixed height" else "Height",
-                text = paper.heightText,
-                unit = paper.unit,
-                onText = { entered ->
-                    paper.heightText = entered
-                    entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
-                        paper.heightPt = paper.unit.toPt(it).coerceIn(72.0, 14400.0)
-                        onChanged?.invoke(paper.widthPt, paper.heightPt)
-                    }
-                },
-            )
-        }
+        SizeField(
+            label = "Width",
+            text = paper.widthText,
+            unit = paper.unit,
+            onText = { entered ->
+                paper.widthText = entered
+                entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
+                    paper.widthPt = paper.unit.toPt(it).coerceIn(72.0, 14400.0)
+                    onChanged?.invoke(paper.widthPt, paper.heightPt)
+                }
+            },
+        )
+        IconButton(onClick = {
+            val w = paper.widthPt
+            paper.widthPt = paper.heightPt
+            paper.heightPt = w
+            paper.resync()
+            onChanged?.invoke(paper.widthPt, paper.heightPt)
+        }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
+        SizeField(
+            label = "Height",
+            text = paper.heightText,
+            unit = paper.unit,
+            onText = { entered ->
+                paper.heightText = entered
+                entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
+                    paper.heightPt = paper.unit.toPt(it).coerceIn(72.0, 14400.0)
+                    onChanged?.invoke(paper.widthPt, paper.heightPt)
+                }
+            },
+        )
     }
 }
 

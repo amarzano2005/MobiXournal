@@ -67,9 +67,6 @@ internal class MobixOpenSessions {
      */
     private val canvases = HashMap<String, MobixCanvasFile>()
 
-    /** Expanded board dimensions `(widthPt, heightPt)` grown by scrolling in the editor, by document id. */
-    private val boardExtents = HashMap<String, Pair<Double, Double>>()
-
     /** Record that [documentId] was read from [staged], through [uri] when the caller knows it. */
     fun remember(documentId: String, staged: File, uri: String?) {
         sources[documentId] = OpenMobix(staged, uri)
@@ -118,48 +115,16 @@ internal class MobixOpenSessions {
         if (grid.size == chunks.size) chunkGrids[id] = grid
     }
 
-    /** Update the remembered canvas mode of [document] when the user switches mode in the Pages menu. */
-    fun rememberMode(document: Document, mode: CanvasMode) {
-        val id = document.documentId ?: return
-        canvasModes[id] = mode
-        boardExtents.remove(id)
-        canvases.remove(id)
-        if (mode == CanvasMode.PAGINATED) {
-            chunkGrids.remove(id)
-        }
-    }
-
-    /**
-     * Record where [document]'s parts sit **now**, by the document's own id, before a write that has to
-     * keep them.
-     */
-    fun rememberGrid(document: Document, coords: List<Pair<Int, Int>>) {
-        val id = document.documentId ?: return
-        chunkGrids[id] = coords
-    }
-
-    /** Record the expanded `(widthPt, heightPt)` of [document]'s board before saving/exporting. */
-    fun rememberExtent(document: Document, widthPt: Double, heightPt: Double) {
-        val id = document.documentId ?: return
-        boardExtents[id] = widthPt to heightPt
-    }
-
-    /** The expanded `(widthPt, heightPt)` recorded for [document], or null if none was recorded. */
-    fun extentOf(document: Document): Pair<Double, Double>? =
-        document.documentId?.let { boardExtents[it] }
-
     /**
      * The canvas mode a write of [document] must claim: the one the file it was opened from declares,
-     * and [bornAs] for a document this session never opened — a `.xopp`, or a document created here,
-     * whose geometry the caller knows from the tab it was born on ([OpenTab.canvasMode]). Writing a
-     * chunked document as paginated is the rewrite `docs/mobix-format.md` refuses a document to avoid,
-     * so a file the session *did* open wins over anything the caller believes about it.
+     * or null for a document this session never opened. Writing a chunked document as paginated is the
+     * rewrite `docs/mobix-format.md` refuses a document to avoid, so a file the session *did* open wins.
      */
-    fun canvasModeOf(document: Document, bornAs: CanvasMode = CanvasMode.PAGINATED): CanvasMode =
-        document.documentId?.let { canvasModes[it] } ?: bornAs
+    fun canvasModeOf(document: Document): CanvasMode? =
+        document.documentId?.let { canvasModes[it] }
 
     /**
-     * Where [document]'s parts sit on an infinite canvas, when this session opened it: the source
+     * Where [document]'s parts sit on a chunked canvas, when this session opened it: the source
      * manifest's own coordinates, or null for a document with no board behind it (the writer then lays
      * its parts out as the mode's strip, `MobixDocument.of`).
      */
@@ -168,8 +133,7 @@ internal class MobixOpenSessions {
 
     /**
      * The board geometry [document] was opened with, or null for a document with no board behind it — a
-     * `.xopp`, a new document, or one opened before this session remembered it. Null means the writer
-     * derives what it can from the pages, which is all a brand-new board has.
+     * `.xopp`, a new document, or one opened before this session remembered it.
      */
     fun canvasOf(document: Document): MobixCanvasFile? =
         document.documentId?.let { canvases[it] }
@@ -190,7 +154,6 @@ internal class MobixOpenSessions {
             canvasModes.remove(id)
             chunkGrids.remove(id)
             canvases.remove(id)
-            boardExtents.remove(id)
         }
     }
 }

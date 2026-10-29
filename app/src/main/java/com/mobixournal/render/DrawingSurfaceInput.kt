@@ -195,15 +195,6 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         return
     }
     val intent = InputClassifier.classify(kind, barrelButton.held, activeTool(), inputSettings)
-    // A board is not a page list, so the page-shaped gestures are refused here, in one place, rather
-    // than half-working on a grid of chunks: the rubber band and its clipboard, the background-region
-    // copy, PDF text selection and the vertical-space drag all speak page indices and page bounds
-    // (`docs/infinite-canvas.md` → *What a board can be edited with*). Inke works in cell space and is
-    // untouched by this.
-    if (board != null && intent.isPageShaped) {
-        notifyBoardBlocked()
-        return
-    }
     stylusOwner = (kind == PointerKind.STYLUS || kind == PointerKind.ERASER_TIP) &&
         (intent == GestureIntent.DRAW || intent == GestureIntent.ERASE)
     when (intent) {
@@ -293,7 +284,7 @@ internal fun DrawingSurfaceView.abandonInProgress() {
     clearSpline(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
     current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
-    gestureCell = null; gestures.reset(); multiTap.reset()
+    gestures.reset(); multiTap.reset()
     // The gesture is gone, so its contacts are too: a router left holding them would read the next
     // sample as a two-finger navigation.
     pointerRouter.reset(); routed = false
@@ -305,7 +296,7 @@ internal fun DrawingSurfaceView.cancelGesture() {
     guideDrag.end(null); clearSpline()
     current = null; currentStrokes = null; shaping = false; scrolling = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
-    textSelecting = false; vspace.reset(); gestureCell = null
+    textSelecting = false; vspace.reset()
     gesturePointerId = -1; stylusOwner = false; multiTap.reset()
     pointerRouter.reset(); routed = false
 }
@@ -371,10 +362,7 @@ internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
         return
     }
     // Pan gain: 1 tracks the finger one-to-one, <1 pans slower, >1 faster, 0 freezes the document.
-    // The clamps are the viewport's, and they are **per mode** ([ViewportState.scrollBy]): a strip is
-    // bounded on its one fixed axis and runs on in the other, a 2D board is bounded on neither, and a
-    // page stack is bounded on both. Clamping both axes to the page stack's extent — which is what
-    // this pan used to do — pins the running axis home the moment that extent stops describing it.
+    // The viewport owns the clamps ([ViewportState.scrollBy]).
     scrollViewportBy((lastFocusX - fx) * panSensitivity, (lastFocusY - fy) * panSensitivity)
     lastFocusY = fy
     lastFocusX = fx
@@ -491,7 +479,6 @@ internal fun DrawingSurfaceView.endGesture() {
 
 /** Record one undo step if this gesture actually changed the document. */
 internal fun DrawingSurfaceView.finishGesture() {
-    gestureCell = null
     val start = gestureStartDoc ?: return
     gestureStartDoc = null
     if (doc !== start) {

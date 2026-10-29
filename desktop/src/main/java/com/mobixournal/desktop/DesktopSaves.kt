@@ -109,6 +109,12 @@ object DesktopSaves {
          * when the two share a folder). Defaulted, because the answer is the document's own.
          */
         pdf: File? = document.pdfSource(),
+        /**
+         * Where the recordings a stroke's `fn` names are found — the window's store. Passed to the
+         * encoder so a `.mobix` **bundles** them instead of writing page references to entries it does
+         * not carry: that omission is what used to delete a document's audio on a PC edit.
+         */
+        audio: DesktopAudioStore = DesktopAudioStore.shared,
     ): Staged {
         if (format == SaveFormat.ZIPPED && hasAttachments(document)) {
             throw SaveRefused(
@@ -129,8 +135,12 @@ object DesktopSaves {
                     appVersion = APP_VERSION,
                     shape = document.saveShapeFor(target),
                     pdf = pdf,
+                    audioFiles = audio::file,
                 )
             }
+            // The `.xopp` half of the same promise: the sidecars a save names are pushed out beside the
+            // file, so the `fn` in the XML resolves to a recording that is actually there.
+            if (format != SaveFormat.MOBIX) audio.exportSidecars(target, document.model)
             Staged(temp, target, uncompiled)
         } catch (failure: Throwable) {
             temp.delete()

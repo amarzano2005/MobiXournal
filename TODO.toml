@@ -106,132 +106,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-audio-shared-seam"
-title = "Desktop: the audio facts move into mobix-core (the shared seam)"
-description = "The plain-Kotlin audio facts the two shells must agree on still live in the app module, so a desktop recording would have to re-derive them. Move, without changing behaviour: (1) app/src/main/java/com/mobixournal/audio/AudioAnnotation.kt - Stroke.withAudio, documentAudioFiles and audioFileName (the yyyy-MM-ddTHH-mm-ss plus extension naming a .xopp fn carries) - into mobix-core, in the file that already owns AudioRef and the fn/ts constants (format/model/StrokeAudio.kt) or an audio/ file beside it. (2) app/.../audio/Playhead.kt (ClipClock and Playhead, no android imports) into mobix-core/src/main/java/com/mobixournal/audio/Playhead.kt, with app/audio/AudioPlayer.kt keeping its MediaPlayer by implementing the moved ClipClock; its rules (a sounding position is the media stack's, a held one is ours) must not be re-derived in the window. (3) their tests (app/src/test/java/com/mobixournal/audio/PlayheadTest.kt and whatever covers the naming and withAudio) move beside them into mobix-core/src/test. Keep thin typealiases or imports in the app where a name is used widely, so this change has no behaviour delta and no call site changes meaning. Verification: :mobix-core:test and :app:testDebugUnitTest green, no android import in the moved files (assert it in the core test), and the app still stamps and reads fn/ts exactly as before (the codecs' round-trip tests are the oracle). Docs: docs/audio.md says where the audio facts live, docs/codebase.md (the shared core section) lists what moved. Regenerate the distributable at the end."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 200
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-opus-via-concentus"
-title = "Desktop: Opus through Concentus and our own Ogg framing"
-description = "Recorded decision (2026-10-29, this task implements it): the window takes WAV from javax.sound.sampled and Opus from io.github.jaredmdobson:concentus 1.0.2 - a pure Java encoder and decoder on Maven Central, so there is no native binary to ship in the MSI and nothing to load at runtime - plus an Ogg layer of our own, because Concentus deliberately contains no container code. Work: (1) add concentus to gradle/libs.versions.toml ([versions] and [libraries], the way jna is declared) and implementation(libs.concentus) to desktop/build.gradle.kts. (2) mobix-core/src/main/java/com/mobixournal/format/audio/OggOpus.kt - an Ogg page writer and reader: capture pattern OggS, segment table, CRC32 with the Ogg polynomial 0x04c11db7, granule position, the OpusHead and OpusTags identification packets, 48 kHz mono, 20 ms frames, one logical stream. It must write the container Android's OpusAudioRecorder writes and read one that writer (or any writer) produced, so a recording captured on either shell is the same asset: encode(pcm, out) and a reader that yields the packets of the first logical stream. (3) The decode side: packets plus a Concentus OpusDecoder produce 48 kHz mono PCM. The container a file holds is already answered by MobixAssetSink.suffixFor (wav/ogg/m4a). (4) An .m4a/AAC recording from a tablet is NOT playable here: a plain JVM carries no AAC decoder and Concentus is Opus-only, so the player says so in one English sentence instead of pretending - no transcode and no rename, the same rule docs/audio-inking-sync.md states for the export path. Tests in mobix-core: one second of a 48 kHz sine survives encode, page, read and decode within a stated tolerance and keeps its sample count; a hand-built page and a fixture .ogg parse to the packets they were built from; a truncated page and a corrupt CRC are refused rather than decoded as noise. Docs: docs/audio.md (the desktop codec row), docs/audio-inking-sync.md (the container sentence), README's desktop paragraph. Verify :mobix-core:test :desktop:test, then createDistributable and open the packaged window - the point of this decision is that it starts with no native library to find."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 205
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-wav-recorder"
-title = "Desktop: record from the microphone through javax.sound.sampled"
-description = "desktop/src/main/java/com/mobixournal/desktop/DesktopAudioRecorder.kt: capture from a Windows microphone in the format docs/audio.md gives for a .xopp WAV - 44.1 kHz, mono, 16-bit signed little-endian PCM - by opening a TargetDataLine from a chosen Mixer (AudioSystem.getMixerInfo / Mixer), reading a bounded buffer of about 100 ms on its own thread, and writing RIFF/WAVE with AudioSystem.write(AudioInputStream, AudioFileFormat.Type.WAVE, file) or with the WavWriter that the shared seam moved out of app/audio; prefer the move, because its two patched length fields and its durationMs are what a stroke's ts is read from. Behaviour: start answers the recording's bare file name (shared audioFileName, extension wav) or one English sentence when the line cannot open (no microphone, device busy, no permission) - never a crash and never a silent no-op; stop finalises the file and answers it; pause and resume close nothing (the capture is muted, not closed, exactly as on the tablet) and elapsedMs() is the bytes written so far over sampleRate times two, so a stroke's offset points at the sample it was drawn over. Settings keys, read from DesktopSettings with the names desktop-settings-audio already states: audio.inputDevice (empty means the system default; a stored device that has disappeared falls back to the default with the recorder saying so) and audio.outputDevice (written by the Settings page, unused here). Expose the peak of the last chunk as a 0..1 level for the status bar that desktop-audio-record-slot-and-status draws; compute it once per chunk, never per sample. Tests: a fake TargetDataLine (the interface is small) proves a half-second capture writes a 44-byte-header WAV of the right length and durationMs, that a line which fails to open answers the sentence and leaves no file behind, that a vanished device falls back to the default, and that the level follows the chunk's peak. Docs: docs/audio.md (recording on Windows), docs/desktop-workstation.md. Verify :desktop:test :mobix-core:test, then createDistributable and record one real take on the Huion machine: the packaged runtime needs java.desktop, and that live pass is what proves the packaged window can open a line."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 210
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-record-slot-and-status"
-title = "Desktop: the Record slot and the recording indicator"
-description = "The window gets the tablet's Audio slot, narrowed to what exists once the recorder does. (1) DesktopTool gains RECORD (ToolSelection.kt) with a face from mobix-core ToolGlyphs - the catalogue has PLAY but no record mark, so add RECORD beside it in ToolGlyphs.kt, drawn on the same 24-unit grid and inside its margin like its neighbours, and keep the glyph and slot tests green. The slot joins DESKTOP_TOOL_GROUPS and DESKTOP_TOOLS_THAT_ACT, and DesktopTool.inksByPackets stays false for it: a click on a slot is not ink. A click toggles - idle starts a take through DesktopAudioRecorder, recording stops it - and with no document open the slot says what is missing in one English sentence instead of failing silently. (2) The status bar (StatusBar in DesktopStatus.kt, called from DesktopShellView.kt) shows a record dot in the accent, the elapsed time in tabular figures as mm:ss, and a thin level bar from the recorder's peak, only while recording; a paused take reads paused, not recording. Tokens only (DesktopTheme), one material class, all five states, English copy (docs/interface-contract.md), and the bar keeps its 24 dp height. (3) Tests: a slot test that RECORD is on the strip, is not ink and toggles; a render test over StatusBar through ImageComposeScene that the indicator is absent when idle, present with a level while recording, and reads paused when paused, saving its frame under desktop/build/desktop-render/ the way DesktopRenderTest does. Docs: docs/desktop-workstation.md (the strip list and the status bar sentence), docs/audio.md, README's desktop paragraph. Verify :desktop:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 215
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-sidecars-and-bundling"
-title = "Desktop: recordings travel with the document (sidecar and bundled)"
-description = "A recording leaves with the document by the format's own rule, and the window has neither half. (1) Store: recordings live in %APPDATA%\\MobiXournal\\audio, beside desktop.properties (DesktopSettings.defaultFile), one bare file name each, copied as a stream - never a ByteArray, since MobixPayload.of(File) is the streaming seam. (2) .xopp: on open pull every name in documentAudioFiles(model) that sits beside the document into the store (the desktop can read siblings; there is no SAF grant to respect), and on save push every name the model references back out beside the target, so the fn in the file resolves to the file that is actually there; a name already present at the same length is not rewritten. (3) .mobix: bundle by passing audioFiles = { name -> store.file(name) } to the DocumentEncoder.write call in DesktopSaves.stage - the parameter already exists in mobix-core/io/DocumentEncoder.kt - so the archive carries assets/aud_<sha>.<ext> by content hash and one recording behind forty strokes is stored once. On open, adopt what the pages name: the desktop's version of app/io/BundledPageAssets.kt (which cannot move - it depends on the app's BackgroundResolver), at the .mobix open in DocumentLoader.openMobix where PageBackdrop already receives reader.assetSource - for each stroke carrying bundledAudio, copy the entry once per entry into the store under stroke.audioRef().filename, the name playback looks a recording up by. (4) A recording a document references and this machine does not have is reported once in English, naming the recordings - the window's answer to AudioSession.missingFor - not a silent silence and not a crash. Tests: a .xopp saved next to its sidecar reopens and finds it; a .mobix written with two strokes on one recording carries exactly one aud_ entry and reopens with the recording in the store; a document whose recording is gone opens with the report and no exception. Docs: docs/audio.md (sidecars on Windows), docs/desktop-documents.md (what a save writes), README. Verify :desktop:test :mobix-core:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 220
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-stamp-strokes"
-title = "Desktop: a stroke committed while recording carries its offset"
-description = "While a take runs, every committed stroke carries the link, from the one funnel. Use the shared Stroke.withAudio (moved into mobix-core by desktop-audio-shared-seam) where the window appends a committed stroke to the page - the single commit that freehand strokes, figures and highlighter bands all pass through (follow the ink router's commit into the tab's PageWindow rather than stamping per tool) - reading the recorder's stamp exactly as the tablet reads audioStamp inside appendStroke: the offset is the bytes written so far, never wall time. A commit while the take is paused stamps nothing. A stroke committed with no recording is untouched. The per-point dtMs the window already writes (DesktopPen.kt, from the packet's own timeMs) is what makes point-precise seek work: assert in the test that it still sums to the stroke's own timeline, so a tap can land on a word. Tests: a scene test that a stroke drawn during a take carries fn and ts (the recording's name and the elapsed ms) and one drawn after it carries neither; a pure test that withAudio writes the two attributes the .xopp codec reads and that a .mobix audioRef round-trips them. Docs: docs/audio.md (the stamping sentence gains the window), docs/desktop-editing.md (one line: a stroke drawn while recording carries its offset), README. Verify :desktop:test :mobix-core:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 225
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-playback-and-transport"
-title = "Desktop: play a recording back, with a transport"
-description = "(1) Engine, desktop/src/main/java/com/mobixournal/desktop/DesktopAudioPlayer.kt: a WAV through javax.sound.sampled and an .ogg/Opus through the Concentus decoder from desktop-audio-opus-via-concentus. One clip at a time: play(ref) from the stroke's own startMs, pause holds the position (nothing sounds), resume continues from it, stop lets it go, seek(ms) clamps to the clip's length, playbackSpeed, and a ClipClock implementation feeding the shared Playhead - whose rules (a sounding position is the media stack's and reads back as the position asked for until the stack gets there, a held one is ours and moves only when we seek it) are already JVM-tested and must not be re-derived. A missing file, and an .m4a, each say one English sentence. Keep the engine, the state and the composable in separate files under SourceStructureTest's ceilings. (2) Transport: a floating glass pill over the page in the window's own material and tokens (one material class, all five states, English copy, docs/interface-contract.md), carrying play/pause, stop, the clip's name, a scrubber over clipDurationMs whose drag calls seek and repaints once per step rather than a frame per vsync (mode 2 of docs/audio-inking-sync.md is the model), and a speed selector. Space stays pan: give the transport its own key, read the table in docs/desktop-ui-layout.md (lines around 89 to 107 and 150 to 180) before choosing one and never reuse a taken key; Esc closes the pill and goes through the shell's existing escape handling. (3) Recorded decision: the dial does not scrub. Its setting stays tablet.dial=zoom|width (desktop-dial-width-and-ring) and the transport's scrubber is its own control, so the dial has one meaning at a time and this task adds no third value to that setting. (4) Tests: engine tests over a real WAV written by the recorder's own writer with a fake clock - play seeks to startMs, a pause keeps the position and resume continues, a seek past the end lands on the end, a second play replaces the first; a render test of the pill over a page and of its absence with nothing playing; a scene test that a scrub drag moves the playhead. Docs: docs/audio.md (playback on the window), docs/audio-inking-sync.md (the transport as mode 2), docs/desktop-workstation.md, the shortcut table in docs/desktop-ui-layout.md, README. Verify :desktop:test :mobix-core:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 230
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-tap-and-y-key"
-title = "Desktop: tap a stroke and hear the moment it was written"
-description = "The tablet's Play object tap, on the window. DesktopTool gains AUDIO, its face is the existing ToolGlyphs.PLAY (the catalogue already draws the tablet's Audio Tap / Replay mark), its shortcut is Y as the shared table says (docs/desktop-ui-layout.md, Audio Tap / Replay), wired in DesktopKeys and recorded in ShortcutTable; check that no command binds Y today before wiring it. The slot is on the strip and DesktopTool.inksByPackets stays false for it - a tap with this slot is not ink, so the pen's packets must stand aside (DesktopVerticalSpaceTest is the pattern). A tap picks the topmost stroke under the point through SelectionTester.pickTopmost in mobix-core (the tablet's own pick), reads its AudioRef, and plays from the point-precise time computed by the shared seekTimeMs formula (the stroke's start plus the deltas up to the nearest point) - use the moved function from desktop-karaoke-replay if it has landed, otherwise move just that pure function rather than copying it. A stroke with no recording, and a tap on the desk, each say one English sentence; a stroke whose points carry no deltas falls back to its own startMs, as the tablet does. A tap while a clip sounds seeks that clip instead of opening a second player. Tests: a scene test that a tap on a stroked page with a recording starts playback at the nearest point's time and one on a stroke without a recording says why; a pure test of the pick on overlapping strokes; a slot test that AUDIO is on the strip, is not ink, and answers Y. Docs: docs/audio.md (the tap on the window), docs/desktop-ui-layout.md (the strip list), README. Verify :desktop:test :mobix-core:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 235
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-karaoke-replay"
-title = "Desktop: karaoke replay, the writing follows the recording"
-description = "The writing follows the recording in the window as it does on the tablet. (1) Shared: move the pure half of app/render/KaraokeStrokeAnimator.kt into mobix-core render/ - State, RenderDirective, resolve, pointTimeMs, seekTimeMs, dimmedColor, isMatchingRecording - leaving in the app only the Canvas tip painter and the DrawingSurfaceView extension; KaraokeStrokeAnimatorTest moves with the pure half, and the tablet's own suite is the oracle that its painting did not change. (2) Frame loop: while a clip sounds the window posts one frame per vsync through Compose (withFrameNanos in a LaunchedEffect over a DesktopKaraokeDriver state), stopped on stop, on completion and when the tab closes - the tablet's KaraokeFrameDriver is the model, including its rule that a pause publishes once and then stops. (3) Paint: the page painter applies the directive per stroke - strokes the recording has not reached dimmed at DIMMED_ALPHA_FACTOR, the one being written drawn as its visible prefix with the glowing tip - and, exactly as the tablet cannot blit a page out of its ink cache while a clip sounds, the page is painted directly rather than from PagePicture for as long as a clip sounds, because a cached picture holds the recording as finished. (4) Tests: the moved core tests; a render test with a fake playhead that a page painted before a stroke's start shows it dimmed and painted after its end shows it whole, and that the loop publishes once and stops while held; a scene test that turning the page while sounding drops the state. Docs: docs/audio-inking-sync.md (mode 1 on the window), docs/desktop-workstation.md (A stroke costs the stroke gains the exception), README. Verify :desktop:test :mobix-core:test :app:testDebugUnitTest and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 240
-created = 2026-10-29
-tags = ["desktop", "audio"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ultrawide-21x9-layout"
 title = "Desktop: 21:9 ultrawide layout (scope)"
 description = "Optimise desktop/ for 21:9 monitors (3440x1440 and 2560x1080). This scope owns the LAYOUT and nothing of the settings that expose it: the page spread, the fixed widths and the fits are specified here, and the window that offers them is desktop-settings-and-status-ui's. Investigate and break into tasks: (1) multi-page spread - 2 or 3 pages side by side with fit-to-height, chosen per tab and remembered, with a status-bar indicator and keys; (2) sidebar (240 dp) and inspector (300 dp) stay docked at fixed width so the extra width goes to the desk, never stretching the page or the chrome; (3) rail and ribbon placement on ultrawide (rail in its own lane, ribbon optional) per docs/ui-modernization.md; (4) the AUTO fit mode learns the window's aspect ratio; (5) thumbnails and AUTO fit for long-strip pages. Document the layout in the desktop section of docs/ui-modernization.md. Verify headlessly with ImageComposeScene renders at 3440x1440 and 2560x1080 into desktop/build/desktop-render/, asserting pixel regions (no band over the page, pages side by side), plus one manual check on the owner's monitor."
@@ -254,20 +128,6 @@ level = "scope"
 category = "feature"
 urgency = "normal"
 order = 330
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-infinite-canvas-view"
-title = "Desktop: infinite canvas viewing and editing (scope)"
-description = "docs/infinite-canvas.md defines vertical, horizontal and 2D board modes with spatial chunking. Find out what the desktop viewer does today with a board document (a .mobix in INFINITE_2D mode, device fixtures from DeviceFixturesTest), whether chunks stream, how pan and zoom work without page edges, and what the pages-spread layout of desktop-ultrawide-21x9-layout means for a board. Add task-level children. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 340
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -318,27 +178,13 @@ emulator_debug = false
 [[task]]
 id = "step-3-desktop-workstation"
 title = "Step 3 — Desktop workstation program (epic)"
-description = "The milestone, and the decisions behind it. MobiXournal Desktop is the native workstation app for WINDOWS 11 ONLY (decision 2026-10-21: no Linux, no macOS, no plugin system) that opens the same documents as the tablet editor, on a graphics tablet, for 21:9 monitors and 144 Hz, with bimanual shortcuts, living-entity editing and tablet rotary-dial support. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the chrome is the app's own glass on a true-black desk (not Mica), the tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is the plain kotlin-jvm module both shells depend on (mobix-core). Shipped phases: the shared core (mobix-core: ink, paper and paper geometry), the complete reader (.mobix and ZIP .xopp, tabs, Ctrl+B sidebar, zoom and pan, the decided chrome, both placements), editing (pressure inking through the shared router, both erasers, the geometry slots, vertical space, undo and redo, Save and Save As under the sticky format policy, the paged page window), the graphics tablet (Wintab and Windows Ink, the packets path, the dial's notch) and 144 Hz render pacing (the page recorded once, scroll and zoom as replays, a lift costing the stroke). What remains is the open work of TODO.toml and nothing else: this epic owns no plan of its own, so read the list. Its ordering is the owner's: (1) every tool equivalent to the tablet's, including the complete icon-to-glyph adaptation, (2) the Settings section, (3) audio recording and playback, (4) everything else - the strip's groups and pickers, selection, text and math, STEM placement, living-entity editing, PDF annotation, images, the radial HUD, undo/redo controls, ultrawide layout, export, page management and search, boards, extra windows, the MSI, and stroke-head prediction. Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, README documenting it, and the 144 Hz and tablet results confirmed by the owner on real hardware. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."
+description = "The milestone, and the decisions behind it. MobiXournal Desktop is the native workstation app for WINDOWS 11 ONLY (decision 2026-10-21: no Linux, no macOS, no plugin system) that opens the same documents as the tablet editor, on a graphics tablet, for 21:9 monitors and 144 Hz, with bimanual shortcuts, living-entity editing and tablet rotary-dial support. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the chrome is the app's own glass on a true-black desk (not Mica), the tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is the plain kotlin-jvm module both shells depend on (mobix-core). Shipped phases: the shared core (mobix-core: ink, paper and paper geometry), the complete reader (.mobix and ZIP .xopp, tabs, Ctrl+B sidebar, zoom and pan, the decided chrome, both placements), editing (pressure inking through the shared router, both erasers, the geometry slots, vertical space, undo and redo, Save and Save As under the sticky format policy, the paged page window), the graphics tablet (Wintab and Windows Ink, the packets path, the dial's notch) and 144 Hz render pacing (the page recorded once, scroll and zoom as replays, a lift costing the stroke). What remains is the open work of TODO.toml and nothing else: this epic owns no plan of its own, so read the list. Its ordering is the owner's: (1) every tool equivalent to the tablet's, including the complete icon-to-glyph adaptation, (2) the Settings section, (3) audio recording and playback, (4) everything else - the strip's groups and pickers, selection, text and math, STEM placement, living-entity editing, PDF annotation, images, the radial HUD, undo/redo controls, ultrawide layout, export, page management and search, extra windows, the MSI, and stroke-head prediction. Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, README documenting it, and the 144 Hz and tablet results confirmed by the owner on real hardware. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."
 status = "active"
 level = "epic"
 category = "feature"
 urgency = "normal"
 order = 990
 created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-settings-audio"
-title = "Desktop: Audio section (when recording lands)"
-description = "The Audio page, once desktop-audio-replay has landed: the input device list, the input level meter and the output choice, stored as audio.inputDevice and audio.outputDevice in DesktopSettings and read by the recorder that task builds. Until then the section is one line saying recording is not in this build. A device that has disappeared is dropped to the system default with the row saying so, rather than the recorder failing to start. Tests: a round-trip per key and the vanished-device fallback. Docs: docs/desktop-workstation.md."
-status = "blocked"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1120
-created = 2026-10-26
 tags = []
 rebuild = false
 emulator_debug = false

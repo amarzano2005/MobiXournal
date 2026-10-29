@@ -62,21 +62,22 @@ the window does the same in `DesktopInkState.pageInk`: the strip's dots and the 
 slot, while the stroke, the live preview and the ring take the tip, so a highlighter on the PC is the
 band it is on the phone (`DesktopInkSplitTest`, `DesktopColorParityTest`).
 
-**One plan, and the window is its only emitter.** The PDF half of a page is not a painter's opinion:
-`PdfPagePlan` in `mobix-core` compiles a page into an ordered list of ops (a filled outline, a stroked
-polyline with the pressure's per-segment widths, a text run at its baseline, an image at its box), and
-`DesktopPdfPainter` replays that list through `org.apache.pdfbox` with one arm per op and `runCatching`
-around each, so one unencodable op is skipped instead of losing the page. The tablet writes no such
-stream any more: its export paints each page with the canvas's own `PageRenderer`/`BackgroundRenderer`
-pair, one image per PDF page, plus the real annotation dictionaries — the shape [pdf.md](pdf.md) owns.
-`DesktopPdfPainterTest` reads the content stream the window produces, so the claim that the PC prints
-the page is checked against the plan's own colours rather than against a guess.
+**One plan, two emitters.** The PDF half of a page is not a painter's opinion: `PdfPagePlan` in
+`mobix-core` compiles a page into an ordered list of ops (a filled outline, a stroked polyline with the
+pressure's per-segment widths, a text run at its baseline, an image at its box) and each shell replays
+that list with one arm per op and `runCatching` around each, so one unencodable op is skipped instead of
+losing the page. `PdfVectorPainter` is the app's replay through `pdfbox-android`; `DesktopPdfPainter` is
+the window's through `org.apache.pdfbox` — arms in the same order, the same graphics state, and the only
+differences the ones the platforms force (images decode with `ImageIO` rather than `BitmapFactory`, and
+Apache PDFBox has no `setStrokingArgb`, so the colour is split into three channels while the alpha stays
+in the state). `DesktopPdfPainterTest` reads the produced content stream, so the claim that the PC prints
+the tablet's page is checked against the plan's own colours rather than against a guess.
 
 **A page is its paper and its ink, and both come from the plan.** `PdfPagePlan.paper` compiles the sheet
 fill and its ruling — the page's own spacing, bold interval, margin and widths, the dotted sheet's small
 squares and the isometric mesh — into the same op list, so a ruled page cannot print blank on one shell
-(`PdfPagePlanTest` counts the rules against the sheet's own spacing). `DesktopPdfPainter` replays that
-paper list too, one path per op: the geometry has no second home to drift into.
+(`PdfPagePlanTest` counts the rules against the sheet's own spacing). `PdfBackgroundPainter` is a one-line
+replay of it: the geometry has no second home to drift into.
 
 **The window smooths its own line — but never a corner.** A page stores *samples*, and on the desktop they
 are 8 ms apart at best, so joining them with `lineTo` drew the sampling rate as facets along every

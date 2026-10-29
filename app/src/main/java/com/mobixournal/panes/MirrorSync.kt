@@ -3,7 +3,6 @@ package com.mobixournal.panes
 import android.os.Handler
 import android.os.Looper
 import com.mobixournal.format.model.Document
-import com.mobixournal.render.CanvasGeometry
 import com.mobixournal.render.EditHistory
 import com.mobixournal.tabs.OpenTab
 
@@ -36,8 +35,6 @@ class MirrorSync(
     /** The newest edit waiting to be fanned out, and the pane it was made in. */
     private var pendingSource: EditorPane? = null
     private var pendingDoc: Document? = null
-    /** The board the pending edit was made on, when it was one: see [propagate]. */
-    private var pendingGeometry: CanvasGeometry? = null
     private var scheduled = false
 
     /**
@@ -45,13 +42,12 @@ class MirrorSync(
      * document should catch up to. A no-op when nothing else is looking at it, which is the ordinary
      * single-view case.
      */
-    internal fun propagate(source: EditorPane, doc: Document, geometry: CanvasGeometry? = null) {
+    internal fun propagate(source: EditorPane, doc: Document) {
         val active = source.tabs.active ?: return
         val key = active.docKey
         if (panes.none { p -> p.tabs.tabs.any { it.docKey == key && it.id != active.id } }) return
         pendingSource = source
         pendingDoc = doc
-        pendingGeometry = geometry
         if (scheduled) return
         scheduled = true
         post { flush() }
@@ -66,10 +62,8 @@ class MirrorSync(
         scheduled = false
         val source = pendingSource
         val doc = pendingDoc
-        val geometry = pendingGeometry
         pendingSource = null
         pendingDoc = null
-        pendingGeometry = null
         if (source == null || doc == null) return
         val key = source.tabs.active?.docKey ?: return
         // The source's stack becomes the document's stack: every view of this key now records and
@@ -82,7 +76,7 @@ class MirrorSync(
             // rather than copying it per tab.
             p.tabs.updateMatching({ it.docKey == key }) { it.copy(document = doc, hydrated = true) }
             if (p === source) continue
-            if (p.tabs.active?.docKey == key) p.surface?.applyMirroredDocument(doc, geometry, history)
+            if (p.tabs.active?.docKey == key) p.surface?.applyMirroredDocument(doc, history)
         }
     }
 }

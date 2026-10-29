@@ -18,16 +18,6 @@ data class SnapshotSources(
     val pdf: File? = null,
     /** Each `pixmap` background's picture, keyed by the reference the document carries. */
     val images: Map<String, File> = emptyMap(),
-    /**
-     * Records where the document's cells sit, for the write that follows: `DocumentIo`'s own
-     * `rememberBoardShape`, handed in as an **action** rather than as a geometry.
-     *
-     * A board's coordinates are a fact of the board — a chunk is named after its cell, so a cell
-     * created since the open would otherwise be laid out on the mode's strip and the ink written into
-     * it would move (`docs/infinite-canvas.md`). The value that says so belongs to the document I/O
-     * layer and stays there; the seam only has to be able to ask for it, which is what this is.
-     */
-    val rememberBoardShape: (Document) -> Unit = {},
 )
 
 /**

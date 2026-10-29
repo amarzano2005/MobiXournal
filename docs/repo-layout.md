@@ -174,8 +174,8 @@ app/
       PdfTextIndexCache.kt   # one extracted text layer per PDF file, shared across mirrored views
       PdfOutline.kt          # the Contents model: one row per bookmark + the tree flattening (pure)
       PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox; PdfOutlineCache.kt mirrors the text cache
-      PdfExporter.kt         # exports a Document as a normal PDF: each page painted as the canvas shows it, one image per page (PDFBox), annotations over it
-      PdfOverlayMatrix.kt    # overlay cm-matrix that aligns annotations on /Rotate 90/180/270 pages (pure); PdfAnnotations.kt writes the /Highlight, /Ink and /Text dictionaries
+      PdfExporter.kt         # exports a Document as a vector PDF: pages from the shared plan, imported PDF pages kept verbatim, the ink over them, no annotation dictionaries (as on the window)
+      PdfOverlayMatrix.kt    # overlay cm-matrix that aligns the ink overlay on /Rotate 90/180/270 pages (pure)
       TextPaginator.kt       # text-import word-wrap + A4 pagination, injected measurement; TextWrapping.kt is the shared tab-expansion/hard-break (pure)
       PdfFonts.kt            # embeds the bundled Unicode fonts (DejaVu) into a PDDocument, cached per doc
       TextPdfGenerator.kt    # authors the text-import PDF: selectable embedded text, injected font loader

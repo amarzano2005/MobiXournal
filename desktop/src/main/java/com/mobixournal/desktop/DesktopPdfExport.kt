@@ -30,9 +30,9 @@ import org.apache.pdfbox.util.Matrix
  * for as long as the export writes into its pages — an imported page borrows its streams — and is closed
  * once the target file has been saved.
  *
- * The one honest difference from the phone, stated in `docs/pdf.md`: no `/Highlight`, `/Ink` or `/Text`
- * annotation dictionaries are added — the ink is flattened, so every viewer shows the page, but a
- * reader's annotation pane stays empty.
+ * The ink is page content only, exactly as the tablet writes it (`docs/pdf.md`): no `/Highlight`,
+ * `/Ink` or `/Text` annotation dictionaries are added, so the two shells produce the same file — every
+ * viewer shows the marks because they are paint, and a reader's annotation pane stays empty.
  */
 internal object DesktopPdfExport {
 

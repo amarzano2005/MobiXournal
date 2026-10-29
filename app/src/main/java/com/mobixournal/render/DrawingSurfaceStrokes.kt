@@ -288,8 +288,8 @@ internal fun DrawingSurfaceView.clearSpline() {
  * The eraser: a contact the router reports as a hit deletes whatever is under it.
  *
  * The **first** hit of a gesture is what sets the gesture up — the pointer that owns it, its undo
- * baseline and the page it rubs (`gestureBoxAt`, which is also where a board fixes its cell) — and
- * every later hit rubs on that same page, so dragging off the sheet does not erase a neighbour.
+ * baseline and the page it rubs (`gestureBoxAt`) — and every later hit rubs on that same page, so
+ * dragging off the sheet does not erase a neighbour.
  */
 internal fun DrawingSurfaceView.eraseAtPointer(pointer: InkPointer) {
     if (!erasing) {
@@ -364,19 +364,9 @@ internal fun DrawingSurfaceView.placeMove(event: MotionEvent) {
 
 /**
  * Fire [onPlace] for the page/point the tap landed on, hitting an existing text box if any.
- *
- * On a board a tap in a cell the document has no chunk for **creates** that chunk: a placement is a
- * deliberate tap, and the text box, image or formula it is about to insert needs a page to live on. The
- * cell is the one the tap landed in, so the element arrives where it was placed.
  */
 internal fun DrawingSurfaceView.commitPlace() {
     val kind = placeKind ?: return
-    // A board places into the cell under the tap, creating it when the board has no chunk there
-    // (DrawingSurfaceBoardInk).
-    if (board != null) {
-        commitChunkPlace(kind)
-        return
-    }
     val box = layout.pageAt(placeDownX + scrollX, placeDownY + scrollY) ?: return
     val xPt = box.toPtX(placeDownX, scrollX)
     val yPt = box.toPtY(placeDownY, scrollY)
@@ -607,29 +597,13 @@ internal fun DrawingSurfaceView.audioTap(event: MotionEvent, pointerIndex: Int) 
 internal fun DrawingSurfaceView.withAudioStamp(stroke: Stroke): Stroke =
     audioStamp?.invoke()?.let(stroke::withAudio) ?: stroke
 
-/**
- * Append [stroke] to the active (or top) layer of page [pageIndex], rebuilding the model.
- *
- * On a board [pageIndex] is the document page a **chunk** stands for, and the stroke goes into the cell
- * the gesture began in — creating the board's chunk when the pen went down in a cell it had none for
- * ([BoardInk.writeAt]), which is what makes an infinite canvas writable rather than only drawable. The
- * cell's own page is the store, so nothing is staged in the tile cache: eviction cannot lose the ink.
- */
+/** Append [stroke] to the active (or top) layer of page [pageIndex], rebuilding the model. */
 internal fun DrawingSurfaceView.appendStroke(pageIndex: Int, stroke: Stroke) {
-    // On a board the stroke goes into the chunk under the pen rather than onto a page of the stack
-    // (DrawingSurfaceBoardInk).
-    if (board != null) {
-        appendChunkStroke(pageIndex, stroke)
-        return
-    }
     val edited = windowEditPage(pageIndex) { page -> withStroke(page, stroke) } ?: return
     relayout() // rebuild boxes so they reference the updated pages, not stale ones
 }
 
-/**
- * [page] with [stroke] appended to its active (or top) layer — the one commit shape ink has, shared by
- * a page stack's ink and a board's (`DrawingSurfaceBoardInk`).
- */
+/** [page] with [stroke] appended to its active (or top) layer — the one commit shape ink has. */
 internal fun DrawingSurfaceView.withStroke(page: Page, stroke: Stroke): Page {
     val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
     val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
@@ -656,7 +630,6 @@ internal fun DrawingSurfaceView.resolvedActiveLayer(page: Page): Int =
  * only and skipping hidden layers ([PageEraser]). Returns true if anything on the page changed.
  */
 internal fun DrawingSurfaceView.eraseOnPage(pageIndex: Int, px: Double, py: Double, radius: Double, mode: EraserMode = eraserMode): Boolean {
-    if (board != null) return eraseFromChunk(pageIndex, px, py, radius, mode)
     val page = pageAt(pageIndex) ?: return false
     val hidden = page.layers.indices.filter { isLayerHidden(pageIndex, it) }.toSet()
     val target = resolvedActiveLayer(page)

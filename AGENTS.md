@@ -58,7 +58,7 @@ with the tests that enforce it.
   - **Rich stylus telemetry**: $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \Delta t_{\text{ms}})$ for replay and diagnostics.
   - **Scalable container engines**: part-per-page LRU streaming (`PageSource` / `MobixPagedReader`),
     incremental delta-saves (`MobixIncrementalSaver` / `MobixZipRewrite`), content-hash deduplicated
-    binary assets (`assets/`), and spatial chunking (`chunks/`) for infinite-canvas documents.
+    binary assets (`assets/`), and spatial chunking (`chunks/`) for chunked documents.
 - **`.xopp` (Interchange format — `docs/xopp-format.md`)**:
   Gzip-compressed XML (or self-contained ZIP `.xopp`) for lossless round-trip interoperability with
   desktop Xournal++ on Linux.

@@ -95,65 +95,14 @@ class ViewportStateTest {
         assertEquals(1f, v.zoom, 0f)
     }
 
-    @Test fun `infinite vertical mode locks width and scrolls downwards unbounded`() {
-        val v = viewport().apply { canvasMode = com.mobixournal.format.mobix.CanvasMode.INFINITE_VERTICAL }
-        // Horizontal is clamped to maxScrollX (100)
+    @Test fun `scrolling is clamped to the page stack in both axes`() {
+        val v = viewport()
         v.scrollBy(1000f, 5000f)
         assertEquals(100f, v.scrollX, 0f)
-        assertEquals(5000f, v.scrollY, 0f)
-        // Cannot scroll above top (y >= 0)
-        v.scrollBy(0f, -10000f)
-        assertEquals(0f, v.scrollY, 0f)
-    }
-
-    @Test fun `infinite horizontal mode locks height and scrolls rightwards unbounded`() {
-        val v = viewport().apply { canvasMode = com.mobixournal.format.mobix.CanvasMode.INFINITE_HORIZONTAL }
-        // Vertical is clamped to maxScrollY (300)
-        v.scrollBy(5000f, 1000f)
-        assertEquals(5000f, v.scrollX, 0f)
         assertEquals(300f, v.scrollY, 0f)
-        // Cannot scroll left of origin (x >= 0)
-        v.scrollBy(-10000f, 0f)
+        v.scrollBy(-10000f, -10000f)
         assertEquals(0f, v.scrollX, 0f)
-    }
-
-    @Test fun `infinite 2d mode allows completely free unbounded scrolling in all directions`() {
-        val v = viewport().apply { canvasMode = com.mobixournal.format.mobix.CanvasMode.INFINITE_2D }
-        v.scrollBy(-2000f, -3000f)
-        assertEquals(-2000f, v.scrollX, 0f)
-        assertEquals(-3000f, v.scrollY, 0f)
-        v.scrollBy(5000f, 7000f)
-        assertEquals(3000f, v.scrollX, 0f)
-        assertEquals(4000f, v.scrollY, 0f)
-    }
-
-    @Test fun `visible chunk range computes spatial coordinates and 1-chunk margin`() {
-        val v = ViewportState().apply {
-            canvasMode = com.mobixournal.format.mobix.CanvasMode.INFINITE_2D
-            setBounds(1024f, 1024f, 1024f, 1024f)
-        }
-        // At origin (0, 0), viewport covers [0..1024, 0..1024] pt
-        var range = v.visibleChunkRange(1024.0)
-        assertEquals(0, range.cxMin)
-        assertEquals(1, range.cxMax)
-        assertEquals(0, range.cyMin)
-        assertEquals(1, range.cyMax)
-
-        // 1-chunk margin
-        val marginRange = range.withMargin(1)
-        assertEquals(-1, marginRange.cxMin)
-        assertEquals(2, marginRange.cxMax)
-        assertEquals(-1, marginRange.cyMin)
-        assertEquals(2, marginRange.cyMax)
-
-        // Negative coordinates in 2D mode: scroll to (-2048, 3072)
-        v.scrollToX(-2048f)
-        v.scrollToY(3072f)
-        range = v.visibleChunkRange(1024.0)
-        assertEquals(-2, range.cxMin)
-        assertEquals(-1, range.cxMax)
-        assertEquals(3, range.cyMin)
-        assertEquals(4, range.cyMax)
+        assertEquals(0f, v.scrollY, 0f)
     }
 
     @Test fun `kept scale holds the page's size across a width change`() {

@@ -32,7 +32,6 @@ import com.mobixournal.io.UriStaging
 import com.mobixournal.io.XOPP_MIME
 import com.mobixournal.panes.EditorPane
 import com.mobixournal.panes.MirrorSync
-import com.mobixournal.io.rememberBoardShape
 import com.mobixournal.tabs.MobixTabSnapshots
 import com.mobixournal.tabs.SnapshotSources
 import com.mobixournal.render.BitmapBudget
@@ -76,14 +75,13 @@ class MainActivity : ComponentActivity() {
             // picture or recording its pages name ([MobixTabSnapshots]).
             EditorPane(
                 store = TabStore(File(filesDir, it), MobixTabSnapshots(io, audio::recordingFile)),
-                // The canvas holds an imported picture or an edited board's grid; the document I/O
-                // layer knows what to do with them. Both are asked at snapshot time, for the document
-                // that is actually on the canvas.
+                // The canvas holds the imported picture; the document I/O layer knows what to do
+                // with it. Both are asked at snapshot time, for the document that is actually on the
+                // canvas.
                 sourcesOf = { view ->
                     SnapshotSources(
                         pdf = view.pdfSourceFile(),
                         images = view.imageSources(),
-                        rememberBoardShape = { doc -> io.rememberBoardShape(doc, view.canvasGeometry()) },
                     )
                 },
             )
@@ -501,19 +499,11 @@ class MainActivity : ComponentActivity() {
                         pendingImagePlacement = placement
                         pickImageLauncher.launch(arrayOf("image/*"))
                     },
-                    onCanvasModeForDocument = { mode, extentPt -> applyCanvasModeToDocument(mode, extentPt) },
                     onSurfaceCreated = { index, view ->
                         val p = panes[index]
                         p.surface = view
                         view.onReadOnlyBlocked = { toast(getString(R.string.document_read_only)) }
-                        // A board has no pages, so the page-shaped gestures are refused on the canvas
-                        // itself ([DrawingSurfaceView.onBoardBlocked]): say so rather than letting the
-                        // gesture look broken.
-                        view.onBoardBlocked = { toast(getString(R.string.infinite_canvas_only_drawing)) }
-                        // The board's own shape rides with the document: a chunked document's cells are
-                        // not derivable from its pages, so a mirrored pane of an infinite canvas has to
-                        // be handed the grid the editing pane holds (`DrawingSurfaceView.canvasGeometry`).
-                        view.onDocumentEdited = { doc -> mirrors.propagate(p, doc, view.canvasGeometry()) }
+                        view.onDocumentEdited = { doc -> mirrors.propagate(p, doc) }
                         // A PDF dropped on the page joins the open document (the drop's own gesture is
                         // "put this here", not "replace everything I have").
                         view.onExternalPdf = { uri -> importPdf(uri, ImportPdfMode.APPEND) }

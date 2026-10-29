@@ -226,6 +226,29 @@ class DesktopSettings(val file: File = defaultFile()) {
         }
 
     /**
+     * The microphone the Audio section picked (`audio.inputDevice`), by the platform's own name.
+     *
+     * An absent key is the system default: the window opens whatever `javax.sound.sampled` picks, which is
+     * what a fresh install does. A name that is no longer on the machine is dropped to the default by
+     * [DesktopSettingsState], so the store never keeps a device nothing can open.
+     */
+    var audioInputDevice: String
+        get() = properties.getProperty(KEY_AUDIO_INPUT)?.trim().orEmpty()
+        set(value) = writeDevice(KEY_AUDIO_INPUT, value)
+
+    /** The output the Audio section picked (`audio.outputDevice`) — where a clip sounds from. */
+    var audioOutputDevice: String
+        get() = properties.getProperty(KEY_AUDIO_OUTPUT)?.trim().orEmpty()
+        set(value) = writeDevice(KEY_AUDIO_OUTPUT, value)
+
+    /** Store a device name; the system default is the **absence** of the key, not an empty value. */
+    private fun writeDevice(key: String, value: String) {
+        val name = value.trim()
+        if (name.isEmpty()) properties.remove(key) else properties.setProperty(key, name)
+        save()
+    }
+
+    /**
      * Whether the status bar reports the frame time the window actually paints at.
      *
      * A readout, not a behaviour: it turns one label on and nothing else, so it is safe to leave off
@@ -520,6 +543,10 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** Whether the status bar reports the paint time per frame. */
         const val KEY_FRAME_TIME = "display.frameTime"
+
+        /** The microphone and the output the window records and plays through; absent means system default. */
+        const val KEY_AUDIO_INPUT = "audio.inputDevice"
+        const val KEY_AUDIO_OUTPUT = "audio.outputDevice"
 
         /** The preferred pen stream. */
         const val KEY_PEN_STREAM = "tablet.penStream"

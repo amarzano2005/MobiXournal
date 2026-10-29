@@ -46,12 +46,14 @@ enum class SettingsKeyAction {
 class DesktopSettingsState(private val store: DesktopSettings) {
 
     init {
-        // The reading shape is a module-level seam the two ink adapters read (`PressureFeel`): the state is
-        // its only writer, so opening a window puts the stored curve in force before the first stroke.
+        // The state is `PressureFeel`'s only writer: a window opens with the stored curve in force.
         PressureFeel.enabled = store.pressureEnabled
         PressureFeel.multiplier = store.pressureMultiplier
         PressureFeel.minimum = store.minimumPressure
     }
+
+    /** The Audio page's choices, in force for the first take (`DesktopAudioSettings`). */
+    val audio = DesktopAudioSettings(store)
 
     /** Whether the surface is up. */
     var open by mutableStateOf(false)
@@ -582,6 +584,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         frameTime = store.frameTime
         targetHz = store.targetHz
         penStream = store.penStream
+        audio.refresh()
         pressureEnabled = store.pressureEnabled
         minimumPressure = store.minimumPressure
         pressureMultiplier = store.pressureMultiplier
@@ -694,5 +697,4 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     fun toggleFullScreen() {
         fullScreen = !fullScreen
     }
-
 }
