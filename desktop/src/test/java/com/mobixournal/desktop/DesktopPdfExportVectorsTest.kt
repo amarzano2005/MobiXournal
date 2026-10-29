@@ -16,6 +16,7 @@ import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.font.PDType1Font
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.pdfbox.text.PDFTextStripper
 import org.junit.Assert.assertEquals
@@ -159,6 +160,39 @@ class DesktopPdfExportVectorsTest {
                 "and not a quarter-turn away at the bottom: ${rendered.rgbAt(200, 580).toString(16)}",
                 isInk(rendered.rgbAt(200, 580)),
             )
+        }
+    }
+
+    /**
+     * A **scanned** source (its page is an image XObject, not just text) still exports.
+     *
+     * The imported page is imported *by reference*: its content and its resources are the source
+     * document's own streams, so a source closed before the target is written leaves the exporter with
+     * nothing to read and PDFBox fails the save ("COSStream has been closed"). A source of text alone
+     * cannot show this — a base-14 font is a dictionary, not a stream — which is why the picture is the
+     * fixture here rather than a second paragraph.
+     */
+    @Test
+    fun aScannedSourcePageExportsAfterItsDocumentWasClosed() {
+        val source = File(temp.root, "scan.pdf")
+        PDDocument().use { doc ->
+            val page = PDPage(PDRectangle(595f, 842f))
+            doc.addPage(page)
+            val scan = BufferedImage(60, 60, BufferedImage.TYPE_INT_RGB).also { image ->
+                for (y in 0 until 60) for (x in 0 until 60) image.setRGB(x, y, 0x3366CC)
+            }
+            val xobject = LosslessFactory.createFromImage(doc, scan)
+            PDPageContentStream(doc, page).use { cs -> cs.drawImage(xobject, 72f, 500f, 200f, 200f) }
+            doc.save(source)
+        }
+        val page = page(595.0, 842.0, pdfBackground(source), text("Annotated here"))
+
+        export(document(page)).use { pdf ->
+            assertEquals("the document still exports its page", 1, pdf.numberOfPages)
+            // Reading the source's picture back proves the stream survived the export, not just the save.
+            val rendered = PDFRenderer(pdf).renderImageWithDPI(0, 72f)
+            assertEquals("the scanned picture is in the export", 0x3366CC, rendered.rgbAt(150, 250))
+            assertTrue("and the annotation over it", PDFTextStripper().getText(pdf).contains("Annotated here"))
         }
     }
 

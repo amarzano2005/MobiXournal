@@ -26,7 +26,9 @@ import org.apache.pdfbox.util.Matrix
  * A page written over a source PDF keeps that PDF's **own vectors**, as the tablet's exporter does: the
  * page is imported verbatim ([preservedPage]) and only the annotation overlay is written on top, so a
  * scanned notebook does not become a pile of bitmaps and its text stays selectable. The raster picture
- * (`PageBackdrop`) is the fallback for a source this window cannot open.
+ * (`PageBackdrop`) is the fallback for a source this window cannot open. The source document stays open
+ * for as long as the export writes into its pages — an imported page borrows its streams — and is closed
+ * once the target file has been saved.
  *
  * The one honest difference from the phone, stated in `docs/pdf.md`: no `/Highlight`, `/Ink` or `/Text`
  * annotation dictionaries are added — the ink is flattened, so every viewer shows the page, but a
@@ -66,6 +68,13 @@ internal object DesktopPdfExport {
             throw DesktopSaves.SaveRefused("Could not create the folder for the PDF: ${folder.path}.")
         }
         val temp = DesktopSaves.stagingFile(folder)
+        // An imported page is imported **by reference**: its content stream and its resources are the
+        // source document's own COSStreams, so a source closed before the target is written leaves the
+        // save with nothing to read — PDFBox refuses with "COSStream has been closed", and a scanned
+        // page (an image XObject) is exactly the case that shows it. The sources therefore stay open
+        // until the file has been written, and each one is opened once however many pages name it.
+        val sources = ArrayList<PDDocument>()
+        val opened = HashMap<String, PDDocument?>()
         try {
             val painter = DesktopPdfPainter()
             PDDocument().use { doc ->
@@ -73,9 +82,9 @@ internal object DesktopPdfExport {
                     val page = document.page(index)
                     // The tablet's first arm: a page over a PDF whose source opens keeps its vectors.
                     val source = page.background as? Background.Pdf
-                    val preserved = source
-                        ?.let(backdropPage::sourcePdf)
-                        ?.use { pdf -> preservedPage(doc, pdf, source.pageNo, page, painter) } == true
+                    val pdf = source?.let { openSource(backdropPage, it, opened, sources) }
+                    val preserved = pdf != null && source != null &&
+                        preservedPage(doc, pdf, source.pageNo, page, painter)
                     if (preserved) continue
                     val pdPage = PDPage(PDRectangle(page.width.toFloat(), page.height.toFloat()))
                     doc.addPage(pdPage)
@@ -94,7 +103,34 @@ internal object DesktopPdfExport {
         } catch (failure: Throwable) {
             temp.delete()
             throw failure
+        } finally {
+            // After the save, never before it: the pages just written point into these documents.
+            sources.forEach { runCatching { it.close() } }
         }
+    }
+
+    /**
+     * The source document behind [background], opened at most once per document.
+     *
+     * [opened] holds the answer **including a null one**, so an unreadable source is tried once instead of
+     * once per page; every document actually opened is added to [sources], which the caller closes after
+     * the target has been saved.
+     */
+    private fun openSource(
+        backdropPage: PageBackdrop,
+        background: Background.Pdf,
+        opened: MutableMap<String, PDDocument?>,
+        sources: MutableList<PDDocument>,
+    ): PDDocument? {
+        // The resolved reference, not the page's background: pages 2..N name only a page number and
+        // borrow the document's one reference, and they must land on the same open document.
+        val reference = backdropPage.reference(background) ?: return null
+        val key = "${reference.bundledAsset}|${reference.domain}|${reference.filename}"
+        if (opened.containsKey(key)) return opened[key]
+        val pdf = backdropPage.sourcePdf(reference)
+        if (pdf != null) sources += pdf
+        opened[key] = pdf
+        return pdf
     }
 
     /**

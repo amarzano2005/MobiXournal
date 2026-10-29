@@ -71,8 +71,18 @@ class PageBackdrop(
     }
 
     /**
+     * The reference [background] resolves to — its own, or the document's one ([pdfReference]) — or null
+     * when the page names no PDF and the document has none to lend it.
+     *
+     * The PDF export keys the sources it has open by this, so a document is opened **once** however many
+     * pages name it, and a page that borrows the document's reference resolves to the same key.
+     */
+    fun reference(background: Background.Pdf): Background.Pdf? =
+        PdfPageReferences.resolve(background, pdfReference())
+
+    /**
      * The **source document** behind a `pdf` background, open and ready to import a page from — the caller
-     * must close it.
+     * must close it, and must keep it open until every page imported from it has been written.
      *
      * The PDF export needs the page itself, not a picture of it: importing it verbatim keeps its vectors,
      * its text layer and its original size, which is the one thing a raster flatten loses. Resolution is
@@ -81,7 +91,7 @@ class PageBackdrop(
      * rendered picture.
      */
     fun sourcePdf(background: Background.Pdf): PDDocument? {
-        val source = PdfPageReferences.resolve(background, pdfReference()) ?: return null
+        val source = reference(background) ?: return null
         val bytes = bytesOf(source.bundledAsset, source.domain, source.filename)
         if (bytes != null) return runCatching { PDDocument.load(ByteArrayInputStream(bytes)) }.getOrNull()
         val file = fileOf(source.domain, source.filename) ?: return null
