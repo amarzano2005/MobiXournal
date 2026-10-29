@@ -2,12 +2,18 @@ package com.mobixournal.desktop
 
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.input.pointer.PointerInputChange
+import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.Tool
 import com.mobixournal.render.InkEvent
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
 import com.mobixournal.render.PageEraser
+import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PointerKind
+import com.mobixournal.render.RecognisedFigure
+import com.mobixournal.render.ShapeDwell
 import com.mobixournal.render.eraserRadiusPt
 
 /**
@@ -64,6 +70,20 @@ internal class PageInkGesture(
     /** True once this gesture has taken its one undo step: an eraser drag is one step, not one per bite. */
     private var recorded = false
 
+    /**
+     * The figure a **dwell** put on the sheet, and the hand's own samples it replaced.
+     *
+     * Null whenever the preview is the ink as drawn. The pair is what makes the snap a preview and not a
+     * rewrite: a stroke that grows after it gets [drawnSamples] back, and the lift commits the figure
+     * that was found rather than re-recognising its clean geometry (four corners plus a closing repeat is
+     * a round set for the circle fit, which is how a held square used to come back a circle).
+     */
+    private var dwellFigure: RecognisedFigure? = null
+    private var drawnSamples: List<InkSample> = emptyList()
+
+    /** When the newest sample arrived, on the monotonic clock the dwell is measured with. */
+    private var lastSampleNanos = 0L
+
     /** The bites gathered for this frame: one page edit per frame, not one per pointer move. */
     private val eraser = EraseBatch()
 
@@ -75,6 +95,7 @@ internal class PageInkGesture(
     fun move(change: PointerInputChange, buttons: Int) = feed(change, InkPointerPhase.MOVE, buttons)
 
     fun up(change: PointerInputChange, buttons: Int) {
+        dwellCheck()
         feed(change, InkPointerPhase.UP, buttons)
         // The last few bites of a drag are always applied: a lift never leaves ink half rubbed out.
         flushErase()
@@ -95,8 +116,41 @@ internal class PageInkGesture(
     fun move(pointer: InkPointer) = handle(router.onPointer(pointer.copy(phase = InkPointerPhase.MOVE)))
 
     fun up(pointer: InkPointer) {
+        // A hand that rested and then lifted may send no further sample, so the dwell is offered here
+        // too — before the lift, so the figure is what the commit sees.
+        dwellCheck()
         handle(router.onPointer(pointer.copy(phase = InkPointerPhase.UP)))
         flushErase()
+    }
+
+    /**
+     * Offer a resting stroke to the recogniser and put the figure on the sheet as a **preview**.
+     *
+     * Rest is the one event with no sample to wait for, so this is called from the canvas's silent
+     * timer (`PageCanvas`), from the packet path's flush, and once before a lift. A no-op while the
+     * stroke is still growing, while a preview is already on the sheet, and for a tool that lays no ink.
+     *
+     * The preview is the **same draft list** the sheet paints, so what is previewed is what the lift
+     * writes: the figure's own points, all at the width the stroke was drawn at.
+     */
+    fun dwellCheck(nowNanos: Long = System.nanoTime()) {
+        if (!drawing || dwellFigure != null) return
+        if (nowNanos - lastSampleNanos < ShapeDwell.MS_NANOS) return
+        if (tool.inkTool() == null) return
+        val samples = draft.toList()
+        if (samples.size < 3) return
+        val width = ink.width.toDouble()
+        val points = samples.map { StrokePoint(it.x, it.y, width * it.factor) }
+        val average = points.map { it.width }.average()
+        val figure = ShapeDwell.figureFor(points, average) ?: return
+        drawnSamples = samples
+        dwellFigure = figure
+        // `strokeOf` sizes a point from the tool's width times the sample's factor, so the factor is
+        // the average the recogniser was given back over that width.
+        val factor = if (width > 0.0) (average / width).toFloat() else 1f
+        val pointer = samples.last().pointer
+        draft.clear()
+        draft.addAll(figure.points.map { point -> InkSample(point.x, point.y, factor, pointer) })
     }
 
     /**
@@ -109,6 +163,8 @@ internal class PageInkGesture(
     fun cancel() {
         drawing = false
         draft.clear()
+        dwellFigure = null
+        drawnSamples = emptyList()
         // A cancelled gesture writes nothing that had not already been swept.
         eraser.clear()
     }
@@ -121,7 +177,10 @@ internal class PageInkGesture(
      * away. Called from `PenPacketStroke` when the packet stream goes quiet.
      */
     fun finish() {
-        if (drawing) commit()
+        if (drawing) {
+            dwellCheck()
+            commit()
+        }
         flushErase()
         cancel()
     }
@@ -164,7 +223,7 @@ internal class PageInkGesture(
                 is InkEvent.StrokeSample -> if (drawing) {
                     val sample = event.sample
                     val (x, y) = pagePointOf(sample.x, sample.y, density, view())
-                    draft.add(InkSample(x, y, event.widthFactor, sample))
+                    addSample(x, y, event.widthFactor, sample)
                 }
                 is InkEvent.StrokeEnd -> {
                     if (drawing) commit()
@@ -192,7 +251,26 @@ internal class PageInkGesture(
         val (x, y) = pagePointOf(start.x, start.y, density, view())
         drawing = x in 0.0..pageWidth && y in 0.0..pageHeight
         draft.clear()
-        if (drawing) draft.add(InkSample(x, y, event.widthFactor, start))
+        dwellFigure = null
+        drawnSamples = emptyList()
+        if (drawing) addSample(x, y, event.widthFactor, start)
+    }
+
+    /**
+     * One sample into the draft, and the clock the dwell is measured from.
+     *
+     * A sample arriving while a figure is previewed means the stroke **grew**: the figure was a preview
+     * of a stroke that no longer exists, so the hand's own ink comes back and the dwell starts over.
+     */
+    private fun addSample(x: Double, y: Double, factor: Float, pointer: InkPointer) {
+        if (dwellFigure != null) {
+            dwellFigure = null
+            draft.clear()
+            draft.addAll(drawnSamples)
+            drawnSamples = emptyList()
+        }
+        draft.add(InkSample(x, y, factor, pointer))
+        lastSampleNanos = System.nanoTime()
     }
 
     /**
@@ -200,16 +278,33 @@ internal class PageInkGesture(
      * undo step, recorded with the page as it was before the stroke.
      */
     private fun commit() {
+        val drawnTool = tool.inkTool() ?: return
+        // The figure the dwell found, if it is one this shell keeps as living geometry: a closed
+        // polygon, drawn with the pen, on a plain line — the same rule the tablet commits by.
+        val figure = dwellFigure?.takeIf { drawnTool == Tool.PEN && ink.lineStyle == LineStyle.PLAIN }
         val samples = draft.toList()
+        dwellFigure = null
+        drawnSamples = emptyList()
         draft.clear()
-        val stroke = tool.inkTool()?.let {
-            strokeOf(it, ink.colour, ink.width, samples, ink.lineStyle)
-        } ?: return
         val index = tab.page
         val before = tab.document.snapshot()
-        tab.document.editPage(index) { page -> page.withElement(stroke) }
+        val shape = figure?.let { ParametricShapes.elementFor(it, ink.colour, sampleWidth(samples)) }
+        val wrote = if (shape != null) {
+            tab.document.editPage(index) { page -> page.withElement(shape) } != null
+        } else {
+            val stroke = strokeOf(drawnTool, ink.colour, ink.width, samples, ink.lineStyle)
+                ?: return
+            tab.document.editPage(index) { page -> page.withElement(stroke) } != null
+        }
+        if (!wrote) return
         tab.record(before)
         onEdited(index)
+    }
+
+    /** The width the drawn samples were laid at — the average the recogniser was handed. */
+    private fun sampleWidth(samples: List<InkSample>): Double {
+        if (samples.isEmpty()) return ink.width.toDouble()
+        return ink.width.toDouble() * samples.map { it.factor.toDouble() }.average()
     }
 
     /** Apply everything the eraser queued, as **one** page edit and one repaint. */

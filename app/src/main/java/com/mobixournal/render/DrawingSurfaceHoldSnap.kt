@@ -27,22 +27,6 @@ import com.mobixournal.format.model.Tool
 import kotlin.math.hypot
 
 /**
- * How long the stylus must rest before an in-progress stroke snaps, in milliseconds.
- *
- * 300 ms is the deliberate-on-the-glass threshold: long enough that a pause in the middle of a
- * letter is not a request to snap (writing stalls for tens of ms, not hundreds), short enough that
- * a user who *means* it sees the geometry appear while still watching. It is the single constant
- * this behaviour is defined by — the doc and the tests name it, not a copied number.
- */
-internal const val SHAPE_DWELL_MS = 300L
-
-/**
- * How far (pt) the tip may travel and still count as resting. Above the tremor the stylus reports
- * while held, below a deliberate stroke.
- */
-internal const val SHAPE_DWELL_SLOP_PT = 3.0
-
-/**
  * Called as the stroke advances: re-arm the hold timer whenever the tip has moved a slop since the
  * last sample. Idempotent, so it is safe on every MOVE.
  */
@@ -55,7 +39,7 @@ internal fun DrawingSurfaceView.maybeArmHoldSnap(points: List<StrokePoint>) {
     }
     if (!recognizeShapes || shaping) return
     val last = points.lastOrNull() ?: return
-    if (hypot(last.x - holdAnchorX, last.y - holdAnchorY) >= SHAPE_DWELL_SLOP_PT) {
+    if (hypot(last.x - holdAnchorX, last.y - holdAnchorY) >= ShapeDwell.SLOP_PT) {
         holdAnchorX = last.x
         holdAnchorY = last.y
         armHoldSnap()
@@ -67,7 +51,7 @@ internal fun DrawingSurfaceView.armHoldSnap() {
     cancelHoldSnap()
     val r = Runnable { fireHoldSnap() }
     holdSnapRunnable = r
-    postDelayed(r, SHAPE_DWELL_MS)
+    postDelayed(r, ShapeDwell.MS)
 }
 
 /** Drop any pending hold timer (a move, a commit, or a cancelled gesture). */

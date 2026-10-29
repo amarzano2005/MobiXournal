@@ -12,11 +12,11 @@ class HoldSnapDwellTest {
 
     @Test
     fun `the dwell is 300 ms`() {
-        assertEquals(300L, SHAPE_DWELL_MS)
+        assertEquals(300L, ShapeDwell.MS)
     }
 
     @Test
     fun `the tip counts as resting under 3 pt of travel`() {
-        assertEquals(3.0, SHAPE_DWELL_SLOP_PT, 1e-9)
+        assertEquals(3.0, ShapeDwell.SLOP_PT, 1e-9)
     }
 }

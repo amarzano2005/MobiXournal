@@ -219,6 +219,8 @@ internal class PenPacketStroke(
             ingest(next)
         }
         drainPending()
+        // A packet that arrives after a pause is the first chance this path has to notice the pause.
+        gesture.dwellCheck()
     }
 
     /** The stroke's samples buffered for this frame, in arrival order — one `move` each. */

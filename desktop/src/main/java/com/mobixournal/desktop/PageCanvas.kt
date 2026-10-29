@@ -638,14 +638,19 @@ internal fun PenPacketStrokes(
     }
     // One publish per frame: the packets buffered since the last repaint are handed to the gesture
     // here, so 400 packets a second cost one invalidation per frame instead of 400 — and the same
-    // point also notices a pen lifted without its last packet, which must not leave a stroke half drawn.
+    // point also notices a pen lifted without its last packet, which must not leave a stroke half drawn,
+    // and a tip that has come to rest, whose figure the dwell puts in place of the preview.
     LaunchedEffect(stroke) {
         // The silence that ends a stroke is *absence*, and absence produces no packets to wait for — so it
         // is a timer, not a frame. It runs on `delay`, which asks for no repaint at all.
         launch {
             while (true) {
                 delay(PenPacketStroke.STALE_CHECK_MS)
-                stroke.finishIfStale(System.nanoTime())
+                val now = System.nanoTime()
+                // Rest is the one event with no sample to wait for — a pen held still sends nothing —
+                // so the same silent timer is what lets a dwell replace the preview (`ShapeDwell`).
+                gesture.dwellCheck(now)
+                stroke.finishIfStale(now)
             }
         }
         // Frames are **asked for by packets**, never by a loop: a `withFrameNanos` loop that never ends

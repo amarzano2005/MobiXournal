@@ -107,8 +107,11 @@ What it does today:
 - **Draws and erases on the page** — pen (`B`), highlighter (`H`) and eraser (`E`). A primary drag is
   fed to the shared `InkPointerRouter` (`mobix-core`) as a stream of `InkPointer`s, so what a press
   means, how hard the pen draws and when a drag is a stroke rather than a tap are the same decisions the
-  tablet makes; the window only converts a Compose pointer into that vocabulary. The stroke is
-  previewed while it is drawn and committed on lift as **one edit** through the tab's page window
+tablet makes; the window only converts a Compose pointer into that vocabulary. **Rest the pen still for
+300 ms** and the stroke perfects itself: the preview is replaced by the recognised figure (`ShapeDwell`,
+the rule both shells share), a stroke that grows afterwards gets its own ink back, and the lift writes a
+closed polygon as a living shape or a line, arrow or arc as the cleaned stroke. The stroke is
+previewed while it is drawn and committed on lift as **one edit** through the tab's page window
   (`PageWindow`, moved into `mobix-core` and shared with the tablet's canvas): the edited page is
   materialised on its own, kept in an overlay eviction never touches, and adopted into the document the
   save writes. So a `.mobix` edit inflates exactly the page it touched, the stroke lands in the file (the

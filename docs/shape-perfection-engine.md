@@ -122,14 +122,20 @@ write an infinite point into the `.xopp`.
 ## Status
 
 The recogniser itself lives in **`mobix-core`** (`render/ShapeRecognizer.kt` and its companions), not in the
-app module: it was always pure, and both shells run the same dwell — the slate through
-`DrawingSurfaceHoldSnap`, the desktop window through its own frame-clock check.
+app module: it was always pure, and both shells run the same dwell. The rule they share is
+`ShapeDwell` (the 300 ms, the 3 pt slop, and the figure a stroke is offered to); what differs is the
+clock. The tablet posts a `postDelayed` from `DrawingSurfaceHoldSnap`; the window has no such thing, and
+its pen sends **nothing at all** while it is held still, so there the rest is the silence —
+`PageInkGesture.dwellCheck` measures the newest sample against a `System.nanoTime`, called from the
+canvas's silent timer, from the packet path's flush, and once before a lift.
 
 - **Live**: dwell (300 ms) and lift-off recognition, all seven classes, the tremor filter, the switch,
   the pen/highlighter filter, the polygon agreement test and the corner fallback, and the step that
   keeps the result: a recognised **triangle or rectangle** drawn with the pen is committed as a
   living `ParametricShapeElement` whose corners are dragged on the page (see *Living figures* in
-  [drawing-tools.md](drawing-tools.md)).
+  [drawing-tools.md](drawing-tools.md)). In the window the dwell is live too: the figure replaces the
+  preview on the sheet while the pen rests, a stroke that grows gets its own ink back, and the lift
+  writes it — the polygon as a living shape, a line, arrow or arc as the cleaned stroke.
 - **Not built**: the kinds whose angles are authored rather than recognised — a scaled-angle triangle
   or trapezoid re-fitting its vertices on every drag. Those arrive with the shape-library kinds that
   carry an angle set; a circle or an ellipse has no corners to drag and stays ink, as does every other

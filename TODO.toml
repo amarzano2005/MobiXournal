@@ -330,20 +330,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-hold-to-perfect-a-stroke"
-title = "Desktop: hold the pen still and the stroke perfects itself"
-description = "The tablet's dwell, in the window: a pen that rests within SHAPE_DWELL_SLOP_PT (3 pt in page space) for SHAPE_DWELL_MS (300 ms) while a stroke is in progress replaces the preview with the recognised geometry, and any move past the slop gives the user's own ink back and re-arms. Both constants already exist (app/render/DrawingSurfaceHoldSnap.kt) and the recogniser moved to mobix-core with desktop-shape-recogniser-in-mobix-core. The window has no postDelayed, so the timer must be driven from the stream the draft is already fed by: PenPacketStroke (the packets) and PageCanvasInput's compose moves each check the last sample's age against a `nanoTime` reading, and the check itself belongs in a pure mobix-core helper (`dwellFigure(samples: List<StrokePoint>, widthPt: Double): RecognisedFigure?` plus the slop/stillness rule) so a JVM test owns it. The preview is the same draft list the sheet already paints, so what is previewed is what the lift commits; a recognised closed polygon commits as a ParametricShapeElement (ParametricShapes, as the tablet does) and a line/arrow/arc as the cleaned stroke. No new gesture and no new slot: the dwell works with the pen and the highlighter, like the tablet. Tests: a core JVM test that a wobbly square, a straight line and a squiggle answer square/line/null, and that a sample 4 pt away re-arms; an ImageComposeScene test that holding still for past the dwell rewrites the preview (the painted ink is the figure, not the wobble) and that the lift writes exactly one element and one undo step. Docs: docs/shape-perfection-engine.md (a desktop row: same trigger, same classes), docs/desktop-workstation.md, README's desktop paragraph. Run :desktop:test :mobix-core:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1020
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-settings-audio"
 title = "Desktop: Audio section (when recording lands)"
 description = "The Audio page, once desktop-audio-replay has landed: the input device list, the input level meter and the output choice, stored as audio.inputDevice and audio.outputDevice in DesktopSettings and read by the recorder that task builds. Until then the section is one line saying recording is not in this build. A device that has disappeared is dropped to the system default with the row saying so, rather than the recorder failing to start. Tests: a round-trip per key and the vanished-device fallback. Docs: docs/desktop-workstation.md."

@@ -107,7 +107,8 @@ selection with its action bar and inspector lane all write to the page, each ges
 `Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu,
 its imports and exports (a PDF either way, or one PNG or SVG per page) and the Settings panel are the
 tablet's, drawn in the same glass. A notebook reads its pages as you scroll it, and the pen's own packet
-stream draws the ink when a graphics tablet is attached.
+stream draws the ink when a graphics tablet is attached. Rest the pen on the page and the stroke perfects
+itself while you hold it — a box becomes a living shape with draggable corners, a line its clean geometry.
 
 - **A file to try it on**: `udiff.xopp`, at the root of this repository.
 - **Keys**: every tool and command has one; the full table is in
