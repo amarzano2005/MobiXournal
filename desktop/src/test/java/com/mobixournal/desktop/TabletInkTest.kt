@@ -53,6 +53,18 @@ class TabletInkTest {
         assertEquals(12, bytes.getInt(TILT_Y.toLong()))
     }
 
+    /**
+     * The device-tree messages are `winuser.h`'s own numbers: a wrong one would leave a tablet plugged in
+     * after the window opened unseen — no pressure, no pen buttons — and nothing else would say why.
+     */
+    @Test
+    fun `the device-change messages are the header's numbers`() {
+        assertEquals("WM_DEVICECHANGE", 0x0219, InkUser32.WM_DEVICECHANGE)
+        assertEquals("DBT_DEVICEARRIVAL", 0x8000L, InkUser32.DBT_DEVICEARRIVAL)
+        assertEquals("DBT_DEVICEREMOVECOMPLETE", 0x8004L, InkUser32.DBT_DEVICEREMOVECOMPLETE)
+        assertEquals("DBT_DEVNODES_CHANGED", 0x0007L, InkUser32.DBT_DEVNODES_CHANGED)
+    }
+
     @Test
     fun `a device that declares pressure reports it in halves and quarters`() {
         val half = PenContact.of(info(pressure = 512, mask = InkUser32.PEN_MASK_PRESSURE), atNanos = 0)

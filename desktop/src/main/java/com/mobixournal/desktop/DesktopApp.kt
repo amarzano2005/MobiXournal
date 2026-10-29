@@ -168,7 +168,8 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
 }
 
 /**
- * The pen and the dial, opened once per window and reopened when a setting changes the device.
+ * The pen and the dial, opened once per window, rebuilt when Windows says the device tree changed (a
+ * tablet plugged in after the window opened), and reopened when a setting changes the device.
  *
  * Both readers answer `null` on a host without them, which the status bar then says in words, and the dial's
  * events arrive on Windows' own thread, so they are posted to the window's event queue before they touch any

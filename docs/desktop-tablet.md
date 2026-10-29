@@ -9,7 +9,7 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 Four readers sit beside Compose — `desktop/TabletWintab.kt` (the pen's packet stream), `desktop/TabletInk.kt`
 (the same pen through Windows Ink, when a driver offers it), `desktop/TabletWheel.kt` (which wheel turned)
 and `desktop/TabletDial.kt` (a radial controller, if one is ever bound) — opened by `DesktopTablet` from
-`DesktopApp` and closed with the window. The pen's stream **draws** the stroke (`PenPacketStroke`, below)
+`DesktopApp`, rebuilt when the device tree changes, and closed with the window. The pen's stream **draws** the stroke (`PenPacketStroke`, below)
 while the mouse keeps Compose's own pointer events; what the other readers add is a reading for the event
 being handled and the dial's notch as a zoom. The hand's own pan, and why it travels further than the pen,
 are [desktop-pen-feel.md](desktop-pen-feel.md)'s. `DesktopTablet` asks **Wintab first**, then Windows Ink, and
@@ -47,6 +47,14 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   documents for a high-rate device, and it cannot lose a packet to a coalesced message. Two strokes on
   the probe then decoded 328 samples with `raw` pressure from **106 to 15 156** of 16 383 and a tilt that
   varied with the hold — a full ramp, which is what `PressureCurve` expects.
+- **A tablet plugged in after the window opened is picked up without a restart.** Wintab declares no
+  pressure axis until there is a device to declare it for, so a reader opened before the pen was plugged
+  in has no context at all and the window stays on `pen: mouse` — no pressure, and none of the pen's
+  buttons. `WM_DEVICECHANGE` is the message Windows raises instead, on the same window procedure
+  `TabletInk` already watches, and `DesktopTablet` answers by rebuilding every reader for the request it
+  was opened with: a trailing 400 ms timer, so a burst of messages is one rebuild and the *last* message
+  wins (an unplug and a re-plug inside the window cannot leave the readers on the unplugged state), and
+  the rebuild is deferred out of the procedure it closes rather than closing it underneath itself.
 - **One window procedure, two readers.** `TabletWintab` opens its context on the same window and Wintab
   delivers packets as `WT_PACKET` (0x7FF0) to whoever subclassed it, so `TabletInk`'s procedure hands
   every message on to a hook instead of a second procedure fighting it for the window. Each packet is

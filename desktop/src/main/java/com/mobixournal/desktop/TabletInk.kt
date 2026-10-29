@@ -79,6 +79,25 @@ internal interface InkUser32 : StdCallLibrary {
         const val WM_MOUSEWHEEL = 0x020A
         const val WM_MOUSEHWHEEL = 0x020E
 
+        /**
+         * `WM_DEVICECHANGE`: the device tree changed under the window — a tablet plugged in or pulled out.
+         *
+         * Nothing in this reader is per-device, but the **Wintab** context beside it is: the driver
+         * declares no pressure axis until a tablet is there to declare it for, so a reader opened before
+         * the pen was plugged in has no context at all and the window keeps the mouse until it is reopened
+         * (`DesktopTablet` reopens on this message).
+         */
+        const val WM_DEVICECHANGE = 0x0219
+
+        /** `DBT_DEVICEARRIVAL`: something was plugged in. */
+        const val DBT_DEVICEARRIVAL = 0x8000L
+
+        /** `DBT_DEVICEREMOVECOMPLETE`: something was pulled out, its handle already gone. */
+        const val DBT_DEVICEREMOVECOMPLETE = 0x8004L
+
+        /** `DBT_DEVNODES_CHANGED`: the tree settled — the message a driver may send instead of the two above. */
+        const val DBT_DEVNODES_CHANGED = 0x0007L
+
         /** `PT_PEN` — the only pointer type this reader is about (mouse is 4, touch is 2). */
         const val PT_PEN = 3
 

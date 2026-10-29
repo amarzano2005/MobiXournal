@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.awt.Window
+import javax.swing.Timer
 
 /**
  * Which stream the window's ink is coming from. The status bar says it in as many words, because "the
@@ -39,8 +40,39 @@ internal enum class PenSource(val label: String) {
  * A sample is therefore never delivered twice: both readers decorate the pointer event the same physical
  * contact produced instead of starting a second stroke, and a dial notch stays the wheel event Compose
  * already received — [dialWheelRecently] only says *whose* wheel it was.
+ *
+ * The readers are **reopened when the device tree changes**. A tablet plugged in after the window opened
+ * used to be invisible: Wintab declares no pressure axis until a tablet is there to declare it for, so
+ * the reader answered null at startup and the window stayed on `pen: mouse` until it was restarted — no
+ * pressure, and none of the pen's buttons. `WM_DEVICECHANGE` is what Windows says when that changes
+ * ([InkUser32.WM_DEVICECHANGE]), and the answer is to rebuild every reader on the window, which also
+ * re-reads the axes and the screen mapping a re-plugged device may report differently.
  */
 internal class DesktopTablet {
+
+    /** Everything [open] was asked for, kept so a device change can rebuild the readers as they were. */
+    private data class Request(
+        val window: Window,
+        val onRotation: (Double) -> Unit,
+        val onClick: () -> Unit,
+        val log: (String) -> Unit,
+        val onSample: ((PenContact) -> Unit)?,
+        val onEvent: ((String) -> Unit)?,
+        val prefer: PenStream,
+        val area: TabletWindowArea?,
+    )
+
+    /** The open request, or null once [close] ran (a queued reopen then has nothing to rebuild). */
+    private var request: Request? = null
+
+    /**
+     * The pending device-change rebuild, restarted by every message of a burst.
+     *
+     * A trailing timer rather than a timestamp guard, so the **last** message of a burst is the one that
+     * rebuilds: an unplug followed by a re-plug inside the window must not leave the readers on the
+     * unplugged state.
+     */
+    private var reopenTimer: Timer? = null
 
     /** Windows Ink's reader — also the window procedure Wintab's packets arrive through. */
     var ink: TabletInk? = null
@@ -100,14 +132,22 @@ internal class DesktopTablet {
         prefer: PenStream = PenStream.DEFAULT,
         area: TabletWindowArea? = null,
     ) {
+        val next = Request(window, onRotation, onClick, log, onSample, onEvent, prefer, area)
+        request = next
+        attach(next)
+    }
+
+    /** Open every reader for [wanted] — the body of [open], also the body of a device-change reopen. */
+    private fun attach(wanted: Request) {
+        val log = wanted.log
         // The wheel first: the ink reader's window procedure is what feeds it a raw report.
-        wheel = TabletWheel.open(window, log, onNotches = {}, onEvent = onEvent)
+        wheel = TabletWheel.open(wanted.window, log, onNotches = {}, onEvent = wanted.onEvent)
         // Then the window procedure, which carries both the Ink samples and Wintab's packets.
         ink = TabletInk.open(
-            window = window,
+            window = wanted.window,
             log = log,
-            onSample = onSample,
-            onEvent = onEvent,
+            onSample = wanted.onSample,
+            onEvent = wanted.onEvent,
             onRawInput = { lParam -> wheel?.handle(lParam) },
             onWindowMessage = { message, wParam, lParam ->
                 // The message is the driver's own "packets are waiting": read the queue rather than
@@ -116,29 +156,71 @@ internal class DesktopTablet {
                 if (message == WintabApi.WT_PACKET) {
                     packets++
                     if (packets == 1L || packets % 500L == 0L) {
-                        onEvent?.invoke("wintab message #$packets w=$wParam l=$lParam")
+                        wanted.onEvent?.invoke("wintab message #$packets w=$wParam l=$lParam")
                     }
                     wintab?.drain()
+                }
+                // A tablet plugged in after this window opened has no context yet: the driver declared
+                // no pressure axis, so `wintab` is null and every reading would stay the mouse's.
+                if (message == InkUser32.WM_DEVICECHANGE && wParam in DEVICE_CHANGES) {
+                    wanted.onEvent?.invoke("device change w=0x${wParam.toString(16)}")
+                    scheduleReopen()
                 }
             },
         )
         // And the packet stream, which is the one that has pressure on this machine — unless Settings
         // asked for Windows Ink, which is then the only stream the pen is read from.
-        wintab = if (prefer == PenStream.INK) {
+        wintab = if (wanted.prefer == PenStream.INK) {
             null
         } else {
-            TabletWintab.open(window, log, onSample = onSample, onEvent = onEvent, area = area)
+            TabletWintab.open(
+                wanted.window,
+                log,
+                onSample = wanted.onSample,
+                onEvent = wanted.onEvent,
+                area = wanted.area,
+            )
         }
         source = when {
             wintab != null -> PenSource.WINTAB
             ink != null -> PenSource.INK
             else -> PenSource.MOUSE
         }
-        dialReader = TabletDial.open(window, onRotation, onClick, log)
+        dialReader = TabletDial.open(wanted.window, wanted.onRotation, wanted.onClick, log)
         dial = dialReader?.attached == true
     }
 
+    /**
+     * Rebuild the readers after the device tree changed, once per burst of messages.
+     *
+     * Deferred rather than done in place: the message arrived through the very window procedure
+     * [TabletInk.close] restores, so closing a reader from inside it would pull the procedure out from
+     * under the message being handled. The timer fires on the event thread, after that message has
+     * returned and on the thread the readers were opened on, so the status the bar shows is written where
+     * it always was.
+     */
+    private fun scheduleReopen() {
+        val timer = reopenTimer ?: Timer(REOPEN_DEBOUNCE_MS) {
+            reopenTimer = null
+            val current = request ?: return@Timer
+            detach()
+            attach(current)
+        }.also {
+            it.isRepeats = false
+            reopenTimer = it
+        }
+        timer.restart()
+    }
+
     fun close() {
+        request = null
+        reopenTimer?.stop()
+        reopenTimer = null
+        detach()
+    }
+
+    /** Close every reader and forget what they had read. */
+    private fun detach() {
         dialReader?.close()
         dialReader = null
         wintab?.close()
@@ -149,5 +231,17 @@ internal class DesktopTablet {
         ink = null
         source = PenSource.MOUSE
         dial = false
+    }
+
+    private companion object {
+        /** A plug-in raises two or three messages; one rebuild is what the window needs. */
+        const val REOPEN_DEBOUNCE_MS = 400
+
+        /** The device-tree messages that mean the readers should be rebuilt. */
+        val DEVICE_CHANGES = setOf(
+            InkUser32.DBT_DEVICEARRIVAL,
+            InkUser32.DBT_DEVICEREMOVECOMPLETE,
+            InkUser32.DBT_DEVNODES_CHANGED,
+        )
     }
 }
