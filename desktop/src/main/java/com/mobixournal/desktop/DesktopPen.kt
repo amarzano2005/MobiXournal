@@ -116,8 +116,6 @@ fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
     DesktopTool.TRIANGLE -> ShapeKind.TRIANGLE
     DesktopTool.RHOMBUS -> ShapeKind.RHOMBUS
     DesktopTool.TRAPEZOID -> ShapeKind.TRAPEZOID
-    DesktopTool.PENTAGON -> ShapeKind.PENTAGON
-    DesktopTool.HEXAGON -> ShapeKind.HEXAGON
     // The generic polygon: the builder's default side count here, since a slot carries no variant of
     // its own on this shell — the tablet's Settings ▸ Figures sets the count where the tool is drawn.
     DesktopTool.POLYGON -> ShapeKind.POLYGON

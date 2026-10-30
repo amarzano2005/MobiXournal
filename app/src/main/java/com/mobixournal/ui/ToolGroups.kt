@@ -120,15 +120,10 @@ val SECONDARY_TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.COORDINATE_AXIS,
         ),
     ),
-    // The polygons share one slot. The **generic** polygon leads it: it draws a regular figure of
-    // however many sides it is set to (Settings ▸ Figures), so it covers the whole family; the
-    // pentagon and the hexagon stay behind it as the two presets a hand reaches for most in a
-    // figure that is set up once and drawn many times. A square is not here — the rectangle draws
-    // one, and a second square-shaped button only made the row longer.
-    ToolGroup(
-        "polygons", "Polygons",
-        listOf(EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON),
-    ),
+    // The polygons are **one** tool, not a family of buttons: it draws a regular figure of however many
+    // sides it is set to, so a pentagon and a hexagon are two entries in its own menu rather than two
+    // slots that each own one number. A square is not here either — the rectangle draws one.
+    ToolGroup("polygons", "Polygons", listOf(EditorTool.POLYGON)),
     ToolGroup(
         "arrow", "Arrows",
         listOf(EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION),
@@ -202,8 +197,6 @@ val FIGURE_TOOLS: List<EditorTool> = listOf(
     EditorTool.RHOMBUS,
     EditorTool.TRAPEZOID,
     EditorTool.POLYGON,
-    EditorTool.PENTAGON,
-    EditorTool.HEXAGON,
     EditorTool.COORDINATE_AXIS,
 )
 

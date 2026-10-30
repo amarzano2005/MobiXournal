@@ -15,15 +15,15 @@ class ShapeSubmenuTest {
     }
 
     @Test fun aPartialOrderLeadsAndTheRestIsAppended() {
-        val ordered = orderedShapeTools(listOf("HEXAGON", "TRIANGLE"))
-        assertEquals(listOf(EditorTool.HEXAGON, EditorTool.TRIANGLE), ordered.take(2))
+        val ordered = orderedShapeTools(listOf("POLYGON", "TRIANGLE"))
+        assertEquals(listOf(EditorTool.POLYGON, EditorTool.TRIANGLE), ordered.take(2))
         assertEquals(FIGURE_TOOLS.size, ordered.size)
         assertEquals(FIGURE_TOOLS.toSet(), ordered.toSet())
     }
 
     @Test fun unknownAndDuplicateNamesAreIgnored() {
-        val ordered = orderedShapeTools(listOf("NOPE", "HEXAGON", "HEXAGON"))
-        assertEquals(EditorTool.HEXAGON, ordered.first())
+        val ordered = orderedShapeTools(listOf("NOPE", "POLYGON", "POLYGON"))
+        assertEquals(EditorTool.POLYGON, ordered.first())
         assertEquals(FIGURE_TOOLS.size, ordered.size)
     }
 
@@ -44,7 +44,7 @@ class ShapeSubmenuTest {
     @Test fun theStemFiguresAreInTheShapesGroup() {
         val members = FIGURE_TOOLS
         assertTrue(
-            listOf("TRIANGLE", "RHOMBUS", "TRAPEZOID", "PENTAGON", "HEXAGON")
+            listOf("TRIANGLE", "RHOMBUS", "TRAPEZOID", "POLYGON")
                 .all { name -> members.any { it.name == name } },
         )
         // A square is a rectangle: the figure left with its button.
@@ -60,7 +60,7 @@ class ShapeSubmenuTest {
     }
 
     @Test fun namesRoundTripThroughEncodeAndDecode() {
-        val names = listOf("LINE", "RECTANGLE", "TRIANGLE", "HEXAGON")
+        val names = listOf("LINE", "RECTANGLE", "TRIANGLE", "POLYGON")
         assertEquals(names, decodeToolNames(encodeToolNames(names), FIGURE_TOOLS))
         assertEquals(emptyList<String>(), decodeToolNames(null, FIGURE_TOOLS))
         assertEquals(listOf("TRIANGLE"), decodeToolNames("TRIANGLE,GONE", FIGURE_TOOLS))

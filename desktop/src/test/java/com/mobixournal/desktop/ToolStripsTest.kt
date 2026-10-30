@@ -72,8 +72,6 @@ class ToolStripsTest {
         "Triangle" to "Alt+R",
         "Rhombus" to "Alt+J",
         "Trapezoid" to "Alt+Z",
-        "Pentagon" to "Alt+P",
-        "Hexagon" to "Alt+H",
         "Polygon" to "P",
         "Plot" to "M",
         "Axes" to "Shift+X",

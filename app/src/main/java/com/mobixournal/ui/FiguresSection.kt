@@ -122,17 +122,16 @@ private fun Stepper(
 }
 
 /**
- * The generic polygon tool's side count. It is the one figure whose shape count is the user's, so the
- * number lives here instead of one toolbar button per polygon: the pentagon and the hexagon stay in
- * the Polygons slot as the two presets a hand reaches for most.
+ * The polygon tool's side count, as the stored value it starts from. It is the one figure whose shape
+ * count is the user's, so the number lives beside the tool instead of one button per polygon — the
+ * Polygons slot's own menu sets the same value where the figure is drawn.
  */
 @Composable
 private fun PolygonGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     ControlHeader(
         "Sides",
-        "How many sides the Polygon tool draws, from a triangle up to a dodecagon. The count chip " +
-            "beside the Polygons slot sets the same value without leaving the page; the pentagon and " +
-            "hexagon presets keep their own five and six.",
+        "How many sides the Polygon tool draws, from a triangle up to a dodecagon. The Polygons slot's " +
+            "own menu sets the same value without leaving the page.",
         Modifier.padding(top = 8.dp),
     )
     Row(

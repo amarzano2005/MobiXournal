@@ -142,8 +142,8 @@ The drawing and STEM tools are always on screen, in whichever strip the window's
 - **1-click STEM access**: `f(x)`, shapes, tables and circuits sit in the same strip as the inking tools,
   with no submenu between the user and them — and so do the **plain figures**: Line, Arrow, Double
   arrow, Rectangle, Ellipse and Axes are six slots of their own on the desktop, one click each. The
-  polygons share a seventh slot, whose menu leads with the generic polygon and keeps the pentagon and
-  the hexagon behind it, exactly as the tablet's Polygons slot does.
+  polygon is a seventh slot of its own, exactly as the tablet's Polygons slot is: one figure whose side
+  count the user chooses, not a button per number of sides.
 - **Hover names the slot**: a pill tooltip shows the tool's name and its key (e.g. `Function plot [M]`).
 
 ### 3. Universal shortcuts across all tools (Mobile & Desktop)

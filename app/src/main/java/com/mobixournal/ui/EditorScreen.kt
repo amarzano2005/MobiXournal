@@ -80,8 +80,6 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.SQUARE -> ShapeKind.SQUARE
         EditorTool.RHOMBUS -> ShapeKind.RHOMBUS
         EditorTool.TRAPEZOID -> ShapeKind.TRAPEZOID
-        EditorTool.PENTAGON -> ShapeKind.PENTAGON
-        EditorTool.HEXAGON -> ShapeKind.HEXAGON
         EditorTool.POLYGON -> ShapeKind.POLYGON
         EditorTool.TABLE -> ShapeKind.TABLE
         EditorTool.RESISTOR -> ShapeKind.RESISTOR
@@ -127,7 +125,7 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
         EditorTool.RECTANGLE, EditorTool.ELLIPSE,
         EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
-        EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON,
+        EditorTool.POLYGON,
         EditorTool.TABLE,
         EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
         EditorTool.GROUND,

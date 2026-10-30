@@ -199,7 +199,7 @@ class ToolGroupsTest {
             "the generic polygon leads the polygon family, as on the tablet",
             listOf(
                 DesktopTool.TRIANGLE, DesktopTool.RHOMBUS, DesktopTool.TRAPEZOID,
-                DesktopTool.POLYGON, DesktopTool.PENTAGON, DesktopTool.HEXAGON,
+                DesktopTool.POLYGON,
             ),
             polygons.members,
         )

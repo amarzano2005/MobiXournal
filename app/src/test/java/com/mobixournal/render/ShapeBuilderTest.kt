@@ -84,7 +84,7 @@ class ShapeBuilderTest {
     @Test fun theStemFiguresAreClosedAndKeepTheConstantWidth() {
         for (kind in listOf(
             ShapeKind.TRIANGLE, ShapeKind.SQUARE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID,
-            ShapeKind.PENTAGON, ShapeKind.HEXAGON, ShapeKind.POLYGON,
+            ShapeKind.POLYGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue("$kind has vertices", pts.size >= 4)
@@ -98,8 +98,7 @@ class ShapeBuilderTest {
         // Every stem figure except the square is inscribed in the drag box; the square squares off
         // the drag's longer side (see [squareSquaresOffTheLongerSide]), so it may exceed the box.
         for (kind in listOf(
-            ShapeKind.TRIANGLE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID,
-            ShapeKind.PENTAGON, ShapeKind.HEXAGON, ShapeKind.POLYGON,
+            ShapeKind.TRIANGLE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID, ShapeKind.POLYGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue(
@@ -119,12 +118,13 @@ class ShapeBuilderTest {
     }
 
     @Test fun theRegularFiguresHaveTheExpectedVertexCount() {
-        fun count(kind: ShapeKind): Int = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 20.0, 1.0).size
-        assertEquals(4, count(ShapeKind.TRIANGLE))   // 3 vertices + the closing repeat
-        assertEquals(5, count(ShapeKind.RHOMBUS))    // 4 + closing repeat
-        assertEquals(5, count(ShapeKind.TRAPEZOID))  // 4 + closing repeat
-        assertEquals(6, count(ShapeKind.PENTAGON))   // 5 + closing repeat
-        assertEquals(7, count(ShapeKind.HEXAGON))    // 6 + closing repeat
+        fun count(kind: ShapeKind, sides: Int = ShapeBuilder.DEFAULT_POLYGON_SIDES): Int =
+            ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 20.0, 1.0, polygonSides = sides).size
+        assertEquals(4, count(ShapeKind.TRIANGLE))            // 3 vertices + the closing repeat
+        assertEquals(5, count(ShapeKind.RHOMBUS))             // 4 + closing repeat
+        assertEquals(5, count(ShapeKind.TRAPEZOID))           // 4 + closing repeat
+        assertEquals(6, count(ShapeKind.POLYGON, sides = 5))  // 5 + closing repeat
+        assertEquals(7, count(ShapeKind.POLYGON, sides = 6))  // 6 + closing repeat
     }
 
     @Test fun thePolygonDrawsTheSideCountItIsGiven() {
@@ -139,16 +139,21 @@ class ShapeBuilderTest {
         assertEquals(13, count(40))
     }
 
-    @Test fun thePolygonIsCentredOnItsDragLikeItsPresets() {
-        // Same box, same first vertex at the top: the generic figure only differs in how many sides it
-        // takes, so a polygon set to six must draw exactly what the hexagon preset draws.
-        val polygon = ShapeBuilder.build(ShapeKind.POLYGON, 4.0, 6.0, 24.0, 26.0, 1.0, polygonSides = 6)
-        val hexagon = ShapeBuilder.build(ShapeKind.HEXAGON, 4.0, 6.0, 24.0, 26.0, 1.0)
-        assertEquals(hexagon.size, polygon.size)
-        for (i in hexagon.indices) {
-            assertEquals(hexagon[i].x, polygon[i].x, 1e-9)
-            assertEquals(hexagon[i].y, polygon[i].y, 1e-9)
-        }
+    @Test fun thePolygonIsCentredOnItsDrag() {
+        // The first vertex sits at the top of the drag box and the figure is centred in it, so the
+        // polygon reads the same however many sides it is given.
+        val hexagon = ShapeBuilder.build(ShapeKind.POLYGON, 4.0, 6.0, 24.0, 26.0, 1.0, polygonSides = 6)
+        assertEquals("a vertex at the top of the box", 6.0, hexagon.first().y, 1e-9)
+        assertEquals("horizontally centred", 14.0, hexagon.first().x, 1e-9)
+        val xs = hexagon.map { it.x }
+        val ys = hexagon.map { it.y }
+        // A hexagon's flat sides fall short of the box's full width (2r·sin 60°), so the claim is that
+        // it stays inside it — the circle it is inscribed in is what the drag sizes.
+        assertTrue("inside the drag's width", xs.max() - xs.min() <= 20.0 + 1e-9)
+        assertEquals("inscribed in the drag's height", 20.0, ys.max() - ys.min(), 1e-9)
+        // Four sides put a vertex at 0°, 90°, 180° and 270°, so that one touches all four edges.
+        val square = ShapeBuilder.build(ShapeKind.POLYGON, 4.0, 6.0, 24.0, 26.0, 1.0, polygonSides = 4)
+        assertEquals("a square touches the box's sides", 20.0, square.map { it.x }.max() - square.map { it.x }.min(), 1e-9)
     }
 
     @Test fun tableStaysInsideBoundingBoxAndMaintainsConstantWidth() {

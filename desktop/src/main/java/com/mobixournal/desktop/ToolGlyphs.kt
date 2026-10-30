@@ -132,8 +132,6 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.TRIANGLE -> ToolGlyph.TRIANGLE
         DesktopTool.RHOMBUS -> ToolGlyph.RHOMBUS
         DesktopTool.TRAPEZOID -> ToolGlyph.TRAPEZOID
-        DesktopTool.PENTAGON -> ToolGlyph.PENTAGON
-        DesktopTool.HEXAGON -> ToolGlyph.HEXAGON
         DesktopTool.POLYGON -> ToolGlyph.POLYGON
         DesktopTool.PLOT -> ToolGlyph.PLOT
         DesktopTool.AXES -> ToolGlyph.AXES

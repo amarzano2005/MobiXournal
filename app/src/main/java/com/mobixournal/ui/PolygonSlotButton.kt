@@ -2,7 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,24 +21,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mobixournal.ui.theme.rememberChromeInk
 
 /**
- * The Polygons slot's **side count**, drawn beside the slot: what the generic polygon will draw, and
- * one tap away from another answer. It is a control of its own rather than a second section of the
- * slot's menu, because the slot's menu already picks a *member* (polygon, pentagon, hexagon) and one
- * popup with two kinds of choice in it reads as neither.
+ * The **Polygons slot**, whose menu is the polygon's side count.
  *
- * Picking a count also takes hold of the polygon: seven sides is always about drawing a heptagon next,
- * so the picker does not stop at storing the number. The pentagon and hexagon presets keep their own
- * fixed counts and ignore this one.
+ * The family is one tool with a number, not a button per polygon, so this slot follows the figures that
+ * carry a variant ([CompactShapeKindButton] in `EditorRegions.kt`) rather than the group slots: tapping
+ * it takes the tool, tapping it again — or a long press — opens the 3–12 picker, and the number that
+ * will be drawn sits in the corner of the button. Picking a count also takes hold of the tool, because
+ * seven sides is always about drawing a heptagon next.
+ *
+ * The count is the one value Settings ▸ Figures writes too (`AppSettings.polygonSides`), so the two
+ * surfaces cannot disagree; [POLYGON_SIDE_CHOICES] keeps both on the builder's own range.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun PolygonSidesButton(
+internal fun PolygonSlotButton(
     active: Boolean,
     sides: Int,
     onPick: (Int) -> Unit,
+    onClick: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
@@ -49,13 +53,26 @@ internal fun PolygonSidesButton(
                 .size(32.dp)
                 .clip(shape)
                 .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
-                .clickable(onClickLabel = "Choose how many sides the polygon draws") { open = true },
+                .combinedClickable(
+                    onClick = { if (active) open = true else onClick() },
+                    onLongClick = { open = true },
+                ),
             contentAlignment = Alignment.Center,
         ) {
+            Icon(
+                EditorTool.POLYGON.icon,
+                contentDescription = "Tool: Polygon, ${sides} sides",
+                tint = tint,
+                modifier = Modifier.size(ToolIconSize),
+            )
+            // The figure itself is drawn from this number, so the slot says which one it is.
             Text(
                 text = "$sides",
                 color = tint,
-                style = MaterialTheme.typography.titleSmall,
+                fontSize = 10.sp,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 2.dp, top = 1.dp),
             )
             Icon(
                 Icons.Outlined.KeyboardArrowDown,

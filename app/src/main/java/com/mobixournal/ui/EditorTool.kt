@@ -17,11 +17,12 @@ enum class EditorTool {
     TEXT, IMAGE, TEXIMAGE,
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, VERTICAL_SPACE,
     PLAY_OBJECT,
-    // The STEM figures (see [ShapeKind]): a triangle, a rhombus, a trapezoid, the generic polygon
-    // (any number of sides, set under Settings ▸ Figures) and the two regular presets. Square
-    // survives as an enum entry (a saved tool selection may still name it) but no toolbar offers it
-    // any more — the rectangle is the square.
-    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON, POLYGON,
+    // The STEM figures (see [ShapeKind]): a triangle, a rhombus, a trapezoid and the polygon — one
+    // figure whose side count is the user's, chosen from its slot. Square survives as an enum entry (a
+    // saved tool selection may still name it) but no toolbar offers it any more — the rectangle is the
+    // square; the pentagon and hexagon were presets of the polygon and went when it could say five or
+    // six itself.
+    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, POLYGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND,
@@ -65,7 +66,7 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
     EditorTool.RECTANGLE, EditorTool.ELLIPSE,
     EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
-    EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON,
+    EditorTool.POLYGON,
     EditorTool.TABLE,
     EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR, EditorTool.GROUND,
     EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE,
@@ -107,8 +108,6 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.SQUARE, "Square", glyph = ToolGlyph.SQUARE),
     ToolInfo(EditorTool.RHOMBUS, "Rhombus", glyph = ToolGlyph.RHOMBUS),
     ToolInfo(EditorTool.TRAPEZOID, "Trapezoid", glyph = ToolGlyph.TRAPEZOID),
-    ToolInfo(EditorTool.PENTAGON, "Pentagon", glyph = ToolGlyph.PENTAGON),
-    ToolInfo(EditorTool.HEXAGON, "Hexagon", glyph = ToolGlyph.HEXAGON),
     ToolInfo(EditorTool.POLYGON, "Polygon", glyph = ToolGlyph.POLYGON),
     ToolInfo(EditorTool.TABLE, "Table", glyph = ToolGlyph.TABLE),
     ToolInfo(EditorTool.RESISTOR, "Resistor", glyph = ToolGlyph.RESISTOR),

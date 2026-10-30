@@ -30,7 +30,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
 
 /**
  * Default order of buttons in the Secondary Toolbar: line, rectangle, the individual shapes, the
- * polygon slot (the generic polygon, then the pentagon and the hexagon), arrows (dropdown), the
+ * polygon slot (one figure, whose side count is the slot's own menu), arrows (dropdown), the
  * Cartesian axis, the function graph,
  * table, passive circuits, active circuits, logic gates, and drawing guides. The function graph sits
  * immediately to the right of the Cartesian coordinate axis, keeping coordinate-based mathematical
@@ -183,8 +183,8 @@ fun decodeTopBarIds(raw: String?): List<String> {
  * when the slot is rendered by a dedicated button instead. ["triangle"] and ["trapezoid"] return
  * null because they carry their own variant picker (isosceles / right / scalene); routing them
  * through a plain single-tool button would hide that menu. ["polygons"] is null for the same reason:
- * it is a **family** slot, resolved through [secondaryToolGroup], whose menu offers the generic
- * polygon, then the pentagon and the hexagon, in that order.
+ * it is a figure with a number to choose, so its menu is the side-count picker rather than a list of
+ * members (see `PolygonSlotButton`).
  */
 fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE

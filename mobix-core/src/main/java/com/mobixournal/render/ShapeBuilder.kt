@@ -9,10 +9,10 @@ import kotlin.math.sin
 /** A geometric shape the shape tools draw. Each is emitted as an ordinary constant-width stroke. */
 enum class ShapeKind {
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE,
-    // The STEM set: the regular figures reached for when annotating maths and science. POLYGON is
-    // the generic one — a regular figure of however many sides the polygon tool is set to — and the
-    // pentagon and hexagon stay beside it as the two the hand reaches for most.
-    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON, POLYGON,
+    // The STEM set: the regular figures reached for when annotating maths and science. POLYGON is the
+    // only regular figure with a side count of its own — a pentagon and a hexagon are that same kind,
+    // drawn with sides = 5 and sides = 6.
+    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, POLYGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND,
@@ -86,8 +86,6 @@ object ShapeBuilder {
             startX, startY, endX, endY, widthPt,
             trapezoidKind, trapezoidAngleA, trapezoidAngleB,
         )
-        ShapeKind.PENTAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 5)
-        ShapeKind.HEXAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 6)
         ShapeKind.POLYGON -> regularPolygon(
             startX, startY, endX, endY, widthPt,
             sides = polygonSides.coerceIn(MIN_POLYGON_SIDES, MAX_POLYGON_SIDES),

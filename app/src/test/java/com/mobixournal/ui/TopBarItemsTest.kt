@@ -156,12 +156,10 @@ class TopBarItemsTest {
             assertTrue("$tool is a figure", tool in FIGURE_TOOLS)
             assertEquals(tool, TOP_BAR_ID_TO_FIGURE_TOOL[id])
         }
-        // The two regular polygons share the "polygons" slot instead of a button each, so they have no
-        // id of their own — but they are still figures, and their slot is the top bar's menu.
-        for (tool in listOf(EditorTool.PENTAGON, EditorTool.HEXAGON)) {
-            assertTrue("$tool is a figure", tool in FIGURE_TOOLS)
-            assertNull("no top bar id for $tool", FIGURE_TOOL_TO_TOP_BAR_ID[tool])
-        }
+        // The polygon is the "polygons" slot, not a figure with an id of its own: its slot's menu is
+        // the side count. It is still a figure, so Settings ▸ Toolbar can order and hide it.
+        assertTrue("the polygon is a figure", EditorTool.POLYGON in FIGURE_TOOLS)
+        assertNull("no top bar id for the polygon", FIGURE_TOOL_TO_TOP_BAR_ID[EditorTool.POLYGON])
     }
 
     @Test

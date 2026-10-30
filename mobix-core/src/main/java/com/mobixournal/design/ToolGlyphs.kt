@@ -63,10 +63,7 @@ enum class ToolGlyph {
     TRAPEZOID,
     TRAPEZOID_RIGHT,
     TRAPEZOID_SCALENE,
-    PENTAGON,
-    HEXAGON,
-
-    /** The generic polygon: an outline of no fixed number of sides, with its corners marked. */
+    /** The polygon: an outline of no fixed number of sides, with its corners marked. */
     POLYGON,
 
     TABLE,
@@ -187,10 +184,8 @@ object ToolGlyphCatalogue {
         ToolGlyph.TRAPEZOID -> polygon(8f, 7f, 16f, 7f, 20f, 19f, 4f, 19f)
         ToolGlyph.TRAPEZOID_RIGHT -> polygon(5f, 7f, 12f, 7f, 20f, 19f, 5f, 19f)
         ToolGlyph.TRAPEZOID_SCALENE -> polygon(9f, 7f, 17f, 7f, 20f, 19f, 4f, 19f)
-        ToolGlyph.PENTAGON -> polygon(*regular(5, radius = 9f))
-        ToolGlyph.HEXAGON -> polygon(*regular(6, radius = 9f))
         // An irregular, off-centre outline: the tool's promise is *any* polygon, so the picture must
-        // not read as one more fixed-sided figure beside the pentagon and the hexagon.
+        // not read as one more fixed-sided figure either side of a number.
         ToolGlyph.POLYGON -> polygon(12f, 3f, 21f, 10f, 17f, 21f, 5f, 21f, 3f, 10f) +
             listOf(GlyphPart.Circle(12f, 3f, 1.1f), GlyphPart.Circle(21f, 10f, 1.1f), GlyphPart.Circle(5f, 21f, 1.1f))
         ToolGlyph.TABLE -> table()

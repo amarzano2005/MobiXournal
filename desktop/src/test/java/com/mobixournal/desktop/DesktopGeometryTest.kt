@@ -156,8 +156,6 @@ class DesktopGeometryTest {
             DesktopTool.TRIANGLE to ShapeKind.TRIANGLE,
             DesktopTool.RHOMBUS to ShapeKind.RHOMBUS,
             DesktopTool.TRAPEZOID to ShapeKind.TRAPEZOID,
-            DesktopTool.PENTAGON to ShapeKind.PENTAGON,
-            DesktopTool.HEXAGON to ShapeKind.HEXAGON,
             DesktopTool.POLYGON to ShapeKind.POLYGON,
         )
         for ((tool, kind) in expected) {
@@ -183,11 +181,11 @@ class DesktopGeometryTest {
             drag(FigureShape(triangleKind = TriangleKind.EQUILATERAL)),
             drag(FigureShape(triangleKind = TriangleKind.RIGHT)),
         )
-        // A regular polygon takes no advice from the settings: a pentagon is five sides, closed.
-        val pentagon = shapeFromDrag(ShapeKind.PENTAGON, 0.0, 0.0, 100.0, 100.0, 2f, constrained = false)
-        assertEquals("four corners plus the closing point", 6, pentagon.size)
-        assertEquals(pentagon.first().x, pentagon.last().x, 1e-9)
-        assertEquals(pentagon.first().y, pentagon.last().y, 1e-9)
+        // A regular polygon takes no advice from the settings: its side count is its own, and it closes.
+        val polygon = shapeFromDrag(ShapeKind.POLYGON, 0.0, 0.0, 100.0, 100.0, 2f, constrained = false)
+        assertEquals("six sides plus the closing point at the factory count", 7, polygon.size)
+        assertEquals(polygon.first().x, polygon.last().x, 1e-9)
+        assertEquals(polygon.first().y, polygon.last().y, 1e-9)
     }
 
     @Test

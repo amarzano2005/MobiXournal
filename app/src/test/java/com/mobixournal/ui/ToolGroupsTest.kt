@@ -66,7 +66,6 @@ class ToolGroupsTest {
     fun `every stem figure is a shape tool`() {
         for (tool in listOf(
             EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
-            EditorTool.PENTAGON, EditorTool.HEXAGON,
         )) {
             assertTrue("$tool draws a figure", tool in SHAPE_TOOLS)
         }
@@ -75,15 +74,12 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `the polygons slot leads with the generic polygon, then the two presets`() {
+    fun `the polygons slot is one tool, whose menu is its side count`() {
         val polygons = secondaryToolGroup("polygons")
         assertEquals("polygons", polygons?.id)
-        // The generic figure first: it draws whatever side count Settings ▸ Figures names, so it is the
-        // tool of the family; the pentagon and the hexagon are the presets behind it.
-        assertEquals(
-            listOf(EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON),
-            polygons?.tools,
-        )
+        // One member, not a family: the side count is a parameter of the tool, so a pentagon and a
+        // hexagon are entries in its menu rather than buttons of their own.
+        assertEquals(listOf(EditorTool.POLYGON), polygons?.tools)
     }
 
     @Test

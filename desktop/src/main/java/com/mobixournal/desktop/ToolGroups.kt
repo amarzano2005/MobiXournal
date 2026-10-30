@@ -103,16 +103,15 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.RECTANGLE)),
     ToolGroup(listOf(DesktopTool.ELLIPSE)),
     // The tablet's STEM figures, one **submenu** as on the tablet: a triangle and a trapezoid draw the
-    // variant Settings ▸ Figures names, the polygons are one drag each, and one slot keeps the rail as
-    // long as it was. The generic polygon leads the family, as it does in the tablet's slot.
+    // variant Settings ▸ Figures names, the polygon is one drag, and one slot keeps the rail as long as
+    // it was. A pentagon or a hexagon is that same polygon at five or six sides — the tablet stopped
+    // giving them buttons of their own, and so does the strip.
     ToolGroup(
         listOf(
             DesktopTool.TRIANGLE,
             DesktopTool.RHOMBUS,
             DesktopTool.TRAPEZOID,
             DesktopTool.POLYGON,
-            DesktopTool.PENTAGON,
-            DesktopTool.HEXAGON,
         ),
     ),
     ToolGroup(listOf(DesktopTool.AXES)),
@@ -170,8 +169,6 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.RHOMBUS,
     DesktopTool.TRAPEZOID,
     DesktopTool.POLYGON,
-    DesktopTool.PENTAGON,
-    DesktopTool.HEXAGON,
     DesktopTool.AXES,
     // The STEM slots place a living element through `LivingPlacement` — one element, one undo step.
     DesktopTool.PLOT,

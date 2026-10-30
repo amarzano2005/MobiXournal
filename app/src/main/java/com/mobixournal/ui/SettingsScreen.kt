@@ -141,7 +141,7 @@ enum class SettingsSection(
         "Figures",
         "Default figure size, and each figure tool's default variant.",
         "figure size width shapes submenu triangle trapezoid scalene angles rectangle ellipse " +
-            "polygon pentagon hexagon arrow table circuit logic guides",
+            "polygon sides arrow table circuit logic guides",
         SettingsGlyph.FIGURES.imageVector(),
     ),
     /** Colors: the pen palette every colour picker offers. */
