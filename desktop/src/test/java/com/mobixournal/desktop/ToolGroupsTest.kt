@@ -30,12 +30,16 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `every acting tool has a slot`() {
+    fun `every acting tool has a door, a slot or another surface`() {
         val offered = DESKTOP_TOOL_GROUPS.flatMap { it.members }.toSet()
         assertEquals(
-            "these tools act but no slot offers them",
+            "these tools act but neither a slot nor another surface reaches them",
             emptySet<DesktopTool>(),
-            DESKTOP_TOOLS_THAT_ACT - offered,
+            DESKTOP_TOOLS_THAT_ACT - offered - DESKTOP_TOOLS_WITHOUT_A_SLOT,
+        )
+        assertTrue(
+            "a tool named as slot-less must still act, or the exception hides a dead tool",
+            DESKTOP_TOOLS_THAT_ACT.containsAll(DESKTOP_TOOLS_WITHOUT_A_SLOT),
         )
     }
 
@@ -80,9 +84,14 @@ class ToolGroupsTest {
     @Test
     fun `every tool in the strip acts, so no slot is dead`() {
         val offered = DESKTOP_TOOL_GROUPS.flatMap { it.members }.toSet()
-        assertEquals("every tool is offered", DesktopTool.entries.toSet(), offered)
+        assertEquals(
+            "every tool is offered, but one reached from the audio pill is not a slot",
+            DesktopTool.entries.toSet() - DESKTOP_TOOLS_WITHOUT_A_SLOT,
+            offered,
+        )
         assertEquals("and every one acts", DesktopTool.entries.toSet(), DESKTOP_TOOLS_THAT_ACT)
         assertNotNull("Text included", groupOf(DesktopTool.TEXT))
+        assertNull("and the audio tap, which the pill reaches", groupOf(DesktopTool.AUDIO))
     }
 
     @Test

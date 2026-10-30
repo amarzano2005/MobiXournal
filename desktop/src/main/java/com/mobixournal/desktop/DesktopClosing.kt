@@ -145,6 +145,18 @@ internal fun DesktopShellState.noteSaved(tab: DesktopTab) {
 }
 
 /**
+ * Close the active tab, finishing the take and letting go the clip that belonged to it.
+ *
+ * The audio is forgotten **before** the tab goes, because the session finds a take by the tab's key: after
+ * `close` there would be no document left to ask and a recording would have no tab to belong to
+ * (`DesktopAudioSession.forget`).
+ */
+internal fun DesktopShellState.closeActiveTab() {
+    DesktopAudioSession.forget(active)
+    tabs.closeActive()
+}
+
+/**
  * Settle [tab]'s crash snapshot — delete the file and forget it — then close the tab if it is still
  * open. A snapshot outliving the edits it holds is the one way a recovered tab can be offered twice or
  * resurrect work the user discarded, so every close path comes through here.
@@ -152,7 +164,12 @@ internal fun DesktopShellState.noteSaved(tab: DesktopTab) {
 internal fun DesktopShellState.settle(tab: DesktopTab) {
     noteSaved(tab)
     val index = tabs.all.indexOf(tab)
-    if (index >= 0) tabs.close(index)
+    if (index >= 0) {
+        // The recording and the clip belong to this document: finishing them here is what keeps a take
+        // from outliving the tab whose strokes it stamps (`DesktopAudioSession.forget`).
+        DesktopAudioSession.forget(tab)
+        tabs.close(index)
+    }
 }
 
 /** After a closed tab: with the window closing, ask about the next dirty one, or let it go. */

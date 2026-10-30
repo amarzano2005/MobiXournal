@@ -46,6 +46,17 @@ fun documentAudioFiles(doc: Document): Set<String> =
         .toCollection(LinkedHashSet())
 
 /**
+ * Whether a take owned by [ownerTab] may stamp a stroke drawn in [drawnInTab].
+ *
+ * **A recording belongs to the tab it was started in**, and this is that rule as a value: both shells ask
+ * it at the one place a stroke is committed, so a take running in one tab cannot put its `fn`/`ts` on ink
+ * written in another — which would make two documents claim one recording. Tab identity is the tab's own
+ * id/key string, and `null` (no owner, or no tab) never matches: silence is not a recording.
+ */
+fun ownsRecording(ownerTab: String?, drawnInTab: String?): Boolean =
+    ownerTab != null && ownerTab == drawnInTab
+
+/**
  * The name a new recording started at [epochMillis] gets: desktop Xournal++'s local-time
  * `yyyy-MM-ddTHH-mm-ss.wav` convention, so recordings made on either side sort together in a folder
  * and never collide within a second.

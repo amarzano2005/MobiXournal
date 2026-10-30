@@ -16,7 +16,9 @@ import com.mobixournal.audio.AudioWaveformExtractor
 import com.mobixournal.audio.WavWriter
 import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.documentAudioFiles
+import com.mobixournal.audio.ownsRecording
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.KaraokeFrameDriver
 import com.mobixournal.render.KaraokeFrames
@@ -37,9 +39,17 @@ import java.io.File
 //
 // Without a nominated folder audio still records and plays, but never leaves the app's own storage.
 
-/** Wire the canvas to the audio session: stamp new strokes while recording, replay on a tap. */
-internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
-    view.audioStamp = { audio.stamp() }
+/**
+ * Wire the canvas to the audio session: stamp new strokes while recording, replay on a tap.
+ *
+ * [p] is the pane the surface belongs to, because a take belongs to the **tab** that started it: the stamp
+ * is asked only while that pane's showing tab is the owner ([ownsRecording]), so ink drawn in another tab
+ * never claims this microphone (`docs/audio.md`).
+ */
+internal fun MainActivity.attachAudio(view: DrawingSurfaceView, p: EditorPane = pane) {
+    view.audioStamp = {
+        if (ownsRecording(recordingTabId, p.tabs.active?.id)) audio.stamp() else null
+    }
     view.onAudioTap = { ref ->
         when {
             ref == null -> Unit
@@ -139,9 +149,16 @@ internal fun MainActivity.audioUiState(): AudioUiState {
 
     val clipTitle = resolveActiveClipTitle(activeClip)
 
+    // A take belongs to its tab: this capsule shows a recording only when **this** tab owns it, and says
+    // whose it is when another document is the one being recorded.
+    val ownerId = recordingTabId ?: pane.tabs.active?.id
+    val recordingHere = audio.isRecording && ownerId == pane.tabs.active?.id
+    val recordingElsewhere = if (audio.isRecording && !recordingHere) titleOfTab(ownerId) else null
+
     return AudioUiState(
-        recording = audio.isRecording,
-        recordingPaused = audio.isRecordingPaused,
+        recording = recordingHere,
+        recordingPaused = recordingHere && audio.isRecordingPaused,
+        recordingElsewhere = recordingElsewhere,
         playing = audio.isPlaying,
         clipOn = audio.nowPlaying != null,
         clipTitle = clipTitle,
@@ -234,34 +251,24 @@ internal fun MainActivity.togglePauseRecording() {
     audioTick.value++
 }
 
-/** Stop a running recording, or ask for the microphone and start one. */
+/**
+ * Stop a running recording, or ask for the microphone and start one — **in this tab**.
+ *
+ * The capsule is per tab: a take belongs to the tab that started it, so while one runs elsewhere this is a
+ * click that says whose recording it is rather than one that opens a second microphone or stops another
+ * document's take (`AudioUiState.recordingElsewhere` is the same fact drawn on the button).
+ */
 internal fun MainActivity.toggleRecording() {
     if (audio.isRecording) {
-        AudioRecordingService.stop(this)
-        val file = audio.stopRecording()
-        toast(if (file != null) "Recording saved: ${file.name}" else "No active recording")
-        if (file != null) {
-            val ref = AudioRef(file.name, 0)
-            lastAudioRef = ref
-            pane.tabs.active?.id?.let { tabId ->
-                tabAudioRefs[tabId] = ref
-            }
+        if (recordingTabId != null && recordingTabId != pane.tabs.active?.id) {
+            toast("A recording is running in another tab. Switch back to it to stop it")
+            return
         }
-        // The parallel encoder is unhooked before anything else can feed it, whether or not a
-        // standalone copy is still wanted.
-        val standaloneTap = detachStandaloneTap()
-        if (file != null && settingsState.value.saveStandaloneAudio) {
-            // Nothing is converted here any more: the `.m4a` was encoded while the microphone was
-            // open (`StandaloneAudioTap`), so the export is a copy. The job is queued first, so a
-            // copy the closing app interrupts is picked up on the next launch instead of lost.
-            exportStandaloneInBackground(file, standaloneTap)
-        } else {
-            discardStandaloneExport(standaloneTap)
-        }
-        pushAudioSidecars()
-        audioTick.value++
+        stopRecordingTake()
         return
     }
+    // Nothing is recording, so no tab owns a take any more: a stale id must not freeze the button.
+    recordingTabId = null
 
     val existing = findCandidateAudioRef()
     if (existing != null) {
@@ -273,6 +280,49 @@ internal fun MainActivity.toggleRecording() {
     }
 
     checkPermissionAndBeginRecording()
+}
+
+/**
+ * Stop the take this window is capturing and record the finished file under **its own** tab.
+ *
+ * The owner is read before the session is stopped, because stopping clears it — and a file filed under the
+ * tab on screen instead of the one it was recorded in is exactly the confusion this rule removes.
+ */
+internal fun MainActivity.stopRecordingTake() {
+    AudioRecordingService.stop(this)
+    val owner = recordingTabId
+    val file = audio.stopRecording()
+    toast(if (file != null) "Recording saved: ${file.name}" else "No active recording")
+    if (file != null) {
+        val ref = AudioRef(file.name, 0)
+        lastAudioRef = ref
+        if (owner != null) tabAudioRefs[owner] = ref
+    }
+    recordingTabId = null
+    // The parallel encoder is unhooked before anything else can feed it, whether or not a
+    // standalone copy is still wanted.
+    val standaloneTap = detachStandaloneTap()
+    if (file != null && settingsState.value.saveStandaloneAudio) {
+        // Nothing is converted here any more: the `.m4a` was encoded while the microphone was
+        // open (`StandaloneAudioTap`), so the export is a copy. The job is queued first, so a
+        // copy the closing app interrupts is picked up on the next launch instead of lost.
+        exportStandaloneInBackground(file, standaloneTap)
+    } else {
+        discardStandaloneExport(standaloneTap)
+    }
+    pushAudioSidecars()
+    audioTick.value++
+}
+
+/**
+ * The title of the tab with [id], for the one sentence the capsule says about a take running elsewhere —
+ * "another tab" when this pane does not hold it (a take can be started in the other half of a split).
+ */
+internal fun MainActivity.titleOfTab(id: String?): String {
+    val open = id?.let { wanted ->
+        panes.asSequence().flatMap { it.tabs.tabs.asSequence() }.firstOrNull { it.id == wanted }
+    }
+    return open?.title?.takeIf { it.isNotBlank() } ?: "another tab"
 }
 
 internal fun MainActivity.checkPermissionAndBeginRecording() {
@@ -289,11 +339,16 @@ internal fun MainActivity.beginRecording() {
     requestNotificationPermissionIfNecessary()
     val name = audio.startRecording(compressed = saveFormat == SaveFormat.MOBIX)
     if (name != null) {
+        // The take is this tab's from its first sample: the id is what every later stamp and the stop
+        // are keyed on.
+        recordingTabId = pane.tabs.active?.id
         // The standalone `.m4a` is produced while the lecture is still going, so the end of it costs
         // a copy rather than a conversion.
         if (settingsState.value.saveStandaloneAudio) beginStandaloneExport(name)
+        // The shade stops the take wherever it was started, so it calls the stop itself rather than the
+        // capsule's tab-gated toggle (`toggleRecording` answers "another tab" on purpose).
         AudioRecordingService.onStopRequested = {
-            runOnUiThread { if (audio.isRecording) toggleRecording() }
+            runOnUiThread { if (audio.isRecording) stopRecordingTake() }
         }
         // The shade's Pause/Resume runs the same toggle the capsule does, so the recording it pauses
         // (and the notification that describes it) is the one the user is watching.

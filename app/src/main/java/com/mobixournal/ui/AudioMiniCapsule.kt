@@ -120,6 +120,9 @@ fun AudioMiniCapsule(
 private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
     var showMenu by remember { mutableStateOf(false) }
     val isRecording = audio.recording
+    // A take belongs to its tab: while one runs in another document there is one microphone and it is
+    // that tab's, so this button reports it instead of opening a second capture (`ownsRecording`).
+    val elsewhere = audio.recordingElsewhere
     val recordingBg = if (isRecording) DocumentRed else Color.Transparent
 
     Box(
@@ -128,6 +131,7 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
             .clip(CircleShape)
             .background(recordingBg)
             .combinedClickable(
+                enabled = elsewhere == null,
                 onClick = audio.onToggleRecord,
                 onLongClick = { showMenu = true },
             ),
@@ -135,12 +139,17 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
     ) {
         val iconTint = when {
             isRecording -> Color.White
+            elsewhere != null -> if (isDark) MutedTintDark else MutedTintLight
             isDark -> Color.White
             else -> MaterialTheme.colorScheme.onSurface
         }
         Icon(
             imageVector = if (isRecording) Icons.Outlined.Stop else Icons.Outlined.Mic,
-            contentDescription = if (isRecording) "Stop recording" else "Start audio recording",
+            contentDescription = when {
+                isRecording -> "Stop recording"
+                elsewhere != null -> "Recording in another tab"
+                else -> "Start audio recording"
+            },
             tint = iconTint,
             modifier = Modifier.size(16.dp),
         )
@@ -246,6 +255,15 @@ private fun PlayCapsuleButton(
 @Composable
 private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) {
     MenuHeading("Audio")
+    // The take is another tab's: the row says whose, and is not a command here.
+    audio.recordingElsewhere?.let { title ->
+        DropdownMenuItem(
+            text = { Text("Recording in $title") },
+            leadingIcon = { Icon(Icons.Outlined.Mic, contentDescription = null) },
+            enabled = false,
+            onClick = {},
+        )
+    }
     DropdownMenuItem(
         text = { Text(if (audio.recording) "Stop recording" else "Start recording") },
         leadingIcon = {
@@ -254,6 +272,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
                 contentDescription = null,
             )
         },
+        enabled = audio.recordingElsewhere == null,
         onClick = { audio.onToggleRecord(); onDismiss() },
     )
     if (audio.recording) {

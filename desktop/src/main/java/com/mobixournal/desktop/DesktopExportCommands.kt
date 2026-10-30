@@ -55,9 +55,9 @@ internal sealed interface ExportRequest {
  * The one export in flight, and the window's own save dialog as a callback.
  *
  * A request goes here instead of being run where the click happened, because the write belongs off the UI
- * thread: `ExportWorker` (below) is the only place it runs. [pickPdfDestination] is installed by the window
- * because opening a `FileDialog` needs one — `Ctrl+E` arrives at the state, which has no window to hang a
- * dialog on.
+ * thread: `ExportWorker` (below) is the only place it runs. [pickPdfDestination] and [pickFolder] are
+ * installed by the window because opening a system dialog needs one — `Ctrl+E` arrives at the state, which
+ * has no window to hang a dialog on.
  */
 internal object DesktopExportQueue {
 
@@ -74,6 +74,12 @@ internal object DesktopExportQueue {
 
     /** Asks the window for a PDF destination. Null in a test that has no window. */
     var pickPdfDestination: (() -> Unit)? = null
+
+    /**
+     * Asks the window for a **folder** — where the page exports (SVG, PNG) write their one file per page.
+     * Null in a test that has no window, where the pages fall back to the document's own folder.
+     */
+    var pickFolder: ((String) -> File?)? = null
 
     fun request(request: ExportRequest) {
         // The last export's sentence belongs to the last export: a new one replaces it rather than

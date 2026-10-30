@@ -176,11 +176,11 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   `%APPDATA%\MobiXournal\audio`, adopted on open and written back on save, so an edit here cannot lose them
   ([`audio.md`](audio.md) owns the format). A clip makes the capsule the **transport** — readout, scrubber,
   speed (1×–2×) — and while it sounds the page is painted **per stroke**, the writing following the
-  recording. **Audio tap** (`Y`) replays from the point touched; Settings → Audio picks the devices.
+  recording. **Audio tap** — the pill's Play, or `Y` — replays from the point touched, and a take or a clip belongs to **its tab**; Settings → Audio picks the devices.
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), then the tablet's **two rows
   of chips**: **Import PDF** and **Export PDF** in the document red (the same file, coming in and going
-  out), and **Export PNG** and **Export SVG** in the accent (one file per page, beside the document).
+  out), and **Export PNG** and **Export SVG** in the accent (one file per page, into a folder you pick); every file dialog here is the Windows shell's own — Explorer's surface, a type box, a folder mode — with Java's dialogs as the fallback where the shell has none.
   **A hairline**, then the tablet's **Pen block**: its heading (the pen glyph beside the word) opens the
   Stylus page, and under it the pen's **drawing** answers in the page's own order — **Pressure
   sensitivity**, the **preset carousel** with its × and `+`, **Minimum pressure**, **Multiplier**, and

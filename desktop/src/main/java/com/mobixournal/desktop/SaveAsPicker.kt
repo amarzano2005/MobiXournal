@@ -1,95 +1,45 @@
 package com.mobixournal.desktop
 
-import java.awt.EventQueue
 import java.awt.Frame
 import java.io.File
-import javax.swing.JFileChooser
-import javax.swing.SwingUtilities
-import javax.swing.filechooser.FileNameExtensionFilter
 
 /**
  * **The save window, asking both of its questions at once**: the name of the file and the container it is
  * written as.
  *
- * The system dialog the window uses for *open* cannot carry more than a name — on Windows AWT's
- * `FileDialog` ignores its filter entirely — so Save As used to ask the container in a card of its own and
- * then hand the native dialog nothing but a suffix to remember. Two dialogs for one save is the wrong way
- * round: a save window with a **type box** is what every other program on the machine shows, so the
- * window uses one, and the three containers sit in it as `.mobix`, `.xopp` and the zipped `.xopp` package
- * (`DesktopNewDocumentFormat` — the list the Settings *Documents* row shows for a new file).
+ * One dialog, because the picker's **type box** answers both: the three containers sit in it as `.mobix`,
+ * `.xopp` and the zipped `.xopp` package (`DesktopNewDocumentFormat` — the list the Settings *Documents*
+ * row shows for a new file), and the name field carries the file. The shell's native box is what made the
+ * one-dialog version possible at all: `java.awt.FileDialog` ignores its filter on Windows, which is why
+ * this window used to be a Swing chooser beside AWT's open dialog.
  *
- * What cannot change is the rule: the container is a **document** decision, not a filename one
+ * The rule that cannot change: the container is a **document** decision, not a filename one
  * (`docs/data-path.md`), so the **type box** decides what is written. The name field is kept honest with
- * it — [saveAsRenamed] swaps a suffix the type no longer matches as the box changes, and [saveAsName]
- * gives a name typed without one the suffix it is written as — but a suffix typed over the type is not
- * a second opinion about the format.
- *
- * Swing rather than AWT is a deliberate exception to the window's own chrome: a file dialog is the
- * platform's surface, and only the Swing one has a type box to offer. `main` asks for the system look and
- * feel so it dresses like the Windows dialog beside it.
+ * it — [saveAsRenamed] swaps a suffix the type no longer matches, and [saveAsName] gives a name typed
+ * without one the suffix it is written as — but a suffix typed over the type is not a second opinion about
+ * the format.
  */
 internal object SaveAsPicker {
-
-    /**
-     * Ask for a **folder** — the Audio page's *Save separate audio* destination.
-     *
-     * Swing again rather than AWT: `FileDialog` has no directory mode, so the one dialog that can answer
-     * "where?" with a folder instead of a file is the chooser. It opens on [start] when that folder still
-     * exists, because changing the folder should not mean navigating to it every time.
-     */
-    fun chooseFolder(window: Frame, title: String, start: File?): File? = onSwingThread {
-        val chooser = if (start != null && start.isDirectory) JFileChooser(start) else JFileChooser()
-        chooser.dialogTitle = title
-        chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-        chooser.isAcceptAllFileFilterUsed = false
-        if (chooser.showOpenDialog(window) != JFileChooser.APPROVE_OPTION) return@onSwingThread null
-        chooser.selectedFile?.takeIf { it.isDirectory }
-    }
 
     /**
      * Show the save window for [tab] and answer the destination and the container, or null when it was
      * cancelled. It opens on the document's own container and its own folder: the common answer is "the
      * same file, somewhere else", and Save As should not make that a decision every time.
      */
-    fun choose(window: Frame, tab: DesktopTab): Pair<File, DesktopNewDocumentFormat>? = onSwingThread {
+    fun choose(window: Frame, tab: DesktopTab): Pair<File, DesktopNewDocumentFormat>? {
         val initial = DesktopNewDocumentFormat.ofContainer(tab.document.container)
         val folder = tab.file.absoluteFile.parentFile?.takeIf { it.isDirectory }
-        val chooser = if (folder != null) JFileChooser(folder) else JFileChooser()
-        chooser.dialogTitle = "Save the document as"
-        chooser.dialogType = JFileChooser.SAVE_DIALOG
-        chooser.fileSelectionMode = JFileChooser.FILES_ONLY
-        // The three types are the only answers: an "all files" entry would name no container at all.
-        chooser.isAcceptAllFileFilterUsed = false
-        val types = DesktopNewDocumentFormat.entries.associateWith { format ->
-            FileNameExtensionFilter(format.label, format.extension.removePrefix("."))
-        }
-        for (filter in types.values) chooser.addChoosableFileFilter(filter)
-        followTypeBox(chooser, types)
-        chooser.fileFilter = types.getValue(initial)
-        val proposed = File(folder, tab.file.nameWithoutExtension + initial.extension)
-        chooser.selectedFile = proposed
-        if (chooser.showSaveDialog(window) != JFileChooser.APPROVE_OPTION) return@onSwingThread null
-        val chosen = types.entries.firstOrNull { it.value === chooser.fileFilter }?.key ?: initial
-        val target = chooser.selectedFile ?: return@onSwingThread null
-        File(target.parentFile, saveAsName(target.name, chosen)) to chosen
-    }
-
-    /**
-     * The name field following the type box: picking another type in the list rewrites the suffix of the
-     * name already there, which is how the save windows of Word or Excel behave. A name with no suffix, or
-     * one ending in something this window does not write, is left alone — the suffix is added when the
-     * file is written instead, rather than a fragment of somebody's filename being cut off.
-     */
-    private fun followTypeBox(
-        chooser: JFileChooser,
-        types: Map<DesktopNewDocumentFormat, FileNameExtensionFilter>,
-    ) {
-        chooser.addPropertyChangeListener(JFileChooser.FILE_FILTER_CHANGED_PROPERTY) { change ->
-            val format = types.entries.firstOrNull { it.value === change.newValue }?.key ?: return@addPropertyChangeListener
-            val current = chooser.selectedFile ?: return@addPropertyChangeListener
-            val renamed = saveAsRenamed(current.name, format)
-            if (renamed != current.name) chooser.selectedFile = File(current.parentFile, renamed)
-        }
+        val answer = DesktopFilePicker.saveFile(
+            window = window,
+            title = "Save the document as",
+            types = DOCUMENT_SAVE_TYPES,
+            proposedName = tab.file.nameWithoutExtension + initial.extension,
+            startIn = folder,
+            initialType = documentTypeIndexOf(initial),
+        ) ?: return null
+        val format = documentFormatOf(answer.typeIndex)
+        val name = saveAsName(saveAsRenamed(answer.file.name, format), format)
+        return File(answer.file.parentFile, name) to format
     }
 }
 
@@ -112,20 +62,4 @@ internal fun saveAsRenamed(name: String, format: DesktopNewDocumentFormat): Stri
     val suffix = name.substringAfterLast('.', missingDelimiterValue = "")
     if (suffix.isEmpty() || ".${suffix.lowercase()}" !in writtenSuffixes) return name
     return name.substringBeforeLast('.') + format.extension
-}
-
-/**
- * Run [block] on the event thread — the one thread a Swing dialog may be shown from — and answer what it
- * returned. Compose's click handlers already run there; the hop is for the callers that do not.
- */
-private fun <T> onSwingThread(block: () -> T): T {
-    if (SwingUtilities.isEventDispatchThread()) return block()
-    var answer: T? = null
-    var failure: Throwable? = null
-    EventQueue.invokeAndWait {
-        runCatching(block).onSuccess { answer = it }.onFailure { failure = it }
-    }
-    failure?.let { throw it }
-    @Suppress("UNCHECKED_CAST")
-    return answer as T
 }

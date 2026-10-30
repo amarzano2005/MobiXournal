@@ -157,6 +157,14 @@ data class AudioUiState(
     val miniPlayerVisible: Boolean = false,
     /** Whether recording is currently paused. */
     val recordingPaused: Boolean = false,
+    /**
+     * The title of the tab whose take is running while **this** tab is not that tab, or null.
+     *
+     * A recording belongs to the tab it was started in (`ownsRecording`), so the capsule on another tab
+     * must not offer a second microphone or stop somebody else's take: this is the sentence that says
+     * whose it is, and the capsule's disabled state.
+     */
+    val recordingElsewhere: String? = null,
     /** Callback to start or stop recording. */
     val onToggleRecord: () -> Unit = {},
     /** Callback to pause or resume recording. */

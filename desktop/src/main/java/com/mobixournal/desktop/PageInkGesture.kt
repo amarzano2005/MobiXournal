@@ -318,8 +318,9 @@ internal class PageInkGesture(
                 ?: return
             // A stroke drawn while a take runs carries its `fn`/`ts` from the **one funnel** every
             // committed stroke passes through — not per tool, so a highlighter and a pen cannot stamp
-            // differently. A paused take stamps nothing (`DesktopAudioSession.stamp`).
-            val stamped = DesktopAudioSession.stamp()?.let { stroke.withAudio(it) } ?: stroke
+            // differently. A paused take stamps nothing, and neither does a take running in **another
+            // tab** (`DesktopAudioSession.stamp`, which asks the shared `ownsRecording` rule).
+            val stamped = DesktopAudioSession.stamp(tab)?.let { stroke.withAudio(it) } ?: stroke
             tab.document.editPage(index) { page -> page.withElement(stamped) } != null
         }
         if (!wrote) return

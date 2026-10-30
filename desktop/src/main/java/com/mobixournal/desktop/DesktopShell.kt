@@ -460,9 +460,7 @@ class DesktopShellState(
     }
 
     /** Close the active tab, activating its neighbour. A dirty tab must go through [requestCloseActive]. */
-    fun closeActive() {
-        tabs.closeActive()
-    }
+    fun closeActive() = closeActiveTab()
 
     fun dismissFailure() {
         failure = null
