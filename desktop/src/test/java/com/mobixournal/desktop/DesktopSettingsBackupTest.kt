@@ -32,7 +32,7 @@ class DesktopSettingsBackupTest {
         policy.choosePressureEnabled(false)
         policy.chooseMinimumPressure(0.3f)
         policy.choosePressureMultiplier(2.5f)
-        policy.chooseFigureWidth(4f)
+        policy.figures.chooseWidth(4f)
         policy.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
         policy.moveToolSlot(0, 1)
         return policy
@@ -53,7 +53,7 @@ class DesktopSettingsBackupTest {
         assertFalse("sensitivity travelled", target.pressureEnabled)
         assertEquals(0.3f, target.minimumPressure, 1e-6f)
         assertEquals(2.5f, target.pressureMultiplier, 1e-6f)
-        assertEquals(4f, target.figureWidth, 1e-6f)
+        assertEquals(4f, target.figures.width, 1e-6f)
         assertEquals(DesktopNewDocumentFormat.MOBIX, target.newDocumentFormat)
         assertEquals(exported.toolGroups.map { it.face }, target.toolGroups.map { it.face })
 
@@ -83,7 +83,7 @@ class DesktopSettingsBackupTest {
         assertEquals(StripPlacement.RIGHT, policy.stripPlacement)
         assertEquals("a key the backup did not carry is back to its default", PenStream.AUTOMATIC, policy.penStream)
         assertEquals("the pen's floor is the default again", PressureCurve.MINIMUM_PRESSURE_DEFAULT, policy.minimumPressure, 1e-6f)
-        assertEquals(PenPalette.DEFAULT_WIDTHS[1], policy.figureWidth, 1e-6f)
+        assertEquals(PenPalette.DEFAULT_WIDTHS[1], policy.figures.width, 1e-6f)
     }
 
     /** A file that is not a backup, or one from a newer build, is refused with a reason and changes nothing. */

@@ -200,6 +200,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
         tool.shapeKind()?.let { kind ->
             shapeDrag(
                 down, kind, tab, shapeInk, dragView, draft, targets.onLiveDrag, onEdited,
+                figures = targets.figures,
                 page = runCatching { tab.document.page(tab.page) }.getOrNull(),
             )
             return@awaitEachGesture
@@ -334,6 +335,8 @@ private suspend fun AwaitPointerEventScope.shapeDrag(
     draft: SnapshotStateList<InkSample>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
+    /** The triangle's and trapezoid's own answers ([PagePressTargets.figures]). */
+    figures: FigureShape = FigureShape(),
     /**
      * The page the drag is drawn on, for the pin magnet a **wire** aims at. Null when it could not be
      * read, in which case the figure keeps the hand's exact geometry.
@@ -363,7 +366,7 @@ private suspend fun AwaitPointerEventScope.shapeDrag(
         val constrained = currentEvent.keyboardModifiers.isShiftPressed
         val points = snapWireEnds(
             kind,
-            shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained),
+            shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained, figures = figures),
             page,
             view.current().zoom * density,
         )

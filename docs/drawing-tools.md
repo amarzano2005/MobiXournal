@@ -137,7 +137,8 @@ same functions, so what the sheet shows is what the `.xopp` export writes.
 
 **Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Spline/Table) turn a
 one-finger drag into an ordinary constant-width pen stroke — and the `desktop/` window draws the same
-seven of them (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline) from one drag, calling the
+set from one drag (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline, and the tablet's
+Triangle, Rhombus, Trapezoid, Pentagon and Hexagon behind one **figures** slot), calling the
 same `ShapeBuilder` and holding `Shift` to snap the drag's direction to 45°, so a figure made on the PC
 is the same stroke a tablet makes (`docs/desktop-workstation.md` owns the window's slots): `ShapeBuilder` (pure, tested) converts the
 drag's start/end into a vertex list, previewed live and committed as one undoable stroke, so shapes
@@ -154,7 +155,11 @@ angles are freely customizable — a trapezoid has one pair of parallel sides, s
 its shape, and unequal angles are exactly what makes all four sides differ. `ShapeBuilder.trapezoidOutline()`
 is the single layout both the tool and the settings dialog's preview call, so the preview cannot drift
 from what a drag produces; the scalene figure is uniformly scaled to stay inside its drag (which
-preserves the angles) and centred, the same fit the scalene triangle uses.
+preserves the angles) and centred, the same fit the scalene triangle uses. The window draws both variant
+figures too: its figures slot's picker lists all five, and its **Settings → Figures** page writes the same
+`TriangleKind`/`TrapezoidKind` answers — and a scalene one's angles — into `FigureShape`, the value the
+drag reads (`FigureSettings` owns the stored keys), so a figure is the same on the PC and on the tablet
+without either shell growing a second geometry.
 The **table tool** creates an \(R \times C\) grid as a single continuous polyline,
 with configurable rows and columns, optional relational header row (rendering a double separator line under the first row),
 support for live drag-sizing and one-tap centered viewport insertion,

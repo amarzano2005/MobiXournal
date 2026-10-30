@@ -22,9 +22,11 @@ import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerRouter
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeKind
+import com.mobixournal.render.TriangleKind
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -117,7 +119,7 @@ class DesktopGeometryTest {
             // A figure has its own width (the Figures section): picking a pen width does not change it,
             // which is what lets a rectangle match a light pen stroke instead of the pen's slot.
             assertEquals("the strip writes the pen's width", 6f, state.ink.width, 1e-6f)
-            state.prefs.chooseFigureWidth(6f)
+            state.prefs.figures.chooseWidth(6f)
             assertEquals("and the figure reads its own", 6f, state.shapeInk.width, 1e-6f)
 
             val points = shapeFromDrag(
@@ -151,6 +153,11 @@ class DesktopGeometryTest {
             DesktopTool.AXES to ShapeKind.COORDINATE_AXIS,
             DesktopTool.RECTANGLE to ShapeKind.RECTANGLE,
             DesktopTool.ELLIPSE to ShapeKind.ELLIPSE,
+            DesktopTool.TRIANGLE to ShapeKind.TRIANGLE,
+            DesktopTool.RHOMBUS to ShapeKind.RHOMBUS,
+            DesktopTool.TRAPEZOID to ShapeKind.TRAPEZOID,
+            DesktopTool.PENTAGON to ShapeKind.PENTAGON,
+            DesktopTool.HEXAGON to ShapeKind.HEXAGON,
             DesktopTool.SPLINE to ShapeKind.SPLINE,
         )
         for ((tool, kind) in expected) {
@@ -163,6 +170,24 @@ class DesktopGeometryTest {
         assertEquals("the pen previews with its own tool", Tool.PEN, DesktopTool.PEN.previewTool())
         assertEquals(Tool.HIGHLIGHTER, DesktopTool.HIGHLIGHTER.previewTool())
         assertNull("the eraser previews no stroke", DesktopTool.ERASER.previewTool())
+    }
+
+    @Test
+    fun `a figure's variant comes from FigureShape, not from the drag`() {
+        // A box drag, not a flat one: a zero-height triangle is the builder's line, whatever its kind.
+        val drag = { shape: FigureShape ->
+            shapeFromDrag(ShapeKind.TRIANGLE, 0.0, 0.0, 100.0, 80.0, 2f, constrained = false, figures = shape)
+        }
+        assertNotEquals(
+            "an equilateral and a right-angled triangle are different figures",
+            drag(FigureShape(triangleKind = TriangleKind.EQUILATERAL)),
+            drag(FigureShape(triangleKind = TriangleKind.RIGHT)),
+        )
+        // A regular polygon takes no advice from the settings: a pentagon is five sides, closed.
+        val pentagon = shapeFromDrag(ShapeKind.PENTAGON, 0.0, 0.0, 100.0, 100.0, 2f, constrained = false)
+        assertEquals("four corners plus the closing point", 6, pentagon.size)
+        assertEquals(pentagon.first().x, pentagon.last().x, 1e-9)
+        assertEquals(pentagon.first().y, pentagon.last().y, 1e-9)
     }
 
     @Test

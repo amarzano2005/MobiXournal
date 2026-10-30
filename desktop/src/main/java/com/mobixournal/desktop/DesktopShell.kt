@@ -291,7 +291,7 @@ class DesktopShellState(
      * width is chosen once and drawn at full size — which is how a rectangle is made to match a light pen
      * stroke instead of the pen's widest slot.
      */
-    val shapeInk: DesktopInk get() = inkState.shapeInk.withWidth(prefs.figureWidth)
+    val shapeInk: DesktopInk get() = inkState.shapeInk.withWidth(prefs.figures.width)
 
     /** The palette's editable custom slot, shared by both tools. Null while it is empty. */
     val paletteCustom: Int? get() = inkState.paletteCustom

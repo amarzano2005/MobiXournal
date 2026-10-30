@@ -16,7 +16,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.mobixournal.design.PenPalette
 import com.mobixournal.design.SettingsGlyph
 import com.mobixournal.render.PressureCurve
 import java.util.Locale
@@ -371,44 +370,6 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
     }
 }
 
-/**
- * **Figures**: the width the shape tools draw at.
- *
- * A figure has no pressure — it is drawn at its full width — so a rectangle would otherwise always be as
- * thick as the pen's *slot*, and a light pen stroke beside it reads thinner. Its width is therefore its own
- * value: the tablet's three S/M/L slots as presets, and a slider for anything between them.
- */
-@Composable
-private fun FiguresSettings(policy: DesktopSettingsState) {
-    val widths = PenPalette.DEFAULT_WIDTHS
-    val letters = listOf("S", "M", "L")
-    SettingsGroup("Figure width") {
-        SettingsSelect(
-            label = "Preset",
-            note = "The pen's three slots, for every figure tool — figures ignore pressure.",
-            options = widths.indices.toList(),
-            picked = PenPalette.widthSlot(policy.figureWidth),
-            optionLabel = { index ->
-                val name = letters.getOrNull(index) ?: "${index + 1}"
-                "$name — ${String.format(Locale.ROOT, "%.1f", widths[index])} pt"
-            },
-            onPick = { index -> policy.chooseFigureWidth(widths[index]) },
-        )
-        SettingsRow(
-            label = "Width",
-            note = "Anything between the slots, in points.",
-        ) {
-            SettingsSlider(
-                value = policy.figureWidth,
-                range = widths.first()..widths.last(),
-                step = 0.25f,
-                format = { String.format(Locale.ROOT, "%.2f pt", it) },
-                onValue = policy::chooseFigureWidth,
-            )
-        }
-    }
-    SettingsNote("The pen's own widths stay in the strip's colour capsule.")
-}
 
 /** **Colors**: the palette lives in the strip, and this page says so rather than duplicating it. */
 @Composable
@@ -581,6 +542,30 @@ private fun AudioSettings(policy: DesktopSettingsState) {
         }
         Readout("Recording format", "44.1 kHz · mono · 16-bit WAV")
         Readout("Recordings", "%APPDATA%\\MobiXournal\\audio")
+    }
+    // The tablet's *Save separate audio*: the take leaves the window's own store, so another program
+    // (or another machine) can play it. On by the reader's choice, never by itself.
+    SettingsGroup("Outside the app") {
+        SettingsRow(
+            label = "Save separate audio",
+            note = "Copy each take into the folder below, so the recording is usable outside this window.",
+            onClick = { audio.chooseSaveExternally(!audio.saveExternally) },
+        ) {
+            SettingsSwitch(audio.saveExternally)
+        }
+        SettingsRow(
+            label = "Folder",
+            note = audio.exportFolder.ifBlank {
+                "No folder chosen yet — a copy needs one, and nothing is copied until it is set."
+            },
+            onClick = { policy.pickAudioFolder?.invoke() },
+        ) {
+            Text(
+                if (audio.exportFolder.isBlank()) "Choose…" else "Change…",
+                color = DesktopTheme.accent,
+                style = DesktopTheme.label,
+            )
+        }
     }
 }
 

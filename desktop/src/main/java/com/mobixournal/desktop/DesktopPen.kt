@@ -113,6 +113,13 @@ fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
     DesktopTool.RECTANGLE -> ShapeKind.RECTANGLE
     DesktopTool.ELLIPSE -> ShapeKind.ELLIPSE
     DesktopTool.SPLINE -> ShapeKind.SPLINE
+    // The tablet's STEM figures, so the two shells offer the same set. A square is not among them: the
+    // rectangle draws one, and the tablet dropped its button for the same reason.
+    DesktopTool.TRIANGLE -> ShapeKind.TRIANGLE
+    DesktopTool.RHOMBUS -> ShapeKind.RHOMBUS
+    DesktopTool.TRAPEZOID -> ShapeKind.TRAPEZOID
+    DesktopTool.PENTAGON -> ShapeKind.PENTAGON
+    DesktopTool.HEXAGON -> ShapeKind.HEXAGON
     else -> null
 }
 
@@ -137,6 +144,8 @@ fun shapeFromDrag(
     y1: Double,
     widthPt: Float,
     constrained: Boolean,
+    /** A triangle's and a trapezoid's own answers; the other figures ignore them. */
+    figures: FigureShape = FigureShape(),
 ): List<StrokePoint> {
     val dx = x1 - x0
     val dy = y1 - y0
@@ -149,7 +158,16 @@ fun shapeFromDrag(
     } else {
         x1 to y1
     }
-    return ShapeBuilder.build(kind, x0, y0, ex, ey, widthPt.toDouble())
+    return ShapeBuilder.build(
+        kind, x0, y0, ex, ey, widthPt.toDouble(),
+        triangleKind = figures.triangleKind,
+        angleA = figures.scaleneAngleA,
+        angleB = figures.scaleneAngleB,
+        angleC = figures.scaleneAngleC,
+        trapezoidKind = figures.trapezoidKind,
+        trapezoidAngleA = figures.trapezoidAngleA,
+        trapezoidAngleB = figures.trapezoidAngleB,
+    )
 }
 
 /**

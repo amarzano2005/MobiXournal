@@ -76,6 +76,7 @@ import kotlin.math.roundToInt
  * lands off the sheet starts nothing, because the desk is not paper.
  */
 @OptIn(ExperimentalComposeUiApi::class)
+
 @Composable
 internal fun PageCanvas(
     tab: DesktopTab,
@@ -91,6 +92,8 @@ internal fun PageCanvas(
      */
     shapeInk: DesktopInk = ink,
     circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
+    /** The triangle's and trapezoid's own answers, read by a figure drag (Settings ▸ Figures). */
+    figures: FigureShape = FigureShape(),
     /**
      * What a lifted living-slot drag means. The window asks the family's values first ([DesktopShellState]'s
      * placement card); a canvas on its own commits the family's defaults, which is what a test drives.
@@ -128,46 +131,41 @@ internal fun PageCanvas(
     chrome: ChromeInset = ChromeInset.NONE,
     modifier: Modifier = Modifier,
 ) {
-    val measurer = rememberTextMeasurer()
-    // The one meaning a lifted living-slot drag has, chosen before the gesture runs.
-    val placeLiving = onPlaceLiving ?: defaultPlacer(tab, ink, circuitKind, onEdited)
-    // Read once here: the gesture scope and the packet path both need it, and neither is in a draw scope.
-    val density = LocalDensity.current.density
-    val page = rememberedPage(tab)
-    // The drafts, the recorded picture and the karaoke driver: one call, keyed on the page itself.
-    val canvas = rememberCanvasState(tab)
-
+    // The page, its drafts and the two readings the gesture scope shares: one call (`PageCanvasMemory`).
+    val state = rememberPageCanvasMemory(tab, ink, circuitKind, onPlaceLiving, onEdited)
     BoxWithConstraints(
         modifier
             .background(DESK)
             .clipToBounds()
-            .onGloballyPositioned(canvas.memory::track),
+            .onGloballyPositioned(state.canvas.memory::track),
     ) {
         CanvasBox(
             tab = tab,
-            page = page,
+            page = state.page,
             tool = tool,
             ink = ink,
             shapeInk = shapeInk,
             circuitKind = circuitKind,
-            placeLiving = placeLiving,
-            placeCircuit = onPlaceCircuit,                text = text,
-                onEditLiving = onEditLiving,
-                draft = canvas.memory.draft,
-                penDraft = canvas.memory.penDraft,
-                pen = pen,
-            pointer = canvas.memory.pointer,
-            sheetPicture = canvas.picture,
-            karaoke = canvas.karaoke,
+            figures = figures,
+            placeLiving = state.placeLiving,
+            placeCircuit = onPlaceCircuit,
+            text = text,
+            onEditLiving = onEditLiving,
+            draft = state.canvas.memory.draft,
+            penDraft = state.canvas.memory.penDraft,
+            pen = pen,
+            pointer = state.canvas.memory.pointer,
+            sheetPicture = state.canvas.picture,
+            karaoke = state.canvas.karaoke,
             paintProbe = paintProbe,
-            measurer = measurer,
-            density = density,
+            measurer = state.measurer,
+            density = state.density,
             panMode = panMode,
             dialWheel = dialWheel,
             onLiveDrag = onLiveDrag,
             selectionBar = selectionBar,
-            origin = { canvas.memory.origin },
-            extent = { canvas.memory.extent },
+            origin = { state.canvas.memory.origin },
+            extent = { state.canvas.memory.extent },
             onViewport = onViewport,
             onFit = onFit,
             onEdited = onEdited,
@@ -176,9 +174,6 @@ internal fun PageCanvas(
         )
     }
 }
-
-
-
 /**
  * The ring follows the mouse — but only while the driver's packets are quiet, so a contact the driver has
  * already moved on from does not drag the ring back to where the emulated mouse still thinks it is.
@@ -272,6 +267,8 @@ internal fun SheetCanvas(
     ink: DesktopInk,
     shapeInk: DesktopInk,
     circuitKind: ShapeKind,
+    /** The triangle's and trapezoid's own answers, read by a figure drag (Settings ▸ Figures). */
+    figures: FigureShape = FigureShape(),
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
     onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
@@ -317,15 +314,9 @@ internal fun SheetCanvas(
             ringVisible = mark.ringPx != null,
             followMouse = mark.followMouse,
             dialWheel = dialWheel,
-            targets = PagePressTargets(
-                onPlaceLiving = onPlaceLiving,
-                onPlaceCircuit = onPlaceCircuit,
-                circuitKind = circuitKind,
-                onTextPress = onTextPress,
-                onEditLiving = onEditLiving,
-                // Only the component is drawn live: a plot or table is still waiting for its values.
-                livingPreview = pointer.previewLiving,
-                onLiveDrag = onLiveDrag,
+            targets = sheetTargets(
+                onPlaceLiving, onPlaceCircuit, circuitKind, figures, onTextPress, onEditLiving, pointer,
+                onLiveDrag,
             ),
             density = density,
             onViewport = onViewport,
@@ -363,6 +354,34 @@ internal fun SheetCanvas(
         pointer.hover.value?.let { at -> drawToolCursor(at, ring) }
     }
 }
+
+/**
+ * Everything a press on the sheet may mean, as one value: the two commits, the component in hand, the figure
+ * variants, the text press and the drag `Esc` cancels.
+ *
+ * A function rather than an inline block so [SheetCanvas] stays the sheet's layout and its paint, and so the
+ * set of meanings a press has is written in one place (`SourceStructureTest`).
+ */
+private fun sheetTargets(
+    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
+    onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
+    circuitKind: ShapeKind,
+    figures: FigureShape,
+    onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
+    onEditLiving: (() -> Unit)?,
+    pointer: PenPointer,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+): PagePressTargets = PagePressTargets(
+    onPlaceLiving = onPlaceLiving,
+    onPlaceCircuit = onPlaceCircuit,
+    circuitKind = circuitKind,
+    figures = figures,
+    onTextPress = onTextPress,
+    onEditLiving = onEditLiving,
+    // Only the component is drawn live: a plot or table is still waiting for its values.
+    livingPreview = pointer.previewLiving,
+    onLiveDrag = onLiveDrag,
+)
 
 /**
  * The sheet's **input surface**, as one modifier: the tool's pointer, the pen's readings, the wheel and the
@@ -645,3 +664,37 @@ internal fun zoomLabel(zoom: Float): String = "${(zoom * 100f).roundToInt()}%"
 
 /** A page's label: `Page 3 / 12`. */
 internal fun pageLabel(page: Int, count: Int): String = "Page ${page + 1} / ${count.coerceAtLeast(1)}"
+
+/**
+ * The state one page needs before anything is drawn: the page itself, its drafts and recorded picture, the
+ * measurer, and the two readings the gesture scope cannot take for itself (the density, and what a lifted
+ * living-slot drag means).
+ *
+ * A value rather than five locals in [PageCanvas], so the composable that lays the canvas out reads as one
+ * object instead of a preamble.
+ */
+private class PageCanvasMemory(
+    val measurer: TextMeasurer,
+    val placeLiving: (LivingSlot, Bounds) -> Unit,
+    val density: Float,
+    val page: Result<Page>,
+    val canvas: CanvasState,
+)
+
+@Composable
+private fun rememberPageCanvasMemory(
+    tab: DesktopTab,
+    ink: DesktopInk,
+    circuitKind: ShapeKind,
+    onPlaceLiving: ((LivingSlot, Bounds) -> Unit)?,
+    onEdited: (Int) -> Unit,
+): PageCanvasMemory = PageCanvasMemory(
+    measurer = rememberTextMeasurer(),
+    // The one meaning a lifted living-slot drag has, chosen before the gesture runs.
+    placeLiving = onPlaceLiving ?: defaultPlacer(tab, ink, circuitKind, onEdited),
+    // Read once here: the gesture scope and the packet path both need it, and neither is in a draw scope.
+    density = LocalDensity.current.density,
+    page = rememberedPage(tab),
+    // The drafts, the recorded picture and the karaoke driver: one call, keyed on the page itself.
+    canvas = rememberCanvasState(tab),
+)

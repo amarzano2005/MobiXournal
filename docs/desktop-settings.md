@@ -245,6 +245,12 @@ width — so this value is what a rectangle, an arrow, a circuit or a placed ele
 is why a figure can match a light pen stroke instead of the pen's widest slot. The pen's own widths stay in
 the strip's colour capsule, per tool.
 
+The page also carries the two figures whose shape a drag does not fully say: a **triangle**'s kind
+(equilateral, right-angled, isosceles, scalene) and a **trapezoid**'s (isosceles, right-angled, scalene),
+with the angles a scalene one is built from (`figure.*`, read and written by `FigureSettings`). They are the
+tablet's own four and three, so a figure is the same on both shells; the rows only appear where they apply
+(the scalene's angles are not shown for an equilateral triangle).
+
 ## Documents — the container a new file is born as
 
 Under **Documents**, **New document** (`documents.format`) is the tablet's three-way choice: **`.mobix`**
@@ -265,6 +271,12 @@ A name that is **no longer on the machine** is dropped to the system default on 
 well, and the row says so; the recorder and the player then fall back to the default themselves if a device
 disappears mid-session (`DesktopAudioDevices.kt`, `chooseDevice`). That is the whole reason the rows exist:
 a device list that let a take fail on a missing microphone would be a list of names, not a setting.
+
+**Outside the app** is where a take goes after it is recorded: **Save separate audio**
+(`audio.saveExternally`) and its **folder** (`audio.exportFolder`, picked with the platform's own folder
+chooser). With the toggle on, the end of a take copies every recording the document carries into that
+folder as standalone files — the same offer the tablet's audio page makes — and leaves the clips inside the
+document; with it off, the takes live only in the `.mobix`/`.xopp` they were recorded into.
 
 **Input level** under *The take* is the running take's peak, the same number the header capsule's bar shows,
 and it reads zero with the note that a take has to be started from the capsule — a dead bar with no

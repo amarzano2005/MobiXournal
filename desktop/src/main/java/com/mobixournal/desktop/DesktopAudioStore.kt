@@ -89,6 +89,18 @@ class DesktopAudioStore(
         return copyAll(documentAudioFiles(document)) { name -> file(name) to folder }
     }
 
+    /**
+     * Copy every recording [document] names into [folder] — the tablet's **Save separate audio**: the
+     * takes leave the window's own store so another program (or another machine) can play them.
+     *
+     * The same copier as a `.xopp` save, so a file already there at the same length is left alone rather
+     * than rewritten; the answer is how many were actually copied, which is what the capsule reports.
+     */
+    fun exportToFolder(folder: File, document: Document): Int {
+        if (!folder.isDirectory && !folder.mkdirs()) return 0
+        return copyAll(documentAudioFiles(document)) { name -> file(name) to folder }
+    }
+
     /** The names [document] references that this store does not hold — what an open has to report. */
     fun missing(document: Document): List<String> = documentAudioFiles(document).filter { file(it) == null }
 

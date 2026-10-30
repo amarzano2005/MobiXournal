@@ -193,6 +193,15 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /** The triangle's and the trapezoid's own answers (`figure.*`) — see [FigureSettings]. */
+    fun figureShape(): FigureShape = FigureSettings.read(properties)
+
+    /** Write them back, and the file with them. */
+    fun writeFigureShape(shape: FigureShape) {
+        FigureSettings.write(properties, shape)
+        save()
+    }
+
     /** What a new tab is written as — the Documents section's one answer. */
     var newDocumentFormat: DesktopNewDocumentFormat
         get() = DesktopNewDocumentFormat.of(properties.getProperty(KEY_NEW_DOCUMENT_FORMAT))
@@ -240,6 +249,31 @@ class DesktopSettings(val file: File = defaultFile()) {
     var audioOutputDevice: String
         get() = properties.getProperty(KEY_AUDIO_OUTPUT)?.trim().orEmpty()
         set(value) = writeDevice(KEY_AUDIO_OUTPUT, value)
+
+    /**
+     * The folder a finished take is **also** copied to (`audio.exportFolder`), or "" for none — the
+     * window's half of the tablet's *Save separate audio*.
+     *
+     * The window's own store is where a document's recordings live; this is the folder outside it, so
+     * the audio can be played by another program without exporting the notebook.
+     */
+    var audioExportFolder: String
+        get() = properties.getProperty(KEY_AUDIO_EXPORT_FOLDER)?.trim().orEmpty()
+        set(value) {
+            val path = value.trim()
+            if (path.isEmpty()) properties.remove(KEY_AUDIO_EXPORT_FOLDER)
+            else properties.setProperty(KEY_AUDIO_EXPORT_FOLDER, path)
+            save()
+        }
+
+    /** Whether each finished take is also copied into [audioExportFolder] (`audio.saveExternally`). */
+    var saveAudioExternally: Boolean
+        get() = properties.getProperty(KEY_SAVE_AUDIO_EXTERNALLY)?.trim()
+            ?.equals("true", ignoreCase = true) ?: false
+        set(value) {
+            properties.setProperty(KEY_SAVE_AUDIO_EXTERNALLY, value.toString())
+            save()
+        }
 
     /** Store a device name; the system default is the **absence** of the key, not an empty value. */
     private fun writeDevice(key: String, value: String) {
@@ -547,6 +581,8 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** The microphone and the output the window records and plays through; absent means system default. */
         const val KEY_AUDIO_INPUT = "audio.inputDevice"
         const val KEY_AUDIO_OUTPUT = "audio.outputDevice"
+        const val KEY_AUDIO_EXPORT_FOLDER = "audio.exportFolder"
+        const val KEY_SAVE_AUDIO_EXTERNALLY = "audio.saveExternally"
 
         /** The preferred pen stream. */
         const val KEY_PEN_STREAM = "tablet.penStream"

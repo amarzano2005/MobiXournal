@@ -39,6 +39,11 @@ internal class PagePressTargets(
     /** The part the circuit slot in hand would place — the picker's answer, read by the drag. */
     val circuitKind: ShapeKind = com.mobixournal.render.LivingPlacement.DEFAULT_CIRCUIT_KIND,
     /**
+     * The triangle's and trapezoid's own answers, read by a figure drag — Settings ▸ Figures' value, so
+     * the preview and the lift build the same figure.
+     */
+    val figures: FigureShape = FigureShape(),
+    /**
      * The drag in flight that `Esc` would cancel, or null once it is over. The shell holds the other end
      * (`DesktopShellState.liveDrag`): a shape is drawn from a drag, and a drag with no way back is a
      * gesture a keyboard cannot answer.

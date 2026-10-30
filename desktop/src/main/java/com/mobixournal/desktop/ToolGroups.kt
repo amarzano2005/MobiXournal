@@ -103,6 +103,18 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.DOUBLE_ARROW)),
     ToolGroup(listOf(DesktopTool.RECTANGLE)),
     ToolGroup(listOf(DesktopTool.ELLIPSE)),
+    // The tablet's STEM figures, one **submenu** as on the tablet: a triangle and a trapezoid draw the
+    // variant Settings ▸ Figures names, the three regular polygons are one drag each, and one slot keeps
+    // the rail as long as it was.
+    ToolGroup(
+        listOf(
+            DesktopTool.TRIANGLE,
+            DesktopTool.RHOMBUS,
+            DesktopTool.TRAPEZOID,
+            DesktopTool.PENTAGON,
+            DesktopTool.HEXAGON,
+        ),
+    ),
     ToolGroup(listOf(DesktopTool.SPLINE)),
     ToolGroup(listOf(DesktopTool.AXES)),
     // The STEM slots: each places a **living element** (a re-editable recipe), not ink, so each keeps a
@@ -149,6 +161,13 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.DOUBLE_ARROW,
     DesktopTool.RECTANGLE,
     DesktopTool.ELLIPSE,
+    // The five STEM figures the tablet has and the window did not: a drag each, written as one
+    // ordinary stroke, so they need no element of their own.
+    DesktopTool.TRIANGLE,
+    DesktopTool.RHOMBUS,
+    DesktopTool.TRAPEZOID,
+    DesktopTool.PENTAGON,
+    DesktopTool.HEXAGON,
     DesktopTool.SPLINE,
     DesktopTool.AXES,
     // The STEM slots place a living element through `LivingPlacement` — one element, one undo step.

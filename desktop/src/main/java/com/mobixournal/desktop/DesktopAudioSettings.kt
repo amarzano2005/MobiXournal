@@ -3,6 +3,7 @@ package com.mobixournal.desktop
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.io.File
 
 /**
  * The **Audio page's** choices: which microphone a take comes from and which output a clip sounds through,
@@ -42,6 +43,17 @@ class DesktopAudioSettings(
     var outputFellBackFrom by mutableStateOf<String?>(null)
         private set
 
+    /**
+     * Whether each finished take is **also** copied out of the window's store, into [exportFolder] —
+     * the tablet's *Save separate audio*, on the page that has a use for it (`audio.saveExternally`).
+     */
+    var saveExternally by mutableStateOf(false)
+        private set
+
+    /** Where those copies go; empty until the reader nominates a folder (`audio.exportFolder`). */
+    var exportFolder by mutableStateOf("")
+        private set
+
     init {
         // After the fields above: an `init` block runs where it stands, and settling the rows before their
         // state exists is a write to nothing.
@@ -58,6 +70,32 @@ class DesktopAudioSettings(
         devices = catalog()
         adoptInput(store.audioInputDevice)
         adoptOutput(store.audioOutputDevice)
+        saveExternally = store.saveAudioExternally
+        exportFolder = store.audioExportFolder
+        adoptExport()
+    }
+
+    /** Turn the standalone copy on or off; the take's own engine reads it when one finishes. */
+    fun chooseSaveExternally(enabled: Boolean) {
+        store.saveAudioExternally = enabled
+        saveExternally = enabled
+        adoptExport()
+    }
+
+    /**
+     * Nominate the folder standalone copies go to. A folder the window cannot see is refused in words
+     * elsewhere (the picker only returns real ones), so this only records the answer.
+     */
+    fun chooseExportFolder(folder: File) {
+        store.audioExportFolder = folder.absolutePath
+        exportFolder = store.audioExportFolder
+        adoptExport()
+    }
+
+    /** The export half of [DesktopAudioSession]'s state: one folder, and whether a copy is wanted. */
+    private fun adoptExport() {
+        DesktopAudioSession.saveExternally = saveExternally
+        DesktopAudioSession.exportFolder = exportFolder.takeIf { it.isNotBlank() }?.let(::File)
     }
 
     /** Pick the microphone by the platform's name; empty means the system default. */

@@ -87,6 +87,15 @@ internal object DesktopAudioSession {
         private set
 
     /**
+     * Where a standalone copy of each finished take goes, when [saveExternally] — the Audio page
+     * nominates both (`DesktopAudioSettings`), so this object never reads the settings store.
+     */
+    var exportFolder: java.io.File? = null
+
+    /** Whether a finished take is copied out of the window's store at all (the tablet's toggle). */
+    var saveExternally: Boolean = false
+
+    /**
      * Adopt what [document] carries: the recordings a `.mobix` bundles, and the sidecars a `.xopp` keeps
      * beside it.
      *
@@ -123,7 +132,7 @@ internal object DesktopAudioSession {
     /** Start or finish a take. A click is the whole gesture, exactly as on the tablet. */
     fun toggleRecord(document: Document?) {
         if (recording) {
-            finishRecording()
+            finishRecording(document)
             return
         }
         if (document == null) {
@@ -150,8 +159,15 @@ internal object DesktopAudioSession {
         recordingPaused = recorder.paused
     }
 
-    /** Stop and finalise the take, keeping the file the strokes name. */
-    fun finishRecording() {
+    /**
+     * Stop and finalise the take, keeping the file the strokes name — and, when the Audio page asks for
+     * a standalone copy, copying the document's recordings into the nominated folder.
+     *
+     * The copy is of **every** recording the document names, not only this take: the folder is meant to
+     * hold the notebook's audio, and a second take must not be the only file in it. A copy that cannot be
+     * written is reported in words rather than swallowed.
+     */
+    fun finishRecording(document: Document? = null) {
         val name = recorder.stop()
         recording = false
         recordingPaused = false
@@ -159,6 +175,23 @@ internal object DesktopAudioSession {
         recordedMs = 0
         if (name == null && recorder.message != null) message = recorder.message
         hasAudio = hasAudio || name != null
+        if (name != null) exportStandalone(document)
+    }
+
+    /** The tablet's *Save separate audio*: put the document's recordings in [exportFolder]. */
+    private fun exportStandalone(document: Document?) {
+        val folder = exportFolder ?: return
+        if (!saveExternally || document == null) return
+        val copied = store.exportToFolder(folder, document)
+        if (copied > 0) {
+            message = if (copied == 1) {
+                "The recording was also saved to ${folder.absolutePath}."
+            } else {
+                "$copied recordings were also saved to ${folder.absolutePath}."
+            }
+        } else {
+            message = "The recordings could not be copied to ${folder.absolutePath}."
+        }
     }
 
     /**

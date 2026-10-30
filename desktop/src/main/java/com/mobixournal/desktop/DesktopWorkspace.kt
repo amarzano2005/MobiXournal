@@ -29,24 +29,7 @@ import com.mobixournal.format.model.LineStyle
 @Composable
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
     Row(Modifier.fillMaxSize()) {
-        if (state.sidebarVisible) {
-            PageSidebar(
-                tab = tab,
-                cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
-                onSelectPage = { index -> selectPage(tab, index) },
-                // The row's own delete: one page, one undo step, and the document's PDF reference kept
-                // when the page it lived on is the one dropped.
-                onRemovePage = { index -> state.removePageAt(index) },
-                // A thumbnail dragged onto another row: one undo step, the same command the Pages menu runs.
-                onMovePage = { from, to -> state.movePage(from, to) },
-                // A drag on one of the picked rows carries the whole pick, as one block and one undo step.
-                onMovePages = { pages, target -> state.movePages(pages, target) },
-                // The selection bar's delete: every picked page, with the PDF reference kept.
-                onRemovePages = { pages -> state.removePages(pages) },
-                // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
-                revision = state.thumbnailRevision,
-            )
-        }
+        if (state.sidebarVisible) WorkspaceSidebar(state, tab)
         val placement = state.prefs.stripPlacement
         val railOnLeft = state.prefs.railSide == RailSide.LEFT
         Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -65,6 +48,8 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                         shapeInk = state.shapeInk,
                         // The component the Circuit slot is armed with — the picker's answer the drag reads.
                         circuitKind = state.activeCircuitKind,
+                        // The triangle's and trapezoid's variants and angles — Settings ▸ Figures.
+                        figures = state.prefs.figures.shape,
                         // A STEM slot asks its values before the element exists, so the canvas hands the box over.
                         onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
                         // A component is pulled out along the drag's own two ends, aimed at the page's pins.
@@ -125,6 +110,32 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
             InspectorLane(state = state, tab = tab)
         }
     }
+}
+
+/**
+ * The page sidebar, in the lane it takes beside the canvas.
+ *
+ * A named composable rather than six inline lambdas: the row reads as the objects it arranges, and the
+ * commands the sidebar runs — the page pick, the two drags, the deletes — are written once here.
+ */
+@Composable
+private fun WorkspaceSidebar(state: DesktopShellState, tab: DesktopTab) {
+    PageSidebar(
+        tab = tab,
+        cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
+        onSelectPage = { index -> selectPage(tab, index) },
+        // The row's own delete: one page, one undo step, and the document's PDF reference kept when the
+        // page it lived on is the one dropped.
+        onRemovePage = { index -> state.removePageAt(index) },
+        // A thumbnail dragged onto another row: one undo step, the same command the Pages menu runs.
+        onMovePage = { from, to -> state.movePage(from, to) },
+        // A drag on one of the picked rows carries the whole pick, as one block and one undo step.
+        onMovePages = { pages, target -> state.movePages(pages, target) },
+        // The selection bar's delete: every picked page, with the PDF reference kept.
+        onRemovePages = { pages -> state.removePages(pages) },
+        // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
+        revision = state.thumbnailRevision,
+    )
 }
 
 /**

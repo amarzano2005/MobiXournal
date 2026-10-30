@@ -128,6 +128,12 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.DOUBLE_ARROW -> ToolGlyph.DOUBLE_ARROW
         DesktopTool.RECTANGLE -> ToolGlyph.RECTANGLE
         DesktopTool.ELLIPSE -> ToolGlyph.ELLIPSE
+        // The tablet's own pictures of the STEM figures.
+        DesktopTool.TRIANGLE -> ToolGlyph.TRIANGLE
+        DesktopTool.RHOMBUS -> ToolGlyph.RHOMBUS
+        DesktopTool.TRAPEZOID -> ToolGlyph.TRAPEZOID
+        DesktopTool.PENTAGON -> ToolGlyph.PENTAGON
+        DesktopTool.HEXAGON -> ToolGlyph.HEXAGON
         DesktopTool.SPLINE -> ToolGlyph.SPLINE
         DesktopTool.PLOT -> ToolGlyph.PLOT
         DesktopTool.AXES -> ToolGlyph.AXES

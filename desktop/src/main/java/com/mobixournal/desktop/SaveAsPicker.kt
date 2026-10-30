@@ -31,6 +31,22 @@ import javax.swing.filechooser.FileNameExtensionFilter
 internal object SaveAsPicker {
 
     /**
+     * Ask for a **folder** — the Audio page's *Save separate audio* destination.
+     *
+     * Swing again rather than AWT: `FileDialog` has no directory mode, so the one dialog that can answer
+     * "where?" with a folder instead of a file is the chooser. It opens on [start] when that folder still
+     * exists, because changing the folder should not mean navigating to it every time.
+     */
+    fun chooseFolder(window: Frame, title: String, start: File?): File? = onSwingThread {
+        val chooser = if (start != null && start.isDirectory) JFileChooser(start) else JFileChooser()
+        chooser.dialogTitle = title
+        chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+        chooser.isAcceptAllFileFilterUsed = false
+        if (chooser.showOpenDialog(window) != JFileChooser.APPROVE_OPTION) return@onSwingThread null
+        chooser.selectedFile?.takeIf { it.isDirectory }
+    }
+
+    /**
      * Show the save window for [tab] and answer the destination and the container, or null when it was
      * cancelled. It opens on the document's own container and its own folder: the common answer is "the
      * same file, somewhere else", and Save As should not make that a decision every time.

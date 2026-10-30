@@ -67,6 +67,13 @@ class ToolStripsTest {
         "Double arrow" to "Shift+A",
         "Rectangle" to "R",
         "Ellipse" to "C",
+        // The tablet's STEM figures, which the window gained: a triangle and a trapezoid draw the
+        // variant Settings ▸ Figures names, the three regular polygons are one drag each.
+        "Triangle" to "Alt+R",
+        "Rhombus" to "Alt+J",
+        "Trapezoid" to "Alt+Z",
+        "Pentagon" to "Alt+P",
+        "Hexagon" to "Alt+H",
         "Spline" to "P",
         "Plot" to "M",
         "Axes" to "Shift+X",
@@ -237,7 +244,9 @@ class ToolStripsTest {
     @Test
     fun `the rail and the ribbon draw every slot`() {
         val railPng = save(
-            ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 900, Density(1f)) {
+            // Tall enough for every slot: the figure submenu is one more slot than the strip had. In a
+            // shorter window the rail scrolls (`verticalScroll` in `ToolRail`), which this does not test.
+            ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 1000, Density(1f)) {
                 ToolRail(ToolStripState(), onSelect = {})
             },
             "tools-rail",
@@ -254,7 +263,8 @@ class ToolStripsTest {
         )
 
         val ribbonPng = save(
-            ImageComposeScene(1000, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
+            // Wide enough for every slot: the figure submenu added one, and the ribbon is a row.
+            ImageComposeScene(1100, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
                 ToolRibbon(
                     state = ToolStripState(selection = ToolSelection(DesktopTool.SPLINE)),
                     onSelect = {},

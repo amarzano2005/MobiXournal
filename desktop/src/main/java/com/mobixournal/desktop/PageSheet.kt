@@ -27,6 +27,8 @@ internal fun PageSheet(
     ink: DesktopInk,
     shapeInk: DesktopInk,
     circuitKind: ShapeKind,
+    /** The triangle's and trapezoid's own answers, read by a figure drag. */
+    figures: FigureShape = FigureShape(),
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
     onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
@@ -78,6 +80,7 @@ internal fun PageSheet(
         ink = ink,
         shapeInk = shapeInk,
         circuitKind = circuitKind,
+        figures = figures,
         onPlaceLiving = onPlaceLiving,
         onPlaceCircuit = onPlaceCircuit,
         onTextPress = text.onPress,
@@ -192,6 +195,8 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     ink: DesktopInk,
     shapeInk: DesktopInk,
     circuitKind: ShapeKind,
+    /** The triangle's and trapezoid's own answers, read by a figure drag. */
+    figures: FigureShape = FigureShape(),
     placeLiving: (LivingSlot, Bounds) -> Unit,
     /** The shell's commit for a circuit drag, or null to place the family's default here. */
     placeCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
@@ -235,6 +240,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
         ink = ink,
         shapeInk = shapeInk,
         circuitKind = circuitKind,
+        figures = figures,
         onPlaceLiving = placeLiving,
         onPlaceCircuit = placeCircuit,
         text = text,

@@ -91,6 +91,11 @@ fun FrameWindowScope.DesktopApp(
         state.prefs.pickBackupFile = dialogs::backup
         onDispose { state.prefs.pickBackupFile = null }
     }
+    // The Audio page's folder row needs the same loan: a settings screen has no `Frame`.
+    DisposableEffect(Unit) {
+        state.prefs.pickAudioFolder = dialogs::chooseAudioFolder
+        onDispose { state.prefs.pickAudioFolder = null }
+    }
     DesktopTheme.Apply {
         DesktopShell(
             state = state,
@@ -164,6 +169,17 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
     /** The settings backup's own file: **save** asks where to write one, **load** which to read. */
     fun backup(save: Boolean, onPicked: (File?) -> Unit) {
         onPicked(chooseBackupFile(window, save))
+    }
+
+    /**
+     * Where standalone recordings are copied — the Audio page's *Folder* row. The answer is recorded by
+     * the page itself ([DesktopAudioSettings.chooseExportFolder]), so a cancelled dialog changes nothing.
+     */
+    fun chooseAudioFolder() {
+        val audio = state.prefs.audio
+        val start = audio.exportFolder.takeIf { it.isNotBlank() }?.let(::File)
+        SaveAsPicker.chooseFolder(window, "Save the recordings in", start)
+            ?.let(audio::chooseExportFolder)
     }
 }
 

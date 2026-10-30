@@ -37,6 +37,15 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     DOUBLE_ARROW("Double arrow", "Shift+A"),
     RECTANGLE("Rectangle", "R"),
     ELLIPSE("Ellipse", "C"),
+    // The tablet's STEM figures, so the strip offers the same set on both shells — one group slot, whose
+    // picker lists them as the tablet's figure submenu does. A triangle and a trapezoid carry a variant
+    // of their own (Settings ▸ Figures); a square is not here, because the rectangle draws one and the
+    // tablet dropped its button for the same reason.
+    TRIANGLE("Triangle", "Alt+R"),
+    RHOMBUS("Rhombus", "Alt+J"),
+    TRAPEZOID("Trapezoid", "Alt+Z"),
+    PENTAGON("Pentagon", "Alt+P"),
+    HEXAGON("Hexagon", "Alt+H"),
     SPLINE("Spline", "P"),
     PLOT("Plot", "M"),
     AXES("Axes", "Shift+X"),

@@ -152,9 +152,8 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     val selectedPenPresetId: String get() = presetState.selectedId
     val presetDraft: String? get() = presetState.draft
 
-    /** The width a figure is drawn at, in points: a figure has no pressure, so it is its own answer. */
-    var figureWidth by mutableStateOf(store.figureWidth)
-        private set
+    /** The figure decisions — its width, and the variant a triangle or a trapezoid draws. */
+    internal val figures = FigureChoices(store)
 
     /** What a new tab is written as. */
     var newDocumentFormat by mutableStateOf(store.newDocumentFormat)
@@ -180,6 +179,13 @@ class DesktopSettingsState(private val store: DesktopSettings) {
      * answer a sentence instead of opening a dialog nothing can answer.
      */
     var pickBackupFile: ((save: Boolean, onPicked: (File?) -> Unit) -> Unit)? = null
+
+    /**
+     * The window's folder picker, lent for as long as the window is up — the Audio page's *Folder*
+     * row. A settings screen has no `Frame` to hang a dialog on, so the shell does the asking and the
+     * page records the answer.
+     */
+    var pickAudioFolder: (() -> Unit)? = null
 
     /**
      * What the last export or import said, shown under the two rows of the Backup section.
@@ -557,13 +563,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         if (wasLive) applyPenPreset(selectedPenPresetId)
     }
 
-    /** The width a figure is drawn at, in points — its own answer, independent of the pen's pressure. */
-    fun chooseFigureWidth(value: Float) {
-        val width = com.mobixournal.design.PenPalette.clampWidth(value)
-        figureWidth = width
-        store.figureWidth = width
-    }
-
     /** What a new tab is written as, from now on. */
     fun chooseNewDocumentFormat(value: DesktopNewDocumentFormat) {
         newDocumentFormat = value
@@ -596,7 +595,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         areaWidthPercent = store.areaWidthPercent
         areaHeightPercent = store.areaHeightPercent
         aspectLock = store.aspectLock
-        figureWidth = store.figureWidth
+        figures.reload()
         newDocumentFormat = store.newDocumentFormat
         toolOrder = store.toolOrder
         toggleEraserTool = toolNamed(store.toggleEraser, DesktopTool.ERASER)
