@@ -17,8 +17,8 @@ import com.mobixournal.format.model.Page
  */
 object PdfImport {
 
-    fun documentFor(cache: PdfPageCache, reference: String): Document =
-        Document(pages = pagesFor(cache, reference))
+    fun documentFor(cache: PdfPageCache, reference: String, indices: IntRange? = null): Document =
+        Document(pages = pagesFor(cache, reference, indices = indices))
 
     /**
      * One `.xopp` page per page of [cache], ready to become a whole document ([documentFor]) or to be
@@ -29,19 +29,32 @@ object PdfImport {
      * that already carries the reference — the case where the incoming PDF has been merged into the
      * existing background PDF ([PdfMerger]) and the existing reference is re-pointed at the joined
      * file instead. [pageNoOffset] is then where these pages start inside that joined PDF.
+     *
+     * [indices] is the run of **source** pages to bring, 0-based; null brings the whole PDF. A `pageno`
+     * is always the source page's own number plus [pageNoOffset], never the run's position, so importing
+     * pages 5–20 of a scan still draws pages 5–20 of that scan — the same rule the window's import
+     * keeps, because it is the page numbering of the file that has to be right, not the run's.
      */
-    fun pagesFor(cache: PdfPageCache, reference: String?, pageNoOffset: Int = 0): List<Page> =
-        (0 until cache.pageCount).map { i ->
-            val (w, h) = cache.pageSizePt(i)
+    fun pagesFor(
+        cache: PdfPageCache,
+        reference: String?,
+        pageNoOffset: Int = 0,
+        indices: IntRange? = null,
+    ): List<Page> {
+        val wanted = (indices?.toList() ?: (0 until cache.pageCount).toList())
+            .filter { it in 0 until cache.pageCount }
+        return wanted.mapIndexed { run, index ->
+            val (w, h) = cache.pageSizePt(index)
             Page(
                 width = w,
                 height = h,
                 background = Background.Pdf(
-                    filename = if (i == 0) reference else null,
-                    pageNo = i + pageNoOffset,
-                    domain = if (i == 0 && reference != null) ABSOLUTE_DOMAIN else null,
+                    filename = if (run == 0) reference else null,
+                    pageNo = index + pageNoOffset,
+                    domain = if (run == 0 && reference != null) ABSOLUTE_DOMAIN else null,
                 ),
                 layers = listOf(Layer(emptyList())),
             )
         }
+    }
 }

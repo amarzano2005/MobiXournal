@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.render.PageRangePlan
+import com.mobixournal.render.PageRangeRequest
+import com.mobixournal.render.PageRanges
+
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PageOps

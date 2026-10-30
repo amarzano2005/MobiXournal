@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.render.PageRangePlan
+import com.mobixournal.render.PageRangeRequest
+import com.mobixournal.render.PageRanges
+
 import com.mobixournal.format.model.Background
 import com.mobixournal.render.ImportPdfMode
 import java.io.File

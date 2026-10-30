@@ -11,13 +11,11 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     // Individual geometric shapes (one-by-one direct tools)
     RailItem("line", "Line"),
     RailItem("rectangle", "Rectangle"),
-    RailItem("square", "Square"),
     RailItem("ellipse", "Circle / Ellipse"),
     RailItem("triangle", "Triangle"),
     RailItem("rhombus", "Rhombus"),
     RailItem("trapezoid", "Trapezoid"),
-    RailItem("pentagon", "Pentagon"),
-    RailItem("hexagon", "Hexagon"),
+    RailItem("polygons", "Polygons"),
     RailItem("spline", "Spline"),
     // Multi-tool dropdown groups & tools
     RailItem("arrow", "Arrows"),
@@ -27,21 +25,24 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("circuit", "Passive circuits"),
     RailItem("circuit_active", "Active circuits"),
     RailItem("logic", "Logic gates"),
-    RailItem("chemistry", "Chemistry"),
     // STEM + popups
     RailItem("guides", "Drawing guides"),
 )
 
 /**
- * Default order of buttons in the Secondary Toolbar: line, rectangle, square, individual shapes,
- * arrows (dropdown), the Cartesian axis, the function graph, table, passive circuits, active circuits,
- * logic gates, chemistry, and drawing guides. The function graph sits immediately to the right of the
- * Cartesian coordinate axis, keeping coordinate-based mathematical graphing tools together.
+ * Default order of buttons in the Secondary Toolbar: line, rectangle, the individual shapes, the
+ * polygon slot (pentagon and hexagon), arrows (dropdown), the Cartesian axis, the function graph,
+ * table, passive circuits, active circuits, logic gates, and drawing guides. The function graph sits
+ * immediately to the right of the Cartesian coordinate axis, keeping coordinate-based mathematical
+ * graphing tools together.
+ *
+ * There is no square and no chemistry slot: a square is a rectangle, and the chemistry bonds and the
+ * benzene ring left with the section that offered them.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
-    "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
-    "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis", "graph",
-    "table", "circuit", "circuit_active", "logic", "chemistry", "guides",
+    "line", "rectangle", "ellipse", "triangle", "rhombus",
+    "trapezoid", "polygons", "spline", "arrow", "axis", "graph",
+    "table", "circuit", "circuit_active", "logic", "guides",
 )
 
 /**
@@ -54,6 +55,13 @@ val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
  * because a saved order deliberately wins.
  */
 private val LEGACY_TOP_BAR_ORDERS: List<List<String>> = listOf(
+    // The row as it stood with the square and the chemistry slot, which the current factory order
+    // leaves out — a device whose row was never arranged still carries this copy on disk.
+    listOf(
+        "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
+        "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis", "graph",
+        "table", "circuit", "circuit_active", "logic", "chemistry", "guides",
+    ),
     listOf(
         "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
         "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
@@ -112,13 +120,10 @@ fun orderedTopBarItems(order: List<String>): List<RailItem> {
 val FIGURE_TOOL_TO_TOP_BAR_ID: Map<EditorTool, String> = mapOf(
     EditorTool.LINE to "line",
     EditorTool.RECTANGLE to "rectangle",
-    EditorTool.SQUARE to "square",
     EditorTool.ELLIPSE to "ellipse",
     EditorTool.TRIANGLE to "triangle",
     EditorTool.RHOMBUS to "rhombus",
     EditorTool.TRAPEZOID to "trapezoid",
-    EditorTool.PENTAGON to "pentagon",
-    EditorTool.HEXAGON to "hexagon",
     EditorTool.SPLINE to "spline",
     EditorTool.COORDINATE_AXIS to "axis",
 )
@@ -170,16 +175,15 @@ fun decodeTopBarIds(raw: String?): List<String> {
  * Map top bar id to a single EditorTool if it represents an individual tool directly, or null
  * when the slot is rendered by a dedicated button instead. ["triangle"] and ["trapezoid"] return
  * null because they carry their own variant picker (isosceles / right / scalene); routing them
- * through a plain single-tool button would hide that menu.
+ * through a plain single-tool button would hide that menu. ["polygons"] is null for the same reason:
+ * it is a **family** slot, resolved through [secondaryToolGroup], whose menu offers the pentagon and
+ * the hexagon in that order.
  */
 fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE
     "rectangle" -> EditorTool.RECTANGLE
-    "square" -> EditorTool.SQUARE
     "ellipse" -> EditorTool.ELLIPSE
     "rhombus" -> EditorTool.RHOMBUS
-    "pentagon" -> EditorTool.PENTAGON
-    "hexagon" -> EditorTool.HEXAGON
     "axis" -> EditorTool.COORDINATE_AXIS
     "spline" -> EditorTool.SPLINE
     "table" -> EditorTool.TABLE

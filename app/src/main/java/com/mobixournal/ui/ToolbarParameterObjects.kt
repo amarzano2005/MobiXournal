@@ -35,6 +35,12 @@ data class ToolbarPagesCallbacks(
     val onGoToPage: (Int) -> Unit,
     val pageSize: Pair<Double, Double>?,
     val onPageSize: (Double, Double) -> Unit,
+    /**
+     * How much the Pages menu's **quick size** buttons add to, or take from, the sheet, in points —
+     * the pixel step from Settings ▸ Editor converted by [com.mobixournal.render.PageSizeStep]. Zero
+     * keeps the section off the menu (no page to resize, or a step nobody set).
+     */
+    val sizeStepPt: Double = 0.0,
     /** The app's default page size (Settings ▸ Editor); backs the page-size dialog's **Default** tab. */
     val defaultPageSize: Pair<Double, Double>,
     val onSaveAsDefault: (Double, Double) -> Unit,

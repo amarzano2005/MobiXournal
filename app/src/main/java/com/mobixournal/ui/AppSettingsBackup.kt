@@ -7,6 +7,7 @@ import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.MomentumCurve
+import com.mobixournal.render.PageSizeStep
 import com.mobixournal.render.StrokePrecision
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
@@ -39,6 +40,7 @@ object AppSettingsBackup {
         b.append("  \"version\": ").append(CURRENT_VERSION).append(",\n")
         b.append("  \"defaultPageWidthPt\": ").append(settings.defaultPageWidthPt).append(",\n")
         b.append("  \"defaultPageHeightPt\": ").append(settings.defaultPageHeightPt).append(",\n")
+        b.append("  \"pageSizeStepPx\": ").append(settings.pageSizeStepPx).append(",\n")
         b.append("  \"fingerDraws\": ").append(settings.fingerDraws).append(",\n")
         b.append("  \"barrelAction\": \"").append(settings.barrelAction.name).append("\",\n")
         b.append("  \"barrelDoubleAction\": \"").append(settings.barrelDoubleAction.name).append("\",\n")
@@ -248,6 +250,8 @@ object AppSettingsBackup {
         return AppSettings(
             defaultPageWidthPt = root.getDouble("defaultPageWidthPt", fallback.defaultPageWidthPt),
             defaultPageHeightPt = root.getDouble("defaultPageHeightPt", fallback.defaultPageHeightPt),
+            pageSizeStepPx = root.getIntOrNull("pageSizeStepPx")?.let(PageSizeStep::clampPx)
+                ?: fallback.pageSizeStepPx,
             fingerDraws = root.getBool("fingerDraws", fallback.fingerDraws),
             barrelAction = readEnum("barrelAction", BarrelAction.values(), fallback.barrelAction),
             barrelDoubleAction = readEnum("barrelDoubleAction", QuickAction.values(), fallback.barrelDoubleAction),

@@ -66,6 +66,16 @@ The stacked list had buried spacing and stationery below the fold for what is a 
 choice. A group that can't apply (spacing on a PDF-backed page) says so in a line of its own instead of
 a row of disabled chips, which would claim space to state only that.
 
+## Quick page size (`ToolbarPagesPopup`)
+
+**Two rows, not a dialog.** The Pages pop-up opens with a **Quick size** pair — **Width** and **Height**,
+each with a minus and a plus — that changes one dimension of the page in view by `AppSettings.pageSizeStepPx`
+(100 px by default; adjustable under **Settings → Drawing → Editor**). The row shows the page's own unit
+(points) while the step is the user's pixels, converted once by `mobix-core`'s `PageSizeStep` at the fixed
+**96 px/inch** rate rather than the display's density: the size a reader types is a page size, and the same
+document must come out the same on a 320 dpi tablet and a 160 dpi one. The resize goes through the same
+`onPageSize` path as the Page size dialog, so the sheet and the stored format cannot disagree.
+
 ## Add/remove page
 
 **Moving and pruning a run of pages.** The list is reordered at two scales. A thumbnail **dragged** down the

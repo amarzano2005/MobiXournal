@@ -55,10 +55,10 @@ import com.mobixournal.format.FontDescription
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.FunctionPlot
 import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.TrapezoidKind
-import com.mobixournal.ui.theme.FloatingDialog
 import kotlin.math.roundToInt
 
 /** The families offered in the text dialog — names desktop Xournal++ and Android both resolve. */
@@ -121,46 +121,6 @@ fun SaveAsDialog(
             }
         },
         confirmButton = { TextButton(onClick = { onConfirm(name, format) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-/**
- * "Import PDF" chooser: does the picked PDF become the whole document ([ImportPdfMode.REPLACE], which
- * discards the current pages) or land after the pages already open ([ImportPdfMode.APPEND])? A `.xopp`
- * can reference just one background PDF, so when the document already has one ([merging]) the append
- * merges the two into a single joined PDF — the subtitle says so, since the joined file is what later
- * saves link to (see [ImportPdfMode]).
- */
-@Composable
-fun ImportPdfDialog(
-    merging: Boolean,
-    onConfirm: (ImportPdfMode) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var mode by remember { mutableStateOf(ImportPdfMode.APPEND) }
-    FloatingDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Import PDF") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                FormatOption(
-                    selected = mode == ImportPdfMode.REPLACE,
-                    title = "Replace",
-                    subtitle = "The PDF's pages become this document, replacing the current pages.",
-                    onClick = { mode = ImportPdfMode.REPLACE },
-                )
-                FormatOption(
-                    selected = mode == ImportPdfMode.APPEND,
-                    title = "Append",
-                    subtitle = if (merging)
-                        "Add the PDF's pages after the pages already open, merging it into this document's background PDF."
-                    else "Add the PDF's pages after the pages already open.",
-                    onClick = { mode = ImportPdfMode.APPEND },
-                )
-            }
-        },
-        confirmButton = { TextButton(onClick = { onConfirm(mode) }) { Text("Choose PDF…") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

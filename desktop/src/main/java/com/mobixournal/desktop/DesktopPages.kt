@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.render.PageRangePlan
+import com.mobixournal.render.PageRangeRequest
+import com.mobixournal.render.PageRanges
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement

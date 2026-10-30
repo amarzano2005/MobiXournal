@@ -21,10 +21,16 @@ class TopBarItemsTest {
     }
 
     @Test
-    fun `square appears immediately to the right of rectangle in default top bar order`() {
-        val rectIndex = DEFAULT_TOP_BAR_ORDER.indexOf("rectangle")
-        val squareIndex = DEFAULT_TOP_BAR_ORDER.indexOf("square")
-        assertEquals(rectIndex + 1, squareIndex)
+    fun `the square and the chemistry slot are no longer buttons`() {
+        assertTrue("square" !in DEFAULT_TOP_BAR_ORDER)
+        assertTrue("chemistry" !in DEFAULT_TOP_BAR_ORDER)
+        assertTrue(TOP_BAR_ITEMS.none { it.id == "square" || it.id == "chemistry" })
+    }
+
+    @Test
+    fun `the polygon slot sits where the two polygon buttons were`() {
+        val polygons = DEFAULT_TOP_BAR_ORDER.indexOf("polygons")
+        assertEquals(DEFAULT_TOP_BAR_ORDER.indexOf("trapezoid") + 1, polygons)
     }
 
     @Test
@@ -55,6 +61,13 @@ class TopBarItemsTest {
             "table", "circuit", "circuit_active", "logic", "chemistry", "graph", "guides",
         )
         assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(legacyWithChem))
+        // ...and for the row as it stood with the graph on the axis' right and the chemistry slot.
+        val legacySquareAndChem = listOf(
+            "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
+            "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis", "graph",
+            "table", "circuit", "circuit_active", "logic", "chemistry", "guides",
+        )
+        assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(legacySquareAndChem))
     }
 
     @Test
@@ -87,16 +100,15 @@ class TopBarItemsTest {
     fun `single tools resolve to their respective EditorTool`() {
         assertEquals(EditorTool.LINE, singleToolForTopBarId("line"))
         assertEquals(EditorTool.RECTANGLE, singleToolForTopBarId("rectangle"))
-        assertEquals(EditorTool.SQUARE, singleToolForTopBarId("square"))
         assertEquals(EditorTool.ELLIPSE, singleToolForTopBarId("ellipse"))
         assertEquals(EditorTool.RHOMBUS, singleToolForTopBarId("rhombus"))
-        assertEquals(EditorTool.PENTAGON, singleToolForTopBarId("pentagon"))
-        assertEquals(EditorTool.HEXAGON, singleToolForTopBarId("hexagon"))
         assertEquals(EditorTool.COORDINATE_AXIS, singleToolForTopBarId("axis"))
         assertEquals(EditorTool.SPLINE, singleToolForTopBarId("spline"))
         assertEquals(EditorTool.TABLE, singleToolForTopBarId("table"))
         // Multi-tool groups, submenus, and popups do not resolve to a single tool
         assertNull(singleToolForTopBarId("triangle"))
+        // The polygon slot is a family too: its menu offers the pentagon and the hexagon.
+        assertNull(singleToolForTopBarId("polygons"))
         // Triangle and trapezoid carry their own isosceles/right/scalene variant picker, so they
         // must not resolve to a plain single-tool button (that would hide the menu).
         assertNull(singleToolForTopBarId("trapezoid"))
@@ -112,8 +124,8 @@ class TopBarItemsTest {
 
     @Test
     fun `hidden items are dropped from visible items`() {
-        val visible = visibleTopBarItems(emptyList(), setOf("hexagon", "axis"))
-        assertTrue(visible.none { it.id == "hexagon" || it.id == "axis" })
+        val visible = visibleTopBarItems(emptyList(), setOf("polygons", "axis"))
+        assertTrue(visible.none { it.id == "polygons" || it.id == "axis" })
         assertEquals(TOP_BAR_ITEMS.size - 2, visible.size)
     }
 
@@ -126,10 +138,15 @@ class TopBarItemsTest {
 
     @Test
     fun `all figure tools map bidirectionally to top bar ids`() {
-        for (tool in FIGURE_TOOLS) {
-            val id = FIGURE_TOOL_TO_TOP_BAR_ID[tool]
-            assertNotNull("top bar id for $tool", id)
+        for ((tool, id) in FIGURE_TOOL_TO_TOP_BAR_ID) {
+            assertTrue("$tool is a figure", tool in FIGURE_TOOLS)
             assertEquals(tool, TOP_BAR_ID_TO_FIGURE_TOOL[id])
+        }
+        // The two regular polygons share the "polygons" slot instead of a button each, so they have no
+        // id of their own — but they are still figures, and their slot is the top bar's menu.
+        for (tool in listOf(EditorTool.PENTAGON, EditorTool.HEXAGON)) {
+            assertTrue("$tool is a figure", tool in FIGURE_TOOLS)
+            assertNull("no top bar id for $tool", FIGURE_TOOL_TO_TOP_BAR_ID[tool])
         }
     }
 

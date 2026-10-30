@@ -51,7 +51,8 @@ class SourceStructureTest {
         "render/DrawingSurfaceView.kt" to 1564,
         "render/CircuitShapes.kt" to 1180,
         "ui/AppSettings.kt" to 997,
-        "ui/EditorDialogs.kt" to 920,
+        // -62: the PDF import card moved beside the value it asks about (`PdfImportDialog.kt`).
+        "ui/EditorDialogs.kt" to 858,
     )
 
     /** A function past this is the "~100 lines max" in `AGENTS.md`: extract a helper. */

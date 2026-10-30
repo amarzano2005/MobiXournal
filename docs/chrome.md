@@ -17,7 +17,7 @@ There is **one layout**, and each bar has one job. The Main Toolbar is the verti
 text/pictures, vertical space, and the colour & size, layers, zoom and pages panels — **pages** being
 the whole page errand: navigation, columns, format, and a row onto the page-background dialog for paper,
 rule spacing and stationery. The Secondary Toolbar is the one home of the **STEM tools** (figures,
-function graph, table, circuits, logic, chemistry, guides), because a rail slot for them was the same
+function graph, table, circuits, logic, guides), because a rail slot for them was the same
 button twice on one screen; audio and playback live on the audio capsule, shape recognition is a toggle.
 
 The rail's edge is not a placement menu but the **handedness** answer: a right hand writes from the left,
@@ -157,7 +157,7 @@ one pref, so slots survive a restart) and activates the tool in the same gesture
 `decodeToolGroupSelections()` both drop non-member entries, so a stale pref degrades to the group's
 first tool rather than facing a slot at a tool that has since moved. `startingTool()` resolves the
 opening tool as `defaultTool`'s **group selection**, so the rail's face and the live tool agree on
-launch. The figure set includes all geometric figures (`FIGURE_TOOLS` in `ToolGroups.kt`, including simple line and rectangle): `orderedShapeTools()` reads
+launch. The figure set includes all geometric figures (`FIGURE_TOOLS` in `ToolGroups.kt`, including simple line and rectangle), with **no square of its own** — the rectangle draws one, so the square button was one shape offered twice and is a stored name this build no longer offers (`EditorTool.SQUARE` stays for old prefs). The two **regular polygons** are one slot, **Polygons**: the pentagon is its face and the hexagon sits in the slot's picker behind it, so a shape that only differs by its side count does not take a second rail column; the chemistry palette is gone from the shell entirely (its `CHEM_*` tools are kept as stored names only). `orderedShapeTools()` reads
 `AppSettings.shapeOrder` (tool names, encoded like the rail ids). Its order and `shapeHidden` are edited **once**, in the **Toolbar** section's Secondary Toolbar list (`ReorderableRowList`), which writes both lists so visibility stays in sync with the secondary top bar and the Shapes submenu (`visibleTopBarItems` filters items hidden in either `topBarHidden` or `shapeHidden`) — the **Figures** section no longer repeats that list. The Figures section owns only the **default figure size**
 (`AppSettings.defaultShapeSlot`, an index into `penWidths`). That default exists because a figure is
 drawn at its set width with no pressure while the pen thins with pressure, so with pressure on a

@@ -254,7 +254,8 @@ fun EditorScreen(
     currentSaveFormat: () -> SaveFormat,
     /** The name the Save As dialog opens on: the open document's own name. */
     currentSaveName: () -> String = { "Untitled.xopp" },
-    onImportPdf: (ImportPdfMode) -> Unit,
+    /** Ask the system for a PDF; the question about its pages is asked once it has been read. */
+    onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
     /** Export the active page alone, as a PNG image or an SVG vector file. */
     onExportPagePng: () -> Unit = {},
@@ -362,6 +363,7 @@ fun EditorScreen(
                             onOpen = onOpen,
                             onNewTab = { activeTabs.onNew() },
                             onSave = onSave,
+                            onImportPdf = onImportPdf,
                             onExportPdf = onExportPdf,
                             onExportPagePng = onExportPagePng,
                             onExportPageSvg = onExportPageSvg,
@@ -424,7 +426,6 @@ fun EditorScreen(
             currentSaveFormat = currentSaveFormat,
             currentSaveName = currentSaveName,
             onSaveAs = onSaveAs,
-            onImportPdf = onImportPdf,
             exportGaps = exportGaps,
             onDismissExportGaps = onDismissExportGaps,
             pendingNewerAppConsentName = pendingNewerAppConsentName,

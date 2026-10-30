@@ -9,6 +9,7 @@ import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Momentum
 import com.mobixournal.render.MomentumCurve
 import com.mobixournal.render.PageStacker
+import com.mobixournal.render.PageSizeStep
 import com.mobixournal.render.PanSensitivity
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.StrokePrecision
@@ -114,6 +115,12 @@ data class AppSettings(
     val defaultPageWidthPt: Double = DEFAULT_PAGE_WIDTH_PT,
     /** Default page height in points for new documents. */
     val defaultPageHeightPt: Double = DEFAULT_PAGE_HEIGHT_PT,
+    /**
+     * How much one tap of the Pages menu's quick size buttons adds to, or takes from, a sheet's width
+     * or height — in **CSS pixels**, 96 to the inch (see [PageSizeStep]). 100 px is a little under
+     * 3 cm, a step a page can take a dozen times before it stops being a page.
+     */
+    val pageSizeStepPx: Int = PageSizeStep.DEFAULT_PX,
     /**
      * The format a **new** document is written in ([NewDocumentFormat]). Asked once at first launch
      * and changeable under Settings → App & data; `.mobix` is the recommended default, because the
@@ -404,6 +411,8 @@ data class AppSettings(
 
         const val KEY_DEFAULT_PAGE_WIDTH = "default_page_width_pt"
         const val KEY_DEFAULT_PAGE_HEIGHT = "default_page_height_pt"
+        /** The Pages menu's quick size step, in CSS pixels ([pageSizeStepPx]). */
+        const val KEY_PAGE_SIZE_STEP = "page_size_step_px"
         /** Factory defaults for the three width slots — [PenPalette]'s, shared with the desktop. */
         val DEFAULT_PEN_WIDTHS: List<Float> get() = PenPalette.DEFAULT_WIDTHS
 
@@ -521,6 +530,7 @@ class SettingsStore(context: Context) {
         return AppSettings(
             defaultPageWidthPt = prefs.getFloat(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt.toFloat()).toDouble(),
             defaultPageHeightPt = prefs.getFloat(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt.toFloat()).toDouble(),
+            pageSizeStepPx = PageSizeStep.clampPx(prefs.getInt(KEY_PAGE_SIZE_STEP, d.pageSizeStepPx)),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
             penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
             handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
@@ -671,6 +681,7 @@ class SettingsStore(context: Context) {
         val e = prefs.edit()
             .putFloat(KEY_DEFAULT_PAGE_WIDTH, s.defaultPageWidthPt.toFloat())
             .putFloat(KEY_DEFAULT_PAGE_HEIGHT, s.defaultPageHeightPt.toFloat())
+            .putInt(KEY_PAGE_SIZE_STEP, s.pageSizeStepPx)
             .putString(KEY_NEW_DOCUMENT_FORMAT, s.newDocumentFormat.name)
         // The canvas geometry is retired: every document is a page stack now, so a save clears the
         // preference an older install still carries.
@@ -788,6 +799,7 @@ class SettingsStore(context: Context) {
         const val KEY_HIGHLIGHTER_SHORTCUT = "highlighter_key"
         const val KEY_DEFAULT_PAGE_WIDTH = "default_page_width_pt"
         const val KEY_DEFAULT_PAGE_HEIGHT = "default_page_height_pt"
+        const val KEY_PAGE_SIZE_STEP = "page_size_step_px"
         const val KEY_PEN_ERASER_TOGGLE = "pen_eraser_toggle_key"
 
         const val KEY_HAND_TOGGLE = "hand_toggle_key"

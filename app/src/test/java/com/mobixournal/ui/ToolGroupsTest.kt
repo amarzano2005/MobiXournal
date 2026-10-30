@@ -24,7 +24,7 @@ class ToolGroupsTest {
         for (tool in listOf(
             EditorTool.LINE, EditorTool.RECTANGLE, EditorTool.ELLIPSE, EditorTool.TRIANGLE,
             EditorTool.ARROW, EditorTool.TABLE, EditorTool.RESISTOR, EditorTool.BJT_NPN,
-            EditorTool.AND_GATE, EditorTool.CHEM_BENZENE, EditorTool.PLAY_OBJECT,
+            EditorTool.AND_GATE, EditorTool.PLAY_OBJECT,
         )) {
             assertEquals("no rail group for $tool", 0, TOOL_GROUPS.count { tool in it.tools })
         }
@@ -32,8 +32,10 @@ class ToolGroupsTest {
         assertEquals("circuit", secondaryToolGroup("circuit")?.id)
         assertEquals("circuit_active", secondaryToolGroup("circuit_active")?.id)
         assertEquals("logic", secondaryToolGroup("logic")?.id)
-        assertEquals("chemistry", secondaryToolGroup("chemistry")?.id)
+        assertEquals("polygons", secondaryToolGroup("polygons")?.id)
         assertEquals("arrow", secondaryToolGroup("arrow")?.id)
+        // The chemistry section is gone: no top-bar family, and no picker to reach its bonds.
+        assertEquals(null, secondaryToolGroup("chemistry"))
         assertNotNull("the transistor family is still a picker", groupOf(EditorTool.BJT_NPN))
         assertEquals(null, secondaryToolGroup("zoom"))
     }
@@ -61,11 +63,20 @@ class ToolGroupsTest {
     @Test
     fun `every stem figure is a shape tool`() {
         for (tool in listOf(
-            EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
+            EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
             EditorTool.PENTAGON, EditorTool.HEXAGON,
         )) {
             assertTrue("$tool draws a figure", tool in SHAPE_TOOLS)
         }
+        // The square is not offered any more: the rectangle draws one.
+        assertTrue(EditorTool.SQUARE !in SHAPE_TOOLS)
+    }
+
+    @Test
+    fun `the polygons slot offers the pentagon then the hexagon`() {
+        val polygons = secondaryToolGroup("polygons")
+        assertEquals("polygons", polygons?.id)
+        assertEquals(listOf(EditorTool.PENTAGON, EditorTool.HEXAGON), polygons?.tools)
     }
 
     @Test

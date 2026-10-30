@@ -19,6 +19,7 @@ import com.mobixournal.render.PdfImport
 import com.mobixournal.render.blankDocument
 import com.mobixournal.render.PdfOutlineCache
 import com.mobixournal.render.PdfOutlineExtractor
+import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.PdfTextExtractor
 import com.mobixournal.render.PdfTextIndexCache
@@ -27,6 +28,7 @@ import com.mobixournal.render.setDefaultPageSize
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
 import com.mobixournal.ui.AppSettings
+import com.mobixournal.ui.PdfImportPrompt
 import java.io.File
 
 // --- document I/O: open, import, save --------------------------------------------------------
@@ -268,6 +270,64 @@ internal fun MainActivity.loadDocument(
  * becomes the document's one background source.
  */
 internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode = ImportPdfMode.REPLACE) {
+    importPdf(uri, mode, indices = null)
+}
+
+/**
+ * Read [uri] far enough to **ask** which of its pages to bring: stage the bytes (the PDF may live on a
+ * network share) and count its pages, then raise the card. This is the window's order of questions —
+ * pick the file, then say which pages and where — and nothing is imported until it is answered.
+ */
+internal fun MainActivity.beginPdfImport(uri: Uri) {
+    runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+    val name = displayName(uri)
+    inBackground("Reading $name…", { io.stageIn(uri, "import") }) { result ->
+        result.mapCatching { staged ->
+            val count = try {
+                PdfPageCache(staged).use { it.pageCount }
+            } catch (failure: Throwable) {
+                staged.delete()
+                throw failure
+            }
+            pendingPdfImport = PdfImportPrompt(
+                file = staged,
+                reference = uri.toString(),
+                name = name,
+                pageCount = count,
+            )
+        }.onFailure { toast("PDF import failed: ${it.message}") }
+    }
+}
+
+/** Put the import card away, dropping the staged copy it was holding. */
+internal fun MainActivity.cancelPdfImport() {
+    pendingPdfImport?.file?.delete()
+    pendingPdfImport = null
+}
+
+/**
+ * Answer the import card with [mode], bringing the pages its range names.
+ *
+ * A range the card cannot use keeps it up rather than importing something the reader did not ask for:
+ * the *Import* button is dead in that state, and this guard is the same rule behind it.
+ */
+internal fun MainActivity.confirmPdfImport(mode: ImportPdfMode) {
+    val prompt = pendingPdfImport ?: return
+    val range = prompt.range as? PageRangePlan.Pages ?: return
+    pendingPdfImport = null
+    val source = prompt.file
+    try {
+        adoptPdf(source, mode, prompt.reference, indices = range.first..range.last)
+    } finally {
+        source.delete()
+    }
+}
+
+/**
+ * Import a PDF, optionally only the pages [indices] names — the run's own position is not the page's
+ * number, so `pageno` stays the source page's own (see [PdfImport.pagesFor]).
+ */
+internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode, indices: IntRange?) {
     // Persist read access so the same content URI still resolves when the saved .xopp is reopened
     // later (this is the reference plain Save records for domain="absolute"). Best-effort: import
     // still works if the grant isn't persistable.
@@ -275,7 +335,7 @@ internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode = ImportPdfMod
     // The PDF may live on a network share: fetch it on a worker, then build pages from the copy.
     inBackground("Importing ${displayName(uri)}…", { io.stageIn(uri, "import") }) { result ->
         // adoptPdf copies the bytes into the PdfStore, so the staged copy is scratch either way.
-        result.mapCatching { staged -> try { adoptPdf(staged, mode, uri.toString()) } finally { staged.delete() } }
+        result.mapCatching { staged -> try { adoptPdf(staged, mode, uri.toString(), indices = indices) } finally { staged.delete() } }
             .onFailure { toast("PDF import failed: ${it.message}") }
     }
 }
@@ -285,12 +345,18 @@ internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode = ImportPdfMod
  * *is* already the store's own never-rewritten copy (a text import's generated PDF), so it is
  * used in place rather than duplicated — which also keeps its cache entry alive with the tab.
  */
-internal fun MainActivity.adoptPdf(source: File, mode: ImportPdfMode, reference: String, inStore: Boolean = false) {
+internal fun MainActivity.adoptPdf(
+    source: File,
+    mode: ImportPdfMode,
+    reference: String,
+    inStore: Boolean = false,
+    indices: IntRange? = null,
+) {
     val file = if (inStore) source else io.adoptPdf(source)
     val view = surface
     val existing = view?.pdfSourceFile()
     if (mode == ImportPdfMode.APPEND && existing != null && view.hasPdfBackground()) {
-        appendMergedPdf(view, existing, file)
+        appendMergedPdf(view, existing, file, indices)
         return
     }
     val cache = PdfPageCache.shared(file)
@@ -300,9 +366,9 @@ internal fun MainActivity.adoptPdf(source: File, mode: ImportPdfMode, reference:
         // A replaced document keeps none of the old one's pixmap pictures.
         ImportPdfMode.REPLACE -> {
             view?.setImageSources(emptyMap())
-            view?.load(PdfImport.documentFor(cache, reference))
+            view?.load(PdfImport.documentFor(cache, reference, indices))
         }
-        ImportPdfMode.APPEND -> view?.appendPages(PdfImport.pagesFor(cache, reference))
+        ImportPdfMode.APPEND -> view?.appendPages(PdfImport.pagesFor(cache, reference, indices = indices))
     }
     if (view == null) cache.close() // nobody took the claim; don't hold the renderer open
     // Freshly imported bytes: whatever was extracted for this path before doesn't describe them.
@@ -342,10 +408,20 @@ internal fun MainActivity.adoptImage(source: File, reference: String): Boolean {
  * The document's one reference is re-pointed at the joined PDF and the new pages' `pageno` values
  * are renumbered against it, both in a single undoable edit.
  */
-internal fun MainActivity.appendMergedPdf(view: DrawingSurfaceView, existing: File, incoming: File) {
+internal fun MainActivity.appendMergedPdf(
+    view: DrawingSurfaceView,
+    existing: File,
+    incoming: File,
+    indices: IntRange? = null,
+) {
     val offset = view.pdfSourcePageCount()
-    // Size the new pages from the incoming PDF before anything is closed or replaced.
-    val added = PdfPageCache(incoming).use { PdfImport.pagesFor(it, reference = null, pageNoOffset = offset) }
+    // Size the new pages from the incoming PDF before anything is closed or replaced. Only the picked
+    // run is brought, and it lands where the merge puts it: after the base's own pages, so a page keeps
+    // the number it has in the joined file.
+    val added = PdfPageCache(incoming).use { cache ->
+        val run = indices ?: 0 until cache.pageCount
+        PdfImport.pagesFor(cache, reference = null, pageNoOffset = offset, indices = run.first..run.last)
+    }
     val joined = io.merge(existing, incoming)
     PdfTextIndexCache.forget(joined) // the merge rewrote these bytes; any cached result is stale
     PdfOutlineCache.forget(joined)

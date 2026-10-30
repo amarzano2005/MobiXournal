@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.SaveFormat
-import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
 import com.mobixournal.render.TrapezoidKind
@@ -63,7 +62,6 @@ fun BoxScope.EditorOverlays(
     currentSaveFormat: () -> SaveFormat,
     currentSaveName: () -> String,
     onSaveAs: (filename: String, format: SaveFormat) -> Unit,
-    onImportPdf: (ImportPdfMode) -> Unit,
     /** What the last `.xopp` export could not draw; empty is the normal case (see [ExportGapsDialog]). */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
@@ -116,13 +114,6 @@ fun BoxScope.EditorOverlays(
             initial = "",
             onConfirm = { latex -> surface?.insertTex(placement, latex, ui.color); ui.texPlacement = null },
             onDismiss = { ui.texPlacement = null },
-        )
-    }
-    DialogPresence(ui.showImportPdf) {
-        ImportPdfDialog(
-            merging = surface?.hasPdfBackground() == true,
-            onConfirm = { mode -> ui.showImportPdf = false; onImportPdf(mode) },
-            onDismiss = { ui.showImportPdf = false },
         )
     }
     DialogPresence(ui.showSaveAs) {

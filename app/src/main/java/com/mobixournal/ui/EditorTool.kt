@@ -17,7 +17,9 @@ enum class EditorTool {
     TEXT, IMAGE, TEXIMAGE,
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, SPLINE, VERTICAL_SPACE,
     PLAY_OBJECT,
-    // The STEM figures (see [ShapeKind]): regular polygons, a square, a rhombus and a trapezoid.
+    // The STEM figures (see [ShapeKind]): a triangle, a rhombus, a trapezoid and the two regular
+    // polygons. Square survives as an enum entry (a saved tool selection may still name it) but no
+    // toolbar offers it any more — the rectangle is the square.
     TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON,
     TABLE,
     // Electronic circuits & logic gates
@@ -28,7 +30,9 @@ enum class EditorTool {
     SWITCH_OPEN, SWITCH_CLOSED, TRANSFORMER, JUNCTION,
     // Technical dimensioning.
     DIMENSION,
-    // Chemistry: the bonds of a skeletal formula and an aromatic ring (see [ChemShapes]).
+    // Chemistry: the bonds of a skeletal formula and an aromatic ring (see [ChemShapes]). The
+    // section that offered them is gone; the entries stay so a shortcut table or a saved selection
+    // written before that can still be decoded instead of dropping a key.
     CHEM_BOND_SINGLE, CHEM_BOND_DOUBLE, CHEM_BOND_TRIPLE, CHEM_BENZENE,
 }
 
@@ -48,11 +52,18 @@ val MARQUEE_TOOLS: Set<EditorTool> = setOf(EditorTool.SELECT, EditorTool.LASSO_S
  */
 val ERASER_TOOLS: Set<EditorTool> = setOf(EditorTool.ERASER, EditorTool.ERASER_WHOLE)
 
-/** The geometric shape tools — drawn as ordinary pen strokes (see [ShapeKind]). */
+/**
+ * The geometric shape tools — drawn as ordinary pen strokes (see [ShapeKind]).
+ *
+ * A square is not among them: the rectangle covers it, and the slot it took only made the Secondary
+ * Toolbar longer. The chemistry bonds and the benzene ring are not either — the section that offered
+ * them is gone, so nothing can put them in hand; their [ShapeKind]s stay, because a document may still
+ * carry the strokes they drew.
+ */
 val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
     EditorTool.RECTANGLE, EditorTool.ELLIPSE, EditorTool.SPLINE,
-    EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
+    EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
     EditorTool.PENTAGON, EditorTool.HEXAGON,
     EditorTool.TABLE,
     EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR, EditorTool.GROUND,
@@ -64,8 +75,6 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.BUFFER_GATE,
     EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED, EditorTool.TRANSFORMER, EditorTool.JUNCTION,
     EditorTool.DIMENSION,
-    EditorTool.CHEM_BOND_SINGLE, EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE,
-    EditorTool.CHEM_BENZENE,
 )
 
 /**

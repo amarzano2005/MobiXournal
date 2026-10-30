@@ -1,12 +1,19 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.PageSizeStep
 
 /**
  * Editor preferences, in the order a user meets them: what a new document starts as (tool, page
@@ -25,6 +32,9 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         )
         SettingsDivider()
         DefaultDimensionsControl(settings, onChange)
+    }
+    SettingsGroup("Quick page size") {
+        PageSizeStepControl(settings, onChange)
     }
     SettingsGroup("Drawing aids") {
         SwitchRow(
@@ -50,6 +60,36 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             onCheckedChange = { onChange(settings.copy(recognizeShapes = it)) },
         )
     }
+}
+
+/**
+ * The pixels one tap of the Pages menu's **quick size** buttons adds to, or takes from, a sheet
+ * ([PageSizeStep]). Written in pixels — the unit a reader thinks in — and converted to the page's own
+ * points when the button is pressed; 96 px is one inch whatever the screen's density.
+ */
+@Composable
+private fun PageSizeStepControl(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    var text by remember { mutableStateOf(settings.pageSizeStepPx.toString()) }
+    // A step changed elsewhere (a restored backup) is what the field shows, not the last thing typed.
+    LaunchedEffect(settings.pageSizeStepPx) { text = settings.pageSizeStepPx.toString() }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { typed ->
+            text = typed.filter { it.isDigit() }.take(4)
+            text.toIntOrNull()?.let { px ->
+                onChange(settings.copy(pageSizeStepPx = PageSizeStep.clampPx(px)))
+            }
+        },
+        label = { Text("Step (px)") },
+        supportingText = {
+            Text(
+                "The − and + beside Width and Height in the Pages menu change the sheet by this much. " +
+                    "96 px is one inch; the factory step is ${PageSizeStep.DEFAULT_PX} px.",
+            )
+        },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    )
 }
 
 /** The default page width and height controls for new documents, synchronized with the Page Format popup. */

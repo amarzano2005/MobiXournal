@@ -38,9 +38,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.render.PageSizeStep
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * The bookmark section of the Pages menu: bookmark (or edit the bookmark on) the page in view, then
@@ -103,6 +105,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         contentDescription = "Pages",
     ) { dismiss ->
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
+        QuickSizeRows(callbacks)
         // The PDF's own table of contents sits right above the app-side bookmarks: both are "jump to a
         // page", and the nearer one to the page navigator is the one that came with the document.
         if (callbacks.outline?.isEmpty == false) {
@@ -164,6 +167,65 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
             onDismiss = { sizing = false },
         )
+    }
+}
+
+/**
+ * The **quick size** section: four taps that widen or heighten the page in view by a fixed step, so a
+ * sheet can be nudged to fit a figure without opening a dialog.
+ *
+ * The step is the one set in Settings ▸ Editor ([PageSizeStep]), and it is the same on both axes — the
+ * buttons differ only in which dimension they change. Each tap applies at once and the menu stays open, so
+ * three taps are three steps rather than three visits to the menu; [PageSizeStep.step] keeps the sheet from
+ * collapsing when the minus side is tapped too often.
+ */
+@Composable
+private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
+    val size = callbacks.pageSize ?: return
+    val stepPt = callbacks.sizeStepPt
+    if (stepPt <= 0.0) return
+    val stepPx = (stepPt / PageSizeStep.PT_PER_PX).roundToInt()
+    MenuHeading("Quick size")
+    QuickSizeRow(
+        label = "Width",
+        sizePt = size.first,
+        stepPx = stepPx,
+        onStep = { steps ->
+            val (w, h) = PageSizeStep.step(size.first, size.second, steps, 0, stepPt)
+            callbacks.onPageSize(w, h)
+        },
+    )
+    QuickSizeRow(
+        label = "Height",
+        sizePt = size.second,
+        stepPx = stepPx,
+        onStep = { steps ->
+            val (w, h) = PageSizeStep.step(size.first, size.second, 0, steps, stepPt)
+            callbacks.onPageSize(w, h)
+        },
+    )
+}
+
+/**
+ * One axis of [QuickSizeRows]: its name, the sheet's current measure, and the two arrows that step it.
+ *
+ * The measure is shown in points because that is the page's own unit — the *step* is in pixels because
+ * that is how the setting is written, and the row says both (`−100 px`).
+ */
+@Composable
+private fun QuickSizeRow(label: String, sizePt: Double, stepPx: Int, onStep: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text("${sizePt.roundToInt()} pt", style = MaterialTheme.typography.labelSmall)
+        IconButton(onClick = { onStep(-1) }, enabled = sizePt > PageSizeStep.MIN_PAGE_PT) {
+            Icon(Icons.Outlined.Remove, contentDescription = "$label − $stepPx px")
+        }
+        IconButton(onClick = { onStep(1) }) {
+            Icon(Icons.Outlined.Add, contentDescription = "$label + $stepPx px")
+        }
     }
 }
 

@@ -73,7 +73,9 @@ keeps sharpening as you zoom. A `.xopp` whose PDF isn't present falls back to a
 plain sheet. **Import PDF** (`PdfImport`, invoked from `MainActivity` on the tablet and from the window's own import on the PC) copies the picked PDF into
 app cache and builds pages from it (`PdfImport.pagesFor`) — one page per PDF page, sized from the PDF,
 with the `filename`+`domain` on the first of them only and `pageno` thereafter (the desktop on-disk
-convention). An `ImportPdfMode` chosen up front (the `ImportPdfDialog`) decides where they land:
+convention). Both shells ask the same question **after** the file has been read — which pages, as a
+`PageRanges` run typed into `PdfImportPrompt`'s card (the tablet) or the window's `ImportPdfDialog` —
+and an `ImportPdfMode` picked there decides where they land:
 `REPLACE` makes them the whole `Document` (`PdfImport.documentFor` → `load`), `APPEND` adds them after
 the open document's pages as one undoable edit (`PageOps.appendPages` → `DrawingSurfaceView.appendPages`,
 which also drops a lone untouched blank sheet so it isn't stranded in front of the PDF). Because the

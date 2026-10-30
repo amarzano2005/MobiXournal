@@ -114,10 +114,16 @@ val SECONDARY_TOOL_GROUPS: List<ToolGroup> = listOf(
         "shape", "Shapes",
         listOf(
             EditorTool.ELLIPSE,
-            EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
-            EditorTool.PENTAGON, EditorTool.HEXAGON,
+            EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
             EditorTool.SPLINE, EditorTool.COORDINATE_AXIS,
         ),
+    ),
+    // The regular polygons share one slot, in the order a hand reaches for them: the pentagon first,
+    // then the hexagon. A square is not here — the rectangle draws one, and a second square-shaped
+    // button only made the row longer.
+    ToolGroup(
+        "polygons", "Polygons",
+        listOf(EditorTool.PENTAGON, EditorTool.HEXAGON),
     ),
     ToolGroup(
         "arrow", "Arrows",
@@ -169,17 +175,6 @@ val SECONDARY_TOOL_GROUPS: List<ToolGroup> = listOf(
             listOf(EditorTool.NOT_GATE, EditorTool.BUFFER_GATE),
         ),
     ),
-    ToolGroup(
-        "chemistry", "Chemistry",
-        listOf(
-            EditorTool.CHEM_BENZENE, EditorTool.CHEM_BOND_SINGLE,
-            EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE,
-        ),
-        pickerLayout = listOf(
-            listOf(EditorTool.CHEM_BENZENE, EditorTool.CHEM_BOND_SINGLE),
-            listOf(EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE),
-        ),
-    ),
 )
 
 /** Every tool group in the app — the rail's and the Secondary Toolbar's. */
@@ -198,7 +193,6 @@ fun groupOf(tool: EditorTool): ToolGroup? = ALL_TOOL_GROUPS.firstOrNull { tool i
 val FIGURE_TOOLS: List<EditorTool> = listOf(
     EditorTool.LINE,
     EditorTool.RECTANGLE,
-    EditorTool.SQUARE,
     EditorTool.ELLIPSE,
     EditorTool.TRIANGLE,
     EditorTool.RHOMBUS,

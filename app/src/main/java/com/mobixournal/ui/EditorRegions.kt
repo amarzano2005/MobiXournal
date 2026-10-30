@@ -94,6 +94,7 @@ import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.HudSlot
+import com.mobixournal.render.PageSizeStep
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
@@ -148,6 +149,8 @@ fun EditorTopBar(
     onOpen: () -> Unit,
     onNewTab: () -> Unit,
     onSave: () -> Unit,
+    /** Ask the system for a PDF; its pages are chosen once the file has been read. */
+    onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
@@ -341,7 +344,7 @@ fun EditorTopBar(
                     onNewTab = onNewTab,
                     onSave = onSave,
                     onSaveAs = { ui.showSaveAs = true },
-                    onImportPdf = { ui.showImportPdf = true },
+                    onImportPdf = onImportPdf,
                     onExportPdf = onExportPdf,
                     onExportPagePng = onExportPagePng,
                     onExportPageSvg = onExportPageSvg,
@@ -1352,6 +1355,8 @@ private fun toolbarPagesCallbacks(
         onGoToPage = { surface?.goToPage(it) },
         pageSize = pane.pageSize,
         onPageSize = { w, h -> surface?.setPageSize(w, h) },
+        // The quick size buttons step by the user's own amount, in the page's unit.
+        sizeStepPt = PageSizeStep.pt(settings.pageSizeStepPx),
         defaultPageSize = settings.defaultPageWidthPt to settings.defaultPageHeightPt,
         onSaveAsDefault = { w, h ->
             liveSettings = liveSettings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h)

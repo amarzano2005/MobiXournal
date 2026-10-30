@@ -51,6 +51,8 @@ import com.mobixournal.tabs.TabManager
 import com.mobixournal.tabs.TabStore
 import com.mobixournal.ui.AppSettings
 import com.mobixournal.ui.EditorScreen
+import com.mobixournal.ui.ImportPdfDialog
+import com.mobixournal.ui.PdfImportPrompt
 import com.mobixournal.ui.SettingsStore
 import com.mobixournal.ui.ThemeMode
 import com.mobixournal.ui.theme.XoppTheme
@@ -105,8 +107,11 @@ class MainActivity : ComponentActivity() {
     /** Where a pending image-insert tap landed, kept until the SAF picker returns the image bytes. */
     internal var pendingImagePlacement: Placement? = null
 
-    /** The mode chosen in the Import PDF dialog, kept until the SAF picker returns the PDF. */
-    private var pendingImportMode: ImportPdfMode = ImportPdfMode.REPLACE
+    /**
+     * The PDF the picker handed back, read and waiting for the reader to say which pages and where
+     * (see [PdfImportPrompt]). Null between imports, so the card is up exactly while a decision is owed.
+     */
+    internal var pendingPdfImport by mutableStateOf<PdfImportPrompt?>(null)
 
     /** The file name last chosen in the Save As dialog; reused by plain Save. Per pane. */
     internal var pendingSaveName: String
@@ -299,7 +304,7 @@ class MainActivity : ComponentActivity() {
 
     private val importPdfLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            uri?.let { importPdf(it, pendingImportMode) }
+            uri?.let(::beginPdfImport)
         }
 
     internal val audioFolderLauncher =
@@ -396,11 +401,10 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Ask the picker for a PDF to import, remembering how — the launcher answers on a later turn and
-     * reads the mode back then ([pendingImportMode]).
+     * Ask the picker for a PDF. The mode and the page range are not asked here: they are the card the
+     * activity raises once the file has been read ([PdfImportPrompt]), in the order the window asks them.
      */
-    private fun startPdfImport(mode: ImportPdfMode) {
-        pendingImportMode = mode
+    private fun startPdfImport() {
         importPdfLauncher.launch(arrayOf(PDF_MIME))
     }
 
@@ -527,6 +531,18 @@ class MainActivity : ComponentActivity() {
                     activePane = activePane.value,
                     onActivePane = { activePane.value = it },
                 )
+                // The PDF card — which pages of the file just read, and where they go — lives here
+                // rather than inside the editor because the staged file and its page count belong to
+                // the activity that read them.
+                pendingPdfImport?.let { prompt ->
+                    ImportPdfDialog(
+                        request = prompt,
+                        merging = surface?.hasPdfBackground() == true,
+                        onEdit = { edit -> pendingPdfImport = pendingPdfImport?.let(edit) },
+                        onConfirm = { mode -> confirmPdfImport(mode) },
+                        onDismiss = { cancelPdfImport() },
+                    )
+                }
             }
         }
     }

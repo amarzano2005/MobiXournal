@@ -1,27 +1,29 @@
-package com.mobixournal.desktop
+package com.mobixournal.render
 
 /**
- * What the **advanced page management** panel asks, and what the answers mean.
+ * What a **page range** question asks, and what the answers mean — one rule for both shells.
  *
- * The fields hold text because that is what a reader types, and every rule that turns it into page indices
- * lives here — pure, and the one place the panel's enabled buttons and the commands behind them read. A
- * number the panel refuses is a number the command cannot act on, so the two can never disagree about what
- * "pages 3 to 7" means.
+ * The fields hold text because that is what a reader types, and every rule that turns them into page
+ * indices lives here: pure, and the one place an enabled button and the command behind it read. A number
+ * a shell refuses is a number its command cannot act on, so whether that is the window's Manage pages
+ * panel or the tablet's Import PDF card, "pages 3 to 7" means the same thing.
+ *
+ * [target] is only meaningful to a move; an import ignores it.
  */
-internal data class PageRangeRequest(
+data class PageRangeRequest(
     val first: String = "",
     val last: String = "",
     val target: String = "",
 )
 
 /** A typed answer, as 0-based inclusive indices, or the sentence saying why it cannot be used. */
-internal sealed interface PageRangePlan {
+sealed interface PageRangePlan {
     data class Pages(val first: Int, val last: Int) : PageRangePlan
 
     data class Invalid(val message: String) : PageRangePlan
 }
 
-internal object PageRanges {
+object PageRanges {
 
     /** The range the fields name. */
     fun pages(request: PageRangeRequest, pageCount: Int): PageRangePlan {
@@ -63,7 +65,7 @@ internal object PageRanges {
         return null
     }
 
-    /** The request the panel opens on: the page in view, moved to the front until told otherwise. */
+    /** The request a panel opens on: the page in view, moved to the front until told otherwise. */
     fun opening(pageCount: Int, current: Int): PageRangeRequest {
         val at = (current + 1).coerceIn(1, pageCount.coerceAtLeast(1))
         return PageRangeRequest(first = "$at", last = "$at", target = "1")
