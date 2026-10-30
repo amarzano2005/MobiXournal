@@ -13,7 +13,6 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("rectangle", "Rectangle"),
     RailItem("ellipse", "Circle / Ellipse"),
     RailItem("triangle", "Triangle"),
-    RailItem("rhombus", "Rhombus"),
     RailItem("trapezoid", "Trapezoid"),
     RailItem("polygons", "Polygons"),
     // Multi-tool dropdown groups & tools
@@ -40,8 +39,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
  * benzene ring left with the section that offered them.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
-    "line", "rectangle", "ellipse", "triangle", "rhombus",
-    "trapezoid", "polygons", "arrow", "axis", "graph",
+    "line", "rectangle", "ellipse", "triangle", "trapezoid", "polygons", "arrow", "axis", "graph",
     "table", "circuit", "circuit_active", "logic", "guides",
 )
 
@@ -55,6 +53,13 @@ val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
  * because a saved order deliberately wins.
  */
 private val LEGACY_TOP_BAR_ORDERS: List<List<String>> = listOf(
+    // The row as it stood while the rhombus still had a button of its own: that button is gone now, and
+    // a device that never arranged its row carries the whole old list on disk, so it needs this copy to
+    // be recognised as "never touched" and follow the reorder.
+    listOf(
+        "line", "rectangle", "ellipse", "triangle", "rhombus", "trapezoid", "polygons", "arrow",
+        "axis", "graph", "table", "circuit", "circuit_active", "logic", "guides",
+    ),
     // The row as it stood while the spline still had a slot of its own: that slot is gone now, and a
     // device that never arranged its row carries the whole old list on disk, so it needs this copy to
     // be recognised as "never touched" and follow the reorder.
@@ -130,7 +135,6 @@ val FIGURE_TOOL_TO_TOP_BAR_ID: Map<EditorTool, String> = mapOf(
     EditorTool.RECTANGLE to "rectangle",
     EditorTool.ELLIPSE to "ellipse",
     EditorTool.TRIANGLE to "triangle",
-    EditorTool.RHOMBUS to "rhombus",
     EditorTool.TRAPEZOID to "trapezoid",
     EditorTool.COORDINATE_AXIS to "axis",
 )
@@ -190,7 +194,6 @@ fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE
     "rectangle" -> EditorTool.RECTANGLE
     "ellipse" -> EditorTool.ELLIPSE
-    "rhombus" -> EditorTool.RHOMBUS
     "axis" -> EditorTool.COORDINATE_AXIS
     "table" -> EditorTool.TABLE
     else -> null

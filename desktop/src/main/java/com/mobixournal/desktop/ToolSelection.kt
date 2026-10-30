@@ -42,7 +42,6 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     // of their own (Settings ▸ Figures); a square is not here, because the rectangle draws one and the
     // tablet dropped its button for the same reason.
     TRIANGLE("Triangle", "Alt+R"),
-    RHOMBUS("Rhombus", "Alt+J"),
     TRAPEZOID("Trapezoid", "Alt+Z"),
     POLYGON("Polygon", "P"),
     PLOT("Plot", "M"),

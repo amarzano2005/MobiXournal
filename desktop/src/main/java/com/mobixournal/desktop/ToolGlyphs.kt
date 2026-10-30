@@ -130,7 +130,6 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.ELLIPSE -> ToolGlyph.ELLIPSE
         // The tablet's own pictures of the STEM figures.
         DesktopTool.TRIANGLE -> ToolGlyph.TRIANGLE
-        DesktopTool.RHOMBUS -> ToolGlyph.RHOMBUS
         DesktopTool.TRAPEZOID -> ToolGlyph.TRAPEZOID
         DesktopTool.POLYGON -> ToolGlyph.POLYGON
         DesktopTool.PLOT -> ToolGlyph.PLOT

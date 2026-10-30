@@ -112,11 +112,14 @@ class TopBarItemsTest {
         assertEquals(EditorTool.LINE, singleToolForTopBarId("line"))
         assertEquals(EditorTool.RECTANGLE, singleToolForTopBarId("rectangle"))
         assertEquals(EditorTool.ELLIPSE, singleToolForTopBarId("ellipse"))
-        assertEquals(EditorTool.RHOMBUS, singleToolForTopBarId("rhombus"))
         assertEquals(EditorTool.COORDINATE_AXIS, singleToolForTopBarId("axis"))
         // The spline's own slot is gone: the id resolves to nothing, so a saved row that still names
         // it drops the slot instead of pointing at a tool that no longer exists.
         assertNull(singleToolForTopBarId("spline"))
+        // ...and the rhombus's button went the same way: no id, so no slot.
+        assertNull(singleToolForTopBarId("rhombus"))
+        assertTrue("rhombus" !in DEFAULT_TOP_BAR_ORDER)
+        assertTrue(TOP_BAR_ITEMS.none { it.id == "rhombus" })
         assertEquals(EditorTool.TABLE, singleToolForTopBarId("table"))
         // Multi-tool groups, submenus, and popups do not resolve to a single tool
         assertNull(singleToolForTopBarId("triangle"))

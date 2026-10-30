@@ -65,7 +65,7 @@ class ToolGroupsTest {
     @Test
     fun `every stem figure is a shape tool`() {
         for (tool in listOf(
-            EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
+            EditorTool.TRIANGLE, EditorTool.TRAPEZOID,
         )) {
             assertTrue("$tool draws a figure", tool in SHAPE_TOOLS)
         }

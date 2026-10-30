@@ -109,7 +109,6 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(
         listOf(
             DesktopTool.TRIANGLE,
-            DesktopTool.RHOMBUS,
             DesktopTool.TRAPEZOID,
             DesktopTool.POLYGON,
         ),
@@ -166,7 +165,6 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     // The STEM figures the tablet has and the window did not: a drag each, written as one ordinary
     // stroke, so they need no element of their own.
     DesktopTool.TRIANGLE,
-    DesktopTool.RHOMBUS,
     DesktopTool.TRAPEZOID,
     DesktopTool.POLYGON,
     DesktopTool.AXES,

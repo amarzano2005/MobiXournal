@@ -78,7 +78,6 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.ELLIPSE -> ShapeKind.ELLIPSE
         EditorTool.TRIANGLE -> ShapeKind.TRIANGLE
         EditorTool.SQUARE -> ShapeKind.SQUARE
-        EditorTool.RHOMBUS -> ShapeKind.RHOMBUS
         EditorTool.TRAPEZOID -> ShapeKind.TRAPEZOID
         EditorTool.POLYGON -> ShapeKind.POLYGON
         EditorTool.TABLE -> ShapeKind.TABLE
@@ -124,8 +123,7 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         // Shapes are drawn as ordinary pen strokes; the shapeKind above turns a drag into geometry.
         EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
         EditorTool.RECTANGLE, EditorTool.ELLIPSE,
-        EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
-        EditorTool.POLYGON,
+        EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.TRAPEZOID, EditorTool.POLYGON,
         EditorTool.TABLE,
         EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
         EditorTool.GROUND,

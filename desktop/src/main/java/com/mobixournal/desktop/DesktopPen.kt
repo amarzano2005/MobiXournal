@@ -114,7 +114,6 @@ fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
     // The tablet's STEM figures, so the two shells offer the same set. A square is not among them: the
     // rectangle draws one, and the tablet dropped its button for the same reason.
     DesktopTool.TRIANGLE -> ShapeKind.TRIANGLE
-    DesktopTool.RHOMBUS -> ShapeKind.RHOMBUS
     DesktopTool.TRAPEZOID -> ShapeKind.TRAPEZOID
     // The generic polygon: the builder's default side count here, since a slot carries no variant of
     // its own on this shell — the tablet's Settings ▸ Figures sets the count where the tool is drawn.

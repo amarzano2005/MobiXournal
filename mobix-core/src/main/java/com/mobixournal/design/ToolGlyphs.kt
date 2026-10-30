@@ -59,7 +59,6 @@ enum class ToolGlyph {
     TRIANGLE_RIGHT,
     TRIANGLE_SCALENE,
     SQUARE,
-    RHOMBUS,
     TRAPEZOID,
     TRAPEZOID_RIGHT,
     TRAPEZOID_SCALENE,
@@ -180,7 +179,6 @@ object ToolGlyphCatalogue {
         ToolGlyph.TRIANGLE_RIGHT -> polygon(4f, 4f, 4f, 19f, 20f, 19f)
         ToolGlyph.TRIANGLE_SCALENE -> polygon(8.5f, 3f, 20f, 19f, 4f, 19f)
         ToolGlyph.SQUARE -> polygon(4f, 4f, 20f, 4f, 20f, 20f, 4f, 20f)
-        ToolGlyph.RHOMBUS -> polygon(12f, 3f, 21f, 12f, 12f, 21f, 3f, 12f)
         ToolGlyph.TRAPEZOID -> polygon(8f, 7f, 16f, 7f, 20f, 19f, 4f, 19f)
         ToolGlyph.TRAPEZOID_RIGHT -> polygon(5f, 7f, 12f, 7f, 20f, 19f, 5f, 19f)
         ToolGlyph.TRAPEZOID_SCALENE -> polygon(9f, 7f, 17f, 7f, 20f, 19f, 4f, 19f)
@@ -322,7 +320,7 @@ object ToolGlyphCatalogue {
     /**
      * The block eraser: a rubber lying on its corner, **split by the crease** where rubber meets sleeve.
      *
-     * A bare parallelogram is the rhombus tool with a tilt; the crease is the one stroke that says
+     * A bare parallelogram reads as a tilted diamond; the crease is the one stroke that says
      * "eraser" and the only thing that tells this glyph from the whole-stroke one below it.
      */
     private fun eraser(): List<GlyphPart> = listOf(

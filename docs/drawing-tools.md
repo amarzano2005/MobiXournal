@@ -138,7 +138,7 @@ same functions, so what the sheet shows is what the `.xopp` export writes.
 **Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Polygon/Table) turn a
 one-finger drag into an ordinary constant-width pen stroke — and the `desktop/` window draws the same
 set from one drag (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, and the tablet's Triangle,
-Rhombus, Trapezoid and Polygon behind one **figures** slot), calling the
+Trapezoid and Polygon behind one **figures** slot), calling the
 same `ShapeBuilder` and holding `Shift` to snap the drag's direction to 45°, so a figure made on the PC
 is the same stroke a tablet makes (`docs/desktop-workstation.md` owns the window's slots): `ShapeBuilder` (pure, tested) converts the
 drag's start/end into a vertex list, previewed live and committed as one undoable stroke, so shapes
@@ -148,7 +148,7 @@ read from that ink, not from a constant of the tool's own (`DesktopGeometryTest`
 `pickWidth` to the every-point width of the committed stroke). The **triangle tool** supports four geometric variants (`TriangleKind`):
 equilateral (factory default, preserved 60° angles), right-angled, isosceles (centered apex), and scalene
 (with customizable interior angles A, B, and C constrained to sum to 180° and previewed on a live canvas).
-The **trapezoid tool** (right after the rhombus) is the same pattern with three variants
+The **trapezoid tool** is the same pattern with three variants
 (`TrapezoidKind`): isosceles (factory default — the shorter base centred over the longer one at half
 its width), right-angled (the left leg vertical, so two angles are square), and scalene, whose two base
 angles are freely customizable — a trapezoid has one pair of parallel sides, so its two base angles fix
@@ -156,7 +156,8 @@ its shape, and unequal angles are exactly what makes all four sides differ. `Sha
 is the single layout both the tool and the settings dialog's preview call, so the preview cannot drift
 from what a drag produces; the scalene figure is uniformly scaled to stay inside its drag (which
 preserves the angles) and centred, the same fit the scalene triangle uses. The window draws both variant
-figures too: its figures slot's picker lists all six, and its **Settings → Figures** page writes the same
+figures too: its figures slot's picker lists the triangle, the trapezoid and the polygon, and its
+**Settings → Figures** page writes the same
 `TriangleKind`/`TrapezoidKind` answers — and a scalene one's angles — into `FigureShape`, the value the
 drag reads (`FigureSettings` owns the stored keys), so a figure is the same on the PC and on the tablet
 without either shell growing a second geometry.
@@ -170,7 +171,7 @@ the same `regularPolygon` every other regular figure comes from, so the pentagon
 that one tool at five and six sides rather than figures of their own. The count is 3–12 (six at the
 factory) and is chosen where the figure is: **the Polygons slot's own menu** is the side-count picker
 (`PolygonSlotButton` — tap the slot to take the tool, tap it again or long-press for the picker, with
-the live count in the button's corner), and picking one also takes hold of the tool, because seven
+the live count in the button's top-left corner, clear of the figure), and picking one also takes hold of the tool, because seven
 sides is always about drawing a heptagon next. **Settings → Figures** writes the same stored value, so
 the two cannot disagree; an out-of-range number is clamped rather than rejected, and the tool needs no
 gesture of its own: the drag, the preview, the constant width and the undo step are the ones every

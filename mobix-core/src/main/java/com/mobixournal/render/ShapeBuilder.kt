@@ -12,7 +12,7 @@ enum class ShapeKind {
     // The STEM set: the regular figures reached for when annotating maths and science. POLYGON is the
     // only regular figure with a side count of its own — a pentagon and a hexagon are that same kind,
     // drawn with sides = 5 and sides = 6.
-    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, POLYGON,
+    TRIANGLE, SQUARE, TRAPEZOID, POLYGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND,
@@ -81,7 +81,6 @@ object ShapeBuilder {
         ShapeKind.ELLIPSE -> ellipse(startX, startY, endX, endY, widthPt)
         ShapeKind.TRIANGLE -> triangle(startX, startY, endX, endY, widthPt, triangleKind, angleA, angleB, angleC)
         ShapeKind.SQUARE -> square(startX, startY, endX, endY, widthPt)
-        ShapeKind.RHOMBUS -> rhombus(startX, startY, endX, endY, widthPt)
         ShapeKind.TRAPEZOID -> trapezoid(
             startX, startY, endX, endY, widthPt,
             trapezoidKind, trapezoidAngleA, trapezoidAngleB,
@@ -360,20 +359,12 @@ object ShapeBuilder {
         return rectangle(sx, sy, ex2, ey2, w)
     }
 
-    /** A rhombus (diamond): the four edge midpoints of the drag's box, joined. */
-    private fun rhombus(sx: Double, sy: Double, ex: Double, ey: Double, w: Double): List<StrokePoint> {
-        val l = minOf(sx, ex); val r = maxOf(sx, ex)
-        val top = minOf(sy, ey); val bot = maxOf(sy, ey)
-        val cx = (l + r) / 2.0; val cy = (top + bot) / 2.0
-        return listOf(p(cx, top, w), p(r, cy, w), p(cx, bot, w), p(l, cy, w), p(cx, top, w))
-    }
-
     /**
      * A trapezoid — a quadrilateral with one pair of horizontal parallel sides — drawn into the
      * drag's box, in the variant [kind] (see [TrapezoidKind]).
      *
      * The box's width is the **longer** (bottom) base and its height the figure's height, the same way
-     * [rectangle] and [rhombus] take the box as the figure: a drag says where the trapezoid goes and
+     * [rectangle] takes the box as the figure: a drag says where the trapezoid goes and
      * how big it is, and the kind says which trapezoid it is. Only the scalene variant needs angles,
      * which it lays out through [trapezoidOutline] — the same function the settings' angle dialog
      * previews with, so what is shown there is what gets drawn.

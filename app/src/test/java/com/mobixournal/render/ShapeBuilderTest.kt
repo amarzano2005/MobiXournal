@@ -83,8 +83,7 @@ class ShapeBuilderTest {
 
     @Test fun theStemFiguresAreClosedAndKeepTheConstantWidth() {
         for (kind in listOf(
-            ShapeKind.TRIANGLE, ShapeKind.SQUARE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID,
-            ShapeKind.POLYGON,
+            ShapeKind.TRIANGLE, ShapeKind.SQUARE, ShapeKind.TRAPEZOID, ShapeKind.POLYGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue("$kind has vertices", pts.size >= 4)
@@ -98,7 +97,7 @@ class ShapeBuilderTest {
         // Every stem figure except the square is inscribed in the drag box; the square squares off
         // the drag's longer side (see [squareSquaresOffTheLongerSide]), so it may exceed the box.
         for (kind in listOf(
-            ShapeKind.TRIANGLE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID, ShapeKind.POLYGON,
+            ShapeKind.TRIANGLE, ShapeKind.TRAPEZOID, ShapeKind.POLYGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue(
@@ -121,7 +120,6 @@ class ShapeBuilderTest {
         fun count(kind: ShapeKind, sides: Int = ShapeBuilder.DEFAULT_POLYGON_SIDES): Int =
             ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 20.0, 1.0, polygonSides = sides).size
         assertEquals(4, count(ShapeKind.TRIANGLE))            // 3 vertices + the closing repeat
-        assertEquals(5, count(ShapeKind.RHOMBUS))             // 4 + closing repeat
         assertEquals(5, count(ShapeKind.TRAPEZOID))           // 4 + closing repeat
         assertEquals(6, count(ShapeKind.POLYGON, sides = 5))  // 5 + closing repeat
         assertEquals(7, count(ShapeKind.POLYGON, sides = 6))  // 6 + closing repeat

@@ -116,7 +116,7 @@ val SECONDARY_TOOL_GROUPS: List<ToolGroup> = listOf(
         "shape", "Shapes",
         listOf(
             EditorTool.ELLIPSE,
-            EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
+            EditorTool.TRIANGLE, EditorTool.TRAPEZOID,
             EditorTool.COORDINATE_AXIS,
         ),
     ),
@@ -194,7 +194,6 @@ val FIGURE_TOOLS: List<EditorTool> = listOf(
     EditorTool.RECTANGLE,
     EditorTool.ELLIPSE,
     EditorTool.TRIANGLE,
-    EditorTool.RHOMBUS,
     EditorTool.TRAPEZOID,
     EditorTool.POLYGON,
     EditorTool.COORDINATE_AXIS,

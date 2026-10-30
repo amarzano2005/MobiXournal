@@ -154,7 +154,6 @@ class DesktopGeometryTest {
             DesktopTool.RECTANGLE to ShapeKind.RECTANGLE,
             DesktopTool.ELLIPSE to ShapeKind.ELLIPSE,
             DesktopTool.TRIANGLE to ShapeKind.TRIANGLE,
-            DesktopTool.RHOMBUS to ShapeKind.RHOMBUS,
             DesktopTool.TRAPEZOID to ShapeKind.TRAPEZOID,
             DesktopTool.POLYGON to ShapeKind.POLYGON,
         )

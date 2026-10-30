@@ -198,8 +198,7 @@ class ToolGroupsTest {
         assertEquals(
             "the generic polygon leads the polygon family, as on the tablet",
             listOf(
-                DesktopTool.TRIANGLE, DesktopTool.RHOMBUS, DesktopTool.TRAPEZOID,
-                DesktopTool.POLYGON,
+                DesktopTool.TRIANGLE, DesktopTool.TRAPEZOID, DesktopTool.POLYGON,
             ),
             polygons.members,
         )

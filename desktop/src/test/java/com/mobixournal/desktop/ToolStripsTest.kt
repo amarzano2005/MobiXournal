@@ -70,7 +70,6 @@ class ToolStripsTest {
         // The tablet's STEM figures, which the window gained: a triangle and a trapezoid draw the
         // variant Settings ▸ Figures names, the three regular polygons are one drag each.
         "Triangle" to "Alt+R",
-        "Rhombus" to "Alt+J",
         "Trapezoid" to "Alt+Z",
         "Polygon" to "P",
         "Plot" to "M",
