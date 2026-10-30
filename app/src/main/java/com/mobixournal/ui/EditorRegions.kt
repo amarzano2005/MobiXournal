@@ -966,23 +966,41 @@ fun TopBarToolsRow(
                 } else {
                     val group = secondaryToolGroup(item.id)
                     if (group != null) {
-                        CompactTopBarToolButton(
-                            group = group,
-                            members = group.tools,
-                            selected = group.selected(settings.toolGroupSelections),
-                            active = ui.tool in group.tools,
-                            onTool = { tool ->
-                                surface?.activateTool(tool, ui, settings, onSettingsChange)
-                            },
-                            onPick = { picked ->
-                                val base = settings.copy(
-                                    toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            CompactTopBarToolButton(
+                                group = group,
+                                members = group.tools,
+                                selected = group.selected(settings.toolGroupSelections),
+                                active = ui.tool in group.tools,
+                                onTool = { tool ->
+                                    surface?.activateTool(tool, ui, settings, onSettingsChange)
+                                },
+                                onPick = { picked ->
+                                    val base = settings.copy(
+                                        toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
+                                    )
+                                    surface?.activateTool(picked, ui, base, onSettingsChange)
+                                },
+                                triangleKind = settings.triangleKind,
+                                trapezoidKind = settings.trapezoidKind,
+                            )
+                            // The polygons are the one family whose figure has a number to choose, so
+                            // their slot carries the count beside it rather than behind Settings.
+                            if (item.id == "polygons") {
+                                PolygonSidesButton(
+                                    active = ui.tool == EditorTool.POLYGON,
+                                    sides = settings.polygonSides,
+                                    onPick = { sides ->
+                                        val updated = settings.copy(polygonSides = sides)
+                                        onSettingsChange(updated)
+                                        surface?.activateTool(EditorTool.POLYGON, ui, updated, onSettingsChange)
+                                    },
                                 )
-                                surface?.activateTool(picked, ui, base, onSettingsChange)
-                            },
-                            triangleKind = settings.triangleKind,
-                            trapezoidKind = settings.trapezoidKind,
-                        )
+                            }
+                        }
                     } else if (item.id == "graph") {
                         val active = ui.showGraphDialog
                         val shape = RoundedCornerShape(8.dp)

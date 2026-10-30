@@ -1,5 +1,7 @@
 package com.mobixournal.ui
 
+import com.mobixournal.render.ShapeBuilder
+
 /**
  * A toolbar slot that stands for several related tools. The rail shows **one** button per group —
  * the group's currently selected tool. Tapping the button activates that tool; long-pressing opens a
@@ -204,6 +206,21 @@ val FIGURE_TOOLS: List<EditorTool> = listOf(
     EditorTool.HEXAGON,
     EditorTool.COORDINATE_AXIS,
 )
+
+/**
+ * The side counts the polygon slot's picker offers, in order — the builder's own bounds, so the menu,
+ * the stored setting and the drawn figure cannot disagree about what a polygon may be.
+ */
+val POLYGON_SIDE_CHOICES: List<Int> =
+    (ShapeBuilder.MIN_POLYGON_SIDES..ShapeBuilder.MAX_POLYGON_SIDES).toList()
+
+/** Where [sides] sits in [POLYGON_SIDE_CHOICES]; an out-of-range count answers the nearest end. */
+fun polygonSideIndex(sides: Int): Int =
+    POLYGON_SIDE_CHOICES.indexOf(sides.coerceIn(ShapeBuilder.MIN_POLYGON_SIDES, ShapeBuilder.MAX_POLYGON_SIDES))
+        .coerceAtLeast(0)
+
+/** The side count at [index], clamped: a picker row can only ever name one of the choices. */
+fun polygonSidesAt(index: Int): Int = POLYGON_SIDE_CHOICES[index.coerceIn(POLYGON_SIDE_CHOICES.indices)]
 
 /** The tool names of all geometric figure tools. */
 val ALL_FIGURE_TOOL_NAMES: Set<String> = FIGURE_TOOLS.map { it.name }.toSet()

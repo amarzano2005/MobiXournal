@@ -167,7 +167,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Double arrow | `Shift + A` | Arrow slot's second member |
 | | Rectangle | `R` | Shape dwell |
 | | Circle / Ellipse | `C` | Shape dwell |
-| | Polygon | `P` | The figures slot's generic polygon (side count from Settings ▸ Figures) |
+| | Polygon | `P` | The figures slot's generic polygon, at the builder's default count |
 | **STEM & Advanced** | Vertical space | `Shift + V` | Reflow tool in the rail's Tool pop-up |
 | | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
 | | Function Plot $f(x)$ | `M` | 1-tap STEM dock button; asks formula, range and flags first |

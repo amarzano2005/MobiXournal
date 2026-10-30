@@ -1,5 +1,7 @@
 package com.mobixournal.ui
 
+import com.mobixournal.render.ShapeBuilder
+
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import org.junit.Assert.assertEquals
@@ -82,6 +84,30 @@ class ToolGroupsTest {
             listOf(EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON),
             polygons?.tools,
         )
+    }
+
+    @Test
+    fun `the polygon picker offers every side count the builder can draw`() {
+        assertEquals(
+            listOf(3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+            POLYGON_SIDE_CHOICES,
+        )
+        // The menu, the setting and the figure share one range: an entry outside it is impossible.
+        assertEquals(ShapeBuilder.MIN_POLYGON_SIDES, POLYGON_SIDE_CHOICES.first())
+        assertEquals(ShapeBuilder.MAX_POLYGON_SIDES, POLYGON_SIDE_CHOICES.last())
+    }
+
+    @Test
+    fun `a picked row names the side count it stores`() {
+        for ((index, sides) in POLYGON_SIDE_CHOICES.withIndex()) {
+            assertEquals(sides, polygonSidesAt(index))
+            assertEquals(index, polygonSideIndex(sides))
+        }
+        // A stale or hand-edited count still opens the picker on something it can show.
+        assertEquals(polygonSideIndex(ShapeBuilder.MIN_POLYGON_SIDES), polygonSideIndex(0))
+        assertEquals(polygonSideIndex(ShapeBuilder.MAX_POLYGON_SIDES), polygonSideIndex(99))
+        assertEquals(ShapeBuilder.MIN_POLYGON_SIDES, polygonSidesAt(-4))
+        assertEquals(ShapeBuilder.MAX_POLYGON_SIDES, polygonSidesAt(400))
     }
 
     @Test

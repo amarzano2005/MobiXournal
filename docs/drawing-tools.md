@@ -167,9 +167,13 @@ and figure-style stroke (inheriting and adjusting figure width, color, and line 
 The **polygon tool** is the family's generic figure, and the one whose shape count the user picks: a
 single drag, and `ShapeBuilder` inscribes a regular polygon of `polygonSides` sides in the drag's box —
 the same `regularPolygon` the pentagon and hexagon presets draw, so a polygon set to five lands exactly
-where the pentagon does. The count lives under **Settings → Figures** (3–12, six at the factory), is
-clamped rather than rejected on load, and needs no gesture of its own: the drag, the preview, the
-constant width and the undo step are the ones every other figure uses. It leads the Polygons slot
+where the pentagon does. The count is 3–12 (six at the factory) and is chosen where the figure is: the
+**count chip beside the Polygons slot** shows it and opens the 3–12 picker, and picking one also takes
+hold of the polygon — seven sides is always about drawing a heptagon next. **Settings → Figures** writes
+the same stored value, so the two agree; an out-of-range number is clamped rather than rejected, and the
+tool needs no gesture of its own: the drag, the preview, the constant width and the undo step are the
+ones every other figure uses. The chip is its own control rather than a second section of the slot's
+menu, because that menu already picks a *member* (`PolygonSidesButton`). It leads the Polygons slot
 (`POLYGON` first, then the pentagon and the hexagon) and the window's figures submenu carries it too,
 at the builder's default count — a slot on the PC carries no variant of its own, the same way the
 triangle's kind is chosen on the tablet. The **shape recogniser** (`ShapeRecognizer`) runs on commit for the pen and the highlighter, and a

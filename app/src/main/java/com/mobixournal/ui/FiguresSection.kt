@@ -130,8 +130,9 @@ private fun Stepper(
 private fun PolygonGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     ControlHeader(
         "Sides",
-        "How many sides the Polygon tool draws, from a triangle up to a dodecagon. " +
-            "The pentagon and hexagon slots keep their own five and six.",
+        "How many sides the Polygon tool draws, from a triangle up to a dodecagon. The count chip " +
+            "beside the Polygons slot sets the same value without leaving the page; the pentagon and " +
+            "hexagon presets keep their own five and six.",
         Modifier.padding(top = 8.dp),
     )
     Row(
