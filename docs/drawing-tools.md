@@ -171,7 +171,8 @@ the same `regularPolygon` every other regular figure comes from, so the pentagon
 that one tool at five and six sides rather than figures of their own. The count is 3–12 (six at the
 factory) and is chosen where the figure is: **the Polygons slot's own menu** is the side-count picker
 (`PolygonSlotButton` — tap the slot to take the tool, tap it again or long-press for the picker, with
-the live count in the button's top-left corner, clear of the figure), and picking one also takes hold of the tool, because seven
+the live count riding the button's top-left edge, the picker's caret in the bottom-right corner and the
+figure centred), and picking one also takes hold of the tool, because seven
 sides is always about drawing a heptagon next. **Settings → Figures** writes the same stored value, so
 the two cannot disagree; an out-of-range number is clamped rather than rejected, and the tool needs no
 gesture of its own: the drag, the preview, the constant width and the undo step are the ones every
