@@ -237,7 +237,6 @@ app/
       ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog; ToolbarStylePopup.kt: shared line-style chips
       ToolGlyphs.kt          # the triangle/trapezoid variants' catalogue mapping; every tool's art lives in mobix-core's ToolGlyphCatalogue now
       DrawingGuidePopup.kt   # drawing guide popups (rail + compact) with categorized instruments/lattices & custom glyphs
-      ToolbarViewPopups.kt   # rail slots: zoom, page background, audio
       ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, page-size dialog
       ToolbarLayersPopup.kt  # rail slot: the layer manager list + rename dialog
       TopBarItems.kt         # Secondary Toolbar buttons definition (figures & tools), default order, and codecs

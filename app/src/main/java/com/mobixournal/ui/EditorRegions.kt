@@ -794,10 +794,6 @@ fun EditorToolbar(
             },
         ),
         layerCallbacks = toolbarLayerCallbacks(surface, pane),
-        zoom = pane.zoom,
-        onZoomIn = { surface?.zoomIn() },
-        onZoomOut = { surface?.zoomOut() },
-        onZoomReset = { surface?.resetZoom() },
         pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, surface),
     )
 }

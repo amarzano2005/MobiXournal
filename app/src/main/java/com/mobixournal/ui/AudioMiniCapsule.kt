@@ -328,3 +328,76 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     )
 }
 
+
+
+/**
+ * Everything the audio capsule needs ([AudioMiniCapsule]), bundled so its parameter list stays
+ * readable. The recording controls live on that capsule, not on the rail: audio is not a rail slot.
+ *
+ * @property recording Whether the microphone is currently recording.
+ * @property playing Whether audio playback is in progress.
+ * @property folderChosen Whether the user has nominated a folder for audio sidecars.
+ * @property saveStandalone Whether standalone audio export is enabled.
+ * @property onToggleRecord Callback to start or stop recording.
+ * @property onStopPlayback Callback to stop playback.
+ * @property onChooseFolder Callback to open the folder picker.
+ * @property onToggleSaveStandalone Callback to toggle standalone audio export.
+ */
+data class AudioUiState(
+    /** Whether the microphone is currently recording. */
+    val recording: Boolean = false,
+    /** Whether audio playback is in progress. */
+    val playing: Boolean = false,
+    /** Whether a clip is on at all — sounding, or held at a position ([playheadMs]). */
+    val clipOn: Boolean = false,
+    /** Where the clip that is on is, in ms — null while none is. */
+    val playheadMs: Int? = null,
+    /** How long the clip that is on runs, in ms — the scrubber's range, and null while none is. */
+    val durationMs: Int? = null,
+    /** Whether the user has nominated a folder for audio sidecars. */
+    val folderChosen: Boolean = false,
+    /** Whether standalone audio is saved into public storage on finish. */
+    val saveStandalone: Boolean = false,
+    /** Current playback speed multiplier. */
+    val playbackSpeed: Float = 1.0f,
+    /** Extracted audio waveform amplitudes for the active clip. */
+    val waveform: List<Float> = emptyList(),
+    /** Title or page context of the active audio clip. */
+    val clipTitle: String? = null,
+    /** Whether the floating mini-player is visible. */
+    val miniPlayerVisible: Boolean = false,
+    /** Whether recording is currently paused. */
+    val recordingPaused: Boolean = false,
+    /**
+     * The title of the tab whose take is running while **this** tab is not that tab, or null.
+     *
+     * A recording belongs to the tab it was started in (`ownsRecording`), so the capsule on another tab
+     * must not offer a second microphone or stop somebody else's take: this is the sentence that says
+     * whose it is, and the capsule's disabled state.
+     */
+    val recordingElsewhere: String? = null,
+    /** Callback to start or stop recording. */
+    val onToggleRecord: () -> Unit = {},
+    /** Callback to pause or resume recording. */
+    val onTogglePauseRecord: () -> Unit = {},
+    /** Callback to sound the held clip again from where it is. */
+    val onResume: () -> Unit = {},
+    /** Callback to hold the clip that is sounding where it is. */
+    val onPause: () -> Unit = {},
+    /** Callback to let the clip go: nothing sounds and the page paints itself again. */
+    val onStopPlayback: () -> Unit = {},
+    /** Callback to move the playhead to the dragged position, in ms. */
+    val onScrub: (Int) -> Unit = {},
+    /** Callback to skip forward/backward by [deltaMs]. */
+    val onSkip: (Int) -> Unit = {},
+    /** Callback to set the playback speed factor. */
+    val onSpeedChange: (Float) -> Unit = {},
+    /** Callback to open the folder picker. */
+    val onChooseFolder: () -> Unit = {},
+    /** Callback to toggle standalone audio export. */
+    val onToggleSaveStandalone: (Boolean) -> Unit = {},
+    /** Callback to toggle the mini-player's visibility. */
+    val onToggleMiniPlayer: () -> Unit = {},
+    /** Callback to start or toggle autonomous audio playback. */
+    val onPlayAutonomous: () -> Unit = {},
+)

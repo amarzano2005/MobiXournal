@@ -20,8 +20,7 @@ internal fun pageLabel(currentPage: Int, pageCount: Int): String =
     "${(currentPage + 1).coerceAtMost(pageCount)} / $pageCount"
 
 /**
- * [zoom] as a whole percentage — `100%`, `125%`. The same rendering the rail's zoom popup shows,
- * so the badge and the popup can never disagree about what 100% looks like.
+ * [zoom] as a whole percentage — `100%`, `125%` — for the canvas's zoom badge.
  */
 fun zoomLabel(zoom: Float): String = "${(zoom * 100).roundToInt()}%"
 
@@ -76,8 +75,8 @@ private val BADGE_CORNER = 14.dp
 
 /**
  * The always-visible zoom badge: [PageCounter]'s twin, stacked directly above it so the two read as
- * one control rather than two loose chips. Tapping it resets the zoom to 100%, the same action as
- * the rail's zoom-popup percentage.
+ * one control rather than two loose chips. It is the only place the zoom factor is printed, since the
+ * rail's percentage slot is retired, and tapping it resets the zoom to 100%.
  */
 @Composable
 fun ZoomBadge(

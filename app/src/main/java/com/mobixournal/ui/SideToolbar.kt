@@ -45,7 +45,7 @@ import com.mobixournal.ui.theme.rememberToolbarColor
 /**
  * The vertical control rail down its docked edge (left or right): the tool slots, the one
  * **Colour & size** slot (three favourite colours a tap away plus the chevron for colour, tip size
- * and line style), and a button per pop-up panel (zoom, pages, layers, …) — each opening a small
+ * and line style), and a button per pop-up panel (pages, layers) — each opening a small
  * [DropdownMenu] anchored to its own button (which opens to the right of the rail). [EditorScreen]
  * pushes the picked value onto the [com.mobixournal.render.DrawingSurfaceView].
  *
@@ -64,10 +64,6 @@ fun SideToolbar(
     /** The Colour & size slot's two ternas of favourite colours and what a tap or a long-press does. */
     favoritesCallbacks: ToolbarFavoritesCallbacks,
     layerCallbacks: ToolbarLayerCallbacks,
-    zoom: Float,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
-    onZoomReset: () -> Unit,
     pageCallbacks: ToolbarPagesCallbacks,
     railOrder: List<String> = emptyList(),
     railHidden: Set<String> = emptySet(),
@@ -99,7 +95,6 @@ fun SideToolbar(
                     style = styleCallbacks,
                 )
                 "layers" -> LayersPopupButton(layerCallbacks)
-                "zoom" -> ZoomPopupButton(zoom, onZoomIn, onZoomOut, onZoomReset)
                 "pages" -> PagesPopupButton(pageCallbacks)
             }
         }

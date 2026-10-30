@@ -14,7 +14,7 @@ Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** with core drawin
 
 There is **one layout**, and each bar has one job. The Main Toolbar is the vertical docked capsule
 (Left or Right, per `ToolbarPosition`) of **writing tools only**: pen, highlighter, eraser, pan, select,
-text/pictures, vertical space, and the colour & size, layers, zoom and pages panels — **pages** being
+text/pictures, vertical space, and the colour & size, layers and pages panels — **pages** being
 the whole page errand: navigation, columns, format, and a row onto the page-background dialog for paper,
 rule spacing and stationery. The Secondary Toolbar is the one home of the **STEM tools** (figures,
 function graph, table, circuits, logic, guides), because a rail slot for them was the same
@@ -87,17 +87,13 @@ and only a few percent above it, capped at `RAIL_MAX_SCALE` (1.08) so the slot s
 inner width. The leftover strip below the last whole slot is spent on slightly larger buttons rather
 than on a sliver of the next one. Slots the height cannot hold are a **scroll away**, and a rail that
 fits entirely is left at scale 1. The shell publishes the scale as the slot size
-(`LocalRailSlotSize`, read by every slot — tool buttons, pop-up buttons, the one-tap colour slot; the
-zoom slot's percentage label reads the factor itself via `LocalRailSlotScale`, since its content is
-text and not a dp size) and applies it to the gaps but **not** to the column's padding, so the
-whole-number fit stays exact.
+(`LocalRailSlotSize`, read by every slot — tool buttons, pop-up buttons, the one-tap colour slot) and
+applies it to the gaps but **not** to the column's padding, so the whole-number fit stays exact.
 
-The zoom slot is the rail's one slot whose *content grows with the value*: `41%` fits any slot,
-`100%` and `381%` do not. Its label therefore **fits itself to the slot** (`fittedLabelSp`): the text
-is measured against the slot's width minus a 7dp inset and the font comes down by that ratio, floored
-at 62% of the base size — so a three-digit percentage is *smaller*, never cropped by the circle. The
-percentage itself is formatted by one function (`zoomLabel`) shared with the canvas's zoom badge, so
-the two can never disagree.
+The rail carries no **zoom** slot: a page is zoomed by pinching it, the canvas's zoom badge prints the
+factor (`zoomLabel`, `ui/PageCounter.kt`) and taps back to 100%, and a permanent button that only
+reopened a percentage read-out cost a slot every other tool needed more. A saved rail order naming
+`zoom` is dropped like any other retired id (`RailItemsTest`).
 
 ## Chrome styling: the Material 3 floating dock
 

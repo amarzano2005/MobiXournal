@@ -33,16 +33,16 @@ class RailItemsTest {
 
     @Test
     fun `unknown and duplicate ids are ignored`() {
-        val ordered = orderedRailItems(listOf("nope", "zoom", "zoom"))
-        assertEquals("zoom", ordered.first().id)
+        val ordered = orderedRailItems(listOf("nope", "pages", "pages"))
+        assertEquals("pages", ordered.first().id)
         assertEquals(RAIL_ITEMS.size, ordered.size)
     }
 
     @Test
     fun `hidden items are dropped from the visible rail`() {
-        val visible = visibleRailItems(emptyList(), setOf("zoom", "pages"))
+        val visible = visibleRailItems(emptyList(), setOf("pages", "layers"))
         assertEquals(RAIL_ITEMS.size - 2, visible.size)
-        assertTrue(visible.none { it.id == "zoom" || it.id == "pages" })
+        assertTrue(visible.none { it.id == "pages" || it.id == "layers" })
     }
 
     @Test
@@ -62,10 +62,10 @@ class RailItemsTest {
 
     @Test
     fun `ids round-trip through encode and decode`() {
-        val ids = listOf("pages", "zoom", "pen")
+        val ids = listOf("pages", "layers", "pen")
         assertEquals(ids, decodeRailIds(encodeRailIds(ids)))
         assertEquals(emptyList<String>(), decodeRailIds(null))
-        assertEquals(listOf("zoom"), decodeRailIds("zoom,gone"))
+        assertEquals(listOf("pages"), decodeRailIds("pages,gone"))
     }
 
     @Test
@@ -85,7 +85,7 @@ class RailItemsTest {
         assertEquals(
             listOf(
                 "pen", "highlighter", "favorites", "eraser", "pan", "select",
-                "text", "insert", "vspace", "zoom", "pages", "layers",
+                "text", "insert", "vspace", "pages", "layers",
             ),
             ids,
         )
@@ -94,7 +94,7 @@ class RailItemsTest {
     @Test
     fun `the retired presets slot is gone rather than lingering as a dead button`() {
         assertTrue(RAIL_ITEMS.none { it.id == "presets" })
-        assertTrue(visibleRailItems(listOf("presets", "zoom"), emptySet()).none { it.id == "presets" })
+        assertTrue(visibleRailItems(listOf("presets", "pages"), emptySet()).none { it.id == "presets" })
         assertEquals(emptyList<String>(), decodeRailIds("presets"))
     }
 
@@ -111,7 +111,7 @@ class RailItemsTest {
     fun `the retired style slot is gone rather than lingering as a dead button`() {
         assertTrue(RAIL_ITEMS.none { it.id == "style" })
         // A saved order naming it must degrade to a rail without it, not crash or resurrect it.
-        assertTrue(visibleRailItems(listOf("style", "zoom"), emptySet()).none { it.id == "style" })
+        assertTrue(visibleRailItems(listOf("style", "pages"), emptySet()).none { it.id == "style" })
         assertEquals(emptyList<String>(), decodeRailIds("style"))
     }
 
@@ -123,7 +123,7 @@ class RailItemsTest {
             assertTrue("$id is not a rail position", RAIL_ITEMS.none { it.id == id })
             assertEquals(emptyList<String>(), decodeRailIds(id))
         }
-        assertTrue(visibleRailItems(listOf("audio", "play", "shapes", "zoom"), emptySet()).none {
+        assertTrue(visibleRailItems(listOf("audio", "play", "shapes", "pages"), emptySet()).none {
             it.id == "audio" || it.id == "play" || it.id == "shapes"
         })
     }
@@ -133,13 +133,22 @@ class RailItemsTest {
         // Paper style, ruling spacing and stationery are the page's own look, so they ride the Pages
         // menu's Sheet section instead of costing a rail slot of their own.
         assertTrue(RAIL_ITEMS.none { it.id == "background" })
-        assertTrue(visibleRailItems(listOf("background", "zoom"), emptySet()).none { it.id == "background" })
+        assertTrue(visibleRailItems(listOf("background", "pages"), emptySet()).none { it.id == "background" })
         assertEquals(emptyList<String>(), decodeRailIds("background"))
     }
 
     @Test
     fun `tool groups resolve from their rail id and panels do not`() {
         assertEquals(TOOL_GROUPS.first(), toolGroupForRailItem(TOOL_GROUPS.first().id))
-        assertEquals(null, toolGroupForRailItem("zoom"))
+        assertEquals(null, toolGroupForRailItem("pages"))
+    }
+
+    @Test
+    fun `the retired zoom slot is gone, leaving pinch and the canvas badge`() {
+        // The percentage read-out cost a rail slot: pinch zooms, the canvas badge prints the factor and
+        // taps back to 100%. A saved order naming it must degrade, not resurrect a dead button.
+        assertTrue(RAIL_ITEMS.none { it.id == "zoom" })
+        assertEquals(emptyList<String>(), decodeRailIds("zoom"))
+        assertTrue(visibleRailItems(listOf("zoom", "pages"), emptySet()).none { it.id == "zoom" })
     }
 }

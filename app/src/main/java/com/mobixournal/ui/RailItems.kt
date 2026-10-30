@@ -27,7 +27,6 @@ data class RailItem(
 val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
     RailItem("favorites", "Colour & size"),
     RailItem("layers", "Layers"),
-    RailItem("zoom", "Zoom"),
     RailItem("pages", "Pages"),
 )
 
@@ -39,6 +38,10 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
  * The rail is **writing tools only**: audio, play object, shape recognition, drawing guides, the sheet
  * background and every STEM slot that duplicates the Secondary Toolbar are deliberately absent, so the
  * settings list cannot offer them back (see [TOOL_GROUPS] and [TOP_BAR_ITEMS]).
+ *
+ * The **Zoom** position is retired: pinch is how a page is zoomed, the canvas badge already shows the
+ * factor and taps back to 100%, so a permanent rail button that only reopened a percentage read-out
+ * cost a slot. A saved order naming `zoom` simply drops it, as with every other retired id.
  *
  * The **Background** position is retired: paper style, ruling spacing and stationery are the same
  * errand as the page's own size and navigation, so the **Pages** menu carries one row that opens
@@ -56,7 +59,7 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
  */
 private val FACTORY_RAIL_ORDER: List<String> = listOf(
     "pen", "highlighter", "favorites", "eraser", "pan", "select",
-    "text", "insert", "vspace", "zoom", "pages", "layers",
+    "text", "insert", "vspace", "pages", "layers",
 )
 
 /**
