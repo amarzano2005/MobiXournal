@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- The **debug / v2 development channel**'s own label. A debug build installs as `com.mobixournal.v2`
-     (see the `buildTypes` note in `app/build.gradle.kts`), so it sits beside the owner's daily
-     `com.mobixournal` install instead of replacing it — and two identical "MobiXournal" icons side by
-     side would be indistinguishable. Only the label differs; everything else comes from `main`. -->
-<resources>
-    <string name="app_name">MobiXournal v2 (dev)</string>
-</resources>

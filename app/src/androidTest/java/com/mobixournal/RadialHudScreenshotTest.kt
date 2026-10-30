@@ -33,7 +33,7 @@ import org.junit.runner.RunWith
  * binds the barrel to the HUD exactly as Settings does, writes one stroke so the ring is over ink, and
  * opens the ring with a barrel **key-down**. `UiAutomation.takeScreenshot` then captures the composited
  * screen — SurfaceView layer included — and writes it to the app's external files directory, where
- * `adb pull /sdcard/Android/data/com.mobixournal.v2/files/radial-hud.png` can fetch it.
+ * `adb pull /sdcard/Android/data/com.mobixournal/files/radial-hud.png` can fetch it.
  *
  * It asserts only that the ring opened and the screenshot was written: the behaviour itself (summon,
  * track, commit, cancel) is `StylusInputTest`'s job.
@@ -54,10 +54,10 @@ class RadialHudScreenshotTest {
             .putString("barrel_action", "HUD")
             .commit()
         instrumentation.uiAutomation.executeShellCommand(
-            "pm grant com.mobixournal.v2 android.permission.POST_NOTIFICATIONS",
+            "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
         ).close()
         instrumentation.uiAutomation.executeShellCommand(
-            "pm grant com.mobixournal.v2 android.permission.RECORD_AUDIO",
+            "pm grant ${context.packageName} android.permission.RECORD_AUDIO",
         ).close()
 
         val intent = Intent(context, MainActivity::class.java)
@@ -121,10 +121,10 @@ class RadialHudScreenshotTest {
             .putString("barrel_action", "HUD")
             .commit()
         instrumentation.uiAutomation.executeShellCommand(
-            "pm grant com.mobixournal.v2 android.permission.POST_NOTIFICATIONS",
+            "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
         ).close()
         instrumentation.uiAutomation.executeShellCommand(
-            "pm grant com.mobixournal.v2 android.permission.RECORD_AUDIO",
+            "pm grant ${context.packageName} android.permission.RECORD_AUDIO",
         ).close()
 
         val activity = instrumentation.startActivitySync(

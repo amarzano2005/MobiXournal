@@ -152,7 +152,6 @@ launcher mask crops it. No upstream logo is used, so the icon belongs to this ap
 to Xournal++ stays in the About page and README.
 
 The Kotlin package, the namespace and **`applicationId` are all `com.mobixournal`** — the install
-identity of this unofficial app, kept distinct from upstream and from any other build. (The one
-exception is the v2 development channel: the `debug` build type adds `.v2` so a test build installs
-beside the owner's daily app instead of replacing it — see
-[the debug build's own app](tools.md#the-debug-build-is-its-own-app--a-test-build-never-replaces-the-daily-app).)
+identity of this unofficial app, kept distinct from upstream and from any other build. Debug and
+release builds share it, so installing a build upgrades the app already there — see
+[a debug build installs as the same app](tools.md#a-debug-build-installs-as-the-same-app).

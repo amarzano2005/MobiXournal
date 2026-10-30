@@ -50,10 +50,10 @@ class CircuitLabelScreenshotTest {
             .putBoolean("has_seen_onboarding", true)
             .commit()
         instrumentation.uiAutomation.executeShellCommand(
-            "pm grant com.mobixournal.v2 android.permission.POST_NOTIFICATIONS",
+            "pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS",
         ).close()
         instrumentation.uiAutomation.executeShellCommand(
-            "pm grant com.mobixournal.v2 android.permission.RECORD_AUDIO",
+            "pm grant ${context.packageName} android.permission.RECORD_AUDIO",
         ).close()
 
         val intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

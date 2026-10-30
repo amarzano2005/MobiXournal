@@ -55,28 +55,14 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   - The parent mount is what makes the optional real-file test resolve its repo-root sample; the
     rule is documented in [`testing.md`](testing.md#what-the-unit-tests-cover).
 
-### The debug build is its own app — a test build never replaces the daily app
+### A debug build installs as the same app
 
-The released `com.mobixournal` stays the daily app, so the debug build is its **own app**:
-`app/build.gradle.kts` gives the `debug` build type `applicationIdSuffix = ".v2"`, so
-`scripts/build.sh`, the emulator install and the APK the release workflow attaches all land on
-**`com.mobixournal.v2`**, and the `debug` source set gives that build its own launcher label
-(`app/src/debug/res/values/strings.xml` → "MobiXournal v2 (dev)") so the two icons are
-indistinguishable only if you want them to be.
-
-The Android package name *is* the app's identity: a build of the same package signed with a different
-key replaces the installed app — with its session cache and settings — rather than living beside it.
-The suffix is what makes "install the test build" a non-destructive step.
-
-- **Installing it:** nothing changes in the loop. `emulator.sh install
-  app/build/outputs/apk/debug/app-debug.apk`, `emulator.sh launch com.mobixournal.v2` on the emulator;
-  `adb install -r app/build/outputs/apk/debug/app-debug.apk` on a device. The package to launch and to
-  `logcat`-filter by is `com.mobixournal.v2`.
-- **Its storage is its own too** (`filesDir`/`cacheDir` are per-package), so a v2 build cannot disturb
-the daily app's tabs, settings or saved documents.
-- **Dropping the suffix** is deleting the `debug` block and the `debug` source set, after which the
-  build is `com.mobixournal` again and upgrades the existing install in place. That is the change to make
-  if the debug build should ever *become* the daily app.
+`app/build.gradle.kts` sets no `applicationIdSuffix`, so `scripts/build.sh` and `./gradlew
+assembleDebug` produce an APK with the **same identity as a release build**: it installs as
+`com.mobixournal`, upgrading the installed app in place rather than appearing beside it as a second
+icon. Launch and filter with that package (`emulator.sh launch com.mobixournal`, `adb logcat`), and
+remember that the build you install *is* the app on the device — its tabs and settings are the ones the
+next launch reads.
 
 ### Host fallback — no `/data/android`, no Docker
 
@@ -227,7 +213,7 @@ locally before pushing a tag to catch it in a second instead of a CI cycle.
 ### Two versions, one product
 
 The tablet app and the Windows window are **two artifacts with two version lines**. The app restarted
-its numbering at **2.0.0** when the v2 channel became the product; the window starts at **1.0.0**.
+its numbering at **2.0.0**; the window starts at **1.0.0**.
 Neither number is derived from the other, and neither is copied into a doc: each lives in the Gradle
 file of the artifact that carries it (`versionName`/`versionCode` in `app/build.gradle.kts`,
 `packageVersion` in `desktop/build.gradle.kts`). Read and check both with:

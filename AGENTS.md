@@ -99,9 +99,9 @@ describes the window as it is, `docs/desktop-editing.md` what a drag on its page
 - **A UI change is checked against `docs/interface-contract.md`** before it lands: one of the three
   material classes, tokens only, a glyph from the catalogue, all five states, English copy, both shells
   in agreement.
-- **v2 development package (`com.mobixournal.v2`)**: Debug builds set `applicationIdSuffix = ".v2"`
-  ("MobiXournal v2 (dev)") so installing and testing v2 never overwrites the daily `com.mobixournal`
-  installation or its storage (`docs/tools.md`).
+- **One package, one install**: `applicationId` is `com.mobixournal` and no build type suffixes it,
+  so a debug APK upgrades the installed app in place (`docs/tools.md`, *A debug build installs as the
+  same app*).
 
 ---
 
@@ -160,7 +160,7 @@ the start of a task, then follow the matching profile below:
   suites plus `assembleDebug`) and `scripts/todo.sh <command>`. Do not rely on host-installed JDK/SDK
   when `/data/android` is available.
 - **Containerized emulator**: Drive the emulator via `emulator.sh` (`up`, `install`, `launch
-  com.mobixournal.v2`, `screenshot`, `ui`, `logcat`) and run instrumented tests via
+  com.mobixournal`, `screenshot`, `ui`, `logcat`) and run instrumented tests via
   `scripts/connected-test.sh` (never plain `connectedDebugAndroidTest` inside the throwaway builder
   container, which lives in a separate `adb` world).
 - Full contract and gotchas live in `docs/tools.md`.
@@ -217,7 +217,7 @@ When the session is running on this Windows 11 workstation (`10.0.26300`, `pwsh`
   - **Emulator & `androidTest` on this host**: Use `.\gradlew.bat connectedDebugAndroidTest` (with
     `-Pandroid.testInstrumentationRunnerArguments.class=...` for single classes) — do **not** use
     `scripts/connected-test.sh` here. See `docs/tools.md` (*Host fallback — Android Studio's own
-    emulator*) for `-no-snapshot-load`, `KEYCODE_WAKEUP`, and `run-as com.mobixournal.v2`.
+    emulator*) for `-no-snapshot-load`, `KEYCODE_WAKEUP`, and `run-as com.mobixournal`.
 
 ---
 
@@ -237,7 +237,7 @@ scripts/host-build.sh                      # auto-discovers JDK 21 + SDK, runs u
 
 # 3. Direct PowerShell fast path on a Windows host (Profiles B & D):
 .\gradlew.bat :app:testDebugUnitTest :mobix-core:test   # both suites (JVM; no device needed)
-.\gradlew.bat assembleDebug                # build debug APK (com.mobixournal.v2)
+.\gradlew.bat assembleDebug                # build debug APK (com.mobixournal)
 ```
 
 **The task's `rebuild` and `emulator_debug` flags decide how far to go — they are load-bearing,
@@ -249,7 +249,7 @@ not advisory.** Every `TODO.toml` task carries these two flags (owned by the `to
 - **`emulator_debug`** — whether to **install and exercise on the emulator** (`/data/android`
   `emulator.sh` on Profile A, or the host SDK `Pixel_Tablet` AVD on Profiles B/C). `false` (the
   default) means **skip the emulator pass entirely** for this task; a clean build + unit tests is
-  sufficient. `true` is the full pass: install the APK (`com.mobixournal.v2`) and actually drive
+  sufficient. `true` is the full pass: install the APK (`com.mobixournal`) and actually drive
   it — screenshots to *see* the UI, `adb logcat` for error logs, and simulated finger/stylus presses.
 
 **Honor these per-task flags over any general "always test the running app" instinct** — when a

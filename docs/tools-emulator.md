@@ -19,14 +19,14 @@ change with a runtime surface must be installed and exercised on the emulator, n
   container adb → emulator). Full details in that directory's `README.md`; don't duplicate them here.
 - **How to run it:** `emulator.sh` dispatches `status | up | boot-wait | down | install <apk> |
   launch <pkg> | screenshot [png] | ui | logcat | shell | adb` — so `emulator.sh up` to boot, then
-  `emulator.sh install <apk>`, `emulator.sh launch com.mobixournal.v2`, `emulator.sh screenshot <png>`,
+  `emulator.sh install <apk>`, `emulator.sh launch com.mobixournal`, `emulator.sh screenshot <png>`,
   `emulator.sh ui`, and `emulator.sh logcat` for logs. Run `adb-targets.sh` to see which devices and
   the emulator are reachable. Physical devices install via the host adb:
   `adb -s <ip>:5555 install -r app/build/outputs/apk/debug/app-debug.apk`.
 - **Testing a change on the emulator (the expected loop):** after a green
   `scripts/build.sh`, install the fresh APK and actually drive it:
   1. `emulator.sh install app/build/outputs/apk/debug/app-debug.apk` then
-     `emulator.sh launch com.mobixournal.v2`.
+     `emulator.sh launch com.mobixournal`.
   2. **Take screenshots** (`emulator.sh screenshot <png>`) and look at them to confirm the UI
      rendered as intended — this is how you *see* the change, not infer it.
   3. **Read the error logs** — `adb logcat` (filter to the app) — to catch crashes, stack
@@ -64,7 +64,7 @@ SDK=$(scripts/host-build.sh --list | sed -n 's/^host-build: SDK //p')
 "$SDK/emulator/emulator" -avd Pixel_Tablet &   # `.exe` under Git Bash; or start it from Android Studio
 "$SDK/platform-tools/adb" wait-for-device      # then poll sys.boot_completed for 1
 "$SDK/platform-tools/adb" install -r app/build/outputs/apk/debug/app-debug.apk
-"$SDK/platform-tools/adb" shell am start -n com.mobixournal.v2/com.mobixournal.MainActivity
+"$SDK/platform-tools/adb" shell am start -n com.mobixournal/com.mobixournal.MainActivity
 "$SDK/platform-tools/adb" exec-out screencap -p > shot.png   # and: logcat, input tap/swipe
 ```
 
@@ -118,8 +118,8 @@ reaches the device. Keep it for the `/data/android` pipeline, where that mismatc
   into a tab (the manifest declares both `content` and `file` schemes for that type). The path must be
   one *the app* can read: it asks for no storage permission, so `/sdcard/Download/…` fails silently —
   a toast, no tab. `adb push x.mobix /data/local/tmp/` then
-  `adb shell run-as com.mobixournal.v2 cp /data/local/tmp/x.mobix files/x.mobix` puts it in the app's
-  own sandbox, and `file:///data/data/com.mobixournal.v2/files/x.mobix` opens every time.
+  `adb shell run-as com.mobixournal cp /data/local/tmp/x.mobix files/x.mobix` puts it in the app's
+  own sandbox, and `file:///data/data/com.mobixournal/files/x.mobix` opens every time.
 - **Fixtures for an emulator pass:** the documents a runtime pass needs are written by a JVM test
   rather than by hand, so the device fixture and the unit-test fixture cannot drift apart:
   `./gradlew testDebugUnitTest --tests com.mobixournal.io.DeviceFixturesTest` writes
