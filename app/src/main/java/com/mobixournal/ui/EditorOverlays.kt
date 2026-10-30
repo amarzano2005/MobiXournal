@@ -23,7 +23,6 @@ import com.mobixournal.render.PlotElementFactory
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.Uncompilable
-import com.mobixournal.render.cancelSpline
 import com.mobixournal.render.captureBackgroundRegion
 import com.mobixournal.render.clearBackgroundRegion
 import com.mobixournal.render.clearSelection
@@ -34,13 +33,11 @@ import com.mobixournal.render.cutBackgroundRegion
 import com.mobixournal.render.cutSelection
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
-import com.mobixournal.render.finishSpline
 import com.mobixournal.render.insertPlot
 import com.mobixournal.render.insertPlotElement
 import com.mobixournal.render.insertTable
 import com.mobixournal.render.replacePlotElement
 import com.mobixournal.render.restyleSelection
-import com.mobixournal.render.undoLastSplineNode
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.ModalScrim
 import com.mobixournal.ui.theme.rememberClosingArgument
@@ -297,7 +294,7 @@ private fun BoxScope.SelectionOverlays(
     val surface = pane.surface
     // The element selection's own bar is no longer here: it floats beside the selection itself
     // (see [SelectionActionAnchor], rendered by each pane). What stays at the bottom edge are the
-    // mode bars — the marquee's paste/region actions, table insert, spline and PDF-text selection —
+    // mode bars — the marquee's paste/region actions, table insert and PDF-text selection —
     // none of which belong to a selected element.
     // Paste is deliberately not in this bar: it acts on the document rather than on a region, so it
     // rides with Copy and Cut in the selection action bar ([SelectionActionAnchor]) — where it also
@@ -309,15 +306,6 @@ private fun BoxScope.SelectionOverlays(
             onCopyRegion = { surface?.captureBackgroundRegion() },
             onCutRegion = { surface?.cutBackgroundRegion() },
             onClearRegion = { surface?.clearBackgroundRegion() },
-        )
-    }
-    if (pane.splineNodes > 0) {
-        SplineModeBar(
-            nodeCount = pane.splineNodes,
-            onFinish = { surface?.finishSpline() },
-            onUndoPoint = { surface?.undoLastSplineNode() },
-            onCancel = { surface?.cancelSpline() },
-            modifier = barModifier,
         )
     }
     if (pane.hasTextSelection) {

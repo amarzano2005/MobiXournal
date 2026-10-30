@@ -138,7 +138,7 @@ the shared ones touched; `NOTICE` carries the full list). The headline changes:
   stroke is painted as a **single filled outline** built in one pass rather than a `drawLine` per
   segment — and, since 2026-10-03, that outline keeps the stroke's **real per-point width** instead
   of one mean width, so the live taper matches desktop Xournal++ (`StrokePainter.drawPressureLine`);
-  a stroke whose points share one width — a shape, a spline — is stroked at that width instead,
+  a stroke whose points share one width — a shape — is stroked at that width instead,
   which keeps its sides even and its corners clean (`StrokePainter.drawUniformLine`); and the
   **keyboard shortcuts** (pen/eraser and hand/pan
   toggles, one key per tool and per pen colour) are read from the native `dispatchKeyEvent`

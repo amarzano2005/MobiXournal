@@ -85,7 +85,7 @@ are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halve
 and it is held at zero alpha until it has been measured so it fades in where it belongs instead of
 flickering there. Pure placement geometry lives in `ui/SelectionActionAnchor.kt`'s
 `selectionBarOffset`, pinned by `SelectionActionAnchorTest`. The
-other mode bars (paste/region, table, spline, PDF-text selection) stay on the bottom edge. The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
+other mode bars (paste/region, table, PDF-text selection) stay on the bottom edge. The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
 works in Select mode (it abandons the in-progress selection gesture).
 
 The outline itself is drawn **exactly on the elements' ink box** (`SELECT_PAD_PX` = 0): a padded box

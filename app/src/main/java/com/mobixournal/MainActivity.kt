@@ -42,11 +42,7 @@ import com.mobixournal.render.KaraokeFrameDriver
 import com.mobixournal.render.PdfFonts
 import com.mobixournal.render.Placement
 import com.mobixournal.render.TextPdfGenerator
-import com.mobixournal.render.cancelSpline
-import com.mobixournal.render.finishSpline
 import com.mobixournal.render.onStylusButtonKey
-import com.mobixournal.render.splineInProgress
-import com.mobixournal.render.undoLastSplineNode
 import com.mobixournal.tabs.TabManager
 import com.mobixournal.tabs.TabStore
 import com.mobixournal.ui.AppSettings
@@ -360,10 +356,9 @@ class MainActivity : ComponentActivity() {
         }
 
     /**
-     * Hardware-keyboard shortcuts for the spline tool, which is the one tool whose gesture spans
-     * several taps: Enter commits the open curve, Backspace drops its last control point, and Escape
-     * throws it away. Handled here rather than in the surface so the canvas never has to take
-     * keyboard focus away from the app's text fields.
+     * Hardware-keyboard shortcut routing: the barrel key first (see [onStylusButtonKey]), then the
+     * tool and colour keys the active surface handles. Handled here rather than in the surface so the
+     * canvas never has to take keyboard focus away from the app's text fields.
      */
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -372,14 +367,6 @@ class MainActivity : ComponentActivity() {
         // reports Bluetooth stylus buttons that way — and the canvas only takes focus on touch, so the
         // activity routes it to the surface, which treats it as the held barrel modifier.
         if (view != null && view.onStylusButtonKey(event)) return true
-        if (event.action == KeyEvent.ACTION_UP && view != null && view.splineInProgress()) {
-            when (event.keyCode) {
-                KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> { view.finishSpline(); return true }
-                KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_FORWARD_DEL ->
-                    { view.undoLastSplineNode(); return true }
-                KeyEvent.KEYCODE_ESCAPE -> { view.cancelSpline(); return true }
-            }
-        }
         // Let focused Compose components (e.g. text inputs in dialogs/settings) consume keys first.
         if (super.dispatchKeyEvent(event)) return true
         // If unconsumed by Compose, route to the active drawing surface for tool and color shortcuts.

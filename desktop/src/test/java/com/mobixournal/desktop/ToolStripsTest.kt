@@ -74,7 +74,7 @@ class ToolStripsTest {
         "Trapezoid" to "Alt+Z",
         "Pentagon" to "Alt+P",
         "Hexagon" to "Alt+H",
-        "Spline" to "P",
+        "Polygon" to "P",
         "Plot" to "M",
         "Axes" to "Shift+X",
         "Table" to "T",
@@ -266,7 +266,7 @@ class ToolStripsTest {
             // Wide enough for every slot: the figure submenu added one, and the ribbon is a row.
             ImageComposeScene(1100, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
                 ToolRibbon(
-                    state = ToolStripState(selection = ToolSelection(DesktopTool.SPLINE)),
+                    state = ToolStripState(selection = ToolSelection(DesktopTool.POLYGON)),
                     onSelect = {},
                 )
             },
@@ -274,9 +274,9 @@ class ToolStripsTest {
         )
         assertEverySlotInked(ribbonPng, vertical = false)
         val ribbon = ImageIO.read(ByteArrayInputStream(ribbonPng))
-        // The slot that faces Spline is the figures group's — not the last slot, which is the Circuit
+        // The slot that faces Polygon is the figures group's — not the last slot, which is the Circuit
         // slot since the STEM slots joined the strip.
-        val figures = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.SPLINE in it.members }
+        val figures = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.POLYGON in it.members }
         val pickedSlotX = ToolStripMetrics.ribbonSlotLeft.value.toInt() + (figures * slotStride) + 2
         assertEquals(
             "the ribbon marks the picked tool with the active slot",

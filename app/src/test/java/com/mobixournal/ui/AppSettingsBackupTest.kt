@@ -72,7 +72,7 @@ class AppSettingsBackupTest {
             toolGroupSelections = mapOf("shape" to EditorTool.HEXAGON),
             railOrder = listOf("pen", "color", "eraser"),
             railHidden = setOf("audio"),
-            topBarOrder = listOf("line", "spline", "table"),
+            topBarOrder = listOf("line", "polygons", "table"),
             topBarHidden = setOf("guides"),
             audioFolderUri = "content://test/folder",
             themeMode = ThemeMode.DARK,

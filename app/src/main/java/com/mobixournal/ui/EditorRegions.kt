@@ -1430,7 +1430,6 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     onPdfOutlineChanged = { outline -> state.outline = outline }
     onClipboardChanged = { c -> state.hasClipboard = c }
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }
-    onSplineChanged = { n -> state.splineNodes = n }
     onSearchChanged = { s -> state.searchCurrent = s.current; state.searchTotal = s.total }
     onSearchIndexingChanged = { active, progress ->
         state.searchIndexing = active

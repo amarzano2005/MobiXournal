@@ -48,7 +48,6 @@ enum class ToolGlyph {
     ARROW,
     DOUBLE_ARROW,
     DIMENSION,
-    SPLINE,
     AXES,
     PLOT,
 
@@ -66,6 +65,9 @@ enum class ToolGlyph {
     TRAPEZOID_SCALENE,
     PENTAGON,
     HEXAGON,
+
+    /** The generic polygon: an outline of no fixed number of sides, with its corners marked. */
+    POLYGON,
 
     TABLE,
     RESISTOR,
@@ -169,7 +171,6 @@ object ToolGlyphCatalogue {
         ToolGlyph.ARROW -> arrow()
         ToolGlyph.DOUBLE_ARROW -> doubleArrow()
         ToolGlyph.DIMENSION -> dimension()
-        ToolGlyph.SPLINE -> spline()
         ToolGlyph.AXES -> axes()
         ToolGlyph.PLOT -> plot()
         ToolGlyph.RECTANGLE -> polygon(3f, 6f, 21f, 6f, 21f, 18f, 3f, 18f)
@@ -188,6 +189,10 @@ object ToolGlyphCatalogue {
         ToolGlyph.TRAPEZOID_SCALENE -> polygon(9f, 7f, 17f, 7f, 20f, 19f, 4f, 19f)
         ToolGlyph.PENTAGON -> polygon(*regular(5, radius = 9f))
         ToolGlyph.HEXAGON -> polygon(*regular(6, radius = 9f))
+        // An irregular, off-centre outline: the tool's promise is *any* polygon, so the picture must
+        // not read as one more fixed-sided figure beside the pentagon and the hexagon.
+        ToolGlyph.POLYGON -> polygon(12f, 3f, 21f, 10f, 17f, 21f, 5f, 21f, 3f, 10f) +
+            listOf(GlyphPart.Circle(12f, 3f, 1.1f), GlyphPart.Circle(21f, 10f, 1.1f), GlyphPart.Circle(5f, 21f, 1.1f))
         ToolGlyph.TABLE -> table()
         ToolGlyph.RESISTOR -> resistor()
         ToolGlyph.CAPACITOR -> capacitor()
@@ -545,12 +550,6 @@ object ToolGlyphCatalogue {
     )
 
     /** A free curve with its two ends. */
-    private fun spline(): List<GlyphPart> = listOf(
-        GlyphPart.Cubic(4f, 18.5f, 8f, 3.5f, 16f, 3.5f, 20f, 18.5f),
-        GlyphPart.Circle(4f, 18.5f, 1.2f),
-        GlyphPart.Circle(20f, 18.5f, 1.2f),
-    )
-
     /** The coordinate plane: an arrowed pair of axes meeting at the origin. */
     private fun axes(): List<GlyphPart> = listOf(
         GlyphPart.Line(4.5f, 20f, 4.5f, 4f),

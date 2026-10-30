@@ -135,10 +135,10 @@ same functions, so what the sheet shows is what the `.xopp` export writes.
 
 ## Shapes, styles, partial eraser, layers
 
-**Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Spline/Table) turn a
+**Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Polygon/Table) turn a
 one-finger drag into an ordinary constant-width pen stroke — and the `desktop/` window draws the same
-set from one drag (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline, and the tablet's
-Triangle, Rhombus, Trapezoid, Pentagon and Hexagon behind one **figures** slot), calling the
+set from one drag (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, and the tablet's Triangle,
+Rhombus, Trapezoid, Polygon, Pentagon and Hexagon behind one **figures** slot), calling the
 same `ShapeBuilder` and holding `Shift` to snap the drag's direction to 45°, so a figure made on the PC
 is the same stroke a tablet makes (`docs/desktop-workstation.md` owns the window's slots): `ShapeBuilder` (pure, tested) converts the
 drag's start/end into a vertex list, previewed live and committed as one undoable stroke, so shapes
@@ -156,26 +156,23 @@ its shape, and unequal angles are exactly what makes all four sides differ. `Sha
 is the single layout both the tool and the settings dialog's preview call, so the preview cannot drift
 from what a drag produces; the scalene figure is uniformly scaled to stay inside its drag (which
 preserves the angles) and centred, the same fit the scalene triangle uses. The window draws both variant
-figures too: its figures slot's picker lists all five, and its **Settings → Figures** page writes the same
+figures too: its figures slot's picker lists all six, and its **Settings → Figures** page writes the same
 `TriangleKind`/`TrapezoidKind` answers — and a scalene one's angles — into `FigureShape`, the value the
 drag reads (`FigureSettings` owns the stored keys), so a figure is the same on the PC and on the tablet
 without either shell growing a second geometry.
 The **table tool** creates an \(R \times C\) grid as a single continuous polyline,
 with configurable rows and columns, optional relational header row (rendering a double separator line under the first row),
 support for live drag-sizing and one-tap centered viewport insertion,
-and figure-style stroke (inheriting and adjusting figure width, color, and line style). The **spline tool** is the one shape whose gesture spans several touches,
-so it bypasses the single-drag path: `DrawingSurfaceView` accumulates `SplineNode`s (anchor + tangent
-handle — a tap sets the anchor, the drag that follows sets the handle) and `SplineBuilder` (pure,
-tested) flattens the chain into one vertex list by sampling a cubic Bézier per node pair, with C¹
-continuity at every node. The curve previews through the same in-progress-stroke path as everything
-else — identical `SplineBuilder` output, so what previews is exactly what commits — with
-`drawSplineOverlay` adding the scaffolding the flattened curve can't show: an anchor dot per node,
-each node's symmetric tangent arm, and a dashed rubber band to a hovering stylus. It commits on a
-double-tap, on `Enter` (routed from `MainActivity.dispatchKeyEvent`, so the canvas never takes
-keyboard focus), or when the tool changes; `Backspace`/`undoLastSplineNode` drops the last node and
-`Escape` discards the curve. Because a tablet has no keyboard, `onSplineChanged` reports the open
-node count out to `PaneState.splineNodes`, which drives the `SplineModeBar` — the on-screen
-finish / undo-point / discard bar. The **shape recogniser** (`ShapeRecognizer`) runs on commit for the pen and the highlighter, and a
+and figure-style stroke (inheriting and adjusting figure width, color, and line style).
+The **polygon tool** is the family's generic figure, and the one whose shape count the user picks: a
+single drag, and `ShapeBuilder` inscribes a regular polygon of `polygonSides` sides in the drag's box —
+the same `regularPolygon` the pentagon and hexagon presets draw, so a polygon set to five lands exactly
+where the pentagon does. The count lives under **Settings → Figures** (3–12, six at the factory), is
+clamped rather than rejected on load, and needs no gesture of its own: the drag, the preview, the
+constant width and the undo step are the ones every other figure uses. It leads the Polygons slot
+(`POLYGON` first, then the pentagon and the hexagon) and the window's figures submenu carries it too,
+at the builder's default count — a slot on the PC carries no variant of its own, the same way the
+triangle's kind is chosen on the tablet. The **shape recogniser** (`ShapeRecognizer`) runs on commit for the pen and the highlighter, and a
 stroke it does not name commits exactly as drawn. Its classes, thresholds and invariants are owned by
 [`shape-perfection-engine.md`](shape-perfection-engine.md) — what belongs to the tools is that nothing
 is simplified first (`StrokeSimplifier` only sees the strokes the recogniser rejected, since thinning

@@ -22,7 +22,7 @@ the file's name always says which container it holds. `RECORD_AUDIO` is requeste
 Record is pressed; everything else in the app works without it.
 
 The surface's `audioStamp` hook is read **inside `appendStroke`**, which is the single funnel every
-committed stroke passes through — so freehand, shapes and splines are all stamped, and the audio
+committed stroke passes through — so freehand and shapes are both stamped, and the audio
 machinery stays out of the drawing hot path. The `ts` it stamps comes from the *bytes written so far*
 (`WavWriter.durationMs`), not wall time, so a stroke's offset points at the sample it was really
 drawn over even if the capture thread stalls.

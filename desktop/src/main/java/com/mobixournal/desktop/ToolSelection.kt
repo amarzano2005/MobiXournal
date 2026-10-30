@@ -46,7 +46,7 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     TRAPEZOID("Trapezoid", "Alt+Z"),
     PENTAGON("Pentagon", "Alt+P"),
     HEXAGON("Hexagon", "Alt+H"),
-    SPLINE("Spline", "P"),
+    POLYGON("Polygon", "P"),
     PLOT("Plot", "M"),
     AXES("Axes", "Shift+X"),
     TABLE("Table", "T"),

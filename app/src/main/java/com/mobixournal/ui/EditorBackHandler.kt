@@ -2,16 +2,14 @@ package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
-import com.mobixournal.render.cancelSpline
 import com.mobixournal.render.clearBackgroundRegion
 import com.mobixournal.render.clearSelection
-import com.mobixournal.render.splineInProgress
 
 /**
  * The Android back button/gesture as a **navigation** control rather than a quit button.
  *
- * The editor is one screen with a stack of transient states layered on it — an unfinished spline, a
- * selection, page-overview edit mode, immersive full-page view, the pen-diagnostics panel. Back
+ * The editor is one screen with a stack of transient states layered on it — a selection, page-overview
+ * edit mode, immersive full-page view, the pen-diagnostics panel. Back
  * peels off the topmost of those, one press at a time, and only leaves the app once none is left.
  *
  * Two kinds of layer are **not** handled here because they already handle themselves, and doing it
@@ -32,8 +30,8 @@ fun EditorBackHandler(
     /** Nothing left to dismiss: leave the app (the activity's default back). */
     onExit: () -> Unit,
 ) {
-    // Always enabled: the surface-owned states (spline, selection) live outside Compose and so can't
-    // gate this, and the last branch has to be able to fall through to the real back.
+    // Always enabled: the surface-owned states (selection) live outside Compose and so can't gate
+    // this, and the last branch has to be able to fall through to the real back.
     BackHandler(enabled = true) {
         if (busy) return@BackHandler
         val surface = pane.surface
@@ -44,9 +42,6 @@ fun EditorBackHandler(
             ui.editingCircuit != null -> ui.editingCircuit = null
             ui.editingShape != null -> ui.editingShape = null
             ui.editingMathBlock != null -> ui.editingMathBlock = null
-
-            // A multi-tap spline gesture in progress: back throws the open curve away, as Escape does.
-            surface != null && surface.splineInProgress() -> surface.cancelSpline()
 
             // Editing inside a text box, then a plain element selection.
             pane.hasTextSelection -> surface?.cancelTextEdit()

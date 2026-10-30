@@ -159,7 +159,8 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   `#38383E` and a name-and-hotkey pill on hover.
   **A slot is a tool *group*, as on the tablet**: the **eraser slot** holds its two members (partial,
   whole-stroke), the **Text slot** holds prose and formula, and pen, highlighter, the **hand**, vertical
-  space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, Spline, Axes)
+  space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, and the
+  Polygon, Pentagon and Hexagon behind the figures slot, then Axes)
   stand alone — seven figure slots, one click each and no submenu, the tablet's rail geometry. A grouped
   slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already
   picked**, or `Alt`+`Down`) opens its **glass picker**. **One click never opens a submenu**: the first

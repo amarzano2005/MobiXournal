@@ -50,7 +50,8 @@ class SourceStructureTest {
         // -277: the infinite-canvas half of the view retired with the canvas itself.
         "render/DrawingSurfaceView.kt" to 1564,
         "render/CircuitShapes.kt" to 1180,
-        "ui/AppSettings.kt" to 997,
+        // -1: the generic polygon's side count is one field, one clamp and one saved key.
+        "ui/AppSettings.kt" to 996,
         // -62: the PDF import card moved beside the value it asks about (`PdfImportDialog.kt`).
         "ui/EditorDialogs.kt" to 858,
     )

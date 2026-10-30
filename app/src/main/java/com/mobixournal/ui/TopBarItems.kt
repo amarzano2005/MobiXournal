@@ -16,7 +16,6 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("rhombus", "Rhombus"),
     RailItem("trapezoid", "Trapezoid"),
     RailItem("polygons", "Polygons"),
-    RailItem("spline", "Spline"),
     // Multi-tool dropdown groups & tools
     RailItem("arrow", "Arrows"),
     RailItem("axis", "Coordinate axis"),
@@ -31,7 +30,8 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
 
 /**
  * Default order of buttons in the Secondary Toolbar: line, rectangle, the individual shapes, the
- * polygon slot (pentagon and hexagon), arrows (dropdown), the Cartesian axis, the function graph,
+ * polygon slot (the generic polygon, then the pentagon and the hexagon), arrows (dropdown), the
+ * Cartesian axis, the function graph,
  * table, passive circuits, active circuits, logic gates, and drawing guides. The function graph sits
  * immediately to the right of the Cartesian coordinate axis, keeping coordinate-based mathematical
  * graphing tools together.
@@ -41,7 +41,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "ellipse", "triangle", "rhombus",
-    "trapezoid", "polygons", "spline", "arrow", "axis", "graph",
+    "trapezoid", "polygons", "arrow", "axis", "graph",
     "table", "circuit", "circuit_active", "logic", "guides",
 )
 
@@ -55,6 +55,14 @@ val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
  * because a saved order deliberately wins.
  */
 private val LEGACY_TOP_BAR_ORDERS: List<List<String>> = listOf(
+    // The row as it stood while the spline still had a slot of its own: that slot is gone now, and a
+    // device that never arranged its row carries the whole old list on disk, so it needs this copy to
+    // be recognised as "never touched" and follow the reorder.
+    listOf(
+        "line", "rectangle", "ellipse", "triangle", "rhombus",
+        "trapezoid", "polygons", "spline", "arrow", "axis", "graph",
+        "table", "circuit", "circuit_active", "logic", "guides",
+    ),
     // The row as it stood with the square and the chemistry slot, which the current factory order
     // leaves out — a device whose row was never arranged still carries this copy on disk.
     listOf(
@@ -124,7 +132,6 @@ val FIGURE_TOOL_TO_TOP_BAR_ID: Map<EditorTool, String> = mapOf(
     EditorTool.TRIANGLE to "triangle",
     EditorTool.RHOMBUS to "rhombus",
     EditorTool.TRAPEZOID to "trapezoid",
-    EditorTool.SPLINE to "spline",
     EditorTool.COORDINATE_AXIS to "axis",
 )
 
@@ -176,8 +183,8 @@ fun decodeTopBarIds(raw: String?): List<String> {
  * when the slot is rendered by a dedicated button instead. ["triangle"] and ["trapezoid"] return
  * null because they carry their own variant picker (isosceles / right / scalene); routing them
  * through a plain single-tool button would hide that menu. ["polygons"] is null for the same reason:
- * it is a **family** slot, resolved through [secondaryToolGroup], whose menu offers the pentagon and
- * the hexagon in that order.
+ * it is a **family** slot, resolved through [secondaryToolGroup], whose menu offers the generic
+ * polygon, then the pentagon and the hexagon, in that order.
  */
 fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE
@@ -185,7 +192,6 @@ fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "ellipse" -> EditorTool.ELLIPSE
     "rhombus" -> EditorTool.RHOMBUS
     "axis" -> EditorTool.COORDINATE_AXIS
-    "spline" -> EditorTool.SPLINE
     "table" -> EditorTool.TABLE
     else -> null
 }

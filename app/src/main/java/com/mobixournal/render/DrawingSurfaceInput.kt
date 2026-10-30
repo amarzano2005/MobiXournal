@@ -78,15 +78,12 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                     gestures.bandMove(event)
                 }
                 textSelecting -> textSelectMove(event)
-                splineDragging -> splineMove(event)
                 routed && (current != null || currentStrokes != null) -> feedPointerSamples(event)
                 else -> Unit
             }
         }
         MotionEvent.ACTION_POINTER_UP -> onPointerUp(event)
-        // A spline node is still mid-curve on release — it must not run the commit-and-finish path.
         MotionEvent.ACTION_UP -> when {
-            splineDragging -> splineUp(event)
             backgroundSelecting -> commitBackgroundSelect()
             else -> {
                 cancelSelectionDrag()
@@ -212,15 +209,11 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         GestureIntent.BACKGROUND_SELECT -> beginBackgroundSelect(event)
         GestureIntent.SELECT_TEXT -> beginTextSelect(event)
         GestureIntent.VERTICAL_SPACE -> beginVerticalSpace(event)
-        // The spline tool is laid down over many taps, so it gets its own gesture path.
-        GestureIntent.DRAW ->
-            if (shapeKind == ShapeKind.SPLINE) {
-                splineDown(event, pointerIndex)
-            } else {
-                routed = true
-                pointerRouter = newPointerRouter()
-                routePointer(event, pointerIndex, InkPointerPhase.DOWN)
-            }
+        GestureIntent.DRAW -> {
+            routed = true
+            pointerRouter = newPointerRouter()
+            routePointer(event, pointerIndex, InkPointerPhase.DOWN)
+        }
         GestureIntent.IGNORE -> Unit
     }
 }
@@ -232,7 +225,7 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
  *
  * The first two rules are the router's on a routed gesture: it drops a finger that arrives under a
  * pen and answers [InkEvent.PanBegin] when a second contact ends the stroke. A gesture the router does
- * not own (spline, guide, placement, select) keeps the surface's own two-finger pan below.
+ * not own (guide, placement, select) keeps the surface's own two-finger pan below.
  */
 internal fun DrawingSurfaceView.onPointerDown(event: MotionEvent) {
     val idx = event.actionIndex
@@ -281,7 +274,7 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
 /** Drop any in-progress draw/erase/place/band/move without committing (a stylus is taking over). */
 internal fun DrawingSurfaceView.abandonInProgress() {
     dismissRadialHud(commit = false)
-    clearSpline(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
+    stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
     current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestures.reset(); multiTap.reset()
@@ -293,7 +286,7 @@ internal fun DrawingSurfaceView.abandonInProgress() {
 internal fun DrawingSurfaceView.cancelGesture() {
     dismissRadialHud(commit = false)
     momentum.stop(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
-    guideDrag.end(null); clearSpline()
+    guideDrag.end(null)
     current = null; currentStrokes = null; shaping = false; scrolling = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
     textSelecting = false; vspace.reset()

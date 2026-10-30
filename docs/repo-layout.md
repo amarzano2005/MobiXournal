@@ -130,7 +130,7 @@ app/
       DrawingSurfaceConstants.kt # DrawingSurfaceDefaults: the canvas's shared tuning constants; blankDocument/blankPage
       DrawingSurfacePaint.kt # the surface's render loop, page compositing and chrome overlays (extensions)
       DrawingSurfaceInput.kt # the surface's touch/hover state machine: gesture dispatch, scroll and gesture end (extensions)
-      DrawingSurfaceStrokes.kt # ink capture from the router's events, plus spline and place; DrawingSurfaceRouter.kt is the MotionEvent -> InkPointer feeding
+      DrawingSurfaceStrokes.kt # ink capture from the router's events, plus place; DrawingSurfaceRouter.kt is the MotionEvent -> InkPointer feeding
       DrawingSurfacePlots.kt # the plot insertions: insertMultiPlot's ink and insertPlotElement's living plot (extensions); PlotElementFactory.kt holds the box and the element, Android-free
       DrawingSurfaceHoldSnap.kt # hold-to-snap: the stillness timer that rewrites a stroke in progress as geometry (extensions)
       DrawingSurfacePenDebug.kt # the surface's pen-diagnostics trace hooks: raw pointer/key events into PenInputLog
@@ -205,7 +205,6 @@ app/
       MlKitInkEngine.kt      # on-device neural digital ink recognition via Google ML Kit with automatic model download
       FallbackInkEngine.kt   # pure-Kotlin offline recognizer with multi-hypothesis character lattice and ligature splitting (pure)
       HandwritingTemplate.kt # normalized canonical templates for Latin alphanumeric characters (pure)
-      SplineBuilder.kt       # spline control points -> cubic-Bezier stroke vertex list (pure)
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
       SelectionOps.kt        # scale / rotate / restyle / align / distribute selected elements (pure; translate delegates to mobix-core's ElementShift); ElementTransfer.kt and SelectionTransfer.kt carry a selection out in four flavours and accept drops

@@ -63,7 +63,7 @@ class StrokePainter {
         when (val mode = RenderMode.of(tool, lineStyle)) {
             RenderMode.Styled -> drawStyledLine(canvas, pts, lineStyle, scale, offsetX, offsetY)
             RenderMode.Band -> drawBand(canvas, pts, scale, offsetX, offsetY)
-            // A stroke whose points all share one width (a shape, a spline, any constant-width pen)
+            // A stroke whose points all share one width (a shape, any constant-width pen)
             // is a plain stroke, not a variable-width one — see [drawUniformLine]. Only a genuine
             // pressure taper needs the filled outline.
             RenderMode.Pressure ->
@@ -74,7 +74,7 @@ class StrokePainter {
 
     /**
      * The pen at a constant width: the polyline stroked once with the shared width. Shapes (line,
-     * rectangle, ellipse, arrow, spline) all land here, and it is what keeps their sides an even
+     * rectangle, ellipse, arrow, polygon) all land here, and it is what keeps their sides an even
      * thickness with clean corners — the variable-width outline only approximates joins, and at a
      * shape's sharp 90° corner its averaged tangent cut the band thin. A constant-width stroke with
      * round joins is exact and costs one `drawPath`.

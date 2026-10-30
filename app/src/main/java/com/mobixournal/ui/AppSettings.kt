@@ -245,6 +245,8 @@ data class AppSettings(
     val trapezoidAngleA: Float = 75f,
     /** Customizable right base angle in degrees for [TrapezoidKind.SCALENE]. */
     val trapezoidAngleB: Float = 60f,
+    /** Sides the generic polygon tool draws (3..12; see [ShapeBuilder]); the presets keep their own. */
+    val polygonSides: Int = ShapeBuilder.DEFAULT_POLYGON_SIDES,
     /**
      * The Shapes submenu's members in display order, by [EditorTool.name]. Empty means the factory
      * order; names the list omits are appended (see [orderedShapeTools]).
@@ -364,6 +366,7 @@ data class AppSettings(
                 ShapeBuilder.MIN_TRAPEZOID_ANGLE_DEG.toFloat(),
                 ShapeBuilder.MAX_TRAPEZOID_ANGLE_DEG.toFloat(),
             ),
+            polygonSides = polygonSides.coerceIn(ShapeBuilder.MIN_POLYGON_SIDES, ShapeBuilder.MAX_POLYGON_SIDES),
             tableRows = tableRows.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
             tableCols = tableCols.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
             pressureMultiplier = pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
@@ -590,6 +593,7 @@ class SettingsStore(context: Context) {
             } ?: d.trapezoidKind,
             trapezoidAngleA = prefs.getFloat(KEY_TRAPEZOID_ANGLE_A, d.trapezoidAngleA),
             trapezoidAngleB = prefs.getFloat(KEY_TRAPEZOID_ANGLE_B, d.trapezoidAngleB),
+            polygonSides = prefs.getInt(KEY_POLYGON_SIDES, d.polygonSides),
             shapeOrder = decodeToolNames(prefs.getString(KEY_SHAPE_ORDER, null), FIGURE_TOOLS),
             shapeHidden = decodeToolNames(prefs.getString(KEY_SHAPE_HIDDEN, null), FIGURE_TOOLS).toSet(),
             toolGroupSelections = decodeToolGroupSelections(prefs.getString(KEY_TOOL_GROUPS, null)),
@@ -732,6 +736,7 @@ class SettingsStore(context: Context) {
             .putString(KEY_TRAPEZOID_KIND, s.trapezoidKind.name)
             .putFloat(KEY_TRAPEZOID_ANGLE_A, s.trapezoidAngleA)
             .putFloat(KEY_TRAPEZOID_ANGLE_B, s.trapezoidAngleB)
+            .putInt(KEY_POLYGON_SIDES, s.polygonSides)
             .putString(KEY_SHAPE_ORDER, encodeToolNames(s.shapeOrder))
             .putString(KEY_SHAPE_HIDDEN, encodeToolNames(s.shapeHidden))
         e.putString(KEY_TOOL_GROUPS, encodeToolGroupSelections(s.toolGroupSelections))
@@ -852,6 +857,7 @@ class SettingsStore(context: Context) {
         const val KEY_TRAPEZOID_KIND = "trapezoid_kind"
         const val KEY_TRAPEZOID_ANGLE_A = "trapezoid_angle_a"
         const val KEY_TRAPEZOID_ANGLE_B = "trapezoid_angle_b"
+        const val KEY_POLYGON_SIDES = "polygon_sides"
         const val KEY_SHAPE_ORDER = "shape_order"
         const val KEY_SHAPE_HIDDEN = "shape_hidden"
         const val KEY_TOOL_GROUPS = "tool_group_selections"

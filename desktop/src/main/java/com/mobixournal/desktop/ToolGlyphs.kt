@@ -134,7 +134,7 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.TRAPEZOID -> ToolGlyph.TRAPEZOID
         DesktopTool.PENTAGON -> ToolGlyph.PENTAGON
         DesktopTool.HEXAGON -> ToolGlyph.HEXAGON
-        DesktopTool.SPLINE -> ToolGlyph.SPLINE
+        DesktopTool.POLYGON -> ToolGlyph.POLYGON
         DesktopTool.PLOT -> ToolGlyph.PLOT
         DesktopTool.AXES -> ToolGlyph.AXES
         DesktopTool.TABLE -> ToolGlyph.TABLE

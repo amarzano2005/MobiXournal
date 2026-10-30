@@ -96,7 +96,7 @@ fills in for any role a scheme does not name. See _The violet trap_ below for wh
   glass **RGB untouched** at the `floatingPanelAlpha` token (**0.88**, `ModernTheme.floatingPanelAlpha`),
   which is the most see-through that token can be while both ink roles stay above the WCAG floor.
   *Floating* is one family by design: the pop-ups and submenus (`ToolbarMenu`), the action bars that come
-  up with a selection and with the table/spline/PDF-text/region tools (`EditorActionBars`), the STEM
+  up with a selection and with the table/PDF-text/region tools (`EditorActionBars`), the STEM
   editors' chrome, the page/zoom/scroll badges, the hand-rolled dialogs (`OnboardingDialog`,
   `KeyDetectionDialog`, the search-indexing card) and the transfer overlay. So one surface can never be a
   different material from the bar it appears over — it used to be a container role of its own, which is

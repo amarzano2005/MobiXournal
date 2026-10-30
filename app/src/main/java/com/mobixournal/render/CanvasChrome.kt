@@ -65,24 +65,6 @@ internal class CanvasChrome {
         color = BAND_FILL
     }
 
-    /** Spline anchor dots: solid fill at each control point of the open curve. */
-    val splineAnchor = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = SELECTION_COLOR
-    }
-    /** Spline tangent arms: 1.5 px solid stroke from an anchor out to its two handle ends. */
-    val splineTangent = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 1.5f
-        color = SELECTION_COLOR
-    }
-    /** Spline rubber band: dashed line from the last anchor to the hovering pointer. */
-    val splineRubber = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 1.5f
-        color = SELECTION_COLOR
-        pathEffect = DashPathEffect(floatArrayOf(6f, 6f), 0f)
-    }
 
     /** Setsquare/compass guide outline: 2 px solid amber stroke (no dash — physical instrument feel). */
     val guideStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -268,9 +250,6 @@ internal class CanvasChrome {
         handleArm.color = selection
         selectionFill.color = selection.withAlpha(SELECTION_FILL_ALPHA)
         bandFill.color = selection.withAlpha(BAND_FILL_ALPHA)
-        splineAnchor.color = selection
-        splineTangent.color = selection
-        splineRubber.color = selection
         guideStroke.color = guide
         guideHandle.color = guide
         guideFill.color = guide.withAlpha(GUIDE_FILL_ALPHA)
@@ -317,12 +296,6 @@ internal class CanvasChrome {
         const val HOVER_ALPHA = 0xB0
         /** Drawn radius of a selection/guide handle dot. */
         const val HANDLE_DRAW_PX = 7f
-
-        /** Drawn radius of an open spline's anchor dot — smaller than a selection handle, since a
-         * curve can carry many of them and they must not bury the ink they sit on. */
-        const val SPLINE_ANCHOR_PX = 5f
-        /** Drawn radius of a spline tangent-handle end dot. */
-        const val SPLINE_HANDLE_PX = 3.5f
 
         /** Fallbacks until the theme pushes its floating fill and ink in (see [applyColors]). */
         const val HUD_SURFACE = 0xE0161618.toInt()

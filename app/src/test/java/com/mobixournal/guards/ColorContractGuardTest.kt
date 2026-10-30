@@ -273,7 +273,7 @@ class ColorContractGuardTest {
      * The palette guard above can only see the theme's roles; whether a *call site* asked for them is a
      * property of the source tree, exactly as with `ToolbarMenuGuardTest`. These are the surfaces the user
      * meets over the page — the menus and submenus, the action bars that come up with a selection
-     * (cut/copy, table, spline, PDF text, region), the STEM editors the triangle, trapezoid and function
+     * (cut/copy, table, PDF text, region), the STEM editors the triangle, trapezoid and function
      * tools open, the page/zoom/scroll badges, the transfer overlay, the two hand-rolled dialogs and the
      * search-indexing card — and each must reach
      * `rememberFloatingSurfaceColor()` rather than a container role of its own, either directly or

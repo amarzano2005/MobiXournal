@@ -73,10 +73,15 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `the polygons slot offers the pentagon then the hexagon`() {
+    fun `the polygons slot leads with the generic polygon, then the two presets`() {
         val polygons = secondaryToolGroup("polygons")
         assertEquals("polygons", polygons?.id)
-        assertEquals(listOf(EditorTool.PENTAGON, EditorTool.HEXAGON), polygons?.tools)
+        // The generic figure first: it draws whatever side count Settings ▸ Figures names, so it is the
+        // tool of the family; the pentagon and the hexagon are the presets behind it.
+        assertEquals(
+            listOf(EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON),
+            polygons?.tools,
+        )
     }
 
     @Test

@@ -140,8 +140,10 @@ The drawing and STEM tools are always on screen, in whichever strip the window's
 - **Ribbon**: the 48 dp capsule in a 56 dp band under the header, for a window that is short or narrow.
 - **Both**: the ribbon above the rail, each with its own slots.
 - **1-click STEM access**: `f(x)`, shapes, tables and circuits sit in the same strip as the inking tools,
-  with no submenu between the user and them — and so does **every figure**: Line, Arrow, Double arrow,
-  Rectangle, Ellipse, Spline and Axes are seven slots of their own on the desktop, one click each.
+  with no submenu between the user and them — and so do the **plain figures**: Line, Arrow, Double
+  arrow, Rectangle, Ellipse and Axes are six slots of their own on the desktop, one click each. The
+  polygons share a seventh slot, whose menu leads with the generic polygon and keeps the pentagon and
+  the hexagon behind it, exactly as the tablet's Polygons slot does.
 - **Hover names the slot**: a pill tooltip shows the tool's name and its key (e.g. `Function plot [M]`).
 
 ### 3. Universal shortcuts across all tools (Mobile & Desktop)
@@ -165,7 +167,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Double arrow | `Shift + A` | Arrow slot's second member |
 | | Rectangle | `R` | Shape dwell |
 | | Circle / Ellipse | `C` | Shape dwell |
-| | Free Spline | `P` | Spline tool slot |
+| | Polygon | `P` | The figures slot's generic polygon (side count from Settings ▸ Figures) |
 | **STEM & Advanced** | Vertical space | `Shift + V` | Reflow tool in the rail's Tool pop-up |
 | | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
 | | Function Plot $f(x)$ | `M` | 1-tap STEM dock button; asks formula, range and flags first |

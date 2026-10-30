@@ -35,7 +35,7 @@ native for stylus latency and platform fit).
     colour and the frosted implements stand on it.
   - **`rememberFloatingSurfaceColor()` — the floating material** (`ModernTheme.floatingSurface`):
     everything the chrome puts **over** the page for a moment — the menus and submenus (`ToolbarMenu`),
-    the action bars that appear with a selection and with the table/spline/PDF-text/region tools
+    the action bars that appear with a selection and with the table/PDF-text/region tools
     (`EditorActionBars`), the STEM editors' chrome, the page/zoom/scroll badges, the hand-rolled dialogs
     (`OnboardingDialog`, `KeyDetectionDialog`, the search-indexing card) and the transfer overlay. The
     bars' glass with the see-through turned down to `floatingPanelAlpha` (0.88) — same RGB, so a floating
@@ -78,7 +78,7 @@ native for stylus latency and platform fit).
   `MULTIPLIER_*`): a narrower ceiling is what made the multiplier feel inert. And because half of a
   switched-off filter can only do nothing, both controls are shown **disabled with the reason** while
   `pressureEnabled` is false — desktop Xournal++ greys the same frame out — rather than looking broken. Shapes (line, rectangle, ellipse,
-  arrow, double arrow, coordinate axis, spline) have no pressure stream, so they are drawn at the size
+  arrow, double arrow, coordinate axis, polygon) have no pressure stream, so they are drawn at the size
   setting **verbatim** (`DrawingSurfaceView.nominalShapeWidthPt()`), exactly as the desktop draws
   them: an app-invented scale would make a shape drawn here a different thickness from one drawn on
   the desktop, and the same file would look different in each app. A shape is therefore as thick as a
@@ -86,7 +86,7 @@ native for stylus latency and platform fit).
   switching pressure off removes. A recognised freehand shape keeps the mean width of the stroke it
   replaces. The size itself is per tool family:
   `AppSettings.lastWidth` feeds the pen, `highlighterWidth` the highlighter, and `shapeWidth` the
-  line/shape/spline tools — the last kept separate (and defaulting to the same middle pen-width slot
+  line/shape tools — the last kept separate (and defaulting to the same middle pen-width slot
   the pen starts at, so a fresh figure and fresh handwriting come out the same weight) so selecting
   a shape neither inherits a hairline pen nor drags the pen thick. The highlighter is the only tool
   left on the wide slot. The highlighter is the

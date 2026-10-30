@@ -115,15 +115,17 @@ val SECONDARY_TOOL_GROUPS: List<ToolGroup> = listOf(
         listOf(
             EditorTool.ELLIPSE,
             EditorTool.TRIANGLE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
-            EditorTool.SPLINE, EditorTool.COORDINATE_AXIS,
+            EditorTool.COORDINATE_AXIS,
         ),
     ),
-    // The regular polygons share one slot, in the order a hand reaches for them: the pentagon first,
-    // then the hexagon. A square is not here — the rectangle draws one, and a second square-shaped
-    // button only made the row longer.
+    // The polygons share one slot. The **generic** polygon leads it: it draws a regular figure of
+    // however many sides it is set to (Settings ▸ Figures), so it covers the whole family; the
+    // pentagon and the hexagon stay behind it as the two presets a hand reaches for most in a
+    // figure that is set up once and drawn many times. A square is not here — the rectangle draws
+    // one, and a second square-shaped button only made the row longer.
     ToolGroup(
         "polygons", "Polygons",
-        listOf(EditorTool.PENTAGON, EditorTool.HEXAGON),
+        listOf(EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON),
     ),
     ToolGroup(
         "arrow", "Arrows",
@@ -197,9 +199,9 @@ val FIGURE_TOOLS: List<EditorTool> = listOf(
     EditorTool.TRIANGLE,
     EditorTool.RHOMBUS,
     EditorTool.TRAPEZOID,
+    EditorTool.POLYGON,
     EditorTool.PENTAGON,
     EditorTool.HEXAGON,
-    EditorTool.SPLINE,
     EditorTool.COORDINATE_AXIS,
 )
 

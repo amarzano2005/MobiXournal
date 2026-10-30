@@ -28,6 +28,17 @@ class TopBarItemsTest {
     }
 
     @Test
+    fun `a saved row from before the spline was removed follows the factory reorder`() {
+        val withSpline = listOf(
+            "line", "rectangle", "ellipse", "triangle", "rhombus",
+            "trapezoid", "polygons", "spline", "arrow", "axis", "graph",
+            "table", "circuit", "circuit_active", "logic", "guides",
+        )
+        assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(withSpline))
+        assertTrue("spline" !in DEFAULT_TOP_BAR_ORDER)
+    }
+
+    @Test
     fun `the polygon slot sits where the two polygon buttons were`() {
         val polygons = DEFAULT_TOP_BAR_ORDER.indexOf("polygons")
         assertEquals(DEFAULT_TOP_BAR_ORDER.indexOf("trapezoid") + 1, polygons)
@@ -103,11 +114,14 @@ class TopBarItemsTest {
         assertEquals(EditorTool.ELLIPSE, singleToolForTopBarId("ellipse"))
         assertEquals(EditorTool.RHOMBUS, singleToolForTopBarId("rhombus"))
         assertEquals(EditorTool.COORDINATE_AXIS, singleToolForTopBarId("axis"))
-        assertEquals(EditorTool.SPLINE, singleToolForTopBarId("spline"))
+        // The spline's own slot is gone: the id resolves to nothing, so a saved row that still names
+        // it drops the slot instead of pointing at a tool that no longer exists.
+        assertNull(singleToolForTopBarId("spline"))
         assertEquals(EditorTool.TABLE, singleToolForTopBarId("table"))
         // Multi-tool groups, submenus, and popups do not resolve to a single tool
         assertNull(singleToolForTopBarId("triangle"))
-        // The polygon slot is a family too: its menu offers the pentagon and the hexagon.
+        // The polygon slot is a family too: its menu offers the generic polygon, then the pentagon and
+        // the hexagon.
         assertNull(singleToolForTopBarId("polygons"))
         // Triangle and trapezoid carry their own isosceles/right/scalene variant picker, so they
         // must not resolve to a plain single-tool button (that would hide the menu).

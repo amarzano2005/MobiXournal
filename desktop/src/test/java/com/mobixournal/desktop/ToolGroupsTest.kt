@@ -71,8 +71,12 @@ class ToolGroupsTest {
         assertFalse("the pen has nothing to pick from", groupOf(DesktopTool.PEN)!!.hasPicker)
         assertTrue(groupOf(DesktopTool.ERASER)!!.hasPicker)
         assertFalse(
-            "every figure is a slot of its own, so it carries no picker",
-            groupOf(DesktopTool.SPLINE)!!.hasPicker,
+            "a figure drawn from a slot of its own carries no picker",
+            groupOf(DesktopTool.AXES)!!.hasPicker,
+        )
+        assertTrue(
+            "the polygons share the figures' submenu, so their slot does carry one",
+            groupOf(DesktopTool.POLYGON)!!.hasPicker,
         )
     }
 
@@ -168,8 +172,9 @@ class ToolGroupsTest {
     }
 
     /**
-     * The tablet's rail, as the window now draws it: **every figure is a slot**, one click each, and no
-     * picker stands between them. A shared figures slot would put six of the seven behind a submenu.
+     * The tablet's rail, as the window now draws it: the plain figures are **slots of their own**, one
+     * click each, and no picker stands between them. The polygons are the exception the tablet has too —
+     * they share one slot, whose menu leads with the generic polygon and keeps the two presets behind it.
      */
     @Test
     fun `every figure is a slot of its own, in the order the rail draws them`() {
@@ -179,7 +184,6 @@ class ToolGroupsTest {
             DesktopTool.DOUBLE_ARROW,
             DesktopTool.RECTANGLE,
             DesktopTool.ELLIPSE,
-            DesktopTool.SPLINE,
             DesktopTool.AXES,
         )
         for (figure in figures) {
@@ -189,6 +193,15 @@ class ToolGroupsTest {
             "the figures keep the strip's order, one slot each",
             figures,
             DESKTOP_TOOL_GROUPS.map { it.face }.filter { it in figures.toSet() },
+        )
+        val polygons = groupOf(DesktopTool.POLYGON)!!
+        assertEquals(
+            "the generic polygon leads the polygon family, as on the tablet",
+            listOf(
+                DesktopTool.TRIANGLE, DesktopTool.RHOMBUS, DesktopTool.TRAPEZOID,
+                DesktopTool.POLYGON, DesktopTool.PENTAGON, DesktopTool.HEXAGON,
+            ),
+            polygons.members,
         )
     }
 }

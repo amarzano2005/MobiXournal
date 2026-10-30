@@ -76,13 +76,13 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.COORDINATE_AXIS -> ShapeKind.COORDINATE_AXIS
         EditorTool.RECTANGLE -> ShapeKind.RECTANGLE
         EditorTool.ELLIPSE -> ShapeKind.ELLIPSE
-        EditorTool.SPLINE -> ShapeKind.SPLINE
         EditorTool.TRIANGLE -> ShapeKind.TRIANGLE
         EditorTool.SQUARE -> ShapeKind.SQUARE
         EditorTool.RHOMBUS -> ShapeKind.RHOMBUS
         EditorTool.TRAPEZOID -> ShapeKind.TRAPEZOID
         EditorTool.PENTAGON -> ShapeKind.PENTAGON
         EditorTool.HEXAGON -> ShapeKind.HEXAGON
+        EditorTool.POLYGON -> ShapeKind.POLYGON
         EditorTool.TABLE -> ShapeKind.TABLE
         EditorTool.RESISTOR -> ShapeKind.RESISTOR
         EditorTool.CAPACITOR -> ShapeKind.CAPACITOR
@@ -125,9 +125,9 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.ERASER, EditorTool.ERASER_WHOLE -> this.tool = Tool.ERASER
         // Shapes are drawn as ordinary pen strokes; the shapeKind above turns a drag into geometry.
         EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
-        EditorTool.RECTANGLE, EditorTool.ELLIPSE, EditorTool.SPLINE,
+        EditorTool.RECTANGLE, EditorTool.ELLIPSE,
         EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
-        EditorTool.PENTAGON, EditorTool.HEXAGON,
+        EditorTool.POLYGON, EditorTool.PENTAGON, EditorTool.HEXAGON,
         EditorTool.TABLE,
         EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
         EditorTool.GROUND,
@@ -214,6 +214,7 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     trapezoidKind = s.trapezoidKind
     trapezoidAngleA = s.trapezoidAngleA.toDouble()
     trapezoidAngleB = s.trapezoidAngleB.toDouble()
+    polygonSides = s.polygonSides
     // Only place a guide the surface isn't already showing — re-placing on every settings change
     // would yank a guide the user has carefully positioned back to the middle of the screen.
     if (s.guideKind == GuideKind.NONE) {

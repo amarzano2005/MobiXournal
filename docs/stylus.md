@@ -36,7 +36,7 @@ and is ignored; an **eraser** contact is reported as a hit, and the split at tha
 The Android surface keeps the document-shaped half — page box, guide snapping, `StrokeSmoother`,
 hold-to-snap, the commit and its undo step — and the entry points the router does **not** own, each
 listed in `DrawingSurfaceRouter.kt`'s header: barrel and vendor keys, the barrel pressed mid-stroke
-(`switchStrokeToErase`), page drag, guide drag, spline taps, table/plot double-taps, audio play mode,
+(`switchStrokeToErase`), page drag, guide drag, table/plot double-taps, audio play mode,
 vertical space, background select and the marquee.
 
 ## Stylus input — implemented

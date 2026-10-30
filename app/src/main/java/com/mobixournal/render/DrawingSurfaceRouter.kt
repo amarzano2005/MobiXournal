@@ -16,7 +16,7 @@
  *
  * **Not routed**, each keeping the entry point it already had, because none of them is a stroke:
  * barrel keys and vendor keys (`DrawingSurfaceBarrel.kt`), the barrel pressed *mid*-stroke
- * (`switchStrokeToErase`), page drag and its arm timer, guide drag, spline taps, table/plot
+ * (`switchStrokeToErase`), page drag and its arm timer, guide drag, table/plot
  * double-taps, audio play mode, vertical space, background select and the marquee.
  */
 package com.mobixournal.render

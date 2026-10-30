@@ -94,6 +94,7 @@ object AppSettingsBackup {
         b.append("  \"trapezoidKind\": \"").append(settings.trapezoidKind.name).append("\",\n")
         b.append("  \"trapezoidAngleA\": ").append(settings.trapezoidAngleA).append(",\n")
         b.append("  \"trapezoidAngleB\": ").append(settings.trapezoidAngleB).append(",\n")
+        b.append("  \"polygonSides\": ").append(settings.polygonSides).append(",\n")
         b.append("  \"shapeOrder\": [")
             .append(settings.shapeOrder.joinToString(", ") { "\"${escape(it)}\"" })
             .append("],\n")
@@ -316,6 +317,7 @@ object AppSettingsBackup {
             trapezoidKind = readEnum("trapezoidKind", TrapezoidKind.values(), fallback.trapezoidKind),
             trapezoidAngleA = root.getFloat("trapezoidAngleA", fallback.trapezoidAngleA),
             trapezoidAngleB = root.getFloat("trapezoidAngleB", fallback.trapezoidAngleB),
+            polygonSides = root.getInt("polygonSides", fallback.polygonSides),
             shapeOrder = root.getStrList("shapeOrder") ?: fallback.shapeOrder,
             shapeHidden = root.getStrList("shapeHidden")?.toSet() ?: fallback.shapeHidden,
             toolGroupSelections = toolGroupSelections,

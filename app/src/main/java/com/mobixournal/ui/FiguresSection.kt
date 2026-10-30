@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.ui.theme.DialogPresence
@@ -48,6 +49,7 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Default size") { DefaultFigureSize(settings, onChange) }
     SettingsGroup("Triangle") { TriangleGeometry(settings, onChange) }
     SettingsGroup("Trapezoid") { TrapezoidGeometry(settings, onChange) }
+    SettingsGroup("Polygon") { PolygonGeometry(settings, onChange) }
     SettingsGroup("Table") { TableDefaults(settings, onChange) }
 }
 
@@ -97,15 +99,52 @@ private fun TableDefaults(settings: AppSettings, onChange: (AppSettings) -> Unit
     )
 }
 
-/** A label with −/+ buttons stepping [value] within 1..50. */
+/**
+ * A label with −/+ buttons stepping [value] within [min]..[max] — 1..50 by default, which is what a
+ * table's rows and columns want; a figure bounded tighter brings its own ends.
+ */
 @Composable
-private fun Stepper(label: String, value: Int, noun: String, onValue: (Int) -> Unit) {
+private fun Stepper(
+    label: String,
+    value: Int,
+    noun: String,
+    min: Int = 1,
+    max: Int = 50,
+    onValue: (Int) -> Unit,
+) {
     Text("$label: $value")
-    IconButton(onClick = { onValue((value - 1).coerceAtLeast(1)) }, enabled = value > 1) {
+    IconButton(onClick = { onValue((value - 1).coerceAtLeast(min)) }, enabled = value > min) {
         Icon(Icons.Filled.Remove, contentDescription = "Fewer $noun")
     }
-    IconButton(onClick = { onValue((value + 1).coerceAtMost(50)) }, enabled = value < 50) {
+    IconButton(onClick = { onValue((value + 1).coerceAtMost(max)) }, enabled = value < max) {
         Icon(Icons.Filled.Add, contentDescription = "More $noun")
+    }
+}
+
+/**
+ * The generic polygon tool's side count. It is the one figure whose shape count is the user's, so the
+ * number lives here instead of one toolbar button per polygon: the pentagon and the hexagon stay in
+ * the Polygons slot as the two presets a hand reaches for most.
+ */
+@Composable
+private fun PolygonGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    ControlHeader(
+        "Sides",
+        "How many sides the Polygon tool draws, from a triangle up to a dodecagon. " +
+            "The pentagon and hexagon slots keep their own five and six.",
+        Modifier.padding(top = 8.dp),
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Stepper(
+            label = "Polygon",
+            value = settings.polygonSides,
+            noun = "sides",
+            min = ShapeBuilder.MIN_POLYGON_SIDES,
+            max = ShapeBuilder.MAX_POLYGON_SIDES,
+        ) { onChange(settings.copy(polygonSides = it)) }
     }
 }
 

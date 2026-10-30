@@ -84,7 +84,7 @@ class ShapeBuilderTest {
     @Test fun theStemFiguresAreClosedAndKeepTheConstantWidth() {
         for (kind in listOf(
             ShapeKind.TRIANGLE, ShapeKind.SQUARE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID,
-            ShapeKind.PENTAGON, ShapeKind.HEXAGON,
+            ShapeKind.PENTAGON, ShapeKind.HEXAGON, ShapeKind.POLYGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue("$kind has vertices", pts.size >= 4)
@@ -99,7 +99,7 @@ class ShapeBuilderTest {
         // the drag's longer side (see [squareSquaresOffTheLongerSide]), so it may exceed the box.
         for (kind in listOf(
             ShapeKind.TRIANGLE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID,
-            ShapeKind.PENTAGON, ShapeKind.HEXAGON,
+            ShapeKind.PENTAGON, ShapeKind.HEXAGON, ShapeKind.POLYGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue(
@@ -125,6 +125,30 @@ class ShapeBuilderTest {
         assertEquals(5, count(ShapeKind.TRAPEZOID))  // 4 + closing repeat
         assertEquals(6, count(ShapeKind.PENTAGON))   // 5 + closing repeat
         assertEquals(7, count(ShapeKind.HEXAGON))    // 6 + closing repeat
+    }
+
+    @Test fun thePolygonDrawsTheSideCountItIsGiven() {
+        fun count(sides: Int): Int =
+            ShapeBuilder.build(ShapeKind.POLYGON, 0.0, 0.0, 20.0, 20.0, 1.0, polygonSides = sides).size
+        // One vertex per side, plus the first repeated to close the outline.
+        assertEquals(4, count(3))
+        assertEquals(8, count(7))
+        assertEquals(13, count(ShapeBuilder.MAX_POLYGON_SIDES))
+        // Out of range is clamped rather than rejected: a hand-edited preference still draws a figure.
+        assertEquals(4, count(2))
+        assertEquals(13, count(40))
+    }
+
+    @Test fun thePolygonIsCentredOnItsDragLikeItsPresets() {
+        // Same box, same first vertex at the top: the generic figure only differs in how many sides it
+        // takes, so a polygon set to six must draw exactly what the hexagon preset draws.
+        val polygon = ShapeBuilder.build(ShapeKind.POLYGON, 4.0, 6.0, 24.0, 26.0, 1.0, polygonSides = 6)
+        val hexagon = ShapeBuilder.build(ShapeKind.HEXAGON, 4.0, 6.0, 24.0, 26.0, 1.0)
+        assertEquals(hexagon.size, polygon.size)
+        for (i in hexagon.indices) {
+            assertEquals(hexagon[i].x, polygon[i].x, 1e-9)
+            assertEquals(hexagon[i].y, polygon[i].y, 1e-9)
+        }
     }
 
     @Test fun tableStaysInsideBoundingBoxAndMaintainsConstantWidth() {

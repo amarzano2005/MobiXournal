@@ -102,8 +102,7 @@ fun DesktopTool.previewTool(): Tool? = inkTool() ?: if (shapeKind() != null) Too
  *
  * The geometry itself is the tablet's (`mobix-core`'s [ShapeBuilder]): a shape is an ordinary stroke, so
  * it round-trips through `.xopp` with no new element and no new attribute. `AXES` is the shared
- * [ShapeKind.COORDINATE_AXIS] — desktop Xournal++ calls that figure an axes pair — and `SPLINE`'s
- * two-point drag is the straight case of a spline.
+ * [ShapeKind.COORDINATE_AXIS] — desktop Xournal++ calls that figure an axes pair.
  */
 fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
     DesktopTool.LINE -> ShapeKind.LINE
@@ -112,7 +111,6 @@ fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
     DesktopTool.AXES -> ShapeKind.COORDINATE_AXIS
     DesktopTool.RECTANGLE -> ShapeKind.RECTANGLE
     DesktopTool.ELLIPSE -> ShapeKind.ELLIPSE
-    DesktopTool.SPLINE -> ShapeKind.SPLINE
     // The tablet's STEM figures, so the two shells offer the same set. A square is not among them: the
     // rectangle draws one, and the tablet dropped its button for the same reason.
     DesktopTool.TRIANGLE -> ShapeKind.TRIANGLE
@@ -120,6 +118,9 @@ fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
     DesktopTool.TRAPEZOID -> ShapeKind.TRAPEZOID
     DesktopTool.PENTAGON -> ShapeKind.PENTAGON
     DesktopTool.HEXAGON -> ShapeKind.HEXAGON
+    // The generic polygon: the builder's default side count here, since a slot carries no variant of
+    // its own on this shell — the tablet's Settings ▸ Figures sets the count where the tool is drawn.
+    DesktopTool.POLYGON -> ShapeKind.POLYGON
     else -> null
 }
 

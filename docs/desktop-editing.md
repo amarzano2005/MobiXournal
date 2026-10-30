@@ -25,7 +25,7 @@ zoomed in, which reads as a zoom bug and is not one. `PointerMappingTest` holds 
 Four more gestures beside the ink, all built on `mobix-core` so the window has no geometry of its own:
 
 - **Seven geometry slots draw figures.** Line, Arrow, Double arrow, Axes (the shared
-  `ShapeKind.COORDINATE_AXIS`), Rectangle, Ellipse and Spline each turn one drag into an ordinary
+  `ShapeKind.COORDINATE_AXIS`), Rectangle, Ellipse and Polygon each turn one drag into an ordinary
   constant-width stroke through `ShapeBuilder` — the tablet's own builder — so a figure made here
   round-trips through `.xopp` as ink. The preview is the **same draft list** the sheet already paints, and
   the outline cached for it is keyed by the **box the draft covers**, not by its last vertex: a closed

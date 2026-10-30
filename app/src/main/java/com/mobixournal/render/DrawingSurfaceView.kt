@@ -142,22 +142,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var shapeEndX = 0.0
     internal var shapeEndY = 0.0
     /**
-     * The width a shape/spline draws at, in pt: the tool's width setting, fixed at the gesture's
+     * The width a shape draws at, in pt: the tool's width setting, fixed at the gesture's
      * first touch and held constant for the whole shape. Shapes ignore pressure — desktop Xournal++
      * draws them at the nominal width — so this never tapers; see [nominalShapeWidthPt].
      */
     internal var shapeWidthPt = 1.5
-    /** The spline tool's control points so far (page-local pt); non-empty means one is being laid down. */
-    internal val splineNodes = ArrayList<SplineNode>()
-    /** True between the down and up of a tap that is placing/curving the newest spline node. */
-    internal var splineDragging = false
-    /** Where the pointer went down on the current spline node, so a drag can be read as its tangent. */
-    internal var splineAnchorX = 0.0
-    internal var splineAnchorY = 0.0
-    /** The previous spline tap's time/position, to recognise the double-tap that finishes the curve. */
-    internal var splineTapTime = 0L
-    internal var splineTapX = 0f
-    internal var splineTapY = 0f
     /** Pointer id owning the current draw/erase gesture, so a resting palm can't perturb it. */
     internal var gesturePointerId = -1
     /** True while a stylus/eraser tip owns the current draw/erase gesture (drives palm rejection). */
@@ -458,16 +447,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** When true, the Select tool's marquee is a free-form lasso instead of a rectangle. */
     var lassoMode: Boolean = false
 
-    /**
-     * When non-null, a one-finger drag draws this geometric shape instead of a freehand stroke.
-     * [ShapeKind.SPLINE] is the exception: it is laid down tap-by-tap, so switching away from it
-     * commits whatever curve is still open rather than silently dropping it.
-     */
+    /** When non-null, a one-finger drag draws this geometric shape instead of a freehand stroke. */
     var shapeKind: ShapeKind? = null
-        set(value) {
-            if (field == ShapeKind.SPLINE && value != ShapeKind.SPLINE) finishSpline()
-            field = value
-        }
 
     /** Number of rows for [ShapeKind.TABLE] drawing and insertion. */
     var tableRows: Int = 3
@@ -498,6 +479,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** For [TrapezoidKind.SCALENE]: right base angle in degrees (measured from the longer base). */
     var trapezoidAngleB: Double = 60.0
+
+    /**
+     * How many sides [ShapeKind.POLYGON] draws. The polygon tool is the generic member of the figures
+     * family, so the count is a setting rather than a fixed figure; clamped by the builder.
+     */
+    var polygonSides: Int = ShapeBuilder.DEFAULT_POLYGON_SIDES
     /**
      * When true, a finished freehand pen stroke that clearly means a primitive (line, arrow, circle,
      * rectangle, triangle, polyline) is snapped to clean geometry — see [ShapeRecognizer].
@@ -550,13 +537,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Notified when the copy/cut clipboard gains or loses content (drives the Paste affordance). */
     var onClipboardChanged: ((Boolean) -> Unit)? = null
-
-    /**
-     * Notified with the open spline's control-point count (0 = no spline open), so the chrome can
-     * offer on-screen Finish/Undo-point/Cancel actions. A tablet has no Enter key, so without this
-     * the double-tap is the only way to close a curve.
-     */
-    var onSplineChanged: ((Int) -> Unit)? = null
 
     /**
      * The select/transform gestures — the rubber-band that picks elements and the move/resize/rotate

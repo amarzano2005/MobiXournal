@@ -1,5 +1,5 @@
 /**
- * [DrawingSurfaceView]'s ink capture: the freehand stroke, the tap-placed spline, the eraser drag,
+ * [DrawingSurfaceView]'s ink capture: the freehand stroke, the dragged figure, the eraser drag,
  * and the tap that places text/images — plus the sampling, pressure-to-width and commit helpers they
  * share. Extensions on the view, so they read its state directly.
  */
@@ -107,6 +107,7 @@ internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Bool
                     tableRows, tableCols, tableHeader,
                     triangleKind, scaleneAngleA, scaleneAngleB, scaleneAngleC,
                     trapezoidKind, trapezoidAngleA, trapezoidAngleB,
+                    polygonSides,
                 ),
             )
         }
@@ -121,120 +122,6 @@ internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Bool
             if (force) render()
         }
     }
-}
-
-// --- the spline tool: tap to add a control point, drag to curve it, double-tap to finish -------
-
-/**
- * A touch while the spline tool is active. A tap that pairs with the previous one (double-tap)
- * closes the curve; otherwise it appends a control point, which the following drag can curve.
- */
-internal fun DrawingSurfaceView.splineDown(event: MotionEvent, pointerIndex: Int) {
-    val x = event.getX(pointerIndex)
-    val y = event.getY(pointerIndex)
-    if (splineNodes.isNotEmpty() && pairsWithPreviousSplineTap(event.eventTime, x, y)) {
-        finishSpline()
-        return
-    }
-    scrolling = false
-    // The first node fixes the page for the whole curve, so later taps stay in one stroke.
-    val box = if (splineNodes.isEmpty()) gestureBoxAt(x, y) else gestureBox()
-    if (box == null) return
-    if (splineNodes.isEmpty()) {
-        currentPage = box.index
-        gestureStartDoc = doc
-    }
-    gesturePointerId = event.getPointerId(pointerIndex)
-    if (splineNodes.isEmpty()) shapeWidthPt = nominalShapeWidthPt()
-    splineAnchorX = box.toPtX(x, scrollX)
-    splineAnchorY = box.toPtY(y, scrollY)
-    splineNodes += SplineNode(splineAnchorX, splineAnchorY)
-    splineDragging = true
-    splineTapTime = event.eventTime
-    splineTapX = x
-    splineTapY = y
-    renderSplinePreview()
-}
-
-/** Dragging away from the tap grows the newest node's tangent handle, curving the curve live. */
-internal fun DrawingSurfaceView.splineMove(event: MotionEvent) {
-    val pointerIndex = event.findPointerIndex(gesturePointerId)
-    if (pointerIndex < 0) return
-    val box = gestureBox() ?: return
-    val tx = box.toPtX(event.getX(pointerIndex), scrollX) - splineAnchorX
-    val ty = box.toPtY(event.getY(pointerIndex), scrollY) - splineAnchorY
-    splineNodes[splineNodes.lastIndex] = SplineNode(splineAnchorX, splineAnchorY, tx, ty)
-    renderSplinePreview()
-}
-
-/** The node is placed; the curve stays open, waiting for the next tap (or the finishing double-tap). */
-internal fun DrawingSurfaceView.splineUp(event: MotionEvent) {
-    splineDragging = false
-    gesturePointerId = -1
-    stylusOwner = false
-    // A drag isn't a tap, so it can't be half of the double-tap that finishes the curve.
-    if (hypot(event.x - splineTapX, event.y - splineTapY) > doubleTapSlopPx) splineTapTime = 0L
-    renderSplinePreview()
-}
-
-internal fun DrawingSurfaceView.pairsWithPreviousSplineTap(time: Long, x: Float, y: Float): Boolean =
-    splineTapTime != 0L && time - splineTapTime <= doubleTapTimeoutMs &&
-        hypot(x - splineTapX, y - splineTapY) <= doubleTapSlopPx
-
-/** Show the curve-so-far as the in-progress stroke, so it paints exactly as it will commit. */
-internal fun DrawingSurfaceView.renderSplinePreview() {
-    current = ArrayList(SplineBuilder.build(splineNodes, shapeWidthPt))
-    onSplineChanged?.invoke(splineNodes.size)
-    render()
-}
-
-/**
- * Drop the most recently placed control point. The escape hatch for a mis-tapped node — before this
- * the only recovery was cancelling the whole curve. Removing the last one leaves no spline open.
- */
-fun DrawingSurfaceView.undoLastSplineNode() {
-    if (splineNodes.isEmpty()) return
-    splineNodes.removeAt(splineNodes.lastIndex)
-    splineTapTime = 0L
-    if (splineNodes.isEmpty()) {
-        clearSpline()
-        gestureStartDoc = null
-        render()
-    } else {
-        renderSplinePreview()
-    }
-}
-
-/** True while a spline is open — the editor uses this to decide whether Enter/Esc apply. */
-fun DrawingSurfaceView.splineInProgress(): Boolean = splineNodes.isNotEmpty()
-
-/**
- * Commit the open spline as one ordinary stroke (the same shape any other tool produces) and
- * clear the tool's state. Safe to call when nothing is open; a one-node spline is just dropped.
- */
-fun DrawingSurfaceView.finishSpline() {
-    if (splineNodes.isEmpty()) return
-    val pts = SplineBuilder.build(splineNodes, shapeWidthPt)
-    clearSpline()
-    if (pts.size >= 2) {
-        appendStroke(
-            currentPage,
-            Stroke(
-                tool, strokeColor(), "round", pts, true,
-                lineStyle = currentLineStyle,
-            ),
-        )
-    }
-    finishGesture()
-    render()
-}
-
-/** Throw the open spline away without committing it (Escape, or switching tools mid-curve). */
-fun DrawingSurfaceView.cancelSpline() {
-    if (splineNodes.isEmpty()) return
-    clearSpline()
-    gestureStartDoc = null
-    render()
 }
 
 /**
@@ -271,17 +158,6 @@ fun DrawingSurfaceView.insertTable(
     )
     ElementEdits.addElement(doc, target, table) { resolvedActiveLayer(it) }
         ?.let { commitElementEdit(it) }
-}
-
-internal fun DrawingSurfaceView.clearSpline() {
-    val wasOpen = splineNodes.isNotEmpty()
-    splineNodes.clear()
-    splineDragging = false
-    splineTapTime = 0L
-    current = null
-    gesturePointerId = -1
-    stylusOwner = false
-    if (wasOpen) onSplineChanged?.invoke(0)
 }
 
 /**
@@ -376,7 +252,7 @@ internal fun DrawingSurfaceView.commitPlace() {
 /**
  * The stroke width one sample of the current tool draws at, in pt. A highlighter lays down a
  * broad, constant-width band and ignores pressure; every other tool tapers with pressure. Shapes
- * and splines call this once per gesture so they match a pen stroke drawn at the same size.
+ * and figures call this once per gesture so they match a pen stroke drawn at the same size.
  *
  * The pressure arithmetic itself lives in [PressureCurve.widthPt], so what a setting change does to a
  * stroke is pinned by unit tests rather than by reading this call site.
@@ -391,7 +267,7 @@ internal fun DrawingSurfaceView.widthForPressure(pressure: Float): Double = if (
 }
 
 /**
- * The width a **shape or spline** stroke draws at, in pt: the tool's width setting, verbatim.
+ * The width a **shape** stroke draws at, in pt: the tool's width setting, verbatim.
  *
  * Desktop Xournal++ draws a shape at the nominal width (it has no pressure stream), so sharing the
  * setting unchanged — rather than an app-invented scale — is what keeps a shape drawn here and one
@@ -607,7 +483,7 @@ internal fun DrawingSurfaceView.appendStroke(pageIndex: Int, stroke: Stroke) {
 internal fun DrawingSurfaceView.withStroke(page: Page, stroke: Stroke): Page {
     val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
     val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
-    // Stamping here rather than at each commit site covers freehand, shapes and splines alike.
+    // Stamping here rather than at each commit site covers freehand and shapes alike.
     layers[target] = Layer(layers[target].elements + withAudioStamp(stroke), layers[target].name)
     return page.copy(layers = layers)
 }

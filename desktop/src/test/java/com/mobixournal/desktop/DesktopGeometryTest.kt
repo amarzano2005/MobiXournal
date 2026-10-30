@@ -158,7 +158,7 @@ class DesktopGeometryTest {
             DesktopTool.TRAPEZOID to ShapeKind.TRAPEZOID,
             DesktopTool.PENTAGON to ShapeKind.PENTAGON,
             DesktopTool.HEXAGON to ShapeKind.HEXAGON,
-            DesktopTool.SPLINE to ShapeKind.SPLINE,
+            DesktopTool.POLYGON to ShapeKind.POLYGON,
         )
         for ((tool, kind) in expected) {
             assertEquals("$tool draws $kind", kind, tool.shapeKind())

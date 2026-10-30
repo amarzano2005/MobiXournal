@@ -8,9 +8,11 @@ import kotlin.math.sin
 
 /** A geometric shape the shape tools draw. Each is emitted as an ordinary constant-width stroke. */
 enum class ShapeKind {
-    LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, SPLINE,
-    // The STEM set: the regular figures reached for when annotating maths and science.
-    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON,
+    LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE,
+    // The STEM set: the regular figures reached for when annotating maths and science. POLYGON is
+    // the generic one — a regular figure of however many sides the polygon tool is set to — and the
+    // pentagon and hexagon stay beside it as the two the hand reaches for most.
+    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON, POLYGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND,
@@ -45,6 +47,15 @@ object ShapeBuilder {
     const val MIN_TRAPEZOID_ANGLE_DEG = 5.0
     const val MAX_TRAPEZOID_ANGLE_DEG = 175.0
 
+    /**
+     * The sides a [ShapeKind.POLYGON] may be drawn with: a triangle at least (two sides meet in a
+     * line) and twelve at most, past which the vertices pile up into an ellipse at any size a page
+     * holds and the polygon stops telling itself apart from the ellipse tool.
+     */
+    const val MIN_POLYGON_SIDES = 3
+    const val MAX_POLYGON_SIDES = 12
+    const val DEFAULT_POLYGON_SIDES = 6
+
     fun build(
         kind: ShapeKind,
         startX: Double, startY: Double,
@@ -60,6 +71,7 @@ object ShapeBuilder {
         trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
         trapezoidAngleA: Double = 75.0,
         trapezoidAngleB: Double = 60.0,
+        polygonSides: Int = DEFAULT_POLYGON_SIDES,
     ): List<StrokePoint> = when (kind) {
         ShapeKind.LINE -> line(startX, startY, endX, endY, widthPt)
         ShapeKind.ARROW -> arrow(startX, startY, endX, endY, widthPt)
@@ -76,6 +88,10 @@ object ShapeBuilder {
         )
         ShapeKind.PENTAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 5)
         ShapeKind.HEXAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 6)
+        ShapeKind.POLYGON -> regularPolygon(
+            startX, startY, endX, endY, widthPt,
+            sides = polygonSides.coerceIn(MIN_POLYGON_SIDES, MAX_POLYGON_SIDES),
+        )
         ShapeKind.TABLE -> table(startX, startY, endX, endY, widthPt, rows, cols, hasHeader)
         ShapeKind.RESISTOR -> CircuitShapes.resistor(startX, startY, endX, endY, widthPt)
         ShapeKind.CAPACITOR -> CircuitShapes.capacitor(startX, startY, endX, endY, widthPt).flatten()
@@ -106,9 +122,6 @@ object ShapeBuilder {
         ShapeKind.CHEM_BOND_DOUBLE -> ChemShapes.bondDouble(startX, startY, endX, endY, widthPt).flatten()
         ShapeKind.CHEM_BOND_TRIPLE -> ChemShapes.bondTriple(startX, startY, endX, endY, widthPt).flatten()
         ShapeKind.CHEM_BENZENE -> ChemShapes.benzeneRing(startX, startY, endX, endY, widthPt).flatten()
-        // A spline is laid down over many taps, so its real geometry comes from [SplineBuilder]; the
-        // two-point case this signature can express is just a straight line between the ends.
-        ShapeKind.SPLINE -> line(startX, startY, endX, endY, widthPt)
     }
 
     /**

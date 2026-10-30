@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
  * It lives here, once, because every floating surface draws it: the pop-ups (`ToolbarMenu`), the
  * action bars ([FloatingSurface]) and the STEM editors ([FloatingDialog]) used to be one material
  * with **three** edges — a rim on the menus, a flat 1dp border on the selection bar and nothing at
- * all on the table/spline/region/text bars, which is what made the table bar read as a plate lying
+ * all on the table/region/text bars, which is what made the table bar read as a plate lying
  * on the page rather than a pane of glass over it.
  *
  * A raised shadow is deliberately **not** the cue for a pop-up: its window is only as large as the
@@ -210,7 +210,7 @@ fun Modifier.liquidGlassSpringAnimation(
  * ([ModernTheme.panelCornerRadiusDp]), with [floatingRim]'s edge and a shadow it has room to cast.
  *
  * Use it for everything the chrome puts *over* the page that is **not** a Material menu or dialog —
- * the action bars that come up with a selection and with the table/spline/PDF-text/region tools.
+ * the action bars that come up with a selection and with the table/PDF-text/region tools.
  * The corners are the point as much as the fill: those bars used to ask for
  * `MaterialTheme.shapes.large` (16dp) or a 50% pill while every menu, badge and dialog turned at
  * 20dp, so "one floating surface, one corner" was true everywhere except where the user actually
