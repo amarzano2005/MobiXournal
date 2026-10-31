@@ -141,9 +141,16 @@ object HandwritingRecognizer {
             for (line in lines) {
                 if (isCancelled()) return emptyList()
                 val words = groupLineIntoWords(line)
-                for (wordStrokes in words) {
+                // One call for the whole line where the engine can take it: a bridged model pays for
+                // every call, and it reads a connected line better than an isolated word.
+                val bulk = (engine as? InkLineEngine)?.let { reader ->
+                    runCatching { reader.recognizeLine(words, words.map { computeWordBounds(it) }) }
+                        .getOrNull()
+                }
+                words.forEachIndexed { index, wordStrokes ->
                     if (isCancelled()) return emptyList()
-                    val word = recognizeWord(wordStrokes, engine)
+                    val read = bulk?.takeIf { it.size == words.size }?.get(index)
+                    val word = read ?: recognizeWord(wordStrokes, if (bulk == null) engine else null)
                     if (word != null && word.text.isNotEmpty()) {
                         add(word)
                     }
@@ -204,11 +211,13 @@ object HandwritingRecognizer {
      */
     fun recognizeWord(
         wordStrokes: List<Stroke>,
-        engine: InkWordEngine = InkEngines.platform,
+        engine: InkWordEngine? = InkEngines.platform,
     ): HandwrittenWord? {
         if (wordStrokes.isEmpty()) return null
         val bounds = computeWordBounds(wordStrokes)
-        val read = engine.recognize(wordStrokes, bounds)
+        // A null engine is "a line call already answered this line and left this word unread": the
+        // fallback is then the only reader left, and asking the model again would pay its call twice.
+        val read = engine?.recognize(wordStrokes, bounds)
         if (read != null && read.text.isNotEmpty()) return read
         return FallbackInkEngine.recognizeWord(wordStrokes, bounds)
     }

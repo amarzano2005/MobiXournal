@@ -93,6 +93,34 @@ class HandwritingEngineTest {
     }
 
     @Test
+    fun aLineReadingEngineIsAskedOnceForTheWholeLineAndItsGapsFallBack() {
+        val calls = mutableListOf<Int>()
+        val lineEngine = object : InkLineEngine {
+            override fun recognize(strokes: List<Stroke>, bounds: Bounds): HandwrittenWord? =
+                HandwrittenWord("single", bounds)
+
+            override fun recognizeLine(words: List<List<Stroke>>, bounds: List<Bounds>): List<HandwrittenWord?> {
+                calls += words.size
+                // Reads the first word of the line, leaves the rest to the fallback.
+                return words.indices.map { index ->
+                    if (index == 0) HandwrittenWord("riga", bounds[index]) else null
+                }
+            }
+        }
+        // Two words on one line: a gap wider than the word break between the two strokes.
+        val page = page(
+            stroke(10.0, 10.0, 40.0, 40.0),
+            stroke(120.0, 10.0, 150.0, 40.0),
+        )
+
+        val words = HandwritingRecognizer.recognize(page, engine = lineEngine)
+
+        assertEquals("one call for the line, not one per word", listOf(2), calls)
+        assertEquals("the line's own reading survives", "riga", words.first().text)
+        assertTrue("the word the line left unread is still found", words.size == 2 && words[1].text.isNotEmpty())
+    }
+
+    @Test
     fun theDocumentOverloadStillBuildsAnIndexForTheTablet() {
         val doc = Document(pages = listOf(page(stroke(10.0, 10.0, 60.0, 40.0))))
 

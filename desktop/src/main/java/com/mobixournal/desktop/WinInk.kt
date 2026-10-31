@@ -8,6 +8,7 @@ import com.sun.jna.Pointer
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.HandwrittenWord
+import com.mobixournal.render.InkLineEngine
 import com.mobixournal.render.InkWordEngine
 
 /**
@@ -78,21 +79,28 @@ internal object WinInk {
             Thread(runnable, "winrt-ink").apply { isDaemon = true }
         }
 
-    /** What Windows reads out of [strokes], best first; empty when it has no recognizer to ask. */
-    fun recognize(strokes: List<List<Pair<Double, Double>>>): List<String> {
+    /** What Windows reads out of one word's [strokes], best first; empty when there is nothing to ask. */
+    fun recognize(strokes: List<List<Pair<Double, Double>>>): List<String> =
+        recognizeRegions(strokes).firstOrNull()?.candidates.orEmpty()
+
+    /**
+     * Every region the model read out of [strokes], each with the box it covers — the form a **line** is
+     * read in: one call, and Windows segments the line into words itself (`docs/search.md`).
+     */
+    fun recognizeRegions(strokes: List<List<Pair<Double, Double>>>): List<InkRegion> {
         if (!available || strokes.isEmpty()) return emptyList()
         val task = runCatching {
-            worker.submit<List<String>> { if (WinRt.enter()) read(strokes) else emptyList() }
+            worker.submit<List<InkRegion>> { if (WinRt.enter()) read(strokes) else emptyList() }
         }.getOrElse { return emptyList() }
         return runCatching {
             task.get(RECOGNITION_TIMEOUT_MS + WAIT_SLACK_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
         }.onFailure { task.cancel(true) }.getOrDefault(emptyList())
     }
 
-    private fun read(strokes: List<List<Pair<Double, Double>>>): List<String> {
+    private fun read(strokes: List<List<Pair<Double, Double>>>): List<InkRegion> {
         val container = WinRt.activate("Windows.UI.Input.Inking.InkStrokeContainer") ?: return emptyList()
         val builder = WinRt.activate("Windows.UI.Input.Inking.InkStrokeBuilder") ?: return emptyList()
-        val recognizers = WinRt.activate("Windows.UI.Input.Inking.InkRecognizerContainer") ?: return emptyList()
+        val session = session() ?: return emptyList()
         // The point sequences must outlive the strokes they produced: WinRT only borrows them.
         val sequences = mutableListOf<PointSequence>()
         val inkStrokes = mutableListOf<Pointer>()
@@ -106,23 +114,16 @@ internal object WinInk {
                 inkStrokes += ink
                 WinRt.call(container, ADD_STROKE, ink)
             }
-            val recognizer = firstRecognizer(recognizers) ?: return emptyList()
+            val operation = WinRt.callOut(session.recognizers, RECOGNIZE_ASYNC, container, TARGET_ALL)
+                ?: return emptyList()
+            // `IAsyncOperation<T>` carries only its handler and its result in the ABI; the state is on a
+            // **separate** interface, `IAsyncInfo`, which the runtime answers to QueryInterface.
+            val info = WinRt.queryInterface(operation, IID_ASYNC_INFO) ?: return emptyList()
             try {
-                WinRt.call(recognizers, SET_DEFAULT_RECOGNIZER, recognizer)
-                val operation = WinRt.callOut(recognizers, RECOGNIZE_ASYNC, container, TARGET_ALL)
-                    ?: return emptyList()
-                // `IAsyncOperation<T>` carries only its handler and its result in the ABI; the state is on a
-                // **separate** interface, `IAsyncInfo`, which the runtime answers to QueryInterface.
-                val info = WinRt.queryInterface(operation, IID_ASYNC_INFO) ?: return emptyList()
-                try {
-                    if (!await(info)) return emptyList()
-                    return candidates(operation)
-                } finally {
-                    WinRt.release(info)
-                    WinRt.release(operation)
-                }
+                return if (await(info)) regionsOf(operation) else emptyList()
             } finally {
-                WinRt.release(recognizer)
+                WinRt.release(info)
+                WinRt.release(operation)
             }
         } finally {
             // The strokes are held for as long as the container is: releasing them earlier left the
@@ -130,8 +131,28 @@ internal object WinInk {
             inkStrokes.forEach(WinRt::release)
             WinRt.release(container)
             WinRt.release(builder)
-            WinRt.release(recognizers)
         }
+    }
+
+    /**
+     * The window's recognizer, activated **once**. Re-activating `InkRecognizerContainer` costs about
+     * 55 ms — measured, per call — and that alone was the whole cost of reading a page word by word
+     * (`docs/search.md`, *The window's model*).
+     */
+    private class Session(val recognizers: Pointer, val recognizer: Pointer)
+
+    private var session: Session? = null
+
+    private fun session(): Session? {
+        session?.let { return it }
+        val recognizers = WinRt.activate("Windows.UI.Input.Inking.InkRecognizerContainer") ?: return null
+        val recognizer = firstRecognizer(recognizers)
+        if (recognizer == null) {
+            WinRt.release(recognizers)
+            return null
+        }
+        WinRt.call(recognizers, SET_DEFAULT_RECOGNIZER, recognizer)
+        return Session(recognizers, recognizer).also { session = it }
     }
 
     /** The recognizer the machine lists first — its own language's, which is what its panel uses. */
@@ -160,30 +181,48 @@ internal object WinInk {
         return false
     }
 
-    /** The candidates of the first result — the word, and the readings it could have been. */
-    private fun candidates(operation: Pointer): List<String> {
+    /**
+     * Every region of a finished operation — the model's own word segmentation, each with the box it
+     * covers and the readings it could have been. A word's ink gives one; a **line's** gives one per
+     * word, which is why the line is the unit worth paying for.
+     */
+    private fun regionsOf(operation: Pointer): List<InkRegion> {
         val out = com.sun.jna.ptr.PointerByReference()
         if (WinRt.call(operation, OPERATION_RESULTS, out) != WinRt.S_OK) return emptyList()
-        val results = out.value
-        if (results == null) return emptyList()
+        val results = out.value ?: return emptyList()
         try {
-            if (WinRt.size(results) <= 0) return emptyList()
-            val result = WinRt.callOut(results, VECTOR_GET_AT, 0) ?: return emptyList()
-            try {
-                val texts = WinRt.callOut(result, TEXT_CANDIDATES) ?: return emptyList()
-                return try {
-                    (0 until WinRt.size(texts).coerceIn(0, MAX_CANDIDATES))
-                        .mapNotNull { index -> WinRt.stringAt(texts, index) }
+            return (0 until WinRt.size(results).coerceAtLeast(0)).mapNotNull { index ->
+                val result = WinRt.callOut(results, VECTOR_GET_AT, index) ?: return@mapNotNull null
+                try {
+                    val texts = WinRt.callOut(result, TEXT_CANDIDATES) ?: return@mapNotNull null
+                    try {
+                        val candidates = (0 until WinRt.size(texts).coerceIn(0, MAX_CANDIDATES))
+                            .mapNotNull { WinRt.stringAt(texts, it) }
+                        InkRegion(boundsOf(result), candidates)
+                    } finally {
+                        WinRt.release(texts)
+                    }
                 } finally {
-                    WinRt.release(texts)
+                    WinRt.release(result)
                 }
-            } finally {
-                WinRt.release(result)
             }
         } finally {
             WinRt.release(results)
         }
     }
+
+    /** `IInkRecognitionResult.BoundingRect` — a `Rect` of x, y, width, height in the ink's own units. */
+    private fun boundsOf(result: Pointer): Bounds {
+        val rect = Memory(16)
+        rect.clear()
+        if (WinRt.call(result, RESULT_BOUNDS, rect) != WinRt.S_OK) return Bounds(0.0, 0.0, 0.0, 0.0)
+        val x = rect.getFloat(0).toDouble()
+        val y = rect.getFloat(4).toDouble()
+        return Bounds(x, y, x + rect.getFloat(8).toDouble(), y + rect.getFloat(12).toDouble())
+    }
+
+    /** One word the model read: the box it covers and its readings, best first. */
+    internal data class InkRegion(val bounds: Bounds, val candidates: List<String>)
 
     /** The six slots every WinRT interface carries, then its own — see [WinRt]. */
     private const val BASE = 6
@@ -215,7 +254,8 @@ internal object WinInk {
     /** `IVectorView<T>.GetAt`. */
     private const val VECTOR_GET_AT = BASE
 
-    /** `IInkRecognitionResult.GetTextCandidates`, after its BoundingRect. */
+    /** `IInkRecognitionResult`: get_BoundingRect, then GetTextCandidates, then GetStrokes. */
+    private const val RESULT_BOUNDS = BASE
     private const val TEXT_CANDIDATES = BASE + 1
 
     private const val TARGET_ALL = 0
@@ -424,10 +464,43 @@ internal object WinInk {
  * activation — and the shared recogniser then reads the word with the pure engine, exactly as the tablet
  * does while ML Kit is still downloading.
  */
-internal object WinInkEngine : InkWordEngine {
+internal object WinInkEngine : InkLineEngine {
 
     override fun recognize(strokes: List<Stroke>, bounds: Bounds): HandwrittenWord? {
         val reads = WinInk.recognize(strokes.map { stroke -> stroke.points.map { it.x to it.y } })
+        return wordOf(reads, bounds)
+    }
+
+    /**
+     * A line, read once. Windows segments the line itself and answers a region per word, so each region
+     * is given to the segmented word it covers most — by area of overlap, which survives a model that
+     * puts its boundary a little to the left of ours. A word no region lands on stays null, and the
+     * shared recogniser reads it with the pure engine instead.
+     */
+    override fun recognizeLine(words: List<List<Stroke>>, bounds: List<Bounds>): List<HandwrittenWord?> {
+        val regions = WinInk.recognizeRegions(
+            words.flatten().map { stroke -> stroke.points.map { it.x to it.y } },
+        )
+        if (regions.isEmpty()) return List(words.size) { null }
+        val read = arrayOfNulls<HandwrittenWord>(words.size)
+        for (region in regions) {
+            val index = bounds.indices.maxByOrNull { overlap(region.bounds, bounds[it]) } ?: continue
+            if (overlap(region.bounds, bounds[index]) <= 0.0) continue
+            val text = region.candidates.firstOrNull()?.takeIf { it.isNotEmpty() } ?: continue
+            val existing = read[index]
+            read[index] = if (existing == null) {
+                wordOf(region.candidates, bounds[index])
+            } else {
+                existing.copy(
+                    text = existing.text + " " + text,
+                    candidates = (existing.candidates + region.candidates).distinct().take(5),
+                )
+            }
+        }
+        return read.toList()
+    }
+
+    private fun wordOf(reads: List<String>, bounds: Bounds): HandwrittenWord? {
         val best = reads.firstOrNull()?.takeIf { it.isNotEmpty() } ?: return null
         return HandwrittenWord(
             text = best,
@@ -435,5 +508,12 @@ internal object WinInkEngine : InkWordEngine {
             confidence = 1.0,
             candidates = reads.distinct().take(5),
         )
+    }
+
+    /** How much area two boxes share — zero when they are apart, never negative. */
+    private fun overlap(a: Bounds, b: Bounds): Double {
+        val width = minOf(a.right, b.right) - maxOf(a.left, b.left)
+        val height = minOf(a.bottom, b.bottom) - maxOf(a.top, b.top)
+        return if (width <= 0.0 || height <= 0.0) 0.0 else width * height
     }
 }

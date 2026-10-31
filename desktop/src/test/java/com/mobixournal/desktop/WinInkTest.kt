@@ -63,6 +63,46 @@ class WinInkTest {
     }
 
     @Test
+    fun oneLineCallAnswersOneRegionPerWordItRead() {
+        assumeTrue("no Windows recognizer on this machine", WinInk.recognizerCount() > 0)
+
+        // A printed "l" and a printed "o", a gap apart: a line of two words, read in ONE call.
+        val line = listOf(
+            (0..20).map { 10.0 + it * 0.4 to 10.0 + it * 4.0 },
+            (0..24).map { index ->
+                val angle = index * (2 * Math.PI / 24)
+                60.0 + 18.0 * Math.sin(angle) to 50.0 - 20.0 * Math.cos(angle)
+            },
+        )
+        val regions = WinInk.recognizeRegions(line)
+        println("WININK line regions=${regions.map { it.candidates.firstOrNull() to it.bounds }}")
+
+        assertTrue("the line was read as at least one region", regions.isNotEmpty())
+        assertTrue("every region says something", regions.all { it.candidates.isNotEmpty() })
+        assertTrue(
+            "every region carries the box it covers",
+            regions.all { it.bounds.right > it.bounds.left && it.bounds.bottom > it.bounds.top },
+        )
+
+        // The engine's own job: whatever the model segmented, each **word** gets an entry.
+        val words = listOf(
+            listOf(stroke(10.0, 10.0, 20.0, 90.0, 50.0, 90.0)),
+            listOf(
+                stroke(
+                    75.0, 10.0, 110.0, 10.0, 125.0, 30.0, 125.0, 70.0, 110.0, 90.0,
+                    75.0, 90.0, 60.0, 70.0, 60.0, 30.0, 75.0, 10.0,
+                ),
+            ),
+        )
+        val mapped = WinInkEngine.recognizeLine(
+            words,
+            words.map { HandwritingRecognizer.computeWordBounds(it) },
+        )
+        assertEquals("one entry per word", 2, mapped.size)
+        assertTrue("at least one word came back with text", mapped.any { !it?.text.isNullOrEmpty() })
+    }
+
+    @Test
     fun theEngineAnswersTheSeamWithTheModelsReading() {
         assumeTrue("no Windows recognizer on this machine", WinInk.recognizerCount() > 0)
 

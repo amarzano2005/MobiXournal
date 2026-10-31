@@ -20,6 +20,23 @@ fun interface InkWordEngine {
 }
 
 /**
+ * An engine that can read a whole **line** in one call, rather than a word at a time.
+ *
+ * A model that has to be reached through a heavy bridge pays for every call — Windows' recognizer, for
+ * one, costs about 55 ms just to activate and about 17 ms to answer, so a page of 419 words took 34 s
+ * read word by word. Reading a line is the same one call for all of its words, and a model segments a
+ * connected cursive line better than an isolated word (`docs/search.md`).
+ *
+ * The answer is **one entry per word, in the order given** — null where this engine read nothing there,
+ * which the caller fills with [FallbackInkEngine] as it does for a null [recognize].
+ */
+interface InkLineEngine : InkWordEngine {
+
+    /** What the words of one line say, aligned with [words]; a null entry is a word left unread. */
+    fun recognizeLine(words: List<List<Stroke>>, bounds: List<Bounds>): List<HandwrittenWord?>
+}
+
+/**
  * Which engine [HandwritingRecognizer] asks by default.
  *
  * A shell plugs its own engine **once, at startup**, and every later recognition — the tablet's index,
