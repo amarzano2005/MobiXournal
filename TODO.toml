@@ -22,17 +22,87 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "desktop-pdf-annotation"
-title = "Desktop: PDF annotation and outline (scope)"
-description = "The desktop viewer rasterises an annotated PDF page as a background but cannot work on it, while the tablet has the tools. Investigate for desktop (PDFBox, not pdfbox-android) and then add the atomic tasks: (1) PDF text selection - what the text layer gives on a JVM, how a selection's rectangles are built, and how the selected text reaches the clipboard; (2) the snap-to-text magnetic highlighter (docs/pdf.md) - whether its geometry is platform-free enough for mobix-core so both shells snap the same way, and what a highlighter stroke stores so it round-trips; (3) the PDF outline and bookmarks in the sidebar (docs/ui-modernization.md lists PDF outlines there), including a lazily loaded outline for a big document; (4) the tools' slots: PDF text select and the magnetic highlighter are entries of the strip, so their slot faces and shortcuts follow the same rules as every other tool (unify-remaining-stem-tool-glyphs, docs/ui-modernization.md section 3) and a drag with them is not ink, so the pen's packets must not take it (DesktopTool.inksByPackets). Leaving the page's PDF untouched until a save writes it is the Android rule and applies here. Export is not in this scope: desktop-export-pdf-svg owns it. Verification per child: a JVM test over a fixture PDF for the geometry, a render test that a selection or a highlight lands where the text is. Docs: docs/pdf.md, docs/desktop-workstation.md, README. Produce tasks, no code."
+id = "desktop-pdf-shared-text-geometry"
+title = "Desktop PDF: move the text, outline and highlighter geometry into mobix-core"
+description = "Move the platform-free half of the PDF text story out of the app and into `mobix-core/src/main/java/com/mobixournal/render/`, keeping the package so no call site changes: `PdfText.kt` (`CharBox`, `PdfWord`, `PdfWordGrouper`, `PdfTextIndex`), `PdfOutline.kt` (`PdfOutlineEntry`, `PdfOutline`, `PdfOutlineNode`, `PdfOutlineTree`) and `MagneticHighlighter.kt`, with `PdfTextTest`, `PdfOutlineTest` and `MagneticHighlighterTest` moved beside them into `mobix-core/src/test`. This is the same seam move as `Playhead`/`WavWriter` and `StrokeSmoother`: the window must snap a highlight and resolve a selection on the app's own word boxes, and a second copy under `desktop/` would drift the moment either side changed. The extractors stay in their shells (each has its own PDFBox port), so only the types and their tests travel. Verify `:mobix-core:test`, `:app:testDebugUnitTest` and `:desktop:test` green with `SourceStructureTest` under budget, and say where the geometry lives in `docs/repo-layout.md` and `docs/pdf.md`."
 status = "active"
-level = "scope"
+level = "task"
 category = "feature"
 urgency = "high"
-order = 80
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
+order = 81
+created = 2026-10-31
+tags = ["pdf", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-text-and-outline-index"
+title = "Desktop PDF: extract the text layer and the Contents outline on the JVM"
+description = "Add the window's twins of the app's extractors, over `org.apache.pdfbox` instead of `pdfbox-android` (the precedent is `DesktopPdfMerge` beside `PdfMerger`): `DesktopPdfText` builds the shared `PdfTextIndex` from a `PDFTextStripper` subclass that turns each `TextPosition` into a `CharBox` and hands the run to `PdfWordGrouper`, with the app's exact box convention (`xDirAdj` is the left, `yDirAdj` is the glyph's BOTTOM, so `top = bottom - heightDir`; reading `yDirAdj` as the top drops every word a line); `DesktopPdfOutline` walks `PDOutlineItem.findDestinationPage` into `PdfOutlineTree.flatten` with the app's visited set and node ceiling against a cyclic tree. One `PDDocument.load` per file serves both walks, and `DesktopPdfIndexCache` keys the pair by the resolved `PdfPageReferences` reference plus the file length, soft-referenced like `PdfTextIndexCache`, with a `forget` the save, Save-As, merge and re-import paths call (`DesktopSaves`, `DesktopPdfImportCommands`) so a stale index cannot outlive its bytes. Both are computed off the UI thread (`LaunchedEffect` + `withContext(Dispatchers.Default)`) and published into per-document state the canvas and the sidebar read, so opening a 200-page PDF stalls no frame; a scanned, corrupt or missing PDF answers an empty index and an empty outline instead of throwing. Verify with fixture PDFs built by PDFBox in the test (as `DesktopPdfImportTest` and `DesktopPdfPageListTest` do): a word's box to the point, a nested outline's flattened rows, a text-only PDF's empty outline, a corrupt file's empty answer, and a second ask served from the cache."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 82
+created = 2026-10-31
+tags = ["pdf", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-text-select-slot"
+title = "Desktop: the PDF text-select slot, its glyph and its shortcut"
+description = "Give the window the tablet's **Select text (PDF)** slot: `DesktopTool.PDF_TEXT_SELECT` with the label `Select text (PDF)` and the free key `Shift+S`, placed beside `MARQUEE`/`LASSO` in the enum's §3 order (it selects, it does not ink). The art is the **shared** catalogue, not a second drawing: add the glyph to `ToolGlyphCatalogue` (`mobix-core/design`) on the 24-unit grid as an I-beam over a sheet, so the window's `ToolGlyphs.kt` adapter and the tablet's `ImageVector` adapter both show it. `DesktopTool.activeTool()` maps the slot to the existing shared `ActiveTool.TEXT_SELECT`, and `DesktopTool.inksByPackets()` must answer **false** for it, because a selection drag must not be taken by the pen's packet stream (`PageCanvasInput`'s `packetsOwn`) or the pen would ink the page it is selecting. Verify `ShortcutKeysTest` (the new key is unique), `ToolGlyphCatalogueTest`, `ToolGlyphRenderTest`, `ToolGlyphCoverageTest` (every slot has a glyph), `DesktopCursorTest` (a slot that lays no ink draws no pen ring) and the `inksByPackets`/`activeTool` tests; document the key in `docs/desktop-ui-layout.md` and the slot rule in `docs/ui-modernization.md` §3."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 83
+created = 2026-10-31
+tags = ["pdf", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-text-selection"
+title = "Desktop: select a PDF page's text and copy it"
+description = "The drag and the clipboard: with the slot picked, a press resolves through `pagePointOf` to page-local points and anchors the selection at `PdfTextIndex.anchorWord` on that page (only when the page's background is a `Background.Pdf` with a text layer), a drag extends the focus word on the same page, and the overlay paints `rangeBoxes` as the tablet's `drawTextSelection` does — a wash and a hairline per word box, in `DesktopTheme`'s selection colour, never in the page's ink. `Ctrl+C` and a Copy button on the selection bar put `rangeText` on the system clipboard as a `StringSelection` (`java.awt.Toolkit`, the route `DesktopSelectionCommands` already uses); `Esc`, a click off the text or a page change clears it. The selection is **view-only and never document content**: no page edit, no undo step, and a select-copy-save leaves the file byte-identical — the rule `docs/pdf.md` states for the tablet. A page carrying no text layer (a scan, a photograph, a `.mobix`) answers one English sentence in the status bar rather than nothing at all. Verify with JVM tests over the anchor/extend/range mapping (a hand-built `PdfTextIndex` and one extracted from a fixture PDF), a `DesktopPdfTextSelectionRenderTest` on `ImageComposeScene` (as `DesktopPaperRulingTest` does) showing the wash on the selected words and not on the line beside them, and a test that the model and the undo depth are untouched; document it in `docs/pdf.md`, `docs/desktop-editing.md` and README."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 84
+created = 2026-10-31
+tags = ["pdf", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "desktop-magnetic-highlighter"
+title = "Desktop: snap the highlighter to a PDF page's text lines"
+description = "Make the window's highlighter **magnetic** the way the tablet's is, on the shared geometry alone: while a HIGHLIGHTER drag runs over a page whose background is a PDF with a text layer, `MagneticHighlighter.bands(points, words)` are previewed as flat bands in place of the freehand preview, and at lift `MagneticHighlighter.strokes(points, words, colour)` commit as ordinary two-point constant-width HIGHLIGHTER strokes in the picked ink's colour — one undo step, and ink that round-trips through `.mobix` and `.xopp` exactly like a band drawn by hand. A drag shorter than `MIN_LENGTH_PT`, steeper than `MAX_SLOPE`, over no text, or crossing more than `MAX_LINES` lines commits the freehand stroke unchanged: snapping is a convenience, never a correction the user did not ask for. A page with no text layer (a `.mobix`, a photograph, a scan) behaves exactly as today. Verify with a JVM test over the lift (the bands committed, one undo step, the freehand path otherwise) and a render test of the live preview; document it in `docs/pdf.md` (the magnetic-highlighter section gains the window) and `docs/desktop-editing.md`."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 85
+created = 2026-10-31
+tags = ["pdf", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-contents-sidebar"
+title = "Desktop: the PDF Contents section in the page sidebar"
+description = "The PDF's **Contents** in the window's page sidebar: a collapsible section under `LayersSection` in `PageSidebar`, filled from the document's `pdfOutline` only when it is opened — a thousand rows cost nothing until someone asks for them — with rows indented by `depth`, each printing its title and the page it leads to, capped at `PdfOutlineTree.MAX_ENTRIES`, and an entry with no destination drawn as a dimmed row that cannot be clicked. A click goes to the **document** page whose `Background.Pdf.pageNo` equals the entry's page index, resolved through `PdfPageReferences` inheritance rather than by assuming the PDF index and the page index agree (a merge renumbers every appended page), and it selects that page and scrolls it into view. A document with no PDF, or a PDF with no outline, shows no section at all rather than an empty one, and nothing here writes the file: the outline is read for navigation only, as `docs/pdf.md` states for the tablet. Verify with a pure `outlineRows` test (order, indentation, the page mapping with a page-number offset, destination-less rows), a render test of the section beside `DesktopSidebarTest`, and a test that a large outline is capped; document it in `docs/desktop-workstation.md`, `docs/pdf.md` and README."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 86
+created = 2026-10-31
+tags = ["pdf", "desktop"]
+rebuild = true
 emulator_debug = false
 
 [[task]]

@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-pdf-annotation"
+title = "Desktop: PDF annotation and outline (scope)"
+description = "Investigated the window's PDF annotation story against the tablet's and produced the six tasks that carry it: shared text geometry in `mobix-core`, the text-and-outline index read once per file, the canvas slot a Select-text mode needs, drag-to-select text with Copy, the magnetic highlighter over real word boxes, and a Contents sidebar mapping the outline's pages to document pages. Produced tasks, no code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
 id = "replace-the-spline-tool-with-a-generic-polygon"
 title = "Replace the spline tool with a generic polygon"
 description = "The spline tool is gone and the Polygons slot leads with a generic polygon. Removed: EditorTool.SPLINE, ShapeKind.SPLINE and its ShapeBuilder branch, SplineBuilder.kt and its test, the tap-accumulating gesture in DrawingSurfaceStrokes/DrawingSurfaceInput, the anchor-dot/tangent/rubber-band overlay (drawSplineOverlay + CanvasChrome's three spline paints), PaneState.splineNodes with SplineModeBar, the Enter/Backspace/Escape bindings in MainActivity, the back-handler branch, the \"spline\" top bar slot (now a recorded legacy order, so a never-arranged row migrates) and the desktop SPLINE tool/glyph. Added: ToolGlyph.POLYGON and an irregular-polygon glyph, EditorTool.POLYGON and DesktopTool.POLYGON, ShapeKind.POLYGON through ShapeBuilder.regularPolygon with MIN/MAX/DEFAULT_POLYGON_SIDES (3..12, six at the factory, clamped), AppSettings.polygonSides (SharedPreferences + JSON backup + sanitised clamp), the Settings > Figures \"Polygon\" stepper, the tablet's polygons group and the desktop figures submenu leading with it. Tests: ShapeBuilderTest gains the side-count and \"six equals the hexagon\" cases; TopBarItemsTest the spline-slot migration and the dropped id; ToolGroupsTest (both shells) the new order. Docs: README, drawing-tools, desktop-editing, desktop-ui-layout, desktop-workstation, repo-layout (no more SplineBuilder), stack, colours, selection, stylus, audio, ui-modernization."
