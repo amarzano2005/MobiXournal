@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-page-management-and-search"
+title = "Desktop: page management and document search (scope)"
+description = "Investigated what page management and document search still need and broke the remainder into five atomic tasks, no code. The investigation found: DocumentSearch already walks a PageSource one page at a time in app/render (but is app-only and misses math blocks); DesktopPages can remove and move pages but has no insert, duplicate or page clipboard; the window has no search field, no results surface and no hit highlight; and the window's reorderable pages mean the PDF half of a search must key on each page's own Background.Pdf.pageNo. Children: desktop-share-document-search (move DocumentSearch and the pure handwriting word into mobix-core, add math-block matches), desktop-page-insert-and-duplicate, desktop-page-copy-paste (page clipboard across tabs, fresh ids), desktop-document-search-results (lazy walk, DesktopTab.search, reordered-PDF mapping), desktop-search-ui (header field, sidebar results, page highlight, Ctrl+F/Enter/Esc)."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-pdf-contents-sidebar"
 title = "Desktop: the PDF Contents section in the page sidebar"
 description = "The page sidebar now carries the backing PDF's Contents under the layers: PdfContentsSection (DesktopPdfContents) folds the shared outline tree into indented, page-numbered rows and is filled only when opened, with each row sending the tab to its page; the Pages menu's Contents… dialog stays for tablet parity. DesktopPdfContentsTest covers the rows and a PDF with no outline."
