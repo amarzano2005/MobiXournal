@@ -73,6 +73,49 @@ data class Viewport(
         return copy(offsetX = x, offsetY = y)
     }
 
+    /**
+     * The viewport that puts the box ([left], [top])–([right], [bottom]) — page points — inside the
+     * window with [margin] dp to spare, moving as little as it takes.
+     *
+     * A box already in view leaves the offsets alone, so stepping between matches on one line does not
+     * jerk the sheet; a box above or below is brought to the nearest edge that shows it; and one taller
+     * than the window is shown **from its top**, because a word's beginning is what the reader came for.
+     * An axis the page does not fill is left to [clamped], which centres it.
+     */
+    fun showing(
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        pageW: Float,
+        pageH: Float,
+        viewW: Float,
+        viewH: Float,
+        margin: Float = REVEAL_MARGIN_DP,
+    ): Viewport = copy(
+        offsetX = reveal(offsetX, left, right, viewW, pageW * zoom, margin),
+        offsetY = reveal(offsetY, top, bottom, viewH, pageH * zoom, margin),
+    ).clamped(pageW, pageH, viewW, viewH)
+
+    /**
+     * One axis of [showing]: the offset that brings a band into the window, or the one already there.
+     *
+     * The test is whether the band is **wholly visible**, not whether it clears the margin: two matches
+     * on one line must not nudge the sheet back and forth as the reader steps through them, and the
+     * margin is then where a band that *does* leave the window is placed.
+     */
+    private fun reveal(offset: Float, start: Float, end: Float, view: Float, content: Float, margin: Float): Float {
+        if (content <= view) return offset
+        val near = start * zoom + offset
+        val far = end * zoom + offset
+        return when {
+            far - near > view -> margin - start * zoom
+            near >= 0f && far <= view -> offset
+            far > view -> (view - margin) - end * zoom
+            else -> margin - start * zoom
+        }
+    }
+
     /** The page-space point ([pageX], [pageY]) in dp on the canvas. */
     fun toScreen(pageX: Float, pageY: Float): Pair<Float, Float> =
         (offsetX + pageX * zoom) to (offsetY + pageY * zoom)
@@ -191,6 +234,13 @@ const val STRIP_PAGE_RATIO = 1.8
 
 /** The page margin the desktop leaves around a fitted page, in dp. */
 const val PAGE_MARGIN_DP = 32f
+
+/**
+ * How much room a revealed match keeps from the window's edge, in dp — the search's own margin
+ * ([Viewport.showing]): enough that the word is not flush against the band, small enough that a page of
+ * short lines still moves.
+ */
+const val REVEAL_MARGIN_DP = 28f
 
 /** Zooms a percentage label wants, e.g. `150%`. */
 internal fun Float.asPercent(): Int = (this * 100f).roundToInt()

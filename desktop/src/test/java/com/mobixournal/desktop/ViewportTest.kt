@@ -20,6 +20,34 @@ class ViewportTest {
     private val viewH = 700f
 
     @Test
+    fun `showing a match scrolls the sheet to it and leaves a visible one alone`() {
+        // A page taller than the window at this zoom, opened at its top.
+        val tall = 3000f
+        val start = Viewport(zoom = 1f, offsetY = 0f)
+
+        val low = start.showing(10f, 2400f, 120f, 2430f, pageW, tall, viewW, viewH)
+        assertTrue("the sheet moved down", low.offsetY < 0f)
+        assertTrue("the word sits inside the window", 2430f + low.offsetY <= viewH)
+        assertTrue("and not above its own margin", 2400f + low.offsetY >= REVEAL_MARGIN_DP - 0.5f)
+
+        val near = low.showing(10f, 2420f, 120f, 2445f, pageW, tall, viewW, viewH)
+        assertEquals("a match already in view does not jerk the sheet", low.offsetY, near.offsetY, 0.5f)
+    }
+
+    @Test
+    fun `a match taller than the window is shown from its top`() {
+        val tall = 3000f
+        val showing = Viewport(zoom = 1f).showing(10f, 500f, 120f, 2500f, pageW, tall, viewW, viewH)
+
+        assertEquals(
+            "the beginning of the match is what the reader is shown",
+            REVEAL_MARGIN_DP,
+            500f + showing.offsetY,
+            0.5f,
+        )
+    }
+
+    @Test
     fun `zoom keeps the point under the cursor fixed`() {
         // A page that overflows the window on both axes: with a page that fits there is nothing to pan,
         // so the clamp re-centres it — that is the behaviour asserted in the next test, not this one.

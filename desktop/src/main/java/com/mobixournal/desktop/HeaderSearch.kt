@@ -26,6 +26,8 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
@@ -118,6 +120,12 @@ internal fun HeaderSearchField(
                 style = DesktopTheme.numeric,
             )
             Spacer(Modifier.width(4.dp))
+            // The two steps, for a mouse: `Enter` and `Shift+Enter` are the same commands, and both move
+            // the sheet to the word (`DesktopSearchCommands.stepSearch`). Up is "earlier in the
+            // document", the direction the results list is read in.
+            SearchStepButton(ChromeGlyph.CHEVRON_UP, "Previous match", search.total > 0, onPrevious)
+            SearchStepButton(ChromeGlyph.CHEVRON_DOWN, "Next match", search.total > 0, onNext)
+            Spacer(Modifier.width(4.dp))
             Box(
                 Modifier
                     .size(16.dp)
@@ -134,5 +142,27 @@ internal fun HeaderSearchField(
     androidx.compose.runtime.LaunchedEffect(tab) { focus.requestFocus() }
 }
 
-/** How much of the band the field takes: wide enough for a phrase, narrow enough to leave the tabs room. */
-private val SEARCH_FIELD_WIDTH = 240.dp
+/**
+ * One of the field's two steps: a catalogue chevron in the capsule, muted while there is nothing to step
+ * to. It is the same command the keys run, so the arrows cannot walk a list the counter disagrees with.
+ */
+@Composable
+private fun SearchStepButton(glyph: ChromeGlyph, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(16.dp)
+            .clickable(enabled = enabled) { onClick() }
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(12.dp)) {
+            drawChromeGlyph(glyph, if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted)
+        }
+    }
+}
+
+/**
+ * How much of the band the field takes: wide enough for a phrase **and its two steps**, narrow enough to
+ * leave the tabs room.
+ */
+private val SEARCH_FIELD_WIDTH = 284.dp

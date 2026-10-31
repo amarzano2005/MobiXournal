@@ -184,6 +184,33 @@ class DesktopSearchTest {
         assertEquals(0, answer.at(-4).current)
     }
 
+    /**
+     * Stepping to a match does not only pick its page: the sheet **moves to where the word is**, which is
+     * the whole point of the arrows on a long page (`DesktopSearchCommands.revealHit`).
+     */
+    @Test
+    fun `stepping to a match scrolls the sheet down to its word`() {
+        val state = DesktopShellState().also {
+            it.tabs.open(document("long.xopp", listOf(page(listOf(text("low down the page", y = 700.0))))))
+        }
+        val opened = state.active!!
+        // A page taller than the window, opened at its top: only scrolling can show the word.
+        opened.fit = FitMode.NONE
+        opened.viewport = Viewport(zoom = 1.5f)
+        opened.viewWidth = 600f
+        opened.viewHeight = 300f
+        opened.search = search(opened, "low down")
+        opened.searchOpen = true
+
+        assertTrue("there is a match to step to", state.stepSearch(forward = true))
+
+        val box = opened.search.hit!!.boxes.first()
+        val top = (box.top * opened.viewport.zoom).toFloat() + opened.viewport.offsetY
+        val bottom = (box.bottom * opened.viewport.zoom).toFloat() + opened.viewport.offsetY
+        assertTrue("the sheet scrolled to it", opened.viewport.offsetY < 0f)
+        assertTrue("the word is inside the window", top >= REVEAL_MARGIN_DP - 0.5f && bottom <= 300f)
+    }
+
     @Test
     fun `a hit names its page so the shell can go there`() {
         val tab = tab(

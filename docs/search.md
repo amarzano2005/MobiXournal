@@ -47,6 +47,14 @@ PC (the tablet builds one, see below): a search costs the pages it reads, never 
 The field has three doors, all running the same `ShellCommand.FIND`: `Ctrl + F`, the magnifier capsule in the
 band beside undo/redo, and the menu's **Search** row.
 
+Stepping through the matches is one pair of commands behind four doors: `Enter` and `Shift + Enter` in the
+field, and the field's own two chevrons (up = earlier in the document, down = later) for a mouse. Each step
+does two things, not one: it goes to the match's **page** and then moves the sheet **to the word**
+(`Viewport.showing`) — a word twenty lines down a long page used to be off the bottom of the window, so
+"next match" pointed at something the reader could not see. The viewport moves only when the box is not
+wholly on screen, so stepping along one line does not make the sheet twitch, and a box taller than the
+window is shown from its top. A click on a result row runs the same pair.
+
 ## How a handwritten word matches
 
 A word carries its **primary** reading plus any **alternate candidates** the engine offered. Once the

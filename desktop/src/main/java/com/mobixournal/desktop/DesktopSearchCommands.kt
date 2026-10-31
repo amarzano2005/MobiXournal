@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.render.SearchHit
+
 /**
  * The shell's **search commands**: what `Ctrl+F`, the field's keys and a click on a result row do.
  *
@@ -38,7 +40,10 @@ internal fun DesktopShellState.stepSearch(forward: Boolean): Boolean {
     val answer = if (forward) tab.search.next() else tab.search.previous()
     if (answer.hits.isEmpty()) return false
     tab.search = answer
-    answer.hit?.let { hit -> selectPage(tab, hit.pageIndex) }
+    answer.hit?.let { hit ->
+        selectPage(tab, hit.pageIndex)
+        revealHit(tab, hit)
+    }
     return true
 }
 
@@ -52,7 +57,39 @@ internal fun DesktopShellState.showSearchHit(index: Int): Boolean {
     val hit = answer.hit ?: return false
     tab.search = answer
     selectPage(tab, hit.pageIndex)
+    revealHit(tab, hit)
     return true
+}
+
+/**
+ * The sheet **moves to the match**, not only to its page.
+ *
+ * Going to a page put a word twenty lines down a long one off the bottom of the window, so "next match"
+ * pointed at something the reader could not see. This is [Viewport.showing] with the window's own sizes:
+ * the zoom a fit mode implies, the page's size, and the box the hit carries — the same rectangle the
+ * highlight is painted in, so the page, the highlight and the scroll cannot disagree.
+ */
+private fun revealHit(tab: DesktopTab, hit: SearchHit) {
+    val box = hit.boxes.firstOrNull() ?: return
+    val viewW = tab.viewWidth
+    val viewH = tab.viewHeight
+    // No layout yet (a query answered before the canvas measured itself): there is nothing to scroll
+    // against, and the page's own top is what the canvas is showing.
+    if (viewW <= 0f || viewH <= 0f) return
+    val page = runCatching { tab.document.page(hit.pageIndex) }.getOrNull() ?: return
+    val pageW = page.width.toFloat()
+    val pageH = page.height.toFloat()
+    val zoom = tab.fit.zoomFor(pageW, pageH, viewW, viewH) ?: tab.viewport.zoom
+    tab.viewport = tab.viewport.copy(zoom = zoom).showing(
+        left = box.left.toFloat(),
+        top = box.top.toFloat(),
+        right = box.right.toFloat(),
+        bottom = box.bottom.toFloat(),
+        pageW = pageW,
+        pageH = pageH,
+        viewW = viewW,
+        viewH = viewH,
+    )
 }
 
 /** Put the search away — the field, the results list and the highlight all read the same three fields. */
