@@ -91,6 +91,10 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              # and the window's PDFBox glue both feed these, so a word box is one box)
     render/DocumentSearch.kt, SearchableHandwriting.kt # the search both shells call: text boxes, a math
                              #   block's source, a PDF page's words, and handwritten ink behind an interface (pure)
+    render/HandwritingRecognizer.kt, HandwritingIndex.kt, FallbackInkEngine.kt, HandwritingTemplate.kt # ink ->
+                             #   words: stroke filtering, line/word segmentation, the per-page index, and the
+                             #   pure offline reading the window uses (pure)
+    render/InkWordEngine.kt  # the one platform call recognition needs; InkEngines.platform is what a shell plugs once
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
     render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt, StrokeSmoother.kt # what a contact
                              #   begins, how hard it draws, what a stream means (pure)
@@ -203,12 +207,8 @@ app/
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
       CircleRecognizer.kt    # inertia roundness + radial-residual score -> a rebuilt circle (pure)
-      DocumentSearch.kt      # case-insensitive, diacritic-folding, candidate & fuzzy search across typed text, PDF, and ink (pure)
-      HandwritingIndex.kt    # per-page index of recognized handwritten words, multi-candidates, and bounding boxes (pure)
-      HandwritingRecognizer.kt # stroke clustering into lines/words + neural & fallback offline recognition coordinator
       MlKitInkEngine.kt      # on-device neural digital ink recognition via Google ML Kit with automatic model download
-      FallbackInkEngine.kt   # pure-Kotlin offline recognizer with multi-hypothesis character lattice and ligature splitting (pure)
-      HandwritingTemplate.kt # normalized canonical templates for Latin alphanumeric characters (pure)
+      AndroidInkEngine.kt    # the InkWordEngine the tablet plugs in at startup: ML Kit when available, else no answer
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
       SelectionOps.kt        # scale / rotate / restyle / align / distribute selected elements (pure; translate delegates to mobix-core's ElementShift); ElementTransfer.kt and SelectionTransfer.kt carry a selection out in four flavours and accept drops
