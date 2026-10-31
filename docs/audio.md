@@ -134,7 +134,11 @@ own resample (`resample`, linear, applied per chunk), while the clock keeps coun
 *recording's* frames — a clock counting written samples would run at half speed at 2× and put the
 karaoke a word behind. The transport's controls are the pill's, not a floating panel: the owner asked
 for the tablet's capsule in the window's header, and a second transport over the page would be a second
-place where "where am I" can be wrong.
+place where "where am I" can be wrong. **Play starts the take, not a stroke**: the button plays the
+recording from its head, because a stroke's `ts` links that stroke to the sound rather than marking where
+the take begins — starting at the last stroke's stamp, which is what the page's last element answers,
+dropped the first seconds of any take written over more than one stroke. A clip already on screen
+resumes where it stands instead, and one that has ended plays again from its head.
 
 *Karaoke.* While a clip sounds, the page is painted **directly** from its elements instead of from
 `PagePicture`, one directive per stroke (`KaraokeStrokeAnimator`, shared with the tablet): strokes the

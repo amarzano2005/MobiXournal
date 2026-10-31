@@ -284,7 +284,7 @@ internal object DesktopAudioSession {
         return AudioRef(name, recorder.elapsedMs())
     }
 
-    /** Play or hold [tab]'s recording, starting where its first stamped stroke begins. */
+    /** Play or hold [tab]'s recording, from the take's beginning. */
     fun togglePlay(tab: DesktopTab?) {
         val key = tab?.key
         if (player.playing && clipOwner == key) {
@@ -433,17 +433,26 @@ internal object DesktopAudioSession {
         recorder.dismissMessage()
     }
 
-    /** The recording [tab]'s page plays from: its topmost stamped stroke, or the document's first. */
+    /**
+     * The recording [tab]'s page plays, from the **take's own beginning**.
+     *
+     * A stroke's `ts` is the link from that stroke to the sound, not the start of the recording: the page
+     * plays the take, so it plays it from 0 and the writing fills in as the sound reaches it. Starting at
+     * the *last* stroke's stamp — which is what the last element of the page answers — dropped the first
+     * seconds of any take written over more than one stroke, so Play on a document that had just been
+     * recorded began in the middle of it.
+     */
     fun firstRef(tab: DesktopTab?): AudioRef? {
         val document = tab?.document?.model ?: return null
         val page = runCatching { tab.document.page(tab.page) }.getOrNull()
-        val onPage = page?.layers
+        val name = page?.layers
             ?.flatMap { it.elements }
             ?.filterIsInstance<Stroke>()
             ?.mapNotNull { it.audioRef() }
             ?.lastOrNull()
-        if (onPage != null) return onPage
-        val name = documentAudioFiles(document).firstOrNull() ?: return null
+            ?.filename
+            ?: documentAudioFiles(document).firstOrNull()
+            ?: return null
         return AudioRef(name, 0)
     }
 }
