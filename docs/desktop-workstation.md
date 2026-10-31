@@ -268,7 +268,7 @@ the numbers).
 ### What the window does not do
 
 - No layer editing (hiding one is view state, above).
-- No in-document text search (document, PDF, and image file ingests are supported).
+- No search inside a **picture** (no text layer); typed text, PDF words and ink are ([search.md](search.md)).
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
   the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.
 

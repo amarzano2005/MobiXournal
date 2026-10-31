@@ -20,9 +20,10 @@ boxes to paint — and the three sources are consulted in one pass over a page:
 
 The engine is `mobix-core`'s, and both shells call it: the tablet's field and the PC window match the same
 things at the same places — **handwriting included**. What is platform-specific is only the *reading* of a
-word (`InkWordEngine`), not the segmentation around it: the tablet plugs ML Kit's model in, the window keeps
-the pure `FallbackInkEngine`. A hit carries a `snippet` — the matched line, words or formula, cut to a row —
-beside its boxes, which is what a results list prints.
+word (`InkWordEngine`), not the segmentation around it: the tablet plugs ML Kit's digital-ink model in, and
+the window plugs in **Windows' own recognizer** (`WinInk.kt`, the one behind its handwriting panel, offline
+and per-language) — so cursive written on the PC is found there too. A hit carries a `snippet` — the matched
+line, words or formula, cut to a row — beside its boxes, which is what a results list prints.
 
 ## The window's field, results and highlight
 
@@ -72,10 +73,24 @@ highlight boxes need. `HandwritingRecognizer` does the work, in `mobix-core`:
 - bounds are computed once per stroke (`BoundedStroke`) and grouped into lines by a running centroid and
   average height (`LineCluster`), which keeps two close lines from collapsing into one;
 - a line is split into words at its horizontal gaps;
-- a word goes to the shell's engine (`InkEngines.platform`, which the tablet sets to ML Kit's digital-ink
-  model at startup) and to the pure-Kotlin `FallbackInkEngine` when that engine returns nothing: no Play
-  Services, a model still downloading, or a JVM test without an Android runtime. The window never sets a
-  platform engine, so its words come from the fallback.
+- a word goes to the shell's engine (`InkEngines.platform` — ML Kit on the tablet, Windows' recognizer in
+  the window, each set at startup) and to the pure-Kotlin `FallbackInkEngine` when that engine returns
+  nothing: no Play Services, a model still downloading, the optional Windows handwriting feature not
+  installed, or a JVM test without either runtime.
+
+### The window's model, through WinRT
+
+`WinInk.kt` reaches `Windows.UI.Input.Inking` with raw COM calls (`WinRt.kt`, JNA): the machine's metadata
+gives each vtable slot, and the one object WinRT does not hand out — an `IIterable<Point>` for
+`CreateStroke` — is built by hand. Three ABI facts cost a day between them and are worth knowing before
+touching it: the ink objects are not agile, so they live on one thread entered as **STA** that pumps its
+message queue while it waits; `IAsyncOperation<T>` carries only its handler and its result, so the status is
+read through a `QueryInterface` for **`IAsyncInfo`** (reading the operation's own slot called `put_Completed`
+and wrote a zero over the status, which then read as `Started` forever); and an iterator must stand *on* its
+first point, because Windows asks `HasCurrent` before it ever moves.
+
+`WinInkTest` is the live probe (it skips, rather than fails, where the handwriting feature is absent): it
+asserts the model answers on print and on a connected line, and that the shared seam hands a word back.
 
 ## Indexing never blocks the canvas
 
