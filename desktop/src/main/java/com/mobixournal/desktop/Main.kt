@@ -138,6 +138,11 @@ fun main(args: Array<String>) {
     // and a Swing dialog wears the cross-platform look unless the system's is asked for. On Windows that
     // is the file dialog the reader already knows, with the same folder bar and buttons.
     runCatching { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()) }
+    // The window's handwriting **model**: Windows' own recognizer, plugged once into the shared seam so the
+    // search reads ink with a model of the same kind the tablet's ML Kit is (`WinInk.kt`). A machine
+    // without the optional handwriting feature keeps the pure engine, which is the same fallback the
+    // tablet takes while its models download.
+    if (WinInk.recognizerCount() > 0) com.mobixournal.render.InkEngines.platform = WinInkEngine
     application {
         // The window's close request is a **question** first: the shell answers whether it may go, and a
         // dirty tab turns the X into the same Save / Discard / Cancel dialog the tab's own close glyph
