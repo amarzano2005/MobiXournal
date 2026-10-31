@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-ink-winrt-result"
+title = "Desktop: make the WinRT ink recognizer return its result"
+description = "Windows' own handwriting recognizer now reads the window's ink. The blocker was three ABI facts, not a dormant model: IAsyncOperation<T> carries only get_Completed/put_Completed/GetResults, so the status comes from IAsyncInfo reached by QueryInterface (reading slot 7 on the operation called put_Completed and wrote a zero over the status, which then read as Started forever); the ink objects are not agile, so they are created and used on one dedicated STA thread that pumps its message queue while it waits; and the iterator stands on its first point because Windows asks HasCurrent before it moves. WinInkTest reads real Italian-model output on print and on a connected line, and Main.kt plugs WinInkEngine into InkEngines.platform at startup, so search finds cursive on the PC and still falls back to the pure engine where the handwriting feature is absent. Documented in docs/search.md, docs/desktop-workstation.md, docs/repo-layout.md and README."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-31
+completed = 2026-11-01
+tags = ["desktop", "search"]
+
+[[task]]
 id = "desktop-search-button"
 title = "Desktop: a search button in the header and in the menu"
 description = "The search field has three doors, all running ShellCommand.FIND: Ctrl+F, the magnifier capsule in the header beside undo/redo (active while the field is up, unavailable with no tab), and a Search row in the hamburger menu under the rule. HeaderSearchSlot and MenuWindowRows were extracted so Header and MenuPanel stay inside the 100-line function budget. Tests: DesktopMenuTest taps the new row (row arithmetic and counters updated), DesktopSearchTest pins Ctrl+F = FIND and that the command opens the field. Docs: docs/desktop-ui-layout.md (band diagram, band contents, key table) and README."
