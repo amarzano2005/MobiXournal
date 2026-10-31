@@ -174,6 +174,12 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   layer switched off; a scroll and a zoom do not, below) — a frame of drawing never pays it. `PagePictureTest` pins the
   two properties that matter: the replay is **pixel-identical** to the direct paint (a cache with its own
   idea of the page would be a silent divergence) and a frame of a live stroke does not record it again.
+  **A ruling line stops at the sheet.** `drawPaper` drew a graph sheet's horizontal rules to `size.width`
+  — the *window's* canvas — instead of `sheet.width`, so the ruling ran on across the desk right of the
+  paper. The recorded picture is page-sized and hid it; the karaoke replay paints the page directly (a
+  clip sounding must show the writing as it happens), so the overrun appeared exactly while a recording
+  played. `DesktopPaperRulingTest` paints an unclipped 200 pt graph sheet on a 400 px canvas and requires
+  nothing opaque beyond the paper.
   The remaining 144 Hz work is dirty-rect pacing for scrolling and zooming, which re-record per frame,
   and the same-numbers check on the owner's 144 Hz monitor — the target cannot be met or disproved on
   this 60 Hz laptop. Painting the stroke's head at the raw packet position while the filtered body trails

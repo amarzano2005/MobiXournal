@@ -44,7 +44,11 @@ internal fun DrawScope.drawPaper(
             val line = rulingColour(BackgroundGrid.GRAPH_RGB)
             for (y in BackgroundGrid.lines(height, spacing)) {
                 val py = (y * scale).toFloat()
-                drawLine(line, Offset(0f, py), Offset(size.width, py), strokeWidth = lineWidth)
+                // The **sheet**, not `size`: this is a `DrawScope` whose canvas is the window, and a rule
+                // that ran to `size.width` painted the page's ruling across the desk beside it. The
+                // recorded picture is page-sized so it hid the overrun; the karaoke replay paints the
+                // page directly, and there the lines showed every time a clip sounded.
+                drawLine(line, Offset(0f, py), Offset(sheet.width, py), strokeWidth = lineWidth)
             }
             for (x in BackgroundGrid.lines(width, spacing)) {
                 val px = (x * scale).toFloat()
