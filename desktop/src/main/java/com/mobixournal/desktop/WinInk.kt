@@ -22,22 +22,25 @@ import com.mobixournal.render.InkWordEngine
  * A machine without the optional handwriting feature answers an empty list, and the caller falls back —
  * that is a fact about the installation, not an error.
  *
- * ## Where this stands (2026-10-31, `desktop-winrt-ink-bridge`)
+ * ## What the bridge had to get right (verified live on ANTONIOFISSO-PC)
  *
- * **Verified live on ANTONIOFISSO-PC**, by `WinInkTest` and the probes run while writing this:
- * activation of all three classes, the hand-made `IIterable<Point>` (Windows iterates it correctly
- * once the iterator starts *on* the first point rather than before it), `CreateStroke` and `AddStroke`,
- * the installed Italian recognizer, and `RecognizeAsync` returning an operation. The container's
- * `BoundingRect` reads back the drawn box, so the points arrive exactly as drawn.
+ * Three ABI facts, each of which the first version got wrong in a way that looked like "the recognizer is
+ * asleep" rather than "the call is wrong":
  *
- * **Not working**: `IAsyncInfo.Status` never leaves `Started` (0) and `GetResults` answers `S_FALSE`,
- * so no word comes back — with the strokes kept alive, with a 5 s wait, and on both print and cursive
- * samples. The two suspects left are the apartment: `RoInitialize(MTA)` on the thread that calls it
- * (WinRT's ink objects are documented as non-agile) — an STA thread with a message pump, or attaching
- * an `IAsyncOperationCompletedHandler` through `put_Completed` (slot 11), is the next experiment — and
- * whether a JVM-started process is allowed to run this recognizer at all. Until one of those answers,
- * the window keeps the pure engine: `InkEngines.platform` is set only where a recognizer is proven to
- * read, and [WinInkEngine] answers null otherwise so the shared recogniser falls back.
+ * 1. **The apartment is the thread's.** The ink objects are not agile, so they are created and used only on
+ *    the one thread [worker] owns, entered as STA — and that thread pumps its queue ([WinRt.pump]) while it
+ *    waits, because the finish of the work is posted back to it.
+ * 2. **`IAsyncOperation<T>` does not carry its own state.** Its vtable is `get_Completed`, `put_Completed`,
+ *    `GetResults` and nothing else; the status lives on a **separate** interface, `IAsyncInfo`, which takes
+ *    a `QueryInterface`. Reading slot `BASE + 1` on the operation itself called `put_Completed` with a
+ *    pointer to an `Int`, which wrote a zero over the status it was about to report: `Started`, forever.
+ * 3. **A struct is a pointer, and the iterator starts *on* its first point.** Windows asks `HasCurrent`
+ *    before it ever moves, so an iterator positioned "before the first" — the sequence's usual contract —
+ *    reads as empty and `CreateStroke` answers `E_INVALIDARG`.
+ *
+ * With those, `WinInkTest` reads real model output: the Italian recognizer's readings, punctuation
+ * candidates and all, on print and on a connected line. A machine without the optional handwriting feature
+ * answers an empty list and [WinInkEngine] answers null, so the shared recogniser falls back.
  */
 internal object WinInk {
 
@@ -65,11 +68,25 @@ internal object WinInk {
         }.getOrDefault(0)
     }
 
+    /**
+     * The one thread the ink objects live on: an apartment of its own, entered as **STA** and kept for the
+     * life of the process. They are documented as not agile, and their completion is delivered through
+     * this thread's message queue — which [WinRt.pump] drains while [await] waits.
+     */
+    private val worker: java.util.concurrent.ExecutorService =
+        java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "winrt-ink").apply { isDaemon = true }
+        }
+
     /** What Windows reads out of [strokes], best first; empty when it has no recognizer to ask. */
     fun recognize(strokes: List<List<Pair<Double, Double>>>): List<String> {
-        if (!available || strokes.isEmpty() || !WinRt.enter()) return emptyList()
-        return runCatching { read(strokes) }
-            .getOrDefault(emptyList())
+        if (!available || strokes.isEmpty()) return emptyList()
+        val task = runCatching {
+            worker.submit<List<String>> { if (WinRt.enter()) read(strokes) else emptyList() }
+        }.getOrElse { return emptyList() }
+        return runCatching {
+            task.get(RECOGNITION_TIMEOUT_MS + WAIT_SLACK_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }.onFailure { task.cancel(true) }.getOrDefault(emptyList())
     }
 
     private fun read(strokes: List<List<Pair<Double, Double>>>): List<String> {
@@ -94,10 +111,14 @@ internal object WinInk {
                 WinRt.call(recognizers, SET_DEFAULT_RECOGNIZER, recognizer)
                 val operation = WinRt.callOut(recognizers, RECOGNIZE_ASYNC, container, TARGET_ALL)
                     ?: return emptyList()
+                // `IAsyncOperation<T>` carries only its handler and its result in the ABI; the state is on a
+                // **separate** interface, `IAsyncInfo`, which the runtime answers to QueryInterface.
+                val info = WinRt.queryInterface(operation, IID_ASYNC_INFO) ?: return emptyList()
                 try {
-                    if (!await(operation)) return emptyList()
+                    if (!await(info)) return emptyList()
                     return candidates(operation)
                 } finally {
+                    WinRt.release(info)
                     WinRt.release(operation)
                 }
             } finally {
@@ -124,25 +145,25 @@ internal object WinInk {
     }
 
     /** Waits for the async operation: a failed or timed-out recognition read nothing, never an exception. */
-    private fun await(operation: Pointer): Boolean {
+    private fun await(info: Pointer): Boolean {
         val status = com.sun.jna.ptr.IntByReference()
         val deadline = System.currentTimeMillis() + RECOGNITION_TIMEOUT_MS
         while (System.currentTimeMillis() < deadline) {
             status.value = ASYNC_STARTED
-            if (WinRt.call(operation, ASYNC_STATUS, status) != WinRt.S_OK) return false
+            // The apartment's queue first: this thread is STA, so the completion is *posted* here.
+            if (WinRt.pump()) continue
+            if (WinRt.call(info, INFO_STATUS, status) != WinRt.S_OK) return false
             val state = status.value
             if (state != ASYNC_STARTED) return state == ASYNC_COMPLETED
-            Thread.sleep(20)
+            Thread.sleep(POLL_MS)
         }
         return false
     }
 
-    /** The async operation's identity, status and error — the probe that says which slot is which. */
-
     /** The candidates of the first result — the word, and the readings it could have been. */
     private fun candidates(operation: Pointer): List<String> {
         val out = com.sun.jna.ptr.PointerByReference()
-        if (WinRt.call(operation, ASYNC_RESULTS, out) != WinRt.S_OK) return emptyList()
+        if (WinRt.call(operation, OPERATION_RESULTS, out) != WinRt.S_OK) return emptyList()
         val results = out.value
         if (results == null) return emptyList()
         try {
@@ -178,9 +199,18 @@ internal object WinInk {
     private const val RECOGNIZE_ASYNC = BASE + 1
     private const val GET_RECOGNIZERS = BASE + 2
 
-    /** `IAsyncInfo.get_Status` sits after its Id; `GetResults` after the two completion handlers. */
-    private const val ASYNC_STATUS = BASE + 1
-    private const val ASYNC_RESULTS = BASE + 7
+    /**
+     * The two interfaces an operation answers separately — this is what the bridge first got wrong: the
+     * state is **not** on the operation's own vtable, so reading it there called `put_Completed` and wrote
+     * a zero back over the status, which then read as `Started` forever.
+     */
+    private const val IID_ASYNC_INFO = "00000036-0000-0000-c000-000000000046"
+
+    /** `IAsyncInfo`: Id, Status, ErrorCode, Cancel, Close. */
+    private const val INFO_STATUS = BASE + 1
+
+    /** `IAsyncOperation<T>`: get_Completed, put_Completed, GetResults — its own three, and no more. */
+    private const val OPERATION_RESULTS = BASE + 2
 
     /** `IVectorView<T>.GetAt`. */
     private const val VECTOR_GET_AT = BASE
@@ -192,7 +222,8 @@ internal object WinInk {
     /** `Windows.Foundation.AsyncStatus`: Started, Completed, Canceled, Error — in that order. */
     private const val ASYNC_STARTED = 0
     private const val ASYNC_COMPLETED = 1
-    private const val POLL_MS = 4L
+    private const val POLL_MS = 2L
+    private const val WAIT_SLACK_MS = 1_000L
     private const val RECOGNITION_TIMEOUT_MS = 5_000L
 
     /** How many of the model's alternative readings are kept: the search's alternate candidates. */
@@ -379,6 +410,10 @@ internal object WinInk {
 
     fun interface GetMany : Callback {
         fun invoke(self: Pointer, size: Int, items: Pointer?, taken: Pointer?): Int
+    }
+
+    fun interface Completed : Callback {
+        fun invoke(self: Pointer, operation: Pointer, status: Int): Int
     }
 }
 

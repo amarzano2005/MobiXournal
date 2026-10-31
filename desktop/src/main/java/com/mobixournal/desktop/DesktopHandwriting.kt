@@ -9,10 +9,11 @@ import com.mobixournal.render.SearchableHandwriting
 /**
  * The window's handwritten ink, as the shared search engine reads it.
  *
- * The tablet recognises ink with Google ML Kit's digital-ink model, which needs Android; the window has no
- * such runtime, so it answers through [InkEngines.platform] — left on the pure [com.mobixournal.render.FallbackInkEngine]
- * because nothing on a desktop JVM ever plugs a model in. What is shared is everything around the reading:
- * which strokes form a word, where the word sits, and what a match is.
+ * The tablet recognises ink with Google ML Kit's digital-ink model, which needs Android; the window answers
+ * through [InkEngines.platform] with **Windows' own recognizer** ([WinInkEngine], plugged in at startup by
+ * `Main.kt`), and falls back to the pure [com.mobixournal.render.FallbackInkEngine] where the optional
+ * handwriting feature is not installed. What is shared is everything around the reading: which strokes form
+ * a word, where the word sits, and what a match is.
  *
  * Recognition is **lazy and once per page**: a query reads only the pages it reaches, and a second query on
  * the same document re-asks this cache instead of the engine ([HandwritingCache] throws it away when the

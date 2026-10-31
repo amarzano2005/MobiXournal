@@ -27,7 +27,12 @@ internal object WinRt {
 
     private val api: Combase by lazy { Native.load("combase", Combase::class.java, W32APIOptions.DEFAULT_OPTIONS) }
 
-    private val entered: ThreadLocal<Boolean> = ThreadLocal.withInitial { api.RoInitialize(RO_INIT_MULTITHREADED) == S_OK }
+    /**
+     * The thread's **single-threaded** apartment, entered once. It is the apartment the shell's own
+     * window lives in, and the one the ink objects expect: they are documented as non-agile, and the
+     * recognizer's completion has to be delivered through this thread's message queue — [pump].
+     */
+    private val entered: ThreadLocal<Boolean> = ThreadLocal.withInitial { api.RoInitialize(RO_INIT_SINGLETHREADED) == S_OK }
 
     /** True when this thread has a COM apartment — the state every call below needs. */
     fun enter(): Boolean = entered.get()
@@ -51,6 +56,27 @@ internal object WinRt {
     fun callOut(instance: Pointer, slot: Int, vararg args: Any?): Pointer? {
         val out = PointerByReference()
         return if (invoke(instance, slot, args.toList() + out) == S_OK) out.value else null
+    }
+
+    /**
+     * `IUnknown::QueryInterface` for the interface [iid] (canonical `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`),
+     * or null when the object does not implement it.
+     */
+    fun queryInterface(instance: Pointer, iid: String): Pointer? {
+        val out = PointerByReference()
+        return if (call(instance, QUERY_INTERFACE_SLOT, guid(iid), out) == S_OK) out.value else null
+    }
+
+    /** A `GUID` from its canonical text, as the reference `QueryInterface` takes. */
+    private fun guid(iid: String): Memory {
+        val parts = iid.split("-")
+        val memory = Memory(16)
+        memory.setInt(0, parts[0].toLong(16).toInt())
+        memory.setShort(4, parts[1].toInt(16).toShort())
+        memory.setShort(6, parts[2].toInt(16).toShort())
+        val tail = (parts[3] + parts[4]).chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        memory.write(8, tail, 0, 8)
+        return memory
     }
 
     fun release(instance: Pointer?) {
@@ -108,6 +134,49 @@ internal object WinRt {
     /** `IInspectable::GetIids` — the third of the WinRT-wide six, after `Release`. */
     private const val GET_IIDS_SLOT = 3
 
+    /**
+     * Runs the thread's message queue once: `PeekMessage` / `TranslateMessage` / `DispatchMessage`, the
+     * loop an STA needs for anything the system posts back to it. Answers whether it handled a message.
+     */
+    fun pump(): Boolean {
+        val message = Memory(MESSAGE_BYTES)
+        if (!user32.PeekMessageW(message, null, 0, 0, PM_REMOVE)) return false
+        user32.TranslateMessage(message)
+        user32.DispatchMessageW(message)
+        return true
+    }
+
+    private val user32: User32 by lazy { Native.load("user32", User32::class.java, W32APIOptions.DEFAULT_OPTIONS) }
+
+    private interface User32 : Library {
+
+        fun PeekMessageW(message: Pointer, window: Pointer?, first: Int, last: Int, remove: Int): Boolean
+
+        fun TranslateMessage(message: Pointer): Boolean
+
+        fun DispatchMessageW(message: Pointer): Pointer
+    }
+
+    /** A `MSG` is 48 bytes on x64; 64 keeps the read past its end harmless. */
+    private const val MESSAGE_BYTES = 64L
+
+    /** `PeekMessage`'s remove flag: take the message out of the queue, as a pump must. */
+    private const val PM_REMOVE = 1
+
+    /**
+     * A COM object whose vtable is [callbacks], in order — what the hand-made WinRT objects (an
+     * `IIterable<Point>`, a completion handler) are. The caller keeps [callbacks] referenced.
+     */
+    fun objectWith(callbacks: List<com.sun.jna.Callback>): Pointer {
+        val vtable = Memory(callbacks.size.toLong() * Native.POINTER_SIZE)
+        callbacks.forEachIndexed { slot, callback ->
+            vtable.setPointer(slot.toLong() * Native.POINTER_SIZE, com.sun.jna.CallbackReference.getFunctionPointer(callback))
+        }
+        val object_ = Memory(2L * Native.POINTER_SIZE)
+        object_.setPointer(0, vtable)
+        return object_
+    }
+
     private fun invoke(instance: Pointer, slot: Int, args: List<Any?>): Int {
         val vtable = instance.getPointer(0) ?: return -1
         val address = vtable.getPointer(slot.toLong() * Native.POINTER_SIZE) ?: return -1
@@ -130,9 +199,10 @@ internal object WinRt {
         fun WindowsDeleteString(hstring: Pointer): Int
     }
 
-    private const val RO_INIT_MULTITHREADED = 1
+    private const val RO_INIT_SINGLETHREADED = 0
 
-    /** `IUnknown::Release`. */
+    /** `IUnknown`: QueryInterface, AddRef, Release — and Release, which every bridge here ends with. */
+    private const val QUERY_INTERFACE_SLOT = 0
     private const val RELEASE_SLOT = 2
 
     /** `IVectorView<T>`: GetAt, Size — after its six WinRT-wide methods. */

@@ -93,7 +93,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              #   block's source, a PDF page's words, and handwritten ink behind an interface (pure)
     render/HandwritingRecognizer.kt, HandwritingIndex.kt, FallbackInkEngine.kt, HandwritingTemplate.kt # ink ->
                              #   words: stroke filtering, line/word segmentation, the per-page index, and the
-                             #   pure offline reading the window uses (pure)
+                             #   pure offline reading every shell falls back to (pure)
     render/InkWordEngine.kt  # the one platform call recognition needs; InkEngines.platform is what a shell plugs once
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
     render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt, StrokeSmoother.kt # what a contact
