@@ -7,14 +7,23 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TextElement
+import com.mobixournal.format.model.Tool
+import com.mobixournal.render.Bounds
+import com.mobixournal.render.HandwrittenWord
+import com.mobixournal.render.InkWordEngine
 import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfTextIndex
 import com.mobixournal.render.PdfWord
 import com.mobixournal.render.SearchHit
+import androidx.compose.ui.input.key.Key
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -49,6 +58,25 @@ class DesktopSearchTest {
         color = 0xFF000000.toInt(),
         content = content,
     )
+
+    /** A word's worth of ink: two points far enough apart to be read as handwriting at all. */
+    private fun ink(): Stroke = Stroke(
+        tool = Tool.PEN,
+        color = 0xFF000000.toInt(),
+        capStyle = null,
+        points = listOf(StrokePoint(10.0, 10.0, 1.0), StrokePoint(60.0, 34.0, 1.0)),
+        uniformWidth = false,
+    )
+
+    /** An engine that always reads [word], counting how often it was asked — the cache's own witness. */
+    private class CountingEngine(private val word: String) : InkWordEngine {
+        var reads = 0
+
+        override fun recognize(strokes: List<Stroke>, bounds: Bounds): HandwrittenWord {
+            reads++
+            return HandwrittenWord(word, bounds, 1.0, listOf(word))
+        }
+    }
 
     private fun formula(source: String): MathBlockElement = MathBlockElement(
         left = 40.0,
@@ -168,5 +196,61 @@ class DesktopSearchTest {
         val hit = answer.hits.single()
         assertEquals(1, hit.pageIndex)
         assertNotNull("the shell has a page to select", hit)
+    }
+
+    /**
+     * Handwriting is the one source the window used to skip, because reading ink used to need Android. The
+     * segmentation is shared now, so a word written on the page is found on the PC — with the fallback engine
+     * behind the seam, and with whatever engine the shell plugs in.
+     */
+    @Test
+    fun `a handwritten word is found through the shared recogniser`() {
+        val tab = tab("ink.xopp", listOf(page(listOf(ink())), page(listOf(text("typed")))))
+        val engine = CountingEngine("ciao")
+
+        val answer = DesktopSearchEngine.run(tab, "ciao", PageHandwriting(tab.document, engine))
+
+        assertEquals("one match", 1, answer.total)
+        val hit = answer.hits.single()
+        assertEquals("on the page the ink is on", 0, hit.pageIndex)
+        assertEquals("the word is the snippet", "ciao", hit.snippet)
+        assertTrue("and its box is the match", hit.boxes.isNotEmpty())
+    }
+
+    @Test
+    fun `a page is recognised once, not once per query`() {
+        val tab = tab("cache.xopp", listOf(page(listOf(ink()))))
+        val engine = CountingEngine("ciao")
+        val handwriting = PageHandwriting(tab.document, engine)
+
+        DesktopSearchEngine.run(tab, "ciao", handwriting)
+        DesktopSearchEngine.run(tab, "cia", handwriting)
+
+        assertEquals("one recognition for the page", 1, engine.reads)
+    }
+
+    @Test
+    fun `editing the document throws the recognised ink away`() {
+        val tab = tab("edited.xopp", listOf(page(listOf(ink()))))
+
+        val first = tab.handwriting.of(tab)
+        assertSame("a second query reuses the reading", first, tab.handwriting.of(tab))
+
+        tab.document.replacePages(tab.document.model.pages)
+
+        assertNotSame("an edit re-reads the ink", first, tab.handwriting.of(tab))
+    }
+
+    /**
+     * The search's two new doors: the band's magnifier and the menu's row run the command `Ctrl+F` runs, so
+     * a window driven by a mouse reaches the field without a keyboard.
+     */
+    @Test
+    fun `ctrl-F and the band's magnifier open the same field`() {
+        assertEquals(ShellCommand.FIND, shellCommand(Key.F, ctrl = true, shift = false))
+        val state = DesktopShellState().also { it.tabs.open(document("doors.xopp", listOf(page()))) }
+
+        assertTrue("the command opens the field", state.apply(ShellCommand.FIND))
+        assertTrue("and the band draws it", state.active!!.searchOpen)
     }
 }

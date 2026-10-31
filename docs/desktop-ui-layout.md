@@ -14,7 +14,7 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 
 ```text
 ┌───────────────────────────────────────────────────────────────────────────────────────┐
-│ [≡] [Notebook 1 ×] [Notebook 2 ×] [+]           [↶] [↷] [Save] [Export PDF]         │  header band
+│ [≡] [Notebook 1 ×] [Notebook 2 ×] [+]           [⌕] [↶] [↷] [Save] [Export PDF]    │  header band
 ├─────────┬─────────────────────────────────────────────────────────────────────────────┤
 │ Sidebar │                                CANVAS                                       │
 │ Pages   │                                                                             │
@@ -26,9 +26,10 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 
 ### 1. Window layout & workspace panes
 - **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one tab per open
-  document (each keeps its page, zoom and fit), the `+` for another, and right **undo, redo, Save, PDF**.
-  While a search is open the band also carries the field beside the tabs (`Ctrl + F`), at a fixed 240 dp, so
-  opening it never moves the tabs or the file commands — see [search.md](search.md).
+  document (each keeps its page, zoom and fit), the `+` for another, and right **search, undo, redo, Save,
+  PDF**. The magnifier is there so the field can be reached with a mouse, not only with `Ctrl + F`; it reads
+  *active* while its field is up. While a search is open the band also carries the field beside the tabs at a
+  fixed 240 dp, so opening it never moves the tabs or the file commands — see [search.md](search.md).
 - **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
   per layer that hides it without writing to the document; it opens itself only when the document has
   **more than one page**.
@@ -90,7 +91,7 @@ Everything the chrome does can also be done from the keyboard:
 |---|---|
 | `Ctrl + T`, `+` | open a document; a file already open activates its tab instead of opening twice |
 | `Ctrl + W`, `×` | close the tab, activating its neighbour — asking first while it has unsaved edits |
-| `Ctrl + F` | open the document's search field, its results listed under the sidebar's layers |
+| `Ctrl + F`, `⌕` | open the document's search field, its results listed under the sidebar's layers — the magnifier in the band and the menu's **Search** row run the same command |
 | `Ctrl + S` | save the active document back into the container it was opened as; unavailable while the file already holds it |
 | `Ctrl + Shift + S` | Save As — one save window, whose **type box** chooses the container |
 | `Ctrl + E` | export the active document as a PDF, asking where to put it |

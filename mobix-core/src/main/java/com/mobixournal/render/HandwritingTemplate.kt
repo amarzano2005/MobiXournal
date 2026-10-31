@@ -125,8 +125,6 @@ object HandwritingTemplates {
 
         val step = totalLength / (n - 1)
         var accumulated = 0.0
-        var currentStrokeIndex = 0
-        var currentPointIndex = 0
 
         // Always add the first point of the first non-empty stroke
         val firstPt = strokes.first { it.isNotEmpty() }.first()

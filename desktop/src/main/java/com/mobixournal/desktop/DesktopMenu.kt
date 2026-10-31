@@ -74,6 +74,11 @@ internal fun HeaderMenu(
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
+    /**
+     * **Search**: the field `Ctrl+F` opens, from the menu as well — a command with a mouse has to be a button
+     * somewhere, and the band's magnifier is the other door ([Header]).
+     */
+    onSearch: () -> Unit = {},
     /** The window's settings, for the Pen block's pressure controls; null in a test with no window. */
     penPolicy: DesktopSettingsState? = null,
 ) {
@@ -113,6 +118,7 @@ internal fun HeaderMenu(
                     onToggleSidebar = { open = false; onToggleSidebar() },
                     onSettings = { open = false; onSettings() },
                     onPenParameters = { open = false; onPenParameters() },
+                    onSearch = { open = false; onSearch() },
                     onDismiss = { open = false },
                     penPolicy = penPolicy,
                 )
@@ -143,6 +149,8 @@ internal fun MenuPanel(
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
+    /** **Search** the document — `Ctrl+F`'s command, from the menu. */
+    onSearch: () -> Unit = {},
     /** Put the panel away — the preset chips close it, because they were reached mid-drawing. */
     onDismiss: () -> Unit = {},
     /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
@@ -194,23 +202,52 @@ internal fun MenuPanel(
         if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss)
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
-        MenuRow(
-            label = if (sidebarVisible) "Hide page list" else "Show page list",
-            glyph = ChromeGlyph.DESCRIPTION,
-            shortcut = "Ctrl+B",
-            enabled = true,
-            onClick = onToggleSidebar,
-        )
-        // The tablet's Settings row, in the window: its own page rather than a card over the sheet, so it
-        // is here with the other commands and not in the chrome it changes.
-        MenuRow(
-            label = "Settings",
-            glyph = ChromeGlyph.SETTINGS,
-            shortcut = "Ctrl+,",
-            enabled = true,
-            onClick = onSettings,
+        MenuWindowRows(
+            sidebarVisible = sidebarVisible,
+            canSearch = canExport,
+            onSearch = onSearch,
+            onToggleSidebar = onToggleSidebar,
+            onSettings = onSettings,
         )
     }
+}
+
+/**
+ * The rows under the menu's second rule: the document's **search**, the page list, and Settings.
+ *
+ * Search comes first because it reads the document, and it is greyed out until one is open — the same
+ * condition the export chips take. Settings is the tablet's own row, its own page rather than a card over
+ * the sheet, so it belongs here with the commands and not in the chrome it changes.
+ */
+@Composable
+private fun MenuWindowRows(
+    sidebarVisible: Boolean,
+    canSearch: Boolean,
+    onSearch: () -> Unit,
+    onToggleSidebar: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    MenuRow(
+        label = "Search",
+        glyph = ChromeGlyph.SEARCH,
+        shortcut = "Ctrl+F",
+        enabled = canSearch,
+        onClick = onSearch,
+    )
+    MenuRow(
+        label = if (sidebarVisible) "Hide page list" else "Show page list",
+        glyph = ChromeGlyph.DESCRIPTION,
+        shortcut = "Ctrl+B",
+        enabled = true,
+        onClick = onToggleSidebar,
+    )
+    MenuRow(
+        label = "Settings",
+        glyph = ChromeGlyph.SETTINGS,
+        shortcut = "Ctrl+,",
+        enabled = true,
+        onClick = onSettings,
+    )
 }
 
 /**

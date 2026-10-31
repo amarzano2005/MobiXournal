@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-search-button"
+title = "Desktop: a search button in the header and in the menu"
+description = "The search field has three doors, all running ShellCommand.FIND: Ctrl+F, the magnifier capsule in the header beside undo/redo (active while the field is up, unavailable with no tab), and a Search row in the hamburger menu under the rule. HeaderSearchSlot and MenuWindowRows were extracted so Header and MenuPanel stay inside the 100-line function budget. Tests: DesktopMenuTest taps the new row (row arithmetic and counters updated), DesktopSearchTest pins Ctrl+F = FIND and that the command opens the field. Docs: docs/desktop-ui-layout.md (band diagram, band contents, key table) and README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop", "search", "ui"]
+
+[[task]]
+id = "desktop-handwriting-search"
+title = "Desktop: search handwritten ink with the shared recogniser"
+description = "Search now reads ink on the PC. The pure half of the recogniser — stroke filtering, line and word segmentation, bounds, templates and FallbackInkEngine — moved to mobix-core with HandwritingIndex and HandwritingRecognizer, behind a one-call seam (InkWordEngine) whose default is the fallback; the app plugs AndroidInkEngine (ML Kit, unchanged order) into InkEngines.platform at startup, and the window never plugs anything. The recogniser gained a per-page recognize() and a PageSource index() that reads one page at a time and answers nothing when cancelled. The window's PageHandwriting recognises a page the first time a query reaches it, HandwritingCache keeps it on the tab until the edit count moves, and DesktopSearchEngine hands it to DocumentSearch. The results section says Searching… while a walk is in flight, because reading ink takes longer than reading text. Tests: core HandwritingEngineTest (PageSource walk, cancellation, platform engine), DesktopSearchTest (a handwritten word found, one recognition for two queries, the reading dropped after an edit)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop", "search"]
+
+[[task]]
 id = "desktop-search-ui"
 title = "Desktop: the header's search field, the results section and the page highlight"
 description = "The band's search capsule (HeaderSearch.kt, with ChromeGlyph.SEARCH added to the shared catalogue) opened by Ctrl+F (ShellCommand.FIND) with Enter/Shift+Enter/Esc, the n / total counter and a clear glyph; results listed under the sidebar's layers (SearchSidebar.kt) where a click goes to the match; the current match painted over the page as chrome (DesktopSearchHighlight.kt, called from PageCanvas) and the count beside the page counter in the status bar. DesktopSearchSceneTest renders the field and the results list to build/desktop-render."

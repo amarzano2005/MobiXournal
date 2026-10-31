@@ -38,6 +38,11 @@ import com.mobixournal.design.ChromeGlyph
 internal fun SearchResultsSection(tab: DesktopTab, onSearchHit: (Int) -> Unit) {
     val search = tab.search
     if (!search.isActive) return
+    // A query typed but not yet answered: the walk reads every page, and reading ink takes longer than
+    // reading text boxes — so "No results" a frame into a search would be a lie about a document still
+    // being read. The old query's rows are held back with it ([SearchRunner] answers one query at a time).
+    val trimmed = tab.searchQuery.trim()
+    val pending = trimmed.length >= DesktopSearchEngine.MIN_QUERY && trimmed != search.query
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
         Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Canvas(Modifier.size(14.dp)) {
@@ -45,16 +50,23 @@ internal fun SearchResultsSection(tab: DesktopTab, onSearchHit: (Int) -> Unit) {
             }
             Spacer(Modifier.width(6.dp))
             Text(
-                when (search.total) {
-                    0 -> "No results"
-                    1 -> "1 result"
-                    else -> "${search.total} results"
+                when {
+                    pending -> "Searching…"
+                    else -> when (search.total) {
+                        0 -> "No results"
+                        1 -> "1 result"
+                        else -> "${search.total} results"
+                    }
                 },
                 color = DesktopTheme.inkSecondary,
                 style = DesktopTheme.eyebrow,
             )
         }
         Spacer(Modifier.height(4.dp))
+        if (pending) {
+            Text("Reading the pages…", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+            return@Column
+        }
         if (search.hits.isEmpty()) {
             // A scanned page and a document with no typed text answer this: the query was searched, it
             // simply matched nothing — saying so is the whole answer.

@@ -66,16 +66,28 @@ internal data class DesktopSearch(
  * Pages are read through [TabPages], which asks the tab's document — its page window — so a 200-page
  * `.mobix` is searched one page at a time and never inflated whole, and the pages being edited are the ones
  * searched (a page's unsaved strokes live in the window, not in the archive).
+ *
+ * Handwriting is searched too ([PageHandwriting]): the models differ between the shells, but a word written
+ * on the page is the document's text on both, so a phrase written on the tablet is found on the PC.
  */
 internal object DesktopSearchEngine {
 
     /** A query shorter than this matches half the document, so it answers nothing instead. */
     const val MIN_QUERY = 2
 
-    fun run(tab: DesktopTab, rawQuery: String): DesktopSearch {
+    fun run(
+        tab: DesktopTab,
+        rawQuery: String,
+        handwriting: PageHandwriting? = null,
+    ): DesktopSearch {
         val query = rawQuery.trim()
         if (query.length < MIN_QUERY) return DesktopSearch(query)
-        val hits = DocumentSearch.find(TabPages(tab.document), { index -> pdfWordsOf(tab, index) }, query)
+        val hits = DocumentSearch.find(
+            TabPages(tab.document),
+            { index -> pdfWordsOf(tab, index) },
+            query,
+            handwriting,
+        )
         return DesktopSearch(query = query, hits = hits)
     }
 
@@ -111,6 +123,9 @@ private class TabPages(private val document: DesktopDocument) : PageSource {
  * viewport or the zoom is what keeps a repaint from walking the document again. The walk runs on
  * [Dispatchers.Default]; the next keystroke cancels the effect and its answer is dropped, so a burst of
  * typing costs one walk per settled query rather than one per letter on screen.
+ *
+ * Handwriting is read through the tab's [HandwritingCache], so the recognised pages survive a keystroke —
+ * which is what keeps a query on a written page as quick as a query on a typed one after the first walk.
  */
 @Composable
 internal fun SearchRunner(tab: DesktopTab?) {
@@ -122,6 +137,7 @@ internal fun SearchRunner(tab: DesktopTab?) {
             tab.search = DesktopSearch(query.trim())
             return@LaunchedEffect
         }
-        tab.search = withContext(Dispatchers.Default) { DesktopSearchEngine.run(tab, query) }
+        val handwriting = tab.handwriting.of(tab)
+        tab.search = withContext(Dispatchers.Default) { DesktopSearchEngine.run(tab, query, handwriting) }
     }
 }

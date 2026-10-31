@@ -1,6 +1,8 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.Tool
 import kotlin.math.abs
@@ -8,9 +10,14 @@ import kotlin.math.max
 
 /**
  * Recognizes handwritten text from drawn stroke ink on document pages.
- * Clusters strokes into lines and words, applies on-device neural recognition via
- * [MlKitInkEngine] (with robust [FallbackInkEngine] fallback), and produces [HandwrittenWord]
- * entries for search.
+ *
+ * Clusters strokes into lines and words and asks an [InkWordEngine] what each word says — the
+ * platform's model where there is one ([InkEngines.platform]), with [FallbackInkEngine] behind it —
+ * and produces [HandwrittenWord] entries for search.
+ *
+ * The **segmentation** is shared and pure: which strokes form a line, where a word breaks, and the box
+ * it occupies are facts about the ink, not about the model reading it. That is why this half lives in
+ * `mobix-core` and the desktop window can search handwriting too, with the fallback engine.
  */
 object HandwritingRecognizer {
 
@@ -54,20 +61,57 @@ object HandwritingRecognizer {
         doc: Document,
         onProgress: ((Int, Int) -> Unit)? = null,
         isCancelled: () -> Boolean = { false },
+        engine: InkWordEngine = InkEngines.platform,
     ): HandwritingIndex {
-        val totalPages = doc.pages.size
-        val pages = doc.pages.mapIndexed { pageIndex, page ->
+        val total = doc.pages.size
+        val pages = ArrayList<List<HandwrittenWord>>(total)
+        for (pageIndex in 0 until total) {
             if (isCancelled()) return HandwritingIndex(emptyList())
-            onProgress?.invoke(pageIndex + 1, totalPages)
-            val inkStrokes = page.layers.flatMap { layer ->
-                layer.elements.filterIsInstance<Stroke>().filter {
-                    it.tool != Tool.ERASER && it.points.size >= MIN_STROKE_POINTS
-                }
-            }
-            recognizePage(inkStrokes, isCancelled)
+            onProgress?.invoke(pageIndex + 1, total)
+            pages.add(recognizePage(inkStrokesOf(doc.pages[pageIndex]), isCancelled, engine))
+        }
+        return HandwritingIndex(pages)
+    }
+
+    /**
+     * Indexes [source] **one page at a time**, materialising each page only long enough to read its ink.
+     *
+     * This is the door a paged `.mobix` needs: a 200-page notebook is recognised page by page, so the
+     * source's own cache window decides what stays in memory. Cancelling mid-walk answers an empty
+     * index — a partial one would silently miss pages, and a caller that gave up has no use for it.
+     */
+    fun index(
+        source: PageSource,
+        onProgress: ((Int, Int) -> Unit)? = null,
+        isCancelled: () -> Boolean = { false },
+        engine: InkWordEngine = InkEngines.platform,
+    ): HandwritingIndex {
+        val total = source.pageCount
+        val pages = ArrayList<List<HandwrittenWord>>(total)
+        for (index in 0 until total) {
+            if (isCancelled()) return HandwritingIndex(emptyList())
+            onProgress?.invoke(index + 1, total)
+            pages.add(recognizePage(inkStrokesOf(source.page(index)), isCancelled, engine))
         }
         if (isCancelled()) return HandwritingIndex(emptyList())
         return HandwritingIndex(pages)
+    }
+
+    /**
+     * The words written on **one already-open page** — what a caller that walks a document itself needs,
+     * so a paged `.mobix` is recognised one page at a time and a page already read is read once.
+     */
+    fun recognize(
+        page: Page,
+        isCancelled: () -> Boolean = { false },
+        engine: InkWordEngine = InkEngines.platform,
+    ): List<HandwrittenWord> = recognizePage(inkStrokesOf(page), isCancelled, engine)
+
+    /** The strokes on [page] that can be handwriting: the pen's and the highlighter's, erasures never. */
+    private fun inkStrokesOf(page: Page): List<Stroke> = page.layers.flatMap { layer ->
+        layer.elements.filterIsInstance<Stroke>().filter {
+            it.tool != Tool.ERASER && it.points.size >= MIN_STROKE_POINTS
+        }
     }
 
     private fun isHandwritingCandidate(stroke: Stroke, b: Bounds): Boolean {
@@ -78,7 +122,11 @@ object HandwritingRecognizer {
     }
 
     /** Recognizes words from a list of strokes on a single page. */
-    fun recognizePage(strokes: List<Stroke>, isCancelled: () -> Boolean = { false }): List<HandwrittenWord> {
+    fun recognizePage(
+        strokes: List<Stroke>,
+        isCancelled: () -> Boolean = { false },
+        engine: InkWordEngine = InkEngines.platform,
+    ): List<HandwrittenWord> {
         val bounded = ArrayList<BoundedStroke>(strokes.size)
         for (stroke in strokes) {
             val b = strokeBounds(stroke)
@@ -95,7 +143,7 @@ object HandwritingRecognizer {
                 val words = groupLineIntoWords(line)
                 for (wordStrokes in words) {
                     if (isCancelled()) return emptyList()
-                    val word = recognizeWord(wordStrokes)
+                    val word = recognizeWord(wordStrokes, engine)
                     if (word != null && word.text.isNotEmpty()) {
                         add(word)
                     }
@@ -150,24 +198,18 @@ object HandwritingRecognizer {
         return words
     }
 
-    private fun recognizeWord(wordStrokes: List<Stroke>): HandwrittenWord? {
+    /**
+     * What the word [wordStrokes] say: the engine's reading, or [FallbackInkEngine]'s when the engine
+     * has none (a model still downloading, a runtime with no model at all).
+     */
+    fun recognizeWord(
+        wordStrokes: List<Stroke>,
+        engine: InkWordEngine = InkEngines.platform,
+    ): HandwrittenWord? {
         if (wordStrokes.isEmpty()) return null
         val bounds = computeWordBounds(wordStrokes)
-
-        // 1. Try ML Kit Digital Ink Recognition if available on device
-        if (MlKitInkEngine.isAvailable()) {
-            val mlCandidates = MlKitInkEngine.recognizeWord(wordStrokes)
-            if (mlCandidates.isNotEmpty()) {
-                return HandwrittenWord(
-                    text = mlCandidates.first(),
-                    bounds = bounds,
-                    confidence = 1.0,
-                    candidates = mlCandidates.take(5),
-                )
-            }
-        }
-
-        // 2. Fallback to robust offline template engine when ML Kit is unavailable
+        val read = engine.recognize(wordStrokes, bounds)
+        if (read != null && read.text.isNotEmpty()) return read
         return FallbackInkEngine.recognizeWord(wordStrokes, bounds)
     }
 

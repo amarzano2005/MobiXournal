@@ -26,7 +26,7 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * The overflow menu as the mobile bar draws it: four tiles, two rows of chips (the PDF pair in the
- * document red, the page pair in the accent), the page list under a rule.
+ * document red, the page pair in the accent), then the search and the page list under a rule.
  *
  * A `Popup` cannot be rendered in a headless scene, which is why the panel is its own composable
  * (`MenuPanel`) and this draws it directly. The clicks use [MenuMetrics] — the very numbers the layout
@@ -39,14 +39,14 @@ class DesktopMenuTest {
     @get:Rule
     val temp = TemporaryFolder()
 
-    private val counters = IntArray(9)
+    private val counters = IntArray(10)
 
     private val width = MenuMetrics.width.value
     /** The scene fits the panel, Pen block included — a row clipped by the frame cannot be clicked. */
     private val height: Float = with(MenuMetrics) {
         (
             padding * 2 + tileHeight + sectionGap + chipsHeight + sectionGap + dividerHeight +
-                rowHeight + sectionGap + dividerHeight + rowHeight * 2
+                rowHeight + sectionGap + dividerHeight + rowHeight * 3
             ).value + 4f
     }
 
@@ -62,7 +62,8 @@ class DesktopMenuTest {
             tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
             tap(scene, chipCentre(0), chipCentreY(row = 1), at); at += 512L
             tap(scene, chipCentre(1), chipCentreY(row = 1), at); at += 512L
-            tap(scene, width / 2f, rowCentreY(), at)
+            tap(scene, width / 2f, rowCentreY(row = 0), at); at += 512L
+            tap(scene, width / 2f, rowCentreY(row = 1), at)
 
             assertEquals("New", 1, counters[NEW])
             assertEquals("Open", 1, counters[OPEN])
@@ -72,6 +73,7 @@ class DesktopMenuTest {
             assertEquals("Export PDF", 1, counters[PDF])
             assertEquals("Export PNG", 1, counters[PNG])
             assertEquals("Export SVG", 1, counters[SVG])
+            assertEquals("the search row", 1, counters[SEARCH])
             assertEquals("the page list's row", 1, counters[SIDEBAR])
         } finally {
             scene.close()
@@ -251,6 +253,7 @@ class DesktopMenuTest {
                     onExportPng = { counters[PNG]++ },
                     onImportPdf = { counters[IMPORT]++ },
                     onToggleSidebar = { counters[SIDEBAR]++ },
+                    onSearch = { counters[SEARCH]++ },
                     onSettings = {},
                 )
             }
@@ -272,14 +275,14 @@ class DesktopMenuTest {
     }
 
     /**
-     * The page-list row, by the panel's own arithmetic: the tiles, the two chip rows, the rule, the
-     * **Pen heading** (its block is the shell's settings, absent in this test), the second rule, then the
-     * row.
+     * A plain row under the second rule, by the panel's own arithmetic: the tiles, the two chip rows, the
+     * rule, the **Pen heading** (its block is the shell's settings, absent in this test), the second rule,
+     * then the rows — **Search** first, the page list under it, Settings last.
      */
-    private fun rowCentreY(): Float = with(MenuMetrics) {
+    private fun rowCentreY(row: Int): Float = with(MenuMetrics) {
         (
             padding + tileHeight + sectionGap + chipsHeight + sectionGap + dividerHeight +
-                rowHeight + sectionGap + dividerHeight + rowHeight / 2
+                rowHeight + sectionGap + dividerHeight + rowHeight / 2 + rowHeight * row
             ).value
     }
 
@@ -324,6 +327,7 @@ class DesktopMenuTest {
         const val PNG = 6
         const val SVG = 7
         const val SIDEBAR = 8
+        const val SEARCH = 9
 
         /** Anything at or above this tone is a glyph stroke: the chrome ink is pure white. */
         const val INK_FLOOR = 0x909090

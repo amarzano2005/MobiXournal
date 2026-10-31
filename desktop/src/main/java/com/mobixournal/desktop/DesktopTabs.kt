@@ -186,6 +186,13 @@ class DesktopTab(
      */
     internal var searchOpen: Boolean by mutableStateOf(false)
 
+    /**
+     * What the tab's ink says, recognised **once per page** and thrown away when the document is edited
+     * ([HandwritingCache]): the search asks this before it walks the pages, so a written page costs its
+     * recognition on the first query and nothing after that.
+     */
+    internal val handwriting = HandwritingCache()
+
     /** The layers switched off on [page] — the set the painter and the thumbnails skip. */
     fun hiddenOn(page: Int): Set<Int> = hidden[page].orEmpty()
 

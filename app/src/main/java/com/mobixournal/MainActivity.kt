@@ -423,6 +423,9 @@ class MainActivity : ComponentActivity() {
         PDFBoxResourceLoader.init(applicationContext)
         BitmapBudget.configure(applicationContext)
         com.mobixournal.render.MlKitInkEngine.ensureModelDownloaded()
+        // The shell plugs its handwriting engine once: every recognition after this — the search
+        // index, spoken-to-ink — reads through ML Kit, with the shared fallback behind it.
+        com.mobixournal.render.InkEngines.platform = com.mobixournal.render.AndroidInkEngine
         audioFolder = initialSettings.audioFolderUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
         audio.onStateChanged = { runOnUiThread { audioTick.value++ } }
         takeIncoming(intent)

@@ -96,6 +96,9 @@ internal fun DesktopShell(
             onSearchNext = { state.stepSearch(forward = true) },
             onSearchPrevious = { state.stepSearch(forward = false) },
             onSearchClose = { state.closeSearch() },
+            // The band's magnifier and the menu's Search row: the same command `Ctrl+F` runs, so the key,
+            // the button and the menu row cannot drift apart.
+            onSearchOpen = { state.apply(ShellCommand.FIND) },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             // The page is always drawn: Settings is a **floating surface** over it, not a second window

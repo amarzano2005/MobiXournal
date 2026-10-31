@@ -10,10 +10,17 @@ import kotlin.math.sqrt
 /**
  * Pure Kotlin, offline-capable handwriting recognizer used as a robust fallback
  * when ML Kit models are downloading or in environments without ML Kit.
+ *
+ * It lives in `mobix-core` because it needs nothing but Kotlin: the tablet keeps it as its safety net
+ * and the desktop window, which has no model at all, reads ink with exactly this engine — so a search
+ * on the PC and a search on the tablet agree about what the ink says.
  */
-object FallbackInkEngine {
+object FallbackInkEngine : InkWordEngine {
 
     private const val N_POINTS = 32
+
+    override fun recognize(strokes: List<Stroke>, bounds: Bounds): HandwrittenWord? =
+        recognizeWord(strokes, bounds)
 
     /**
      * Recognizes a handwritten word from a group of strokes, returning a [HandwrittenWord]

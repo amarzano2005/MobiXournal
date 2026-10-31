@@ -19,10 +19,10 @@ import java.util.Locale
  * and never inflated whole (`docs/desktop-workstation.md`, the lazy walk).
  *
  * Four kinds of text are searched: authored text boxes, **math blocks** (a formula's source, so a
- * written `\frac{1}{2}` can be found again), an imported background PDF's text layer, and — when the
- * shell has a recogniser — handwritten ink ([SearchableHandwriting]). The recogniser itself is the
- * app's, because reading ink needs Android; the interface is the seam, so this engine has no opinion
- * about how ink became words.
+ * written `\frac{1}{2}` can be found again), an imported background PDF's text layer, and handwritten ink
+ * ([SearchableHandwriting]). Only the *reading* of ink is platform-specific ([InkWordEngine]): the tablet
+ * plugs ML Kit's model in, the window keeps the pure fallback, and this engine has no opinion about which
+ * one answered.
  */
 
 /** One search match in page-local point geometry, ready for highlight painting and navigation. */

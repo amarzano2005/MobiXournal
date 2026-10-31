@@ -79,6 +79,11 @@ internal fun Header(
     onSearchNext: () -> Unit = {},
     onSearchPrevious: () -> Unit = {},
     onSearchClose: () -> Unit = {},
+    /**
+     * The magnifier capsule beside the history steps: the same command `Ctrl+F` runs, for a reader using a
+     * mouse. **Unavailable with no tab** — a search over nothing has nothing to search.
+     */
+    onSearchOpen: () -> Unit = {},
 ) {
     val tab = tabs.active
     Row(
@@ -105,6 +110,7 @@ internal fun Header(
             onSettings = onSettings,
             onPenParameters = onPenParameters,
             penPolicy = penPolicy,
+            onSearch = onSearchOpen,
         )
         Spacer(Modifier.width(10.dp))
         TabStrip(
@@ -115,12 +121,7 @@ internal fun Header(
             onNew = onNew,
             modifier = Modifier.weight(1f),
         )
-        // The search field takes the band's spare width while it is up: it sits beside the tabs, so
-        // opening a search never moves the tabs or the file commands (`docs/desktop-ui-layout.md`).
-        if (tab?.searchOpen == true) {
-            Spacer(Modifier.width(10.dp))
-            HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
-        }
+        HeaderSearchSlot(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose, onSearchOpen)
         // Two groups, not one row of four: the history step and the file command are answered by
         // different questions ("what did I just do" and "where does this go"), and the wider gap is the
         // whole of the difference this band has room to draw.
@@ -152,6 +153,36 @@ private fun HeaderFileCommands(tab: DesktopTab?, onSave: () -> Unit, onExportPdf
         colour = DesktopTheme.documentRed,
         onClick = onExportPdf,
     ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
+}
+
+/**
+ * The search's two pieces on the band: its **field** while it is up, and its **magnifier** always.
+ *
+ * The field takes the band's spare width beside the tabs, so opening a search never moves the tabs or the
+ * file commands (`docs/desktop-ui-layout.md`). The magnifier is the door for a mouse — until it existed,
+ * `Ctrl+F` was the only way in — and it reads *active* while its field is up, beside the history steps it
+ * sits with: all three change what the page shows rather than what the file holds.
+ */
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
+    tab: DesktopTab?,
+    onSearch: (String) -> Unit,
+    onSearchNext: () -> Unit,
+    onSearchPrevious: () -> Unit,
+    onSearchClose: () -> Unit,
+    onSearchOpen: () -> Unit,
+) {
+    if (tab?.searchOpen == true) {
+        Spacer(Modifier.width(10.dp))
+        HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+    }
+    Spacer(Modifier.width(12.dp))
+    HeaderGlyph(
+        active = tab?.searchOpen == true,
+        enabled = tab != null,
+        onClick = onSearchOpen,
+    ) { color -> drawChromeGlyph(ChromeGlyph.SEARCH, color) }
+    Spacer(Modifier.width(6.dp))
 }
 
 /** The two history steps, which answer "what did I just do" rather than "where does this go". */

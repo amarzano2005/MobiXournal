@@ -19,10 +19,10 @@ boxes to paint — and the three sources are consulted in one pass over a page:
 - **Handwritten ink**: the page's `HandwritingIndex` words, matched by the rules below.
 
 The engine is `mobix-core`'s, and both shells call it: the tablet's field and the PC window match the same
-things at the same places. The handwriting half is an interface (`SearchableHandwriting`) rather than a
-type of the engine's, because reading ink needs Android and the window has no recogniser. A hit carries a
-`snippet` — the matched line, words or formula, cut to a row — beside its boxes, which is what a results
-list prints.
+things at the same places — **handwriting included**. What is platform-specific is only the *reading* of a
+word (`InkWordEngine`), not the segmentation around it: the tablet plugs ML Kit's model in, the window keeps
+the pure `FallbackInkEngine`. A hit carries a `snippet` — the matched line, words or formula, cut to a row —
+beside its boxes, which is what a results list prints.
 
 ## The window's field, results and highlight
 
@@ -36,8 +36,15 @@ selection's translucency.
 Two things are the window's own. Pages are read through the **tab's document** (`TabPages`), so the pages
 being edited are the pages searched, unsaved strokes included. And the PDF half is keyed by each page's
 **own** `Background.Pdf.pageNo`: the window reorders pages, so document page *n* is not PDF page *n*, and a
-single index passed by position would highlight the wrong words. Handwriting is not searched on the PC —
-that needs a recogniser, and the window has none.
+single index passed by position would highlight the wrong words.
+
+Ink is read **lazily and once**: `PageHandwriting` recognises a page the first time a query reaches it, and
+`HandwritingCache` keeps that reading on the tab until the document's edit count moves — a query typed letter
+by letter recognises a written page once, and an edited page is read again. There is no upfront index on the
+PC (the tablet builds one, see below): a search costs the pages it reads, never the whole notebook.
+
+The field has three doors, all running the same `ShellCommand.FIND`: `Ctrl + F`, the magnifier capsule in the
+band beside undo/redo, and the menu's **Search** row.
 
 ## How a handwritten word matches
 
@@ -56,17 +63,19 @@ of those rules is a case in `DocumentSearchTest`, including the near miss that m
 
 ## The index and its two engines
 
-`HandwritingIndex.build` recognises the pages ahead of the first query and keeps the **words**, not the
-strokes, because a word is what search and its highlight boxes need. `HandwritingRecognizer` does the work:
+`HandwritingIndex.build` recognises the pages ahead of the first query — from a `Document` or, one page at a
+time, from a `PageSource` — and keeps the **words**, not the strokes, because a word is what search and its
+highlight boxes need. `HandwritingRecognizer` does the work, in `mobix-core`:
 
 - strokes are filtered first — a minimum number of points and extent — so a tap, a full-width divider or a
   diagram's arrow is never read as a letter;
 - bounds are computed once per stroke (`BoundedStroke`) and grouped into lines by a running centroid and
   average height (`LineCluster`), which keeps two close lines from collapsing into one;
 - a line is split into words at its horizontal gaps;
-- a word goes to **ML Kit Digital Ink Recognition** (`MlKitInkEngine`) when that engine reports itself
-  available, and to the pure-Kotlin `FallbackInkEngine` otherwise: no Play Services, a model still
-  downloading, or a JVM test without an Android runtime.
+- a word goes to the shell's engine (`InkEngines.platform`, which the tablet sets to ML Kit's digital-ink
+  model at startup) and to the pure-Kotlin `FallbackInkEngine` when that engine returns nothing: no Play
+  Services, a model still downloading, or a JVM test without an Android runtime. The window never sets a
+  platform engine, so its words come from the fallback.
 
 ## Indexing never blocks the canvas
 
@@ -86,5 +95,10 @@ multi-word phrase, and the shorter word that shares a suffix and must stay unmat
 `HandwritingRecognizerTest` covers the recogniser itself: single characters, words grouped by gap, separate
 lines, an index built from a document, a cursive connection, cancellation, the minimum-stroke filter, and a
 timed 50-word indexing run whose one assertion is that the index came out with text in it.
+`HandwritingEngineTest` (core) pins the seam: a `PageSource` is walked page by page, cancellation answers no
+index, and `recognizeWord` asks `InkEngines.platform` unless a caller names an engine. On the window,
+`DesktopSearchTest` finds a handwritten word through a fake engine, recognises a page once for two queries,
+and throws the reading away when the document is edited.
 
-The shared module is not involved: search reads the format model, and both engines are Android-side.
+The shared module owns the segmentation and the fallback engine; only the model-backed reading stays in
+`app/` with ML Kit.
