@@ -92,6 +92,13 @@ first point, because Windows asks `HasCurrent` before it ever moves.
 `WinInkTest` is the live probe (it skips, rather than fails, where the handwriting feature is absent): it
 asserts the model answers on print and on a connected line, and that the shared seam hands a word back.
 
+A reading that looks wrong in a real notebook is measured, not guessed: `MobiXournal.exe --probe-handwriting
+"<file>"` (`HandwritingProbe.kt`) opens nothing on screen and prints, page by page, the stroke count, the
+median stroke height, the model's words with their boxes and the pure engine's beside them — so "the model
+is not plugged in", "the model reads it as this" and "the ink never reached either reader" are three
+different answers instead of one complaint. It runs from the packaged executable on purpose: that runtime is
+where the bridge can fail while every JVM test passes.
+
 ## Indexing never blocks the canvas
 
 `DrawingSurfaceView` owns the index and one background executor. Every request bumps `indexingGeneration`;

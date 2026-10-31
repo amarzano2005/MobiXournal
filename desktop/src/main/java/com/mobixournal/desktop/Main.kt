@@ -50,6 +50,9 @@ internal const val PROBE_INK = "--probe-ink"
 /** The argument that measures the paint cost of scrolling and zooming (`ScrollProbe`). */
 internal const val PROBE_SCROLL = "--probe-scroll"
 
+/** The argument that prints what the two ink readers make of a document (`HandwritingProbe`). */
+internal const val PROBE_HANDWRITING = "--probe-handwriting"
+
 /**
  * The probe window: pointer, wheel, key, pen and dial rows written to `tablet-probe.csv` beside the
  * running directory, with the keys observed at the window because that is where a tablet button arrives.
@@ -131,6 +134,14 @@ fun main(args: Array<String>) {
     val scroll = args.indexOf(PROBE_SCROLL)
     if (scroll >= 0) {
         runScrollProbe(initialDocument(args.drop(scroll + 1).toTypedArray(), raw))
+        return
+    }
+    // What the ink readers make of a document, printed and nothing opened: `--probe-handwriting
+    // "La mia nota.xopp"` is how a handwriting reading is checked in the packaged runtime, where the
+    // bridge can fail while the JVM tests pass (`docs/search.md`).
+    val handwriting = args.indexOf(PROBE_HANDWRITING)
+    if (handwriting >= 0) {
+        runHandwritingProbe(initialDocument(args.drop(handwriting + 1).toTypedArray(), raw))
         return
     }
     val initial = initialDocument(args, raw)
