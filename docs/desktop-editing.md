@@ -88,3 +88,48 @@ selection drag is **not ink**, so `DesktopTool.inksByPackets()` stays false for 
 stand aside and a stylus in proximity still reaches the drag through the Compose pointer. A selection carries
 the tablet's **action bar** under its outline, and the **pencil** on it opens the selected living element in
 the inspector lane — both owned by [selection.md](selection.md).
+
+## Reading a PDF page: text selection and the magnetic highlighter
+
+Two gestures treat a PDF page as **text** rather than as paper, and neither writes to the file:
+
+- **Select text (PDF)** (`Shift+S`) is the tablet's slot: the press anchors
+  `PdfTextIndex.anchorWord` — inside the word under the pointer, else the nearest one — and the drag
+  extends the focus word on the same page, so the range is the page's own reading order. The overlay
+  washes each word box (`drawPdfTextSelection`), `Ctrl+C` or the selection's **Copy** bar puts
+  `rangeText` on the system clipboard, and `Esc`, a click off the text or a page change drops it. It is
+  **view state**: no page edit, no undo step, and a select-copy-save leaves the file byte-identical.
+- **The highlighter is magnetic** over a page whose background is a PDF with a text layer: while the
+  drag crosses text, `MagneticHighlighter.bands` are previewed as flat bands **in place of** the freehand
+  path (`PenPointer.pdfBands`), and the lift commits `MagneticHighlighter.strokes` — ordinary two-point
+  constant-width highlighter ink, one undo step. Too short, too steep, over no text or across more than
+  `MAX_LINES` lines and the freehand stroke commits unchanged; a page with no text layer (a `.mobix`, a
+  photograph, a scan) behaves exactly as before. Both doors — the Compose pointer and the tablet's
+  packet stream — publish the same bands, so a stylus snaps like a mouse.
+
+Both read the document's one index (`DesktopPdfIndex`, published by `PdfIndexLoader` off the UI thread)
+and resolve a page's words by its `Background.Pdf.pageNo`, never by the document's page order
+(`DesktopPdfTextSelectionTest`, `DesktopMagneticHighlightTest`).
+
+## Images: insertion, clipboard, drop and aspect-ratio handles
+
+Images are living document elements (ImageElement) on the active layer:
+
+- **Three entry paths**:
+  - **Tool strip**: The image slot (Picture icon) opens a file dialog filtering PNG and JPEG.
+  - **System clipboard**: Ctrl+V (or the selection bar's paste button) ingests an image from the OS
+    clipboard (DataFlavor.imageFlavor) when the internal selection clipboard is empty.
+  - **Drag-and-drop**: Dropping an image file onto the window displays a hover overlay and places the
+    element on the page. Dropping a PDF or notebook routes to document open or PDF append workflows.
+- **Placement geometry**: Initial placement preserves the image's native aspect ratio, sized to fit
+  comfortably within the visible page bounds and recorded as a single undo step.
+- **Selection and aspect-ratio handles**:
+  - Selecting a single ImageElement displays four corner squares and four edge-midpoint handles (rotate handle
+    is suppressed, matching the format's unrotated image model).
+  - **Corner handles**: Dragging a corner handle resizes the element preserving its aspect ratio by default.
+    Holding Shift unlocks the aspect ratio for free non-uniform scaling (and vice-versa for non-image elements).
+  - **Edge handles**: Dragging an edge handle stretches only the dragged axis (anchor is the opposite edge).
+  - **Non-resampling**: Scaling modifies bounding box coordinates (left, top, right, bottom) without decoding,
+    re-encoding, or resampling raw image bytes, recording one undo step per gesture.
+- **Round-trip fidelity**: Preserved losslessly in both .mobix and .xopp containers under the sticky
+  per-document format policy.

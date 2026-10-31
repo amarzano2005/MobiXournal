@@ -1,9 +1,9 @@
 <resources>
-    <!-- The launcher background: deep navy blue field providing high contrast for the
-         white grid paper sheet and electric blue stylus ink mark. -->
-    <color name="ic_launcher_background">#16203B</color>
+    <!-- The launcher background: dark header charcoal (#161618) by default, white (#FFFFFF) in light mode. -->
+    <color name="ic_launcher_background">#161618</color>
+    <color name="ic_launcher_light_background">#FFFFFF</color>
 
     <!-- Splash screen window background colors -->
     <color name="splash_background_light">#FFFFFF</color>
-    <color name="splash_background_dark">#0F172A</color>
-</resources>
+    <color name="splash_background_dark">#161618</color>
+</resources>

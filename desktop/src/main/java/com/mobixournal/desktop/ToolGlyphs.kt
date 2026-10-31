@@ -118,6 +118,8 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.VERTICAL_SPACE -> ToolGlyph.VSPACE
         DesktopTool.LASSO -> ToolGlyph.LASSO
         DesktopTool.MARQUEE -> ToolGlyph.MARQUEE
+        // The catalogue's I-beam over a sheet — the tablet's own picture of its PDF text tool.
+        DesktopTool.PDF_TEXT_SELECT -> ToolGlyph.SELECT_TEXT
         DesktopTool.TEXT -> ToolGlyph.TEXT
         // The catalogue's own Audio Tap / Replay mark: the play triangle both shells draw.
         DesktopTool.AUDIO -> ToolGlyph.PLAY

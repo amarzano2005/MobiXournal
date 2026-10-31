@@ -34,6 +34,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
@@ -239,11 +240,11 @@ internal fun sheetLayout(
 ): SheetLayout {
     val pageW = page.width.toFloat()
     val pageH = page.height.toFloat()
-    val zoom = tab.fit.zoomFor(pageW, pageH, viewW - chrome.width, viewH - chrome.height)
-        ?: tab.viewport.zoom
+    val zoom = tab.fit.zoomFor(pageW, pageH, viewW - chrome.width, viewH - chrome.height) ?: tab.viewport.zoom
     // A fitted page is re-centred every layout pass; a free one keeps its own offsets, clamped.
     val viewport = tab.viewport.copy(zoom = zoom).inChrome(chrome, pageW, pageH, viewW, viewH)
     LaunchedEffect(zoom, viewW, viewH, tab.fit) {
+        tab.viewWidth = viewW; tab.viewHeight = viewH
         if (tab.fit != FitMode.NONE && tab.viewport.zoom != zoom) {
             tab.viewport = tab.viewport.copy(zoom = zoom)
         }
@@ -344,10 +345,13 @@ internal fun SheetCanvas(
             selection = tab.selection,
             previewRegion = pointer.previewRegion.value,
             previewLiving = pointer.previewLiving.value,
+            pdfBands = pointer.pdfBands.value,
             paintProbe = paintProbe,
             skip = editingText,
             karaoke = karaoke,
         )
+        // A PDF text selection is chrome above the sheet, in the page's own space like the marquee.
+        drawSelectedPdfText(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density)
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings are
         // taken **here**, in the draw scope, so a hover reading repaints the sheet and never recomposes it.
         val ring = mark.ringPx ?: return@Canvas
@@ -469,6 +473,8 @@ private fun DrawScope.paintSheet(
     previewRegion: SelectionRegion? = null,
     /** The living element a placement drag is drawing right now, if any — a component being pulled out. */
     previewLiving: Element? = null,
+    /** The magnetic highlighter's bands, which replace the freehand preview while a drag snaps. */
+    pdfBands: List<MagneticHighlighter.Band> = emptyList(),
     /** The ink probe's sink; null in the editor. Called after the ink, at the same clock reading. */
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     /** The element the in-place field is retyping, left out of the recorded sheet. */
@@ -512,6 +518,7 @@ private fun DrawScope.paintSheet(
             connectorKind = connectorKind,
             drafts = drafts,
             previewLiving = previewLiving,
+            pdfBands = pdfBands,
             selection = selection,
             previewRegion = previewRegion,
             grabLineY = grabLineY,
@@ -531,116 +538,6 @@ private fun DrawScope.paintSheet(
     // And the same frame, for the status bar: the watchdog writes a file nobody reads unless it is told to,
     // the meter answers the question a reader asks when a stroke feels late (`FrameMeter`).
     FrameMeter.painted()
-}
-
-/**
- * The tablet's packets, drawing this canvas's stroke.
- *
- * The gesture is the canvas's **own**, not the one `pageGestures` builds per pointer gesture: a packet
- * stream has no beginning and no end to wrap, it simply stops when the pen lifts. Everything else is the
- * shared path — `PenPacketStroke` converts, `PageInkGesture` routes, the router and the pressure filter
- * decide — and this only keeps the subscription tied to the canvas's lifetime, plus the tick that finishes a
- * stroke whose packets stop arriving.
- *
- * [draft] is the pen's **own** list: the Compose pointer keeps [PageCanvas]'s other draft, so the emulated
- * mouse neither begins, extends nor ends this stroke.
- */
-@Composable
-internal fun PenPacketStrokes(
-    tab: DesktopTab,
-    tool: DesktopTool,
-    ink: DesktopInk,
-    density: Float,
-    pageW: Float,
-    pageH: Float,
-    viewport: Viewport,
-    draft: SnapshotStateList<InkSample>,
-    onEdited: (Int) -> Unit,
-    origin: () -> Offset,
-    extent: () -> Size,
-    owns: MutableState<Boolean>,
-    /** Where the driver last put the pen, in this canvas's pixels — the ring follows it. */
-    hover: MutableState<Offset?>,
-    /** When that reading arrived, so a mouse move can tell whether the driver is still talking. */
-    penAtNanos: MutableState<Long>,
-    packets: PenPacketSource?,
-) {
-    // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
-    val liveViewport by rememberUpdatedState(viewport)
-    val gesture = remember(tab, tool, ink, pageW, pageH) {
-        // `startOnDown = true`: a pen on the glass starts its stroke at the press, so a touch that never
-        // travels is a dot and a very light stroke is not mistaken for a click.
-        PageInkGesture(
-            tab = tab,
-            tool = tool,
-            ink = ink,
-            view = { liveViewport },
-            pageW = pageW,
-            pageH = pageH,
-            density = density,
-            draft = draft,
-            onEdited = onEdited,
-            startOnDown = true,
-        )
-    }
-    // One ring update per frame, not one per packet: the driver sends 400 readings a second and each
-    // write to [hover] repaints the canvas.
-    val showAt: (Offset?) -> Unit = { at ->
-        if (hover.value != at) hover.value = at
-        penAtNanos.value = System.nanoTime()
-    }
-    val stroke = remember(gesture) {
-        PenPacketStroke(
-            gesture = gesture,
-            origin = origin,
-            size = extent,
-            onOwnership = { owns.value = it },
-            onHover = showAt,
-        )
-    }
-    DisposableEffect(packets, stroke) {
-        val stop = packets?.listen(stroke::packet)
-        // Leaving the packet path mid-stroke (a slot switch, a page change) must hand the pen back: the
-        // ownership flag is what stands the Compose gesture aside, and a flag stuck on `true` would leave
-        // the next slot's drag — a figure, a grab line — unable to start at all.
-        onDispose {
-            stop?.invoke()
-            owns.value = false
-        }
-    }
-    // One publish per frame: the packets buffered since the last repaint are handed to the gesture
-    // here, so 400 packets a second cost one invalidation per frame instead of 400 — and the same
-    // point also notices a pen lifted without its last packet, which must not leave a stroke half drawn,
-    // and a tip that has come to rest, whose figure the dwell puts in place of the preview.
-    LaunchedEffect(stroke) {
-        // The silence that ends a stroke is *absence*, and absence produces no packets to wait for — so it
-        // is a timer, not a frame. It runs on `delay`, which asks for no repaint at all.
-        launch {
-            while (true) {
-                delay(PenPacketStroke.STALE_CHECK_MS)
-                val now = System.nanoTime()
-                // Rest is the one event with no *move* to wait for — a held pen repeats its position, or
-                // says nothing — so this silent timer is what lets a dwell replace the preview (`ShapeDwell`).
-                gesture.dwellCheck(now)
-                stroke.finishIfStale(now)
-            }
-        }
-        // Frames are **asked for by packets**, never by a loop: a `withFrameNanos` loop that never ends
-        // renders the window at the display's full rate for ever — measured at ~120 fps on a window with
-        // nothing happening, which on a 21:9 sheet is what starved the message thread and read as the
-        // window freezing. One token per batch means the ink still costs at most one frame per screen.
-        //
-        // The batch is applied **here**, not after the next frame (`withFrameNanos { flush() }` used to
-        // sit between the two): a resumed frame awaiter is dispatched back to this thread *after* that
-        // frame has been drawn, so waiting for it spent a frame and the ink landed on the one following.
-        // Measured on a 120 Hz display: 12.45 ms median / 16.82 ms p95, which is two 8.33 ms frames.
-        // Writing the samples now invalidates the canvas, and Compose paints it at the very next frame.
-        while (true) {
-            stroke.awaitPacket()
-            stroke.flush()
-            stroke.publishHover()
-        }
-    }
 }
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */

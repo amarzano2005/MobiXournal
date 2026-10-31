@@ -382,6 +382,45 @@ class DesktopSaveTest {
         )
     }
 
+    /**
+     * Saving a document that has not yet been written to disk (a new blank document or a newly imported PDF
+     * tab) opens the Save As picker instead of silently writing to the default `Untitled` path; once saved,
+     * subsequent Saves write directly back to the chosen file.
+     */
+    @Test
+    fun saveOnAnUnsavedDocumentActsAsSaveAsUntilSaved() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            val tab = state.tabs.active!!
+            assertTrue("a new tab starts unsaved", tab.unsaved)
+
+            var pickerOpened = 0
+            assertTrue(
+                "Save is handled on a new document",
+                state.apply(ShellCommand.SAVE, onSavePicker = { pickerOpened++ }),
+            )
+            assertEquals("and it opens the Save As picker instead of writing silently", 1, pickerOpened)
+            assertFalse("nothing was written without the user's answer", tab.file.exists())
+
+            val target = File(temp.root, "first-save.mobix")
+            state.saveAs(target, SaveFormat.MOBIX)
+            assertFalse("after Save As, the tab is saved on disk", tab.unsaved)
+            assertFalse("and clean", tab.isDirty)
+
+            // Make a new edit: now Save writes straight back without opening the picker.
+            tab.record(tab.document.snapshot())
+            tab.document.editPage(0) { page ->
+                val layer = page.layers.first()
+                page.copy(layers = listOf(layer.copy(elements = layer.elements + SyntheticNotebook.stroke(10.0, "s1"))))
+            }
+            assertTrue(state.apply(ShellCommand.SAVE, onSavePicker = { pickerOpened++ }))
+            assertEquals("subsequent Save does not open Save As", 1, pickerOpened)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
     // ---- fixtures ----------------------------------------------------------------------------
 
     /** [document] with one more stroke on its first page — an edit, as the page window will make one. */

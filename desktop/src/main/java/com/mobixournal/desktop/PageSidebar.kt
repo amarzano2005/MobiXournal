@@ -101,17 +101,17 @@ fun PageSidebar(
     onRemovePages: (Set<Int>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberLazyListState()
+    val listState = remember(tab) {
+        LazyListState(firstVisibleItemIndex = tab.page.coerceIn(0, (tab.pageCount - 1).coerceAtLeast(0)))
+    }
     val current = tab.page
     val drag = remember(listState) { PageDragHandle(listState) }
     val density = LocalDensity.current
     val edgePx = with(density) { PageDragMetrics.EDGE.toPx() }
     val maxStepPx = with(density) { PageDragMetrics.MAX_STEP.toPx() }
-    // A pick is the row's own state — view state, never the document's (`PageSelection`).
-    var picked by remember(tab) { mutableStateOf(PageSelection()) }
-    val selection = picked.sanitized(tab.pageCount)
+    val selection = tab.pickedPages.sanitized(tab.pageCount)
 
-    PageListScrolling(listState, tab, current, drag, edgePx, maxStepPx)
+    PageListScrolling(listState, drag, edgePx, maxStepPx)
 
     Column(
         modifier
@@ -151,7 +151,7 @@ fun PageSidebar(
                     cache = cache,
                     drag = drag,
                     onPick = { ctrl, shift ->
-                        picked = PageSelectionRules.click(selection, index, ctrl, shift, tab.pageCount)
+                        tab.pickedPages = PageSelectionRules.click(selection, index, ctrl, shift, tab.pageCount)
                         onSelectPage(index)
                     },
                     onRemovePage = onRemovePage,
@@ -170,33 +170,31 @@ fun PageSidebar(
                 count = selection.pages.size,
                 onDelete = {
                     onRemovePages(selection.pages)
-                    picked = PageSelection()
+                    tab.pickedPages = PageSelection()
                 },
-                onClear = { picked = PageSelection() },
+                onClear = { tab.pickedPages = PageSelection() },
             )
         }
+        // The PDF's own Contents, under the layers: navigation only, and only for a PDF that has one.
+        PdfContentsSection(tab) { index -> onSelectPage(index) }
     }
 }
 
 /**
- * The list's two scrolls, in one place: the row the page in view sits on, and the edge a drag holds
- * against so a page from the top of a long PDF can be dropped at the bottom without letting go.
+ * The edge a drag holds against so a page from the top of a long PDF can be dropped at the bottom without
+ * letting go.
  *
- * The auto-scroll steps **one frame at a time**, so the rows the drop target is computed from are always
- * the rows the reader sees.
+ * Selecting a row in the sidebar deliberately does **not** scroll the list (`animateScrollToItem` used to
+ * pull the clicked row to the top of the carousel); the list stays at the reader's scroll position and
+ * steps only one frame at a time while a drag is against the edge.
  */
 @Composable
 private fun PageListScrolling(
     listState: LazyListState,
-    tab: DesktopTab,
-    current: Int,
     drag: PageDragHandle,
     edgePx: Float,
     maxStepPx: Float,
 ) {
-    LaunchedEffect(tab, current) {
-        if (current in 0 until tab.pageCount) listState.animateScrollToItem(current)
-    }
     LaunchedEffect(drag.active) {
         while (drag.active) {
             withFrameNanos { }

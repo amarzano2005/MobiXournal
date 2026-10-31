@@ -447,6 +447,10 @@ object DocumentLoader {
         "This file looks like $what (${kind.name.lowercase()}), not a MobiXournal document. " +
             "This preview opens .xopp (gzip or ZIP) and .mobix."
 
+    /** Whether [file] is a PDF by its leading bytes — the check that routes *Open* to the PDF import card. */
+    fun isPdf(file: File): Boolean =
+        file.isFile && runCatching { FileKind.of(leadingBytes(file)) == FileKind.PDF }.getOrDefault(false)
+
     /** The signature bytes [FileKind.of] classifies; the buffer is trimmed to what was actually read. */
     private fun leadingBytes(file: File): ByteArray {
         val buffer = ByteArray(FileKind.MAGIC_BYTES)

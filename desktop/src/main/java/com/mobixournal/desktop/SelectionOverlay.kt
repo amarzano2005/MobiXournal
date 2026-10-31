@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ImageElement
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 
@@ -26,7 +27,7 @@ import com.mobixournal.render.SelectionRegion
  */
 internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, living: Element? = null) {
     drawRegion(selection.region, pxPerPt, dashed = true)
-    drawHandles(selection, pxPerPt)
+    drawHandles(selection, pxPerPt, isImage = living is ImageElement)
     // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
     // where the box's handles are square, so the two never read as the same thing.
     if (living != null) drawGrips(living, pxPerPt)
@@ -80,8 +81,8 @@ private fun DrawScope.drawRegion(region: SelectionRegion, pxPerPt: Float, dashed
     )
 }
 
-/** Four corner squares and the rotate handle above the top edge. */
-private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float) {
+/** Four corner squares, edge handles when [isImage], and the rotate handle when not an image. */
+private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float, isImage: Boolean = false) {
     val box = selection.bounds
     fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
     val corners = listOf(
@@ -95,14 +96,32 @@ private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float) {
             size = Size(HANDLE_SIZE, HANDLE_SIZE),
         )
     }
-    // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.
-    // The gap is a screen distance turned into page points, so the ring clears the outline at every zoom.
-    val (rotateX, rotateY) = rotateHandleOf(box, gapPt = (ROTATE_GAP_PX / pxPerPt).toDouble())
-    val rotate = off(rotateX, rotateY)
-    val topMiddle = off((box.left + box.right) / 2.0, box.top)
-    drawLine(DesktopTheme.accent, topMiddle, rotate, strokeWidth = 1f)
-    drawCircle(color = DesktopTheme.accent, radius = HANDLE_SIZE * 0.55f, center = rotate)
-    drawCircle(color = Color.Black.copy(alpha = 0.35f), radius = HANDLE_SIZE * 0.28f, center = rotate)
+    if (isImage) {
+        val midX = (box.left + box.right) / 2.0
+        val midY = (box.top + box.bottom) / 2.0
+        val edges = listOf(
+            off(midX, box.top),
+            off(box.right, midY),
+            off(midX, box.bottom),
+            off(box.left, midY),
+        )
+        for (edge in edges) {
+            drawRect(
+                color = DesktopTheme.accent,
+                topLeft = Offset(edge.x - HANDLE_SIZE / 2f, edge.y - HANDLE_SIZE / 2f),
+                size = Size(HANDLE_SIZE, HANDLE_SIZE),
+            )
+        }
+    } else {
+        // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.
+        // The gap is a screen distance turned into page points, so the ring clears the outline at every zoom.
+        val (rotateX, rotateY) = rotateHandleOf(box, gapPt = (ROTATE_GAP_PX / pxPerPt).toDouble())
+        val rotate = off(rotateX, rotateY)
+        val topMiddle = off((box.left + box.right) / 2.0, box.top)
+        drawLine(DesktopTheme.accent, topMiddle, rotate, strokeWidth = 1f)
+        drawCircle(color = DesktopTheme.accent, radius = HANDLE_SIZE * 0.55f, center = rotate)
+        drawCircle(color = Color.Black.copy(alpha = 0.35f), radius = HANDLE_SIZE * 0.28f, center = rotate)
+    }
 }
 
 /** One handle's side, in **screen** pixels — the same at every zoom. */

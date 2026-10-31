@@ -29,6 +29,26 @@ private interface Dwmapi : StdCallLibrary {
     fun DwmSetWindowAttribute(hwnd: Pointer, attribute: Int, value: Pointer, size: Int): Int
 }
 
+private interface UxTheme : StdCallLibrary {
+    fun SetWindowThemeAttribute(hwnd: Pointer, eAttribute: Int, pvAttribute: Pointer, cbAttribute: Int): Int
+}
+
+private interface TitleBarUser32 : StdCallLibrary {
+    fun SetWindowPos(hwnd: Pointer, hWndInsertAfter: Pointer?, x: Int, y: Int, cx: Int, cy: Int, uFlags: Int): Boolean
+}
+
+/** `WTA_NONCLIENT`: the theme attribute for non-client area options. */
+private const val WTA_NONCLIENT = 1
+
+/** `WTNCA_NODRAWCAPTION`: do not draw the window caption text in the non-client title bar. */
+private const val WTNCA_NODRAWCAPTION = 0x00000001
+
+/** `WTNCA_NODRAWICON`: do not draw the window icon in the non-client title bar. */
+private const val WTNCA_NODRAWICON = 0x00000002
+
+/** `SWP_FRAMECHANGED` and flags to notify Windows the frame styling changed. */
+private const val SWP_FLAGS = 0x0001 or 0x0002 or 0x0004 or 0x0020
+
 /** `DWMWA_USE_IMMERSIVE_DARK_MODE`: a BOOL that makes the caption dark and its glyphs white. */
 private const val USE_IMMERSIVE_DARK_MODE = 20
 
@@ -75,7 +95,23 @@ internal fun applyDarkTitleBar(window: Window): Boolean {
     // The border and the text are the finishing touches: a build that refuses them keeps its caption.
     setAttribute(library, hwnd, BORDER_COLOR, DesktopTheme.deskColourRef)
     setAttribute(library, hwnd, TEXT_COLOR, DesktopTheme.inkColourRef)
+    // Hide caption text and window icon from the native title bar, leaving them for the taskbar preview.
+    suppressTitleBarCaption(hwnd)
     return dark && caption
+}
+
+/** Suppresses caption text and window icon in the non-client title bar via UxTheme. */
+private fun suppressTitleBarCaption(hwnd: Pointer) {
+    runCatching {
+        val uxtheme = Native.load("uxtheme", UxTheme::class.java) as UxTheme
+        val buffer = Memory(8L)
+        val flags = WTNCA_NODRAWCAPTION or WTNCA_NODRAWICON
+        buffer.setInt(0, flags)
+        buffer.setInt(4, flags)
+        uxtheme.SetWindowThemeAttribute(hwnd, WTA_NONCLIENT, buffer, 8)
+        val user32 = Native.load("user32", TitleBarUser32::class.java) as TitleBarUser32
+        user32.SetWindowPos(hwnd, null, 0, 0, 0, 0, SWP_FLAGS)
+    }
 }
 
 /** One `DwmSetWindowAttribute` call: true when DWM answered `S_OK`. */

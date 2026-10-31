@@ -76,8 +76,9 @@ enum class DesktopSettingSection(
     ),
     FIGURES(
         "Figures",
-        "The width the figure tools draw at.",
-        "figures shapes size stroke width presets geometry",
+        "The width the figure tools draw at, and each figure's own variant.",
+        "figures shapes size stroke width presets geometry triangle trapezoid polygon sides " +
+            "variants angles",
         SettingsGlyph.FIGURES,
     ),
     COLORS(

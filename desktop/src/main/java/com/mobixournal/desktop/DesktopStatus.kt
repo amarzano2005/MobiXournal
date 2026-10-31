@@ -147,6 +147,12 @@ internal fun StatusBar(
             Text(painted, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         }
         Spacer(Modifier.weight(1f))
+        // The PDF text slot's own sentence — `Copied 4 words`, or the reason it could select nothing — in
+        // the accent, because it is news about what the press just did (`DesktopPdfTextNotice`).
+        DesktopPdfTextNotice.text?.let { message ->
+            Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
+            Spacer(Modifier.width(14.dp))
+        }
         // The last export's own sentence — `Exported 12 pages to notes.pdf` — in the accent, because it is
         // news rather than a reading of the document. A write that worked is worth one line, not a card.
         DesktopExportNotice.text?.let { message ->

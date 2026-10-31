@@ -23,7 +23,9 @@ What it does today:
   its **bytes** (`FileKind` plus a ZIP's `mimetype`), never its extension, so a rename still opens.
 - **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
   tab keeps its own page, zoom and fit, so going back to a tab lands where you left it), a collapsible
-  240 dp sidebar of page thumbnails and the current page's layers — opened by the document itself, only for
+  240 dp sidebar of page thumbnails, the current page's layers and — for a PDF with an outline — a
+  collapsible **Contents** section that is filled only when opened (`outlineRows`: indent by depth, each
+  row leading to the page that shows its sheet, no row for a PDF without one) — opened by the document itself, only for
   **more than one page**, with `Ctrl + B` remembered per document (`DesktopSidebar`) — the page alone on the
   true-black desk, and a 24 dp status bar with the page counter, the zoom, the fit mode, the pen stream, the
   display's refresh rate with its frame budget (`120 Hz · 8.3 ms frame`) and the container. The chrome is
@@ -79,6 +81,10 @@ What it does today:
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, *Export PNG* writes one
   raster per page (2 px per point, the sheet painted by the canvas's own painter), *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
+- **Reads a PDF's text and outline** — one `PDDocument.load` per file feeds `DesktopPdfText`/`DesktopPdfOutline`
+  off the UI thread, cached by reference and length (`DesktopPdfIndexCache`, soft-referenced), and published on
+  the tab as `DesktopPdfIndex`: the words **Select text (PDF)** selects and the magnetic highlighter snaps to,
+  and the Contents rows above. A scanned, corrupt or missing PDF answers an empty index, never an exception.
 - **Owns the PDF's pages as the document's pages** — the sidebar lists every sheet with the PDF page it
   carries drawn on it, a row's close glyph drops that sheet, **Move page up / Move page down** in the Pages
   menu reorder them, and a thumbnail **dragged** onto another row lands there (the pointer's row, with the
@@ -159,15 +165,15 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   `#38383E` and a name-and-hotkey pill on hover.
   **A slot is a tool *group*, as on the tablet**: the **eraser slot** holds its two members (partial,
   whole-stroke), the **Text slot** holds prose and formula, and pen, highlighter, the **hand**, vertical
-  space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, and the
-  triangle, trapezoid and Polygon behind the figures slot, then Axes)
-  stand alone — seven figure slots, one click each and no submenu, the tablet's rail geometry. A grouped
-  slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already
+  space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, the
+  triangle, the trapezoid and the Polygon, then Axes) stand alone — nine figure slots, one click each,
+  the tablet's rail geometry. A grouped slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already
   picked**, or `Alt`+`Down`) opens its **glass picker**. **One click never opens a submenu**: the first
   click arms the slot, the second asks; a circuit slot obeys the same rule, since its family palette is
-  its submenu. Picking a row re-faces the slot and closes the picker, a click on a slot whose picker is
-  open closes it too (that click is the press the popup dismisses on, so it may not reopen what it just
-  closed), `Esc` closes it as well, and no key ever changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
+  its submenu; a figure slot's picker is its own variants (4 triangle kinds, 3 trapezoid ones, 3–12 sides)
+  and the slot wears the chosen one. Picking a row re-faces the slot and closes the picker, a click on a
+  slot whose picker is open closes it too (that click is the press the popup dismisses on, so it may not
+  reopen what it just closed), `Esc` closes it as well, and no key ever changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
   The slot is **remembered**: the pick is written as `interface.pickedTool` and the window reopens on it,
   with the colour and width that slot keeps, so a session resumes at the pen, the marker or the eraser it
   was left on instead of always at the pencil.
@@ -241,19 +247,12 @@ the window's editing surface and read as one topic, which is why they no longer 
 
 ### A stroke costs the stroke
 
-The page is a Skia picture (`PagePicture`), and a picture is immutable — so a lift used to re-record the
-**whole sheet**, 2–4 ms on `udiff.xopp` and more on a page written for a term. The pen lifts once per
-letter, so that was a dropped frame per letter, and the eraser paid it again on every bite. The picture is
-now a **base** plus **one tail picture per lift**: each tail holds the elements *one append put on top of
-the page's last layer*, in the page's own order — one picture per lift, not one of the whole run, so a long
-word cannot stutter before its last letters. Anything changing the ink of the base **or a tail** (an erase,
-a reflow, a moved stroke, a part dragged after placement) re-records the sheet and starts a new base — a
-tail's elements are compared by identity too, or a placed part would keep the ink it was placed with;
-every stroke's outline is built **once** and cached by identity (`StrokePathCache`), so a re-record is a
-replay, and the run folds into a base every 160 elements — a pageful of writing. `PagePictureTest` pins the
-counters (three strokes leave `records` at one), proves base plus tails is the direct paint, that a changed
-tail element is recorded again, and states which edits count as appends;
-`DesktopWritingCostTest` pins that a written or rubbed frame costs an idle one and a rub-out rebuilds one.
+The page is a Skia picture (PagePicture), and a picture is immutable. The picture is a **base**
+plus **one tail picture per lift**: each tail holds elements appended to the last layer, so a long word
+does not stutter. Edits to existing ink (erase, reflow, moved stroke) re-record the sheet and start a new
+base; every stroke's outline is cached by identity (StrokePathCache), and the run folds into a base every
+160 elements. PagePictureTest pins counters, proves base plus tails matches direct paint, and checks append
+rules; DesktopWritingCostTest pins frame costs.
 
 ### Scrolling and zooming a dense page
 
@@ -267,7 +266,7 @@ the numbers).
 ### What the window does not do
 
 - No layer editing (hiding one is view state, above).
-- No import of anything but a document and a PDF (no images as elements, no search).
+- No in-document text search (document, PDF, and image file ingests are supported).
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
   the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.
 
@@ -295,6 +294,5 @@ the app's **own glass on a true-black desk** (Mica/Vibrancy would tint the windo
 it matching the tablet); **three tool placements ship** — a vertical rail on the left (the default), the
 same rail on the right edge for a left hand, and a horizontal ribbon under the header — chosen in
 **Settings**, not by a header chooser, where the order of the tools in the strip is set too; and the
-tab/view model is Compose **snapshot
-state**, redrawn by the state it reads instead of a second copy.
+tab/view model is Compose **snapshot state**, redrawn by the state it reads instead of a second copy.
 

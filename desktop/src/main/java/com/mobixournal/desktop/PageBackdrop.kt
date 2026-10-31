@@ -98,6 +98,18 @@ class PageBackdrop(
         return runCatching { PDDocument.load(file) }.getOrNull()
     }
 
+    /**
+     * The PDF's **bytes** for [background], resolved the same bundle-first way [image] draws it.
+     *
+     * What a text/index feature needs is not the picture but the file itself: the window's PDF text
+     * layer and outline are read through the JVM's PDFBox, off the UI thread, from exactly the bytes the
+     * sheet was rasterised from. A page whose reference resolves to nothing answers null.
+     */
+    fun pdfBytes(background: Background.Pdf): ByteArray? {
+        val source = reference(background) ?: return null
+        return bytesOf(source.bundledAsset, source.domain, source.filename)
+    }
+
     private fun keyOf(background: Background): String? = when (background) {
         is Background.Pixmap -> "pixmap|${background.bundledAsset}|${background.domain}|${background.filename}"
         is Background.Pdf -> "pdf|${background.bundledAsset}|${background.domain}|${background.filename}|${background.pageNo}"

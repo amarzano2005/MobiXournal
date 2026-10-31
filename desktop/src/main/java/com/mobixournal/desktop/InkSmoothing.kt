@@ -97,3 +97,48 @@ private fun turnDegrees(points: List<StrokePoint>, i: Int): Double {
     val dot = inX * outX + inY * outY
     return Math.toDegrees(atan2(cross, dot)).let { if (it < 0) -it else it }
 }
+
+
+/**
+ * Subsamples [points] along their smoothed midpoint-quadratic curves into finely spaced vertices
+ * so that variable-width pressure outline calculations ([PageInk.taperPath]) have smooth tangents and normals.
+ */
+internal fun smoothPointsForTaper(points: List<StrokePoint>): List<StrokePoint> {
+    if (points.size < 3) return points
+    val last = points.size - 1
+    val corner = BooleanArray(points.size)
+    corner[0] = true
+    corner[last] = true
+    for (i in 1 until last) corner[i] = turnDegrees(points, i) >= CORNER_DEGREES
+
+    val result = ArrayList<StrokePoint>(points.size * 3)
+    result.add(points[0])
+
+    var anchor = 0
+    while (anchor < last) {
+        var end = anchor + 1
+        while (end < last && !corner[end]) end++
+        if (end == anchor + 1) {
+            result.add(points[end])
+        } else {
+            var currentP = points[anchor]
+            for (j in anchor + 1 until end) {
+                val control = points[j]
+                val to = if (j + 1 < end) midpoint(points[j], points[j + 1]) else points[end]
+                val len = hypot(to.x - currentP.x, to.y - currentP.y)
+                val steps = if (len > 3.0) 3 else 2
+                for (s in 1..steps) {
+                    val t = s.toDouble() / steps
+                    val oneMinusT = 1.0 - t
+                    val bx = oneMinusT * oneMinusT * currentP.x + 2.0 * oneMinusT * t * control.x + t * t * to.x
+                    val by = oneMinusT * oneMinusT * currentP.y + 2.0 * oneMinusT * t * control.y + t * t * to.y
+                    val bw = currentP.width + (to.width - currentP.width) * t
+                    result.add(StrokePoint(bx, by, bw))
+                }
+                currentP = to
+            }
+        }
+        anchor = end
+    }
+    return result
+}

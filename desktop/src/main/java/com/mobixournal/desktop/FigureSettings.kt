@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import java.util.Properties
@@ -7,10 +8,11 @@ import java.util.Properties
 /**
  * The triangle's and the trapezoid's **own** answers, as the settings file keeps them (`figure.*`).
  *
- * One value for seven keys, because they are one subject: the Figures page changes them together and the
- * drag reads them together ([FigureShape]). An angle outside [MIN_ANGLE]–[MAX_ANGLE] is clamped on the way
- * in, so a hand-edited file cannot ask for a triangle with a zero-degree corner; a name this build does
- * not have falls back to the tablet's own default rather than to no figure at all.
+ * One value for eight keys, because they are one subject: the Figures page changes them together and the
+ * drag reads them together ([FigureShape]). An angle outside [MIN_ANGLE]–[MAX_ANGLE] and a side count
+ * outside the builder's range are clamped on the way in, so a hand-edited file cannot ask for a triangle
+ * with a zero-degree corner or a two-sided polygon; a name this build does not have falls back to the
+ * tablet's own default rather than to no figure at all.
  */
 internal object FigureSettings {
 
@@ -25,6 +27,7 @@ internal object FigureSettings {
     private const val TRAPEZOID_KIND = "figure.trapezoidKind"
     private const val TRAPEZOID_A = "figure.trapezoidAngleA"
     private const val TRAPEZOID_B = "figure.trapezoidAngleB"
+    private const val POLYGON_SIDES = "figure.polygonSides"
 
     /** Every answer the file holds, with the tablet's own defaults for the keys it has never written. */
     fun read(properties: Properties): FigureShape = FigureShape(
@@ -35,6 +38,7 @@ internal object FigureSettings {
         trapezoidKind = enumOr(properties.getProperty(TRAPEZOID_KIND), TrapezoidKind.ISOSCELES),
         trapezoidAngleA = angle(properties, TRAPEZOID_A, 75.0),
         trapezoidAngleB = angle(properties, TRAPEZOID_B, 60.0),
+        polygonSides = sides(properties, POLYGON_SIDES, ShapeBuilder.DEFAULT_POLYGON_SIDES),
     )
 
     /** Write every answer; none is rounded away, so a reopened window draws what the last one drew. */
@@ -46,6 +50,7 @@ internal object FigureSettings {
         properties.setProperty(TRAPEZOID_KIND, shape.trapezoidKind.name)
         properties.setProperty(TRAPEZOID_A, shape.trapezoidAngleA.toString())
         properties.setProperty(TRAPEZOID_B, shape.trapezoidAngleB.toString())
+        properties.setProperty(POLYGON_SIDES, shape.polygonSides.toString())
     }
 
     /** An enum read from its stored name, or [fallback] for a name this build does not have. */
@@ -56,4 +61,9 @@ internal object FigureSettings {
     private fun angle(properties: Properties, key: String, fallback: Double): Double =
         properties.getProperty(key)?.toDoubleOrNull()
             ?.takeIf { it.isFinite() }?.coerceIn(MIN_ANGLE, MAX_ANGLE) ?: fallback
+
+    /** The polygon's stored side count, held to the range the builder can draw. */
+    private fun sides(properties: Properties, key: String, fallback: Int): Int =
+        properties.getProperty(key)?.trim()?.toIntOrNull()
+            ?.coerceIn(ShapeBuilder.MIN_POLYGON_SIDES, ShapeBuilder.MAX_POLYGON_SIDES) ?: fallback
 }

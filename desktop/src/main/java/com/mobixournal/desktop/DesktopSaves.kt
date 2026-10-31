@@ -79,6 +79,10 @@ object DesktopSaves {
         pdf: File? = document.pdfSource(),
     ): List<Uncompilable> = stage(document, target, format, pdf).use { staged ->
         staged.commit()
+        // A save can rewrite the PDF a reference names (a bundled copy carried into the file), and the
+        // text/outline indexes are keyed by the bytes they were read from: drop them, and the next open
+        // re-extracts instead of answering with the old PDF's words.
+        DesktopPdfIndexCache.forgetAll()
         staged.uncompiled
     }
 

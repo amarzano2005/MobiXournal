@@ -106,7 +106,7 @@ private fun CircuitKindCell(kind: ShapeKind, picked: Boolean, onPick: () -> Unit
  * A part is authored horizontally at a fixed length and then mapped into the frame, so a gate's triangle
  * and a capacitor's plates keep their proportions at the cell's size instead of stretching to it.
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCircuitSymbol(kind: ShapeKind, colour: Color) {
+internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCircuitSymbol(kind: ShapeKind, colour: Color) {
     val length = 32.0
     val element = CircuitElementFactory.placedElementFor(
         symbol = kind.name,

@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.render.CircuitFamily
+
 /**
  * A strip's **slot**, and the tools that share it — the tablet's tool-group idea, as the window uses it.
  *
@@ -59,17 +61,83 @@ sealed interface SlotClick {
 }
 
 /**
- * Whether [this] slot has a submenu: a group with several members, **or** a circuit family's palette.
+ * The figures whose submenu is **their own variants** — the tablet's triangle, trapezoid and polygon
+ * menus.
+ *
+ * They are one slot each, as on the tablet: a right-angled triangle is not a different tool from an
+ * equilateral one, it is the same tool with another answer, so the variant lives in the slot's menu and
+ * never in a second button.
+ */
+val FIGURE_TOOLS: Set<DesktopTool> = setOf(
+    DesktopTool.TRIANGLE,
+    DesktopTool.TRAPEZOID,
+    DesktopTool.POLYGON,
+)
+
+/**
+ * Whether [this] slot has a submenu: a group with several members, **or** a circuit family's palette,
+ * **or** a figure's own variants.
  *
  * One answer for the three things that need it — the click rule, the chevron, and `Esc`'s closing order —
  * so a slot cannot offer a chevron that opens nothing, or hide the palette of parts it places.
  */
-fun ToolGroup.opensSubmenu(): Boolean = hasPicker || members.any { circuitFamilyOf(it) != null }
+fun ToolGroup.opensSubmenu(): Boolean =
+    hasPicker || members.any { circuitFamilyOf(it) != null || it in FIGURE_TOOLS }
 
 /** The meaning of a click on [group]'s slot under [selection]. */
 fun slotClick(group: ToolGroup, selection: ToolSelection): SlotClick {
     val tool = group.faceFor(selection)
     return if (group.opensSubmenu() && tool == selection.current) SlotClick.OpenPicker else SlotClick.Pick(tool)
+}
+
+/**
+ * A slot's own submenu, as the three things the slot does with it: whether it is up, and how to open and
+ * close it.
+ *
+ * The three surfaces a lone-member slot can own differ only in *which* one it is — a circuit family's
+ * palette, a figure's variants, or the group's members — so the choice lives here, as one value, rather
+ * than as a `when` repeated in the slot's click handler and its tooltip.
+ */
+internal class SlotSurface(
+    val up: Boolean,
+    val open: () -> Unit,
+    val close: () -> Unit,
+)
+
+/**
+ * What [this] slot's submenu is, and how to work it: a circuit family's palette, a figure's own variants,
+ * or the group's members.
+ *
+ * The rule is the same one [opensSubmenu] answers, read from the slot's face: a circuit slot's single
+ * member is its family, and a figure's is its kind — neither has a list of members to offer, so its
+ * palette or its variants *are* the submenu.
+ */
+internal fun slotSurface(
+    tool: DesktopTool,
+    pickerOpen: Boolean,
+    circuitPickerOpen: CircuitFamily?,
+    figures: FigureStrip,
+    openGroup: () -> Unit,
+    closeGroup: () -> Unit,
+    circuit: (CircuitFamily?) -> Unit,
+): SlotSurface {
+    val family = circuitFamilyOf(tool)
+    val figure = tool.takeIf { it in FIGURE_TOOLS }
+    return when {
+        family != null -> SlotSurface(
+            up = circuitPickerOpen == family,
+            open = { circuit(family) },
+            close = { circuit(null) },
+        )
+
+        figure != null -> SlotSurface(
+            up = figures.menu == figure,
+            open = { figures.onMenu(figure) },
+            close = { figures.onMenu(null) },
+        )
+
+        else -> SlotSurface(up = pickerOpen, open = openGroup, close = closeGroup)
+    }
 }
 
 /**
@@ -89,6 +157,9 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
     // The two ways to select a region on the page: a rectangle and a freehand loop.
     ToolGroup(listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)),
+    // Reading a PDF's text layer: a slot of its own, because it selects rather than inks — it draws no
+    // stroke and writes nothing to the page (`docs/pdf.md`), so it cannot be a member of the ink slots.
+    ToolGroup(listOf(DesktopTool.PDF_TEXT_SELECT)),
     // Typing on the page: a slot of its own, because a text box is neither ink nor a figure. It carries the
     // tablet's two members — prose and a formula — with Text as its face.
     ToolGroup(listOf(DesktopTool.TEXT, DesktopTool.MATH)),
@@ -102,17 +173,13 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.DOUBLE_ARROW)),
     ToolGroup(listOf(DesktopTool.RECTANGLE)),
     ToolGroup(listOf(DesktopTool.ELLIPSE)),
-    // The tablet's STEM figures, one **submenu** as on the tablet: a triangle and a trapezoid draw the
-    // variant Settings ▸ Figures names, the polygon is one drag, and one slot keeps the rail as long as
-    // it was. A pentagon or a hexagon is that same polygon at five or six sides — the tablet stopped
-    // giving them buttons of their own, and so does the strip.
-    ToolGroup(
-        listOf(
-            DesktopTool.TRIANGLE,
-            DesktopTool.TRAPEZOID,
-            DesktopTool.POLYGON,
-        ),
-    ),
+    // The tablet's STEM figures, **one slot each** as the tablet's rail draws them: a triangle and a
+    // trapezoid carry their kinds in the slot's own menu, and the polygon's menu is its side count.
+    // They used to share one slot; three buttons are the tablet's own arrangement, and the variant a
+    // slot will draw is the picture it wears.
+    ToolGroup(listOf(DesktopTool.TRIANGLE)),
+    ToolGroup(listOf(DesktopTool.TRAPEZOID)),
+    ToolGroup(listOf(DesktopTool.POLYGON)),
     ToolGroup(listOf(DesktopTool.AXES)),
     // The STEM slots: each places a **living element** (a re-editable recipe), not ink, so each keeps a
     // slot of its own rather than sharing a picker — a plot, a table and a component are three tools, the
@@ -150,6 +217,8 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.VERTICAL_SPACE,
     DesktopTool.MARQUEE,
     DesktopTool.LASSO,
+    // The PDF text slot selects and copies; it never edits the page.
+    DesktopTool.PDF_TEXT_SELECT,
     // The Text slot types in place: a press opens a box, and the commit writes one element.
     DesktopTool.TEXT,
     // Its second member asks for a formula's source and writes one math block.

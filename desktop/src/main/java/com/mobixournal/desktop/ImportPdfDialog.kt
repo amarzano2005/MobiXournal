@@ -60,7 +60,11 @@ internal fun ImportPdfDialog(
         Text("Import a PDF", color = DesktopTheme.ink, style = DesktopTheme.title)
         Spacer(Modifier.height(6.dp))
         Text(
-            "“${request.file.name}” has ${pages(request.pageCount)}. Which of them, and where should they go?",
+            if (request.chooseMode) {
+                "“${request.file.name}” has ${pages(request.pageCount)}. Which of them, and where should they go?"
+            } else {
+                "“${request.file.name}” has ${pages(request.pageCount)}. Which pages should be imported?"
+            },
             color = DesktopTheme.inkSecondary,
             style = DesktopTheme.body,
         )
@@ -92,26 +96,33 @@ internal fun ImportPdfDialog(
                 style = DesktopTheme.label,
             )
         }
-        Spacer(Modifier.height(14.dp))
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            ImportModeRow(
-                title = "Add the pages to this document",
-                note = "Continues after the page in view, as one step you can undo.",
-                picked = picked == ImportPdfMode.APPEND,
-                onPick = { picked = ImportPdfMode.APPEND },
-            )
-            ImportModeRow(
-                title = "Replace this document",
-                note = "Opens the PDF in a new tab and leaves the open document alone.",
-                picked = picked == ImportPdfMode.REPLACE,
-                onPick = { picked = ImportPdfMode.REPLACE },
-            )
+        if (request.chooseMode) {
+            Spacer(Modifier.height(14.dp))
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                ImportModeRow(
+                    title = "Add the pages to this document",
+                    note = "Continues after the page in view, as one step you can undo.",
+                    picked = picked == ImportPdfMode.APPEND,
+                    onPick = { picked = ImportPdfMode.APPEND },
+                )
+                ImportModeRow(
+                    title = "Replace this document",
+                    note = "Opens the PDF in a new tab and leaves the open document alone.",
+                    picked = picked == ImportPdfMode.REPLACE,
+                    onPick = { picked = ImportPdfMode.REPLACE },
+                )
+            }
         }
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
             Spacer(Modifier.width(8.dp))
-            PanelButton(label = "Import", primary = true, enabled = usable, onClick = { onConfirm(picked) })
+            PanelButton(
+                label = "Import",
+                primary = true,
+                enabled = usable,
+                onClick = { onConfirm(if (request.chooseMode) picked else ImportPdfMode.REPLACE) },
+            )
         }
     }
 }

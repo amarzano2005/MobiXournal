@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mobixournal.design.ToolGlyph
+import com.mobixournal.design.toolGlyph
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
@@ -20,19 +21,10 @@ import com.mobixournal.render.TriangleKind
  */
 
 /** The catalogue glyph that shows [kind] on a slot face or a picker row. */
-fun triangleGlyph(kind: TriangleKind): ToolGlyph = when (kind) {
-    TriangleKind.EQUILATERAL -> ToolGlyph.TRIANGLE_EQUILATERAL
-    TriangleKind.ISOSCELES -> ToolGlyph.TRIANGLE_ISOSCELES
-    TriangleKind.RIGHT -> ToolGlyph.TRIANGLE_RIGHT
-    TriangleKind.SCALENE -> ToolGlyph.TRIANGLE_SCALENE
-}
+fun triangleGlyph(kind: TriangleKind): ToolGlyph = kind.toolGlyph
 
 /** The catalogue glyph that shows [kind] on a slot face or a picker row. */
-fun trapezoidGlyph(kind: TrapezoidKind): ToolGlyph = when (kind) {
-    TrapezoidKind.ISOSCELES -> ToolGlyph.TRAPEZOID
-    TrapezoidKind.RIGHT -> ToolGlyph.TRAPEZOID_RIGHT
-    TrapezoidKind.SCALENE -> ToolGlyph.TRAPEZOID_SCALENE
-}
+fun trapezoidGlyph(kind: TrapezoidKind): ToolGlyph = kind.toolGlyph
 
 /** The outline that represents [kind] beside its name in the picker and in Settings. */
 internal fun triangleKindIcon(kind: TriangleKind): ImageVector = triangleGlyph(kind).imageVector()

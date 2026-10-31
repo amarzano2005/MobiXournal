@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
@@ -13,8 +14,12 @@ import com.mobixournal.render.TriangleKind
  * window keeps them here, as one value the drag reads, so the geometry it draws and the page it writes
  * cannot disagree about which triangle is in hand.
  *
- * The defaults are the tablet's own ([TriangleKind.EQUILATERAL], [TrapezoidKind.ISOSCELES], 40°/60°/80° and
- * 75°/60°), so a fresh install draws the same figure on both shells.
+ * The polygon's side count is the same kind of answer ([ShapeBuilder.MIN_POLYGON_SIDES]..
+ * [ShapeBuilder.MAX_POLYGON_SIDES]): it is not said by the drag either, and the tablet sets it where the
+ * figure is drawn. It is held here, next to the variants, so every figure tool reads one value.
+ *
+ * The defaults are the tablet's own ([TriangleKind.EQUILATERAL], [TrapezoidKind.ISOSCELES], 40°/60°/80°,
+ * 75°/60° and a six-sided polygon), so a fresh install draws the same figure on both shells.
  */
 data class FigureShape(
     val triangleKind: TriangleKind = TriangleKind.EQUILATERAL,
@@ -26,4 +31,11 @@ data class FigureShape(
     /** The two base angles for [TrapezoidKind.SCALENE], in degrees. */
     val trapezoidAngleA: Double = 75.0,
     val trapezoidAngleB: Double = 60.0,
-)
+    /** The sides a [com.mobixournal.render.ShapeKind.POLYGON] drag draws, held to the builder's range. */
+    val polygonSides: Int = ShapeBuilder.DEFAULT_POLYGON_SIDES,
+) {
+
+    /** This shape with [sides] as the polygon's count, clamped to the builder's own range. */
+    fun withPolygonSides(sides: Int): FigureShape =
+        copy(polygonSides = sides.coerceIn(ShapeBuilder.MIN_POLYGON_SIDES, ShapeBuilder.MAX_POLYGON_SIDES))
+}

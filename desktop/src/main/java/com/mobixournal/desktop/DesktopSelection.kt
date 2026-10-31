@@ -34,6 +34,12 @@ enum class SelectionHandle {
 
     /** The handle above the outline: the selection turns about its centre. */
     ROTATE,
+
+    /** Four edge handles: stretch a single axis. */
+    TOP,
+    BOTTOM,
+    LEFT,
+    RIGHT,
 }
 
 /** How far above the outline's top edge the rotate handle sits, in page points at 100 %. */
@@ -59,10 +65,14 @@ fun selectionHandleAt(
     y: Double,
     tolPt: Double,
     rotateGapPt: Double = ROTATE_HANDLE_GAP_PT,
+    includeEdges: Boolean = false,
+    includeRotate: Boolean = !includeEdges,
 ): SelectionHandle {
     val box = selection.bounds
-    val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
-    if (near(x, y, rotateX, rotateY, tolPt)) return SelectionHandle.ROTATE
+    if (includeRotate) {
+        val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
+        if (near(x, y, rotateX, rotateY, tolPt)) return SelectionHandle.ROTATE
+    }
     val corners = listOf(
         SelectionHandle.TOP_LEFT to (box.left to box.top),
         SelectionHandle.TOP_RIGHT to (box.right to box.top),
@@ -71,6 +81,19 @@ fun selectionHandleAt(
     )
     for ((handle, at) in corners) {
         if (near(x, y, at.first, at.second, tolPt)) return handle
+    }
+    if (includeEdges) {
+        val midX = (box.left + box.right) / 2.0
+        val midY = (box.top + box.bottom) / 2.0
+        val edges = listOf(
+            SelectionHandle.TOP to (midX to box.top),
+            SelectionHandle.BOTTOM to (midX to box.bottom),
+            SelectionHandle.LEFT to (box.left to midY),
+            SelectionHandle.RIGHT to (box.right to midY),
+        )
+        for ((handle, at) in edges) {
+            if (near(x, y, at.first, at.second, tolPt)) return handle
+        }
     }
     return if (selection.region.inside(x, y)) SelectionHandle.BODY else SelectionHandle.NONE
 }
@@ -81,12 +104,16 @@ fun anchorOf(bounds: Bounds, handle: SelectionHandle): Pair<Double, Double> = wh
     SelectionHandle.TOP_RIGHT -> bounds.left to bounds.bottom
     SelectionHandle.BOTTOM_LEFT -> bounds.right to bounds.top
     SelectionHandle.BOTTOM_RIGHT -> bounds.left to bounds.top
+    SelectionHandle.TOP -> bounds.left to bounds.bottom
+    SelectionHandle.BOTTOM -> bounds.left to bounds.top
+    SelectionHandle.LEFT -> bounds.right to bounds.top
+    SelectionHandle.RIGHT -> bounds.left to bounds.top
     // A missing or moving handle has no fixed corner; the centre is the one answer that moves nothing else.
     else -> ((bounds.left + bounds.right) / 2.0) to ((bounds.top + bounds.bottom) / 2.0)
 }
 
 /**
- * The horizontal and vertical factors a corner drag describes, about the selection's opposite corner.
+ * The horizontal and vertical factors a corner or edge drag describes, about the selection's opposite corner.
  *
  * Each axis is its own ratio, so a side drag stretches a figure without forcing the other axis with it; both
  * are clamped to [MIN_SELECTION_SCALE] so crossing the anchor cannot invert the selection mid-gesture.
@@ -96,23 +123,55 @@ fun scaleFactors(
     handle: SelectionHandle,
     x: Double,
     y: Double,
+    lockAspect: Boolean = false,
 ): Pair<Double, Double> {
     val (anchorX, anchorY) = anchorOf(bounds, handle)
-    val startX = when (handle) {
-        SelectionHandle.TOP_LEFT, SelectionHandle.BOTTOM_LEFT -> bounds.left
-        SelectionHandle.TOP_RIGHT, SelectionHandle.BOTTOM_RIGHT -> bounds.right
+    when (handle) {
+        SelectionHandle.LEFT -> {
+            val spanX = bounds.left - anchorX
+            val sx = if (spanX == 0.0) 1.0 else (x - anchorX) / spanX
+            return sx.coerceAtLeast(MIN_SELECTION_SCALE) to 1.0
+        }
+        SelectionHandle.RIGHT -> {
+            val spanX = bounds.right - anchorX
+            val sx = if (spanX == 0.0) 1.0 else (x - anchorX) / spanX
+            return sx.coerceAtLeast(MIN_SELECTION_SCALE) to 1.0
+        }
+        SelectionHandle.TOP -> {
+            val spanY = bounds.top - anchorY
+            val sy = if (spanY == 0.0) 1.0 else (y - anchorY) / spanY
+            return 1.0 to sy.coerceAtLeast(MIN_SELECTION_SCALE)
+        }
+        SelectionHandle.BOTTOM -> {
+            val spanY = bounds.bottom - anchorY
+            val sy = if (spanY == 0.0) 1.0 else (y - anchorY) / spanY
+            return 1.0 to sy.coerceAtLeast(MIN_SELECTION_SCALE)
+        }
+        SelectionHandle.TOP_LEFT,
+        SelectionHandle.TOP_RIGHT,
+        SelectionHandle.BOTTOM_LEFT,
+        SelectionHandle.BOTTOM_RIGHT -> {
+            val startX = when (handle) {
+                SelectionHandle.TOP_LEFT, SelectionHandle.BOTTOM_LEFT -> bounds.left
+                else -> bounds.right
+            }
+            val startY = when (handle) {
+                SelectionHandle.TOP_LEFT, SelectionHandle.TOP_RIGHT -> bounds.top
+                else -> bounds.bottom
+            }
+            val spanX = startX - anchorX
+            val spanY = startY - anchorY
+            var sx = if (spanX == 0.0) 1.0 else (x - anchorX) / spanX
+            var sy = if (spanY == 0.0) 1.0 else (y - anchorY) / spanY
+            if (lockAspect) {
+                val s = if (kotlin.math.abs(sx - 1.0) >= kotlin.math.abs(sy - 1.0)) sx else sy
+                sx = s
+                sy = s
+            }
+            return sx.coerceAtLeast(MIN_SELECTION_SCALE) to sy.coerceAtLeast(MIN_SELECTION_SCALE)
+        }
         else -> return 1.0 to 1.0
     }
-    val startY = when (handle) {
-        SelectionHandle.TOP_LEFT, SelectionHandle.TOP_RIGHT -> bounds.top
-        SelectionHandle.BOTTOM_LEFT, SelectionHandle.BOTTOM_RIGHT -> bounds.bottom
-        else -> return 1.0 to 1.0
-    }
-    val spanX = startX - anchorX
-    val spanY = startY - anchorY
-    val sx = if (spanX == 0.0) 1.0 else (x - anchorX) / spanX
-    val sy = if (spanY == 0.0) 1.0 else (y - anchorY) / spanY
-    return sx.coerceAtLeast(MIN_SELECTION_SCALE) to sy.coerceAtLeast(MIN_SELECTION_SCALE)
 }
 
 /**

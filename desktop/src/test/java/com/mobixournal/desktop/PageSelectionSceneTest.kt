@@ -50,16 +50,41 @@ class PageSelectionSceneTest {
         return DesktopTabs().also { it.open(DocumentLoader.load(file)) }.active!!
     }
 
-    private fun scene(tab: DesktopTab): ImageComposeScene = ImageComposeScene(240, 1100, Density(1f)) {
-        PageSidebar(
-            tab = tab,
-            cache = mutableMapOf<Int, ImageBitmap>(),
-            onSelectPage = { picks += it },
-            revision = 0,
-            onMovePages = { pages, target -> moved += pages to target },
-            onRemovePages = { pages -> removed += pages },
-            modifier = Modifier.size(240.dp, 1100.dp),
-        )
+    private fun scene(tab: DesktopTab): ImageComposeScene {
+        val placeholder = ImageBitmap(148, 72)
+        val cache = (0 until tab.pageCount).associateWith { placeholder }.toMutableMap()
+        return ImageComposeScene(240, 1100, Density(1f)) {
+            PageSidebar(
+                tab = tab,
+                cache = cache,
+                onSelectPage = {
+                    selectPage(tab, it)
+                    picks += it
+                },
+                revision = 0,
+                onMovePages = { pages, target -> moved += pages to target },
+                onRemovePages = { pages -> removed += pages },
+                modifier = Modifier.size(240.dp, 1100.dp),
+            )
+        }
+    }
+
+    @Test
+    fun `selecting a page in the sidebar keeps the carousel at the same scroll position`() {
+        val tab = tab()
+        val scene = scene(tab)
+        try {
+            // Click a lower row: if the carousel jumped the selected page to the top, a second click at the
+            // same y coordinate would hit a different row below it.
+            click(scene, 120f, 280f, at = 500L)
+            val firstRow = picks.single()
+            assertTrue("a lower row was clicked", firstRow > 0)
+
+            click(scene, 120f, 280f, at = 700L)
+            assertEquals("the row stayed at the same position in the carousel", listOf(firstRow, firstRow), picks)
+        } finally {
+            scene.close()
+        }
     }
 
     @Test

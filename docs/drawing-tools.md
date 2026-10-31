@@ -138,7 +138,7 @@ same functions, so what the sheet shows is what the `.xopp` export writes.
 **Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Polygon/Table) turn a
 one-finger drag into an ordinary constant-width pen stroke — and the `desktop/` window draws the same
 set from one drag (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, and the tablet's Triangle,
-Trapezoid and Polygon behind one **figures** slot), calling the
+Trapezoid and Polygon, each in a slot of its own), calling the
 same `ShapeBuilder` and holding `Shift` to snap the drag's direction to 45°, so a figure made on the PC
 is the same stroke a tablet makes (`docs/desktop-workstation.md` owns the window's slots): `ShapeBuilder` (pure, tested) converts the
 drag's start/end into a vertex list, previewed live and committed as one undoable stroke, so shapes
@@ -156,8 +156,9 @@ its shape, and unequal angles are exactly what makes all four sides differ. `Sha
 is the single layout both the tool and the settings dialog's preview call, so the preview cannot drift
 from what a drag produces; the scalene figure is uniformly scaled to stay inside its drag (which
 preserves the angles) and centred, the same fit the scalene triangle uses. The window draws both variant
-figures too: its figures slot's picker lists the triangle, the trapezoid and the polygon, and its
-**Settings → Figures** page writes the same
+figures too, and **chooses the variant where the figure is**: its Triangle slot (and its Trapezoid one)
+opens the same kinds as a menu — each kind drawn with the tablet's own picture of it, the live one
+ticked — and the slot then wears the kind it will draw. Its **Settings → Figures** page writes the same
 `TriangleKind`/`TrapezoidKind` answers — and a scalene one's angles — into `FigureShape`, the value the
 drag reads (`FigureSettings` owns the stored keys), so a figure is the same on the PC and on the tablet
 without either shell growing a second geometry.
@@ -176,9 +177,10 @@ figure centred), and picking one also takes hold of the tool, because seven
 sides is always about drawing a heptagon next. **Settings → Figures** writes the same stored value, so
 the two cannot disagree; an out-of-range number is clamped rather than rejected, and the tool needs no
 gesture of its own: the drag, the preview, the constant width and the undo step are the ones every
-other figure uses. The window's figures submenu carries the polygon too, at the builder's default count
-— a slot on the PC carries no variant of its own, the same way the triangle's kind is chosen on the
-tablet. The **shape recogniser** (`ShapeRecognizer`) runs on commit for the pen and the highlighter, and a
+other figure uses. The window's **Polygon slot** carries the same count: its menu is the 3–12 picker,
+the live number rides the slot's top-left corner, and the slot draws the polygon it will draw — one
+figure with a number, exactly as the tablet's Polygons slot. **Settings → Figures** has the same row,
+so the two surfaces write one stored value. The **shape recogniser** (`ShapeRecognizer`) runs on commit for the pen and the highlighter, and a
 stroke it does not name commits exactly as drawn. Its classes, thresholds and invariants are owned by
 [`shape-perfection-engine.md`](shape-perfection-engine.md) — what belongs to the tools is that nothing
 is simplified first (`StrokeSimplifier` only sees the strokes the recogniser rejected, since thinning

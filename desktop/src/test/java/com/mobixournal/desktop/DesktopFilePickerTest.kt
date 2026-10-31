@@ -45,11 +45,12 @@ class DesktopFilePickerTest {
     }
 
     @Test
-    fun `the open box accepts both readable documents`() {
+    fun `the open box accepts readable documents and PDFs`() {
         val row = DOCUMENT_OPEN_TYPES.single()
         assertTrue(row.matches("notes.mobix"))
         assertTrue("a suffix typed in another case is the same file", row.matches("notes.XOPP"))
-        assertFalse(row.matches("notes.pdf"))
+        assertTrue("Open also accepts a PDF", row.matches("notes.pdf"))
+        assertFalse(row.matches("notes.txt"))
         assertEquals("the shell wants a bare suffix as its default extension", "mobix", row.defaultExtension)
         assertTrue(PDF_TYPES.single().matches("lecture.pdf"))
         assertTrue(BACKUP_TYPES.single().matches("MobiXournal-settings.properties"))
@@ -58,7 +59,11 @@ class DesktopFilePickerTest {
     @Test
     fun `the type box is one row per container, filters included`() {
         assertEquals(listOf("*.mobix", "*.xopp", "*.xopp"), DOCUMENT_SAVE_TYPES.map { filterOf(it.extensions.single()) })
-        assertEquals("two patterns, one row", listOf("*.mobix", "*.xopp"), DOCUMENT_OPEN_TYPES.single().extensions.map(::filterOf))
+        assertEquals(
+            "three patterns, one row",
+            listOf("*.mobix", "*.xopp", "*.pdf"),
+            DOCUMENT_OPEN_TYPES.single().extensions.map(::filterOf),
+        )
     }
 
     @Test

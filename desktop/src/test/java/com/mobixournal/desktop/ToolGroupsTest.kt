@@ -74,9 +74,13 @@ class ToolGroupsTest {
             "a figure drawn from a slot of its own carries no picker",
             groupOf(DesktopTool.AXES)!!.hasPicker,
         )
-        assertTrue(
-            "the polygons share the figures' submenu, so their slot does carry one",
+        assertFalse(
+            "a figure is a slot of its own: its kinds are its submenu, not its members",
             groupOf(DesktopTool.POLYGON)!!.hasPicker,
+        )
+        assertTrue(
+            "but the slot still opens the polygon's side count",
+            groupOf(DesktopTool.POLYGON)!!.opensSubmenu(),
         )
     }
 
@@ -172,9 +176,8 @@ class ToolGroupsTest {
     }
 
     /**
-     * The tablet's rail, as the window now draws it: the plain figures are **slots of their own**, one
-     * click each, and no picker stands between them. The polygons are the exception the tablet has too —
-     * they share one slot, whose menu leads with the generic polygon and keeps the two presets behind it.
+     * The tablet's rail, as the window now draws it: every figure is a **slot of its own**, one click
+     * each, and the triangle, the trapezoid and the polygon carry their variants in their own menus.
      */
     @Test
     fun `every figure is a slot of its own, in the order the rail draws them`() {
@@ -194,13 +197,15 @@ class ToolGroupsTest {
             figures,
             DESKTOP_TOOL_GROUPS.map { it.face }.filter { it in figures.toSet() },
         )
-        val polygons = groupOf(DesktopTool.POLYGON)!!
+        val stemFigures = listOf(DesktopTool.TRIANGLE, DesktopTool.TRAPEZOID, DesktopTool.POLYGON)
+        for (figure in stemFigures) {
+            assertEquals("${figure.label} shares a slot", listOf(figure), groupOf(figure)!!.members)
+            assertTrue("${figure.label} opens its own menu", groupOf(figure)!!.opensSubmenu())
+        }
         assertEquals(
-            "the generic polygon leads the polygon family, as on the tablet",
-            listOf(
-                DesktopTool.TRIANGLE, DesktopTool.TRAPEZOID, DesktopTool.POLYGON,
-            ),
-            polygons.members,
+            "the three figures keep the tablet's order, one slot each",
+            stemFigures,
+            DESKTOP_TOOL_GROUPS.map { it.face }.filter { it in stemFigures.toSet() },
         )
     }
 }

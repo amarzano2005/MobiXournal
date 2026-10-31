@@ -23,6 +23,14 @@ internal class FigureChoices(private val store: DesktopSettings) {
     var shape by mutableStateOf(store.figureShape())
         private set
 
+    /** The figure whose variant menu is up (`DesktopTool.TRIANGLE`, …), or null when none is. */
+    var menu by mutableStateOf<DesktopTool?>(null)
+        private set
+
+    /** The figure whose angle customization dialog is active (`TRIANGLE`, `TRAPEZOID`), or null when none is. */
+    var editingFigure by mutableStateOf<DesktopTool?>(null)
+        private set
+
     /** A width the reader picked in Settings ▸ Figures, held to the palette's own range. */
     fun chooseWidth(value: Float) {
         val clamped = PenPalette.clampWidth(value)
@@ -30,15 +38,49 @@ internal class FigureChoices(private val store: DesktopSettings) {
         store.figureWidth = clamped
     }
 
-    /** One figure's answer changed — the variant, or an angle a scalene one is built from. */
+    /** One figure's answer changed — the variant, an angle a scalene one is built from, or the sides. */
     fun chooseShape(value: FigureShape) {
         shape = value
         store.writeFigureShape(value)
+        // The question is answered, so its menu closes — the tablet's picker does the same.
+        menu = null
     }
+
+    /** Open [tool]'s variant menu, or close the open one with null. */
+    fun showMenu(tool: DesktopTool?) {
+        menu = tool
+    }
+
+    /** Open [tool]'s angle customization dialog. */
+    fun openDialog(tool: DesktopTool) {
+        editingFigure = tool
+    }
+
+    /** Close any active figure angle customization dialog. */
+    fun closeDialog() {
+        editingFigure = null
+    }
+
+    /**
+     * These decisions as the strips read them: one value carrying the shape, the open menu and the two
+     * commands, so a slot neither reaches into this class nor keeps a second copy of a figure's answer.
+     */
+    val strip: FigureStrip
+        get() = FigureStrip(
+            shape = shape,
+            menu = menu,
+            onMenu = ::showMenu,
+            onShape = ::chooseShape,
+            editingFigure = editingFigure,
+            onOpenDialog = ::openDialog,
+            onCloseDialog = ::closeDialog,
+        )
 
     /** Read both back from the store — after a settings backup has replaced it. */
     fun reload() {
         width = store.figureWidth
         shape = store.figureShape()
+        menu = null
+        editingFigure = null
     }
 }

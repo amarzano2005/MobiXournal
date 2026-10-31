@@ -1,14 +1,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base theme is a Material 3 splash/launch theme.
-         Defaults to light splash screen. -->
-    <style name="Theme.MobiXournal" parent="android:Theme.Material.Light.NoActionBar">
+         Defaults to the dark header charcoal (#161618) splash screen. -->
+    <style name="Theme.MobiXournal" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowBackground">@drawable/splash_screen_light</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@drawable/splash_screen_dark</item>
     </style>
 
-    <!-- Explicit Light style: always uses light splash and light status bar -->
+    <!-- Explicit Light style: always uses light splash (#FFFFFF) and light status bar -->
     <style name="Theme.MobiXournal.Light" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
@@ -16,7 +16,7 @@
         <item name="android:windowBackground">@drawable/splash_screen_light</item>
     </style>
 
-    <!-- Explicit Dark style: always uses dark splash and dark status bar -->
+    <!-- Explicit Dark style: always uses dark splash (#161618) and dark status bar -->
     <style name="Theme.MobiXournal.Dark" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

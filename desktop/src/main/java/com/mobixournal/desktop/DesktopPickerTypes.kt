@@ -29,17 +29,27 @@ internal val DOCUMENT_SAVE_TYPES: List<PickerType> =
     DesktopNewDocumentFormat.entries.map { PickerType(it.label, listOf(it.extension)) }
 
 /**
- * One row for both readable documents.
+ * One row for every file *Open* accepts: both native containers and a PDF (which opens as a new tab after
+ * asking which pages to bring).
  *
  * `java.awt.FileDialog` ignores its filter on Windows, so the window could only ever test the suffix
- * itself; the shell's box filters for real, and one row covering both containers keeps a `.xopp` visible
- * while the reader is looking for a `.mobix`.
+ * itself; the shell's box filters for real, and one row covering all three keeps `.xopp`, `.mobix` and `.pdf`
+ * visible together.
  */
 internal val DOCUMENT_OPEN_TYPES: List<PickerType> =
-    listOf(PickerType("MobiXournal and Xournal++ (*.mobix, *.xopp)", listOf(".mobix", ".xopp")))
+    listOf(PickerType("MobiXournal, Xournal++ and PDF (*.mobix, *.xopp, *.pdf)", listOf(".mobix", ".xopp", ".pdf")))
 
 /** A PDF, for the import and for the export that writes one. */
 internal val PDF_TYPES: List<PickerType> = listOf(PickerType("PDF document (*.pdf)", listOf(".pdf")))
+
+/** Supported image files for insertion as page elements. */
+internal val IMAGE_TYPES: List<PickerType> = listOf(
+    PickerType("Images (*.png, *.jpg, *.jpeg, *.webp, *.gif)", listOf(".png", ".jpg", ".jpeg", ".webp", ".gif")),
+    PickerType("PNG image (*.png)", listOf(".png")),
+    PickerType("JPEG image (*.jpg, *.jpeg)", listOf(".jpg", ".jpeg")),
+    PickerType("WebP image (*.webp)", listOf(".webp")),
+    PickerType("GIF image (*.gif)", listOf(".gif")),
+)
 
 /** The settings backup's one file, whose suffix is the stamp its import reads. */
 internal val BACKUP_TYPES: List<PickerType> =

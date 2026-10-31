@@ -34,6 +34,7 @@ internal fun DesktopShell(
     onSavePicker: () -> Unit = {},
     /** The PDF picker behind the menu's **Import PDF** row (`ImportPdfDialog` asks where the pages go). */
     onImportPdfPicker: () -> Unit = {},
+    onInsertImagePicker: () -> Unit = {},
     /** Where the export's PDF should go, opened from the menu and from `Ctrl+E`. */
     onExportPdfPicker: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -41,6 +42,7 @@ internal fun DesktopShell(
     tablet: DesktopTablet? = null,
 ) {
     ThumbnailRefresh(state)
+    LaunchedEffect(onInsertImagePicker) { state.onInsertImagePicker = onInsertImagePicker }
     RecoverySnapshots(state)
     // Which document is on screen decides what the audio pill shows: the tab's own `hasAudio` (asked here,
     // never per frame: it walks the pages) and its own take and clip. A clip belonging to the tab being
@@ -94,6 +96,7 @@ internal fun DesktopShell(
             // comes and goes may lie over the page; only a band may not).
             WorkspaceBody(state, tablet)
             if (state.prefs.open) SettingsSurface(state.prefs)
+            FigureDialogHost(state)
         }
         StatusBar(state.active, tablet, state.prefs.frameTime, DesktopAudioSession)
     }
@@ -135,6 +138,57 @@ private fun BoxScope.WorkspaceBody(state: DesktopShellState, tablet: DesktopTabl
     ImportPdfHost(state)
     PageRangeHost(state)
     CloseDialogHost(state)
+    DragHoverOverlay(state.isDragHovering)
+}
+
+/** Hosts interactive angle customization dialogs for scalene figures. */
+@Composable
+private fun BoxScope.FigureDialogHost(state: DesktopShellState) {
+    val figures = state.prefs.figures
+    val editing = figures.editingFigure
+    GlassPresence(visible = editing != null) {
+        when (editing) {
+            DesktopTool.TRIANGLE -> {
+                val shape = figures.shape
+                ScaleneTriangleDialog(
+                    angleA = shape.scaleneAngleA,
+                    angleB = shape.scaleneAngleB,
+                    angleC = shape.scaleneAngleC,
+                    onConfirm = { a, b, c ->
+                        figures.chooseShape(
+                            shape.copy(
+                                triangleKind = com.mobixournal.render.TriangleKind.SCALENE,
+                                scaleneAngleA = a,
+                                scaleneAngleB = b,
+                                scaleneAngleC = c,
+                            ),
+                        )
+                        figures.closeDialog()
+                    },
+                    onDismiss = { figures.closeDialog() },
+                )
+            }
+            DesktopTool.TRAPEZOID -> {
+                val shape = figures.shape
+                ScaleneTrapezoidDialog(
+                    angleA = shape.trapezoidAngleA,
+                    angleB = shape.trapezoidAngleB,
+                    onConfirm = { a, b ->
+                        figures.chooseShape(
+                            shape.copy(
+                                trapezoidKind = com.mobixournal.render.TrapezoidKind.SCALENE,
+                                trapezoidAngleA = a,
+                                trapezoidAngleB = b,
+                            ),
+                        )
+                        figures.closeDialog()
+                    },
+                    onDismiss = { figures.closeDialog() },
+                )
+            }
+            else -> Unit
+        }
+    }
 }
 
 /**

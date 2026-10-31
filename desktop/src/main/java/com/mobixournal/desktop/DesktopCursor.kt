@@ -58,7 +58,7 @@ internal fun toolCursorDiameterPx(tool: DesktopTool, widthPt: Float, zoom: Float
     when (tool) {
         // A tap tool has no width to promise either: the audio tap skips to a stroke, it does not draw
         // a ring of the pen's size over the page.
-        DesktopTool.HAND, DesktopTool.TEXT, DesktopTool.AUDIO -> null
+        DesktopTool.HAND, DesktopTool.TEXT, DesktopTool.AUDIO, DesktopTool.PDF_TEXT_SELECT -> null
         // Both erasers show the tip they cut with: the whole-stroke eraser is a disc like the partial one,
         // it simply takes everything the disc touches.
         DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density)
@@ -110,7 +110,9 @@ private val textCursor: Cursor by lazy {
  */
 internal fun toolPointerIcon(tool: DesktopTool, ringVisible: Boolean, panMode: Boolean = false): PointerIcon = when {
     panMode || tool == DesktopTool.HAND -> PointerIcon.Hand
-    tool == DesktopTool.TEXT -> PointerIcon(textCursor)
+    // The PDF text-select slot reads words too: an I-beam says "drag across this line", where a ring the
+    // size of the nib would promise ink no selection lays.
+    tool == DesktopTool.TEXT || tool == DesktopTool.PDF_TEXT_SELECT -> PointerIcon(textCursor)
     ringVisible -> PointerIcon(blankCursor)
     else -> PointerIcon.Default
 }

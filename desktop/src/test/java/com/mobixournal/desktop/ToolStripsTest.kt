@@ -58,6 +58,8 @@ class ToolStripsTest {
         "Vertical space" to "Shift+V",
         "Lasso" to "V",
         "Marquee" to "S",
+        // The tablet's PDF text tool: selects a PDF page's words and copies them, and lays no ink.
+        "Select text (PDF)" to "Shift+S",
         "Text" to "X",
         // The tablet's Play object, between the Text group and the figures, as the strip offers it.
         "Audio tap" to "Y",

@@ -37,6 +37,11 @@ internal fun Modifier.sheetGestures(
 ): Modifier = pointerInput(
     tab, panMode, tool, ink, shapeInk, pen,
     sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH,
+    // The press's own answers travel inside [targets], and the block below captures that instance: a
+    // variant, a side count or a component picked while the canvas is up is therefore a key of its own,
+    // so the handler that reads it is the one started after the answer changed — and never a drag still
+    // holding the value its first composition carried.
+    targets.figures, targets.circuitKind,
 ) {
     pageGestures(
         tab = tab,
@@ -57,6 +62,8 @@ internal fun Modifier.sheetGestures(
         penActive = { pointer.owns.value },
         grabLine = pointer.grabLine,
         previewRegion = pointer.previewRegion,
+        // The highlighter's magnetic preview, shared by both input paths.
+        pdfBands = pointer.pdfBands,
         onViewport = onViewport,
         onEdited = onEdited,
     )

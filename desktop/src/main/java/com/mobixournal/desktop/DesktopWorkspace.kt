@@ -38,6 +38,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 if (placement.showsRail && railOnLeft) StripRail(state)
                 Box(Modifier.weight(1f).fillMaxHeight()) {
+                    // The PDF's text layer and Contents, read once per file off the UI thread and published
+                    // on the tab: the selection, the magnetic highlighter and the sidebar all read it there.
+                    PdfIndexLoader(tab)
                     PageCanvas(
                         tab = tab,
                         panMode = state.panMode,

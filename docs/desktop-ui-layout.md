@@ -142,8 +142,9 @@ The drawing and STEM tools are always on screen, in whichever strip the window's
 - **1-click STEM access**: `f(x)`, shapes, tables and circuits sit in the same strip as the inking tools,
   with no submenu between the user and them — and so do the **plain figures**: Line, Arrow, Double
   arrow, Rectangle, Ellipse and Axes are six slots of their own on the desktop, one click each. The
-  polygon is a seventh slot of its own, exactly as the tablet's Polygons slot is: one figure whose side
-  count the user chooses, not a button per number of sides.
+  triangle, the trapezoid and the polygon are three more, exactly as the tablet's rail draws them: each
+  opens its **own menu** (the four triangle kinds, the three trapezoid kinds, the 3–12 side count) and
+  wears the answer it will draw, so a variant is never a second button and never a shared slot.
 - **Hover names the slot**: a pill tooltip shows the tool's name and its key (e.g. `Function plot [M]`).
 
 ### 3. Universal shortcuts across all tools (Mobile & Desktop)
@@ -158,6 +159,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Eraser (whole stroke) | `Shift + E` | The eraser slot's second member |
 | | Lasso Select | `V` | Barrel button hold + drag |
 | | Marquee Rect Select | `S` | Selection mode toggle |
+| | Select text (PDF) | `Shift + S` | The tablet's PDF text tool: drag across real text to select and copy it |
 | | Text Box | `X` | Screen double-tap with finger |
 | | Formula (LaTeX / Typst) | `Shift + T` | The Text slot's second member (the tablet's LaTeX tool); asks its source first |
 | | Hand Tool | `G` | A slot of the rail: a primary drag moves the page |
@@ -167,7 +169,9 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Double arrow | `Shift + A` | Arrow slot's second member |
 | | Rectangle | `R` | Shape dwell |
 | | Circle / Ellipse | `C` | Shape dwell |
-| | Polygon | `P` | The figures slot's generic polygon, at the builder's default count |
+| | Triangle | `Alt + R` | The Triangle slot's menu: four kinds, plus a scalene one's angles |
+| | Trapezoid | `Alt + Z` | The Trapezoid slot's menu: three kinds, plus a scalene one's base angles |
+| | Polygon | `P` | The Polygon slot's menu: three to twelve sides, the live count on the slot |
 | **STEM & Advanced** | Vertical space | `Shift + V` | Reflow tool in the rail's Tool pop-up |
 | | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
 | | Function Plot $f(x)$ | `M` | 1-tap STEM dock button; asks formula, range and flags first |

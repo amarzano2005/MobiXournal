@@ -32,6 +32,8 @@ internal fun SheetOverlays(
     canvas: Size,
     viewW: Float,
     viewH: Float,
+    /** The PDF text selection's own Copy bar, or null when nothing is selected on the page. */
+    pdfText: PdfTextCopyUi? = null,
 ) {
     TextBoxHost(
         box = text.box,
@@ -41,6 +43,16 @@ internal fun SheetOverlays(
         offsetY = offsetY,
         onChange = text.onChange,
     )
+    pdfText?.let { copy ->
+        PdfTextCopyBar(
+            ui = copy,
+            zoom = zoom,
+            density = density,
+            offsetX = offsetX,
+            offsetY = offsetY,
+            canvas = if (canvas == Size.Zero) Size(viewW * density, viewH * density) else canvas,
+        )
+    }
     if (selectionBounds == null && !selectionBar.hasClipboard) return
     SelectionBarHost(
         bar = selectionBar,

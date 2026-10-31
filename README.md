@@ -97,34 +97,32 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 
 ### 🖥️ Desktop app (Windows 11)
 
-A native PC window, in the tree and buildable today. It opens a `.xopp`, a zipped `.xopp` or a native
-`.mobix` — the family is read from the file's bytes rather than its name — and paints every page as it was
-written: the paper's ruling, strokes with their pressure taper, highlighters, text boxes, images, photo and
-annotated-PDF backgrounds, and the live tables, graphs, shapes, circuits and formulas.
+A native PC window, in the tree and buildable today. It opens a `.xopp`, a zipped `.xopp` or a native `.mobix`
+— the family is read from its bytes, not its name — and paints every page as written: ruling, pressure-tapered
+strokes, highlighters, text, images, PDF backgrounds and the living tables, graphs, shapes and formulas.
 
-It also edits them. Pen and highlighter, both erasers, the figure tools, text boxes, vertical space and the
+It also edits them: pen and highlighter, both erasers, the figure tools, text boxes, vertical space and the
 selection with its action bar and inspector lane all write to the page, each gesture one undo step, and
 `Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu,
-its imports and exports (a PDF either way, or one PNG or SVG per page into a folder you choose) and the Settings panel are the
-tablet's, drawn in the same glass. A notebook reads its pages as you scroll it, and the pen's own packet
-stream draws the ink when a graphics tablet is attached. Rest the pen on the page and the stroke perfects
-itself while you hold it — a box becomes a living shape with draggable corners, a line its clean geometry.
+its imports and exports (a PDF either way, or PNG/SVG per page) and the Settings panel are the tablet's, drawn
+in the same glass. A notebook reads its pages as you scroll, and the pen's packet stream draws the ink when a
+graphics tablet is attached. Rest the pen on the page and the stroke perfects itself while you hold it.
 
 - **Audio, the tablet's way**: the capsule left of Save records, pauses and plays back, and a take's strokes carry their offset
   (`%APPDATA%\MobiXournal\audio`); its **Play** (or `Y`) replays a point, and a clip makes it a transport (scrubber, speed 1×–2×) that writes the page as recorded. Audio belongs to the tab it was recorded in: switching documents shows that document's own recording, never the one being made next door, and **Settings → Audio ▸ Outside the app** copies every recording out to a folder of your own at the end of a take, as the tablet offers.
-- **The tablet's figures**: one figures slot carries the triangle, trapezoid and the **polygon**; **Settings → Figures** picks the two variant kinds, their angles, and how many sides the polygon draws.
-- **A file to try it on**: `udiff.xopp`, at the root of this repository.
-- **Keys**: every tool and command has one; the full table is in
+- **The tablet's figures**: the **triangle**, the **trapezoid** and the **polygon** each have their own slot, and each slot's own menu picks what it draws — the four triangle kinds, the three trapezoid kinds, or the polygon's three to twelve sides, with the live count printed on the slot. **Settings → Figures** sets the same variants, their angles and the side count, next to the width figures are drawn at.
+- **Keys**: every tool and command has one; the table is in
   [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and **Settings → Shortcuts** rebinds any of them.
   That page also holds three **switch** keys — eraser, hand and selection — where one press picks the tool and
-  the next puts back the tool you were using, with the kind of eraser or selection chosen beside them.
+  the next puts back the one you were using.
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
   block or **Settings → Stylus** — and the menu keeps them as chips, one click from a light hand or a firm one.
-- **Save As asks the file's format in the save window itself**: its **File type** list offers `.mobix`,
-  `.xopp` and the zipped `.xopp` package, and the name field wears the suffix that goes with the picked
-  type — one dialog, both answers. `Ctrl + S` keeps writing back in the format the document already had.
-- **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on, as a document of its
-  own or added after the one you have, and asks which pages (*pages 3 to 7 of 412*) — on the tablet after the pick.
+  **A file to try it on**: `udiff.xopp`, at the root of this repository.
+- **Save As asks the format in the save window itself**: its **File type** list offers `.mobix`, `.xopp` and
+  the zipped package, and the name field wears that suffix — one dialog, both answers. `Ctrl + S` keeps
+  writing back in the format the document already had.
+- **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — its own document or added
+  after the one you have — and asks which pages (*pages 3 to 7 of 412*): on the tablet, after the pick.
 - **The PDF's pages are the document's pages**: every sheet in the sidebar wears the PDF page it stands
   for, its row's **×** drops that sheet, and *Move page up* / *Move page down* in the pages menu reorder
   them — one undo step each, and an export follows the order you leave them in. **Drag a thumbnail** onto
@@ -132,11 +130,14 @@ itself while you hold it — a box becomes a living shape with draggable corners
   rows (**Shift** takes a run), and dragging one carries them all or the bar deletes them. **Manage pages…**
   acts on a whole run at once (*pages 3 to 7* moved or removed). Removing the sheet that carries the PDF's
   own reference hands it to the next one, so the document never loses its PDF.
-- **A remote or synced file** has to be available offline before it opens — a Drive or OneDrive placeholder
-  is not a document.
-- **Not yet**: importing anything but a document or a PDF, editing layers, and an installer. What is left is in
-  [`TODO.toml`](TODO.toml), and the window's own state is
-  [`docs/desktop-workstation.md`](docs/desktop-workstation.md) (*What the window does not do*).
+- **The PDF's text, read as text**: **Select text (PDF)** (`Shift + S`) drags across a PDF page's words and
+  copies them (`Ctrl + C`, or the selection's **Copy** bar); the **highlighter snaps** to the line it crosses
+  over real PDF text, previewed as you drag and committed as ordinary ink. Neither writes to the document, and
+  a page with no text layer (a scan, a `.mobix` page) says so. A PDF's **Contents** sits under the sidebar's
+  layers: indented bookmarks leading to the page that shows each sheet, listed only once you open it.
+- **A remote or synced file** has to be available offline before it opens — a placeholder is not a document.
+- **Not yet**: importing anything but a document or a PDF, editing layers, and an installer — see
+  [`TODO.toml`](TODO.toml) and [`docs/desktop-workstation.md`](docs/desktop-workstation.md) (*What the window does not do*).
 
 Two commands, both on a Windows 11 host with a JDK 21 (see *Build & Requirements* below):
 
@@ -277,7 +278,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Fuzzy & Multi-Candidate Search**: Tolerates handwriting variations via candidate hypothesis matching, diacritic/accent normalization, multi-word continuous phrase matching, and Levenshtein distance tolerance.
   - **Modern UI & High-Performance Search**: Material 3 search pill with dynamic match badge (`1/3` or `0/0`), auto-focus, keyboard Search action, quick clear button, AI handwriting indexing dialog when opening search (`SearchIndexingDialog`), followed by instantaneous real-time querying while typing and rounded canvas highlights with smooth navigation.
 - **Vertical Space Tool**: Drag to open room on a page, exactly as desktop Xournal++ does it: **only elements that lie entirely below the grabbed line move** (one the line passes through stays put rather than being torn in half) and that is decided once, when you grab, so a block sliding upward doesn't pick up the elements it passes. Dragging down inserts and dragging up closes the gap — **and keeps going: nothing stops the block at the line**, so content can be pulled above the line it was grabbed at (and, pulled far enough, off the top of the sheet, where it stays and can be dragged back down). The amount inserted **snaps to the page ruling** when *Snap to grid* is on. Every layer moves together — a deliberate difference from the desktop, which reflows only the current layer, so no note is left behind by space opened on another layer. This is a reflow of coordinates only, so it round-trips through the `.xopp` file.
-- **Text & Images**: Insert resizable text boxes (Sans, Serif, Monospace, bold, italic, custom colors) and external bitmap images.
+- **Text & Images**: Insert resizable text boxes (Sans, Serif, Monospace, bold, italic, custom colors) and external bitmap images (PNG/JPEG). On desktop, images ingest via the tool strip file dialog, clipboard paste (Ctrl+V), or drag-and-drop onto the window; corner handles resize preserving aspect ratio by default (Shift to unlock) and edge handles stretch single axes — modifying bounding coordinates without resampling raw bytes, round-tripping losslessly in .mobix and .xopp.
 - **Synchronized Audio Notes**:
   - Record audio while handwriting. Strokes are tagged with precise point-level timestamps (`fn`/`ts`), and a recording belongs to the tab it was started in — switching tabs shows that tab's own audio and never stamps ink in another document. 
   - Use the **Play Object** tool to tap any stroke and replay the audio recorded at that exact moment, or launch the **Floating Frosted-Glass Mini-Player** with interactive amplitude waveform scrubbing, inking density heatmap, subtitle previews, quick $\pm 5\text{s}$ skips, and variable playback speed ($0.8\times$ to $2.0\times$). A long document name is truncated in the player's title instead of squeezing the controls out of the pill, so the speed selector and the close button stay where they are whatever the tab is called. With finger drawing off, the Play Object tool leaves the page navigable: a finger pans and pinches as everywhere else and only the pen picks the stroke whose recording should play.   - **Background Recording & Standalone Export**: Keeps recording seamlessly when switching apps or locking the device via a foreground service, and the notification is the recording's remote control: it counts the elapsed time and its **Pause/Resume** and **Stop** buttons act on the recording without reopening the app (a paused recording keeps the microphone open, so resuming loses nothing). An optional toggle automatically saves an independent audio copy into the device's public `Music/MobiXournal` or `Recordings/MobiXournal` storage, written as **`.m4a` (AAC)** whatever container the notebook itself recorded — the format phones, browsers and AI assistants accept, where an Ogg/Opus file is often refused or a WAV is too large to upload. That copy is encoded **while you are still recording**, so the end of a lecture costs a file copy rather than a conversion, and a copy the app is closed on is picked up again the next time you open it, instead of being lost with the app.

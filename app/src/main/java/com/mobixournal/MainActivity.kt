@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
         if (settingsState.value.themeMode != next.themeMode) {
             MobiXournalApp.applyThemeMode(this, next.themeMode)
             window.setBackgroundDrawableResource(
-                if (isDarkTheme(next)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
+                if (next.themeMode == ThemeMode.LIGHT) R.drawable.splash_screen_light else R.drawable.splash_screen_dark,
             )
         }
         settingsState.value = next
@@ -375,14 +375,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupThemeAndWindow(initialSettings: AppSettings) {
-        when (initialSettings.themeMode) {
-            ThemeMode.LIGHT -> setTheme(R.style.Theme_MobiXournal_Light)
-            ThemeMode.DARK -> setTheme(R.style.Theme_MobiXournal_Dark)
-            ThemeMode.SYSTEM -> setTheme(R.style.Theme_MobiXournal)
-        }
+        val useLight = initialSettings.themeMode == ThemeMode.LIGHT
+        setTheme(if (useLight) R.style.Theme_MobiXournal_Light else R.style.Theme_MobiXournal_Dark)
         MobiXournalApp.applyThemeMode(this, initialSettings.themeMode)
         window.setBackgroundDrawableResource(
-            if (isDarkTheme(initialSettings)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
+            if (useLight) R.drawable.splash_screen_light else R.drawable.splash_screen_dark,
         )
     }
 

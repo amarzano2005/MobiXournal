@@ -2,22 +2,26 @@ package com.mobixournal.desktop
 
 import androidx.compose.runtime.Composable
 import com.mobixournal.design.PenPalette
+import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
- * **Figures**: the width the shape tools draw at, and the variants a triangle and a trapezoid take.
- *
- * A figure has no pressure — it is drawn at its full width — so a rectangle would otherwise always be as
- * thick as the pen's *slot*, and a light pen stroke beside it reads thinner. Its width is therefore its own
- * value: the tablet's three S/M/L slots as presets, and a slider for anything between them.
- *
- * The other two answers are the variants: a triangle's four kinds (with a scalene one's three angles) and a
- * trapezoid's three (with two base angles), the same ones the tablet's figures page offers.
+ * Settings ▸ **Figures**: the tools that write geometric primitives.
  */
 @Composable
 internal fun FiguresSettings(policy: DesktopSettingsState) {
+    FigureWidthSettings(policy)
+    SettingsNote("The pen's own widths stay in the strip's colour capsule.")
+    TriangleSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRIANGLE) })
+    TrapezoidSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRAPEZOID) })
+    PolygonSettings(policy)
+}
+
+@Composable
+private fun FigureWidthSettings(policy: DesktopSettingsState) {
     val widths = PenPalette.DEFAULT_WIDTHS
     val letters = listOf("S", "M", "L")
     SettingsGroup("Figure width") {
@@ -45,10 +49,10 @@ internal fun FiguresSettings(policy: DesktopSettingsState) {
             )
         }
     }
-    SettingsNote("The pen's own widths stay in the strip's colour capsule.")
-    // A triangle and a trapezoid are the two figures whose shape is not fully said by the drag, so
-    // they carry the tablet's variants here — the same four and the same three, with the angles a
-    // scalene one is built from.
+}
+
+@Composable
+private fun TriangleSettings(policy: DesktopSettingsState, onCustomize: () -> Unit) {
     SettingsGroup("Triangle") {
         SettingsSelect(
             label = "Type",
@@ -59,6 +63,12 @@ internal fun FiguresSettings(policy: DesktopSettingsState) {
             onPick = { policy.figures.chooseShape(policy.figures.shape.copy(triangleKind = it)) },
         )
         if (policy.figures.shape.triangleKind == TriangleKind.SCALENE) {
+            SettingsRow(
+                label = "Angles dialog",
+                note = "Interactive visual editor with auto-balance and presets (sum = 180°).",
+            ) {
+                PanelButton(label = "Customize...", primary = false, enabled = true, onClick = onCustomize)
+            }
             FigureAngle("Angle A", policy.figures.shape.scaleneAngleA) {
                 policy.figures.chooseShape(policy.figures.shape.copy(scaleneAngleA = it))
             }
@@ -70,6 +80,10 @@ internal fun FiguresSettings(policy: DesktopSettingsState) {
             }
         }
     }
+}
+
+@Composable
+private fun TrapezoidSettings(policy: DesktopSettingsState, onCustomize: () -> Unit) {
     SettingsGroup("Trapezoid") {
         SettingsSelect(
             label = "Type",
@@ -80,6 +94,12 @@ internal fun FiguresSettings(policy: DesktopSettingsState) {
             onPick = { policy.figures.chooseShape(policy.figures.shape.copy(trapezoidKind = it)) },
         )
         if (policy.figures.shape.trapezoidKind == TrapezoidKind.SCALENE) {
+            SettingsRow(
+                label = "Angles dialog",
+                note = "Interactive visual editor with live preview and angle presets.",
+            ) {
+                PanelButton(label = "Customize...", primary = false, enabled = true, onClick = onCustomize)
+            }
             FigureAngle("Left base angle", policy.figures.shape.trapezoidAngleA) {
                 policy.figures.chooseShape(policy.figures.shape.copy(trapezoidAngleA = it))
             }
@@ -90,7 +110,26 @@ internal fun FiguresSettings(policy: DesktopSettingsState) {
     }
 }
 
-/** One of a scalene figure's angles, in degrees — the range [FigureSettings] keeps a figure within. */
+@Composable
+private fun PolygonSettings(policy: DesktopSettingsState) {
+    SettingsGroup("Polygon") {
+        SettingsRow(
+            label = "Sides",
+            note = "How many sides the polygon tool draws, from 3 to 12.",
+        ) {
+            SettingsSlider(
+                value = policy.figures.shape.polygonSides.toFloat(),
+                range = ShapeBuilder.MIN_POLYGON_SIDES.toFloat()..ShapeBuilder.MAX_POLYGON_SIDES.toFloat(),
+                step = 1f,
+                format = { String.format(Locale.ROOT, "%.0f sides", it) },
+                onValue = { sides ->
+                    policy.figures.chooseShape(policy.figures.shape.withPolygonSides(sides.roundToInt()))
+                },
+            )
+        }
+    }
+}
+
 @Composable
 private fun FigureAngle(label: String, degrees: Double, onValue: (Double) -> Unit) {
     SettingsRow(label = label, note = "Degrees, between 5 and 175.") {

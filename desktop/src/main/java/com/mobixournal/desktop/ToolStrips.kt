@@ -35,7 +35,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.PenPalette
 import com.mobixournal.design.ToolGlyph
@@ -136,12 +138,18 @@ data class ToolStripState(
     /** Open one family's palette, or close the open one with null. */
     val onCircuitPicker: (CircuitFamily?) -> Unit = {},
     /**
+     * The **figures' own answers**: the variant each figure slot draws, its menu, and the pick these
+     * two commands answer. One value, so the rail's slot and the ribbon's cannot show different ones.
+     */
+    val figures: FigureStrip = FigureStrip(),
+    /**
      * The **page** section, drawn after the strip's divider: the tablet's own menu of what a page is
      * (its paper and its format) and what the document's page list can become (add, remove, step).
      * Commands on the page, not ink, which is why they stand apart from the tools and the palette
      * (`docs/interface-contract.md` §2).
      */
     val pages: PageMenuActions = PageMenuActions(),
+    val onInsertImage: () -> Unit = {},
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -211,29 +219,18 @@ fun ToolRail(
             ) {
                 for ((index, group) in state.groups.withIndex()) {
                     ToolSlot(
-                        group = group,
-                        selection = state.selection,
-                        pickerOpen = state.openGroup == index,
-                        onSelect = onSelect,
-                        onOpenPicker = { state.onOpenGroup(index) },
-                        onClosePicker = { state.onOpenGroup(null) },
-                        circuitKinds = state.circuitKinds,
-                        circuitPickerOpen = state.circuitPickerOpen,
-                        onCircuitKind = state.onCircuitKind,
-                        onCircuitPicker = state.onCircuitPicker,
-                        side = StripSide.RIGHT,
+                        group = group, selection = state.selection,
+                        pickerOpen = state.openGroup == index, onSelect = onSelect,
+                        onOpenPicker = { state.onOpenGroup(index) }, onClosePicker = { state.onOpenGroup(null) },
+                        circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
+                        onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
+                        figures = state.figures, side = StripSide.RIGHT,
                     )
                 }
                 StripDivider(vertical = true)
                 ColourSlot(
-                    ink = state.ink,
-                    palette = state.palette,
-                    custom = state.custom,
-                    favourites = state.favourites,
-                    onPick = ink.onColour,
-                    onLineStyle = ink.onLineStyle,
-                    onEditCustom = ink.onEditCustom,
-                    onAddColour = ink.onAddColour,
+                    state.ink, state.palette, state.custom, state.favourites,
+                    ink.onColour, ink.onLineStyle, ink.onEditCustom, ink.onAddColour,
                     side = StripSide.RIGHT,
                 )
                 SizeSlot(state.ink, ink.onWidth, side = StripSide.RIGHT)
@@ -241,6 +238,7 @@ fun ToolRail(
                 // not on the ink, so they are the last two objects of the strip rather than four more
                 // tools in it.
                 StripDivider(vertical = true)
+                ImageSlot(state.onInsertImage, StripSide.RIGHT)
                 PageSectionSlot(state.pages, StripSide.RIGHT)
             }
         }
@@ -287,33 +285,23 @@ fun ToolRibbon(
             ) {
                 for ((index, group) in state.groups.withIndex()) {
                     ToolSlot(
-                        group = group,
-                        selection = state.selection,
-                        pickerOpen = state.openGroup == index,
-                        onSelect = onSelect,
-                        onOpenPicker = { state.onOpenGroup(index) },
-                        onClosePicker = { state.onOpenGroup(null) },
-                        circuitKinds = state.circuitKinds,
-                        circuitPickerOpen = state.circuitPickerOpen,
-                        onCircuitKind = state.onCircuitKind,
-                        onCircuitPicker = state.onCircuitPicker,
-                        side = StripSide.BELOW,
+                        group = group, selection = state.selection,
+                        pickerOpen = state.openGroup == index, onSelect = onSelect,
+                        onOpenPicker = { state.onOpenGroup(index) }, onClosePicker = { state.onOpenGroup(null) },
+                        circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
+                        onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
+                        figures = state.figures, side = StripSide.BELOW,
                     )
                 }
                 StripDivider(vertical = false)
                 ColourSlot(
-                    ink = state.ink,
-                    palette = state.palette,
-                    custom = state.custom,
-                    favourites = state.favourites,
-                    onPick = ink.onColour,
-                    onLineStyle = ink.onLineStyle,
-                    onEditCustom = ink.onEditCustom,
-                    onAddColour = ink.onAddColour,
+                    state.ink, state.palette, state.custom, state.favourites,
+                    ink.onColour, ink.onLineStyle, ink.onEditCustom, ink.onAddColour,
                     side = StripSide.BELOW,
                 )
                 SizeSlot(state.ink, ink.onWidth, side = StripSide.BELOW)
                 StripDivider(vertical = false)
+                ImageSlot(state.onInsertImage, StripSide.BELOW)
                 PageSectionSlot(state.pages, StripSide.BELOW)
             }
         }
@@ -330,28 +318,31 @@ fun ToolRibbon(
 @Composable
 private fun StripDivider(vertical: Boolean) {
     if (vertical) {
-        Box(Modifier.width(20.dp).height(1.dp).background(DesktopTheme.hairline))
+        Box(
+            Modifier
+                .padding(vertical = ToolStripMetrics.gap)
+                .width(ToolStripMetrics.slotSize)
+                .height(1.dp)
+                .background(DesktopTheme.hairline),
+        )
     } else {
-        Box(Modifier.width(1.dp).height(20.dp).background(DesktopTheme.hairline))
+        Box(
+            Modifier
+                .padding(horizontal = ToolStripMetrics.gap)
+                .width(1.dp)
+                .height(ToolStripMetrics.slotSize)
+                .background(DesktopTheme.hairline),
+        )
     }
 }
 
-
-
 /**
- * One **slot** of a strip: the glyph of the tool it currently faces, in a 40 dp frame, the picked one
- * wearing the steel [`DesktopTheme.activeSlot`] rather than the accent — the app's rule for a *picked*
- * slot, and the tablet's own `primaryContainer` (the steel `#38383E`) with the glyph in the accent
- * (`docs/ui-modernization.md`).
+ * One tool slot of a strip: the picked glyph in the accent, a hover pill, and the gesture it answers.
  *
  * A slot that [ToolGroup.hasPicker] carries the chevron and opens the group's picker — by clicking the
  * chevron, by right-clicking anywhere on the slot, or by holding it; a click on the glyph picks the tool
- * the slot faces, exactly as pressing that tool's key does. The picker only re-faces the slot.
- *
- * Hovering shows the name-and-hotkey pill the doc asks for. It is a [Popup] rather than a box inside
- * the strip because the strip is a narrow band: a pill laid out inside it would be clipped by it.
+ * in place (`docs/interface-contract.md` §3).
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ToolSlot(
     group: ToolGroup,
@@ -364,26 +355,31 @@ private fun ToolSlot(
     circuitPickerOpen: CircuitFamily?,
     onCircuitKind: (CircuitFamily, ShapeKind) -> Unit,
     onCircuitPicker: (CircuitFamily?) -> Unit,
+    figures: FigureStrip,
     side: StripSide,
 ) {
     val tool = group.faceFor(selection)
-    val family = circuitFamilyOf(tool)
+    val figure = tool.takeIf { it in FIGURE_TOOLS }
     val active = tool == selection.current
-    // What the slot's chevron (and a second click on a picked slot) opens: for a circuit slot the
-    // family's **palette of parts**, for every other grouped slot the list of its members. A circuit
-    // group has one member, so its own list would be empty — the palette is its submenu.
-    val openSurface: () -> Unit = {
-        if (family != null) onCircuitPicker(family) else onOpenPicker()
-    }
+    // What the slot's chevron (and a second click on a picked slot) opens, and what closes it again —
+    // the group's members, a circuit palette or a figure's variants (`slotSurface`).
+    val surface = slotSurface(
+        tool = tool,
+        pickerOpen = pickerOpen,
+        circuitPickerOpen = circuitPickerOpen,
+        figures = figures,
+        openGroup = onOpenPicker,
+        closeGroup = onClosePicker,
+        circuit = onCircuitPicker,
+    )
     // A surface that is up belongs to the slot that opened it, so the next click on that slot **closes**
     // it. The popup dismisses itself on the same press, and the tap under it must not open it again
     // (DismissGuard) — otherwise clicking the trigger of an open list read as a dead click.
     val guard = remember { DismissGuard() }
-    val surfaceUp = pickerOpen || (family != null && circuitPickerOpen == family)
     val toggleSurface: () -> Unit = {
         when {
-            surfaceUp -> if (family != null) onCircuitPicker(null) else onClosePicker()
-            guard.mayOpen(group) -> openSurface()
+            surface.up -> surface.close()
+            guard.mayOpen(group) -> surface.open()
         }
     }
     var hovered by remember { mutableStateOf(false) }
@@ -392,8 +388,13 @@ private fun ToolSlot(
     val gapPx = with(density) { ToolStripMetrics.tooltipGap.roundToPx() }
 
     Box {
+        val isScaleneEdit = active && figures.isScalene(tool)
+        val armedCircuit = circuitFamilyOf(tool)?.let { circuitKinds[it] ?: it.face }
         SlotFace(
             tool = tool,
+            glyph = figureSlotGlyph(tool, figures.shape),
+            circuitKind = armedCircuit,
+            badge = if (figure == DesktopTool.POLYGON) "${figures.shape.polygonSides}" else null,
             group = group,
             selection = selection,
             active = active,
@@ -402,10 +403,11 @@ private fun ToolSlot(
             onSelect = onSelect,
             onOpenPicker = toggleSurface,
             opensSurface = group.opensSubmenu(),
+            onEditFigure = if (isScaleneEdit) { { figures.onOpenDialog(tool) } } else null,
         )
-        // The pill stands aside while the slot's own surface is up — either of them, so a circuit slot's
-        // palette is not covered by its tooltip.
-        if (hovered && !pickerOpen && !(family != null && circuitPickerOpen == family)) {
+        // The pill stands aside while the slot's own surface is up — any of them, so a circuit slot's
+        // palette or a figure's variants are not covered by its tooltip.
+        if (hovered && !surface.up) {
             TooltipPill(
                 tool = tool,
                 offset = when (side) {
@@ -421,12 +423,14 @@ private fun ToolSlot(
             pickerOpen = pickerOpen,
             circuitKinds = circuitKinds,
             circuitPickerOpen = circuitPickerOpen,
+            figures = figures,
             onSelect = onSelect,
             onClosePicker = onClosePicker,
             // A dismissal is the popup's own (a click outside it), and it is remembered so that same
             // click cannot open the surface again on its way to the slot under it.
             onDismissPicker = { guard.closed(group); onClosePicker() },
             onDismissCircuit = { guard.closed(group); onCircuitPicker(null) },
+            onDismissFigure = { guard.closed(group); figures.onMenu(null) },
             onCircuitKind = onCircuitKind,
             onCircuitPicker = onCircuitPicker,
             offset = when (side) {
@@ -438,9 +442,9 @@ private fun ToolSlot(
 }
 
 /**
- * The lists a slot can open, in one place: the group's members and — for the Circuit slot — the
- * component palette. Which of the two belongs to which slot is the window's rule, so it lives beside the
- * slot rather than in each strip.
+ * The lists a slot can open, in one place: the group's members, a circuit family's component palette and
+ * a figure's own variants. Which of the three belongs to which slot is the window's rule, so it lives
+ * beside the slot rather than in each strip.
  */
 @Composable
 private fun SlotPickerStack(
@@ -450,12 +454,15 @@ private fun SlotPickerStack(
     pickerOpen: Boolean,
     circuitKinds: Map<CircuitFamily, ShapeKind>,
     circuitPickerOpen: CircuitFamily?,
+    figures: FigureStrip,
     onSelect: (DesktopTool) -> Unit,
     onClosePicker: () -> Unit,
     /** The group picker was put away by a press outside it. */
     onDismissPicker: () -> Unit,
     /** The circuit palette was put away by a press outside it. */
     onDismissCircuit: () -> Unit,
+    /** A figure's variant menu was put away by a press outside it. */
+    onDismissFigure: () -> Unit,
     onCircuitKind: (CircuitFamily, ShapeKind) -> Unit,
     onCircuitPicker: (CircuitFamily?) -> Unit,
     offset: IntOffset,
@@ -469,6 +476,22 @@ private fun SlotPickerStack(
                 onClosePicker()
             },
             onDismiss = onDismissPicker,
+            offset = offset,
+        )
+    }
+    val figure = tool.takeIf { it in FIGURE_TOOLS }
+    if (figure != null && figures.menu == figure) {
+        FigureKindPicker(
+            tool = figure,
+            shape = figures.shape,
+            // A pick lands on the figure it answers: a menu opened from the chevron of a slot that was
+            // not picked takes that slot's tool in the same gesture, as the tablet's count picker does.
+            onPick = { shape ->
+                onSelect(figure)
+                figures.onShape(shape)
+            },
+            onEdit = figures.onOpenDialog,
+            onDismiss = onDismissFigure,
             offset = offset,
         )
     }
@@ -498,6 +521,10 @@ private fun SlotPickerStack(
 @Composable
 private fun SlotFace(
     tool: DesktopTool,
+    /** The picture on the slot: a figure's chosen variant, or the tool's own glyph. */
+    glyph: ToolGlyph,
+    /** A count in the slot's top-left corner — the polygon's sides, as the tablet's slot prints it. */
+    badge: String?,
     group: ToolGroup,
     selection: ToolSelection,
     active: Boolean,
@@ -507,6 +534,8 @@ private fun SlotFace(
     onOpenPicker: () -> Unit,
     /** Whether this slot has a submenu at all — a lone tool has nothing to open. */
     opensSurface: Boolean,
+    circuitKind: ShapeKind? = null,
+    onEditFigure: (() -> Unit)? = null,
 ) {
     Box(
         Modifier
@@ -537,12 +566,36 @@ private fun SlotFace(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.size(ToolStripMetrics.glyphSize)) {
-            // The tablet's rule: a glyph on the glass is the chrome ink, and the picked one is the
-            // accent. A grey glyph beside a white one reads as disabled, not as a different tool.
-            drawToolGlyph(
-                tool,
+            val color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk
+            if (circuitKind != null) drawCircuitSymbol(circuitKind, color)
+            else drawToolGlyph(glyph, color)
+        }
+        if (badge != null) {
+            // The figure is drawn from this number, so the slot says which one it is — tucked into the
+            // corner the chevron leaves free, clear of the drawing in the middle.
+            Text(
+                text = badge,
                 color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk,
+                style = DesktopTheme.numeric,
+                fontSize = 9.sp,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 4.dp, top = 2.dp),
             )
+        }
+        if (onEditFigure != null) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .size(16.dp)
+                    .padding(1.dp)
+                    .pointerInput(onEditFigure) { detectTapGestures { onEditFigure() } },
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(Modifier.size(10.dp)) {
+                    drawChromeGlyph(ChromeGlyph.EDIT, DesktopTheme.accent)
+                }
+            }
         }
         if (opensSurface) {
             // The marker, at the end the strip's own side leaves free, with its own tap target so a

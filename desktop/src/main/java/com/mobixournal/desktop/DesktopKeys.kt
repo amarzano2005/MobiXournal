@@ -239,6 +239,8 @@ internal fun selectPage(tab: DesktopTab, index: Int) {
     tab.page = index.coerceIn(0, (tab.pageCount - 1).coerceAtLeast(0))
     tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f)
     tab.selection = null
+    // A text selection names words of one sheet: a page change drops it, exactly as `Esc` does.
+    tab.pdfTextSelection = null
 }
 
 /** The label a document's tab gets before a rename, kept here so the strip and tests agree. */

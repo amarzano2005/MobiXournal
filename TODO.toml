@@ -22,104 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "desktop-pdf-shared-text-geometry"
-title = "Desktop PDF: move the text, outline and highlighter geometry into mobix-core"
-description = "Move the platform-free half of the PDF text story out of the app and into `mobix-core/src/main/java/com/mobixournal/render/`, keeping the package so no call site changes: `PdfText.kt` (`CharBox`, `PdfWord`, `PdfWordGrouper`, `PdfTextIndex`), `PdfOutline.kt` (`PdfOutlineEntry`, `PdfOutline`, `PdfOutlineNode`, `PdfOutlineTree`) and `MagneticHighlighter.kt`, with `PdfTextTest`, `PdfOutlineTest` and `MagneticHighlighterTest` moved beside them into `mobix-core/src/test`. This is the same seam move as `Playhead`/`WavWriter` and `StrokeSmoother`: the window must snap a highlight and resolve a selection on the app's own word boxes, and a second copy under `desktop/` would drift the moment either side changed. The extractors stay in their shells (each has its own PDFBox port), so only the types and their tests travel. Verify `:mobix-core:test`, `:app:testDebugUnitTest` and `:desktop:test` green with `SourceStructureTest` under budget, and say where the geometry lives in `docs/repo-layout.md` and `docs/pdf.md`."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 81
-created = 2026-10-31
-tags = ["pdf", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "desktop-pdf-text-and-outline-index"
-title = "Desktop PDF: extract the text layer and the Contents outline on the JVM"
-description = "Add the window's twins of the app's extractors, over `org.apache.pdfbox` instead of `pdfbox-android` (the precedent is `DesktopPdfMerge` beside `PdfMerger`): `DesktopPdfText` builds the shared `PdfTextIndex` from a `PDFTextStripper` subclass that turns each `TextPosition` into a `CharBox` and hands the run to `PdfWordGrouper`, with the app's exact box convention (`xDirAdj` is the left, `yDirAdj` is the glyph's BOTTOM, so `top = bottom - heightDir`; reading `yDirAdj` as the top drops every word a line); `DesktopPdfOutline` walks `PDOutlineItem.findDestinationPage` into `PdfOutlineTree.flatten` with the app's visited set and node ceiling against a cyclic tree. One `PDDocument.load` per file serves both walks, and `DesktopPdfIndexCache` keys the pair by the resolved `PdfPageReferences` reference plus the file length, soft-referenced like `PdfTextIndexCache`, with a `forget` the save, Save-As, merge and re-import paths call (`DesktopSaves`, `DesktopPdfImportCommands`) so a stale index cannot outlive its bytes. Both are computed off the UI thread (`LaunchedEffect` + `withContext(Dispatchers.Default)`) and published into per-document state the canvas and the sidebar read, so opening a 200-page PDF stalls no frame; a scanned, corrupt or missing PDF answers an empty index and an empty outline instead of throwing. Verify with fixture PDFs built by PDFBox in the test (as `DesktopPdfImportTest` and `DesktopPdfPageListTest` do): a word's box to the point, a nested outline's flattened rows, a text-only PDF's empty outline, a corrupt file's empty answer, and a second ask served from the cache."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 82
-created = 2026-10-31
-tags = ["pdf", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "desktop-pdf-text-select-slot"
-title = "Desktop: the PDF text-select slot, its glyph and its shortcut"
-description = "Give the window the tablet's **Select text (PDF)** slot: `DesktopTool.PDF_TEXT_SELECT` with the label `Select text (PDF)` and the free key `Shift+S`, placed beside `MARQUEE`/`LASSO` in the enum's §3 order (it selects, it does not ink). The art is the **shared** catalogue, not a second drawing: add the glyph to `ToolGlyphCatalogue` (`mobix-core/design`) on the 24-unit grid as an I-beam over a sheet, so the window's `ToolGlyphs.kt` adapter and the tablet's `ImageVector` adapter both show it. `DesktopTool.activeTool()` maps the slot to the existing shared `ActiveTool.TEXT_SELECT`, and `DesktopTool.inksByPackets()` must answer **false** for it, because a selection drag must not be taken by the pen's packet stream (`PageCanvasInput`'s `packetsOwn`) or the pen would ink the page it is selecting. Verify `ShortcutKeysTest` (the new key is unique), `ToolGlyphCatalogueTest`, `ToolGlyphRenderTest`, `ToolGlyphCoverageTest` (every slot has a glyph), `DesktopCursorTest` (a slot that lays no ink draws no pen ring) and the `inksByPackets`/`activeTool` tests; document the key in `docs/desktop-ui-layout.md` and the slot rule in `docs/ui-modernization.md` §3."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 83
-created = 2026-10-31
-tags = ["pdf", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "desktop-pdf-text-selection"
-title = "Desktop: select a PDF page's text and copy it"
-description = "The drag and the clipboard: with the slot picked, a press resolves through `pagePointOf` to page-local points and anchors the selection at `PdfTextIndex.anchorWord` on that page (only when the page's background is a `Background.Pdf` with a text layer), a drag extends the focus word on the same page, and the overlay paints `rangeBoxes` as the tablet's `drawTextSelection` does — a wash and a hairline per word box, in `DesktopTheme`'s selection colour, never in the page's ink. `Ctrl+C` and a Copy button on the selection bar put `rangeText` on the system clipboard as a `StringSelection` (`java.awt.Toolkit`, the route `DesktopSelectionCommands` already uses); `Esc`, a click off the text or a page change clears it. The selection is **view-only and never document content**: no page edit, no undo step, and a select-copy-save leaves the file byte-identical — the rule `docs/pdf.md` states for the tablet. A page carrying no text layer (a scan, a photograph, a `.mobix`) answers one English sentence in the status bar rather than nothing at all. Verify with JVM tests over the anchor/extend/range mapping (a hand-built `PdfTextIndex` and one extracted from a fixture PDF), a `DesktopPdfTextSelectionRenderTest` on `ImageComposeScene` (as `DesktopPaperRulingTest` does) showing the wash on the selected words and not on the line beside them, and a test that the model and the undo depth are untouched; document it in `docs/pdf.md`, `docs/desktop-editing.md` and README."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 84
-created = 2026-10-31
-tags = ["pdf", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "desktop-magnetic-highlighter"
-title = "Desktop: snap the highlighter to a PDF page's text lines"
-description = "Make the window's highlighter **magnetic** the way the tablet's is, on the shared geometry alone: while a HIGHLIGHTER drag runs over a page whose background is a PDF with a text layer, `MagneticHighlighter.bands(points, words)` are previewed as flat bands in place of the freehand preview, and at lift `MagneticHighlighter.strokes(points, words, colour)` commit as ordinary two-point constant-width HIGHLIGHTER strokes in the picked ink's colour — one undo step, and ink that round-trips through `.mobix` and `.xopp` exactly like a band drawn by hand. A drag shorter than `MIN_LENGTH_PT`, steeper than `MAX_SLOPE`, over no text, or crossing more than `MAX_LINES` lines commits the freehand stroke unchanged: snapping is a convenience, never a correction the user did not ask for. A page with no text layer (a `.mobix`, a photograph, a scan) behaves exactly as today. Verify with a JVM test over the lift (the bands committed, one undo step, the freehand path otherwise) and a render test of the live preview; document it in `docs/pdf.md` (the magnetic-highlighter section gains the window) and `docs/desktop-editing.md`."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 85
-created = 2026-10-31
-tags = ["pdf", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "desktop-pdf-contents-sidebar"
-title = "Desktop: the PDF Contents section in the page sidebar"
-description = "The PDF's **Contents** in the window's page sidebar: a collapsible section under `LayersSection` in `PageSidebar`, filled from the document's `pdfOutline` only when it is opened — a thousand rows cost nothing until someone asks for them — with rows indented by `depth`, each printing its title and the page it leads to, capped at `PdfOutlineTree.MAX_ENTRIES`, and an entry with no destination drawn as a dimmed row that cannot be clicked. A click goes to the **document** page whose `Background.Pdf.pageNo` equals the entry's page index, resolved through `PdfPageReferences` inheritance rather than by assuming the PDF index and the page index agree (a merge renumbers every appended page), and it selects that page and scrolls it into view. A document with no PDF, or a PDF with no outline, shows no section at all rather than an empty one, and nothing here writes the file: the outline is read for navigation only, as `docs/pdf.md` states for the tablet. Verify with a pure `outlineRows` test (order, indentation, the page mapping with a page-number offset, destination-less rows), a render test of the section beside `DesktopSidebarTest`, and a test that a large outline is capped; document it in `docs/desktop-workstation.md`, `docs/pdf.md` and README."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 86
-created = 2026-10-31
-tags = ["pdf", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "desktop-images-and-import"
-title = "Desktop: images as elements and content import (scope)"
-description = "Today desktop/ shows images only as page backgrounds. This scope owns BOTH halves of the tablet's picture tools: an image as a movable, resizable page element, and bringing content into the document (paste, drag a file onto the page, insert a picture). Investigate, then add the atomic tasks: (1) what a .xopp image element stores versus what a .mobix element stores (the content-hash assets are the native path; a .xopp carries the bytes inline or beside the file), and what the window must write so the document round-trips on both shells (docs/mobix-format.md, docs/xopp-format.md); (2) which slice of the app's image and PDF import path (io/, render/) can be reused unchanged, and what a dropped or pasted file becomes (one element, a new page, a background - three different outcomes that must not be conflated); (3) the element's handles: move and resize without resampling, one undo step per gesture, the same handles the selection transform gives (desktop-eraser-and-selection-on-shared-geometry); (4) the drop target itself: what Windows gives drag-and-drop on Compose Desktop, the visual affordance while a file is over the window (docs/interface-contract.md), and what happens to an unsupported file; (5) import of a PDF and of a sketch, under the sticky format policy - an imported PDF becomes a page background, never a silent conversion. Tests: a JVM round-trip that writes and reopens a document with an image element (both formats), and an ImageComposeScene test of the drop and the handles. Docs: README, docs/desktop-workstation.md, the owning format doc. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 90
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-guides-setsquare-compass"
 title = "Desktop: the setsquare and compass guides (scope)"
 description = "The tablet's rail carries a guides slot (docs/drawing-tools.md: the setsquare/compass guides beside BackgroundRenderer, PdfBackgroundPainter and Snapping) and the window has none, so this is one of the tools the parity map still has to reach - and the last one without an owner. Investigate and then add the atomic tasks: (1) how much of the tablet's guide geometry and its snapping is already platform-free in mobix-core (the guide lines, the snap candidates, the angle readout) - whatever is, moves or is reused rather than re-derived, so a guide placed on the tablet and one placed here behave the same; (2) how a guide is placed and moved with a pointer: a press anchors the compass, a drag turns it, a second press drops it, and whether a guide is a document element at all or page view state (the tablet answers this and the window must give the same answer, because only one of the two survives a save - the scope rule of AGENTS.md decides it); (3) the slot: guides are not ink, so DesktopTool.inksByPackets stays false for the slot and the pen's packets must not take the drag (DesktopVerticalSpaceTest is the pattern), and the face comes from the shared catalogue like every other slot (unify-remaining-stem-tool-glyphs); (4) the readout: the angle and the snap marker in the window's own chrome and tokens, English copy, the five states (docs/interface-contract.md); (5) tests: a pure geometry test for the guides and their snapping beside the shared maths, an ImageComposeScene test that a drag places a guide and that snapping holds a line at 0/45/90 degrees with Shift, and a render test of the guide over a page. Docs: docs/drawing-tools.md (the guides section), docs/desktop-workstation.md, README. Produce tasks, no code."
@@ -176,20 +78,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ultrawide-21x9-layout"
-title = "Desktop: 21:9 ultrawide layout (scope)"
-description = "Optimise desktop/ for 21:9 monitors (3440x1440 and 2560x1080). This scope owns the LAYOUT and nothing of the settings that expose it: the page spread, the fixed widths and the fits are specified here, and the window that offers them is desktop-settings-and-status-ui's. Investigate and break into tasks: (1) multi-page spread - 2 or 3 pages side by side with fit-to-height, chosen per tab and remembered, with a status-bar indicator and keys; (2) sidebar (240 dp) and inspector (300 dp) stay docked at fixed width so the extra width goes to the desk, never stretching the page or the chrome; (3) rail and ribbon placement on ultrawide (rail in its own lane, ribbon optional) per docs/ui-modernization.md; (4) the AUTO fit mode learns the window's aspect ratio; (5) thumbnails and AUTO fit for long-strip pages. Document the layout in the desktop section of docs/ui-modernization.md. Verify headlessly with ImageComposeScene renders at 3440x1440 and 2560x1080 into desktop/build/desktop-render/, asserting pixel regions (no band over the page, pages side by side), plus one manual check on the owner's monitor."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 310
-created = 2026-10-21
-tags = ["desktop", "ui"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-page-management-and-search"
 title = "Desktop: page management and document search (scope)"
 description = "What remains of page management and document search, now that the page list itself is done: delete and reorder (desktop-pdf-pages-render-reorder-delete), drag reordering with edge auto-scroll, moving or removing a typed range, picking several rows with Ctrl/Shift and dragging or deleting that pick, and asking an import for a page range all shipped. Left: inserting and duplicating a page from the list, copy/paste of the picked pages, and searching the document (text boxes, math blocks, PDF text) with the results listed in the sidebar and highlighted on the page. This scope also owns the header's search field, which desktop-light-theme-and-header-extras deliberately does not build ahead of it: a field over nothing is not chrome. Investigate how the .mobix paged reader and the .xopp model take a page insert, what undo means for it (one structural step per gesture, and what a page identity means for a tab's viewport), and how to search a lazily loaded .mobix without inflating every page - the same PageSource/PageWindow seam the canvas already uses. Reading a PDF's text layer for the search belongs to desktop-pdf-annotation when the document is a PDF. Docs: docs/desktop-workstation.md, the format doc for whatever an insert writes, README. Add task-level children. Produce tasks, no code."
@@ -198,20 +86,6 @@ level = "scope"
 category = "feature"
 urgency = "normal"
 order = 330
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-multi-window-and-monitors"
-title = "Desktop: multiple windows and monitors (scope)"
-description = "The window has no second-window story yet: docs/desktop-workstation.md describes one window and one document per tab, and nothing covers a second monitor. Investigate a second desktop window on another monitor showing the same document (shared state, per-window zoom, undo scoped per document) and dragging a tab out into its own window, with the Windows 21:9 main monitor plus a secondary one in mind. Reuse the shared document-state design from the Android multi-window work; do not start a second model. Add task-level children. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 350
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -228,20 +102,6 @@ urgency = "low"
 order = 360
 created = 2026-10-21
 tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-predict-the-stroke-head-to-hide-the-frame-s-latency"
-title = "Desktop: predict the stroke head to hide the frame's latency"
-description = "What is left of the pen's latency is the frame interval, not this code: the packet ticker applies a batch as it arrives, so the measured gap between a packet and the frame that first drew it is 1.48 ms median / 5.22 ms p95 / 7.82 ms max on a blank A4 page and 1.96 / 5.10 / 7.48 ms on udiff.xopp on the owner's PC (docs/desktop-tablet.md has the table). What remains is the wait for the next vsync, which the eye reads as the line trailing the nib. Work: extend the DRAFT only (never the committed stroke) by one predicted sample along the velocity of the last few packets, capped in distance, cleared on a direction change and skipped below a slow speed so a resting pen does not jitter; keep it in PenPacketStroke so the shared router and the ink filter are untouched, and add a test that the committed stroke holds exactly the packets' samples while the draft may carry one extra. This is polish, not a defect: measure the perceived lead with --probe-ink on the owner's PC (the 144 Hz effect cannot be measured on a 60 Hz laptop) and record the before and after rows in docs/desktop-tablet.md before deciding it is worth keeping."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "low"
-order = 370
-created = 2026-10-24
-tags = ["desktop", "perf"]
 rebuild = false
 emulator_debug = false
 

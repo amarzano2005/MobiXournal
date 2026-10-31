@@ -39,8 +39,7 @@ internal fun captionIcon(window: java.awt.Window) {
 /** The transparent caption sizes, then the art at the taskbar's — the split [captionIcon] relies on. */
 private fun captionlessImages(): List<java.awt.Image> {
     val art = useResource("icon.png") { javax.imageio.ImageIO.read(it) }
-    val blank = { side: Int -> java.awt.image.BufferedImage(side, side, java.awt.image.BufferedImage.TYPE_INT_ARGB) }
-    return listOf(blank(16), blank(24)) + listOf(32, 48, 64, 256).map { side ->
+    return listOf(16, 24, 32, 48, 64, 256).map { side ->
         art.getScaledInstance(side, side, java.awt.Image.SCALE_SMOOTH)
     }
 }

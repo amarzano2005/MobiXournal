@@ -84,8 +84,7 @@ internal fun PageSheet(
         onPlaceLiving = onPlaceLiving,
         onPlaceCircuit = onPlaceCircuit,
         onTextPress = text.onPress,
-        // The words being retyped belong to the field while it is up: the sheet must not paint them
-        // underneath it as well.
+        // The words being retyped belong to the field: the sheet must not paint them underneath it.
         editingText = text.box?.editing,
         onEditLiving = onEditLiving,
         draft = draft,
@@ -116,6 +115,7 @@ internal fun PageSheet(
         canvas = extent(),
         viewW = sheet.viewW,
         viewH = sheet.viewH,
+        pdfText = pdfTextCopyUi(tab),
     )
 }
 
@@ -164,6 +164,7 @@ private fun PenPaths(
             owns = pointer.owns,
             hover = pointer.hover,
             penAtNanos = pointer.atNanos,
+            bands = pointer.pdfBands,
             packets = packets,
         )
     }

@@ -119,4 +119,14 @@ class DesktopInkSmoothingTest {
             curves.first().controlX != curves.first().toX,
         )
     }
+
+    @Test
+    fun `figures bypass smoothing and stay strictly linear`() {
+        val tri = points(0.0, 0.0, 50.0, 100.0, 100.0, 0.0, 0.0, 0.0)
+        val pathSmooth = PageInk.polyline(tri, 1f, smooth = true)
+        val pathDirect = PageInk.polyline(tri, 1f, smooth = false)
+        // Direct path for figures does not round corners
+        val shapeStroke = shapeStroke(tri, 0xFF000000.toInt(), 1f)!!
+        assertTrue("shapeStroke is identified as figure", StrokePathCache.isFigure(shapeStroke))
+    }
 }

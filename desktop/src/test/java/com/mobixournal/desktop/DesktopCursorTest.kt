@@ -114,7 +114,10 @@ class DesktopCursorTest {
     fun `the ring is for the tools that lay ink at a width`() {
         for (tool in DesktopTool.entries) {
             val ring = toolCursorDiameterPx(tool, 4f, zoom = 1f, density = 1f)
-            if (tool == DesktopTool.HAND || tool == DesktopTool.TEXT || tool == DesktopTool.AUDIO) {
+            // The PDF text slot selects words with an I-beam; a nib-sized ring would promise ink.
+            if (tool == DesktopTool.HAND || tool == DesktopTool.TEXT || tool == DesktopTool.AUDIO ||
+                tool == DesktopTool.PDF_TEXT_SELECT
+            ) {
                 assertNull("$tool is not a band of ink, so it has no ring", ring)
             } else {
                 assertTrue("$tool marks the page, so it wears a ring", ring != null && ring > 0f)

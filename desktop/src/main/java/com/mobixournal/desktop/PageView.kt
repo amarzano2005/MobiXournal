@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke as InkStroke
 import com.mobixournal.format.model.StrokePoint
@@ -166,6 +167,7 @@ private fun DrawScope.drawElement(
         // A formula: a `<teximage>` read from a `.xopp`, and the one a living math block compiles to
         // (`LivingInk`). Typeset from its source through the shared layout, never left blank.
         is TexImageElement -> drawTexImage(element, scale, textMeasurer)
+        is ImageElement -> drawImageElement(element, scale)
         // A living entity is a *recipe*, and `LivingInk` is the one place that compiles it into ink —
         // the same dispatch the Android canvas, `XoppSynthesis`, PDF and SVG export use. Drawing its
         // result here is what keeps a table or a graph identical on both shells without a second
@@ -194,6 +196,22 @@ internal fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
  * and its nib is marked with a glow the way the tablet's own tip painter does: a stroke that grew with no
  * head would read as the page moving rather than as writing.
  */
+private fun DrawScope.drawImageElement(element: ImageElement, scale: Float) {
+    val bitmap = DesktopImageCache.get(element) ?: return
+    val x1 = minOf(element.left, element.right) * scale
+    val y1 = minOf(element.top, element.bottom) * scale
+    val x2 = maxOf(element.left, element.right) * scale
+    val y2 = maxOf(element.top, element.bottom) * scale
+    val width = (x2 - x1).roundToInt().coerceAtLeast(1)
+    val height = (y2 - y1).roundToInt().coerceAtLeast(1)
+
+    drawImage(
+        image = bitmap,
+        dstOffset = IntOffset(x1.roundToInt(), y1.roundToInt()),
+        dstSize = IntSize(width, height),
+    )
+}
+
 private fun DrawScope.drawKaraokeInk(
     stroke: InkStroke,
     scale: Float,

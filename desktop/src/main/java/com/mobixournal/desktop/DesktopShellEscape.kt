@@ -34,6 +34,16 @@ internal object WindowEscape {
             state.circuitPickerOpen = null
             return true
         }
+        if (state.prefs.figures.editingFigure != null) {
+            state.prefs.figures.closeDialog()
+            return true
+        }
+        // A figure's variant menu is the same layer as a palette: it is up over the strip, not over the
+        // page, and it goes away before the failure card.
+        if (state.prefs.figures.menu != null) {
+            state.prefs.figures.showMenu(null)
+            return true
+        }
         if (state.failure == null) return false
         state.failure = null
         return true

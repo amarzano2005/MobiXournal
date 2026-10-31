@@ -2,6 +2,9 @@ package com.mobixournal.desktop
 
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
+import java.awt.Toolkit
+import java.awt.datatransfer.Clipboard
+import java.awt.datatransfer.DataFlavor
 import com.mobixournal.format.model.isLivingEntity
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.ElementRef
@@ -40,16 +43,26 @@ class DesktopClipboard {
     var bounds: Bounds? = null
         private set
 
+    var systemContentsAtCopy: Any? = null
+        private set
+
     val isEmpty: Boolean get() = elements.isEmpty()
 
     fun put(taken: List<Element>) {
         elements = taken
         bounds = SelectionOps.boundsOf(taken)
+        systemContentsAtCopy = runCatching { Toolkit.getDefaultToolkit().systemClipboard.getContents(null) }.getOrNull()
     }
 
     fun clear() {
         elements = emptyList()
         bounds = null
+        systemContentsAtCopy = null
+    }
+
+    fun hasSystemImage(systemClipboard: Clipboard? = runCatching { Toolkit.getDefaultToolkit().systemClipboard }.getOrNull()): Boolean {
+        val transferable = runCatching { systemClipboard?.getContents(null) }.getOrNull() ?: return false
+        return transferable.isDataFlavorSupported(DataFlavor.imageFlavor)
     }
 }
 
@@ -87,11 +100,24 @@ internal fun deleteSelection(tab: DesktopTab, onEdited: (Int) -> Unit = {}): Boo
     return true
 }
 
-/** `Esc` while something is selected: the outline goes before anything else the key might mean. */
+/** `Esc` while something is selected: the outline or the sidebar's page pick goes before anything else. */
 internal fun dismissSelection(tab: DesktopTab?): Boolean {
-    if (tab?.selection == null) return false
-    tab.selection = null
-    return true
+    if (tab == null) return false
+    if (tab.selection != null) {
+        tab.selection = null
+        return true
+    }
+    // A PDF text selection is cleared by the same key, in the same order: the ink selection first, then
+    // the words, then the page pick.
+    if (tab.pdfTextSelection != null) {
+        tab.pdfTextSelection = null
+        return true
+    }
+    if (!tab.pickedPages.isEmpty) {
+        tab.pickedPages = com.mobixournal.desktop.PageSelection()
+        return true
+    }
+    return false
 }
 
 /** What a copy takes: the caught elements, in the page's own order (cut and paste agree on it). */
@@ -121,12 +147,24 @@ internal fun cutSelection(
 internal fun pasteClipboard(
     tab: DesktopTab,
     clipboard: DesktopClipboard,
+    systemClipboard: Clipboard? = runCatching { Toolkit.getDefaultToolkit().systemClipboard }.getOrNull(),
     onEdited: (Int) -> Unit = {},
 ): Boolean {
-    if (clipboard.isEmpty) return false
-    val elements = clipboard.elements
-    val origin = clipboard.bounds?.let { (it.left + PASTE_OFFSET_PT) to (it.top + PASTE_OFFSET_PT) }
-    return appendSelected(tab, elements, origin, onEdited)
+    if (!clipboard.isEmpty) {
+        val elements = clipboard.elements
+        val origin = clipboard.bounds?.let { (it.left + PASTE_OFFSET_PT) to (it.top + PASTE_OFFSET_PT) }
+        return appendSelected(tab, elements, origin, onEdited)
+    }
+
+    val systemTransferable = runCatching { systemClipboard?.getContents(null) }.getOrNull()
+    val isSystemImage = systemTransferable?.isDataFlavorSupported(DataFlavor.imageFlavor) == true
+    if (isSystemImage && systemClipboard != null) {
+        if (DesktopImagePlacement.pasteSystemImage(tab, systemClipboard, onEdited = onEdited)) {
+            return true
+        }
+    }
+
+    return false
 }
 
 /** `Ctrl+D`: a copy of the selection lands beside it, and the copy is what stays selected. */
@@ -253,7 +291,7 @@ internal fun performSelection(
 ): Boolean = when (action) {
     SelectionAction.COPY -> copySelection(tab, clipboard)
     SelectionAction.CUT -> cutSelection(tab, clipboard, onEdited)
-    SelectionAction.PASTE -> pasteClipboard(tab, clipboard, onEdited)
+    SelectionAction.PASTE -> pasteClipboard(tab, clipboard, onEdited = onEdited)
     SelectionAction.DUPLICATE -> duplicateSelection(tab, onEdited)
     SelectionAction.RECOLOUR -> restyleSelection(tab, colour = ink.colour, onEdited = onEdited)
     SelectionAction.WIDTH -> restyleSelection(tab, widthPt = ink.width.toDouble(), onEdited = onEdited)

@@ -25,9 +25,152 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-pdf-contents-sidebar"
+title = "Desktop: the PDF Contents section in the page sidebar"
+description = "The page sidebar now carries the backing PDF's Contents under the layers: PdfContentsSection (DesktopPdfContents) folds the shared outline tree into indented, page-numbered rows and is filled only when opened, with each row sending the tab to its page; the Pages menu's Contents… dialog stays for tablet parity. DesktopPdfContentsTest covers the rows and a PDF with no outline."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["pdf", "desktop"]
+
+[[task]]
+id = "desktop-magnetic-highlighter"
+title = "Desktop: snap the highlighter to a PDF page's text lines"
+description = "The desktop highlighter is magnetic over a page with a text layer: the drag's line is fed to the shared MagneticHighlighter over the page's PdfWord boxes, the winning bands are previewed in the page space at the highlighter's translucency (PointerState.pdfBands, drawPdfPreviewBands, PageCanvas) and the stroke lands on the text line's box as one undo step. DesktopMagneticHighlightTest pins the snap and the fallback to freehand on a page with no text."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["pdf", "desktop"]
+
+[[task]]
+id = "desktop-pdf-text-selection"
+title = "Desktop: select a PDF page's text and copy it"
+description = "A drag with Select text (PDF) now selects the words of a born-digital page: DesktopPdfTextSelection (DesktopPdfTextSelect) turns the index's boxes into a selection, DesktopPdfTextOverlay draws the wash and hairline above the sheet in the page's own space, PdfTextCopyBar offers Copy and Ctrl+C copies the words as text, and Esc or a click off the text clears it. It is view state only: no edit, no undo step, and a select-copy-save leaves the file byte-identical; DesktopPdfTextSelectionTest covers the pick and the clipboard."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["pdf", "desktop"]
+
+[[task]]
+id = "desktop-pdf-text-select-slot"
+title = "Desktop: the PDF text-select slot, its glyph and its shortcut"
+description = "Added DesktopTool.PDF_TEXT_SELECT as its own slot in DESKTOP_TOOL_GROUPS beside the marquee and lasso, with a DesktopTool-glyph arm in ToolGlyphs and a keyboard shortcut in DesktopKeys; it maps to ActiveTool.TEXT_SELECT so the shared InkPointerRouter starts no stroke and the canvas keeps the drag for the text selection."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["pdf", "desktop"]
+
+[[task]]
+id = "desktop-pdf-text-and-outline-index"
+title = "Desktop PDF: extract the text layer and the Contents outline on the JVM"
+description = "Added DesktopPdfExtractors, DesktopPdfIndex and PdfIndexLoader: opening a PDF reads its text layer and Contents outline with PDFBox on Dispatchers.Default into the tab as view state (DesktopTab.pdfIndex, keyed by the PDF, published by a loader that never stalls a frame). The index is forgotten on a save, a merge and a re-import, and a scanned, corrupt or missing PDF answers an empty index instead of an exception; DesktopPdfFixture builds the test PDFs and DesktopPdfIndexTest / DesktopPdfTextRenderTest cover the extraction."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["pdf", "desktop"]
+
+[[task]]
+id = "desktop-pdf-shared-text-geometry"
+title = "Desktop PDF: move the text, outline and highlighter geometry into mobix-core"
+description = "Moved the PDF word and Contents geometry plus the magnetic highlighter's snap into mobix-core (render/PdfText.kt, render/PdfOutline.kt, render/MagneticHighlighter.kt, render/PdfOutlineExtractor.kt) with their tests, and pointed the app's extractors, selection and the desktop window at the shared code: the app-side copies and their tests are gone, so a word box and a bookmark row mean the same on both shells (PdfTextTest, PdfOutlineTest, PdfOutlineExtractorTest in mobix-core)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["pdf", "desktop"]
+
+[[task]]
 id = "desktop-pdf-annotation"
 title = "Desktop: PDF annotation and outline (scope)"
 description = "Investigated the window's PDF annotation story against the tablet's and produced the six tasks that carry it: shared text geometry in `mobix-core`, the text-and-outline index read once per file, the canvas slot a Select-text mode needs, drag-to-select text with Copy, the magnetic highlighter over real word boxes, and a Contents sidebar mapping the outline's pages to document pages. Produced tasks, no code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-image-and-import-docs"
+title = "Desktop: document image element handling, import workflows, and format round-trip"
+description = "Updated docs/desktop-workstation.md, docs/desktop-editing.md, and README.md with desktop image capabilities: tool strip file insertion, clipboard paste, drag-and-drop ingest, aspect-ratio scaling handles, non-resampling bounds scaling, and round-trip preservation in .mobix and .xopp."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-image-element-selection-and-aspect-ratio-handles"
+title = "Desktop: selection handles and aspect ratio transform for ImageElement"
+description = "Implemented edge and corner transform handles for ImageElement, aspect-ratio locked corner resizing by default (Shift to unlock), non-resampling bounds scaling, single undo step, and JVM test suite DesktopImageSelectionTest."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-drag-and-drop-file-ingest"
+title = "Desktop: drag-and-drop file target on canvas for images, PDFs, and documents"
+description = "Installed AWT DropTarget with visual hover affordance, routing dropped images (page placement), PDFs (import dialog), notebooks (.mobix/.xopp tab open), and unsupported files."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-clipboard-image-paste"
+title = "Desktop: paste image from system clipboard as ImageElement"
+description = "Implemented Ctrl+V paste handling for java.awt.datatransfer.DataFlavor.imageFlavor, placing ImageElement with aspect-ratio preservation and single undo step."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-insert-image-dialog-and-element-placement"
+title = "Desktop: insert image command with file picker and page placement"
+description = "Added Insert Image action in DesktopMenu and ToolStrips, file picker for PNG/JPEG/WEBP/GIF, aspect-ratio preserved page placement, and single undo step."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-image-element-rendering-and-roundtrip"
+title = "Desktop: render ImageElement on canvas and verify round-trip"
+description = "Wired ImageElement rendering on desktop canvas via Skia makeFromEncoded and DesktopImageCache LRU cache; verified render and round-trip through .xopp and .mobix."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-images-and-import"
+title = "Desktop: images as elements and content import (scope)"
+description = "Decomposed scope into 6 atomic tasks for image rendering, insertion, clipboard paste, drag-and-drop ingest, aspect-ratio handles, and docs."
 status = "finished"
 level = "scope"
 category = "feature"

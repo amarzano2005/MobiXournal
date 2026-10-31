@@ -62,6 +62,9 @@ fun DesktopTool.activeTool(): ActiveTool = when (this) {
     // The two marquee tools select rather than ink; the shared router's `SELECT` arm therefore never starts a
     // stroke, and the canvas hands the drag to `SelectionGesture` before it asks the router anything.
     DesktopTool.MARQUEE, DesktopTool.LASSO -> ActiveTool.SELECT
+    // Reading a PDF page's text: the shared vocabulary already names it, and the router's `SELECT` arm
+    // starts no stroke, so the canvas keeps the drag (`pdfTextDrag`).
+    DesktopTool.PDF_TEXT_SELECT -> ActiveTool.TEXT_SELECT
     else -> ActiveTool.HAND
 }
 
@@ -115,8 +118,8 @@ fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
     // rectangle draws one, and the tablet dropped its button for the same reason.
     DesktopTool.TRIANGLE -> ShapeKind.TRIANGLE
     DesktopTool.TRAPEZOID -> ShapeKind.TRAPEZOID
-    // The generic polygon: the builder's default side count here, since a slot carries no variant of
-    // its own on this shell — the tablet's Settings ▸ Figures sets the count where the tool is drawn.
+    // The generic polygon: its side count is the Figures page's own answer, chosen again from the slot's
+    // menu (3–12), so a pentagon and a heptagon are the same tool.
     DesktopTool.POLYGON -> ShapeKind.POLYGON
     else -> null
 }
@@ -165,6 +168,7 @@ fun shapeFromDrag(
         trapezoidKind = figures.trapezoidKind,
         trapezoidAngleA = figures.trapezoidAngleA,
         trapezoidAngleB = figures.trapezoidAngleB,
+        polygonSides = figures.polygonSides,
     )
 }
 
@@ -186,6 +190,7 @@ fun shapeStroke(
         points = points.map { it.copy(width = widthPt.toDouble()) },
         uniformWidth = true,
         lineStyle = lineStyle,
+        extraAttrs = mapOf("shape" to "true"),
     )
 }
 

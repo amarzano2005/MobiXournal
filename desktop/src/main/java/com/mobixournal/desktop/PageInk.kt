@@ -20,28 +20,34 @@ internal object PageInk {
     /**
      * The stroke's line as a Compose path, in device pixels (page pt × [scale]).
      *
-     * It is the **smoothed** line ([smoothedInk]), not a chain of `lineTo`s: on the desktop the samples
+     * It is the **smoothed** line ([smoothedInk]) for freehand pen strokes, not a chain of `lineTo`s: on the desktop the samples
      * are 8 ms apart at best, so joining them straight drew the sampling rate as facets along every
-     * diagonal. The quadratics run through the midpoints of the samples, which is a fraction of a point of
-     * deviation and no corner at all — and, because the samples themselves are untouched, the page is
-     * unchanged for Android and for Xournal++.
+     * diagonal. Geometric figures pass [smooth] = false to keep their straight sides and sharp corners untouched.
      */
-    fun polyline(pts: List<StrokePoint>, scale: Float): Path = Path().apply {
+    fun polyline(pts: List<StrokePoint>, scale: Float, smooth: Boolean = true): Path = Path().apply {
         val first = pts.firstOrNull() ?: return@apply
         moveTo((first.x * scale).toFloat(), (first.y * scale).toFloat())
-        for (curve in smoothedInk(pts)) {
-            quadraticBezierTo(
-                (curve.controlX * scale).toFloat(),
-                (curve.controlY * scale).toFloat(),
-                (curve.toX * scale).toFloat(),
-                (curve.toY * scale).toFloat(),
-            )
+        if (smooth) {
+            for (curve in smoothedInk(pts)) {
+                quadraticBezierTo(
+                    (curve.controlX * scale).toFloat(),
+                    (curve.controlY * scale).toFloat(),
+                    (curve.toX * scale).toFloat(),
+                    (curve.toY * scale).toFloat(),
+                )
+            }
+        } else {
+            for (i in 1 until pts.size) {
+                val p = pts[i]
+                lineTo((p.x * scale).toFloat(), (p.y * scale).toFloat())
+            }
         }
     }
 
     /** The pressure taper, filled as one polygon: [InkGeometry.taperOutline] converted to a [Path]. */
-    fun taperPath(pts: List<StrokePoint>, scale: Float): Path {
-        val outline = InkGeometry.taperOutline(pts, scale, offsetX = 0f, offsetY = 0f)
+    fun taperPath(pts: List<StrokePoint>, scale: Float, smooth: Boolean = true): Path {
+        val points = if (smooth && pts.size >= 3) smoothPointsForTaper(pts) else pts
+        val outline = InkGeometry.taperOutline(points, scale, offsetX = 0f, offsetY = 0f)
         if (outline.size < 6) return Path()
         return Path().apply {
             moveTo(outline[0], outline[1])

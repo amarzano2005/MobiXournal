@@ -6,6 +6,7 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.isShiftPressed
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.isLivingEntity
 import com.mobixournal.render.ElementBounds
@@ -129,12 +130,16 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val tol = (HANDLE_PX / pxPerPt).toDouble()
     val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
     val live = tab.selection
+    val page = runCatching { tab.document.page(tab.page) }.getOrNull()
+    val isLiveImage = live?.takeIf { it.refs.size == 1 }?.let { one ->
+        val ref = one.refs.first()
+        page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) is ImageElement
+    } ?: false
     val handle = if (live == null) {
         SelectionHandle.NONE
     } else {
-        selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap)
+        selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap, includeEdges = isLiveImage)
     }
-    val page = runCatching { tab.document.page(tab.page) }.getOrNull()
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
     // which is where the hand aims when two parts have to be joined (`PinPress`).
     val picked = page?.let { pickForDrag(it, x0, y0, tol) }
@@ -276,6 +281,11 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     // The page at grab time: every move is applied to this, never to the result of the last move, so a
     // round trip returns the ink exactly where it started.
     val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
+    val singleElement = if (selection.refs.size == 1) {
+        val ref = selection.refs.first()
+        original.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+    } else null
+    val isImage = singleElement is ImageElement
     val before = tab.document.snapshot()
     var recorded = false
     var cancelled = false
@@ -293,35 +303,18 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     /** Move, scale or turn the selection so it answers the pointer at ([px], [py]). */
     fun apply(px: Float, py: Float) {
         val (x1, y1) = pagePointOf(px, py, density, view.current())
-        val (edited, next) = when (handle) {
-            // A moved **component** or **wire** is magnetised onto the pins in reach, exactly as a drawn one
-            // is: a part is placed, then dragged into its place in the circuit, and without this the only
-            // moment a pin could be joined was while the part was being drawn. Only connectors and
-            // components are considered (`snapTranslation`), so a figure across the sheet is a free move.
-            SelectionHandle.BODY -> {
-                val (dx, dy) = snapSelectionMove(
-                    original,
-                    selection,
-                    x1 - x0,
-                    y1 - y0,
-                    scale = view.current().zoom * density,
-                )
-                SelectionEdit.move(original, selection, dx, dy)
-            }
-            SelectionHandle.ROTATE -> SelectionEdit.rotate(
-                original,
-                selection,
-                rotationBetween(
-                    selection, x0, y0, x1, y1,
-                    snap = currentEvent.keyboardModifiers.isShiftPressed,
-                ),
-            )
-            else -> {
-                val (sx, sy) = scaleFactors(selection.bounds, handle, x1, y1)
-                val (anchorX, anchorY) = anchorOf(selection.bounds, handle)
-                SelectionEdit.scale(original, selection, sx, sy, anchorX, anchorY)
-            }
-        }
+        val (edited, next) = transformPageSelection(
+            original = original,
+            selection = selection,
+            handle = handle,
+            x0 = x0,
+            y0 = y0,
+            x1 = x1,
+            y1 = y1,
+            isImage = isImage,
+            isShiftPressed = currentEvent.keyboardModifiers.isShiftPressed,
+            scale = view.current().zoom * density,
+        )
         if (edited !== original) {
             if (!recorded) {
                 tab.record(before)
@@ -349,6 +342,44 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     } finally {
         view.endDrag()
         onLiveDrag(null)
+    }
+}
+
+/** Compute the modified page and selection for a move, rotate or scale transform. */
+private fun transformPageSelection(
+    original: Page,
+    selection: PageSelection,
+    handle: SelectionHandle,
+    x0: Double,
+    y0: Double,
+    x1: Double,
+    y1: Double,
+    isImage: Boolean,
+    isShiftPressed: Boolean,
+    scale: Float,
+): Pair<Page, PageSelection> = when (handle) {
+    SelectionHandle.BODY -> {
+        val (dx, dy) = snapSelectionMove(original, selection, x1 - x0, y1 - y0, scale = scale)
+        SelectionEdit.move(original, selection, dx, dy)
+    }
+    SelectionHandle.ROTATE -> SelectionEdit.rotate(
+        original,
+        selection,
+        rotationBetween(selection, x0, y0, x1, y1, snap = isShiftPressed),
+    )
+    else -> {
+        val isCorner = handle in setOf(
+            SelectionHandle.TOP_LEFT,
+            SelectionHandle.TOP_RIGHT,
+            SelectionHandle.BOTTOM_LEFT,
+            SelectionHandle.BOTTOM_RIGHT,
+        )
+        val lockAspect = if (isCorner) {
+            if (isImage) !isShiftPressed else isShiftPressed
+        } else false
+        val (sx, sy) = scaleFactors(selection.bounds, handle, x1, y1, lockAspect = lockAspect)
+        val (anchorX, anchorY) = anchorOf(selection.bounds, handle)
+        SelectionEdit.scale(original, selection, sx, sy, anchorX, anchorY)
     }
 }
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.unit.toSize
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.SelectionRegion
 
 /**
@@ -54,6 +55,16 @@ internal class PenPointer {
 
     /** The region a selection drag is tracing right now: the sheet paints it, the gesture writes it. */
     val previewRegion = mutableStateOf<SelectionRegion?>(null)
+
+    /**
+     * The bands a **magnetic highlighter** drag would commit right now, in page points — empty for every
+     * other tool and for a drag that crosses no text.
+     *
+     * One state for both input paths (the Compose pointer and the tablet's packets) because only one of them
+     * can be drawing at a time, and the sheet paints these *in place of* the freehand preview: what a
+     * snapped highlight previews is exactly what its lift writes (`MagneticHighlighter`).
+     */
+    val pdfBands = mutableStateOf<List<MagneticHighlighter.Band>>(emptyList())
 
     /**
      * The living element a placement drag is drawing right now — a component being pulled out along the

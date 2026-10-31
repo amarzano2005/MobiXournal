@@ -193,4 +193,50 @@ class DesktopPdfImportCommandsTest {
             state.tabs.closeAll()
         }
     }
+
+    @Test
+    fun `opening a PDF asks for the page range and imports it into a new tab`() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            val firstTab = state.tabs.active!!
+            val file = pdf(4)
+
+            state.open(file)
+            val request = state.importRequest
+            assertNotNull("Open on a PDF raises the page-range question", request)
+            assertEquals("mode is fixed to a new tab", ImportPdfMode.REPLACE, request!!.mode)
+            assertTrue("no append/replace choice is needed", !request.chooseMode)
+
+            state.editImportPdf { it.copy(first = "2", last = "3") }
+            state.confirmImportPdf()
+
+            assertEquals("opened in a second tab", 2, state.tabs.size)
+            assertSame(firstTab, state.tabs.all[0])
+            assertEquals("only the requested pages were imported", 2, state.tabs.active!!.document.pageCount)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `importing a PDF with no open tab behaves like opening a PDF`() {
+        val state = DesktopShellState()
+        try {
+            assertTrue("no tab is open", state.tabs.isEmpty)
+            val file = pdf(3)
+
+            state.askImportPdf(file)
+            val request = state.importRequest
+            assertNotNull("the question is raised", request)
+            assertEquals(ImportPdfMode.REPLACE, request!!.mode)
+            assertTrue("with no open tab, it goes straight to a new tab", !request.chooseMode)
+
+            state.confirmImportPdf()
+            assertEquals(1, state.tabs.size)
+            assertEquals(3, state.tabs.active!!.document.pageCount)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
 }

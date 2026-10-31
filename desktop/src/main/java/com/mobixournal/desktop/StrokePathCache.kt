@@ -68,14 +68,24 @@ internal object StrokePathCache {
         val top: Float,
         val right: Float,
         val bottom: Float,
+        val smooth: Boolean = true,
     )
+
+    /** A stroke is a figure when explicitly marked or when it has constant width and zero telemetry dtMs. */
+    internal fun isFigure(stroke: Stroke): Boolean {
+        if (stroke.extraAttrs.containsKey("shape") || stroke.extraAttrs.containsKey("figure")) return true
+        if (stroke.uniformWidth && stroke.points.isNotEmpty() && stroke.points.all { it.dtMs == 0 }) {
+            return true
+        }
+        return false
+    }
 
     /** The shapes of one recorded stroke at [scale]. */
     @Synchronized
     fun of(stroke: Stroke, scale: Float): Shapes {
         val perScale = byStroke.getOrPut(stroke) { HashMap(2) }
         perScale[scale]?.let { return it }
-        val shapes = build(stroke.points, stroke.tool, stroke.lineStyle, scale)
+        val shapes = build(stroke.points, stroke.tool, stroke.lineStyle, scale, smooth = !isFigure(stroke))
         // A page is drawn at one scale at a time; keeping two keeps a zoom round-trip warm without
         // letting a wheel gesture's every frame live for ever.
         if (perScale.size >= 2) perScale.clear()
@@ -88,10 +98,18 @@ internal object StrokePathCache {
      *
      * [identity] is the list the draft lives in (the canvas's two state lists), so the cache entry follows
      * the one stroke being drawn and is dropped the moment another begins. The size is in the key because
-     * every batch makes the shape longer.
+     * every batch makes the shape longer. [smooth] is false for geometric shapes so edges stay crisp and straight.
      */
     @Synchronized
-    fun draft(identity: Any, size: Int, tool: Tool, lineStyle: LineStyle, points: List<StrokePoint>, scale: Float): Shapes {
+    fun draft(
+        identity: Any,
+        size: Int,
+        tool: Tool,
+        lineStyle: LineStyle,
+        points: List<StrokePoint>,
+        scale: Float,
+        smooth: Boolean = true,
+    ): Shapes {
         // One numeric pass for the box: a fraction of the cost of building the path it guards against
         // rebuilding, and it is the only part of a draft that changes for every figure that is dragged.
         var left = Float.POSITIVE_INFINITY
@@ -106,22 +124,28 @@ internal object StrokePathCache {
             if (y < top) top = y
             if (y > bottom) bottom = y
         }
-        val key = DraftKey(size, scale, tool, lineStyle, left, top, right, bottom)
+        val key = DraftKey(size, scale, tool, lineStyle, left, top, right, bottom, smooth)
         val perDraft = byDraft.getOrPut(identity) { HashMap(4) }
         perDraft[key]?.let { return it }
         if (perDraft.size >= 4) perDraft.clear()
-        val shapes = build(points, tool, lineStyle, scale)
+        val shapes = build(points, tool, lineStyle, scale, smooth)
         perDraft[key] = shapes
         return shapes
     }
 
-    private fun build(points: List<StrokePoint>, tool: Tool, lineStyle: LineStyle, scale: Float): Shapes {
+    private fun build(
+        points: List<StrokePoint>,
+        tool: Tool,
+        lineStyle: LineStyle,
+        scale: Float,
+        smooth: Boolean = true,
+    ): Shapes {
         builds++
-        val polyline = PageInk.polyline(points, scale)
+        val polyline = PageInk.polyline(points, scale, smooth = smooth)
         // Only a **pressure** stroke needs its outline filled; a band or a uniform line is the polyline
         // with a width, and building an outline for it would be a path nobody draws.
         val taper = if (tool != Tool.HIGHLIGHTER && !InkGeometry.uniformWidth(points)) {
-            PageInk.taperPath(points, scale)
+            PageInk.taperPath(points, scale, smooth = smooth)
         } else {
             null
         }

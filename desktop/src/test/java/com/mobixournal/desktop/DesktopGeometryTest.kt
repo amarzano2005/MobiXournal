@@ -180,11 +180,68 @@ class DesktopGeometryTest {
             drag(FigureShape(triangleKind = TriangleKind.EQUILATERAL)),
             drag(FigureShape(triangleKind = TriangleKind.RIGHT)),
         )
-        // A regular polygon takes no advice from the settings: its side count is its own, and it closes.
+        // A regular polygon draws the count the figures' answers carry — six at the factory, as on the
+        // tablet — and it closes on its first vertex.
         val polygon = shapeFromDrag(ShapeKind.POLYGON, 0.0, 0.0, 100.0, 100.0, 2f, constrained = false)
         assertEquals("six sides plus the closing point at the factory count", 7, polygon.size)
         assertEquals(polygon.first().x, polygon.last().x, 1e-9)
         assertEquals(polygon.first().y, polygon.last().y, 1e-9)
+        val heptagon = shapeFromDrag(
+            ShapeKind.POLYGON, 0.0, 0.0, 100.0, 100.0, 2f, constrained = false,
+            figures = FigureShape(polygonSides = 7),
+        )
+        assertEquals("a seven-sided polygon is the count the slot's menu wrote", 8, heptagon.size)
+    }
+
+    /**
+     * The variant arrives **while the canvas is up**: a kind picked after the page was composed is the one
+     * the next drag draws.
+     *
+     * The press's answers travel inside `PagePressTargets`, which the pointer handler captures, so this is
+     * the invariant that keeps a late pick from being read as the value the canvas was first composed
+     * with — the answer a person gives in the menu while the page is already open.
+     */
+    @Test
+    fun `a variant picked while the canvas is up is the one the drag draws`() {
+        val state = DesktopShellState(DesktopSettings(temp.newFile("variant-settings.properties")))
+        state.open(notebook("figure-variant.mobix"))
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            PageCanvas(
+                tab = tab,
+                panMode = false,
+                tool = DesktopTool.TRIANGLE,
+                ink = DesktopInk(width = 4f),
+                figures = state.prefs.figures.shape,
+                onViewport = {},
+                onFit = {},
+            )
+        }
+        try {
+            // The menu answers only after the canvas exists, which is the order the bug hid in. The frame
+            // that follows is the window's own: a person picks the kind, the scene recomposes, and the
+            // next drag starts on a handler that has read the answer.
+            state.prefs.figures.chooseShape(FigureShape(triangleKind = TriangleKind.RIGHT))
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            pen(scene, PointerEventType.Press, 100f, 100f, 1_000L)
+            pen(scene, PointerEventType.Move, 200f, 180f, 1_016L)
+            pen(scene, PointerEventType.Release, 200f, 180f, 1_032L, pressed = false)
+
+            val drawn = strokes(tab.document.page(0)).last()
+            assertEquals("three corners plus the closing repeat", 4, drawn.points.size)
+            val corners = drawn.points.dropLast(1)
+            assertEquals(
+                "a right-angled triangle stands on a vertical leg, so two corners share an x",
+                2,
+                corners.count { it.x == corners.first().x },
+            )
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
     }
 
     @Test

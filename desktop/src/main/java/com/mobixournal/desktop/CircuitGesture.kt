@@ -66,16 +66,29 @@ internal fun circuitSpan(
  * It is `CircuitElementFactory.placedElementFor`, the same placement rule the tablet commits with: a tap
  * is the family's canonical length, a drag spans its two ends. Nothing here decides geometry.
  */
-internal fun circuitPreview(kind: ShapeKind, span: CircuitSpan, ink: DesktopInk): Element? =
-    CircuitElementFactory.placedElementFor(
-        symbol = kind.name,
-        startX = span.startX,
-        startY = span.startY,
-        endX = span.endX,
-        endY = span.endY,
+internal fun circuitPreview(kind: ShapeKind, span: CircuitSpan, ink: DesktopInk): Element? {
+    val dx = span.endX - span.startX
+    val dy = span.endY - span.startY
+    val rawLen = kotlin.math.hypot(dx, dy)
+    if (rawLen < 2.0) return null
+    val cx = (span.startX + span.endX) / 2.0
+    val cy = (span.startY + span.endY) / 2.0
+    val deg = Math.toDegrees(kotlin.math.atan2(dy, dx))
+    val normDeg = if (deg < 0.0) deg + 360.0 else deg
+    val symbol = kind.name
+    val pins = CircuitElementFactory.defaultPinsFor(symbol, rawLen)
+    return com.mobixournal.format.model.CircuitElement(
+        symbol = symbol,
+        positionX = cx,
+        positionY = cy,
+        rotation = normDeg,
         strokeColor = ink.colour,
         strokeWidth = ink.width.toDouble(),
+        value = null,
+        pins = pins,
+        id = null,
     )
+}
 
 /**
  * The element a lifted [span] commits: the same geometry the preview drew, with the identity the model
@@ -134,9 +147,7 @@ internal suspend fun AwaitPointerEventScope.circuitDrag(
         previewLiving?.value = circuitPreview(kind, spanAt(px, py), ink)
     }
 
-    // The part is already on the sheet at the press: a click is the family's canonical length, and the
-    // drag only re-aims the far end. A preview that appeared on the first move would blink.
-    preview(lastX, lastY)
+    // The preview begins only once the hand pulls the part out, avoiding any natural-size flash on down.
     view.beginDrag(lastX, lastY) { px, py -> preview(px, py) }
     try {
         while (!cancelled) {

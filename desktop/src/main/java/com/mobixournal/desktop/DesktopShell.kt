@@ -107,6 +107,8 @@ class DesktopShellState(
 
     /** The last failed open, or null — cleared on the next successful one or by [dismissFailure]. */
     var failure by mutableStateOf<OpenFailure?>(null)
+    var onInsertImagePicker: (() -> Unit)? = null
+    var isDragHovering: Boolean by mutableStateOf(false)
 
     /** The PDF import being asked about, or null — the file, its pages and the answer in play. */
     var importRequest by mutableStateOf<ImportPdfRequest?>(null)
@@ -308,12 +310,8 @@ class DesktopShellState(
     /** What both strips draw — one value, so the rail and the ribbon cannot show different inks. */
     val stripState: ToolStripState
         get() = ToolStripState(
-            selection = tools,
-            ink = ink,
-            palette = palette,
-            custom = paletteCustom,
-            favourites = favourites,
-            openGroup = openGroup,
+            selection = tools, ink = ink, palette = palette,
+            custom = paletteCustom, favourites = favourites, openGroup = openGroup,
             // The Toolbar section's arrangement, so a button moved on the settings page moves in both
             // strips — and the picker's index means the same slot in each of them.
             groups = prefs.toolGroups,
@@ -322,11 +320,10 @@ class DesktopShellState(
             circuitPickerOpen = circuitPickerOpen,
             onCircuitKind = ::pickCircuitKind,
             onCircuitPicker = ::showCircuitKinds,
+            figures = prefs.figures.strip,
             // The page's own menu: a command of the page, not of the ink beside it.
-            pages = pagesSection.actions(
-                { openPageSetup(PageSetupSection.PAPER) },
-                { openPageSetup(PageSetupSection.FORMAT) },
-            ),
+            pages = pagesSection.actions({ openPageSetup(PageSetupSection.PAPER) }, { openPageSetup(PageSetupSection.FORMAT) }),
+            onInsertImage = { onInsertImagePicker?.invoke() },
         )
 
     /**
@@ -337,6 +334,7 @@ class DesktopShellState(
     fun selectTool(tool: DesktopTool) {
         // A text box is finished by leaving its tool: the typing is committed, never silently dropped.
         if (tool != DesktopTool.TEXT) textBox.commit(tabs.active, ::edited)
+        if (selectionToolOf(tool) == null) tabs.active?.selection = null
         picks.pick(tool)
         openGroup = null
     }
@@ -449,9 +447,9 @@ class DesktopShellState(
      * with it.
      */
     fun open(file: File) {
+        if (DocumentLoader.isPdf(file)) { askImportPdf(file, chooseMode = false); return }
         runCatching { DocumentLoader.load(file) }
             .onSuccess { document ->
-                // Adopted before the tab exists: a save can only write back what the window can find.
                 DesktopAudioSession.adopt(document)
                 tabs.open(document, prefs.fitOnOpen)
                 failure = null
@@ -615,7 +613,7 @@ class DesktopShellState(
             ShellCommand.SAVE -> {
                 val tab = tabs.active ?: return false
                 if (!tab.isDirty) return false
-                save()
+                if (tab.unsaved) onSavePicker() else save()
                 return true
             }
             else -> Unit
@@ -669,11 +667,14 @@ class DesktopShellState(
             ShellCommand.REDO -> stepHistory(tab, redo = true)
             // `Delete` removes what the marquee caught, as one edit and one undo step; with nothing
             // selected the key is not handled, so a keyboard shortcut never deletes by accident.
-            ShellCommand.DELETE_SELECTION -> deleteSelection(tab) { index -> edited(tab, index) }
+            ShellCommand.DELETE_SELECTION -> deleteSelection(tab) { index -> edited(tab, index) } || removePickedPages()
             // The clipboard commands are the bar's own, reached from the keyboard. A copy of nothing is
             // not handled at all — the state the bar draws its button greyed out on.
             ShellCommand.CUT_SELECTION -> cutSelection(tab, clipboard) { index -> edited(tab, index) }
-            ShellCommand.COPY_SELECTION -> copySelection(tab, clipboard)
+            // A PDF text selection owns the key while it is up: what is copied is words, not elements
+            // (`copyPdfTextOf` — reading, so no edit and no undo step, `docs/pdf.md`).
+            ShellCommand.COPY_SELECTION ->
+                (tabs.active?.let(::copyPdfTextOf) ?: false) || copySelection(tab, clipboard)
             ShellCommand.PASTE_CLIPBOARD -> pasteClipboard(tab, clipboard) { index -> edited(tab, index) }
             ShellCommand.DUPLICATE_SELECTION -> duplicateSelection(tab) { index -> edited(tab, index) }
             // Handled above, with no document needed.

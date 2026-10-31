@@ -101,6 +101,10 @@ fun FrameWindowScope.DesktopApp(
         state.prefs.pickAudioFolder = dialogs::chooseAudioFolder
         onDispose { state.prefs.pickAudioFolder = null }
     }
+    DisposableEffect(window) {
+        val dropTarget = DesktopDropTarget.install(window, state)
+        onDispose { dropTarget.component = null }
+    }
     DesktopTheme.Apply {
         DesktopShell(
             state = state,
@@ -109,6 +113,7 @@ fun FrameWindowScope.DesktopApp(
             // the file, and the container in its type box.
             onSavePicker = dialogs::saveAs,
             onImportPdfPicker = dialogs::importPdf,
+            onInsertImagePicker = dialogs::insertImage,
             onExportPdfPicker = dialogs::exportPdf,
             tablet = tablet,
             modifier = Modifier
@@ -174,6 +179,12 @@ internal class DocumentDialogs(private val window: Frame, private val state: Des
      * (`ImportPdfDialog`). The filter is a convenience on Windows, where AWT ignores it — the PDF's own
      * bytes are what decide whether it can be read.
      */
+    fun insertImage() {
+        val tab = state.active ?: return
+        val chosen = DesktopFilePicker.openFile(window, "Insert an Image", IMAGE_TYPES) ?: return
+        DesktopImagePlacement.insertFromFile(state, tab, chosen)
+    }
+
     fun importPdf() {
         val chosen = DesktopFilePicker.openFile(window, "Import a PDF", PDF_TYPES) ?: return
         state.askImportPdf(chosen)

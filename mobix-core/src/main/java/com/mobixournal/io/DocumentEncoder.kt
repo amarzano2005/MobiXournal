@@ -297,7 +297,7 @@ object DocumentEncoder {
             // is *already* relative lands here too and comes back changed only when it resolves below
             // the target's folder — so a document written on another machine keeps its own answer.
             if (background.domain == ATTACH_DOMAIN) return@let null
-            PdfReference.relativeReference(path, ref)?.let { relative ->
+            PdfReference.relativeReference(path, ref.replace('\\', '/'))?.let { relative ->
                 // Desktop Xournal++ has no `relative` domain: a relative reference rides under
                 // `domain="absolute"` and is resolved against the `.xopp`'s own folder.
                 documentWithPdfReference(document, relative, ABSOLUTE_DOMAIN)
@@ -308,7 +308,7 @@ object DocumentEncoder {
             val background = page.background as? Background.Pixmap ?: return@map page
             val ref = background.filename.takeIf(String::isNotEmpty) ?: return@map page
             if (background.domain == ATTACH_DOMAIN) return@map page
-            val relative = PdfReference.relativeReference(path, ref) ?: return@map page
+            val relative = PdfReference.relativeReference(path, ref.replace('\\', '/')) ?: return@map page
             page.copy(background = background.copy(filename = relative))
         }
         return withPdf.copy(pages = pages)

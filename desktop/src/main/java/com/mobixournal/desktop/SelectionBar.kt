@@ -340,7 +340,7 @@ internal fun selectionBarUi(
     }
     return SelectionBarUi(
         hasSelection = !refs.isEmpty(),
-        hasClipboard = !clipboard.isEmpty,
+        hasClipboard = !clipboard.isEmpty || clipboard.hasSystemImage(),
         canAlign = refs.size >= 2,
         canDistribute = refs.size >= 3,
         canEdit = element != null,

@@ -150,10 +150,22 @@ internal class DesktopPages(
         val pages = PdfPageReferences.keep(tab.document.model.pages, kept)
         tab.document.replacePages(pages)
         tab.record(before)
+        tab.pickedPages = PageSelection()
         onStructure(tab)
         val first = indices.filter { it in 0 until count }.minOrNull() ?: 0
         selectPage(tab, first.coerceAtMost(tab.document.pageCount - 1))
         return true
+    }
+
+    /**
+     * `Delete` on the sidebar's page selection: every picked page goes, as one undo step, and the pick is
+     * cleared so a second press does not delete whatever slid into those indices.
+     */
+    fun removePickedPages(): Boolean {
+        val tab = active() ?: return false
+        val picked = tab.pickedPages.sanitized(tab.document.pageCount)
+        if (picked.isEmpty) return false
+        return removePages(picked.pages)
     }
 
     /**
@@ -328,6 +340,9 @@ internal fun DesktopShellState.removePageAt(index: Int): Boolean = pagesSection.
 
 /** Drop every picked page — the sidebar's multi-page delete, one undo step. */
 internal fun DesktopShellState.removePages(indices: Set<Int>): Boolean = pagesSection.removePages(indices)
+
+/** Drop the pages picked in the sidebar when `Delete` is pressed and no canvas marquee is active. */
+internal fun DesktopShellState.removePickedPages(): Boolean = pagesSection.removePickedPages()
 
 /** Move the picked pages as one block — the sidebar's multi-page drag, one undo step. */
 internal fun DesktopShellState.movePages(indices: Set<Int>, target: Int): Boolean =

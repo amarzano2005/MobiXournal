@@ -22,6 +22,7 @@ import com.mobixournal.render.InkEvent
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
+import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.PageEraser
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.SelectionRegion
@@ -87,6 +88,8 @@ internal suspend fun PointerInputScope.pageGestures(
      */
     grabLine: MutableState<Double?>? = null,
     previewRegion: MutableState<SelectionRegion?>? = null,
+    /** The magnetic highlighter's live bands (`PenPointer.pdfBands`), painted in place of the freehand path. */
+    pdfBands: MutableState<List<MagneticHighlighter.Band>>? = null,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
@@ -105,6 +108,7 @@ internal suspend fun PointerInputScope.pageGestures(
         draft = draft,
         onEdited = onEdited,
         pen = pen,
+        bands = pdfBands,
     )
     // The edge scroll's clock, running for as long as this canvas has a pointer handler: a drag registers
     // itself with [DragView.beginDrag] and is called back while the sheet travels. It has to live out here
@@ -185,6 +189,13 @@ private suspend fun PointerInputScope.pageGestureLoop(
             if (ax in 0.0..pageW.toDouble() && ay in 0.0..pageH.toDouble()) {
                 DesktopAudioSession.tapAt(tab, ax, ay)
             }
+            return@awaitEachGesture
+        }
+        // The **PDF text** slot reads instead of drawing: a press anchors the word under it and the drag
+        // extends the range in the page's own reading order. Nothing is written — the selection is view
+        // state (`docs/pdf.md`) — so the gesture ends at the lift and no page edit is recorded.
+        if (tool == DesktopTool.PDF_TEXT_SELECT) {
+            pdfTextDrag(down, tab, dragView)
             return@awaitEachGesture
         }
         // A **circuit** slot pulls the part out along the pen, from the press to the pointer, aimed at the
@@ -469,6 +480,42 @@ private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
     } finally {
         view.endDrag()
         grabLine.value = null
+    }
+}
+
+/*
+ * The PDF text slot's drag: press to anchor a word, drag to extend the selection, lift to keep it.
+ *
+ * The words come from the tab's own index (`PdfIndexLoader`), so the anchor is the shared
+ * `PdfTextIndex.anchorWord` — inside the word under the pointer, or the nearest one when the press
+ * lands between words — and the range is read in the page's reading order. A page with no text layer
+ * says so in one sentence instead of swallowing the gesture.
+ */
+private suspend fun AwaitPointerEventScope.pdfTextDrag(
+    start: PointerInputChange,
+    tab: DesktopTab,
+    view: DragView,
+) {
+    val (x, y) = pagePointOf(start.position.x, start.position.y, density, view.current())
+    if (tab.pdfIndex == null) {
+        // Still being read off the file: a page that has text will answer in a moment, so nothing is
+        // cleared and no failure is claimed.
+        return
+    }
+    val begun = DesktopPdfTextSelect.begin(tab, x, y)
+    if (begun == null) {
+        tab.pdfTextSelection = null
+        DesktopPdfTextNotice.noText()
+        return
+    }
+    DesktopPdfTextNotice.clear()
+    tab.pdfTextSelection = begun
+    while (true) {
+        val change = awaitPointerEvent().changes.firstOrNull() ?: break
+        val (px, py) = pagePointOf(change.position.x, change.position.y, density, view.current())
+        tab.pdfTextSelection = DesktopPdfTextSelect.extend(tab, begun, px, py)
+        if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+        change.consume()
     }
 }
 

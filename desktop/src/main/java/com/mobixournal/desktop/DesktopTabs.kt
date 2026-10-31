@@ -54,6 +54,18 @@ class DesktopTab(
     var page: Int by mutableStateOf(page)
     var viewport: Viewport by mutableStateOf(viewport)
     var fit: FitMode by mutableStateOf(fit)
+    var viewWidth: Float by mutableStateOf(0f)
+    var viewHeight: Float by mutableStateOf(0f)
+
+    /** Point in page space (pt) currently centered in this tab's visible viewport. */
+    fun visiblePageCenter(page: com.mobixournal.format.model.Page): Pair<Double, Double> {
+        if (viewWidth <= 0f || viewHeight <= 0f || viewport.zoom <= 0f) {
+            return Pair(page.width / 2.0, page.height / 2.0)
+        }
+        val centerPtX = ((viewWidth / 2f - viewport.offsetX) / viewport.zoom).toDouble().coerceIn(0.0, page.width)
+        val centerPtY = ((viewHeight / 2f - viewport.offsetY) / viewport.zoom).toDouble().coerceIn(0.0, page.height)
+        return Pair(centerPtX, centerPtY)
+    }
 
     /**
      * The live selection on **this** tab's page, or null when nothing is selected.
@@ -63,6 +75,29 @@ class DesktopTab(
      * two tabs show two pages, and per page in practice — a marquee names a region of the page it was drawn on.
      */
     var selection: PageSelection? by mutableStateOf(null)
+
+    /**
+     * The current PDF's text layer and Contents outline, or null for a document with no PDF (or one
+     * whose index has not landed yet). **View state**: it is read off the file, never written to it, and
+     * one `Ctrl+Z` does not have to restore it.
+     *
+     * Published by [PdfIndexLoader] from a `Dispatchers.Default` read, so opening a 200-page PDF stalls no
+     * frame. Cleared when the document's PDF reference changes, and dropped wholesale by the cache's
+     * `forgetAll` on a save, a merge or a re-import.
+     */
+    internal var pdfIndex: DesktopPdfIndex? by mutableStateOf(null)
+
+    /** The cache key [pdfIndex] belongs to — what tells the loader its answer is still current. */
+    internal var pdfIndexKey: String? = null
+
+    /** The pages picked in the sidebar — view state, cleared once `Delete` or the bar removes them. */
+    internal var pickedPages: com.mobixournal.desktop.PageSelection by mutableStateOf(
+        com.mobixournal.desktop.PageSelection(),
+    )
+
+    /** True while this tab's document has not yet been written to disk (`Ctrl+S` / Save opens Save As). */
+    var unsaved: Boolean by mutableStateOf(unsaved)
+        internal set
 
     /**
      * Layers hidden **in this window**, by page index. Never written to the document.
@@ -124,6 +159,15 @@ class DesktopTab(
         }
     }
 
+    /**
+     * The PDF text selection on **this** tab's page, or null when nothing is selected.
+     *
+     * View state like the ink selection: it is what the reader is pointing at, not document content — no
+     * page edit, no undo step, and a select-copy-save leaves the file byte-identical (`docs/pdf.md`).
+     * Cleared by `Esc`, by a click off the text, and by a page change.
+     */
+    internal var pdfTextSelection: DesktopPdfTextSelection? by mutableStateOf(null)
+
     /** The layers switched off on [page] — the set the painter and the thumbnails skip. */
     fun hiddenOn(page: Int): Set<Int> = hidden[page].orEmpty()
 
@@ -144,11 +188,12 @@ class DesktopTab(
      * the new name. The page and viewport stay where they were — a Save As is not a new document.
      */
     fun rehome(target: File) {
-        if (target.absoluteFile == document.file.absoluteFile) return
+        if (target.absoluteFile == document.file.absoluteFile && !unsaved) return
         val reloaded = DocumentLoader.load(target)
         val previous = document
         document = reloaded
         title = target.name
+        unsaved = false
         // The write just made the new file the truth, and the snapshots name pages of the archive
         // that was closed; a history across a Save As would undo onto a document that no longer is one.
         forgetHistory()
@@ -245,6 +290,7 @@ class DesktopTab(
         }
         staged.close()
         document = DocumentLoader.load(target)
+        unsaved = false
         // The closed archive's pages are what the old steps would restore; after a save the file is the
         // new baseline, so the history starts here and the save point moves with it.
         forgetHistory()

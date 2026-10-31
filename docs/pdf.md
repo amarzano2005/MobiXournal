@@ -19,30 +19,26 @@ and a `pdf` background now always goes through the raster cache and its tiles ab
 other PDF page, and exactly the smooth, cached rendering desktop Xournal++ uses. Nothing is lost in
 sharpness: the whole-page bitmap is bucketed and capped, and past that ceiling the **visible tiles are
 rasterised at the true on-screen resolution**, so text and line art stay sharp however far you zoom.
-The *export* path is the one that kept vector output: `PdfVectorPainter` and `PdfBackgroundPainter`
-write the page into the file as vectors, never onto the screen — see *Export PDF* below.
+The *export* path kept vector output: `PdfVectorPainter` and `PdfBackgroundPainter` write the page
+into the file as vectors, never onto the screen — see *Export PDF* below.
 Both bitmap caches allocate through **one** `BitmapBudget` (`BitmapBudget.shared`, sized at startup
-from `ActivityManager.memoryClass`), so a PDF-backed document has a single memory bound rather than
-two independent guesses. A cache `charge`s each bitmap it rasterises; when the total goes over, the
-budget asks its clients to `trim` — the *other* clients first, the one that just allocated last, so
-the pixels being drawn this frame survive. `InkCache.trim` gives back off-screen pages first,
+from `ActivityManager.memoryClass`), so a PDF-backed document has a single memory bound. A cache
+`charge`s each bitmap it rasterises; over the total, the budget asks its clients to `trim` — the
+*other* clients first, the one that just allocated last, so this frame's pixels survive. `InkCache.trim` gives back off-screen pages first,
 `PdfPageCache.trim` its least-recently-used entries (pinned tiles last), and
 `ElementRenderer.trim` its least-recently-drawn embedded images (keyed by element *identity*, since
 an `ImageElement`'s `equals` compares whole byte arrays; `ElementRenderer.close` recycles them and
-leaves the budget when the surface is torn down or a one-shot thumbnail is finished). Trimmed bitmaps are dropped
-but never recycled: another thread's trim can hit a bitmap the drawing thread holds for the current
-frame. **No lock is held across a charge, in either direction.** `BitmapBudget` never calls a client
-back while holding its own lock, and `BitmapLruCache.put` releases the *cache* lock after the insert
-and before charging — because a charge reaches into every other client's `trim`, which takes that
-client's lock. Holding one cache's lock across it inverts the order between two caches, and any two
-live caches over one budget can hit it: a fast scroll in each had the drawing thread inside cache A
-waiting on B while A's rasteriser sat inside B waiting on A, hanging the main thread in `doFrame`
+leaves the budget when the surface is torn down). Trimmed bitmaps are dropped but never recycled:
+another thread's trim can hit a bitmap the drawing thread holds for this frame. **No lock is held across a charge, in either direction**: `BitmapBudget` never calls a client
+back while holding its lock, and `BitmapLruCache.put` releases the *cache* lock before charging —
+because a charge reaches into every other client's `trim`, which takes that client's lock. Holding
+one cache's lock across it inverts the order between two caches, and any two live caches over one
+budget can hit it: a fast scroll in each had the drawing thread inside cache A waiting on B while
+A's rasteriser sat inside B waiting on A, hanging the main thread in `doFrame`
 until the system killed the app for not responding. (The case that found it was a document mirrored
-into both split panes, which then meant two `PdfPageCache`s over one PDF; the panes now share one —
-see below — but the lock rule stands on its own, since a pane's PDF and image caches charge the same
-budget.)
-`BitmapCacheDeadlockTest` (connected suite — the accounting needs real `Bitmap.byteCount`) races two
-caches over one budget and fails if they lock up.
+into both split panes, two `PdfPageCache`s over one PDF; the panes now share one, but the lock rule
+stands on its own.) `BitmapCacheDeadlockTest` (connected suite — it needs real `Bitmap.byteCount`)
+races two caches over one budget and fails if they lock up.
 
 ## PDF backgrounds (`render/`)
 
@@ -189,6 +185,15 @@ to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawText
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 
+The geometry is **shared, not forked**: `CharBox`, `PdfWord`, `PdfWordGrouper`, `PdfTextIndex` and the
+outline tree live in `mobix-core/src/main/java/com/mobixournal/render/`, and each shell keeps only its
+own PDFBox glue (`PdfTextExtractor`/`PdfOutlineExtractor` over `pdfbox-android`; `DesktopPdfText`/
+`DesktopPdfOutline` over `org.apache.pdfbox`, one `PDDocument.load` per file, cached by reference and
+length in `DesktopPdfIndexCache` and read off the UI thread). Both shells therefore resolve a pointer on
+the same word boxes. In the window, **Select text (PDF)** (`Shift+S`) anchors at `anchorWord`, drags an
+inclusive reading-order range, washes it and puts the words on the system clipboard (`Ctrl+C` or the
+selection's Copy bar); `Esc`, a click off the text or a page change clears it, and it writes nothing.
+
 ## The magnetic highlighter
 
 A highlighter drag over a born-digital page is tested against the same `PdfWord` boxes text selection
@@ -199,7 +204,9 @@ lines and each line becomes one constant-width band as tall as its glyph boxes p
 canvas previews those bands during the drag (`DrawingSurfacePaint.drawCurrent`) and commits them at
 lift-off as ordinary highlighter strokes, so one gesture is still one undo step and the band round-trips
 through `.mobix` and `.xopp` as ink. Snapping is a convenience, never a correction the user did not ask
-for: a margin mark is not silently turned into a sentence.
+for: a margin mark is not silently turned into a sentence. The window commits and previews the same
+bands from the same object (`DesktopPdfIndex`'s words, `PenPointer.pdfBands` as the live preview), so a
+stylus highlight snaps exactly as a mouse one does.
 
 ## PDF Contents (the outline)
 
@@ -219,7 +226,10 @@ appended page, and a desktop-authored file may order its pages freely).
 
 This is deliberately **navigation only, never document content**: the `.xopp` format has nowhere to
 keep a bookmark tree, so the outline is read from the PDF and the file is untouched by it — the same
-reasoning that keeps desktop Xournal++'s PDF text selection out of the saved document.
+reasoning that keeps desktop Xournal++'s PDF text selection out of the saved document. The window's
+**Contents** section (`PageSidebar`, under the layers) prints the same rows, indented by depth, only
+when opened, and resolves a click through `Background.Pdf.pageNo` — never an offset — so a merged PDF
+still lands on the right page.
 
 ## Relative PDF references {#relative-pdf-references}
 

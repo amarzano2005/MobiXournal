@@ -35,11 +35,17 @@ data class ImportPdfRequest(
     val file: File,
     /** How many pages it holds — the card says it, so the reader knows what is about to land. */
     val pageCount: Int,
-    /** The answer being considered. Add is the default: it is the one that keeps the work. */
+    /** The answer being considered. Add is the default when a tab is open and the import can choose. */
     val mode: ImportPdfMode = ImportPdfMode.APPEND,
     /** The first and last page to bring, as typed (1-based); the whole PDF until told otherwise. */
     val first: String = "1",
     val last: String = "$pageCount",
+    /**
+     * Whether the card asks **where** the pages go (append vs replace). False when the PDF came through
+     * *Open* or when no tab is open — then the pages always open in a new tab ([ImportPdfMode.REPLACE]) and
+     * the card only asks which page range to bring.
+     */
+    val chooseMode: Boolean = true,
 ) {
     /** The run this card asks for, or the sentence saying why it cannot be used ([PageRanges]). */
     internal val range: PageRangePlan get() = PageRanges.pages(PageRangeRequest(first, last), pageCount)
@@ -48,8 +54,11 @@ data class ImportPdfRequest(
 /**
  * Open the question for [file]: read its page count first, so the card can say what it will bring, and
  * refuse a PDF that cannot be read with a sentence instead of an empty document.
+ *
+ * When [chooseMode] is false (a PDF opened through *Open*) or when no tab is open (`tabs.isEmpty`), the
+ * question asks only for the page range and imports into a new tab ([ImportPdfMode.REPLACE]).
  */
-fun DesktopShellState.askImportPdf(file: File) {
+fun DesktopShellState.askImportPdf(file: File, chooseMode: Boolean = !tabs.isEmpty) {
     val pages = try {
         DesktopPdfImport.pageCount(file)
     } catch (refused: DesktopPdfImport.PdfImportRefused) {
@@ -57,7 +66,13 @@ fun DesktopShellState.askImportPdf(file: File) {
         return
     }
     failure = null
-    importRequest = ImportPdfRequest(file = file, pageCount = pages)
+    val canChoose = chooseMode && !tabs.isEmpty
+    importRequest = ImportPdfRequest(
+        file = file,
+        pageCount = pages,
+        mode = if (canChoose) ImportPdfMode.APPEND else ImportPdfMode.REPLACE,
+        chooseMode = canChoose,
+    )
 }
 
 /** Retype one field of the open question — the page range, today. */
@@ -76,11 +91,12 @@ fun DesktopShellState.cancelImportPdf() {
  * A range the card cannot use keeps the card up rather than importing something the reader did not ask
  * for: the *Import* button is dead in that state, and this guard is the same rule behind it.
  */
-fun DesktopShellState.confirmImportPdf(mode: ImportPdfMode) {
+fun DesktopShellState.confirmImportPdf(mode: ImportPdfMode = importRequest?.mode ?: ImportPdfMode.REPLACE) {
     val request = importRequest ?: return
     val range = request.range as? PageRangePlan.Pages ?: return
+    val resolved = if (request.chooseMode) mode else ImportPdfMode.REPLACE
     importRequest = null
-    importPdf(request.file, mode, range.first..range.last)
+    importPdf(request.file, resolved, range.first..range.last)
 }
 
 /**
@@ -133,6 +149,9 @@ private fun DesktopShellState.openImported(
         ),
     )
     failure = null
+    // A PDF opened at a path another document already cached may not be the same bytes: the index is
+    // re-read for the next open rather than borrowed from the file that used to be there.
+    DesktopPdfIndexCache.forgetAll()
     return true
 }
 
@@ -176,6 +195,8 @@ private fun DesktopShellState.appendImported(
     tab.document.replacePages(pages)
     tab.record(before)
     pagesChanged(tab)
+    // A merge writes a joined PDF, so any index read from the files it joined is stale.
+    DesktopPdfIndexCache.forgetAll()
     failure = null
     // Land on the first page that arrived: the reader asked for these pages, not for the ones above them.
     tab.page = (pages.size - landing.second.size).coerceIn(0, pages.lastIndex)

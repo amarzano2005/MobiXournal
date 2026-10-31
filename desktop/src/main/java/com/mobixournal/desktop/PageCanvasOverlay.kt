@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -10,6 +11,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.CircuitSnapping
+import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
@@ -39,6 +41,14 @@ internal fun DrawScope.paintLiveOverlay(
     drafts: List<List<InkSample>>,
     /** The living element a placement drag is drawing right now, if any — a component being pulled out. */
     previewLiving: Element?,
+    /**
+     * The magnetic highlighter's bands, in page points, or empty when the drag draws freehand.
+     *
+     * While a highlighter drag snaps to a PDF page's text lines (`MagneticHighlighter`), these bands are
+     * painted **in place of** the freehand preview: the sheet shows the flat band the lift will write, not
+     * the wavy path it would have written without the text layer underneath.
+     */
+    pdfBands: List<MagneticHighlighter.Band> = emptyList(),
     selection: PageSelection?,
     previewRegion: SelectionRegion?,
     grabLineY: Double?,
@@ -48,20 +58,26 @@ internal fun DrawScope.paintLiveOverlay(
     // A geometry slot's preview is the figure's own points, drawn with the pen's rule: same width,
     // same colour, and the same list the lift reads, so what is previewed is what is written.
     val previewTool = tool.previewTool()
-    if (previewTool != null) {
+    // A snapping highlighter's preview *is* its bands: drawing the hand's path underneath them would show
+    // two different futures for one lift.
+    val magnetic = pdfBands.isNotEmpty() && tool.inkTool() == com.mobixournal.format.model.Tool.HIGHLIGHTER
+    if (previewTool != null && !magnetic) {
         val previewInk = if (tool.shapeKind() != null) shapeInk else ink
         for (draft in drafts) {
             if (draft.isEmpty()) continue
+            val samples = runCatching { draft.toList() }.getOrNull() ?: continue
+            if (samples.size < 2) continue
             strokeOf(
                 previewTool,
                 previewInk.colour,
                 previewInk.width,
-                draft,
+                samples,
                 previewInk.lineStyle,
             )?.let { draftStroke ->
                 // The draft is a stroke growing by a few samples per frame: its geometry is cached by the
                 // list it lives in and the length it has reached, so a frame that only redraws (a scroll, a
                 // hover, a selection moving) does not rebuild the whole outline again.
+                val isFigure = tool.shapeKind() != null
                 val shapes = StrokePathCache.draft(
                     identity = draft,
                     size = draft.size,
@@ -69,11 +85,14 @@ internal fun DrawScope.paintLiveOverlay(
                     lineStyle = draftStroke.lineStyle,
                     points = draftStroke.points,
                     scale = pxPerPt,
+                    smooth = !isFigure,
                 )
                 drawStrokeShapes(draftStroke, shapes, pxPerPt)
             }
         }
     }
+    // The snapped bands, at the highlighter's own translucency: a preview of the ink, not chrome.
+    drawPdfPreviewBands(pdfBands, ink.colour, pxPerPt)
     // The element a placement drag has drawn so far, in the same painter the page uses: a component is
     // pulled out of the sheet along the pen, so the drag promises exactly what the lift writes.
     previewLiving?.let { preview -> drawElements(listOf(preview), pxPerPt, measurer) }

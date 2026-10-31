@@ -139,4 +139,22 @@ class DesktopPageSelectionCommandTest {
         assertFalse("pages 2 and 3 are already there", pages.movePages(setOf(1, 2), 1))
         assertEquals(listOf(0, 1, 2, 3, 4), shadesOf(document))
     }
+
+    @Test
+    fun `pressing Delete removes the pages picked in the sidebar`() {
+        val state = DesktopShellState()
+        try {
+            val document = shades(5)
+            val tab = state.tabs.open(document)
+            tab.pickedPages = PageSelection(setOf(1, 3), anchor = 3)
+
+            assertTrue("Delete removes the picked pages", state.apply(ShellCommand.DELETE_SELECTION))
+            assertEquals("three pages remain", 3, document.pageCount)
+            assertEquals(listOf(0, 2, 4), shadesOf(document))
+            assertTrue("the sidebar selection is cleared", tab.pickedPages.isEmpty)
+            assertFalse("a second Delete with nothing selected does nothing", state.apply(ShellCommand.DELETE_SELECTION))
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
 }

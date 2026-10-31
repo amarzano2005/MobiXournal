@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.input.pointer.PointerInputChange
 import com.mobixournal.audio.withAudio
@@ -7,6 +8,7 @@ import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.InkEvent
+import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
@@ -51,6 +53,14 @@ internal class PageInkGesture(
      * discarded for having moved less than a mouse's slop.
      */
     private val startOnDown: Boolean = false,
+    /**
+     * The magnetic highlighter's preview, in page points — the bands this drag would commit.
+     *
+     * Shared with the sheet (`PenPointer.pdfBands`) so the preview is painted **in place of** the freehand
+     * path: what a snapped highlight shows is what its lift writes. Null on a canvas that has no such
+     * preview to publish.
+     */
+    private val bands: MutableState<List<MagneticHighlighter.Band>>? = null,
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
@@ -176,6 +186,9 @@ internal class PageInkGesture(
     fun cancel() {
         drawing = false
         draft.clear()
+        // A preview nobody is drawing any more must not outlive the gesture: the sheet would keep a band
+        // over ink the lift never wrote.
+        if (bands?.value?.isNotEmpty() == true) bands.value = emptyList()
         dwellFigure = null
         drawnSamples = emptyList()
         // A cancelled gesture writes nothing that had not already been swept.
@@ -293,6 +306,31 @@ internal class PageInkGesture(
             lastSampleNanos = System.nanoTime()
         }
         draft.add(InkSample(x, y, factor, pointer))
+        updateBands()
+    }
+
+    /**
+     * Keep the magnetic preview in step with the drag.
+     *
+     * A highlighter over a PDF page's **text layer** previews the bands it would commit, not the wavy hand
+     * path (`MagneticHighlighter.bands`); every other tool, every page without text and every drag that
+     * crosses none of it answers an empty list, and the freehand preview comes back rather than freezing on
+     * a band the lift would not write.
+     */
+    private fun updateBands() {
+        val target = bands ?: return
+        val next = if (tool.inkTool() == Tool.HIGHLIGHTER && ink.lineStyle == LineStyle.PLAIN) {
+            val words = DesktopPdfTextSelect.wordsOf(tab)
+            if (words.isEmpty()) {
+                emptyList()
+            } else {
+                val points = draft.map { StrokePoint(it.x, it.y, ink.width.toDouble()) }
+                MagneticHighlighter.bands(points, words)
+            }
+        } else {
+            emptyList()
+        }
+        if (next != target.value) target.value = next
     }
 
     /**
@@ -308,6 +346,16 @@ internal class PageInkGesture(
         dwellFigure = null
         drawnSamples = emptyList()
         draft.clear()
+        // A **magnetic** highlighter commits the bands the drag crossed — ordinary two-point,
+        // constant-width strokes in the picked ink, so a snapped highlight round-trips through `.mobix`
+        // and `.xopp` exactly like a band drawn by hand. One page edit, one undo step, and the freehand
+        // path is untouched for a drag that is too short, too steep, over no text, or across too many
+        // lines (the rules are `MagneticHighlighter`'s own).
+        if (drawnTool == Tool.HIGHLIGHTER && ink.lineStyle == LineStyle.PLAIN) {
+            val points = samples.map { StrokePoint(it.x, it.y, ink.width.toDouble()) }
+            val magnetic = MagneticHighlighter.strokes(points, DesktopPdfTextSelect.wordsOf(tab), ink.colour)
+            if (magnetic.isNotEmpty() && commitElements(magnetic)) return
+        }
         val index = tab.page
         val before = tab.document.snapshot()
         val shape = figure?.let { ParametricShapes.elementFor(it, ink.colour, sampleWidth(samples)) }
@@ -326,6 +374,25 @@ internal class PageInkGesture(
         if (!wrote) return
         tab.record(before)
         onEdited(index)
+    }
+
+    /** Write [elements] on the page's top layer as one edit and one undo step; false when nothing landed. */
+    private fun commitElements(elements: List<com.mobixournal.format.model.Element>): Boolean {
+        val index = tab.page
+        val before = tab.document.snapshot()
+        // A take that is running stamps the same `fn`/`ts` every committed stroke carries, through the one
+        // funnel (`DesktopAudioSession.stamp`), so a magnetic band replays like any other ink.
+        val stamp = DesktopAudioSession.stamp(tab)
+        val written = elements.map { element ->
+            if (stamp != null && element is com.mobixournal.format.model.Stroke) element.withAudio(stamp) else element
+        }
+        val edited = tab.document.editPage(index) { page ->
+            written.fold(page) { grown, element -> grown.withElement(element) }
+        }
+        if (edited == null) return false
+        tab.record(before)
+        onEdited(index)
+        return true
     }
 
     /** The width the drawn samples were laid at — the average the recogniser was handed. */

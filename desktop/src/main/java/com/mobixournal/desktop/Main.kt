@@ -146,10 +146,10 @@ fun main(args: Array<String>) {
         Window(
             onCloseRequest = { if (state.requestExit()) exitApplication() },
             state = rememberWindowState(width = 1100.dp, height = 1000.dp),
-            // The caption carries **no app name and no icon**: the header below it already says what the
-            // window is (the tabs), so a title bar repeating the product name was a second, heavier
-            // header. The packaged executable keeps the app's icon on the taskbar (item 10).
-            title = "",
+            // Sets title and icon so the Windows taskbar preview card identifies the window as MobiXournal,
+            // while DesktopTitleBar keeps the native Windows title bar text cleanly blended with the caption.
+            title = "MobiXournal",
+            icon = appIcon(),
         ) {
             // The caption carries the tabs and nothing else, so its own corner wears no picture: the
             // window is stamped with the app's icon by the package, and this splits that icon — nothing

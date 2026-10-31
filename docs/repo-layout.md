@@ -86,8 +86,11 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/PageSvgWriter.kt  # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
     render/PdfBackgroundDomain.kt, PixmapBackgroundDomain.kt # `attach` domain + bundled pixmap entries (pure)
     render/PdfPagePlan.kt    # a page -> PDF ops an emitter replays; PdfPageTransform.kt flips into user space; LatexParser.kt + LatexLayout.kt typeset a math block glyph by glyph
+    render/PdfText.kt, PdfOutline.kt, MagneticHighlighter.kt # a PDF's positioned words and its
+                             # Contents tree, plus the highlighter's snap to them (pure, shared: the app's
+                             # and the window's PDFBox glue both feed these, so a word box is one box)
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
-    render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt # what a contact
+    render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt, StrokeSmoother.kt # what a contact
                              #   begins, how hard it draws, what a stream means (pure)
     render/PageEraser.kt, StrokeEraser.kt, StrokeHitTester.kt # erase: page mode, the split, the hit
     render/CanvasGeometry.kt, BoardSlicer.kt, CanvasAutoSlicer.kt # a board: what it is, its sheets (pure)
@@ -137,7 +140,6 @@ app/
       PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
       DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)
       InkCache.kt            # page-ink rasters built on a worker (zoom buckets), so panning blits instead of re-drawing
-      StrokeSmoother.kt      # streaming jitter filter for freehand position and pressure (pure)
       CanvasChrome.kt        # the canvas's non-document brushes: selection, band, guide, hover, the radial HUD
       RadialHud.kt           # the pen-tip HUD's slot ring and its angle-to-slot geometry (pure, tested)
       DrawingSurfaceHud.kt   # the HUD's view half: summon at the nib, track the flick, commit or cancel; ToolGlyphPainter.kt draws a catalogue glyph into a Canvas
