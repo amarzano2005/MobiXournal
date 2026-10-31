@@ -42,6 +42,8 @@ internal fun DesktopShell(
     tablet: DesktopTablet? = null,
 ) {
     ThumbnailRefresh(state)
+    // The field's answer, walked off the UI thread once per settled query (`DesktopSearch.kt`).
+    SearchRunner(state.active)
     LaunchedEffect(onInsertImagePicker) { state.onInsertImagePicker = onInsertImagePicker }
     RecoverySnapshots(state)
     // Which document is on screen decides what the audio pill shows: the tab's own `hasAudio` (asked here,
@@ -88,6 +90,12 @@ internal fun DesktopShell(
             // the door to the audio tap, now that the tool strip has no slot for it.
             audio = DesktopAudioSession,
             onAudioTap = { state.selectTool(DesktopTool.AUDIO) },
+            // The search field: the shell keeps the text and the answer on the tab, so the band, the
+            // results list and the page highlight cannot disagree.
+            onSearch = { query -> state.setSearchQuery(query) },
+            onSearchNext = { state.stepSearch(forward = true) },
+            onSearchPrevious = { state.stepSearch(forward = false) },
+            onSearchClose = { state.closeSearch() },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             // The page is always drawn: Settings is a **floating surface** over it, not a second window
@@ -98,7 +106,7 @@ internal fun DesktopShell(
             if (state.prefs.open) SettingsSurface(state.prefs)
             FigureDialogHost(state)
         }
-        StatusBar(state.active, tablet, state.prefs.frameTime, DesktopAudioSession)
+        StatusBar(state.active, tablet, state.prefs.frameTime, DesktopAudioSession, state.pageRefusal)
     }
 }
 

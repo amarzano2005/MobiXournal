@@ -25,6 +25,61 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-search-ui"
+title = "Desktop: the header's search field, the results section and the page highlight"
+description = "The band's search capsule (HeaderSearch.kt, with ChromeGlyph.SEARCH added to the shared catalogue) opened by Ctrl+F (ShellCommand.FIND) with Enter/Shift+Enter/Esc, the n / total counter and a clear glyph; results listed under the sidebar's layers (SearchSidebar.kt) where a click goes to the match; the current match painted over the page as chrome (DesktopSearchHighlight.kt, called from PageCanvas) and the count beside the page counter in the status bar. DesktopSearchSceneTest renders the field and the results list to build/desktop-render."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop", "search", "ui"]
+
+[[task]]
+id = "desktop-document-search-results"
+title = "Desktop: search the document lazily and keep the hits as tab state"
+description = "DesktopSearch.kt holds the window's answer as one value (query, hits, current) with wrapping next/previous and at(); SearchRunner walks it on Dispatchers.Default once per settled query, over the tab's own pages (TabPages, unsaved edits included) and with a PDF's words mapped by each page's Background.Pdf.pageNo, so a reordered PDF still highlights the right words. The three fields live on DesktopTab. DesktopSearchTest pins the text box, the formula, the reordered PDF, the short-query refusal and the navigation arithmetic."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop", "search"]
+
+[[task]]
+id = "desktop-page-copy-paste"
+title = "Desktop: copy, cut and paste the picked pages, across tabs"
+description = "A DesktopPageClipboard and copyPickedPages/cutPickedPages/pastePages: the pick travels as whole sheets with fresh page and element ids on every paste, the selection bar grew Copy/Cut/Paste, DesktopClipboardRouting.kt is the one place that decides which clipboard Ctrl+X/C/V/D mean (PDF text, then pages, then elements), and a page of another PDF is refused with a sentence in the status bar (lastPageRefusal). DesktopPageClipboardTest covers both tabs, ids, undo and the refusal."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop", "pages"]
+
+[[task]]
+id = "desktop-page-insert-and-duplicate"
+title = "Desktop: insert and duplicate a page from the page list"
+description = "DesktopPages gained insertPageAt(index, before) and duplicatePage(index) through PageOps and ElementId.freshCopy — one undo step each, the view following the new page — plus the page list's + row (AddPageRow), the Pages menu's rows and Ctrl+D duplicating the page in view when no ink is selected. DesktopPageInsertTest pins the landing indices, the fresh page and element ids, the single undo step and a duplicated PDF background."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop", "pages"]
+
+[[task]]
+id = "desktop-share-document-search"
+title = "Core: share the document search (text boxes, math blocks, PDF words) with the window"
+description = "Moved the engine to mobix-core (render/DocumentSearch.kt) with both page-surface entry points public, a snippet on every hit, and math blocks added — a formula's own source matches and the block's box is the hit. The pure handwriting types moved behind a SearchableHandwriting interface (render/SearchableHandwriting.kt) that the app's HandwritingIndex implements, so the recogniser stays where Android is. A new mobix-core DocumentSearchTest pins text, PDF, formula, snippet, the page-at-a-time walk and the interface, and the app's existing search tests still pass."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-31
+completed = 2026-10-31
+tags = ["desktop", "search"]
+
+[[task]]
 id = "desktop-page-management-and-search"
 title = "Desktop: page management and document search (scope)"
 description = "Investigated what page management and document search still need and broke the remainder into five atomic tasks, no code. The investigation found: DocumentSearch already walks a PageSource one page at a time in app/render (but is app-only and misses math blocks); DesktopPages can remove and move pages but has no insert, duplicate or page clipboard; the window has no search field, no results surface and no hit highlight; and the window's reorderable pages mean the PDF half of a search must key on each page's own Background.Pdf.pageNo. Children: desktop-share-document-search (move DocumentSearch and the pure handwriting word into mobix-core, add math-block matches), desktop-page-insert-and-duplicate, desktop-page-copy-paste (page clipboard across tabs, fresh ids), desktop-document-search-results (lazy walk, DesktopTab.search, reordered-PDF mapping), desktop-search-ui (header field, sidebar results, page highlight, Ctrl+F/Enter/Esc)."

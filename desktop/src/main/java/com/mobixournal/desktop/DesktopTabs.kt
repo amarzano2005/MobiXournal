@@ -168,6 +168,24 @@ class DesktopTab(
      */
     internal var pdfTextSelection: DesktopPdfTextSelection? by mutableStateOf(null)
 
+    /**
+     * The header's search field, per tab: what the reader typed on **this** document.
+     *
+     * Per tab like the page and the zoom, because two documents have two different answers — switching
+     * tabs and back must not carry one document's query onto another's page list. View state: nothing
+     * about a query is written to the file.
+     */
+    internal var searchQuery: String by mutableStateOf("")
+
+    /** The answer to [searchQuery], kept so a repaint never walks the document again ([SearchRunner]). */
+    internal var search: DesktopSearch by mutableStateOf(DesktopSearch.EMPTY)
+
+    /**
+     * True while the field is showing (`Ctrl+F` opens it, `Esc` closes it) — the band draws the capsule
+     * and the sidebar the results while this is true, and both read the same flag so they cannot disagree.
+     */
+    internal var searchOpen: Boolean by mutableStateOf(false)
+
     /** The layers switched off on [page] — the set the painter and the thumbnails skip. */
     fun hiddenOn(page: Int): Set<Int> = hidden[page].orEmpty()
 

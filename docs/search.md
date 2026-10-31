@@ -14,7 +14,30 @@ boxes to paint — and the three sources are consulted in one pass over a page:
   derived from the element's size with the same rough metrics element hit-testing uses.
 - **Background PDF text** (`PdfTextIndex`): the page's words are joined into one string in reading order, so
   a query may span two words; the boxes returned are the words the match overlaps.
+- **A math block's source** (`MathBlockElement`): the formula as it was typed, so `\frac{1}{2}` is
+  findable; the block's own box is the hit, once per occurrence.
 - **Handwritten ink**: the page's `HandwritingIndex` words, matched by the rules below.
+
+The engine is `mobix-core`'s, and both shells call it: the tablet's field and the PC window match the same
+things at the same places. The handwriting half is an interface (`SearchableHandwriting`) rather than a
+type of the engine's, because reading ink needs Android and the window has no recogniser. A hit carries a
+`snippet` — the matched line, words or formula, cut to a row — beside its boxes, which is what a results
+list prints.
+
+## The window's field, results and highlight
+
+`Ctrl + F` opens the desktop band's field (`HeaderSearch.kt`) and `Esc` closes it; `Enter` steps to the next
+match and `Shift + Enter` to the previous, both wrapping. The answer is kept on the tab as `DesktopSearch`
+(query, hits, current) and walked by `SearchRunner` on `Dispatchers.Default` once per settled query, so
+repainting the page never re-walks the document. The sidebar lists the matches (`SearchSidebar.kt`, filled
+only while a query is up) and the current one is painted over the page as chrome, at the PDF text
+selection's translucency.
+
+Two things are the window's own. Pages are read through the **tab's document** (`TabPages`), so the pages
+being edited are the pages searched, unsaved strokes included. And the PDF half is keyed by each page's
+**own** `Background.Pdf.pageNo`: the window reorders pages, so document page *n* is not PDF page *n*, and a
+single index passed by position would highlight the wrong words. Handwriting is not searched on the PC —
+that needs a recogniser, and the window has none.
 
 ## How a handwritten word matches
 

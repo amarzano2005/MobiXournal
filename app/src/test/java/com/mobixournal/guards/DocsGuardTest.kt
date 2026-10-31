@@ -84,8 +84,12 @@ class DocsGuardTest {
      * `README.md` is the human's front door (what it is, how to run it, where to read more) and
      * `AGENTS.md` the agent's map; neither is a place to accumulate detail, because detail has an owner
      * in `docs/` and a second copy of it drifts.
+     *
+     * `README.md` moved 360 → 368 on 2026-10-31: its desktop section gained the two bullets the front door
+     * owes a reader — **Search the document** and the page list's own clipboard — a line of feature and a
+     * link each, with the detail in `docs/search.md` and `docs/desktop-editing.md`.
      */
-    private val frontDoorBudget = mapOf("README.md" to 360, "AGENTS.md" to 430)
+    private val frontDoorBudget = mapOf("README.md" to 368, "AGENTS.md" to 430)
 
     /**
      * The longest a single paragraph of **running prose** may get in a front door, in characters.

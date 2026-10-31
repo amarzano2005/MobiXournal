@@ -99,6 +99,14 @@ fun PageSidebar(
     onMovePages: (Set<Int>, Int) -> Unit = { _, _ -> },
     /** The selection bar's delete: every picked page goes, one undo step. */
     onRemovePages: (Set<Int>) -> Unit = {},
+    /** The `+` row under the last thumbnail: a blank sheet after that page, one undo step. */
+    onInsertPage: (Int) -> Unit = {},
+    /** The selection bar's clipboard: the picked pages, not the caught elements. */
+    onCopyPages: () -> Unit = {},
+    onCutPages: () -> Unit = {},
+    onPastePages: () -> Unit = {},
+    /** A row of the search results: the page goes there and that match becomes the one in view. */
+    onSearchHit: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = remember(tab) {
@@ -161,22 +169,19 @@ fun PageSidebar(
                     },
                 )
             }
+            // The list's own `+`: a blank sheet where the pages end (`docs/desktop-workstation.md`).
+            item { AddPageRow(onAdd = { onInsertPage(tab.pageCount) }) }
         }
-        Spacer(Modifier.height(6.dp))
-        if (selection.isEmpty) {
-            LayersSection(tab)
-        } else {
-            PageSelectionBar(
-                count = selection.pages.size,
-                onDelete = {
-                    onRemovePages(selection.pages)
-                    tab.pickedPages = PageSelection()
-                },
-                onClear = { tab.pickedPages = PageSelection() },
-            )
-        }
-        // The PDF's own Contents, under the layers: navigation only, and only for a PDF that has one.
-        PdfContentsSection(tab) { index -> onSelectPage(index) }
+        SidebarSections(
+            tab = tab,
+            selection = selection,
+            onSelectPage = onSelectPage,
+            onRemovePages = onRemovePages,
+            onCopyPages = onCopyPages,
+            onCutPages = onCutPages,
+            onPastePages = onPastePages,
+            onSearchHit = onSearchHit,
+        )
     }
 }
 
@@ -345,6 +350,32 @@ private fun PageRemoveGlyph(enabled: Boolean, label: String, onRemove: () -> Uni
     }
 }
 
+/**
+ * The page list's **`+`**: one more blank sheet, after the last page.
+ *
+ * A row rather than a floating button: the list is the page's own surface, and a control that adds a page
+ * belongs at the place the pages end — the same reason the tablet's page strip grows its last slot into a
+ * `+` (`docs/desktop-workstation.md`). The glyph is the catalogue's `ADD`, the ink the chrome's.
+ */
+@Composable
+private fun AddPageRow(onAdd: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(32.dp)
+            .hoverFill(RoundedCornerShape(8.dp))
+            .clickable { onAdd() }
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Canvas(Modifier.size(14.dp)) {
+            drawChromeGlyph(ChromeGlyph.ADD, DesktopTheme.inkSecondary)
+        }
+        Spacer(Modifier.width(8.dp))
+        Text("Add a page", color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
+    }
+}
+
 /** The current page's layers, topmost first — the order the eye reads a stack of ink in. */
 @Composable
 private fun LayersSection(tab: DesktopTab) {
@@ -440,6 +471,48 @@ private fun rememberThumbnail(
         if (painted != null) slot.value = painted
     }
     return slot.value
+}
+
+/**
+ * What sits **under** the page list: the current page's layers, or the picked pages' bar, then the search's
+ * results and the PDF's Contents.
+ *
+ * One composable so the page list's own body stays the list, and so the order of these four — layers above
+ * results above outline — is written once rather than implied by three trailing calls (`SourceStructureTest`
+ * keeps `PageSidebar` a function that arranges the lane, not one that also prints everything in it).
+ */
+@Composable
+private fun SidebarSections(
+    tab: DesktopTab,
+    selection: PageSelection,
+    onSelectPage: (Int) -> Unit,
+    onRemovePages: (Set<Int>) -> Unit,
+    onCopyPages: () -> Unit,
+    onCutPages: () -> Unit,
+    onPastePages: () -> Unit,
+    onSearchHit: (Int) -> Unit,
+) {
+    Spacer(Modifier.height(6.dp))
+    if (selection.isEmpty) {
+        LayersSection(tab)
+    } else {
+        PageSelectionBar(
+            count = selection.pages.size,
+            onDelete = {
+                onRemovePages(selection.pages)
+                tab.pickedPages = PageSelection()
+            },
+            onClear = { tab.pickedPages = PageSelection() },
+            onCopy = onCopyPages,
+            onCut = onCutPages,
+            onPaste = onPastePages,
+        )
+    }
+    // The search's own list, above the PDF's Contents: while a query is up, the matches are what the reader
+    // is looking for, and the outline is still one heading below.
+    SearchResultsSection(tab, onSearchHit)
+    // The PDF's own Contents, under the layers: navigation only, and only for a PDF that has one.
+    PdfContentsSection(tab, onSelectPage)
 }
 
 /**

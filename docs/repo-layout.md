@@ -89,6 +89,8 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/PdfText.kt, PdfOutline.kt, MagneticHighlighter.kt # a PDF's positioned words and its
                              # Contents tree, plus the highlighter's snap to them (pure, shared: the app's
                              # and the window's PDFBox glue both feed these, so a word box is one box)
+    render/DocumentSearch.kt, SearchableHandwriting.kt # the search both shells call: text boxes, a math
+                             #   block's source, a PDF page's words, and handwritten ink behind an interface (pure)
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
     render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt, StrokeSmoother.kt # what a contact
                              #   begins, how hard it draws, what a stream means (pure)

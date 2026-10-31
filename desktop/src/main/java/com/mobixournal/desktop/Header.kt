@@ -74,6 +74,11 @@ internal fun Header(
      * it (`docs/audio.md`): a tap on the page then replays from the point touched.
      */
     onAudioTap: () -> Unit = {},
+    /** The search field's text, its two steps and its dismissal — drawn only while the tab has it open. */
+    onSearch: (String) -> Unit = {},
+    onSearchNext: () -> Unit = {},
+    onSearchPrevious: () -> Unit = {},
+    onSearchClose: () -> Unit = {},
 ) {
     val tab = tabs.active
     Row(
@@ -110,6 +115,12 @@ internal fun Header(
             onNew = onNew,
             modifier = Modifier.weight(1f),
         )
+        // The search field takes the band's spare width while it is up: it sits beside the tabs, so
+        // opening a search never moves the tabs or the file commands (`docs/desktop-ui-layout.md`).
+        if (tab?.searchOpen == true) {
+            Spacer(Modifier.width(10.dp))
+            HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+        }
         // Two groups, not one row of four: the history step and the file command are answered by
         // different questions ("what did I just do" and "where does this go"), and the wider gap is the
         // whole of the difference this band has room to draw.
@@ -117,23 +128,30 @@ internal fun Header(
         HeaderHistory(tab, onUndo, onRedo)
         Spacer(Modifier.width(12.dp))
         HeaderAudioSlot(audio, tabs, onAudioTap)
-        // The tablet's colours for the two file commands: Save in the accent, PDF in the document red.
-        // They were both chrome ink here, which made the one command that writes a PDF look like the
-        // history steps beside it. The rule is `docs/ui-modernization.md`'s, not the window's.
-        HeaderGlyph(
-            active = false,
-            enabled = tab?.isDirty == true,
-            colour = DesktopTheme.accent,
-            onClick = onSave,
-        ) { color -> drawChromeGlyph(ChromeGlyph.SAVE, color) }
-        Spacer(Modifier.width(6.dp))
-        HeaderGlyph(
-            active = false,
-            enabled = tab != null,
-            colour = DesktopTheme.documentRed,
-            onClick = onExportPdf,
-        ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
+        HeaderFileCommands(tab, onSave, onExportPdf)
     }
+}
+
+/**
+ * The two **file commands** on the band's right, in the tablet's colours: Save in the accent and the PDF
+ * export in the document red, because they were both chrome ink here and the one command that writes a PDF
+ * then looked like the history steps beside it (`docs/ui-modernization.md`).
+ */
+@Composable
+private fun HeaderFileCommands(tab: DesktopTab?, onSave: () -> Unit, onExportPdf: () -> Unit) {
+    HeaderGlyph(
+        active = false,
+        enabled = tab?.isDirty == true,
+        colour = DesktopTheme.accent,
+        onClick = onSave,
+    ) { color -> drawChromeGlyph(ChromeGlyph.SAVE, color) }
+    Spacer(Modifier.width(6.dp))
+    HeaderGlyph(
+        active = false,
+        enabled = tab != null,
+        colour = DesktopTheme.documentRed,
+        onClick = onExportPdf,
+    ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
 }
 
 /** The two history steps, which answer "what did I just do" rather than "where does this go". */

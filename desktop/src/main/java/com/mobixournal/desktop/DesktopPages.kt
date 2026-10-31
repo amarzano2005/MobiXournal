@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.ElementId
 import com.mobixournal.render.PageOps
 
 /**
@@ -104,8 +106,7 @@ internal class DesktopPages(
     }
 
     /** Drop the page in view, keeping the one in view sensible — the tablet's **Remove page**. */
-    fun removePage(): Boolean {
-        val tab = active() ?: return false
+    fun removePage(): Boolean {            val tab = active() ?: return false
         return removePageAt(tab.page)
     }
 
@@ -166,6 +167,152 @@ internal class DesktopPages(
         val picked = tab.pickedPages.sanitized(tab.document.pageCount)
         if (picked.isEmpty) return false
         return removePages(picked.pages)
+    }
+
+    /**
+     * The window's **page clipboard** — whole pages, one per window so a copy in one tab can be pasted
+     * into another ([DesktopPageClipboard]). Beside, not instead of: the elements' own clipboard stays in
+     * `DesktopSelectionCommands.kt`, and the two are told apart by what is selected.
+     */
+    val pageClipboard = DesktopPageClipboard()
+
+    /**
+     * Why the last paste was refused, or null — the status bar's sentence.
+     *
+     * A copied page's `Background.Pdf` names one document's file, so it cannot travel into a document
+     * backed by another (`docs/pdf.md`); the paste answers false and says so here rather than leaving a
+     * page that would draw nothing and save a reference the file does not carry.
+     */
+    var lastPageRefusal by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Insert a blank sheet **at** [index] — before it, or after it — and step onto it: one undo step.
+     *
+     * Where [addPage] means "after the page in view", this is the page list's own insert: the row the
+     * reader right-clicked decides, not where the view happened to be. The sheet keeps the page's paper
+     * ruling and drops a PDF or pixmap background to plain paper ([PageOps], so it is not a duplicate).
+     */
+    fun insertPageAt(index: Int, before: Boolean): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        if (count <= 0 || index !in 0 until count) return false
+        val (width, height) = defaultSize()
+        val pages = tab.document.model.pages
+        val inserted = if (before) {
+            PageOps.addBefore(pages, index, width, height)
+        } else {
+            PageOps.addAfter(pages, index, width, height)
+        }
+        if (inserted === pages) return false
+        val step = tab.document.snapshot()
+        tab.document.replacePages(inserted)
+        tab.record(step)
+        tab.pickedPages = PageSelection()
+        onStructure(tab)
+        selectPage(tab, (if (before) index else index + 1).coerceIn(0, tab.document.pageCount - 1))
+        return true
+    }
+
+    /**
+     * Duplicate the page at [index] straight after itself — content and all — as one undo step.
+     *
+     * The copy is **its own page**: [ElementId.freshCopy] mints a page id and an element id for every
+     * element, because a `.mobix` matches two copies of a page by that id (`docs/mobix-format.md`) and a
+     * duplicate that kept it would be folded into the page it came from on the next merge. A `.xopp`
+     * carries no page ids, so there it is simply a second page.
+     */
+    fun duplicatePage(index: Int): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        if (count <= 0 || index !in 0 until count) return false
+        val pages = tab.document.model.pages
+        val copy = ElementId.freshCopy(pages[index])
+        val insertion = PageOps.insertAfter(pages, index, listOf(copy))
+        if (insertion.pages === pages) return false
+        val step = tab.document.snapshot()
+        tab.document.replacePages(insertion.pages)
+        tab.record(step)
+        tab.pickedPages = PageSelection()
+        onStructure(tab)
+        selectPage(tab, insertion.index.coerceIn(0, tab.document.pageCount - 1))
+        return true
+    }
+
+    /**
+     * Copy what the page list has picked into [pageClipboard], or the page in view when nothing is picked.
+     *
+     * Reading only: no edit, no undo step, nothing written — the pages enter the clipboard under ids of
+     * their own, so a paste is a page of this document and not a second claim on the original's identity.
+     */
+    fun copyPickedPages(): Boolean {
+        val tab = active() ?: return false
+        val count = tab.document.pageCount
+        if (count <= 0) return false
+        val picked = tab.pickedPages.sanitized(count).pages
+        val taken = if (picked.isEmpty()) setOf(tab.page.coerceIn(0, count - 1)) else picked
+        val pages = PageOps.copyOf(tab.document.model.pages, taken).map(ElementId::freshCopy)
+        if (pages.isEmpty()) return false
+        pageClipboard.fill(pages, tab.document.pdfSource())
+        return true
+    }
+
+    /**
+     * Move the picked pages into the clipboard and take them out of the document — one undo step.
+     *
+     * Only a real pick is cut: the sidebar's bar is the only caller, and a cut that fell back to "the page
+     * in view" would remove a sheet the reader never pointed at. A pick covering every page is refused
+     * ([removePages] never empties a document) and the clipboard is cleared with it, so a failed cut leaves
+     * nothing behind to paste.
+     */
+    fun cutPickedPages(): Boolean {
+        val tab = active() ?: return false
+        val picked = tab.pickedPages.sanitized(tab.document.pageCount).pages
+        if (picked.isEmpty()) return false
+        if (!copyPickedPages()) return false
+        if (!removePages(picked)) {
+            pageClipboard.clear()
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Paste the clipboard's pages after [index] (or after the page in view when it is negative) — one undo
+     * step, the first pasted page stepped onto, the pick cleared.
+     *
+     * Each paste mints fresh ids again, so pasting the same copy twice yields two pages rather than two
+     * claims on one identity. A page that sits on a PDF is refused when the target document is backed by a
+     * different file: the reference would name bytes this document does not carry, and a refusal with a
+     * sentence ([lastPageRefusal]) is the only honest answer.
+     */
+    fun pastePages(index: Int = -1): Boolean {
+        val tab = active() ?: return false
+        lastPageRefusal = null
+        if (pageClipboard.isEmpty) return false
+        val count = tab.document.pageCount
+        if (count <= 0) return false
+        val after = when {
+            index >= 0 -> index
+            tab.pickedPages.isEmpty -> tab.page
+            else -> tab.pickedPages.pages.max()
+        }.coerceIn(-1, count - 1)
+        if (pageClipboard.pages.any { it.background is Background.Pdf } &&
+            pageClipboard.pdfSource != tab.document.pdfSource()
+        ) {
+            lastPageRefusal = "That page belongs to another PDF — open that PDF here first."
+            return false
+        }
+        val added = pageClipboard.pages.map(ElementId::freshCopy)
+        val insertion = PageOps.insertAfter(tab.document.model.pages, after, added)
+        if (insertion.pages === tab.document.model.pages) return false
+        val step = tab.document.snapshot()
+        tab.document.replacePages(insertion.pages)
+        tab.record(step)
+        tab.pickedPages = PageSelection()
+        onStructure(tab)
+        selectPage(tab, insertion.index.coerceIn(0, tab.document.pageCount - 1))
+        return true
     }
 
     /**
@@ -347,6 +494,26 @@ internal fun DesktopShellState.removePickedPages(): Boolean = pagesSection.remov
 /** Move the picked pages as one block — the sidebar's multi-page drag, one undo step. */
 internal fun DesktopShellState.movePages(indices: Set<Int>, target: Int): Boolean =
     pagesSection.movePages(indices, target)
+
+/** Insert a blank sheet at [index] — the page list's `+` row, and the Pages menu's two insert rows. */
+internal fun DesktopShellState.insertPageAt(index: Int, before: Boolean): Boolean =
+    pagesSection.insertPageAt(index, before)
+
+/** Duplicate page [index] as a page of its own — the Pages menu's row and `Ctrl+D` on the page list. */
+internal fun DesktopShellState.duplicatePage(index: Int): Boolean = pagesSection.duplicatePage(index)
+
+/** Copy the picked pages, or the page in view — the selection bar's Copy and `Ctrl+C`. */
+internal fun DesktopShellState.copyPickedPages(): Boolean = pagesSection.copyPickedPages()
+
+/** Cut the picked pages as one undo step — the bar's Cut and `Ctrl+X`. */
+internal fun DesktopShellState.cutPickedPages(): Boolean = pagesSection.cutPickedPages()
+
+/** Paste the copied pages after [index] (or after the page in view) — the bar's Paste and `Ctrl+V`. */
+internal fun DesktopShellState.pastePages(index: Int = -1): Boolean = pagesSection.pastePages(index)
+
+/** The last refused page paste's sentence, or null — what the status band reports. */
+internal val DesktopShellState.pageRefusal: String?
+    get() = pagesSection.lastPageRefusal
 
 /**
  * A change to the page **list** invalidates every cached thumbnail: the bitmaps are filed by index, and an

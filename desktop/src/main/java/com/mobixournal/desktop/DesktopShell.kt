@@ -670,13 +670,13 @@ class DesktopShellState(
             ShellCommand.DELETE_SELECTION -> deleteSelection(tab) { index -> edited(tab, index) } || removePickedPages()
             // The clipboard commands are the bar's own, reached from the keyboard. A copy of nothing is
             // not handled at all — the state the bar draws its button greyed out on.
-            ShellCommand.CUT_SELECTION -> cutSelection(tab, clipboard) { index -> edited(tab, index) }
-            // A PDF text selection owns the key while it is up: what is copied is words, not elements
-            // (`copyPdfTextOf` — reading, so no edit and no undo step, `docs/pdf.md`).
-            ShellCommand.COPY_SELECTION ->
-                (tabs.active?.let(::copyPdfTextOf) ?: false) || copySelection(tab, clipboard)
-            ShellCommand.PASTE_CLIPBOARD -> pasteClipboard(tab, clipboard) { index -> edited(tab, index) }
-            ShellCommand.DUPLICATE_SELECTION -> duplicateSelection(tab) { index -> edited(tab, index) }
+            // The four clipboard keys are one decision, and it is about which clipboard a key means: the
+            // page list's pick, a PDF text selection or the caught elements (`DesktopClipboardRouting.kt`).
+            ShellCommand.CUT_SELECTION, ShellCommand.COPY_SELECTION,
+            ShellCommand.PASTE_CLIPBOARD, ShellCommand.DUPLICATE_SELECTION ->
+                clipboardCommand(tab, command) { index -> edited(tab, index) }
+            // The header's field is the one search surface; `Ctrl+F` opens it on the tab in view.
+            ShellCommand.FIND -> find()
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.TOGGLE_FULLSCREEN, ShellCommand.SAVE, ShellCommand.SAVE_AS,

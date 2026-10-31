@@ -130,6 +130,10 @@ internal fun PageSelectionBar(
     count: Int,
     onDelete: () -> Unit,
     onClear: () -> Unit,
+    /** The pick's clipboard: pages, not the caught elements the canvas's clipboard holds. */
+    onCopy: () -> Unit = {},
+    onCut: () -> Unit = {},
+    onPaste: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -157,6 +161,16 @@ internal fun PageSelectionBar(
             )
         }
         Spacer(Modifier.height(6.dp))
+        // The pick's clipboard and its delete, on two rows: four labels on one line do not fit the 240 dp
+        // lane, and a button squeezed to a glyph would say less than the word it lost.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PanelButton(label = "Copy", primary = false, enabled = true, onClick = onCopy)
+            Spacer(Modifier.width(6.dp))
+            PanelButton(label = "Cut", primary = false, enabled = true, onClick = onCut)
+            Spacer(Modifier.width(6.dp))
+            PanelButton(label = "Paste", primary = false, enabled = true, onClick = onPaste)
+        }
+        Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             PanelButton(label = "Delete pages", primary = false, enabled = true, destructive = true, onClick = onDelete)
             Spacer(Modifier.width(8.dp))
@@ -166,5 +180,5 @@ internal fun PageSelectionBar(
 
 /** The bar's one measurement: tall enough for its count and its button, so the layers list is not shoved. */
 internal object PageSelectionMetrics {
-    val BAR_HEIGHT = 78.dp
+    val BAR_HEIGHT = 112.dp
 }

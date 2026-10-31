@@ -352,6 +352,7 @@ internal fun SheetCanvas(
         )
         // A PDF text selection is chrome above the sheet, in the page's own space like the marquee.
         drawSelectedPdfText(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density)
+        drawSearchHit(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density) // chrome, not ink
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings are
         // taken **here**, in the draw scope, so a hover reading repaints the sheet and never recomposes it.
         val ring = mark.ringPx ?: return@Canvas

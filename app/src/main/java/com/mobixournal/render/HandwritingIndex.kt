@@ -3,26 +3,21 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Document
 
 /**
- * One recognized handwritten word on a document page with its pt bounding box and confidence score.
- */
-data class HandwrittenWord(
-    val text: String,
-    val bounds: Bounds,
-    val confidence: Double = 1.0,
-    val candidates: List<String> = listOf(text),
-)
-
-/**
  * Per-page index of recognized handwritten words extracted from stroke ink.
- * Mirrors [PdfTextIndex] for search and navigation.
+ *
+ * The **word itself** ([HandwrittenWord]) and the interface the shared search asks for
+ * ([SearchableHandwriting]) live in mobix-core: recognition is the tablet's own business, but what a
+ * recognised word *is* has to mean the same thing to the window, which searches the same engine
+ * without ever recognising anything. This class is the index plus the recogniser's door.
  */
-class HandwritingIndex(private val pages: List<List<HandwrittenWord>>) {
+class HandwritingIndex(private val pages: List<List<HandwrittenWord>>) : SearchableHandwriting {
 
     /** Returns recognized handwritten words on the given 0-based page index. */
-    fun words(page: Int): List<HandwrittenWord> = pages.getOrElse(page) { emptyList() }
+    override fun words(page: Int): List<HandwrittenWord> = pages.getOrElse(page) { emptyList() }
 
     /** True when at least one page contains recognized handwritten words. */
-    val hasAnyText: Boolean = pages.any { it.isNotEmpty() }
+    override val hasAnyText: Boolean = pages.any { it.isNotEmpty() }
+
 
     companion object {
         /** Builds a [HandwritingIndex] for all pages in [doc] using [HandwritingRecognizer]. */

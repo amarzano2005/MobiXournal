@@ -51,6 +51,7 @@ internal object ShortcutTable {
         entry(ShellCommand.TOGGLE_HAND, "Hand, or the last tool", "Alt+H"),
         entry(ShellCommand.TOGGLE_SELECTION, "Selection, or the last tool", "Alt+S"),
         entry(ShellCommand.OPEN, "Open a document", "Ctrl+T"),
+        entry(ShellCommand.FIND, "Search the document", "Ctrl+F"),
         entry(ShellCommand.SAVE, "Save", "Ctrl+S"),
         entry(ShellCommand.SAVE_AS, "Save as", "Ctrl+Shift+S"),
         entry(ShellCommand.EXPORT_PDF, "Export PDF", "Ctrl+E"),

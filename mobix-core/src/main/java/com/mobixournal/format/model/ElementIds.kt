@@ -137,4 +137,40 @@ object ElementId {
         }
         return if (changed) page.copy(layers = layers) else page
     }
+
+    /**
+     * [element] with a **new** id of its own kind, whether or not it carried one.
+     *
+     * The opposite of [withId], and the one a **copy** needs: a duplicated page whose elements kept the
+     * original's ids would tell a `.mobix` merge that the two pages hold the same strokes, and the merge
+     * would fold one into the other. A [RawElement] has no id of ours to replace and is returned as it
+     * is — its identity, if any, is inside the JSON this build does not interpret.
+     */
+    fun freshId(element: Element): Element = when (element) {
+        is Stroke -> element.copy(id = mint(STROKE))
+        is TextElement -> element.copy(id = mint(TEXT))
+        is ImageElement -> element.copy(id = mint(IMAGE))
+        is TexImageElement -> element.copy(id = mint(LATEX))
+        is TableElement -> element.copy(id = mint(TABLE))
+        is PlotElement -> element.copy(id = mint(PLOT))
+        is ParametricShapeElement -> element.copy(id = mint(SHAPE))
+        is CircuitElement -> element.copy(id = mint(CIRCUIT))
+        is MathBlockElement -> element.copy(id = mint(MATH))
+        is RawElement -> element
+    }
+
+    /**
+     * [page] as a page of its **own**: a fresh page id and a fresh id for every element that carries one
+     * ([freshId]). What copying or duplicating a page hands back, so the copy is a second page to a merge
+     * instead of the same page twice.
+     *
+     * A page that carries no id (anything read from a `.xopp`) still gets one: the copy is about to be
+     * written, and a page written without an id is given one by the writer anyway.
+     */
+    fun freshCopy(page: Page): Page = page.copy(
+        id = mint(PAGE),
+        layers = page.layers.map { layer ->
+            layer.copy(elements = layer.elements.map(::freshId))
+        },
+    )
 }

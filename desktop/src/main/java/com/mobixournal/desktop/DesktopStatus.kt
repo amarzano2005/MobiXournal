@@ -95,6 +95,8 @@ internal fun StatusBar(
     frameTime: Boolean = true,
     /** The window's audio, whose take indicator and one-sentence report live on this band. */
     audio: DesktopAudioSession? = null,
+    /** A command that was refused, in one sentence — a page that belongs to another PDF, today. */
+    refusal: String? = null,
 ) {
     Row(
         Modifier
@@ -116,6 +118,23 @@ internal fun StatusBar(
         val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) }.getOrNull() }
         val fit = page?.let { tab.fitFor(it.width.toFloat(), it.height.toFloat()) } ?: tab.fit
         Text(pageLabel(tab.page, tab.pageCount), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
+        // The search's count sits beside the page counter: both answer "where am I", and a reader who
+        // pressed Enter wants to know how many matches are left without looking back up at the field.
+        if (tab.search.isActive) {
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "${tab.search.position} / ${tab.search.total} found",
+                color = DesktopTheme.accent,
+                style = DesktopTheme.numeric,
+            )
+        }
+        // A refused command says what happened and what to do, and sits here until the next command
+        // replaces it (`docs/ui-modernization.md` — the error-copy rule).
+        refusal?.let { sentence ->
+            Spacer(Modifier.width(14.dp))
+            Text(sentence, color = DesktopTheme.documentRed, style = DesktopTheme.label)
+            return@Row
+        }
         Spacer(Modifier.width(14.dp))
         Text(zoomLabel(zoom), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
         Spacer(Modifier.width(14.dp))

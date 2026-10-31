@@ -136,6 +136,14 @@ private fun WorkspaceSidebar(state: DesktopShellState, tab: DesktopTab) {
         onMovePages = { pages, target -> state.movePages(pages, target) },
         // The selection bar's delete: every picked page, with the PDF reference kept.
         onRemovePages = { pages -> state.removePages(pages) },
+        // The `+` row in the list: a blank sheet after the page it follows, one undo step.
+        onInsertPage = { index -> state.insertPageAt(index, before = false) },
+        // The pick's clipboard, beside Delete: pages, in one undo step each way.
+        onCopyPages = { state.copyPickedPages() },
+        onCutPages = { state.cutPickedPages() },
+        onPastePages = { state.pastePages() },
+        // A row of the search results: that match becomes the one in view, and its page the page on screen.
+        onSearchHit = { index -> state.showSearchHit(index) },
         // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
         revision = state.thumbnailRevision,
     )

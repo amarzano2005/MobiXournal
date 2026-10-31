@@ -133,3 +133,16 @@ Images are living document elements (ImageElement) on the active layer:
     re-encoding, or resampling raw image bytes, recording one undo step per gesture.
 - **Round-trip fidelity**: Preserved losslessly in both .mobix and .xopp containers under the sticky
   per-document format policy.
+
+## Searching the page, and the pick's clipboard of pages
+
+**Search** paints its current match on the sheet as chrome — the accent wash and a hairline over the words
+or formula the engine found, at the PDF text selection's translucency, never ink and never written to the
+file. `Enter` and a click on a result row both go to the match's page, so the page on screen is always the
+one the highlight is on ([search.md](search.md) owns the search itself).
+
+**The sidebar's pick is a clipboard of pages**, not of elements: **Copy**, **Cut** and **Paste** in the bar
+that replaces the layers list act on whole sheets, one undo step each way, and a page pasted into another tab
+arrives as a page of its own — fresh page and element ids, so a `.mobix` merge cannot fold the copy into its
+original (`DesktopPageClipboardTest`). A page whose sheet is a PDF can only land where that PDF is; the
+status bar says so rather than leaving a reference pointing at nothing.

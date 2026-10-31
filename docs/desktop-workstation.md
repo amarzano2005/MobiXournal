@@ -22,16 +22,16 @@ What it does today:
   from the toolbar or a path argument, lists its pages, and zooms 25 %–3 200 %. The file is identified by
   its **bytes** (`FileKind` plus a ZIP's `mimetype`), never its extension, so a rename still opens.
 - **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
-  tab keeps its own page, zoom and fit, so going back to a tab lands where you left it), a collapsible
-  240 dp sidebar of page thumbnails, the current page's layers and — for a PDF with an outline — a
-  collapsible **Contents** section that is filled only when opened (`outlineRows`: indent by depth, each
-  row leading to the page that shows its sheet, no row for a PDF without one) — opened by the document itself, only for
-  **more than one page**, with `Ctrl + B` remembered per document (`DesktopSidebar`) — the page alone on the
+  keeps its own page, zoom and fit), a collapsible 240 dp sidebar of page thumbnails, the current page's
+  layers and — for a PDF with an outline — a collapsible **Contents** section filled only when opened
+  (`outlineRows`: indented rows leading to their page) — opened by the document itself, only for **more than
+  one page**, with `Ctrl + B` remembered per document (`DesktopSidebar`) — the page alone on the
   true-black desk, and a 24 dp status bar with the page counter, the zoom, the fit mode, the pen stream, the
   display's refresh rate with its frame budget (`120 Hz · 8.3 ms frame`) and the container. The chrome is
   the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 48 dp header carrying the
-  **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is), the strip's own
-  **`+`** and, on the right, **undo, redo, Save and Export PDF** — the mobile bar's four commands, on 36 dp
+  **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is), a search field beside
+  them on `Ctrl + F` ([search.md](search.md) owns it), the strip's own **`+`** and, on the right,
+  **undo, redo, Save and Export PDF** — the mobile bar's four commands, on 36 dp
   capsules with 20 dp glyphs; the band is 8 dp taller than the tablet's token because it carries that row of
   controls as well as the tabs (`DesktopTheme.headerHeight`), under a **native caption painted in the
   band's own composite colour** (`DesktopTitleBar.kt`: immersive dark mode, the caption, border and text
@@ -95,7 +95,9 @@ What it does today:
   are also picked **in the list itself** — a plain click picks one, **Ctrl** adds or drops one, **Shift**
   takes the run from the last one clicked — and the pick is what a drag then carries, as one block, and
   what the bar that replaces the layers list deletes, in a single undo step either way
-  (`PageSelection`, `removePages`/`movePages` in `DesktopPages`, `PageSelectionSceneTest`). A page
+  (`PageSelection`, `DesktopPages`, `PageSelectionSceneTest`); the list's **`+` row** inserts a blank sheet,
+  **Duplicate page** copies one under fresh ids, and the bar's **Copy/Cut/Paste** carry pages between tabs
+  (`DesktopPageInsertTest`, `DesktopPageClipboardTest`). A page
   that names no PDF of its own is drawn through the reference the document carries on one page
   (`PdfPageReferences`, the shape desktop Xournal++ reads by inheritance) — that is what makes pages two
   onwards of an import show at all — and removing the page that carries the reference hands it to the

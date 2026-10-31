@@ -68,6 +68,12 @@ enum class ShellCommand {
 
     DISMISS_FAILURE,
 
+    /**
+     * Open the header's search field and put the keyboard in it (`Ctrl+F`). **Unavailable with no tab** —
+     * a field over nothing is chrome pretending to be a feature.
+     */
+    FIND,
+
     /** Open the Settings surface (`Ctrl+,`), the window's own page for every choice it keeps. */
     OPEN_SETTINGS,
 
