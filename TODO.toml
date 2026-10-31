@@ -90,3 +90,17 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "desktop-ink-winrt-result"
+title = "Desktop: make the WinRT ink recognizer return its result"
+description = "Branch desktop-winrt-ink-bridge has the working half of the bridge: WinRt.kt (combase activation, HSTRING, vtable call by slot), WinInk.kt (hand-made IIterable<Point> + iterator, CreateStroke/AddStroke, the installed recognizer, RecognizeAsync) and WinInkTest.kt (live probe: a printed word, a cursive word, and the seam). Verified live on ANTONIOFISSO-PC: all three activations, the iterable (Windows' consumer asks HasCurrent BEFORE MoveNext, so an iterator that starts 'before' the first point reads as empty and CreateStroke answers E_INVALIDARG — the fix is cursor starting at the first point), CreateStroke and AddStroke return S_OK, and the container's BoundingRect reads back the drawn box, so the points arrive intact. BLOCKER: IAsyncInfo.Status (slot 7) reads 0 = Started forever and GetResults (slot 13) answers S_FALSE with a null out pointer; 5 s waits, strokes kept alive, print and cursive samples all behave the same, and the AsyncStatus order is Started=0, Completed=1, Canceled=2, Error=3. Next experiments, in order: (1) put_Completed (slot 11) with an IAsyncOperationCompletedHandler implemented as a JNA callback and a latch, which is the documented completion path and also proves whether the operation ever completes; (2) run the whole sequence on a dedicated STA thread (RoInitialize(0)) with a message pump, since the ink objects are documented non-agile and RoInitialize(MTA) is what the bridge does today; (3) if neither fires, check whether the recognizer needs the process to be packaged/AppContainer, and if it does, fall back to improving the pure engine. When the result arrives, wire InkEngines.platform = WinInkEngine in Main.kt (the branch already has that line), map the word bounds, add docs/search.md + README, and only then archive this task."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 1000
+created = 2026-10-31
+tags = ["desktop", "search"]
+rebuild = true
+emulator_debug = false
