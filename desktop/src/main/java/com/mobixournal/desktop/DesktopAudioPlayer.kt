@@ -22,6 +22,11 @@ import java.nio.ByteOrder
  * second decoder, and the clip's own position reads as the position asked for until the sound gets there
  * ([Playhead]'s rule).
  *
+ * The clip that is **already open stays open**: a tap on the same recording again — the audio tap's
+ * commonest gesture — is a seek on the decoder and the device the window already holds, not a second open
+ * of both. Reopening cost a device handshake and a full re-read of the file before the first sample
+ * sounded, which is a click that looks like it missed.
+ *
  * [lines] is the device seam: a test opens a fake line and drives the whole transport with no sound card.
  */
 internal class DesktopAudioPlayer(
@@ -33,10 +38,12 @@ internal class DesktopAudioPlayer(
     val playhead = Playhead()
 
     /** True while sound is coming out; false while paused, stopped or at the end. */
+    @Volatile
     var playing: Boolean = false
         private set
 
     /** True while a pause holds the clip — the pill draws it differently from "nothing on". */
+    @Volatile
     var paused: Boolean = false
         private set
 
@@ -60,6 +67,7 @@ internal class DesktopAudioPlayer(
      * clock counts *source* frames, which is what keeps the playhead — and so the karaoke — in the clip's
      * own time at any speed.
      */
+    @Volatile
     var speed: Float = 1f
         private set
 
@@ -69,23 +77,28 @@ internal class DesktopAudioPlayer(
 
     private var feeder: Thread? = null
 
+    /**
+     * Which run of the feeder owns the device: every start takes a number and the loop holds it, so a
+     * feeder that is still finishing when the next clip starts stops **for good** instead of carrying on
+     * beside the new one. (A plain "stopping" flag that gets cleared again would hand the old thread a
+     * second life, and two feeders on one device is two sounds at once.)
+     */
     @Volatile
-    private var stopping = false
+    private var generation = 0
 
     @Volatile
     private var seekRequest: Int? = null
 
-    /** Samples of each channel handed to the line so far, and the line's own backlog in frames. */
+    /** Frames of each channel handed to the line so far; the line's own backlog is [PcmLine.queuedFrames]. */
     @Volatile
     private var fedFrames: Long = 0
-
-    @Volatile
-    private var latencyFrames: Int = 0
 
     private val clock = object : ClipClock {
         override fun positionMs(): Int {
             val rate = source?.sampleRate ?: return 0
-            val played = (fedFrames - latencyFrames).coerceAtLeast(0)
+            // Frames written **minus the ones the device has not played yet**: what still sits in the
+            // line's buffer has not been heard, so counting it would put the playhead ahead of the voice.
+            val played = (fedFrames - (line?.queuedFrames?.toLong() ?: 0L)).coerceAtLeast(0)
             return (played * 1000 / rate).toInt()
         }
 
@@ -101,11 +114,19 @@ internal class DesktopAudioPlayer(
      * cannot, and null when the sound is on its way.
      *
      * A second play **replaces** the first: one clip at a time, which is what the tablet's mini-player
-     * is. A pause is resumed by [resume] rather than by starting the clip again.
+     * is. A pause is resumed by [resume] rather than by starting the clip again. The one recording the
+     * window already has open is *not* replaced: it is seeked, because a tap on another word of the same
+     * take is the same clip.
      */
     fun play(ref: AudioRef): String? {
         val file = store.file(ref.filename)
             ?: return refuse("This document's recording is not on this machine: ${ref.filename}.")
+        val open = source
+        val output = line
+        if (open != null && output != null && clipName == file.name) {
+            message = null
+            return start(open, output, ref.startMs)
+        }
         stopQuietly()
         val opened = try {
             DesktopAudioSources.open(file)
@@ -114,30 +135,43 @@ internal class DesktopAudioPlayer(
         } catch (failure: Throwable) {
             return refuse("That recording cannot be read: ${failure.message ?: "unknown reason"}.")
         }
-        val output = try {
+        val device = try {
             lines.open(opened.sampleRate, opened.channels, AudioRoute.output)
         } catch (failure: Throwable) {
             opened.close()
             return refuse("No audio output device is available to play the recording.")
         }
         source = opened
-        line = output
+        line = device
         clipName = file.name
         durationMs = opened.durationMs
         message = null
+        return start(opened, device, ref.startMs)
+    }
+
+    /**
+     * Make [audio] come out of [output] from [atMs] — the one arm a fresh open, a re-tap and a resume
+     * after the end all take.
+     *
+     * The seek is asked for **before** a restarted feeder exists, so the very first chunk is read at the
+     * word the tap named rather than at the head with a jump after it. A feeder that is still running is
+     * left alone: it applies the seek between two chunks.
+     */
+    private fun start(audio: DesktopAudioSource, output: PcmLine, atMs: Int): String? {
         paused = false
         playing = true
-        stopping = false
-        seekRequest = null
-        latencyFrames = output.bufferFrames
-        fedFrames = 0
         playhead.attach(clock)
-        playhead.seekTo(ref.startMs)
-        output.start()
-        feeder = Thread({ feed(opened, output) }, "mobix-audio").apply {
-            isDaemon = true
-            start()
+        // After `attach`, so the playhead reports the target until the sound lands there (Playhead's rule).
+        playhead.seekTo(atMs)
+        if (feeder?.isAlive != true) {
+            fedFrames = 0
+            val run = ++generation
+            feeder = Thread({ feed(audio, output, run) }, "mobix-audio").apply {
+                isDaemon = true
+                start()
+            }
         }
+        runCatching { output.start() }
         return null
     }
 
@@ -146,30 +180,31 @@ internal class DesktopAudioPlayer(
         if (!playing) return
         playing = false
         paused = true
-        line?.stop()
+        runCatching { line?.stop() }
         playhead.hold(durationMs, playhead.positionMs() ?: 0)
     }
 
-    /** Continue from where [pause] left it. */
+    /** Continue from where [pause] left it — or from the top once the clip has ended. */
     fun resume() {
         if (playing || source == null) return
+        val audio = source ?: return
+        val output = line ?: return
         if (paused) {
             // The held position was ours, so it has to be handed to the device as a seek before the
             // clock becomes the stack's again — otherwise resuming would start at the last place the
             // feeder read from, not where the scrubber stood.
-            seekRequest = playhead.positionMs() ?: 0
+            val held = playhead.positionMs() ?: 0
             paused = false
             playing = true
-            line?.start()
             playhead.attach(clock)
+            playhead.seekTo(held)
+            runCatching { output.start() }
             return
         }
-        // The clip ended: playing again means playing it from the top.
-        seek(0)
-        playing = true
-        paused = false
-        line?.start()
-        playhead.attach(clock)
+        // The clip ended: playing again means playing it from the top — or from wherever the transport
+        // was scrubbed to after it stopped, which is a position the reader chose on purpose.
+        val from = playhead.positionMs()?.takeIf { it in 0 until durationMs } ?: 0
+        start(audio, output, from)
     }
 
     /** Play or hold, whichever the pill's button means right now. */
@@ -225,48 +260,72 @@ internal class DesktopAudioPlayer(
      * the last word is actually heard, which is what a karaoke timeline and the transport's readout both
      * want.
      */
-    private fun feed(audio: DesktopAudioSource, output: PcmLine) {
-        val buffer = ShortArray(CHUNK_SAMPLES * audio.channels)
+    private fun feed(audio: DesktopAudioSource, output: PcmLine, run: Int) {
+        val channels = audio.channels
+        val buffer = ShortArray(CHUNK_SAMPLES * channels)
         var bytes = ByteArray(buffer.size * 2)
-        while (!stopping) {
+        while (generation == run) {
             seekRequest?.let { target ->
                 seekRequest = null
-                output.flush()
-                audio.seekTo(target)
-                fedFrames = target.toLong() * audio.sampleRate / 1000 + latencyFrames
+                runCatching { output.flush() }
+                runCatching { audio.seekTo(target) }
+                // Just flushed, so next to nothing is queued: the clock restarts from the target itself.
+                fedFrames = target.toLong() * audio.sampleRate / 1000 + (output.queuedFrames.toLong())
             }
             val read = runCatching { audio.read(buffer) }.getOrDefault(0)
             if (read <= 0) break
-            val frames = read / audio.channels
+            val frames = read / channels
             val (samples, count) = if (speed == 1f) {
                 buffer to read
             } else {
-                resample(buffer, read, audio.channels, speed)
+                resample(buffer, read, channels, speed)
             }
             if (bytes.size < count * 2) bytes = ByteArray(count * 2)
             ByteBuffer.wrap(bytes, 0, count * 2).order(ByteOrder.LITTLE_ENDIAN)
                 .asShortBuffer().put(samples, 0, count)
-            runCatching { output.write(bytes, count * 2) }
+            val written = writeFully(output, bytes, count * 2, run)
             // **Source** frames, not the ones written: at 2× the device is fed half as many samples for
             // the same stretch of the recording, and a clock counting the device's would run at half speed.
-            fedFrames += frames
+            fedFrames += written / 2 / channels
+            // A device that took nothing at all is not going to take the next chunk either (`write`
+            // blocking always fills), so the clip ends here rather than racing silently to its last word.
+            if (written <= 0) break
         }
-        if (stopping) return
+        if (generation != run) return
         runCatching { output.drain() }
-        if (stopping) return
+        if (generation != run) return
         playing = false
         paused = false
         playhead.hold(durationMs, durationMs)
         runCatching { output.stop() }
     }
 
+    /**
+     * Hand [length] bytes to [output] until every one of them is in, answering how many were.
+     *
+     * `SourceDataLine.write` is allowed to accept **fewer** bytes than it is given — it stops where its
+     * buffer ends — and the count used to be dropped, which is a hole in the sound every time a buffer
+     * filled mid-chunk. A seek or a stopped run cuts the loop short; the frames that did get in are the
+     * ones the clock counts.
+     */
+    private fun writeFully(output: PcmLine, bytes: ByteArray, length: Int, run: Int): Int {
+        var at = 0
+        while (at < length && generation == run && seekRequest == null) {
+            val wrote = runCatching { output.write(bytes, at, length - at) }.getOrDefault(0)
+            if (wrote <= 0) return at
+            at += wrote
+        }
+        return at
+    }
+
     /** Stop the feeder without forgetting the clip — the arm a second play and [stop] both take. */
     private fun stopQuietly() {
-        stopping = true
+        generation++ // whatever feeder is out there is stale from here on, however long it takes to leave
         feeder?.let { thread ->
             runCatching { thread.join(500) }
         }
         feeder = null
+        seekRequest = null
         runCatching { line?.flush() }
         runCatching { line?.stop() }
         runCatching { line?.close() }
@@ -276,7 +335,6 @@ internal class DesktopAudioPlayer(
         playhead.detach()
         playing = false
         paused = false
-        stopping = false
     }
 
     private fun refuse(sentence: String): String {
@@ -332,7 +390,15 @@ internal fun resample(
  */
 internal interface PcmLine {
 
+    /** The line's whole buffer, in frames. */
     val bufferFrames: Int
+
+    /**
+     * Frames already handed to the device that it has **not played yet** — sound still in the buffer.
+     *
+     * Zero for a test's buffer, which is consumed the moment it is written.
+     */
+    val queuedFrames: Int get() = 0
 
     fun start()
 
@@ -342,7 +408,8 @@ internal interface PcmLine {
 
     fun drain()
 
-    fun write(bytes: ByteArray, length: Int): Int
+    /** Write [length] bytes of [bytes] from [offset]; answers how many the device took. */
+    fun write(bytes: ByteArray, offset: Int, length: Int): Int
 
     fun close()
 }
@@ -360,9 +427,15 @@ internal class JavaSoundLines : PcmLines {
         val format = AudioFormat(sampleRate.toFloat(), 16, channels, true, false)
         val line = openLine(device, DataLine.Info(SourceDataLine::class.java, format)) as SourceDataLine
         val frames = sampleRate / 10
-        line.open(format, frames * channels * 2)
+        val frameBytes = channels * 2
+        line.open(format, frames * frameBytes)
         return object : PcmLine {
             override val bufferFrames: Int get() = frames
+
+            // What is in the buffer and not yet out of the speakers: the difference between what has
+            // been written and what the device has played.
+            override val queuedFrames: Int
+                get() = ((line.bufferSize - line.available()) / frameBytes).coerceAtLeast(0)
 
             override fun start() = line.start()
 
@@ -372,7 +445,8 @@ internal class JavaSoundLines : PcmLines {
 
             override fun drain() = line.drain()
 
-            override fun write(bytes: ByteArray, length: Int): Int = line.write(bytes, 0, length)
+            override fun write(bytes: ByteArray, offset: Int, length: Int): Int =
+                line.write(bytes, offset, length)
 
             override fun close() = line.close()
         }

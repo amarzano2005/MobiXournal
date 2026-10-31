@@ -14,8 +14,8 @@ import java.nio.ByteOrder
  *
  * Two containers arrive here, and the difference between them is why this is an interface:
  * a `.wav` is a seekable block of PCM, so a seek is arithmetic; an `.ogg` Opus stream is a chain of
- * frames, so a seek is a restart-and-skip. Both answer the same three questions — rate, channels,
- * length — and the player's clock never learns which one it has.
+ * frames, so a seek is a jump to the packet that holds the millisecond asked for. Both answer the same
+ * three questions — rate, channels, length — and the player's clock never learns which one it has.
  */
 internal interface DesktopAudioSource : AutoCloseable {
 
@@ -179,26 +179,52 @@ private class WavSource(file: File) : DesktopAudioSource {
 /**
  * An Ogg/Opus recording — the container the tablet writes (`OggOpus`), decoded by Concentus.
  *
- * Forward-only by nature: a seek back restarts the decoder from the first packet, and a seek forward
- * decodes and drops what it passes. Both are CPU work on a few hundred bytes per 20 ms, which is why the
- * recording itself never has to be decoded into the heap.
+ * A seek is a **jump**: the stream's packets are all in hand, so a table of where each one starts on the
+ * recording's own timeline says which packet holds the millisecond asked for, and the decoder is started
+ * there. Rewinding to packet zero and decoding the minutes in between — which is what this used to do —
+ * made a tap near the end of a lecture a stall of a second or more with the device starved of samples,
+ * heard as a gap and a stutter.
+ *
+ * The jump carries a little history before the target ([PRE_ROLL_PACKETS], 40 ms) because an Opus frame
+ * is decoded with the one before it; a decoder started cold at an arbitrary packet still speaks, but the
+ * first frame is not the encoder's.
  */
 private class OpusSource(file: File) : DesktopAudioSource {
 
     private val stream = OggOpus.read(file.readBytes())
 
-    private val decoder = OpusDecoder(OggOpus.SAMPLE_RATE, stream.channels)
+    private var decoder = OpusDecoder(OggOpus.SAMPLE_RATE, stream.channels)
 
     /** 120 ms is Opus's longest frame, so this buffer decodes any packet the stream can hold. */
     private val decoded = ShortArray(MAX_FRAME_SAMPLES * stream.channels)
+
+    /** Samples per channel each packet decodes to — the packet's own duration, not a guess. */
+    private val packetFrames = IntArray(stream.packets.size) { index ->
+        val packet = stream.packets[index]
+        OpusPacketInfo.getNumSamples(packet, 0, packet.size, OggOpus.SAMPLE_RATE)
+            .takeIf { it in 1..MAX_FRAME_SAMPLES } ?: OggOpus.FRAME_SAMPLES
+    }
+
+    /**
+     * Where each packet begins on the recording's timeline, in samples per channel: `starts[i]` is packet
+     * `i`'s first sample once the encoder's pre-skip is off the head, and `starts[size]` is the clip's end.
+     */
+    private val starts = run {
+        val table = LongArray(packetFrames.size + 1)
+        for (i in packetFrames.indices) {
+            // The pre-skip is the encoder's look-ahead in the **first** packet only; every later packet
+            // is whole audio, which is why the subtraction is not applied again.
+            val samples = if (i == 0) (packetFrames[0] - stream.preSkip).coerceAtLeast(0) else packetFrames[i]
+            table[i + 1] = table[i] + samples
+        }
+        table
+    }
 
     private var packetIndex = -1
 
     private var decodedSamples = 0
 
     private var decodedAt = 0
-
-    private val preSkip = stream.preSkip * stream.channels
 
     private var skippedPreSkip = false
 
@@ -208,8 +234,7 @@ private class OpusSource(file: File) : DesktopAudioSource {
 
     override val channels: Int = stream.channels
 
-    override val durationMs: Int =
-        ((stream.packets.size.toLong() * OggOpus.FRAME_SAMPLES * 1000) / OggOpus.SAMPLE_RATE).toInt()
+    override val durationMs: Int = (starts.last() * 1000 / OggOpus.SAMPLE_RATE).toInt()
 
     override fun read(buffer: ShortArray): Int {
         var written = 0
@@ -224,21 +249,20 @@ private class OpusSource(file: File) : DesktopAudioSource {
         return written
     }
 
-    /** Decode the next packet into [decoded], dropping the encoder's pre-skip on the first one. */
+    /** Decode the next packet into [decoded], dropping the encoder's pre-skip on the very first one. */
     private fun decodeNext(): Boolean {
         if (packetIndex + 1 >= stream.packets.size) return false
         packetIndex++
         val packet = stream.packets[packetIndex]
         // The frame size the decoder is asked for is the packet's own duration: libopus refuses a buffer
         // smaller than the frame, and a larger one would decode the same audio into the front of it.
-        val frame = OpusPacketInfo.getNumSamples(packet, 0, packet.size, OggOpus.SAMPLE_RATE)
-            .takeIf { it in 1..MAX_FRAME_SAMPLES } ?: OggOpus.FRAME_SAMPLES
+        val frame = packetFrames[packetIndex]
         val samples = decoder.decode(packet, 0, packet.size, decoded, 0, frame, false)
         decodedSamples = samples * channels
         decodedAt = 0
         if (!skippedPreSkip) {
             skippedPreSkip = true
-            decodedAt = preSkip.coerceAtMost(decodedSamples)
+            decodedAt = (stream.preSkip * channels).coerceAtMost(decodedSamples)
             if (decodedAt >= decodedSamples) decodedSamples = 0
         }
         return decodedSamples > 0
@@ -246,12 +270,22 @@ private class OpusSource(file: File) : DesktopAudioSource {
 
     override fun seekTo(ms: Int) {
         val target = ms.coerceIn(0, durationMs).toLong() * sampleRate / 1000
-        if (target < cursorSamples) {
-            packetIndex = -1
+        // The packet holding the target, minus the history a clean first frame wants. Never packet 0: a
+        // jump has no pre-skip to drop, and starting at 0 is the rewind this method exists to avoid.
+        val from = (packetIndexFor(target) - PRE_ROLL_PACKETS).coerceAtLeast(1)
+        if (target <= 0 || from >= stream.packets.size || starts[from] > target) {
+            // The target is inside the first packets: the head is the only honest place to start, and
+            // dropping the pre-skip is this reader's job.
+            rewind()
+        } else {
+            // A decoder carries the last frame's state, so a jump starts a **fresh** one at the new packet
+            // instead of decoding a frame against a stream position it never saw.
+            decoder = OpusDecoder(OggOpus.SAMPLE_RATE, channels)
+            packetIndex = from - 1
             decodedSamples = 0
             decodedAt = 0
-            skippedPreSkip = false
-            cursorSamples = 0
+            skippedPreSkip = true
+            cursorSamples = starts[from]
         }
         while (cursorSamples < target) {
             if (decodedAt >= decodedSamples && !decodeNext()) break
@@ -261,9 +295,33 @@ private class OpusSource(file: File) : DesktopAudioSource {
         }
     }
 
+    /** Back to the head of the stream, pre-skip and all — the one seek that is not a jump. */
+    private fun rewind() {
+        decoder = OpusDecoder(OggOpus.SAMPLE_RATE, channels)
+        packetIndex = -1
+        decodedSamples = 0
+        decodedAt = 0
+        skippedPreSkip = false
+        cursorSamples = 0
+    }
+
+    /** The index of the packet whose timeline holds [sample], by binary search over [starts]. */
+    private fun packetIndexFor(sample: Long): Int {
+        var low = 0
+        var high = stream.packets.size - 1
+        while (low < high) {
+            val mid = (low + high + 1) / 2
+            if (starts[mid] <= sample) low = mid else high = mid - 1
+        }
+        return low
+    }
+
     override fun close() = Unit
 
     private companion object {
         const val MAX_FRAME_SAMPLES = 5_760
+
+        /** Two 20 ms packets of history: enough for libopus to decode the target frame properly. */
+        const val PRE_ROLL_PACKETS = 2
     }
 }

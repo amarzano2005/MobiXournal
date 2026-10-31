@@ -78,6 +78,40 @@ class DesktopAudioSourcesTest {
         }
     }
 
+    /**
+     * A seek on a long Opus recording lands on the second it names.
+     *
+     * The clip is a tone that **changes pitch every second**, which is what makes the assertion mean
+     * something: if the packet the jump started at were wrong, the sound after the seek would be the
+     * pitch of another second, not merely a few samples off.
+     */
+    @Test
+    fun `a seek on an opus recording lands on the second it names`() {
+        val pitches = intArrayOf(330, 440, 550, 660)
+        val file = File(temp, "four-seconds.ogg")
+        file.writeBytes(opusFile(stepped(pitches, sampleRate = 48_000)))
+
+        val source = DesktopAudioSources.open(file)
+        try {
+            assertEquals("the clip's length is its audio, pre-skip off", 4_000.0, source.durationMs.toDouble(), 30.0)
+            val buffer = ShortArray(48_000 / 10)
+            for ((second, pitch) in pitches.withIndex()) {
+                source.seekTo(second * 1_000 + 500)
+                val read = source.read(buffer)
+                assertTrue("half a second in, the clip still reads", read > 0)
+                val heard = frequencyOf(buffer, read, source.sampleRate)
+                assertEquals(
+                    "a seek to ${second + 1} s plays the ${pitch} Hz second, not another",
+                    pitch.toDouble(),
+                    heard,
+                    25.0,
+                )
+            }
+        } finally {
+            source.close()
+        }
+    }
+
     @Test
     fun `an aac recording is refused in words instead of failing silently`() {
         val file = File(temp, "take.m4a")
@@ -103,6 +137,28 @@ class DesktopAudioSourcesTest {
         return ShortArray(count) { i ->
             (sin(2.0 * Math.PI * 440.0 * i / sampleRate) * 12_000).toInt().toShort()
         }
+    }
+
+    /** [pitches] one second each, so the clip's timeline can be read back by ear (or by zero crossings). */
+    private fun stepped(pitches: IntArray, sampleRate: Int): ShortArray {
+        val perSecond = sampleRate
+        val out = ShortArray(perSecond * pitches.size)
+        for ((second, pitch) in pitches.withIndex()) {
+            for (i in 0 until perSecond) {
+                val phase = 2.0 * Math.PI * pitch * i / sampleRate
+                out[second * perSecond + i] = (sin(phase) * 12_000).toInt().toShort()
+            }
+        }
+        return out
+    }
+
+    /** The pitch of [samples], estimated from its zero crossings over the stretch they cover. */
+    private fun frequencyOf(samples: ShortArray, count: Int, sampleRate: Int): Double {
+        var crossings = 0
+        for (i in 1 until count) {
+            if (samples[i - 1] < 0 && samples[i] >= 0) crossings++
+        }
+        return crossings * sampleRate.toDouble() / count
     }
 
     private fun shortBytes(samples: ShortArray): ByteArray {

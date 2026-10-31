@@ -12,8 +12,8 @@ import com.mobixournal.format.model.AudioRef
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.audioRef
+import com.mobixournal.render.AudioTap
 import com.mobixournal.render.KaraokeStrokeAnimator
-import com.mobixournal.render.SelectionTester
 
 /**
  * Where a drag at [fraction] of a bar lands, in a clip of [durationMs]: both ends of the bar are the
@@ -310,17 +310,16 @@ internal object DesktopAudioSession {
      * The tablet's **Play object** tap: the stroke under the page point ([x], [y]) replays from the point
      * that was touched, not from the stroke's head.
      *
-     * The pick is the shared `SelectionTester.pickTopmost`, so the topmost element under the tap is the one
-     * a person sees, and the time is `KaraokeStrokeAnimator.seekTimeMs` — the stroke's stamp plus the
-     * deltas up to the nearest point. A stroke with no deltas (a `.xopp` import) falls back to its own
+     * The pick is the shared `AudioTap.pickStroke`, which tests a stroke's **path** rather than its box —
+     * the topmost ink under the tap is the one a person sees, not the last-drawn rectangle covering it —
+     * and the time is `KaraokeStrokeAnimator.seekTimeMs`: the stroke's stamp plus the deltas up to the
+     * nearest point. A stroke with no deltas (a `.xopp` import) falls back to its own
      * stamp, which is all it can promise. A tap on the desk, or on an element that carries no recording,
      * answers in one sentence instead of doing nothing.
      */
     fun tapAt(tab: DesktopTab, x: Double, y: Double) {
         val page = runCatching { tab.document.page(tab.page) }.getOrNull() ?: return
-        val stroke = SelectionTester.pickTopmost(page, x, y)
-            ?.let { page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) }
-            ?.let { it as? Stroke }
+        val stroke = AudioTap.pickStroke(page, x, y)
         val ref = stroke?.audioRef()
         if (ref == null) {
             message = if (stroke == null) {
@@ -381,6 +380,15 @@ internal object DesktopAudioSession {
         val sound = of(tab)
         return scrubMs(fraction, sound.durationMs)
     }
+
+    /**
+     * True while [tab]'s clip is **making sound right now** — the karaoke loop's own stop.
+     *
+     * Read straight from the player, not from [playing], which the pill copies once every 100 ms: a loop
+     * that waited for that poll kept repainting the page for a tenth of a second after the last word, and a
+     * page with a karaoke state on it cannot be served from its recorded picture.
+     */
+    fun sounding(tab: DesktopTab?): Boolean = tab != null && clipOwner == tab.key && player.playing
 
     /** Where [tab]'s clip is to the millisecond — the karaoke's per-frame read, or null when it is not on. */
     fun clipPositionMs(tab: DesktopTab?): Int? {

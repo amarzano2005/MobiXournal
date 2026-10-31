@@ -70,10 +70,12 @@ internal fun rememberKaraoke(audio: DesktopAudioSession, tab: DesktopTab, page: 
             return@LaunchedEffect
         }
         // One publish per frame while it sounds; the loop ends on the frame where the playhead stopped,
-        // which is also the pause's single publish.
+        // which is also the pause's single publish. The stop is read from the **player**, not from the
+        // 100 ms pill poll: a frame loop that outlived the sound kept repainting a page it could no
+        // longer take from its recorded picture.
         while (true) {
             karaoke.publish(sound, audio.clipPositionMs(tab) ?: sound.positionMs)
-            if (!sound.playing) break
+            if (!audio.sounding(tab)) break
             withFrameNanos { }
         }
     }

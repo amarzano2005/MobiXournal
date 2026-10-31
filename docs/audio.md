@@ -88,6 +88,20 @@ player streams a few kilobytes at a time (a lecture is never a `ShortArray`), wr
 `SourceDataLine`, and reports its position through the shared `Playhead`, so a seek reads as where it
 was asked for until the sound arrives.
 
+*What a seek costs.* A tap or a scrub is a **seek**, never a second open: the window keeps the decoder
+and the output line for the clip it already holds, and tapping that recording again repositions them,
+where reopening cost a device handshake and a full re-read of the file before the first sample sounded —
+a click that looks like a click that missed. On an `.ogg` the seek is a **jump**: `OpusSource` builds the
+packet timeline at open, so the packet holding the millisecond asked for is a binary search away and a tap
+near the end of a minute-long take decodes two packets (~0.2 ms) instead of every packet from the head
+(measured 78–121 ms on that clip, and linear in its length) — which a 100 ms device buffer hears as a gap
+and a stutter. On a `.wav` it is arithmetic.
+
+*What the clock counts.* The position is the frames written **minus the line's own backlog**
+(`PcmLine.queuedFrames`), so the readout and the karaoke follow the sound being heard rather than the
+sound already handed over; and the feeder finishes a chunk even when `SourceDataLine.write` accepts only
+part of it, because a dropped tail is a hole in the sound.
+
 *The pill.* The audio controls are the tablet's capsule, in the header immediately left of Save:
 record/stop, pause, play, the take's `mm:ss` and a level bar, in the same three-button order and the
 same state colours `AudioMiniCapsule` uses — and with its **meanings**, which is what the window's first

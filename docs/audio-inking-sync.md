@@ -165,7 +165,14 @@ than a frame per vsync, since nothing is moving between the drag's own events. S
 unfilled by the drag. The **ink-to-audio** direction is the Play object tap, and it is **point-precise
 where the data is**: the tap seeks to the time of the point nearest it (`KaraokeStrokeAnimator.seekTimeMs`
 — `T_start` plus the deltas up to that point), so a tap on the fifth word starts there rather than at
-the stroke's head. A stroke whose points carry no deltas — a `.xopp` import, a `.mobix` written before
+the stroke's head. **Which** stroke that is comes from `AudioTap.pickStroke`, and the stroke's **ink**
+decides it: a box rule is the right tolerance for grabbing an element and the wrong one for asking where
+in a recording a tap landed, because a diagonal stroke's rectangle covers everything around its ink and
+handwriting overlaps, so the last-drawn box used to answer with a stroke drawn somewhere else — another
+recording's offset, or none at all. The tap takes the topmost stroke whose **path** passes within reach
+of the point, falls back to the recorded stroke whose ink is nearest when the ink under the pointer
+carries no recording, and so never lets a stroke drawn over a recording make that recording unreachable.
+A stroke whose points carry no deltas — a `.xopp` import, a `.mobix` written before
 the telemetry landed — has no timeline to be precise with, and the tap falls back to the stroke's own
 offset. A gap *inside* a stroke's deltas is read the same way, point by point: the times before the gap
 are trusted and the ones after it are not, because summing a missing delta as zero would start the

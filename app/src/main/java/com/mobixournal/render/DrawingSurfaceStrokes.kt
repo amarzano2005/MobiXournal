@@ -457,9 +457,7 @@ internal fun DrawingSurfaceView.audioTap(event: MotionEvent, pointerIndex: Int) 
     val xPt = box.toPtX(x, scrollX)
     val yPt = box.toPtY(y, scrollY)
     val page = pageAt(box.index) ?: return
-    val stroke = SelectionTester.pickTopmost(page, xPt, yPt)
-        ?.let { page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) }
-        ?.let { it as? Stroke }
+    val stroke = AudioTap.pickStroke(page, xPt, yPt)
     val baseRef = stroke?.audioRef()
     // Point-precise where the stroke carries the telemetry a `.mobix` stores: the tap starts the
     // recording at the **point** under it, so a tap on the fifth word starts there rather than at the
