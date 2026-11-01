@@ -327,33 +327,9 @@ internal fun SheetCanvas(
                 onEdited = onEdited,
             ),
         ) {
-            paintSheet(
-                sheetPicture = sheetPicture,
-                page = page,
-                viewport = sheet.viewport,
-                zoom = sheet.zoom,
-                density = density,
-                connectorKind = connectorKindFor(tool, circuitKind),
-                measurer = measurer,
-                backdrop = tab.document.backdrop,
-                hiddenLayers = tab.hiddenOn(tab.page),
-                tool = tool,
-                ink = ink,
-                shapeInk = shapeInk,
-                // The drafts themselves, not copies: their **identity** is the key the painted geometry is
-                // cached by (`StrokePathCache`), and a fresh list per frame would miss on every paint.
-                drafts = listOf(draft, penDraft),
-                grabLineY = pointer.grabLine.value,
-                // Read in composition, so a pose drag recomposes; a guide is view state on the tab.
-                guide = tab.guide?.takeIf { it.page == tab.page },
-                guideAim = pointer.guideAim.value?.takeIf { it.pose.page == tab.page },
-                selection = tab.selection,
-                previewRegion = pointer.previewRegion.value,
-                previewLiving = pointer.previewLiving.value,
-                pdfBands = pointer.pdfBands.value,
-                paintProbe = paintProbe,
-                skip = editingText,
-                karaoke = karaoke,
+            paintSheetOf(
+                sheetPicture, page, sheet, tab, tool, ink, shapeInk, circuitKind, measurer, density,
+                draft, penDraft, pointer, editingText, karaoke, paintProbe,
             )
             drawSheetChrome(tab, sheet, density, mark, pointer)
         }
@@ -464,7 +440,7 @@ private fun Modifier.sheetInput(
  * rule as the committed ink: a preview that looked different from what the lift writes would be a lie
  * about the file.
  */
-private fun DrawScope.paintSheet(
+internal fun DrawScope.paintSheet(
     /** The recorded page — replayed by every frame, recorded again only when something changed. */
     sheetPicture: PagePicture,
     page: Page,
@@ -490,6 +466,9 @@ private fun DrawScope.paintSheet(
     drafts: List<List<InkSample>>,
     /** The vertical-space tool's grab line, in page points, or null when no such drag is live. */
     grabLineY: Double? = null,
+    /** The live vertical-space drag's offset, or null — the block below [grabLineY] is then replayed, not
+     * rebuilt (`ShiftPictures`). */
+    liveShift: LiveShift? = null,
     /** The instrument standing on this page, or null — view state, so it is chrome above the sheet. */
     guide: DesktopGuidePose? = null,
     /** The instrument a pose drag is holding right now, for the snap tick; null when nothing is posed. */
@@ -524,6 +503,7 @@ private fun DrawScope.paintSheet(
         measurer = measurer,
         skip = skip,
         karaoke = karaoke,
+        liveShift = liveShift,
     )
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
         paintLiveOverlay(
@@ -577,8 +557,19 @@ private fun DrawScope.paintRecordedSheet(
     measurer: TextMeasurer,
     skip: Element?,
     karaoke: DesktopKaraoke?,
+    liveShift: LiveShift?,
 ) {
     val karaokeState = karaoke?.state
+    // A vertical-space drag replays the sheet in two halves at an offset; the page it was recorded from is
+    // untouched, so nothing is re-recorded while the hand is down (`ShiftPictures`). It comes **before** the
+    // karaoke branch: a sounding clip is painted directive per stroke and cannot be split at the line, and a
+    // drag is not a reading gesture — the animation resumes when the hand lifts.
+    if (liveShift != null) {
+        sheetPicture.drawShifted(
+            this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer, skip, liveShift,
+        )
+        return
+    }
     if (karaokeState == null) {
         sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer, skip)
         return

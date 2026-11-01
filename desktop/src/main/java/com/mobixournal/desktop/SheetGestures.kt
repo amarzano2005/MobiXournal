@@ -61,6 +61,8 @@ internal fun Modifier.sheetGestures(
         pen = pen,
         penActive = { pointer.owns.value },
         grabLine = pointer.grabLine,
+        // Where the drag is *drawing* the block, so a sample costs a state write and not a page rewrite.
+        liveShift = pointer.liveShift,
         previewRegion = pointer.previewRegion,
         // The highlighter's magnetic preview, shared by both input paths.
         pdfBands = pointer.pdfBands,

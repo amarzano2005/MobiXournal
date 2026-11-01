@@ -107,12 +107,13 @@ through `PlotInk`.
 `GestureIntent.VERTICAL_SPACE`) reflows a page — and the `desktop/` window has it too
 (`DesktopTool.VERTICAL_SPACE`, `Shift+V`), on this same arithmetic, with snapping off because the window
 has no Snap-to-grid setting yet (`docs/desktop-workstation.md`): pointer-down latches the grabbed page and the
-page-local Y of the grab line, and the drag re-applies `VerticalSpaceOps.shiftBlock` to the
-**gesture-start snapshot** (the same recompute-from-the-start discipline as a selection move, so a
-live drag never drifts or compounds). Which elements that block holds is read once, at grab time
+page-local Y of the grab line, and the drag publishes the pointer's travel for the sheet to **replay** — on
+this window the ink is recorded in two halves and only the block is translated, and on the tablet the page
+is re-applied live (`docs/desktop-editing.md`). Which elements that block holds is read once, at grab time
 (`VerticalSpaceOps.blockBelow`) — the answer cannot change during the gesture, and re-deriving it per
-frame meant a bounding box per element per sample; a one-shot edit is still `shiftBelow`, the same two
-steps. An element moves when its `ElementBounds.of(...).top` is at or
+frame meant a bounding box per element per sample. The window then writes the page once, on the lift
+(`shiftBlock` over the gesture-start snapshot, the same recompute-from-the-start discipline as a selection
+move); a one-shot edit is `shiftBelow`, the same two steps. An element moves when its `ElementBounds.of(...).top` is at or
 below the line — desktop's *"items which lie entirely between the cursor position and the end of the
 page"*, so the line never tears an element in half — and that decision is taken **once, at grab time**:
 a block that slides past the elements above it does not recruit them on the way. **Nothing stops the

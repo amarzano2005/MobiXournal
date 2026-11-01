@@ -53,6 +53,16 @@ internal class PenPointer {
     val atNanos = mutableStateOf(0L)
     val grabLine = mutableStateOf<Double?>(null)
 
+    /**
+     * What a live vertical-space drag is **drawing**, as opposed to what it writes: the line it holds and how
+     * far the block below it is painted ([LiveShift]).
+     *
+     * A pointer sample updates only this, so the page itself is not rewritten per sample; the sheet replays
+     * its two recorded halves at the offset, and the drag writes the page once, on the lift. Null everywhere
+     * else, including every other tool.
+     */
+    val liveShift = mutableStateOf<LiveShift?>(null)
+
     /** The region a selection drag is tracing right now: the sheet paints it, the gesture writes it. */
     val previewRegion = mutableStateOf<SelectionRegion?>(null)
 

@@ -97,7 +97,13 @@ internal class PagePicture {
     /** What [base] depends on besides the page's elements: changing any of it is a full record. */
     private var key: Key? = null
 
-    private val canvasScope = CanvasDrawScope()
+    /** The two halves a live vertical-space drag replays, or null when no such drag has been previewed. */
+    private var shift: ShiftPictures? = null
+
+    /** The page and line [shift] was recorded for; anything else is a different split. */
+    private var shiftPage: Page? = null
+    private var shiftLine = Double.NaN
+    private var shiftKey: Key? = null
 
     /** How many times the **whole** page was recorded — the number a test and the watchdog assert on. */
     var records: Int = 0
@@ -181,6 +187,48 @@ internal class PagePicture {
         replays++
     }
 
+    /**
+     * Paint the sheet while a **vertical-space drag** holds it, the block below the line at an offset.
+     *
+     * The pair is recorded once per (page, line, density, backdrop, hidden layers, skip) — the drag itself
+     * only ever moves a number, so a frame here is two picture replays and nothing else ([ShiftPictures]).
+     * That is the whole point: rewriting the page per sample measured 5.2 ms of reflow plus a full re-record,
+     * 48 times a second on a dense sheet.
+     */
+    fun drawShifted(
+        target: DrawScope,
+        page: Page,
+        viewport: Viewport,
+        zoom: Float,
+        density: Float,
+        backdrop: PageBackdrop?,
+        hiddenLayers: Set<Int>,
+        measurer: TextMeasurer,
+        skip: Element?,
+        shift: LiveShift,
+    ) {
+        val wanted = Key(
+            density = density,
+            backdrop = backdrop,
+            hiddenLayers = hiddenLayers,
+            width = page.width,
+            height = page.height,
+            background = page.background,
+            skip = skip,
+        )
+        var pictures = this.shift
+        if (pictures == null || page !== shiftPage || shift.linePt != shiftLine || wanted != shiftKey) {
+            this.shift?.close()
+            pictures = ShiftPictures.record(page, shift.linePt, density, backdrop, hiddenLayers, measurer, skip)
+            this.shift = pictures
+            shiftPage = page
+            shiftLine = shift.linePt
+            shiftKey = wanted
+        }
+        pictures.draw(target, viewport, zoom, density, shift.dyPt)
+        replays++
+    }
+
     /** Release the native pictures — a canvased page holds a few megabytes of drawing instructions. */
     fun close() {
         base?.close()
@@ -192,6 +240,11 @@ internal class PagePicture {
         shown = null
         key = null
         tailElements = emptyList()
+        shift?.close()
+        shift = null
+        shiftPage = null
+        shiftLine = Double.NaN
+        shiftKey = null
     }
 
     /**
@@ -229,7 +282,7 @@ internal class PagePicture {
         if (fresh.isNotEmpty()) {
             tails += TailRecord(
                 elements = fresh.size,
-                picture = record(wanted, page, measurer) {
+                picture = record(wanted, page) {
                     drawElements(fresh, wanted.density, measurer, wanted.skip)
                 },
             )
@@ -281,7 +334,7 @@ internal class PagePicture {
         tails.clear()
         tailCount = 0
         tailElements = emptyList()
-        base = record(wanted, page, measurer) {
+        base = record(wanted, page) {
             drawPageContent(
                 page = page,
                 pxPerPt = wanted.density,
@@ -303,29 +356,11 @@ internal class PagePicture {
      * the page plus a margin: ink can be drawn past the sheet's edge, and a recorder's bounds are what
      * playback is allowed to skip.
      */
-    private fun record(wanted: Key, page: Page, measurer: TextMeasurer, body: DrawScope.() -> Unit): Picture {
-        val width = (page.width * wanted.density).toFloat()
-        val height = (page.height * wanted.density).toFloat()
-        val margin = (maxOf(width, height) * CULL_MARGIN).coerceAtLeast(MIN_CULL_MARGIN_PX)
-        val recorder = PictureRecorder()
-        val canvas = recorder.beginRecording(Rect.makeLTRB(-margin, -margin, width + margin, height + margin))
-        canvasScope.draw(
-            density = Density(wanted.density),
-            layoutDirection = LayoutDirection.Ltr,
-            canvas = canvas.asComposeCanvas(),
-            size = Size(width, height),
-            block = body,
-        )
-        return recorder.finishRecordingAsPicture()
-    }
+    private fun record(wanted: Key, page: Page, body: DrawScope.() -> Unit): Picture =
+        recordPicture(page, wanted.density, body)
 
     private companion object {
         /** How far past the sheet the recording still accepts commands — a fifth of its long side. */
-        const val CULL_MARGIN = 0.2f
-
-        /** And never less than this, so a small page's stray ink is still recorded. */
-        const val MIN_CULL_MARGIN_PX = 128f
-
         /**
          * How many appended elements the tails may hold before the sheet is recorded again.
          *
@@ -335,6 +370,37 @@ internal class PagePicture {
          */
         const val MAX_TAIL_ELEMENTS = 160
     }
+}
+
+/** How far past the sheet a recording still accepts commands — a fifth of its long side. */
+private const val CULL_MARGIN = 0.2f
+
+/** And never less than this, so a small page's stray ink is still recorded. */
+private const val MIN_CULL_MARGIN_PX = 128f
+
+/**
+ * [page]'s drawing instructions, recorded at **document scale** (one point is [density] pixels) and anchored
+ * at its own origin, so one picture serves every scroll position and every zoom.
+ *
+ * The cull rect is the page plus a margin: ink can be drawn past the sheet's edge, and a recorder's bounds
+ * are what playback is allowed to skip. Shared rather than private to [PagePicture] because the two halves a
+ * vertical-space drag replays are recorded by the same rule ([ShiftPictures]) — a split sheet whose halves
+ * were bounded differently would lose ink at its own seam.
+ */
+internal fun recordPicture(page: Page, density: Float, body: DrawScope.() -> Unit): Picture {
+    val width = (page.width * density).toFloat()
+    val height = (page.height * density).toFloat()
+    val margin = (maxOf(width, height) * CULL_MARGIN).coerceAtLeast(MIN_CULL_MARGIN_PX)
+    val recorder = PictureRecorder()
+    val canvas = recorder.beginRecording(Rect.makeLTRB(-margin, -margin, width + margin, height + margin))
+    CanvasDrawScope().draw(
+        density = Density(density),
+        layoutDirection = LayoutDirection.Ltr,
+        canvas = canvas.asComposeCanvas(),
+        size = Size(width, height),
+        block = body,
+    )
+    return recorder.finishRecordingAsPicture()
 }
 
 /**

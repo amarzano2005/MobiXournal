@@ -77,6 +77,18 @@ object VerticalSpaceOps {
 
         /** True when the line carried nothing — a drag then has nothing to re-apply. */
         val isEmpty: Boolean get() = layers.all { it.isEmpty() }
+
+        /**
+         * True when the element at ([layerIndex], [elementIndex]) is one this block carries.
+         *
+         * For a consumer that has to **partition** a page rather than rewrite it: the window's live preview
+         * records the elements that stay and the elements that follow the line as two pictures, and asks
+         * this once per element when it records them.
+         */
+        fun moves(layerIndex: Int, elementIndex: Int): Boolean {
+            val picked = layers.getOrNull(layerIndex) ?: return false
+            return picked.binarySearch(elementIndex) >= 0
+        }
     }
 
     /** The elements of [page] whose top edge sits at or below [yPt], per layer, in layer order. */

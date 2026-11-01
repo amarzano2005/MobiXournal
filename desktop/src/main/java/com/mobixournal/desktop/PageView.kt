@@ -90,6 +90,29 @@ internal fun DrawScope.drawPageContent(
     // The sheet is the *page's* box, not the canvas': a zoomed page is drawn inside a clip that is the
     // window, so `size` here would paint the paper across the whole viewport.
     val sheet = Size((page.width * pxPerPt).toFloat(), (page.height * pxPerPt).toFloat())
+    drawSheetUnderlay(page, pxPerPt, sheet, backdrop)
+    // A hidden layer is skipped like an empty one: the page keeps its elements, the window just does
+    // not paint them (the same view state that hides it in the sidebar's list).
+    for ((index, layer) in page.layers.withIndex()) {
+        if (index in hiddenLayers) continue
+        drawElements(layer.elements, pxPerPt, textMeasurer, skip, karaoke)
+    }
+}
+
+/**
+ * Everything under the ink: the sheet's shadow, its paper and backdrop, and nothing else.
+ *
+ * Split out because a **second** picture needs to paint exactly this: a live vertical-space drag keeps the
+ * block that stays above the line in one picture and the block that follows it in another, and only the
+ * first of the two carries the paper — the gap the block opens has to show what the page is made of, not
+ * the ink that used to be there (`ShiftPictures`).
+ */
+internal fun DrawScope.drawSheetUnderlay(
+    page: Page,
+    pxPerPt: Float,
+    sheet: Size,
+    backdrop: PageBackdrop?,
+) {
     drawPageShadow(sheet)
     drawPaper(page.background, page.width, page.height, pxPerPt, sheet)
     backdrop?.image(page.background)?.let { picture ->
@@ -98,12 +121,6 @@ internal fun DrawScope.drawPageContent(
             dstOffset = IntOffset.Zero,
             dstSize = IntSize(sheet.width.roundToInt(), sheet.height.roundToInt()),
         )
-    }
-    // A hidden layer is skipped like an empty one: the page keeps its elements, the window just does
-    // not paint them (the same view state that hides it in the sidebar's list).
-    for ((index, layer) in page.layers.withIndex()) {
-        if (index in hiddenLayers) continue
-        drawElements(layer.elements, pxPerPt, textMeasurer, skip, karaoke)
     }
 }
 

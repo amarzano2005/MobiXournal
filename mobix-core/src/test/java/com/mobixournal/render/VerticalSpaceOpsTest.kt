@@ -8,6 +8,7 @@ import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -125,6 +126,16 @@ class VerticalSpaceOpsTest {
         assertSame("the layer above the line is shared, not copied", still, out.layers[0])
         assertEquals(169.5, ElementBounds.of(out.layers[1].elements[0]).top, 1e-6)
         assertSame("a zero shift is the page", p, VerticalSpaceOps.shiftBlock(p, VerticalSpaceOps.blockBelow(p, 100.0), 0.0))
+    }
+
+    @Test fun aBlockAnswersMembershipByPosition() {
+        // The window's preview partitions a page with this instead of copying it: "does the line carry the
+        // element at (layer, index)" is the one question both halves of the recorded sheet ask.
+        val p = page(Layer(listOf(stroke(20.0), stroke(140.0))))
+        val block = VerticalSpaceOps.blockBelow(p, 100.0)
+        assertFalse("the element above the line stays", block.moves(0, 0))
+        assertTrue("the one below it follows", block.moves(0, 1))
+        assertFalse("a layer the block does not know", block.moves(3, 0))
     }
 
     @Test fun anEmptyBlockSaysSoAndReturnsThePage() {

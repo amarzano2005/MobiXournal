@@ -87,6 +87,8 @@ internal suspend fun PointerInputScope.pageGestures(
      * Null everywhere else, including for every other tool.
      */
     grabLine: MutableState<Double?>? = null,
+    /** Where a vertical-space drag is drawing the block, or null — see [LiveShift]. */
+    liveShift: MutableState<LiveShift?>? = null,
     previewRegion: MutableState<SelectionRegion?>? = null,
     /** The magnetic highlighter's live bands (`PenPointer.pdfBands`), painted in place of the freehand path. */
     pdfBands: MutableState<List<MagneticHighlighter.Band>>? = null,
@@ -125,8 +127,8 @@ internal suspend fun PointerInputScope.pageGestures(
         pageGestureLoop(
             tab = tab, panMode = panMode, tool = tool, ink = ink, shapeInk = shapeInk, targets = targets,
             taps = taps, dragView = dragView, gesture = gesture,
-            draft = draft, grabLine = grabLine, previewRegion = previewRegion, guideAim = guideAim,
-            onEdited = onEdited,
+            draft = draft, grabLine = grabLine, liveShift = liveShift, previewRegion = previewRegion,
+            guideAim = guideAim, onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
             viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
         )
@@ -146,6 +148,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
     gesture: PageInkGesture,
     draft: SnapshotStateList<InkSample>,
     grabLine: MutableState<Double?>?,
+    liveShift: MutableState<LiveShift?>?,
     previewRegion: MutableState<SelectionRegion?>?,
     guideAim: MutableState<GuideAim?>?,
     onEdited: (Int) -> Unit,
@@ -222,9 +225,10 @@ private suspend fun PointerInputScope.pageGestureLoop(
             )
             return@awaitEachGesture
         }
-        // The vertical-space tool reflows the page under a grab line instead of drawing on it.
-        if (tool.activeTool() == ActiveTool.VERTICAL_SPACE && grabLine != null) {
-            verticalSpaceDrag(down, tab, dragView, grabLine, onEdited)
+        // The vertical-space tool reflows the page under a grab line instead of drawing on it, and it needs
+        // both of its readings: the line it shows and the offset the sheet replays (`LiveShift`).
+        if (tool.activeTool() == ActiveTool.VERTICAL_SPACE && grabLine != null && liveShift != null) {
+            verticalSpaceDrag(down, tab, dragView, grabLine, liveShift, onEdited)
             return@awaitEachGesture
         }
         if (inkDrag(down, gesture, packetsOwn)) return@awaitEachGesture
@@ -512,17 +516,20 @@ private fun commitShape(
  * Like the figure's drag, it scrolls the view at the canvas's border and re-applies itself on every tick,
  * so space can be opened at the far end of a page-long block without lifting the pen (`DragView`).
  *
- * Unlike a figure, it re-derives **the page**: every element below the line is rewritten. That is a few
- * milliseconds on a dense sheet, and a pen reports several hundred samples a second, so the reflow is left
- * to the canvas's ticker (`DragView.beginDrag(flushEveryTick = true)`) instead of running per sample — per
- * event, the work saturated the thread the samples arrive on and the drag fell behind the hand. What the
- * block is, and where it was, is answered **once**, at grab time (`VerticalSpaceOps.blockBelow`).
+ * Unlike a figure, it **does not touch the page while the hand is down**. The block is read once, at grab
+ * time (`VerticalSpaceOps.blockBelow`), the sheet is recorded once in two halves — what stays above the line
+ * and what follows it — and a sample publishes only the offset ([LiveShift]). A frame is then two picture
+ * replays, exactly like a scroll; the page is written **once**, on the lift. This is desktop Xournal++'s
+ * design (a mask painted under a translate, one `MoveUndoAction` at the end); rewriting the page per sample
+ * instead measured 5.2 ms of reflow plus a full re-record, and the watchdog caught one drag re-recording the
+ * sheet 48 times a second with a worst frame of 146 ms.
  */
 private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
     start: PointerInputChange,
     tab: DesktopTab,
     view: DragView,
     grabLine: MutableState<Double?>,
+    liveShift: MutableState<LiveShift?>,
     onEdited: (Int) -> Unit,
 ) {
     val (_, y0) = pagePointOf(start.position.x, start.position.y, density, view.current())
@@ -536,50 +543,45 @@ private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
     // The state before the gesture, taken once: a drag that shifts nothing never records it, so a pass
     // over empty space leaves no undo step behind.
     val before = tab.document.snapshot()
-    var recorded = false
-    var cancelled = false
-    /** The shift already on the page — a tick where the hand rested must cost nothing at all. */
-    var appliedDy = Double.NaN
     grabLine.value = y0
+    liveShift.value = LiveShift(y0, 0.0)
 
-    /** Reflow the page so everything below the grab line answers the pointer at [py]. */
-    fun reflow(py: Float) {
-        val (_, y1) = pagePointOf(start.position.x, py, density, view.current())
-        val dy = y1 - y0
-        if (dy == appliedDy) return
-        appliedDy = dy
-        // Always re-applied from the page as it was **at grab time**: the block is what lay below the line
-        // then, so the drag cannot compound or recruit (the tablet's rule).
-        val shifted = VerticalSpaceOps.shiftBlock(original, block, dy)
+    /** How far the pointer at [py] has carried the block, in page points. */
+    fun dyOf(py: Float): Double =
+        pagePointOf(start.position.x, py, density, view.current()).second - y0
+
+    /** Where the drag has carried the block: a state write the sheet replays, and nothing else. */
+    fun track(py: Float) {
+        liveShift.value = LiveShift(y0, dyOf(py))
+    }
+
+    /** The lift: the whole gesture as **one** edit, from the page as it was at grab time. */
+    fun commit(py: Float) {
+        liveShift.value = null
+        val shifted = VerticalSpaceOps.shiftBlock(original, block, dyOf(py))
         if (shifted === original) return
-        if (!recorded) {
-            tab.record(before)
-            recorded = true
-        }
+        tab.record(before)
         tab.document.editPage(index) { shifted }
         onEdited(index)
     }
 
     // At the border the sheet travels and the block keeps following on the canvas's ticker, so a
     // paragraph longer than the window can be opened in one drag.
-    view.beginDrag(start.position.x, lastY, flushEveryTick = true) { _, py -> reflow(py) }
+    view.beginDrag(start.position.x, lastY) { _, py -> track(py) }
     try {
-        while (!cancelled) {
+        while (true) {
             val change = awaitPointerEvent().changes.firstOrNull() ?: break
             lastY = change.position.y
-            // Where the pointer is, not what the page becomes: the ticker does one reflow per tick, and a
-            // burst of samples between two of them collapses into the position the hand is at now.
-            view.moved(start.position.x, lastY)
+            track(lastY)
             if (change.changedToUpIgnoreConsumed() || !change.pressed) {
-                // The lift settles the last sample: the ticker stops with the drag, so without this the page
-                // would stop up to a tick short of where the hand let go.
-                reflow(lastY)
+                commit(lastY)
                 break
             }
             change.consume()
         }
     } finally {
         view.endDrag()
+        liveShift.value = null
         grabLine.value = null
     }
 }

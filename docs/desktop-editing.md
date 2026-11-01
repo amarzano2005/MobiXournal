@@ -38,16 +38,20 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
   crosses; `Eraser (whole)` (`Shift+E`) removes every stroke the disc touches. They differ by
   `DesktopTool.eraserMode()` (`EraserMode.STANDARD` / `WHOLE_STROKE`), which `PageInkGesture` passes to
   the same shared `PageEraser`, and one erased gesture is still one undo step either way.
-- **Vertical space reflows the page.** `Vertical space` (`Shift+V`) drops a grab line where the press
-  landed, painted as a hairline across the sheet above the ink; the drag re-applies
-  `VerticalSpaceOps.shiftBlock` to the page **as it was at grab time**, so the block follows the pointer
-  without recruiting the elements it passes, and the whole drag is one undo step. A drag that shifts
-  nothing records nothing. The reflow is **the ticker's, not the event's**: rewriting every element below the
-  line costs milliseconds on a dense sheet and a pen reports several hundred samples a second, so a sample
-  only records where the pointer is (`DragView.beginDrag(flushEveryTick = true)`) and the canvas's 8 ms
-  ticker applies one reflow per tick, the lift settling the last position. The block itself — which elements
-  the line carried — is read **once**, at grab time (`VerticalSpaceOps.blockBelow`), because it cannot
-  change during the gesture. Snapping stays **off** (`snapSpacingPt = 0.0`, a continuous drag): the tablet
+- **Vertical space reflows the page — but only on the lift.** `Vertical space` (`Shift+V`) drops a grab
+  line where the press landed, painted as a hairline across the sheet above the ink. While the hand is down
+  the page is **not edited at all**: it is recorded once in two halves (`ShiftPictures`) — the elements the
+  line leaves and the block it carries, read at grab time with `VerticalSpaceOps.blockBelow` — and a sample
+  publishes only the offset (`LiveShift`), so the sheet replays `still` and then `moving` under a translate.
+  That is desktop Xournal++'s own design (a mask painted under a translate, one `MoveUndoAction` at the
+  end), and it is what makes a drag cost a scroll: rewriting the page per sample measured 5.2 ms of reflow
+  plus a full re-record, with the sheet re-recorded 40-plus times a second and a worst frame of 146 ms;
+  the preview holds one re-record a second, 0.1 ms of paint per frame and no page copy at all. The lift
+  applies `VerticalSpaceOps.shiftBlock` to the page **as it was at grab time** — one undo step, nothing
+  recorded when the drag shifted nothing — so the block never recruits the elements it passes. The split is
+  by element, never by pixels, so an element the line crosses stays whole; the block is then painted *over*
+  the ink it passes, which is the one difference from an exact reflow and the trade the reference tool makes
+  too. Snapping stays **off** (`snapSpacingPt = 0.0`, a continuous drag): the tablet
   snaps to the ruling only when its Snap-to-grid setting is on, and the window has no such setting yet.
   Like a geometry slot, the drag is **not ink**, so the pen's packets stand aside for it too
   (`DesktopTool.inksByPackets()`): only the pen and the two erasers are fed from the driver. That is what

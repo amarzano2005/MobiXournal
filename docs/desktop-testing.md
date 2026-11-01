@@ -39,7 +39,9 @@ painted ink both return), a second undo that reports nothing left, a redo that r
 starts a new history. `DesktopLifecycleTest` is the lifecycle headless: an edit makes a tab dirty, a save and
 an undo back to the save point make it clean, closing a dirty tab asks first, a snapshot written by one shell
 is adopted by the next and deleted once saved, and the strip's dot is drawn only while there are unsaved
-edits. Every render lands under `desktop/build/desktop-render/`: `glass-parity.png` (the same panel in the
+edits. `DesktopShiftPreviewTest` covers the vertical-space drag as **pixels and as a document**: mid-drag the
+page still holds the very element objects it held at the press while the block is painted 40 pt lower, and
+the lift is the one edit that moves it — the split that keeps a drag as cheap as a scroll (`ShiftPictures`). Every render lands under `desktop/build/desktop-render/`: `glass-parity.png` (the same panel in the
 tablet's material and in this window's, by `GlassParityRenderTest`), and
 `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which `GlassEdgeTest` samples — the rim
 brighter at the top than at the bottom, or it is a border and not the family's edge, and a band of ink under
