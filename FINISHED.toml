@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-pen-tip-radial-hud"
+title = "Desktop: pen-tip radial HUD (scope)"
+description = "Investigated and broken into four atomic children (orders 106-109): move-the-radial-hud-geometry-into-mobix-core, read-the-pen-barrel-button-from-the-packet-stream, draw-the-ring-and-summon-it-from-the-keyboard, summon-the-ring-from-the-pen-button. No code was written for the scope itself; everything below is what the code reading found. (1) The ring's geometry is already platform-free — `RadialHud` and `HudSlot` import only `Tool` and `kotlin.math` — so it moves into `mobix-core` verbatim, keeping its package, and the app's every call site compiles untouched; both shells then draw one ring (the tablet from its Canvas, the window from a DrawScope painter, the `ToolGlyphCatalogue` pattern: one set of arithmetic, one painter per shell). (2) The pen's side button does not reach the window at all today: `PenPacket` carries `tip`, `near` and `eraser` only, and `TabletWintab.consume()` reads `packet.buttons and 0xFFFF` and asks only `BTN_TIP`. The bit for a side button is therefore a **measurement** on this machine (Wintab at 400 packets a second is the stream here; no `WM_POINTER` arrives at all), with a PASS/FAIL and a documented fallback — the keyboard summon alone — if the driver reports nothing. (3) The window already has what the ring must hold and the one path it must commit through: `DesktopInkState.palette`/`paletteCustom`, `PenPalette.DEFAULT_WIDTHS`, and `selectTool`/`pickColour`/`pickWidth` are the entries its strips and flyouts use, while `DESKTOP_TOOLS_THAT_ACT` holds PEN, HIGHLIGHTER and ERASER — the tablet's three — so a test can prove no member is offered that does not act. (4) A mouse gets a **key**, not a middle-click: the tertiary button already pans (`PageCanvasInput`), so the door is `Alt+B` in the remappable `ShortcutTable`, opening the ring as a picker (a click commits, `Esc` or a click outside closes), while the pen's held button opens it as the tablet's hover gesture. (5) Decisions the children carry: the dial is given **no role** in the ring — it keeps its documented job of zooming at the cursor — and the barrel's meaning is the tablet's own `BarrelAction` model, a Settings -> Stylus choice between `erase` (default) and `hud`, so a pen whose button is wanted for erasing loses nothing. Docs land with the children: docs/ui-modernization.md, docs/desktop-ui-layout.md, docs/desktop-tablet.md and docs/desktop-settings.md (both at their 300-line budget, so their new rows are paid for by compressing the same files), docs/interface-contract.md and README."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-guides-overlay-and-readout"
 title = "Desktop guides: the overlay, the angle readout and the snap marker"
 description = "Painted the placed instrument in the window (paintPlacedGuide) in the new shared GUIDE_RGB/GUIDE_FILL_ALPHA tokens, added the aim pill (degrees, or the compass's opening) with its snapped accent and the snap tick, and covered it with DesktopGuideRenderTest and guideAimLabel cases."
