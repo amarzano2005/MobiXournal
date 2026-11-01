@@ -106,6 +106,10 @@ private fun Double.asDegrees(): String = String.format(java.util.Locale.ROOT, "%
  * fresh one if it reports "The preview has fallen behind" ([describeOpenFailure]).
  */
 fun main(args: Array<String>) {
+    // The window's share of the machine, asked for before anything else runs: the process's priority class,
+    // the system timer's resolution and the EcoQoS switch apply to every thread created afterwards, and the
+    // event thread's own boost is queued on the toolkit (`WindowsScheduling`).
+    WindowsScheduling.prepare()
     // `--diagnose` turns on the frame/packet watchdog (`DesktopDiagnostics`): a one-line-per-second
     // record of frames, the worst interval, the packet backlog and the sheet's rebuild count, written
     // to `mobix-diagnose.log`. It is set before anything opens a document so the first second counts.

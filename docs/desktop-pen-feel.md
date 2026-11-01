@@ -38,6 +38,30 @@ is plainly moving. The gain is a feel constant, not a measurement, and it is the
 and a wheel notch keep the distance their device reports. A held **Space** takes the packets from the
 stroke path, so a pen in hand never inks the sheet it is scrolling.
 
+## The window's share of the machine
+
+A stroke's smoothness is not the drawing code's property — it is **how soon the thread that receives the
+packets is allowed to run**, and on a PC with other processes busy Windows is free to run them first. The
+symptom is the one the owner reports (and sees in Xournal++ too, which asks for nothing): the ink lags the
+hand and comes out jagged, while the same stroke is perfect on an idle machine. `WindowsScheduling` asks
+once, from `main` before the window opens, on four independent levers:
+
+- `timeBeginPeriod(1)` — the system timer resolves to 1 ms instead of ~15.6, so every wait this process
+  makes (the packet-staleness timer, the edge-scroll ticker, the message pump) wakes when it meant to;
+- `ABOVE_NORMAL_PRIORITY_CLASS` — every thread of the process outranks the normal-priority processes
+  competing with it, and still yields to a foreground-critical task elsewhere. Deliberately **not**
+  `HIGH_PRIORITY_CLASS`: an editor must not be able to starve the machine;
+- **EcoQoS off** — `SetProcessInformation(ProcessPowerThrottling)` with the execution-speed bit cleared, or
+  Windows 11 may demote the process's execution speed while another window is in front;
+- **the event thread itself**, `THREAD_PRIORITY_HIGHEST` plus an MMCSS *Audio* registration
+  (`AvSetMmThreadCharacteristicsW`) — both are per-thread calls, so they are made from inside the AWT event
+  thread, which is where a page reflows and a frame paints.
+
+The call is best-effort and reports what it managed (`WindowsScheduling.Report`), because a policy that
+refuses is not an error the reader should see; `WindowsSchedulingTest` asserts each lever **lands** on a
+Windows machine, which is also what catches a misdeclared JNA signature instead of a silent no-op. There is
+no UI for any of it and no setting: the ask is what the input needs, not a preference.
+
 ## Against Xournal++: one measurement, both programs
 
 The probe above times the window's own path (packet → painted). What a hand feels is one step further
