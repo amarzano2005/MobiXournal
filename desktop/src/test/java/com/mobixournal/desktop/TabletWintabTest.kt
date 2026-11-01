@@ -3,6 +3,7 @@ package com.mobixournal.desktop
 import com.mobixournal.desktop.ink.PenContact
 import com.mobixournal.desktop.ink.ScreenYMapping
 import com.mobixournal.desktop.ink.WintabApi
+import com.mobixournal.desktop.ink.WintabButtons
 import com.mobixournal.desktop.ink.WintabLogContext
 import com.mobixournal.desktop.ink.WintabPacket
 import com.mobixournal.desktop.ink.of
@@ -100,6 +101,42 @@ class TabletWintabTest {
         val reversed = ScreenYMapping.of(sysOrgY = 0, sysExtY = -1440)
         assertFalse("a driver that declares a negative extent has reversed the axis itself", reversed.bottomUp)
         assertEquals("so its reading is taken as it comes", 1025, reversed.of(1025))
+    }
+
+    /**
+     * The button word, decoded: the tip is its first bit, and **every other button that is down is the
+     * side button** — the reading the ring is summoned with.
+     *
+     * The high word is Wintab's change mask and must never be read as a press: a driver that flags "button
+     * 1 changed" would otherwise report the button held for ever, and a ring that opens on a press would
+     * open on every packet.
+     */
+    @Test
+    fun `the barrel is its own button bit`() {
+        assertFalse("nothing down", WintabButtons.of(0).tip)
+        assertFalse("nothing down", WintabButtons.of(0).barrel)
+
+        assertTrue("the tip is the driver's button 1", WintabButtons.of(WintabApi.BTN_TIP).tip)
+        assertFalse("and it is not the side button", WintabButtons.of(WintabApi.BTN_TIP).barrel)
+
+        assertFalse("the first side button is not the tip", WintabButtons.of(WintabApi.BTN_STYLUS).tip)
+        assertTrue("it is the barrel", WintabButtons.of(WintabApi.BTN_STYLUS).barrel)
+
+        // A pen whose firmware numbered its button 3 — or a pen with two of them — still answers.
+        assertTrue("any other button is a side button", WintabButtons.of(1 shl 2).barrel)
+        assertTrue(
+            "both at once: still no tip, still a barrel",
+            WintabButtons.of(WintabApi.BTN_TIP or WintabApi.BTN_STYLUS).let { it.tip && it.barrel },
+        )
+
+        // The change mask lives above the button word: a bare change flag is no press at all.
+        val changedOnly = 0x0001_0000
+        assertFalse("a change flag alone is not the tip", WintabButtons.of(changedOnly).tip)
+        assertFalse("nor the barrel", WintabButtons.of(changedOnly).barrel)
+        assertTrue(
+            "and a held button beside its own change flag is still one press",
+            WintabButtons.of(WintabApi.BTN_STYLUS or changedOnly).barrel,
+        )
     }
 
     @Test

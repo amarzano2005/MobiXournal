@@ -93,8 +93,47 @@ internal interface WintabApi : Library {
         /** The button number a pen's tip reports in `pkButtons`. */
         const val BTN_TIP = 1
 
+        /**
+         * The button a pen's **first side (barrel) button** reports. Wintab numbers a pen's buttons from
+         * 1, the tip being 1; a driver that numbers it another way is still read correctly — see
+         * [WintabButtons].
+         */
+        const val BTN_STYLUS = 2
+
+        /** `pkButtons`' low word: the buttons that are down. The high word is Wintab's change mask. */
+        const val BUTTON_WORD_MASK = 0xFFFF
+
         /** `TU_CIRCLE`: orientation angles are in tenths of a degree. */
         const val TU_CIRCLE = 3
+    }
+}
+
+/**
+ * The pen's **buttons**, decoded from a packet's `pkButtons`.
+ *
+ * Wintab puts one bit per button in the low word ([WintabApi.BUTTON_WORD_MASK]) and its own change mask
+ * above it, so the high word is masked away here rather than at every call site — a change flag read as a
+ * button would be a press that never ends.
+ *
+ * The **tip** is [WintabApi.BTN_TIP]; the **barrel** is *any other button that is down*. That is the honest
+ * reading on a device whose driver declares its button count rather than its meaning: the first side
+ * button is normally number 2, and a pen whose firmware numbered it 3 would otherwise have a button the
+ * window cannot see. It is also exactly what the `--probe-tablet` measurement is asked to confirm — a bit
+ * that is not the tip's, set while the button is held and cleared on release.
+ *
+ * Pure over an `Int`, so the decode is a JVM test with no JNA and no tablet (`TabletWintabTest`).
+ */
+internal data class WintabButtons(val tip: Boolean, val barrel: Boolean) {
+
+    companion object {
+
+        /** The decode of one packet's `pkButtons`. */
+        fun of(buttons: Int): WintabButtons {
+            val word = buttons and WintabApi.BUTTON_WORD_MASK
+            val tip = word and WintabApi.BTN_TIP != 0
+            val sides = word and WintabApi.BTN_TIP.inv()
+            return WintabButtons(tip = tip, barrel = sides != 0)
+        }
     }
 }
 
@@ -256,6 +295,9 @@ internal class TabletWintab private constructor(
     /** Whether the previous packet had the tip down, so a stroke's first packet can be logged. */
     private var wasTip = false
 
+    /** The previous packet's button word, so the probe can log one line per **edge** and not per packet. */
+    private var lastButtons = -1
+
     /**
      * Whether this driver reports `TPS_PROXIMITY` at all.
      *
@@ -297,27 +339,40 @@ internal class TabletWintab private constructor(
     }
 
     private fun consume(packet: WintabPacket) {
-        val tip = packet.buttons and 0xFFFF
-        val onGlass = tip and WintabApi.BTN_TIP != 0 || packet.pressure > 0
+        val word = packet.buttons and WintabApi.BUTTON_WORD_MASK
+        val buttons = WintabButtons.of(packet.buttons)
+        val onGlass = buttons.tip || packet.pressure > 0
         val inProximity = packet.status and WintabApi.TPS_PROXIMITY != 0
         if (inProximity) sawProximity = true
         // "Near" is the driver's own answer when it has one; a driver that never sets the bit keeps the
         // pen permanently near, which is the reading that cannot hide a ring that should be showing.
         val near = !sawProximity || inProximity
+        // One line per **button edge**, which is the reading `--probe-tablet` exists to take: the stream
+        // runs at 400 packets a second, so a line per packet would bury the press it is looking for.
+        if (word != lastButtons) {
+            lastButtons = word
+            onEvent?.invoke(
+                "wintab buttons buttons=0x${word.toString(16)} tip=${buttons.tip} " +
+                    "barrel=${buttons.barrel} pressure=${packet.pressure} near=$near",
+            )
+        }
         val sample = PenContact.of(packet, pressureMax, System.nanoTime())
         if (!onGlass) {
             latest = null
             // The lift is a packet too, and it is what ends a stroke: a canvas that drew from these
             // never waits for the mouse message Windows may or may not send for the same contact.
-            emit(packet, sample, tip = false, near = near)
+            emit(packet, sample, tip = false, near = near, barrel = buttons.barrel)
             return
         }
         latest = sample
         samples++
         if (samples % 200 == 1) {
-            onEvent?.invoke("wintab sample ${sample.describe()} buttons=$tip")
+            onEvent?.invoke(
+                "wintab sample ${sample.describe()} buttons=0x${word.toString(16)} " +
+                    "barrel=${buttons.barrel}",
+            )
         }
-        emit(packet, sample, tip = true, near = near)
+        emit(packet, sample, tip = true, near = near, barrel = buttons.barrel)
         onSample?.invoke(sample)
     }
 
@@ -337,7 +392,7 @@ internal class TabletWintab private constructor(
     }
 
     /** One packet to every listening canvas, in the window's client pixels. */
-    private fun emit(packet: WintabPacket, sample: PenContact, tip: Boolean, near: Boolean) {
+    private fun emit(packet: WintabPacket, sample: PenContact, tip: Boolean, near: Boolean, barrel: Boolean) {
         // The context is the system one, so x/y are screen pixels; the canvas needs client pixels, and
         // the y axis's direction is settled by which reading lands inside the window.
         val point = clientPoint(packet.x, packet.y) ?: return
@@ -359,6 +414,7 @@ internal class TabletWintab private constructor(
             rotationRad = sample.rotationRad,
             tip = tip,
             near = near,
+            barrel = barrel,
             eraser = sample.eraser,
             atNanos = sample.atNanos,
         )

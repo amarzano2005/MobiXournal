@@ -47,6 +47,15 @@ internal data class PenPacket(
      * a source that does not report proximity (the synthesiser, a test) never declares the pen gone.
      */
     val near: Boolean = true,
+    /**
+     * True while the pen's **side button** (the barrel) is held — the reading the ring is summoned with.
+     *
+     * `pkButtons`' low word carries one bit per button; the tip is its first, and every other button that
+     * is down is this one ([com.mobixournal.desktop.ink.WintabButtons]). Defaults to false, so the
+     * synthesiser, the pan reader and a test's fake source never claim a press.
+     */
+    val barrel: Boolean = false,
+
     /** True when the eraser end is the end on the glass. */
     val eraser: Boolean,
     val atNanos: Long,

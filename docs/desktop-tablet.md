@@ -15,7 +15,7 @@ being handled and the dial's notch as a zoom. The hand's own pan, and why it tra
 are [desktop-pen-feel.md](desktop-pen-feel.md)'s. `DesktopTablet` asks **Wintab first**, then Windows Ink, and
 the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`.
 
-**What was measured, not assumed** (`--probe-tablet`, `Main.kt`, writing `tablet-probe.csv`):
+**What was measured, not assumed** (`--probe-tablet`, `Main.kt`, writing `tablet-probe.csv`; every button edge is one row, `buttons=0x… tip=… barrel=…`, because a 400 Hz stream read line by line buries the press it is looking for):
 
 - The pen reaches Compose as a **mouse** — `type=Mouse`, `pressure=1.0000`, no tilt — so no amount of
   Compose code can recover the pressure. AWT's pointer model has no pen in it.
@@ -66,8 +66,7 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   every message on to a hook instead of a second procedure fighting it for the window. Each packet is
   decoded in the mask's own bit order (status, buttons, x, y, pressure, orientation) into the shared
   `PenContact` — fourteen-bit pressure over the driver's declared range, altitude measured up from the
-  glass (900 = upright) into a tilt, azimuth and twist in radians, `TPS_INVERT` for the eraser end — and
-  kept for 120 ms, the same freshness rule the Ink reader uses. A lift clears it, so a mouse stroke that
+  glass (900 = upright) into a tilt, azimuth and twist in radians,`TPS_INVERT` for the eraser end, and `pkButtons`' low word with the tip masked away as the pen's **barrel** (`WintabButtons`: the first side button is the driver's number 2, and *any* button that is not the tip answers, so a pen whose firmware numbered it 3 is read too; the high word is Wintab's change mask and is never a press) — and kept for 120 ms, the same freshness rule the Ink reader uses. A lift clears it, so a mouse stroke that
   follows never wears a stale pressure; a hovering pen reports packets with no tip and is not a contact.
   Both readers implement `PenContactStream`, and `PageInkGesture` folds whichever answered into the
   Compose pointer, so a stroke is one stroke and its width is the shared filter's answer either way.
