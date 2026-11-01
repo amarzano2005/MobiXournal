@@ -4,6 +4,31 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
+## The frame record (`FrameWatchdog`)
+
+A stutter cannot be argued with from the outside — "it stutters" and "the surface is doing twice the work"
+look identical on screen — so the canvas keeps the window's own record: `FrameWatchdog` gathers one line per
+second of **painting**, with **frames/s**, the **worst** frame gap, the **paint**'s average/worst time inside
+the frame, and `page=` — how many full page rasters the ink cache produced during that second. The line is
+pushed into the **pen-diagnostics panel** when it is on, so the numbers appear where a stylus problem is
+already being read instead of needing a second overlay.
+
+The three rules that make the numbers mean something are the window's, and each is a test rather than a
+habit (`FrameWatchdogTest`, driven by a fake clock on the JVM): a line lands **once a second**, not once a
+frame; an **idle gap is not a stall** (a reader who looked away for a minute did not drop a minute of frames,
+or every line after a pause reads as a catastrophe); and the paint's own cost is reported **separately** from
+the frame interval, because waiting for the next vsync is the display's and only the paint is ours. `page=` is
+the fourth: a stroke that rebuilds the sheet every frame shows up as a number that climbs with the frames
+instead of staying still.
+
+What is *enforced in the build* are the invariants behind those numbers (`CanvasFluidityGuardTest`), because
+an instrumented timing assertion would measure an emulator and an emulator's frame budget says nothing about a
+large tablet: **a pointer event never paints** (a paint from an input handler posts several buffers per vsync
+— the buffer walk above), **the repaint is the Choreographer's and coalesced** (`paintPosted`/`renderPosted`),
+**a page raster is never produced on the drawing thread** (`InkCache.draw` blits or answers "not cached"),
+and **the paint feeds the watchdog with the cache's raster count** — a watchdog nobody calls is worse than
+none.
+
 ## The paint pipeline (`render/`)
 
 **Rendering (`render/`).** Every repaint is **paced to the display**: `DrawingSurfaceView.render()`

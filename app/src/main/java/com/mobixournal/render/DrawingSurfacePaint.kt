@@ -86,6 +86,7 @@ internal fun DrawingSurfaceView.paint() {
     paintPosted = false
     if (!holder.surface.isValid) return
     val canvas = lockCanvasForFrame() ?: return
+    val frameStarted = System.nanoTime()
     // Both the page stack and the surface's buffer have to describe the frame being drawn, and a pane
     // resized a frame ago can disagree on either: the stack is rebuilt for the view's extent, and a
     // locked buffer that is not that size makes this a tentative frame — one more is asked for once
@@ -131,6 +132,7 @@ internal fun DrawingSurfaceView.paint() {
         drawRadialHud(canvas)
     } finally {
         holder.unlockCanvasAndPost(canvas)
+        reportFrame(System.nanoTime() - frameStarted)
     }
     // A frame drawn into a buffer the surface is about to outgrow must not be the last one: once the
     // platform has resized the surface, paint again for the settled size.
@@ -139,6 +141,19 @@ internal fun DrawingSurfaceView.paint() {
     reportScroll()
     reportSelectionRect()
     reportMissingBackgrounds()
+}
+
+/**
+ * One line per second of painting into the pen-diagnostics panel, when that panel is on.
+ *
+ * The paint's own elapsed time, not the frame interval: the wait for the next vsync is the display's, and a
+ * number that included it would never say whether *this* code is the slow part. The panel's own coalescing
+ * ([DrawingSurfaceView.postPenLogFlush]) already keeps a burst of events down to one push per UI pass.
+ */
+private fun DrawingSurfaceView.reportFrame(elapsedNanos: Long) {
+    val line = frameWatchdog.painted(elapsedNanos / 1e6, inkCache.rasters) ?: return
+    if (!penDebugEnabled) return
+    if (penLog.record(line)) postPenLogFlush()
 }
 
 /**

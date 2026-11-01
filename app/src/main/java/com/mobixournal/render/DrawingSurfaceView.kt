@@ -1481,6 +1481,15 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The buffered diagnostic lines. */
     internal val penLog = PenInputLog()
 
+    /**
+     * The canvas's own frame record — how fast frames come, how long the worst took, how much of it was the
+     * paint and how many page rasters the cache produced ([FrameWatchdog]).
+     *
+     * Pushed into [penLog] once a second while the pen panel is on, so the numbers appear where a stylus
+     * problem is already being read instead of needing a second overlay.
+     */
+    internal val frameWatchdog = FrameWatchdog()
+
     private var penLogFlushPosted = false
 
     /**

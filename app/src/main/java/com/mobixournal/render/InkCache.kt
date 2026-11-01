@@ -256,6 +256,18 @@ class InkCache(
     }
 
     /**
+     * How many page rasters this cache has produced — the running total the frame watchdog reads.
+     *
+     * The number that separates "the sheet is cached and a frame is a blit" from "the sheet is rebuilt while
+     * the hand is down": a stroke must add at most the rasters of the pages it touched, never one per frame.
+     * Atomic because the worker writes it and the drawing thread reads it (`FrameWatchdog`).
+     */
+    private val produced = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /** Full page rasters produced so far, across every page and bucket. */
+    val rasters: Int get() = produced.get()
+
+    /**
      * Put a finished raster in the cache, unless a newer request for the same page has replaced it
      * (its bucket is already the one nobody is asking for).
      */
@@ -271,6 +283,7 @@ class InkCache(
         // Outside the lock: a charge reaches into every other client's trim (see the class note).
         if (replaced > 0) budget.credit(replaced)
         budget.charge(this, entry.bitmap.byteCount.toLong())
+        produced.incrementAndGet()
         onReady?.invoke()
     }
 
