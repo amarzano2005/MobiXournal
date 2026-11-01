@@ -64,7 +64,10 @@ it is only allowed to shrink — each extraction lowers the ceiling in `PackageS
 
 - the number of `DrawingSurface*.kt` files may not exceed **20** (a new one fails the build),
 - each of them keeps the `DrawingSurface<Facet>` name, so the file name still answers which facet it is,
-- and the file budget above applies to each of them.
+- the file budget above applies to each of them,
+- and **the mutable members of `DrawingSurfaceView.kt` are capped at 109** — a new `var` on the view fails the
+  build, so a state cluster is a `Canvas<Subject>` object by construction rather than by discipline. The
+  cap only falls, with each extraction; a `val`, a local and a companion's member are not counted.
 
 The same applies to the app's packages, which were already split (`audio`, `io`, `panes`, `render`, `tabs`,
 `ui`): a file lands in the package whose subject it is.

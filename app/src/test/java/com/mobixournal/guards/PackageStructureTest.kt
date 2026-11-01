@@ -48,6 +48,21 @@ class PackageStructureTest {
     /** The tablet's canvas cluster: one object spread over this many files, and no more. */
     private val canvasFiles = 18
 
+    /**
+     * Mutable members the canvas may still hold. Every one of these is state the view owns itself, which is
+     * exactly what the `Canvas<Subject>` extraction is draining; the number may only fall, so a new `var`
+     * on the view is a failed build rather than a review note.
+     */
+    private val canvasMutableMembers = 109
+
+    /**
+     * A `var` at **class-member indentation**: four spaces, because a member's own locals sit deeper and a
+     * `val` is immutable (its home is a different question). Indentation is what keeps a local `var` inside
+     * a member function, and a `companion object`'s, out of the count — and the canvas file declares one
+     * class and nothing else at top level, so four spaces means "member" and nothing else.
+     */
+    private val memberVar = Regex("""^ {4}(private |internal |protected |public )?(lateinit )?var [A-Za-z_]\w*""")
+
     /** Prefixes that name no subject. */
     private val bucketNames = listOf("Utils", "Util", "Helpers", "Helper", "Common", "Misc", "Stuff", "Manager", "Managers")
 
@@ -111,6 +126,18 @@ class PackageStructureTest {
                 "" + over.entries.joinToString { "${it.key}=${it.value}" } +
                 " — split it by topic and state the new packages in docs/code-structure.md",
             over.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `the canvas's mutable state moves into objects, never back onto the view`() {
+        val view = File(repoRoot(), "app/src/main/java/com/mobixournal/render/DrawingSurfaceView.kt")
+        val members = view.useLines { lines -> lines.count { memberVar.containsMatchIn(it) } }
+        assertTrue(
+            "DrawingSurfaceView holds $members mutable members ($canvasMutableMembers allowed): a new " +
+                "one is a state cluster, so give it a Canvas<Subject> object that owns it — and lower " +
+                "this ceiling as the old ones move out",
+            members <= canvasMutableMembers,
         )
     }
 
