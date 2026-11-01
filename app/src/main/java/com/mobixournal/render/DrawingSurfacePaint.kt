@@ -386,7 +386,7 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
 internal fun DrawingSurfaceView.drawSearchHighlights(canvas: Canvas) {
     val cornerRadius = 6f
     val pad = 2f
-    for ((hitIndex, hit) in searchHits.withIndex()) {
+    for ((hitIndex, hit) in search.hits.withIndex()) {
         val box = chromeBoxFor(hit.pageIndex) ?: continue
         for (bounds in hit.boxes) {
             val l = box.toViewX(bounds.left, scrollX) - pad
@@ -394,7 +394,7 @@ internal fun DrawingSurfaceView.drawSearchHighlights(canvas: Canvas) {
             val r = box.toViewX(bounds.right, scrollX) + pad
             val b = box.toViewY(bounds.bottom, scrollY) + pad
             canvas.drawRoundRect(l, t, r, b, cornerRadius, cornerRadius, chrome.searchHit)
-            if (hitIndex == currentSearchHit) {
+            if (hitIndex == search.current) {
                 canvas.drawRoundRect(l, t, r, b, cornerRadius, cornerRadius, chrome.searchCurrent)
             }
         }

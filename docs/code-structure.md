@@ -50,8 +50,9 @@ The other half of the same story. `DrawingSurfaceView` is one object whose state
 extension functions in **20 files** (`DrawingSurface*.kt`, ~5 000 lines): input, selection, painting, the
 page's services, hover/barrel, the karaoke painter, and so on. Splitting those into objects that *own* their
 state is the fix, and it is **under way**: a cluster becomes a class in `Canvas<Subject>.kt` beside the canvas
-— `CanvasDiagnostics.kt` (the pen log, its coalesced push, the frame watchdog) and `CanvasHoldSnap.kt` (the
-dwell timer, its anchor, the figure it found) so far — constructed by the view, holding its own state, taking
+— `CanvasDiagnostics.kt` (the pen log, its coalesced push, the frame watchdog), `CanvasHoldSnap.kt` (the
+dwell timer, its anchor, the figure it found) and `CanvasSearch.kt` (the query, its hits, the handwriting
+index and its worker) so far —  constructed by the view, holding its own state, taking
 its inputs as lambdas so it is testable with no `View`. A **new** state cluster and the code that moves it
 belong in such an object, never in another `DrawingSurface*.kt` extension. The pile is now **18 files**, and
 it is only allowed to shrink — each extraction lowers the ceiling in `PackageStructureTest`:

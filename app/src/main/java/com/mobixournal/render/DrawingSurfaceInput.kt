@@ -464,7 +464,7 @@ internal fun DrawingSurfaceView.endGesture() {
     // The gesture is over: nothing of it may reach the next one through the router.
     pointerRouter.reset(); routed = false
     if (wasScrolling) momentum.launch(panSensitivity)
-    if (searchQuery.isNotEmpty() && (wasMoving || wasTransforming || wasVspacing)) {
+    if (search.query.isNotEmpty() && (wasMoving || wasTransforming || wasVspacing)) {
         rebuildSearch()
         render()
     }

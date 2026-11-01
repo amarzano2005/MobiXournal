@@ -117,10 +117,11 @@ where the bridge can fail while every JVM test passes.
 
 ## Indexing never blocks the canvas
 
-`DrawingSurfaceView` owns the index and one background executor. Every request bumps `indexingGeneration`;
-the running task checks its own generation as it walks the pages and stops as soon as a newer request has
-made its answer irrelevant, so opening another document or typing in the field cancels the work without a
-lock. The surface reports a `SearchStatus` (one-based current hit, and the total) to the chrome, and
+`CanvasSearch` (`CanvasSearch.kt`) owns the query, its hits, the index and one background executor — the
+canvas hands it only the document, the PDF text layer, a repaint and a reveal. Every request bumps its
+generation; the running task checks its own generation as it walks the pages and stops as soon as a newer
+request has made its answer irrelevant, so opening another document or typing in the field cancels the work
+without a lock (`CanvasSearchTest` drives that with direct executors and a held job). The surface reports a `SearchStatus` (one-based current hit, and the total) to the chrome, and
 `SearchControls` in `ui/EditorRegions.kt` draws the field, the count and the stepper;
 `SearchIndexingDialog`, beside it, is what a document with handwritten ink shows while its first index is
 built.

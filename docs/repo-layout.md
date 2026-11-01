@@ -147,6 +147,7 @@ app/
       DrawingSurfacePlots.kt # the plot insertions: insertMultiPlot's ink and insertPlotElement's living plot (extensions); PlotElementFactory.kt holds the box and the element, Android-free
       CanvasHoldSnap.kt      # hold-to-snap as one object: the stillness timer, its anchor and the figure it found (tested)
       CanvasDiagnostics.kt   # the canvas's diagnostics as one object: the pen log, its coalesced push and the frame watchdog (tested)
+      CanvasSearch.kt        # the canvas's search as one object: the query, its hits, the handwriting index and its worker (tested)
       PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
       DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)
       InkCache.kt            # page-ink rasters built on a worker (zoom buckets), so panning blits instead of re-drawing
