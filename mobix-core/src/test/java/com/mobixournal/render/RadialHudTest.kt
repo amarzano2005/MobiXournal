@@ -1,7 +1,7 @@
 package com.mobixournal.render
 
+import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Tool
-import com.mobixournal.ui.AppSettings
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -13,8 +13,13 @@ import org.junit.Test
 /**
  * The radial HUD's arithmetic, pinned off-device: the ring's order and cap, each slot's centre, the
  * boundary halfway between two slots, the seam where the ring closes, and the centre dead zone that
- * commits nothing. The drawing and the touch plumbing are the view's; this is what decides *what* a
+ * commits nothing. The drawing and the touch plumbing are each shell's; this is what decides *what* a
  * flick means, and it is the half a screenshot cannot check.
+ *
+ * It lives in `mobix-core` beside the geometry it tests because **both** shells ring the same way: the
+ * tablet's canvas and the desktop window's painter are two adapters over this one set of angles, the
+ * way `ToolGlyphCatalogue` gives two shells one set of glyphs. The suite therefore reads
+ * `PenPalette`'s factory values rather than the app's `AppSettings`, which delegates to them.
  */
 class RadialHudTest {
 
@@ -83,22 +88,61 @@ class RadialHudTest {
     }
 
     /**
-     * The exact call the editor makes when it pushes Settings onto the canvas: the defaults alone fill
+     * The call the editor makes when it pushes Settings onto the canvas: the factory values alone fill
      * the ring (eight swatches, three widths, three tools), so a first launch has a working HUD even
-     * before anything is customised.
+     * before anything is customised. The app's `AppSettings` is seeded from these very values
+     * (`penColors = PenPalette.COLORS`, `penWidths = PenPalette.DEFAULT_WIDTHS`), which is why the
+     * suite can state the same fact without reaching into the app.
      */
     @Test
     fun theEditorsDefaultSettingsFillTheRing() {
-        val settings = AppSettings()
         val slots = RadialHud.slots(
-            colors = settings.penColors,
-            customColor = settings.customColor,
-            widths = settings.penWidths,
-            tools = listOf(Tool.PEN, Tool.HIGHLIGHTER, Tool.ERASER),
+            colors = PenPalette.COLORS,
+            customColor = null,
+            widths = PenPalette.DEFAULT_WIDTHS,
+            tools = tools,
         )
-        assertEquals(settings.penColors.distinct().size + settings.penWidths.size + 3, slots.size)
-        assertEquals(HudSlot.Colour(settings.penColors.first()), slots.first())
+        assertEquals(PenPalette.COLORS.distinct().size + PenPalette.DEFAULT_WIDTHS.size + 3, slots.size)
+        assertEquals(HudSlot.Colour(PenPalette.COLORS.first()), slots.first())
         assertEquals(HudSlot.ToolFace(Tool.ERASER), slots.last())
+    }
+
+    /**
+     * **The window's ring is the tablet's ring.** The desktop has no `AppSettings` and no width list of
+     * its own: it reads `PenPalette` through `DesktopInkState` and asks for exactly this — the user's
+     * palette in their stored order, the editable custom slot last among the swatches, the three
+     * widths, the three writing tools — so the same call answers both shells and a change to one is a
+     * change to the other.
+     */
+    @Test
+    fun theWindowsContentsFitTheSameRing() {
+        val custom = 0xFF123456.toInt()
+        val slots = RadialHud.slots(
+            colors = PenPalette.COLORS,
+            customColor = custom,
+            widths = PenPalette.DEFAULT_WIDTHS,
+            tools = tools,
+        )
+        assertEquals(PenPalette.COLORS.size + 1 + PenPalette.DEFAULT_WIDTHS.size + tools.size, slots.size)
+        assertTrue("the ring has room for the window's contents", slots.size <= RadialHud.MAX_SLOTS)
+        // Swatches first, in the palette's order, with the custom slot last of them.
+        assertEquals(HudSlot.Colour(PenPalette.COLORS.first()), slots.first())
+        assertEquals(HudSlot.Colour(custom), slots[PenPalette.COLORS.size])
+        // Then the widths, then the three tools — the two halves the ring exists to keep one flick away.
+        assertEquals(HudSlot.Width(PenPalette.DEFAULT_WIDTHS.first()), slots[PenPalette.COLORS.size + 1])
+        assertEquals(HudSlot.ToolFace(Tool.PEN), slots[slots.size - 3])
+        assertEquals(HudSlot.ToolFace(Tool.HIGHLIGHTER), slots[slots.size - 2])
+        assertEquals(HudSlot.ToolFace(Tool.ERASER), slots.last())
+        // A palette at the app's own ceiling (24) still cannot crowd the widths and the tools out.
+        val long = RadialHud.slots(
+            colors = (1..PenPalette.MAX_COLORS).map { 0xFF000000.toInt() or it },
+            customColor = custom,
+            widths = PenPalette.DEFAULT_WIDTHS,
+            tools = tools,
+        )
+        assertEquals(RadialHud.MAX_SLOTS, long.size)
+        assertEquals(HudSlot.Colour(custom), long[RadialHud.MAX_PALETTE_SLOTS - 1])
+        assertEquals(HudSlot.ToolFace(Tool.ERASER), long.last())
     }
 
     @Test
