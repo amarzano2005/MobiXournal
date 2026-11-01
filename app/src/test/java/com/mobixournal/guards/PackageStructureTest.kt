@@ -23,8 +23,9 @@ import org.junit.Test
  *    states its subject by choosing a package — the flat package grew one convenience file at a time;
  *  - **no package becomes the next dumping ground**: a subject package holds at most [filesPerPackage] files,
  *    and past that it is two subjects;
- *  - **the tablet's canvas pile stops growing**: `DrawingSurface*.kt` is one god object spread over 20 files
- *    (~5 000 lines). Splitting it is the real fix; until then the count is a ceiling and a new file fails;
+ *  - **the tablet's canvas pile only shrinks**: `DrawingSurface*.kt` is one god object spread over [canvasFiles]
+ *    files. Its state is moving into `Canvas<Subject>.kt` objects that own it, and each one that lands lowers
+ *    this ceiling: a new extension file fails the build, a new object file does not;
  *  - **no bucket names**: `Utils`, `Helpers`, `Common`, `Misc`, `Stuff`, `Manager` are refused, because a
  *    bucket is where a topic goes to be forgotten.
  *
@@ -45,7 +46,7 @@ class PackageStructureTest {
     private val filesPerPackage = 50
 
     /** The tablet's canvas cluster: one object spread over this many files, and no more. */
-    private val canvasFiles = 20
+    private val canvasFiles = 18
 
     /** Prefixes that name no subject. */
     private val bucketNames = listOf("Utils", "Util", "Helpers", "Helper", "Common", "Misc", "Stuff", "Manager", "Managers")

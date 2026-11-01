@@ -46,14 +46,15 @@ subjects and is split (the doc and the guard gain the new row in the same commit
 
 ## The tablet's canvas (`app/`)
 
-The other half of the same story. `DrawingSurfaceView` is one object whose state is reached by extension
-functions in **20 files** (`DrawingSurface*.kt`, ~5 000 lines): input, selection, painting, the page's
-services, hover/barrel, the karaoke painter, and so on. Splitting those into objects that *own* their state is
-the fix, and it is **under way**: a cluster becomes a class in `Canvas<Subject>.kt` beside the canvas
-(`CanvasDiagnostics.kt` — the pen log, its coalesced push and the frame watchdog — is the first), constructed
-by the view, holding its own state, with three entry points at most. A **new** blank state and the code that
-moves it belong in such an object, never in another `DrawingSurface*.kt` extension. Until every cluster is
-out, the pile is only allowed to shrink:
+The other half of the same story. `DrawingSurfaceView` is one object whose state used to be reached by
+extension functions in **20 files** (`DrawingSurface*.kt`, ~5 000 lines): input, selection, painting, the
+page's services, hover/barrel, the karaoke painter, and so on. Splitting those into objects that *own* their
+state is the fix, and it is **under way**: a cluster becomes a class in `Canvas<Subject>.kt` beside the canvas
+— `CanvasDiagnostics.kt` (the pen log, its coalesced push, the frame watchdog) and `CanvasHoldSnap.kt` (the
+dwell timer, its anchor, the figure it found) so far — constructed by the view, holding its own state, taking
+its inputs as lambdas so it is testable with no `View`. A **new** state cluster and the code that moves it
+belong in such an object, never in another `DrawingSurface*.kt` extension. The pile is now **18 files**, and
+it is only allowed to shrink — each extraction lowers the ceiling in `PackageStructureTest`:
 
 - the number of `DrawingSurface*.kt` files may not exceed **20** (a new one fails the build),
 - each of them keeps the `DrawingSurface<Facet>` name, so the file name still answers which facet it is,
