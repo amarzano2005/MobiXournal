@@ -24,6 +24,7 @@ import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.rectRegion
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -200,6 +201,71 @@ class DesktopSelectionTest {
         }
     }
 
+    /**
+     * A double-click **inside** the outline belongs to the selection, never to what lies under it.
+     *
+     * The group a marquee caught is the thing the user is holding: drilling into its contents — replacing
+     * two strokes with the one the second click happened to land on — is the opposite of what selecting them
+     * together was for, and on a dense page it made the outline seem to pick itself apart.
+     */
+    @Test
+    fun `a double-click inside the selection does not select an inner element`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        tab.document.editPage(0) { page -> page.withElements(listOf(bar(100.0, 100.0), bar(100.0, 160.0))) }
+        val scene = canvas(tab, DesktopTool.MARQUEE)
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+
+            drag(scene, 80f, 80f, 200f, 200f)
+            val group = requireNotNull(tab.selection) { "the marquee caught nothing" }
+            assertEquals("both bars were caught", 2, group.refs.size)
+
+            // Two clicks on one of them, inside the outline.
+            click(scene, 120f, 100f, at = 2_000L)
+            click(scene, 120f, 100f, at = 2_300L)
+
+            assertEquals("the selection is still the group", group.refs, tab.selection!!.refs)
+            assertEquals("and the outline never moved", group.bounds, tab.selection!!.bounds)
+            assertFalse("a click that travels nowhere writes nothing", tab.canUndo)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * A click in the **empty part of a stroke's box** selects nothing, because the box is not the element.
+     *
+     * A diagonal line's box is a square of blank paper around it; reading that square as the stroke made the
+     * selection tool pick ink the pointer was nowhere near.
+     */
+    @Test
+    fun `a click in a diagonal stroke's box but off its ink selects nothing`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        tab.document.editPage(0) { page -> page.withElements(listOf(diagonal(100.0, 100.0))) }
+        val scene = canvas(tab, DesktopTool.MARQUEE)
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+
+            // Inside the box (the line runs 100,100 → 200,200) and ~56 pt from the ink.
+            click(scene, 190f, 110f, at = 1_000L)
+            assertNull("the box of the line is not the line", tab.selection)
+
+            // On the ink, within the tap's own reach.
+            click(scene, 150f, 152f, at = 2_000L)
+            assertNotNull("the line itself is pickable", tab.selection)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
     private fun notebook(): File = temp.newFile("selection.mobix").also { file ->
         SyntheticNotebook.write(file, SyntheticNotebook.pages(2))
     }
@@ -223,6 +289,21 @@ class DesktopSelectionTest {
         capStyle = "round",
         uniformWidth = true,
     )
+
+    /** A line from ([x], [y]) to ([x] + 100, [y] + 100) — the diagonal a box cannot describe. */
+    private fun diagonal(x: Double, y: Double): Stroke = Stroke(
+        points = listOf(StrokePoint(x, y, 4.0), StrokePoint(x + 100.0, y + 100.0, 4.0)),
+        color = 0xFF000000.toInt(),
+        tool = Tool.PEN,
+        capStyle = "round",
+        uniformWidth = true,
+    )
+
+    /** A press and a lift that never move: one click. */
+    private fun click(scene: ImageComposeScene, x: Float, y: Float, at: Long) {
+        pen(scene, PointerEventType.Press, x, y, at)
+        pen(scene, PointerEventType.Release, x, y, at + 16L, pressed = false)
+    }
 
     private fun elements(page: Page): List<Element> = page.layers.flatMap { it.elements }
 

@@ -47,7 +47,12 @@ bounding box (strokes grown by half-width, images/teximages are their box, text 
 metric) and `ElementBounds.TAP_PAD` is the one hit-test margin. Every consumer routes through it —
 `SelectionTester` (picking), `PageRenderer` (viewport cull), `VerticalSpaceOps` (the grab line) and
 `ElementEdits.hitsText` (tap-to-edit) — so selection handles, culling and vertical-space insertion agree
-by construction rather than by coincidence; nothing re-derives a box locally. A **double-tap while a
+by construction rather than by coincidence; nothing re-derives a box locally. The box is a **frame, not
+the answer**: a tap on a **stroke** is tested against the stroke's own segments (`StrokeHitTester.hits`,
+the eraser's reach, within `TAP_PAD`), because a diagonal line's box is a square of empty paper around
+it — reading the box as the element let the selection tool pick ink the pointer was nowhere near.
+Rectangles (image, TeX, text, a table, a plot's frame, a symbol) still test their box, because for those
+the box *is* what is drawn. A **double-tap while a
 Select tool is active** opens the editor of the living element under the point — a table cell, a plot,
 a component, a figure — through one dispatch (`render/LivingEditTargets.kt`) and one UI seam
 (`ui/LivingEditors.kt`), the same target the action bar's **Edit** button opens; ink is not a living
@@ -109,17 +114,18 @@ move test was reporting exactly that). The handles stay grabbable in their own c
 — for an all-stroke selection only — a **right-edge rotate knob**
 (`SelectionOps.rotate`, which bakes the angle into stroke vertices). A **lasso** marquee
 (`lassoMode`) selects everything wholly inside a traced polygon (`SelectionTester.inPolygon`),
-alongside the rectangle. Lasso containment tests a **stroke's own points**, not its bounding box —
-a diagonal or curved stroke inside the loop has box corners outside it, so a box test would drop
-exactly the strokes the user traced around; rectangular elements (image, TeX, text) still test
-their four corners. Both containment tests are **tolerant by `ElementBounds.TAP_PAD`** — the same
+alongside the rectangle. Both containment tests judge a **stroke's own points**, never its bounding
+box — a diagonal or curved stroke's box reaches past the trace, so a box test dropped exactly the stroke
+the user had drawn a loop or a box around, and a thick marker band's box spills half its width past the
+line it was drawn on; rectangular elements (image, TeX, text) still test their four corners. Both containment tests are **tolerant by `ElementBounds.TAP_PAD`** — the same
 margin a tap pick uses: a rect-select box is grown by the pad, and a lasso point counts as inside
 when it is within the pad of a polygon edge, so a hairline stroke or an empty text box traced
 closely isn't dropped for landing a hair outside. Both containment tests also sweep **only the
 active layer** (`onlyLayer`, resolved from `resolvedActiveLayer` by `SelectionGestureController`),
 matching desktop Xournal++'s current-layer selection so a marquee never grabs ink the user isn't
 editing; with no layer chosen yet the sweep falls back to the whole page. (A single **tap** pick is
-still page-wide — `pickTopmost` is unchanged.) **How far a lasso was traced** is measured by the
+still page-wide — `pickTopmost` sweeps every layer — but it judges a stroke by its ink, which is how a tap
+evades the empty half of a diagonal's box.) **How far a lasso was traced** is measured by the
 **extent of the traced path**, not by the gap from its first point to its last (`lassoExtentPx`): a
 lasso closing back onto — or beside — its own start leaves that gap at zero, and reading it as the
 drag distance made a real lasso look like a tap, so it picked the topmost element under the pen (or

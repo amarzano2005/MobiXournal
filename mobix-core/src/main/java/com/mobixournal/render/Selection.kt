@@ -64,12 +64,25 @@ object SelectionTester {
         val hits = LinkedHashSet<ElementRef>()
         for (li in layerRange(page, onlyLayer)) {
             page.layers[li].elements.forEachIndexed { ei, el ->
-                if (ElementBounds.isHitTestable(el) && ElementBounds.of(el).containedBy(padded)) {
+                if (ElementBounds.isHitTestable(el) && laidInside(el, padded)) {
                     hits += ElementRef(li, ei)
                 }
             }
         }
         return hits
+    }
+
+    /**
+     * True when everything [el] draws lies inside [box] — the containment rule a marquee and a lasso share.
+     *
+     * A **stroke** is judged by its own vertices, not by its bounding box, for the reason the lasso's rule
+     * gives: a box is the smallest rectangle that *could* hold the ink, so a curved or thick stroke's box is
+     * bigger than the stroke — a line drawn through a 30 pt marker's box has 15 pt of empty margin round it
+     * that the caller never drew. Judging by the box therefore missed ink the user had traced around.
+     */
+    private fun laidInside(el: Element, box: Bounds): Boolean = when (el) {
+        is Stroke -> el.points.all { box.contains(it.x, it.y) }
+        else -> ElementBounds.of(el).containedBy(box)
     }
 
     /**
@@ -165,15 +178,25 @@ object SelectionTester {
         return kotlin.math.hypot(x - px, y - py)
     }
 
-    /** The topmost (last-drawn) element whose padded bounds contain (x, y), or null. */
+    /**
+     * The topmost (last-drawn) element the point ([x], [y]) lands **on**, or null.
+     *
+     * A **stroke** is hit where its ink is, not where its bounding box is: the box of a diagonal line, an
+     * arc or a sparse signature covers a large area of empty paper, and reading the box as the element made
+     * a press in that emptiness select the stroke (`StrokeHitTester.hits`, the eraser's own reach). Every
+     * other family is a rectangle of its own — a picture, a text box, a table, a plot's frame, a symbol — so
+     * its box is what the user sees and sees hit. The box test still runs **first** for a stroke, as a cheap
+     * rejection before its segments are walked.
+     */
     fun pickTopmost(page: Page, x: Double, y: Double): ElementRef? {
         for (li in page.layers.indices.reversed()) {
             val elements = page.layers[li].elements
             for (ei in elements.indices.reversed()) {
                 val el = elements[ei]
-                if (ElementBounds.isHitTestable(el) && ElementBounds.of(el).expand(TAP_PAD).contains(x, y)) {
-                    return ElementRef(li, ei)
-                }
+                if (!ElementBounds.isHitTestable(el)) continue
+                if (!ElementBounds.of(el).expand(TAP_PAD).contains(x, y)) continue
+                if (el is Stroke && !StrokeHitTester.hits(el, x, y, TAP_PAD)) continue
+                return ElementRef(li, ei)
             }
         }
         return null

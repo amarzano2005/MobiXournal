@@ -111,7 +111,10 @@ walks the drag, and `SelectionOverlay.kt` paints the outline, the five handles a
 selection drag is **not ink**, so `DesktopTool.inksByPackets()` stays false for the slots: the pen's packets
 stand aside and a stylus in proximity still reaches the drag through the Compose pointer. A selection carries
 the tablet's **action bar** under its outline, and the **pencil** on it opens the selected living element in
-the inspector lane — both owned by [selection.md](selection.md).
+the inspector lane — both owned by [selection.md](selection.md). A **double-click inside the live outline**
+belongs to the selection, never to what lies beneath it: the group is never replaced by the one element the
+second click landed on, and only a selection of exactly one living element opens its editor — the tablet's
+double-tap, which the pencil already is.
 
 ## Reading a PDF page: text selection and the magnetic highlighter
 

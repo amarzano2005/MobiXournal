@@ -162,17 +162,11 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     // as a double-click made that drag open the editor instead of moving the part (which is how a pin
     // "stopped attaching" right after the part was inserted). A pair of presses is a double-click only
     // when the second one travels nowhere.
-    val secondOfPair = taps.isSecond(System.currentTimeMillis(), (x0 * pxPerPt), (y0 * pxPerPt)) &&
-        page != null && picked != null
-    if (secondOfPair) {
-        tab.selection = selectionOf(page, picked)
-        val element = elementAt(page, picked)
-        val living = element != null && element.isLivingEntity
-        val editsBefore = tab.document.edits
-        transformSelection(
-            tab.selection ?: return, SelectionHandle.BODY, x0, y0, tab, view, density, onLiveDrag, onEdited,
-        )
-        if (living && tab.document.edits == editsBefore) onEditLiving?.invoke()
+    val second = taps.isSecond(System.currentTimeMillis(), (x0 * pxPerPt), (y0 * pxPerPt))
+    if (
+        second &&
+        doubleClickPress(live, grabbed, picked, page, x0, y0, tab, view, density, onLiveDrag, onEdited, onEditLiving)
+    ) {
         return
     }
     if (grabbed.startsRegion()) {
@@ -198,6 +192,56 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         return
     }
     transformSelection(selection, grabbed, x0, y0, tab, view, density, onLiveDrag, onEdited)
+}
+
+/**
+ * A **double-click**, settled on the press (a pair of presses is one only when the second travels nowhere).
+ *
+ * Two rules, in order:
+ *
+ *  - **Inside the live outline** the click belongs to the selection, never to what lies under the pointer —
+ *    drilling into a marquee's contents (replacing a group with the one element the second click happened
+ *    to land on) is the opposite of what selecting them together was for, and on a page of dense ink it made
+ *    the outline seem to pick itself apart. The press still transforms the selection, so a quick
+ *    click-and-drag on a fresh part works as it always did; the editor opens only when the selection is
+ *    **one** living element, which is the tablet's double-tap and the pencil's command.
+ *  - **Anywhere else** the click picks the element under it, selects it and opens its editor if it is
+ *    living — the placed-part case this path was written for.
+ *
+ * True when the press was this gesture's; false leaves it to the ink router.
+ */
+private suspend fun AwaitPointerEventScope.doubleClickPress(
+    live: PageSelection?,
+    grabbed: SelectionHandle,
+    picked: ElementRef?,
+    page: Page?,
+    x0: Double,
+    y0: Double,
+    tab: DesktopTab,
+    view: DragView,
+    density: Float,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+    onEdited: (Int) -> Unit,
+    onEditLiving: (() -> Unit)?,
+): Boolean {
+    if (live != null && grabbed != SelectionHandle.NONE) {
+        tab.selection = live
+        val editsBefore = tab.document.edits
+        transformSelection(live, grabbed, x0, y0, tab, view, density, onLiveDrag, onEdited)
+        if (live.refs.size == 1 && tab.document.edits == editsBefore && selectedLivingElement(tab) != null) {
+            onEditLiving?.invoke()
+        }
+        return true
+    }
+    if (picked == null || page == null) return false
+    val one = selectionOf(page, picked) ?: return false
+    tab.selection = one
+    val element = elementAt(page, picked)
+    val living = element != null && element.isLivingEntity
+    val editsBefore = tab.document.edits
+    transformSelection(one, SelectionHandle.BODY, x0, y0, tab, view, density, onLiveDrag, onEdited)
+    if (living && tab.document.edits == editsBefore) onEditLiving?.invoke()
+    return true
 }
 
 /** The trace half: collect the drag into a rectangle or a loop, and hand it to the page on lift. */

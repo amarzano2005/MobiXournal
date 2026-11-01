@@ -75,6 +75,46 @@ class SelectionTest {
         assertNull(SelectionTester.pickTopmost(p, 500.0, 500.0))
     }
 
+    /**
+     * A diagonal stroke's box is mostly empty paper, so a press in that emptiness is not a press on the
+     * stroke: the ink is what the selection tool may pick.
+     *
+     * Reading the box as the element made the top-right corner of every diagonal line a target, which is
+     * how a click in blank space picked ink the user had not touched.
+     */
+    @Test fun pickTopmostIgnoresTheEmptyPartOfAStrokesBox() {
+        val diagonal = Stroke(
+            Tool.PEN, 0xFF000000.toInt(), "round",
+            listOf(StrokePoint(10.0, 10.0, 4.0), StrokePoint(110.0, 110.0, 4.0)), false,
+        )
+        val pg = page(Layer(listOf(diagonal)))
+        assertNull(
+            "the far corner of the box is empty paper",
+            SelectionTester.pickTopmost(pg, 105.0, 15.0),
+        )
+        assertEquals("the line itself is pickable", ElementRef(0, 0), SelectionTester.pickTopmost(pg, 60.0, 62.0))
+    }
+
+    /**
+     * A marquee judges a stroke by its **ink**, so a thick band whose box spills past the trace is caught.
+     *
+     * A 30 pt marker band reaches 15 pt to either side of the line it was drawn on; a rectangle traced
+     * around the line therefore never contains the band's box, and the old containment rule — the box's
+     * corners inside the trace — answered "nothing" for ink the user had drawn a box around.
+     */
+    @Test fun aMarqueeJudgesAStrokeByItsInkNotItsBox() {
+        val band = Stroke(
+            Tool.HIGHLIGHTER, 0xFFFFF000.toInt(), "round",
+            listOf(StrokePoint(10.0, 100.0, 30.0), StrokePoint(50.0, 100.0, 30.0)), false,
+        )
+        val pg = page(Layer(listOf(band)))
+        assertEquals(
+            "the ink is inside the trace, so the band is caught",
+            setOf(ElementRef(0, 0)),
+            SelectionTester.inRect(pg, Bounds(0.0, 90.0, 60.0, 110.0)),
+        )
+    }
+
     @Test fun boundsOfUnionsSelectedElements() {
         val refs = setOf(ElementRef(0, 0), ElementRef(0, 1))
         val b = SelectionTester.boundsOf(p, refs)!!
