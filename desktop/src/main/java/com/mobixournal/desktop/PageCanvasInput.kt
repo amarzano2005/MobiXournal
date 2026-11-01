@@ -90,6 +90,8 @@ internal suspend fun PointerInputScope.pageGestures(
     previewRegion: MutableState<SelectionRegion?>? = null,
     /** The magnetic highlighter's live bands (`PenPointer.pdfBands`), painted in place of the freehand path. */
     pdfBands: MutableState<List<MagneticHighlighter.Band>>? = null,
+    /** The instrument a pose drag is holding right now, for the readout pill and its snap tick. */
+    guideAim: MutableState<GuideAim?>? = null,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
@@ -123,7 +125,7 @@ internal suspend fun PointerInputScope.pageGestures(
         pageGestureLoop(
             tab = tab, panMode = panMode, tool = tool, ink = ink, shapeInk = shapeInk, targets = targets,
             taps = taps, dragView = dragView, gesture = gesture,
-            draft = draft, grabLine = grabLine, previewRegion = previewRegion,
+            draft = draft, grabLine = grabLine, previewRegion = previewRegion, guideAim = guideAim,
             onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
             viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
@@ -145,6 +147,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
     draft: SnapshotStateList<InkSample>,
     grabLine: MutableState<Double?>?,
     previewRegion: MutableState<SelectionRegion?>?,
+    guideAim: MutableState<GuideAim?>?,
     onEdited: (Int) -> Unit,
     penActive: () -> Boolean,
     pageW: Float,
@@ -204,7 +207,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
         if (circuitPress(down, tool, tab, shapeInk, dragView, targets, onEdited)) return@awaitEachGesture
         // A press on the placed **instrument** poses it, whatever tool is in hand: the guide is an aid on the
         // page, not a tool that inks, and this is the gesture the guides slot exists for (`GuideGesture`).
-        if (guideDrag(down, tool, tab, dragView, targets.onLiveDrag)) return@awaitEachGesture
+        if (guideDrag(down, tool, tab, dragView, targets.onLiveDrag, guideAim)) return@awaitEachGesture
         // A selection, a living element or a figure takes the drag before the ink sees it.
         if (
             preInkPress(down, tool, tab, dragView, pageW, pageH, previewRegion, onEdited, taps, targets)
@@ -279,6 +282,8 @@ private suspend fun AwaitPointerEventScope.guideDrag(
     tab: DesktopTab,
     view: DragView,
     onLiveDrag: ((() -> Unit)?) -> Unit,
+    /** Where the aim reading is published while the drag runs (`PenPointer.guideAim`). */
+    aim: MutableState<GuideAim?>? = null,
 ): Boolean {
     val start = tab.guide ?: return false
     if (down.type == PointerType.Stylus && tool !in GUIDE_TOOLS) return false
@@ -300,18 +305,24 @@ private suspend fun AwaitPointerEventScope.guideDrag(
             val change = awaitPointerEvent().changes.firstOrNull() ?: break
             if (change.changedToUpIgnoreConsumed() || !change.pressed) break
             val (px, py) = pagePointOf(change.position.x, change.position.y, density, view.current())
-            tab.guide = guideDragged(
+            val snapped = currentEvent.keyboardModifiers.isShiftPressed
+            val posed = guideDragged(
                 start = start,
                 grab = grab,
                 grabDx = grabDx,
                 grabDy = grabDy,
                 px = px,
                 py = py,
-                snapAngle = currentEvent.keyboardModifiers.isShiftPressed,
+                snapAngle = snapped,
             )
+            tab.guide = posed
+            // The readout exists for as long as the hand holds the instrument: the pill follows the tip
+            // and the tick marks a snapped aim (`GuideAimPill`), and both vanish on the lift.
+            aim?.value = GuideAim(posed, snapped && grab == GuideGrab.TIP)
             change.consume()
         }
     } finally {
+        aim?.value = null
         onLiveDrag(null)
     }
     return true

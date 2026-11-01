@@ -52,45 +52,25 @@ internal fun DrawScope.paintLiveOverlay(
     selection: PageSelection?,
     previewRegion: SelectionRegion?,
     grabLineY: Double?,
+    /**
+     * The instrument standing on **this** page, or null — the caller filters the tab's pose by its page.
+     *
+     * A guide is view state, so it is painted here rather than in the recorded picture: the sheet holds no
+     * element for it, and undoing an edit never has to restore it.
+     */
+    guide: DesktopGuidePose? = null,
+    /** The instrument a pose drag is holding right now, for the snap tick (null when nothing is posed). */
+    guideAim: GuideAim? = null,
     pxPerPt: Float,
     measurer: TextMeasurer,
 ) {
-    // A geometry slot's preview is the figure's own points, drawn with the pen's rule: same width,
-    // same colour, and the same list the lift reads, so what is previewed is what is written.
-    val previewTool = tool.previewTool()
-    // A snapping highlighter's preview *is* its bands: drawing the hand's path underneath them would show
-    // two different futures for one lift.
+    // The instrument first, under the stroke being drawn: the amber wash is 13 % of the sheet, so ink laid
+    // along it reads as ink on paper ruled by a tool rather than as ink hidden under chrome.
+    paintPlacedGuide(guide, pxPerPt, guideAim)
+    // A geometry slot's preview is the figure's own points; a snapping highlighter's preview is its bands,
+    // not the hand's path underneath them.
     val magnetic = pdfBands.isNotEmpty() && tool.inkTool() == com.mobixournal.format.model.Tool.HIGHLIGHTER
-    if (previewTool != null && !magnetic) {
-        val previewInk = if (tool.shapeKind() != null) shapeInk else ink
-        for (draft in drafts) {
-            if (draft.isEmpty()) continue
-            val samples = runCatching { draft.toList() }.getOrNull() ?: continue
-            if (samples.size < 2) continue
-            strokeOf(
-                previewTool,
-                previewInk.colour,
-                previewInk.width,
-                samples,
-                previewInk.lineStyle,
-            )?.let { draftStroke ->
-                // The draft is a stroke growing by a few samples per frame: its geometry is cached by the
-                // list it lives in and the length it has reached, so a frame that only redraws (a scroll, a
-                // hover, a selection moving) does not rebuild the whole outline again.
-                val isFigure = tool.shapeKind() != null
-                val shapes = StrokePathCache.draft(
-                    identity = draft,
-                    size = draft.size,
-                    tool = draftStroke.tool,
-                    lineStyle = draftStroke.lineStyle,
-                    points = draftStroke.points,
-                    scale = pxPerPt,
-                    smooth = !isFigure,
-                )
-                drawStrokeShapes(draftStroke, shapes, pxPerPt)
-            }
-        }
-    }
+    paintDraftPreviews(tool, ink, shapeInk, drafts, magnetic = magnetic, pxPerPt = pxPerPt)
     // The snapped bands, at the highlighter's own translucency: a preview of the ink, not chrome.
     drawPdfPreviewBands(pdfBands, ink.colour, pxPerPt)
     // The element a placement drag has drawn so far, in the same painter the page uses: a component is
@@ -125,6 +105,54 @@ internal fun DrawScope.paintLiveOverlay(
             end = Offset((page.width * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
             strokeWidth = 1f,
         )
+    }
+}
+
+
+/**
+ * The strokes **in progress**, one preview per input path, painted with the rule the lift will use: a
+ * geometry slot's figure from the same points `shapeFromDrag` built, and everything else through the shared
+ * `strokeOf`. The drafts themselves, not copies, are the key the painted geometry is cached by — a fresh
+ * list per frame would miss on every paint.
+ */
+private fun DrawScope.paintDraftPreviews(
+    tool: DesktopTool,
+    ink: DesktopInk,
+    shapeInk: DesktopInk,
+    drafts: List<List<InkSample>>,
+    /** True while a magnetic highlighter's bands stand in for the freehand path. */
+    magnetic: Boolean,
+    pxPerPt: Float,
+) {
+    val previewTool = tool.previewTool() ?: return
+    if (magnetic) return
+    val previewInk = if (tool.shapeKind() != null) shapeInk else ink
+    for (draft in drafts) {
+        if (draft.isEmpty()) continue
+        val samples = runCatching { draft.toList() }.getOrNull() ?: continue
+        if (samples.size < 2) continue
+        strokeOf(
+            previewTool,
+            previewInk.colour,
+            previewInk.width,
+            samples,
+            previewInk.lineStyle,
+        )?.let { draftStroke ->
+            // The draft is a stroke growing by a few samples per frame: its geometry is cached by the
+            // list it lives in and the length it has reached, so a frame that only redraws (a scroll, a
+            // hover, a selection moving) does not rebuild the whole outline again.
+            val isFigure = tool.shapeKind() != null
+            val shapes = StrokePathCache.draft(
+                identity = draft,
+                size = draft.size,
+                tool = draftStroke.tool,
+                lineStyle = draftStroke.lineStyle,
+                points = draftStroke.points,
+                scale = pxPerPt,
+                smooth = !isFigure,
+            )
+            drawStrokeShapes(draftStroke, shapes, pxPerPt)
+        }
     }
 }
 

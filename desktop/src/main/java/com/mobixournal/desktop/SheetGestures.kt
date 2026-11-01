@@ -64,6 +64,8 @@ internal fun Modifier.sheetGestures(
         previewRegion = pointer.previewRegion,
         // The highlighter's magnetic preview, shared by both input paths.
         pdfBands = pointer.pdfBands,
+        // A pose drag's own reading: the aim pill and the snap tick while the instrument is held.
+        guideAim = pointer.guideAim,
         onViewport = onViewport,
         onEdited = onEdited,
     )

@@ -275,6 +275,23 @@ object DesignTokens {
     /** The ink a refusal is written in — the one place a chrome colour is not neutral. */
     const val DANGER_DARK_RGB: Int = 0xFF8A80
 
+    /**
+     * The amber a **drawing guide** is drawn in: the setsquare, the compass, the protractor.
+     *
+     * It is deliberately not the accent: an accent marks what is *picked*, while an instrument is a
+     * physical thing laid on the sheet, so it wears a colour no control wears. Both shells paint it, so
+     * the value lives here rather than in one shell's chrome (`CanvasChrome.GUIDE_COLOR` is the tablet's
+     * name for it, `DesktopTheme.guide` the window's).
+     */
+    const val GUIDE_RGB: Int = 0xE08A20
+
+    /**
+     * The alpha of the wash filling the setsquare's body — enough to see the instrument, faint enough to
+     * draw over it. A byte (`0x22` of 255) because the tablet's `Paint` takes one; the window divides by
+     * 255 for a Compose colour.
+     */
+    const val GUIDE_FILL_ALPHA: Int = 0x22
+
     // --- Desktop chrome metrics (`docs/desktop-workstation.md`, the shell as built) --------------
 
     /** The header band: one row of document tabs, closing on one bottom edge. */

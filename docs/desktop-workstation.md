@@ -159,15 +159,16 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   the header's own material, the canvas is handed what is left, and no bar lies on the sheet.
   `Ctrl+,` opens the panel that sets it — [`desktop-settings.md`](desktop-settings.md)
   owns what each section answers; the header has no chooser, because moving the strips is a setting.
-  The capsule stands **in** its band — its own 6 dp lift, the family's rim and the nearly solid
-  `STRIP_GLASS_ALPHA` fill — and the band under it is the window's glass at `DESKTOP_BAND_ALPHA`, so the
+  The capsule stands **in** its band — its own 6 dp lift, the family's rim and the nearly solid `STRIP_GLASS_ALPHA` fill — and the band under it is the window's glass at `DESKTOP_BAND_ALPHA`, so the
   two layers read as the tablet's rail: a pill of glass in a bar. Each
   header control is the same object at 36 dp. Both placements draw the same slots in the order, glyphs and
   shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, the picked slot a 10 dp squircle in the
   `#38383E` and a name-and-hotkey pill on hover.
   **A slot is a tool *group*, as on the tablet**: the **eraser slot** holds its two members (partial,
   whole-stroke), the **Text slot** holds prose and formula, and pen, highlighter, the **hand**, vertical
-  space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, the
+  space, the **guides** (one slot for the setsquare and the compass, laid on the page where you look,
+  drawn in the shared amber with an aim readout while it is held), each STEM slot and **every figure**
+  (Line, Arrow, Double arrow, Rectangle, Ellipse, the
   triangle, the trapezoid and the Polygon, then Axes) stand alone — nine figure slots, one click each,
   the tablet's rail geometry. A grouped slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already
   picked**, or `Alt`+`Down`) opens its **glass picker**. **One click never opens a submenu**: the first
@@ -176,8 +177,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   and the slot wears the chosen one. Picking a row re-faces the slot and closes the picker, a click on a
   slot whose picker is open closes it too (that click is the press the popup dismisses on, so it may not
   reopen what it just closed), `Esc` closes it as well, and no key ever changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
-  The slot is **remembered**: the pick is written as `interface.pickedTool` and the window reopens on it,
-  with the colour and width that slot keeps, so a session resumes at the pen, the marker or the eraser it
+  The slot is **remembered**: the pick is written as `interface.pickedTool` and the window reopens on it, with the colour and width that slot keeps, so a session resumes at the pen, the marker or the eraser it
   was left on instead of always at the pencil.
 - **Records and plays back audio**, in the tablet's own capsule: a microphone/stop, a pause and a play
   sitting **immediately left of Save**, with the take's `mm:ss` and level beside them, and the take

@@ -183,10 +183,14 @@ class DesktopGuideSceneTest {
 
             val strokes = tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
             val written = strokes.lastOrNull() ?: error("the stroke never reached the page")
-            assertEquals("the stroke really has the drag's vertices", 4, written.points.size)
+            // A run of collinear samples is simplified to its ends — which is the point of drawing against
+            // an instrument: the hand's wobble left nothing to keep.
+            assertTrue("the stroke kept its ends (${written.points.size} pt)", written.points.size >= 2)
             for (point in written.points) {
                 assertEquals("every vertex sits on the guide's edge", 245.0, point.y, 1e-6)
             }
+            assertEquals("from where the drag began", 140.0, written.points.first().x, 1e-6)
+            assertEquals("to where it ended", 235.0, written.points.last().x, 1e-6)
             assertTrue("the stroke is one undo step", tab.canUndo)
         } finally {
             scene.close()

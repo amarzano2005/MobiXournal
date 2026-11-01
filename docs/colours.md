@@ -138,7 +138,11 @@ container could reach a light-theme screen.)
   both **neutral** greys. The light one was a blue-grey (`#596579`), which put a colour cast on every
   caption, pop-up heading and hint in the light theme.
 - **`BlueDark` (`#60A5FA`)** & **`Blue` (`#2563EB`)**: Modern crisp royal blue primary and secondary accents, replacing legacy purple across active tools, tabs, selection indicators, and chrome icons. The luminous dark accent takes true black ink (`OnAccentDark`) rather than Material 3's baseline `#381E72`.
-- **`Amber` (`#FFFFB300`)**: Canvas guide overlay accent.
+- **`Amber` (`#E08A20`)**: the drawing guides' overlay accent — the setsquare, the compass and
+  the protractor, on both shells. Its one home is `DesignTokens.GUIDE_RGB`, with the body wash's
+  alpha beside it as `GUIDE_FILL_ALPHA`; the tablet's `CanvasChrome.GUIDE_COLOR` and the window's
+  `DesktopTheme.guide`/`guideFill` are the two readers. Deliberately not the accent blue: an accent
+  marks what is *picked*, and an instrument is a physical thing laid on the paper.
 
 ### The violet trap
 

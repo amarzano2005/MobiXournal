@@ -71,6 +71,15 @@ internal class PenPointer {
      * pen, shown exactly as it will land. Nothing of it is on the page until the lift.
      */
     val previewLiving = mutableStateOf<Element?>(null)
+
+    /**
+     * The instrument being **re-posed** right now, or null — the aim pill and its snap tick.
+     *
+     * Gesture state, not view state: the pose itself is written to the tab frame by frame (that is what
+     * the sheet paints), and this carries only the reading that exists for the length of a drag. It is
+     * cleared when the hand lets go, so the pill disappears rather than captioning a settled page.
+     */
+    val guideAim = mutableStateOf<GuideAim?>(null)
 }
 
 /**

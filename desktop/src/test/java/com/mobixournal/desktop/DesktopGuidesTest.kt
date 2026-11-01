@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.GuideKind
+import kotlin.math.PI
 import kotlin.math.hypot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -76,6 +77,48 @@ class DesktopGuidesTest {
         val chemistry = DesktopGuidePose(0, DrawingGuide.Chemistry(0.0, 0.0, spacingPt = 40.0))
         val (nx, ny) = chemistry.project(0, 23.0, 33.0)
         assertTrue("a bond node is where the lattice says", hypot(nx - 20.0, ny - 40.0 * kotlin.math.sqrt(3.0) / 2.0) < 1e-6)
+    }
+
+    /**
+     * The readout the pill prints: whole degrees, folded into the scale, never a minus sign.
+     *
+     * A hand cannot aim at a fraction of a degree and a setsquare is read in whole ones, so the label
+     * rounds; `-90°` pointing up must read as `270°`, because a minus sign says "turn back" where the
+     * instrument is simply pointing the other way. The top of the scale folds to `0°` rather than to a
+     * `360°` the instrument never shows.
+     */
+    @Test
+    fun `the aim reads as whole degrees folded into the scale`() {
+        assertEquals("0\u00B0", guideAimLabel(0.0))
+        assertEquals("45\u00B0", guideAimLabel(PI / 4))
+        assertEquals("270\u00B0", guideAimLabel(-PI / 2))
+        // 359.6° rounds up to the top of the scale, which is 0° and not 360°.
+        assertEquals("0\u00B0", guideAimLabel(Math.toRadians(359.6)))
+        assertEquals("180\u00B0", guideAimLabel(PI))
+    }
+
+    @Test
+    fun `the aim is the instrument's own long leg`() {
+        val pose = setsquare()
+        // The long leg points at 0°, its tip is the handle — one reading for a turned triangle.
+        assertEquals(0.0, pose.aimRadians(), eps)
+        val turned = pose.copy(guide = (pose.guide as DrawingGuide.Setsquare).copy(angle = PI / 2))
+        assertEquals(90.0, Math.toDegrees(turned.aimRadians()), 1e-6)
+        assertEquals("90\u00B0", GuideAim(turned, snapped = false).label)
+    }
+
+    /**
+     * The compass's pill reads its **opening**, not an angle.
+     *
+     * Its handle always lies to the right of the hub, so a degree readout would print `0\u00B0` no matter
+     * which way the hand opened it — a number that is true and useless. The radius is what the drag sets.
+     */
+    @Test
+    fun `the compass reads its opening rather than an angle`() {
+        val compass = placedGuideOn(GuideKind.COMPASS, page = 0, centre = 100.0 to 100.0)!!
+        val opened = compass.copy(guide = (compass.guide as DrawingGuide.Compass).openedTo(100.0, 40.0))
+        assertEquals(60.0, (opened.guide as DrawingGuide.Compass).radius, eps)
+        assertEquals("60 pt", GuideAim(opened, snapped = false).label)
     }
 
     @Test

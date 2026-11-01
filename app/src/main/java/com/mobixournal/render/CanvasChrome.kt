@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import android.graphics.DashPathEffect
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.XoppColor.withAlpha
 import android.graphics.Paint
 import android.graphics.Path
@@ -271,12 +272,15 @@ internal class CanvasChrome {
         const val PAGE_OUTLINE = 0x26FFFFFF
         const val SELECTION_COLOR = 0xFF2060E0.toInt()
 
-        /** Outline colour of the setsquare/compass overlay — amber, so it reads as an instrument
-         * laid on the page rather than as a selection. */
-        const val GUIDE_COLOR = 0xFFE08A20.toInt()
+        /**
+         * Outline colour of the setsquare/compass overlay — amber, so it reads as an instrument laid on
+         * the page rather than as a selection. The value is the shared token, so the window's overlay
+         * cannot pick a second amber.
+         */
+        val GUIDE_COLOR: Int = 0xFF000000.toInt() or DesignTokens.GUIDE_RGB
 
-        /** Alpha of the wash filling the setsquare's body — enough to see, faint enough to draw over. */
-        const val GUIDE_FILL_ALPHA = 0x22
+        /** Alpha of the wash filling the setsquare's body (the shared `GUIDE_FILL_ALPHA`). */
+        const val GUIDE_FILL_ALPHA = DesignTokens.GUIDE_FILL_ALPHA
 
         /** Alpha of the chemistry guide's bond mesh — fainter still, so a dense mesh never shouts. */
         const val GUIDE_MESH_ALPHA = 0x30

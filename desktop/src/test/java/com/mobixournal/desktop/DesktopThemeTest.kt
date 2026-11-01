@@ -66,6 +66,19 @@ class DesktopThemeTest {
         assertEquals(DesktopTheme.activeSlot.green, DesktopTheme.hoverSlot.green, 1e-6f)
         assertEquals(DesktopTheme.activeSlot.blue, DesktopTheme.hoverSlot.blue, 1e-6f)
 
+        // The instrument both shells lay on the sheet: one amber, and one wash alpha. Reading the token
+        // back is what keeps the window's overlay from picking a second amber (`CanvasChrome.GUIDE_COLOR`
+        // is the tablet's name for the same number).
+        assertEquals(
+            "the guide wears the shared amber",
+            DesktopTheme.tokenColour(DesignTokens.GUIDE_RGB),
+            DesktopTheme.guide,
+        )
+        // Compose packs alpha to 8 bits, so 0x22 of 255 comes back as 34/255.
+        assertEquals(DesignTokens.GUIDE_FILL_ALPHA / 255f, DesktopTheme.guideFill.alpha, 0.005f)
+        assertEquals(DesktopTheme.guide.red, DesktopTheme.guideFill.red, 1e-6f)
+        assertEquals(DesktopTheme.guide.blue, DesktopTheme.guideFill.blue, 1e-6f)
+
         // The rail both shells draw: one capsule, one lane, one slot corner, one glyph grid.
         assertEquals(DesignTokens.RAIL_CAPSULE_WIDTH_DP, number("railCapsuleWidthDp").toInt())
         assertEquals(DesignTokens.RAIL_LANE_PADDING_DP, number("railLanePaddingDp").toInt())

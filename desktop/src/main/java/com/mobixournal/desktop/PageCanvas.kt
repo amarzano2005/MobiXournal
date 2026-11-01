@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
@@ -301,63 +302,84 @@ internal fun SheetCanvas(
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`SheetMark`).
     val mark = sheetMark(tool, ink, shapeInk, sheet, density, pointer)
 
-    Canvas(
-        Modifier.fillMaxSize().sheetInput(
-            tab = tab,
-            panMode = panMode,
-            tool = tool,
-            ink = ink,
-            shapeInk = shapeInk,
-            pen = pen,
-            sheet = sheet,
-            pointer = pointer,
-            draft = draft,
-            ringVisible = mark.ringPx != null,
-            followMouse = mark.followMouse,
-            dialWheel = dialWheel,
-            targets = sheetTargets(
-                onPlaceLiving, onPlaceCircuit, circuitKind, figures, onTextPress, onEditLiving, pointer,
-                onLiveDrag,
+    Box(Modifier.fillMaxSize()) {
+        Canvas(
+            Modifier.fillMaxSize().sheetInput(
+                tab = tab,
+                panMode = panMode,
+                tool = tool,
+                ink = ink,
+                shapeInk = shapeInk,
+                pen = pen,
+                sheet = sheet,
+                pointer = pointer,
+                draft = draft,
+                ringVisible = mark.ringPx != null,
+                followMouse = mark.followMouse,
+                dialWheel = dialWheel,
+                targets = sheetTargets(
+                    onPlaceLiving, onPlaceCircuit, circuitKind, figures, onTextPress, onEditLiving, pointer,
+                    onLiveDrag,
+                ),
+                density = density,
+                onViewport = onViewport,
+                onFit = onFit,
+                onEdited = onEdited,
             ),
-            density = density,
-            onViewport = onViewport,
-            onFit = onFit,
-            onEdited = onEdited,
-        ),
-    ) {
-        paintSheet(
-            sheetPicture = sheetPicture,
-            page = page,
-            viewport = sheet.viewport,
-            zoom = sheet.zoom,
-            density = density,
-            connectorKind = connectorKindFor(tool, circuitKind),
-            measurer = measurer,
-            backdrop = tab.document.backdrop,
-            hiddenLayers = tab.hiddenOn(tab.page),
-            tool = tool,
-            ink = ink,
-            shapeInk = shapeInk,
-            // The drafts themselves, not copies: their **identity** is the key the painted geometry is
-            // cached by (`StrokePathCache`), and a fresh list per frame would miss on every paint.
-            drafts = listOf(draft, penDraft),
-            grabLineY = pointer.grabLine.value,
-            selection = tab.selection,
-            previewRegion = pointer.previewRegion.value,
-            previewLiving = pointer.previewLiving.value,
-            pdfBands = pointer.pdfBands.value,
-            paintProbe = paintProbe,
-            skip = editingText,
-            karaoke = karaoke,
-        )
-        // A PDF text selection is chrome above the sheet, in the page's own space like the marquee.
-        drawSelectedPdfText(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density)
-        drawSearchHit(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density) // chrome, not ink
-        // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings are
-        // taken **here**, in the draw scope, so a hover reading repaints the sheet and never recomposes it.
-        val ring = mark.ringPx ?: return@Canvas
-        pointer.hover.value?.let { at -> drawToolCursor(at, ring) }
+        ) {
+            paintSheet(
+                sheetPicture = sheetPicture,
+                page = page,
+                viewport = sheet.viewport,
+                zoom = sheet.zoom,
+                density = density,
+                connectorKind = connectorKindFor(tool, circuitKind),
+                measurer = measurer,
+                backdrop = tab.document.backdrop,
+                hiddenLayers = tab.hiddenOn(tab.page),
+                tool = tool,
+                ink = ink,
+                shapeInk = shapeInk,
+                // The drafts themselves, not copies: their **identity** is the key the painted geometry is
+                // cached by (`StrokePathCache`), and a fresh list per frame would miss on every paint.
+                drafts = listOf(draft, penDraft),
+                grabLineY = pointer.grabLine.value,
+                // Read in composition, so a pose drag recomposes; a guide is view state on the tab.
+                guide = tab.guide?.takeIf { it.page == tab.page },
+                guideAim = pointer.guideAim.value?.takeIf { it.pose.page == tab.page },
+                selection = tab.selection,
+                previewRegion = pointer.previewRegion.value,
+                previewLiving = pointer.previewLiving.value,
+                pdfBands = pointer.pdfBands.value,
+                paintProbe = paintProbe,
+                skip = editingText,
+                karaoke = karaoke,
+            )
+            drawSheetChrome(tab, sheet, density, mark, pointer)
+        }
+        GuideAimLayer(tab, pointer, sheet, density)
     }
+}
+
+/**
+ * The marks **above** the painted sheet, in the canvas's own pixels: a PDF text selection (page space, like
+ * the marquee), the search hits, and the pen's ring at the point the tool will act.
+ *
+ * Kept out of [SheetCanvas] so the surface that owns a page stays its layout, its paint and its wiring
+ * (`SourceStructureTest`). The hover reading is taken here, in the draw scope, so it repaints the sheet
+ * without recomposing it.
+ */
+private fun DrawScope.drawSheetChrome(
+    tab: DesktopTab,
+    sheet: SheetLayout,
+    density: Float,
+    mark: SheetMark,
+    pointer: PenPointer,
+) {
+    drawSelectedPdfText(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density)
+    drawSearchHit(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density) // chrome, not ink
+    val ring = mark.ringPx ?: return
+    pointer.hover.value?.let { at -> drawToolCursor(at, ring) }
 }
 
 /**
@@ -468,6 +490,10 @@ private fun DrawScope.paintSheet(
     drafts: List<List<InkSample>>,
     /** The vertical-space tool's grab line, in page points, or null when no such drag is live. */
     grabLineY: Double? = null,
+    /** The instrument standing on this page, or null — view state, so it is chrome above the sheet. */
+    guide: DesktopGuidePose? = null,
+    /** The instrument a pose drag is holding right now, for the snap tick; null when nothing is posed. */
+    guideAim: GuideAim? = null,
     /** The live selection of the page being drawn, if any. */
     selection: PageSelection? = null,
     /** The region a selection drag is tracing right now, if any. */
@@ -487,29 +513,18 @@ private fun DrawScope.paintSheet(
     // density of its own.
     val startedAt = System.nanoTime()
     val pxPerPt = zoom * density
-    // The sheet: recorded once per viewport, replayed per frame (see `PagePicture`). Recording is the
-    // Kotlin cost — `LivingInk`, text measurement, a `Path` per stroke — and a frame must not pay it.
-    val karaokeState = karaoke?.state
-    if (karaokeState == null) {
-        sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer, skip)
-    } else {
-        // A recorded picture says every stroke as it was written, so it cannot show a page being written:
-        // while a clip sounds the sheet is painted from the elements, under the picture's own matrix.
-        withTransform({
-            translate(viewport.offsetX * density, viewport.offsetY * density)
-            scale(zoom, zoom, pivot = Offset.Zero)
-        }) {
-            drawPageContent(
-                page = page,
-                pxPerPt = density,
-                textMeasurer = measurer,
-                backdrop = backdrop,
-                hiddenLayers = hiddenLayers,
-                skip = skip,
-                karaoke = karaokeState,
-            )
-        }
-    }
+    paintRecordedSheet(
+        sheetPicture = sheetPicture,
+        page = page,
+        viewport = viewport,
+        zoom = zoom,
+        density = density,
+        backdrop = backdrop,
+        hiddenLayers = hiddenLayers,
+        measurer = measurer,
+        skip = skip,
+        karaoke = karaoke,
+    )
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
         paintLiveOverlay(
             page = page,
@@ -523,6 +538,8 @@ private fun DrawScope.paintSheet(
             selection = selection,
             previewRegion = previewRegion,
             grabLineY = grabLineY,
+            guide = guide,
+            guideAim = guideAim,
             pxPerPt = pxPerPt,
             measurer = measurer,
         )
@@ -539,6 +556,47 @@ private fun DrawScope.paintSheet(
     // And the same frame, for the status bar: the watchdog writes a file nobody reads unless it is told to,
     // the meter answers the question a reader asks when a stroke feels late (`FrameMeter`).
     FrameMeter.painted()
+}
+
+/**
+ * The sheet itself: the recorded picture, or — while a clip sounds — the page painted from its elements.
+ *
+ * A recording is replayed per frame (see `PagePicture`) because recording is the Kotlin cost: `LivingInk`,
+ * text measurement, a `Path` per stroke, and a frame must not pay it. A recording says every stroke as it
+ * was written, so it cannot show a page being written; a sounding clip paints the elements directly, under
+ * the picture's own matrix, and `karaoke` carries the stroke it is on.
+ */
+private fun DrawScope.paintRecordedSheet(
+    sheetPicture: PagePicture,
+    page: Page,
+    viewport: Viewport,
+    zoom: Float,
+    density: Float,
+    backdrop: PageBackdrop?,
+    hiddenLayers: Set<Int>,
+    measurer: TextMeasurer,
+    skip: Element?,
+    karaoke: DesktopKaraoke?,
+) {
+    val karaokeState = karaoke?.state
+    if (karaokeState == null) {
+        sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer, skip)
+        return
+    }
+    withTransform({
+        translate(viewport.offsetX * density, viewport.offsetY * density)
+        scale(zoom, zoom, pivot = Offset.Zero)
+    }) {
+        drawPageContent(
+            page = page,
+            pxPerPt = density,
+            textMeasurer = measurer,
+            backdrop = backdrop,
+            hiddenLayers = hiddenLayers,
+            skip = skip,
+            karaoke = karaokeState,
+        )
+    }
 }
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */

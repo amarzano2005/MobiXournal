@@ -243,7 +243,12 @@ slot is in hand, which is the tablet's own *a pen draws, a hand holds* (`docs/de
 rule is the surface's: `PageInkGesture` projects **every** drawn vertex through `DrawingGuide.project` before
 the sample reaches the draft, so the preview, the dwell's figure and the committed `Stroke` are one set of
 points — and the geometry drag projects its two ends in `preview()` the same way. The window has no grid
-snapping, so there is no precedence to state: the guide is the only constraint at its ink edge.
+snapping, so there is no precedence to state: the guide is the only constraint at its ink edge. It also
+**draws** the instrument it holds: `paintPlacedGuide` paints the triangle or the circle in the shared amber
+(`DesignTokens.GUIDE_RGB`, the tablet's `CanvasChrome` and the window's `DesktopTheme.guide` reading one
+token) with a hold dot at the handle, and while a pose drag runs a glass pill beside the tip reads the aim —
+whole degrees, or the compass's opening in points, because a compass has no angle of its own — with an
+accent tick across the aim while **Shift** has snapped it.
 settings feedback loops. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and the window's `DesktopPdfPainter`

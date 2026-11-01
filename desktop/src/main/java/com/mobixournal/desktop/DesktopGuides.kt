@@ -4,6 +4,8 @@ import com.mobixournal.design.ToolGlyph
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.guideKind
+import kotlin.math.atan2
+import kotlin.math.roundToInt
 
 /**
  * The window's **drawing guides**: the setsquare and compass the tablet lays against the page, as the PC
@@ -67,6 +69,62 @@ internal fun guideSlotGlyph(tool: DesktopTool, placed: GuideKind?): ToolGlyph? =
     DesktopTool.SETSQUARE -> if (placed == GuideKind.COMPASS) ToolGlyph.COMPASS else ToolGlyph.SETSQUARE
     DesktopTool.COMPASS -> ToolGlyph.COMPASS
     else -> null
+}
+
+/**
+ * The **aim** an instrument is holding, in radians: the direction of its handle from its anchor.
+ *
+ * For the setsquare that is its long leg, so the readout is the angle the triangle is turned to; for the
+ * compass it is the bearing of its pencil point, which is the direction the hand opened it toward. One
+ * reading for both keeps the pill a number rather than a table of what each instrument means.
+ */
+fun DesktopGuidePose.aimRadians(): Double {
+    val (hx, hy) = guide.grabHandle()
+    return atan2(hy - guide.y, hx - guide.x)
+}
+
+/**
+ * The pill's text: ([radians]) as whole degrees, folded into `0..359` and followed by a degree sign.
+ *
+ * Whole degrees because that is the precision a hand can aim at and a setsquare is read in; folded
+ * because a negative aim (`-90°` pointing up) must read as `270°` rather than as a minus sign, which
+ * said "turn back" where the instrument was simply pointing the other way. `359.6°` rounds to `0°`
+ * rather than to `360°`, so the readout never leaves the scale it is on.
+ */
+fun guideAimLabel(radians: Double): String {
+    val degrees = Math.toDegrees(radians)
+    val whole = Math.round(degrees).toInt() % 360
+    return "${(whole + 360) % 360}\u00B0"
+}
+
+/**
+ * An instrument **being re-posed right now**: the pose, and whether Shift is holding its aim on a step of
+ * `Snapping.snapAngle`.
+ *
+ * Gesture state, not view state: it exists for the length of the drag, so the pill follows the tip and the
+ * snap tick is painted only while the angle is actually snapped. The pose itself is written to the tab
+ * frame by frame, which is what the sheet paints.
+ */
+data class GuideAim(val pose: DesktopGuidePose, val snapped: Boolean) {
+
+    /**
+     * What the pill reads: the aim in degrees for an instrument that turns, its opening for the compass.
+     *
+     * A compass has no angle of its own — its handle always lies to the right of the hub, so a degree
+     * readout would print `0\u00B0` while the hand opened it downward, which is a number that is true and
+     * useless. What the hand is setting there is the radius, so that is what the pill says.
+     */
+    val label: String
+        get() = when (val guide = pose.guide) {
+            is DrawingGuide.Compass -> "${guide.radius.roundToInt()} pt"
+            else -> guideAimLabel(pose.aimRadians())
+        }
+
+    /** The point the pill follows, in page pt — the instrument's own handle. */
+    val tip: Pair<Double, Double> get() = pose.guide.grabHandle()
+
+    /** The aim in radians, for the snap tick's direction. */
+    val radians: Double get() = pose.aimRadians()
 }
 
 /**

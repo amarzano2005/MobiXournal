@@ -101,6 +101,18 @@ object DesktopTheme {
      */
     val documentRed: Color = tokenColour(DesignTokens.DOCUMENT_RED_RGB)
 
+    /**
+     * The amber a **drawing guide** is drawn in — the same instrument the tablet lays on its sheet.
+     *
+     * Deliberately not [accent]: an accent marks what is picked, while a setsquare is a physical thing
+     * on the paper. The token is the one home (`DesignTokens.GUIDE_RGB`), so the two shells cannot
+     * paint two ambers — `DesktopThemeTest` reads it back.
+     */
+    val guide: Color = tokenColour(DesignTokens.GUIDE_RGB)
+
+    /** The faint wash inside the setsquare's body: [guide] at the shared `GUIDE_FILL_ALPHA`. */
+    val guideFill: Color = guide.copy(alpha = DesignTokens.GUIDE_FILL_ALPHA / 255f)
+
     /** The steel a *picked* slot wears — a selected tab, a held toggle. */
     val activeSlot: Color = tokenColour(DesignTokens.ACTIVE_SLOT_DARK_RGB)
 
