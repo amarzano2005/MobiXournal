@@ -13,14 +13,15 @@ package com.mobixournal.render
  * other element edit.
  */
 internal fun DrawingSurfaceView.commitCircuitInsertion(kind: ShapeKind) {
+    val draft = shapeDraft
     val circuit = CircuitElementFactory.circuitElementFor(
         symbol = kind.name,
-        startX = shapeStartX,
-        startY = shapeStartY,
-        endX = shapeEndX,
-        endY = shapeEndY,
+        startX = draft.startX,
+        startY = draft.startY,
+        endX = draft.endX,
+        endY = draft.endY,
         strokeColor = strokeColor(),
-        strokeWidth = shapeWidthPt,
+        strokeWidth = draft.widthPt,
     ) ?: return
     ElementEdits.addElement(doc, currentPage, circuit) { resolvedActiveLayer(it) }
         ?.let { commitElementEdit(it) }

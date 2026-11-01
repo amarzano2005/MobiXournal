@@ -130,18 +130,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** In-progress multi-stroke shape (e.g. capacitor with an open gap). */
     internal var currentStrokes: List<List<StrokePoint>>? = null
     internal var currentPage = 0
-    /** While drawing a shape ([shapeKind] set), the drag anchor in page-local pt and the live flag. */
-    internal var shaping = false
-    internal var shapeStartX = 0.0
-    internal var shapeStartY = 0.0
-    internal var shapeEndX = 0.0
-    internal var shapeEndY = 0.0
     /**
-     * The width a shape draws at, in pt: the tool's width setting, fixed at the gesture's
-     * first touch and held constant for the whole shape. Shapes ignore pressure — desktop Xournal++
-     * draws them at the nominal width — so this never tapers; see [nominalShapeWidthPt].
+     * The shape gesture in progress — its anchor, its live end, the width it draws at — owned by
+     * [ShapeDraft] (`CanvasShapeDraft.kt`), the one place figures, tables, circuit components and the
+     * connector magnet read it from.
      */
-    internal var shapeWidthPt = 1.5
+    internal val shapeDraft = ShapeDraft()
     /** Pointer id owning the current draw/erase gesture, so a resting palm can't perturb it. */
     internal var gesturePointerId = -1
     /** True while a stylus/eraser tip owns the current draw/erase gesture (drives palm rejection). */
@@ -188,7 +182,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal val holdSnap = HoldSnap(
         schedule = { runnable, delayMs -> postDelayed(runnable, delayMs) },
         unschedule = { runnable -> removeCallbacks(runnable) },
-        freehand = { recognizeShapes && !shaping },
+        freehand = { recognizeShapes && !shapeDraft.active },
         inking = { tool == Tool.PEN || tool == Tool.HIGHLIGHTER },
         stroke = { current },
         onSnapped = { render() },

@@ -63,7 +63,7 @@ internal fun DrawingSurfaceView.commitRecognisedFigure(
     figure: RecognisedFigure,
     raw: List<StrokePoint>,
 ): Boolean {
-    if (shaping || tool != Tool.PEN || currentLineStyle != LineStyle.PLAIN) return false
+    if (shapeDraft.active || tool != Tool.PEN || currentLineStyle != LineStyle.PLAIN) return false
     val shape = ParametricShapes.elementFor(
         figure = figure,
         strokeColor = strokeColor(),

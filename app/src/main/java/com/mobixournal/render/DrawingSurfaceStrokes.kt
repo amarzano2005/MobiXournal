@@ -29,14 +29,14 @@ internal var strokeStartEventTimeMs: Long = 0L
 internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
     strokeStartEventTimeMs = start.timeMs
     scrolling = false
-    shaping = shapeKind != null
+    shapeDraft.begin(shape = shapeKind != null)
     holdSnap.reset()
     gestureStartDoc = doc
     gesturePointerId = start.id
     val box = gestureBoxAt(start.x, start.y)
         ?: run { current = null; return }
     currentPage = box.index
-    if (shaping) {
+    if (shapeDraft.active) {
         // Grid snap first, then the guide — a placed guide is the stronger constraint and must
         // not be undone by pulling the point back onto the ruling. The grid snap is the *joint* one
         // so an isometric sheet's node (which rules no axis) can still capture the endpoint.
@@ -47,13 +47,11 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
             shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
         )
         val (sx, sy) = guided(box, gx, gy)
-        shapeStartX = sx
-        shapeStartY = sy
-        shapeEndX = sx
-        shapeEndY = sy
-        shapeWidthPt = nominalShapeWidthPt()
+        shapeDraft.place(sx, sy, nominalShapeWidthPt())
         currentStrokes = null
-        current = ArrayList(listOf(StrokePoint(shapeStartX, shapeStartY, shapeWidthPt, dtMs = 0)))
+        current = ArrayList(
+            listOf(StrokePoint(shapeDraft.startX, shapeDraft.startY, shapeDraft.widthPt, dtMs = 0)),
+        )
     } else {
         // Decimate against this page's real px/pt, so a stroke drawn zoomed out or in a
         // multi-column view keeps the same document-space detail as one drawn at 100%.
@@ -78,7 +76,7 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
  */
 internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Boolean) {
     val box = gestureBox() ?: return
-    if (shaping) {
+    if (shapeDraft.active) {
         val (gx, gy) = snappedPoint(
             box,
             box.toPtX(sample.x, scrollX),
@@ -86,10 +84,10 @@ internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Bool
             shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
         )
         val (ex, ey) = guided(box, gx, gy)
-        shapeEndX = ex
-        shapeEndY = ey
+        shapeDraft.extend(ex, ey)
         val multi = ShapeBuilder.buildMulti(
-            shapeKind ?: return, shapeStartX, shapeStartY, ex, ey, shapeWidthPt,
+            shapeKind ?: return,
+            shapeDraft.startX, shapeDraft.startY, shapeDraft.endX, shapeDraft.endY, shapeDraft.widthPt,
             tableRows, tableCols, tableHeader,
         )
         if (multi != null) {
@@ -99,7 +97,8 @@ internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Bool
             currentStrokes = null
             current = ArrayList(
                 ShapeBuilder.build(
-                    shapeKind ?: return, shapeStartX, shapeStartY, ex, ey, shapeWidthPt,
+                    shapeKind ?: return,
+                    shapeDraft.startX, shapeDraft.startY, shapeDraft.endX, shapeDraft.endY, shapeDraft.widthPt,
                     tableRows, tableCols, tableHeader,
                     triangleKind, scaleneAngleA, scaleneAngleB, scaleneAngleC,
                     trapezoidKind, trapezoidAngleA, trapezoidAngleB,
@@ -304,7 +303,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
     if (multi != null) {
         currentStrokes = null
         current = null
-        shaping = false
+        shapeDraft.finish()
         for (mPts in multi) {
             if (mPts.size >= 2) {
                 appendStroke(
@@ -319,8 +318,8 @@ internal fun DrawingSurfaceView.commitCurrent() {
     // Lift-off ends any pending hold, and a stroke the hold already snapped stays snapped.
     val raw = current ?: run { holdSnap.reset(); return }
     current = null
-    val wasShaping = shaping
-    shaping = false
+    val wasShaping = shapeDraft.active
+    shapeDraft.finish()
     val holdWasSnapped = holdSnap.snapped
     // What the hold found is the figure to keep, but only while the stroke has not grown since it
     // fired: a stroke the user carried on drawing is theirs again and gets re-read below.
@@ -388,19 +387,19 @@ internal fun DrawingSurfaceView.commitCurrent() {
  * returns true when this gesture was one of them and has been committed.
  */
 private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
-    if (shaping && shapeKind == ShapeKind.TABLE) {
+    if (shapeDraft.active && shapeKind == ShapeKind.TABLE) {
         current = null
         currentStrokes = null
-        shaping = false
+        shapeDraft.finish()
         holdSnap.reset()
         commitTableInsertion()
         return true
     }
-    if (shaping && shapeKind?.let { CircuitElementFactory.isCircuitKind(it) } == true) {
+    if (shapeDraft.active && shapeKind?.let { CircuitElementFactory.isCircuitKind(it) } == true) {
         val kind = shapeKind!!
         current = null
         currentStrokes = null
-        shaping = false
+        shapeDraft.finish()
         holdSnap.reset()
         commitCircuitInsertion(kind)
         return true
@@ -410,7 +409,8 @@ private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
 
 /**
  * [pts] with their ends pulled onto a nearby component pin, when this gesture is a **connector**
- * ([shaping] with the line tool or a circuit symbol — components and tables commit before this runs).
+ * ([ShapeDraft.active] with the line tool or a circuit symbol — components and tables commit before
+ * this runs).
  *
  * A recognised freehand figure, or any other shape tool, is the user's own geometry and is never
  * pulled onto a pin. The commit uses the same reach as the live drag did (`snappedPoint`), or a wire

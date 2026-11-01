@@ -53,7 +53,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             // A held barrel is a live modifier, not only a pointer-down decision: pressing it
             // mid-stroke ends the ink drawn so far and hands the rest of the gesture to the eraser,
             // the way desktop Xournal++ switches tools under the pen.
-            if (current != null && !shaping) switchStrokeToErase(event)
+            if (current != null && !shapeDraft.active) switchStrokeToErase(event)
             when {
                 scrolling -> doScroll(event)
                 erasing -> if (routed) feedPointerSamples(event) else eraseMove(event)
@@ -275,7 +275,7 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
 internal fun DrawingSurfaceView.abandonInProgress() {
     dismissRadialHud(commit = false)
     stopAutoScroll(); holdSnap.reset()
-    current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
+    current = null; currentStrokes = null; shapeDraft.finish(); erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestures.reset(); multiTap.reset()
     // The gesture is gone, so its contacts are too: a router left holding them would read the next
@@ -287,7 +287,7 @@ internal fun DrawingSurfaceView.cancelGesture() {
     dismissRadialHud(commit = false)
     momentum.stop(); stopAutoScroll(); holdSnap.reset()
     guideDrag.end(null)
-    current = null; currentStrokes = null; shaping = false; scrolling = false; erasing = false; placing = false
+    current = null; currentStrokes = null; shapeDraft.finish(); scrolling = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
     textSelecting = false; vspace.reset()
     gesturePointerId = -1; stylusOwner = false; multiTap.reset()

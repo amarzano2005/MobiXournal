@@ -74,7 +74,8 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
 private fun DrawingSurfaceView.drawPendingPins(canvas: Canvas, kind: ShapeKind) {
     if (current == null || !CircuitElementFactory.isCircuitKind(kind)) return
     val box = layout.boxes.getOrNull(currentPage) ?: return
-    for (pin in CircuitSnapping.previewTargets(kind, shapeStartX, shapeStartY, shapeEndX, shapeEndY)) {
+    val draft = shapeDraft
+    for (pin in CircuitSnapping.previewTargets(kind, draft.startX, draft.startY, draft.endX, draft.endY)) {
         val x = (pin.absX * box.scale + box.leftPx - scrollX).toFloat()
         val y = (pin.absY * box.scale + box.topPx - scrollY).toFloat()
         canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.handle)
@@ -85,5 +86,5 @@ private fun DrawingSurfaceView.drawPendingPins(canvas: Canvas, kind: ShapeKind) 
 private fun DrawingSurfaceView.caughtByGesture(target: CircuitSnapping.PinTarget): Boolean {
     fun on(x: Double, y: Double) =
         hypot(target.absX - x, target.absY - y) <= CAUGHT_EPSILON_PT
-    return on(shapeStartX, shapeStartY) || on(shapeEndX, shapeEndY)
+    return on(shapeDraft.startX, shapeDraft.startY) || on(shapeDraft.endX, shapeDraft.endY)
 }
