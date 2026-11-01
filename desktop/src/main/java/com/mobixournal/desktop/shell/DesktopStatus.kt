@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.FrameMeter
 import com.mobixournal.desktop.ink.PenSource

@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.shell.ringWidthPt
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.PenPacketStroke
 import com.mobixournal.desktop.ink.of

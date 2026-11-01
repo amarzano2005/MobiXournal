@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.askImportPdf
+import com.mobixournal.desktop.io.cancelImportPdf
+import com.mobixournal.desktop.io.editImportPdf
+import com.mobixournal.desktop.io.importPdf
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfImport

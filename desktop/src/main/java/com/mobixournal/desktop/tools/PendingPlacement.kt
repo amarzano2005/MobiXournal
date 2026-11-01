@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.tools
+import com.mobixournal.desktop.sheet.label
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.livingElementFor

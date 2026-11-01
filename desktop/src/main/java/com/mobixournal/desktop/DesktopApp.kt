@@ -1,4 +1,7 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.ink.dialFit
+import com.mobixournal.desktop.ink.dialZoom
+import com.mobixournal.desktop.io.askImportPdf
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSettings

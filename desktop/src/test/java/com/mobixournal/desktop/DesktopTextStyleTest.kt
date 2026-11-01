@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.tools.withItalic
+import com.mobixournal.desktop.tools.withBold
+import com.mobixournal.desktop.tools.withFamily
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.sheet.LivingFamily
 import com.mobixournal.desktop.sheet.LivingTarget

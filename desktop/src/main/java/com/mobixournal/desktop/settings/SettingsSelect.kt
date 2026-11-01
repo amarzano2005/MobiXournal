@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.DismissGuard
 import com.mobixournal.desktop.tools.FloatingSurface

@@ -1,6 +1,9 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.glassSpring
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.tools.GlassPresence

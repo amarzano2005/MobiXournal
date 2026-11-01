@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.sheet.aimRadians
+import com.mobixournal.desktop.sheet.project
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.DesktopGuidePose
 import com.mobixournal.desktop.sheet.GuideAim

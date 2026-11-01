@@ -1,4 +1,7 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.ink.withElement
+import com.mobixournal.desktop.ink.eraserMode
+import com.mobixournal.desktop.ink.inkTool
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.EraseBatch
 import com.mobixournal.desktop.ink.InkSample

@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.shell.isSearchPending
+import com.mobixournal.desktop.shell.stepSearch
 import com.mobixournal.desktop.ink.PageHandwriting
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopContainer

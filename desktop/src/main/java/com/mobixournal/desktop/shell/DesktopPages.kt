@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfExport

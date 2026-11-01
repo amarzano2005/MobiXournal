@@ -1,4 +1,7 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.hoverCapsule
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopPngExport
 import com.mobixournal.desktop.io.ImportPdfDialog

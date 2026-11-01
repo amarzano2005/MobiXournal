@@ -1,6 +1,8 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.shell.label
 
 
+import com.mobixournal.desktop.ink.withElement
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DocumentLoader

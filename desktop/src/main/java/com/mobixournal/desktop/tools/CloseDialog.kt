@@ -1,4 +1,7 @@
 package com.mobixournal.desktop.tools
+import com.mobixournal.desktop.shell.cancelClose
+import com.mobixournal.desktop.shell.confirmCloseDiscard
+import com.mobixournal.desktop.shell.confirmCloseSave
 import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.shell.DesktopShellState

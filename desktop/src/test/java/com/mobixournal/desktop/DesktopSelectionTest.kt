@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.inksByPackets
 import com.mobixournal.desktop.ink.withElement
 
 import com.mobixournal.desktop.ink.DesktopInk

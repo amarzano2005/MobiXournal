@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.io.OutlineRow
 import com.mobixournal.desktop.io.contentsRowsOf
 import com.mobixournal.desktop.settings.DesktopTheme

@@ -1,6 +1,12 @@
 package com.mobixournal.desktop
 
 
+import com.mobixournal.desktop.ink.withElement
+import com.mobixournal.desktop.ink.activeTool
+import com.mobixournal.desktop.ink.eraserMode
+import com.mobixournal.desktop.ink.previewTool
+import com.mobixournal.desktop.ink.shapeKind
+import com.mobixournal.desktop.tools.selectTool
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
 import com.mobixournal.desktop.ink.of

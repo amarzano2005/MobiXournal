@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.settings.DesktopTheme
 
 import androidx.compose.foundation.background

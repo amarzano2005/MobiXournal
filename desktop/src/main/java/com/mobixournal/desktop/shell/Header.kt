@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.bandSurface
+import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.settings.DesktopSettingsState

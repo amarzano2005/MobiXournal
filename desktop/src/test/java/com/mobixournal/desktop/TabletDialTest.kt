@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.ink.dialZoom
 
+import com.mobixournal.desktop.ink.dialFit
 import com.mobixournal.desktop.ink.comGuid
 import com.mobixournal.desktop.ink.dialZoomFactor
 import com.mobixournal.desktop.ink.of

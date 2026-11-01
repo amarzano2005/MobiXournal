@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.isGuides
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.GuideStrip
 import com.mobixournal.desktop.sheet.circuitFamilyOf

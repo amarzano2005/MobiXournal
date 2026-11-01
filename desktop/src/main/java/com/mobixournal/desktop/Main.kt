@@ -1,4 +1,5 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.shell.requestExit
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.InkProbe
 import com.mobixournal.desktop.ink.TabletProbe

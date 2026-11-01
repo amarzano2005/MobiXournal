@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.saveAs
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopContainer
 import com.mobixournal.desktop.io.DesktopDocument

@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.inksByPackets
+import com.mobixournal.desktop.sheet.project
+import com.mobixournal.desktop.tools.clearGuide
+import com.mobixournal.desktop.tools.isGuides
+import com.mobixournal.desktop.tools.selectTool
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.settings.DesktopSettings

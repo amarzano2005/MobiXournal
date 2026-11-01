@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.io
+import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.glyph

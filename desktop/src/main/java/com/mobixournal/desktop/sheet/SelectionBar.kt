@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.tools.glassCapsule
+import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph

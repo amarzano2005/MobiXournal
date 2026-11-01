@@ -1,6 +1,14 @@
 package com.mobixournal.desktop
 
 
+import com.mobixournal.desktop.ink.withElement
+import com.mobixournal.desktop.shell.cancelClose
+import com.mobixournal.desktop.shell.confirmCloseDiscard
+import com.mobixournal.desktop.shell.confirmCloseSave
+import com.mobixournal.desktop.shell.flushRecovery
+import com.mobixournal.desktop.shell.recover
+import com.mobixournal.desktop.shell.requestCloseTab
+import com.mobixournal.desktop.shell.requestExit
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopRecovery
 import com.mobixournal.desktop.io.DocumentLoader

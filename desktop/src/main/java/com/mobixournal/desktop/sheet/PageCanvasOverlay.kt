@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.ink.inkTool
+import com.mobixournal.desktop.ink.shapeKind
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
 import com.mobixournal.desktop.ink.StrokePathCache

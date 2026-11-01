@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.shell.confirmPlacement
+import com.mobixournal.desktop.shell.placeOrAsk
+import com.mobixournal.desktop.tools.selectTool
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.Viewport

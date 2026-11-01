@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.tools.selectTool
+import com.mobixournal.desktop.tools.toggleTool
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings

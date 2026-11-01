@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.importPdf
+import com.mobixournal.desktop.io.saveAs
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.io.save

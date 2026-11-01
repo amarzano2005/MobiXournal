@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.shell.confirmPlacement
+import com.mobixournal.desktop.shell.placeOrAsk
+import com.mobixournal.desktop.tools.selectTool
+import com.mobixournal.desktop.tools.withItalic
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopTheme

@@ -1,4 +1,7 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.ink.withElement
+import com.mobixournal.desktop.ink.activeTool
+import com.mobixournal.desktop.ink.shapeKind
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
 import com.mobixournal.desktop.ink.MIN_SHAPE_DRAG_PT

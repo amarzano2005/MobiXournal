@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.tools
+import com.mobixournal.desktop.shell.cancelPlacement
+import com.mobixournal.desktop.shell.confirmPlacement
 import com.mobixournal.desktop.sheet.label
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme

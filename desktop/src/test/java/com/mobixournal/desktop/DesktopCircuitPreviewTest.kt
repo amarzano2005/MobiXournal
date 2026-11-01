@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 
+import com.mobixournal.desktop.ink.withElement
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.sheet.CircuitSpan

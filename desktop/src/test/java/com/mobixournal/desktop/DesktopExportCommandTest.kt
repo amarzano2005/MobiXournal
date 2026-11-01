@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.exportPdf
+import com.mobixournal.desktop.io.exportPng
+import com.mobixournal.desktop.io.exportSvg
 import com.mobixournal.desktop.io.DesktopContainer
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopExportNotice

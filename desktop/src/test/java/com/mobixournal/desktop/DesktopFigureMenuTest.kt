@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.tools.opensSubmenu
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.ink.shapeFromDrag
 import com.mobixournal.desktop.settings.DesktopSettings

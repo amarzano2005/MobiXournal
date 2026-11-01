@@ -1,5 +1,7 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.tools.bandSurface
+import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 

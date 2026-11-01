@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.sheet.placeCircuit
 import com.mobixournal.desktop.ink.ColourEditorTarget
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.TabletInk

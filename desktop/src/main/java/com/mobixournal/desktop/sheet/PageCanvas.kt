@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.ink.shapeKind
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.FrameMeter
 import com.mobixournal.desktop.ink.InkProbe
