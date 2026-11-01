@@ -62,3 +62,17 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "tablet-a-ring-section-in-settings-mirroring-the-window-s"
+title = "Tablet: a Ring section in Settings, mirroring the window's"
+description = "Give the Android editor a Ring section like the window's (docs/desktop-settings.md, *Ring*): the same three families — the palette swatches, the three pen widths and the writing tools — each on or off, stored so the ring is rebuilt from them when it opens, plus a reset. Read RingContents (desktop/sheet) and the tablet's radial HUD settings first: the shared model is mobix-core's RadialHud, so the tablet's page should choose the same three families rather than invent a fourth meaning of a notch. The tablet's ring currently always carries all three, and docs/ui-modernization.md says so; the shared keys are ring.swatches / ring.widths / ring.tools. Verify on the Pixel_Tablet AVD: ring contents follow each switch, an emptied ring does not open, and a restart reads the answers back. Docs: docs/ui-modernization.md (the HUD spoke), README, and the tablet's settings spoke."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1000
+created = 2026-11-01
+tags = ["app"]
+rebuild = true
+emulator_debug = true

@@ -6,6 +6,7 @@ import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.sheet.RingContents
 import com.mobixournal.desktop.settings.FitOnOpen
 import com.mobixournal.desktop.settings.InspectorPolicy
 import com.mobixournal.desktop.settings.PenButton
@@ -18,6 +19,7 @@ import com.mobixournal.desktop.shell.ShellCommand
 import com.mobixournal.desktop.shell.find
 import com.mobixournal.desktop.shell.shellCommand
 import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
+import com.mobixournal.desktop.tools.DesktopTool
 
 import androidx.compose.ui.input.key.Key
 import com.mobixournal.render.PressureCurve
@@ -304,4 +306,27 @@ class DesktopSettingsTest {
             policy.sections,
         )
     }
+
+    @Test
+    fun `the ring's parts survive a restart, and reset puts them all back`() {
+        val file = File(temp.root, "ring.properties")
+        val policy = DesktopSettingsState(DesktopSettings(file))
+        policy.ring.chooseSwatches(false)
+        policy.ring.chooseWidths(false)
+        policy.ring.chooseTool(DesktopTool.HIGHLIGHTER, false)
+
+        val reopened = DesktopSettingsState(DesktopSettings(file))
+        assertFalse("the swatches were switched off", reopened.ring.contents.swatches)
+        assertFalse("and so were the widths", reopened.ring.contents.widths)
+        assertEquals(setOf(DesktopTool.PEN, DesktopTool.ERASER), reopened.ring.contents.tools)
+
+        reopened.ring.reset()
+        assertEquals(RingContents.FACTORY, reopened.ring.contents)
+        assertEquals(
+            "the factory ring is what the next window reads",
+            RingContents.FACTORY,
+            DesktopSettingsState(DesktopSettings(file)).ring.contents,
+        )
+    }
+
 }

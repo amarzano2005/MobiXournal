@@ -328,7 +328,7 @@ class DesktopShellState(
 
     /** The pen-tip ring: where it is open, and the strips' own entries as its commits (`DesktopRing`). */
     internal val ring = DesktopRing(
-        palette = { palette }, custom = { paletteCustom },
+        palette = { palette }, custom = { paletteCustom }, contents = { prefs.ring.contents },
         onColour = ::pickColour, onWidth = ::pickWidth, onTool = { selectTool(it) },
     )
 

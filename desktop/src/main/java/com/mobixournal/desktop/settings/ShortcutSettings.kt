@@ -143,9 +143,9 @@ private fun ShortcutRow(entry: ShortcutEntry, policy: DesktopSettingsState) {
     }
 }
 
-/** A key, drawn as the capsule the strips use for a slot's own words. */
+/** A key, drawn as the capsule the strips use for a slot's own words — the Ring page's row too. */
 @Composable
-private fun ShortcutKeyChip(key: String) {
+internal fun ShortcutKeyChip(key: String) {
     Box(
         Modifier
             .background(DesktopTheme.activeSlot, DesktopTheme.capsuleShape)

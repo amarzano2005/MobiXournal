@@ -46,6 +46,9 @@ class DesktopSettings(val file: File = defaultFile()) {
         runCatching { if (file.isFile) file.inputStream().use(properties::load) }
     }
 
+    /** The pen-tip ring's answers — what it holds (`ring.swatches`, `ring.widths`, `ring.tools`). */
+    internal val ring = RingSettingsStore(properties, ::save)
+
     /**
      * Where the tool strips stand — the rail down an edge, or the ribbon under the header.
      *

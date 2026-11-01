@@ -55,6 +55,9 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** The Audio page's choices, in force for the first take (`DesktopAudioSettings`). */
     val audio = DesktopAudioSettings(store)
 
+    /** The pen-tip ring's own choices: what it holds, edited by the Ring page (`RingSettingsState`). */
+    internal val ring = RingSettingsState(store.ring)
+
     /** Whether the surface is up. */
     var open by mutableStateOf(false)
         private set
@@ -85,11 +88,9 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     val railSide: RailSide get() = stripPlacement.railSide ?: RailSide.LEFT
 
     /**
-     * Where the surface has been dragged to, in dp from the centre of the window.
-     *
-     * A panel over a page should be movable out of the way of the thing it is changing — a settings card
-     * that can only sit in the middle covers the sheet it is being compared against. Two numbers rather
-     * than an `Offset` so this state stays plain Kotlin (no Compose geometry) and can be tested on the JVM.
+     * Where the surface has been dragged to, in dp from the centre of the window: a panel that could only
+     * sit in the middle covers the sheet it is being compared against. Two numbers rather than an
+     * `Offset` so this state stays plain Kotlin and can be tested on the JVM.
      */
     var panelDx by mutableStateOf(0f)
         private set
@@ -262,9 +263,8 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         private set
 
     /**
-     * The Shortcuts row waiting for a key, or null. It lives here because the **window** binds the press:
-     * a row never sees one while the surface captures keys, so the page that kept the arm drew a waiting row
-     * and bound nothing. While this is set, [keyAction] answers [SettingsKeyAction.NONE].
+     * The Shortcuts row waiting for a key, or null — the **window** binds the press, because a row never
+     * sees one while the surface captures keys. While this is set, [keyAction] answers NONE.
      */
     var armedShortcut by mutableStateOf<String?>(null)
         private set

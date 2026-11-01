@@ -7,6 +7,7 @@ import androidx.compose.ui.geometry.Offset
 import com.mobixournal.desktop.ink.PenBarrel
 import com.mobixournal.desktop.sheet.DesktopHud
 import com.mobixournal.desktop.sheet.DesktopHudState
+import com.mobixournal.desktop.sheet.RingContents
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.render.HudSlot
 
@@ -32,6 +33,13 @@ internal class DesktopRing(
     private val onColour: (Int) -> Unit,
     private val onWidth: (Float) -> Unit,
     private val onTool: (DesktopTool) -> Unit,
+    /**
+     * What the ring carries, from Settings → Ring (`RingContents`).
+     *
+     * A lambda, like the palette below: the page's switches are read at the moment a ring opens, so a
+     * ring summoned straight after a switch carries the new parts without the window being restarted.
+     */
+    private val contents: () -> RingContents = { RingContents.FACTORY },
 ) : PenBarrel {
 
     /** The open ring, or null while nothing is on screen — nothing exists until it is summoned. */
@@ -48,8 +56,8 @@ internal class DesktopRing(
     var anchor by mutableStateOf<Offset?>(null)
         private set
 
-    /** The ring's contents, rebuilt from the palette as it is now. */
-    val slots: List<HudSlot> get() = DesktopHud.slots(palette(), custom())
+    /** The ring's contents, rebuilt from the palette as it is now and the parts Settings leaves on. */
+    val slots: List<HudSlot> get() = contents().slots(palette(), custom())
 
     /**
      * The pointer's newest reading. Moves the pick while the ring is up, and remembers where the nib is so

@@ -5,6 +5,7 @@ import com.mobixournal.desktop.shell.DesktopRing
 import com.mobixournal.desktop.shell.ShellCommand
 import com.mobixournal.desktop.shell.shellCommand
 import com.mobixournal.desktop.sheet.DesktopHud
+import com.mobixournal.desktop.sheet.RingContents
 import com.mobixournal.desktop.tools.DESKTOP_TOOLS_THAT_ACT
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.design.PenPalette
@@ -269,4 +270,31 @@ class DesktopRingTest {
             shellCommand(table, Key.B, ctrl = false, shift = false, alt = false),
         )
     }
+
+    @Test
+    fun `the ring carries only the families the Ring page leaves on`() {
+        val narrow = RingContents(swatches = false, widths = true, tools = setOf(DesktopTool.HIGHLIGHTER))
+        val slots = narrow.slots(PenPalette.COLORS, null)
+        assertEquals(PenPalette.DEFAULT_WIDTHS.size + 1, slots.size)
+        assertEquals(HudSlot.Width(PenPalette.DEFAULT_WIDTHS.first()), slots.first())
+        assertEquals(HudSlot.ToolFace(Tool.HIGHLIGHTER), slots.last())
+
+        val hollow = RingContents(swatches = false, widths = false, tools = emptySet())
+        assertTrue("nothing on the ring, nothing to flick into", hollow.slots(PenPalette.COLORS, null).isEmpty())
+    }
+
+    @Test
+    fun `a ring the page emptied does not open at all`() {
+        val hollow = DesktopRing(
+            palette = { PenPalette.COLORS },
+            custom = { null },
+            onColour = {},
+            onWidth = {},
+            onTool = {},
+            contents = { RingContents(swatches = false, widths = false, tools = emptySet()) },
+        )
+        assertFalse("the key has nothing to offer", hollow.summon())
+        assertNull(hollow.open)
+    }
+
 }

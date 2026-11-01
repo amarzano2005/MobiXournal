@@ -216,6 +216,8 @@ control, and the strips keep everything else.
   rim, the steel plate under the picked slot and the accent ring around it, a swatch in its own colour inside a
   chrome-ink rim, a width as a dot of that width, a tool as its catalogue glyph. Tokens only — `DesktopThemeTest`
   sweeps the chrome sources.
+- **What it carries** is chosen, not fixed: **Settings → Ring** leaves the swatches, the widths or a tool off,
+  and the key that opens it is that page's own row ([`desktop-settings.md`](desktop-settings.md)).
 - **The pen's own button** (*Settings → Stylus → Pen button → Side button*, `tablet.penButton`): *Erase*, the default, keeps the
   window's old behaviour — Windows' emulated right button, the router's eraser. *Ring at the pen* gives the barrel
   to the ring, the tablet's `BarrelAction.HUD`: a press with the tip **off the glass** opens it at the nib, the

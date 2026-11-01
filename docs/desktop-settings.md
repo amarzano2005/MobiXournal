@@ -14,7 +14,7 @@ cannot be lost off an edge (and it is not stored — a window that opened with i
 would be the setting nobody chose). Its fill is `DesktopTheme.settingsPanel`, the glass at **0.97**: at the
 floating alpha the page's own ink came up through the labels.
 
-Its index is **eleven sections** — Stylus, Shortcuts, Audio, Figures, Colors, Toolbar, Navigation,
+Its index is **twelve sections** — Stylus, Shortcuts, Audio, Figures, Colors, Ring, Toolbar, Navigation,
 Appearance, Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each
 wearing the shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). They are listed under the tablet's **four
 areas** — *Input*, *Drawing*, *Interface*, *App & data* (`DesktopSettingArea`) — because ten names in one
@@ -25,23 +25,18 @@ shell has no row for, and a page of "tablet only" rows is a page the reader lear
 **rows**, the name and the control at the right edge (`SettingsRows.kt`).
 
 A row lights **the whole width of its card**: the group clips its rows and pads them vertically only, and
-the 12 dp that reads as the card's padding sits inside the row. A highlight with its own margins inside
-the card reads as a card inside a card — an element that lights by halves — and that is the shape the row
-had before it was measured (`DesktopSettingsStyleTest` diffs a hovered group edge to edge).
+the 12 dp that reads as the card's padding sits inside the row (`DesktopSettingsStyleTest` measures it).
 
-The list is **names only** — a glyph and a word per section — because ten two-line summaries is a page of
-prose to scan past, and the index is a list, not a column of paragraphs.
+The list is **names only** — a glyph and a word per section — because two-line summaries are a page to skip.
 
 The header carries a **search field** beside the close glyph, and it narrows the index **only while it
 holds the keyboard**: a section stays in the list when its title, its summary or one of its search aliases
-contains the word, and clicking away gives the whole index back. The field is deliberately not focused when
-the surface opens — the list is what a reader comes back for, and a bar that already has the keyboard turns
-the first letter of a shortcut into a search.
+contains the word, and clicking away gives the whole index back. It is deliberately not focused on opening:
+the list is what a reader returns for, and a focused bar eats a shortcut's first letter.
 
 The panel always **opens on Stylus** (`DesktopSettingSection.DEFAULT`), whatever page it was closed on: the
-pen is the choice a session starts from, and a window that came back on *About* would be remembering the one
-page nobody went back for. A caller that means another section names it — the hamburger's pen block asks for
-the stylus explicitly — and the index picks any of the ten afterwards.
+pen is the choice a session starts from. A caller that means another section names it — the hamburger's pen
+block asks for the stylus explicitly — and the index picks any of them afterwards.
 
 ### One line per setting, and a help line
 
@@ -53,8 +48,7 @@ the bottom of a 640 dp panel: the reader scrolled to find out what a setting alr
 the answers were what got pushed off. The hand-off is the rows' (`LocalSettingsHelp`, `SettingsHelpTest`),
 so a page rendered outside the panel — a fixture — simply keeps its sentences to itself.
 
-A note is still **one clause**, not a paragraph: a setting that needs explaining at length is a setting
-whose name is wrong, and the detail belongs in this spoke.
+A note is still **one clause**: a setting that needs a paragraph has the wrong name.
 
 ### The page's grammar
 
@@ -220,6 +214,16 @@ axis, or a context it refuses to open, **keeps the system context** rather than 
   *Ring at the pen*, which gives the button to the pen-tip HUD: a press with the tip off the glass opens it at
   the nib, the release commits the slot under the pen, and a tip that lands cancels it without inking. The
   tablet's own `BarrelAction`, and the window's share of it ([`desktop-ui-layout.md`](desktop-ui-layout.md)).
+
+## Ring — what the pen-tip ring holds
+
+Under **Drawing**, beside Colors: **Swatches** (`ring.swatches`), **Widths** (`ring.widths`) and one row
+per writing tool (`ring.tools`) leave each family on the ring or off it, and the ring is rebuilt from them
+when it opens, so a switch is in force on the next summon rather than on the next launch. **Key** is the
+Shortcuts table's own *Ring at the pen* row, armed here and bound by the window — the door a **pen button
+its driver turns into a keyboard key** has, because such a pen never sends a barrel bit for *Stylus → Pen
+button* to read (**Side button** names that answer and opens its page). Every family off is a ring that
+does not open: the key does nothing rather than draw an empty ring.
 
 ## Toolbar — the strips' place and their order
 

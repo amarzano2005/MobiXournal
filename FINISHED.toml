@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-ring-settings-section"
+title = "Desktop: a Ring section in Settings"
+description = "Settings gains a Ring section (Drawing area), driven by a subject of its own: RingContents in desktop/sheet (swatches, widths, the three tool faces, and the slots they build in RadialHud's order), RingSettingsStore for the three keys ring.swatches / ring.widths / ring.tools, RingSettingsState as the live state beside DesktopAudioSettings, and RingSettings.kt as the page. DesktopRing takes the contents as a lambda, so the ring rebuilds from the page's switches the moment it opens; a ring with every family off does not open at all (summon false, nothing drawn). The Key row arms ShellCommand.RADIAL_HUD through the Shortcuts table's own arm, so a pen button that a driver turns into a keyboard key can open the ring; a Side button row names the barrel answer and opens the Stylus page. New SettingsGlyph.RING (six slots around a nib) in the shared catalogue. Tests: DesktopRingTest (the ring carries only the families left on; an emptied ring does not open) and DesktopSettingsTest (the parts survive a restart and reset restores the factory ring). Docs: desktop-settings.md (the section, the index now twelve), desktop-ui-layout.md, ui-modernization.md, README; SourceStructureTest back under its ceilings, DocsGuardTest and DocClaimsTest green, desktop suite green, :desktop:createDistributable regenerated. Not done: the tablet's own Ring page, which waits on the owner's word."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
 id = "summon-the-ring-from-the-pen-button"
 title = "Summon the ring from the pen's button"
 description = "The pen's own summon. PenButton (ERASE default | HUD) as tablet.penButton, its settings group Settings → Stylus → Pen button → Side button, mirrored in DesktopSettingsState; DesktopShell.penBarrel hands the ring over only when the setting says so. PenBarrel (ink/PenPacketStroke) takes the barrel bit as one edge per press and one per release — a press with the tip off the glass opens the ring, the moves track the pick, the release commits; a tip that lands cancels it and writes nothing, the pen leaving proximity cancels it, and with the setting on Windows' emulated secondary button no longer reaches the router as the eraser (buttonsOf). DesktopRing implements the four events off its remembered density. Tests: PenPacketStrokeTest's barrel-edge test (one press, one release, cancels, no ring under a drawing tip), PenPacketSceneTest's two barrel scene tests, DesktopSettingsTest's round trip with the eraser default. Docs: desktop-settings.md (the new group, replacing the 'no barrel-button row' paragraph), desktop-ui-layout.md (the ring's pen half), desktop-tablet.md, README. Settings and state files were split to stay under their ceilings: DesktopPenPresets.kt and SettingsKeyAction.kt, with the two ceilings lowered."

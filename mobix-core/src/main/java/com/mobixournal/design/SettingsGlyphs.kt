@@ -39,6 +39,9 @@ enum class SettingsGlyph {
     /** The palette: the pen's colour and the favourites. */
     COLORS,
 
+    /** The pen-tip ring: the slots a pen flicks between. */
+    RING,
+
     /** Finger and pen gestures: a fingertip touching the page. */
     GESTURES,
 
@@ -77,6 +80,7 @@ object SettingsGlyphCatalogue {
         SettingsGlyph.TOOLBAR -> toolbar()
         SettingsGlyph.FIGURES -> figures()
         SettingsGlyph.COLORS -> droplet()
+        SettingsGlyph.RING -> ring()
         SettingsGlyph.GESTURES -> tap()
         SettingsGlyph.SHORTCUTS -> keyboard()
         SettingsGlyph.AUDIO -> microphone()
@@ -99,6 +103,20 @@ object SettingsGlyphCatalogue {
      * it means the product has one pen picture instead of two that can drift apart.
      */
     private fun pen(): List<GlyphPart> = ToolGlyphCatalogue.parts(ToolGlyph.PEN)
+
+    /**
+     * Six slots around a nib: the pen-tip ring as its own picture — the shape a writer flicks into,
+     * rather than the palette it happens to carry today.
+     */
+    private fun ring(): List<GlyphPart> = listOf(
+        GlyphPart.Circle(12f, 12f, 1.6f),
+        GlyphPart.Circle(12f, 4.5f, 2.1f),
+        GlyphPart.Circle(18.5f, 8.25f, 2.1f),
+        GlyphPart.Circle(18.5f, 15.75f, 2.1f),
+        GlyphPart.Circle(12f, 19.5f, 2.1f),
+        GlyphPart.Circle(5.5f, 15.75f, 2.1f),
+        GlyphPart.Circle(5.5f, 8.25f, 2.1f),
+    )
 
     /** Three rules with a knob each: a setting you slide. */
     private fun sliders(): List<GlyphPart> = listOf(

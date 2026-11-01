@@ -100,6 +100,12 @@ enum class DesktopSettingSection(
         "colours colors palette swatch favourites favorites width thickness line style dashed",
         SettingsGlyph.COLORS,
     ),
+    RING(
+        "Ring",
+        "What the pen-tip ring holds, and the key that opens it.",
+        "ring radial hud pen-tip wheel summon key swatches widths tools pen highlighter eraser",
+        SettingsGlyph.RING,
+    ),
     SHORTCUTS(
         "Shortcuts",
         "The key table, remapped per command.",
@@ -148,7 +154,7 @@ enum class DesktopSettingSection(
     val area: DesktopSettingArea
         get() = when (this) {
             STYLUS, SHORTCUTS, AUDIO -> DesktopSettingArea.INPUT
-            FIGURES, COLORS -> DesktopSettingArea.DRAWING
+            FIGURES, COLORS, RING -> DesktopSettingArea.DRAWING
             TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
             DOCUMENTS, BACKUP, ABOUT -> DesktopSettingArea.APP
         }
@@ -191,6 +197,7 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
         DesktopSettingSection.FIGURES -> FiguresSettings(policy)
         DesktopSettingSection.COLORS -> ColorsSettings()
+        DesktopSettingSection.RING -> RingSettings(policy)
         DesktopSettingSection.SHORTCUTS -> ShortcutsSettings(policy)
         DesktopSettingSection.AUDIO -> AudioSettings(policy)
         DesktopSettingSection.NAVIGATION -> NavigationSettings(policy)
