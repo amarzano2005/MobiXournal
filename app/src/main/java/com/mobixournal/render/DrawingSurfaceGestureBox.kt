@@ -11,4 +11,4 @@ internal fun DrawingSurfaceView.gestureBoxAt(viewX: Float, viewY: Float): PageBo
     layout.pageAt(viewX + scrollX, viewY + scrollY)
 
 /** The box the current gesture converts through: the page the gesture started on. */
-internal fun DrawingSurfaceView.gestureBox(): PageBox? = layout.boxes.getOrNull(currentPage)
+internal fun DrawingSurfaceView.gestureBox(): PageBox? = layout.boxes.getOrNull(ink.currentPage)

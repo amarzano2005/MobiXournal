@@ -407,7 +407,7 @@ internal fun MainActivity.findCandidateAudioRef(): AudioRef? {
     // When a document is open in the active tab:
     if (doc != null) {
         // 1. Check strokes on the current page first
-        val curPageIndex = surfaceView.currentPage.coerceIn(0, (doc.pages.size - 1).coerceAtLeast(0))
+        val curPageIndex = surfaceView.ink.currentPage.coerceIn(0, (doc.pages.size - 1).coerceAtLeast(0))
         val curPage = doc.pages.getOrNull(curPageIndex)
         if (curPage != null) {
             val pageFiles = curPage.layers.asSequence()

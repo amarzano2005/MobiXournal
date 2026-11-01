@@ -23,7 +23,7 @@ internal fun DrawingSurfaceView.commitCircuitInsertion(kind: ShapeKind) {
         strokeColor = strokeColor(),
         strokeWidth = draft.widthPt,
     ) ?: return
-    ElementEdits.addElement(doc, currentPage, circuit) { resolvedActiveLayer(it) }
+    ElementEdits.addElement(doc, ink.currentPage, circuit) { resolvedActiveLayer(it) }
         ?.let { commitElementEdit(it) }
     render()
 }

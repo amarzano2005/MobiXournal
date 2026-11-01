@@ -43,7 +43,7 @@ private const val WIRE_END_PIN = "wire-end"
 internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     val kind = shapeKind ?: return
     if (!CircuitElementFactory.isConnectorKind(kind)) return
-    val live = current != null
+    val live = ink.current != null
     // A component tool also offers the ends of the wires already drawn; the line tool only pins.
     val marksWireEnds = CircuitElementFactory.isCircuitKind(kind)
     for (box in layout.visible(scrollY, height.toFloat())) {
@@ -72,8 +72,8 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
  * than hollow because they are not targets yet — they are the thing being placed.
  */
 private fun DrawingSurfaceView.drawPendingPins(canvas: Canvas, kind: ShapeKind) {
-    if (current == null || !CircuitElementFactory.isCircuitKind(kind)) return
-    val box = layout.boxes.getOrNull(currentPage) ?: return
+    if (ink.current == null || !CircuitElementFactory.isCircuitKind(kind)) return
+    val box = layout.boxes.getOrNull(ink.currentPage) ?: return
     val draft = shapeDraft
     for (pin in CircuitSnapping.previewTargets(kind, draft.startX, draft.startY, draft.endX, draft.endY)) {
         val x = (pin.absX * box.scale + box.leftPx - scrollX).toFloat()

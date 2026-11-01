@@ -59,7 +59,7 @@ internal fun DrawingSurfaceView.routePointer(
     force: Boolean = true,
 ) {
     val pointer = event.inkPointer(pointerIndex, phase, barrelButton.held, history)
-    for (inkEvent in pointerRouter.onPointer(pointer)) applyInkEvent(inkEvent, pointer, event, force)
+    for (inkEvent in ink.pointerRouter.onPointer(pointer)) applyInkEvent(inkEvent, pointer, event, force)
 }
 
 /**
@@ -75,7 +75,7 @@ internal fun DrawingSurfaceView.routePointer(
 internal fun DrawingSurfaceView.feedPointerSamples(event: MotionEvent) {
     val index = event.findPointerIndex(gesturePointerId)
     if (index < 0) return
-    if (current != null || currentStrokes != null) {
+    if (ink.current != null || ink.currentStrokes != null) {
         for (h in 0 until event.historySize) {
             routePointer(event, index, InkPointerPhase.MOVE, history = h, force = false)
         }

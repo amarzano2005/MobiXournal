@@ -69,7 +69,7 @@ internal fun DrawingSurfaceView.commitRecognisedFigure(
         strokeColor = strokeColor(),
         strokeWidth = raw.map { it.width }.average(),
     ) ?: return false
-    ElementEdits.addElement(doc, currentPage, shape) { resolvedActiveLayer(it) }?.let { edited ->
+    ElementEdits.addElement(doc, ink.currentPage, shape) { resolvedActiveLayer(it) }?.let { edited ->
         doc = edited
         relayout()
     }

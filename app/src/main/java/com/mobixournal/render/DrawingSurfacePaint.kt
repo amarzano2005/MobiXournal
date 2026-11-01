@@ -124,7 +124,7 @@ internal fun DrawingSurfaceView.paint() {
         if (vspace.active) drawVerticalSpaceGuide(canvas)
         drawGuide(canvas)
         if (erasing) drawEraserTip(canvas, eraseX, eraseY)
-        if (hovering && showHover && current == null && !erasing) {
+        if (hovering && showHover && ink.current == null && !erasing) {
             if (erasesNow()) drawEraserTip(canvas, hoverX, hoverY) else drawHover(canvas)
         }
         // Last, so the ring is never covered by a hover dot or a preview: the pen is pointing *at*
@@ -342,7 +342,7 @@ internal fun DrawingSurfaceView.visibleBounds(box: PageBox): Bounds? {
 
 internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
     val box = gestureBox() ?: return
-    currentStrokes?.let { multi ->
+    ink.currentStrokes?.let { multi ->
         for (pts in multi) {
             strokePainter.draw(
                 canvas, pts, tool, strokeColor(), box.scale, box.leftPx - scrollX, box.topPx - scrollY,
@@ -353,14 +353,14 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
     }
     // A held stroke paints the figure the hold found, in place of the ink — the raw samples stay
     // untouched underneath (`HoldSnap.preview`).
-    val preview = current?.let { holdSnap.preview(it.size) }
-    val pts = preview?.points ?: current ?: return
+    val preview = ink.current?.let { holdSnap.preview(it.size) }
+    val pts = preview?.points ?: ink.current ?: return
     // The magnetic highlighter previews what the lift will commit: while the drag is over text, the
     // flat bands stand in for the freehand path, so the snap is never a surprise at touch-up.
     if (tool == Tool.HIGHLIGHTER && preview == null) {
         val bands = MagneticHighlighter.strokes(
             pts,
-            pdfTextIndex?.words(currentPage).orEmpty(),
+            pdfTextIndex?.words(ink.currentPage).orEmpty(),
             strokeColor(),
         )
         if (bands.isNotEmpty()) {
@@ -491,7 +491,7 @@ internal fun DrawingSurfaceView.drawGuide(canvas: Canvas) {
  * so the boundary is visible. Pure chrome — it is never part of the document or the saved file.
  */
 internal fun DrawingSurfaceView.drawEraserTip(canvas: Canvas, vx: Float, vy: Float) {
-    val box = layout.pageAt(vx + scrollX, vy + scrollY) ?: layout.boxes.getOrNull(currentPage)
+    val box = layout.pageAt(vx + scrollX, vy + scrollY) ?: layout.boxes.getOrNull(ink.currentPage)
     val scale = box?.scale ?: 1f
     canvas.drawCircle(vx, vy, (eraserRadiusPt * scale).toFloat(), chrome.eraserOutline)
 }

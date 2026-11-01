@@ -18,7 +18,7 @@ internal fun DrawingSurfaceView.beginBackgroundSelect(event: MotionEvent) {
     scrolling = false
     erasing = false
     placing = false
-    current = null
+    ink.current = null
     gestures.clearSelection()
     clearTextSelection()
     val page = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: return

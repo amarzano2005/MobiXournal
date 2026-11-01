@@ -53,7 +53,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             // A held barrel is a live modifier, not only a pointer-down decision: pressing it
             // mid-stroke ends the ink drawn so far and hands the rest of the gesture to the eraser,
             // the way desktop Xournal++ switches tools under the pen.
-            if (current != null && !shapeDraft.active) switchStrokeToErase(event)
+            if (ink.current != null && !shapeDraft.active) switchStrokeToErase(event)
             when {
                 scrolling -> doScroll(event)
                 erasing -> if (routed) feedPointerSamples(event) else eraseMove(event)
@@ -78,7 +78,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                     gestures.bandMove(event)
                 }
                 textSelecting -> textSelectMove(event)
-                routed && (current != null || currentStrokes != null) -> feedPointerSamples(event)
+                routed && (ink.current != null || ink.currentStrokes != null) -> feedPointerSamples(event)
                 else -> Unit
             }
         }
@@ -200,7 +200,7 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         // the pressure filter and the input settings the ones in force now.
         GestureIntent.ERASE -> {
             routed = true
-            pointerRouter = newPointerRouter()
+            ink.pointerRouter = newPointerRouter()
             routePointer(event, pointerIndex, InkPointerPhase.DOWN)
         }
         GestureIntent.PLACE -> beginPlace(event, pointerIndex)
@@ -211,7 +211,7 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         GestureIntent.VERTICAL_SPACE -> beginVerticalSpace(event)
         GestureIntent.DRAW -> {
             routed = true
-            pointerRouter = newPointerRouter()
+            ink.pointerRouter = newPointerRouter()
             routePointer(event, pointerIndex, InkPointerPhase.DOWN)
         }
         GestureIntent.IGNORE -> Unit
@@ -259,7 +259,7 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
     // The router learns about every lift, so a contact it is holding (a palm, a second finger) leaves
     // its map instead of looking like a finger that never came up.
     if (routed) routePointer(event, upIdx, InkPointerPhase.UP)
-    if (upId == gesturePointerId && (current != null || erasing)) {
+    if (upId == gesturePointerId && (ink.current != null || erasing)) {
         endGesture()
         return
     }
@@ -275,23 +275,23 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
 internal fun DrawingSurfaceView.abandonInProgress() {
     dismissRadialHud(commit = false)
     stopAutoScroll(); holdSnap.reset()
-    current = null; currentStrokes = null; shapeDraft.finish(); erasing = false; placing = false
+    ink.current = null; ink.currentStrokes = null; shapeDraft.finish(); erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestures.reset(); multiTap.reset()
     // The gesture is gone, so its contacts are too: a router left holding them would read the next
     // sample as a two-finger navigation.
-    pointerRouter.reset(); routed = false
+    ink.pointerRouter.reset(); routed = false
 }
 
 internal fun DrawingSurfaceView.cancelGesture() {
     dismissRadialHud(commit = false)
     momentum.stop(); stopAutoScroll(); holdSnap.reset()
     guideDrag.end(null)
-    current = null; currentStrokes = null; shapeDraft.finish(); scrolling = false; erasing = false; placing = false
+    ink.current = null; ink.currentStrokes = null; shapeDraft.finish(); scrolling = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
     textSelecting = false; vspace.reset()
     gesturePointerId = -1; stylusOwner = false; multiTap.reset()
-    pointerRouter.reset(); routed = false
+    ink.pointerRouter.reset(); routed = false
 }
 
 /**
@@ -332,7 +332,7 @@ internal fun DrawingSurfaceView.buttonKindOf(event: MotionEvent): PointerKind {
 
 /** A second finger (or the Hand tool) started panning: abandon any partial stroke/erase/place. */
 internal fun DrawingSurfaceView.beginScroll(event: MotionEvent) {
-    current = null
+    ink.current = null
     erasing = false
     placing = false
     scrolling = true
@@ -462,7 +462,7 @@ internal fun DrawingSurfaceView.endGesture() {
     gesturePointerId = -1
     stylusOwner = false
     // The gesture is over: nothing of it may reach the next one through the router.
-    pointerRouter.reset(); routed = false
+    ink.pointerRouter.reset(); routed = false
     if (wasScrolling) momentum.launch(panSensitivity)
     if (search.query.isNotEmpty() && (wasMoving || wasTransforming || wasVspacing)) {
         rebuildSearch()

@@ -82,14 +82,14 @@ internal fun DrawingSurfaceView.pressBarrelButton(eventTime: Long, firmwareClick
             diagnostics.note("CLICK swallowed (same gesture)")
             return
         }
-        if (current != null || erasing) endGesture()
+        if (ink.current != null || erasing) endGesture()
         runBarrelClickAction()
         return
     }
     if (!changed) return
     // A double-click is a button-only gesture: with the tip down the button is the held modifier
     // instead, and firing an undo mid-stroke would be exactly wrong.
-    if (current != null || erasing) return
+    if (ink.current != null || erasing) return
     if (!barrelClicks.press(eventTime)) return
     runBarrelClickAction()
 }

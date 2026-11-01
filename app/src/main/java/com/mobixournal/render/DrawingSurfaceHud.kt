@@ -63,7 +63,7 @@ internal fun DrawingSurfaceView.summonRadialHud(trigger: HudTrigger = HudTrigger
         return
     }
     if (hudSlots.isEmpty()) return
-    if (current != null || erasing || placing || scrolling) return
+    if (ink.current != null || erasing || placing || scrolling) return
     val (x, y) = nibAnchor()
     hud = HudState(x, y, trigger = trigger)
     render()

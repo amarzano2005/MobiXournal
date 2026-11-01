@@ -552,27 +552,27 @@ class StylusInputTest {
         val downTime = now()
 
         send(view, downTime, downTime, MotionEvent.ACTION_DOWN, floatArrayOf(map.x(200.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
-        val armedOnLanding = view.holdSnapRunnable
+        val armedOnLanding = view.holdSnap.pending
         assertTrue("the tip landing armed the hold timer", armedOnLanding != null)
 
         // A sample well past the slop: the timer is re-armed for the tip's new resting place.
         send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
-        assertTrue("moving re-armed the timer", view.holdSnapRunnable != null && view.holdSnapRunnable !== armedOnLanding)
+        assertTrue("moving re-armed the timer", view.holdSnap.pending != null && view.holdSnap.pending !== armedOnLanding)
         // The anchor is the *stored* sample, which the smoother has pulled part of the way to the raw
         // tip; what matters is that it followed the tip off its landing place.
-        assertTrue("the anchor followed the tip (${view.holdAnchorX})", view.holdAnchorX > 205.0)
+        assertTrue("the anchor followed the tip (${view.holdSnap.anchorX})", view.holdSnap.anchorX > 205.0)
         // The tip now stops: the position filter keeps closing the remaining gap for a sample or two
         // (that is the filter's lag, not the pen moving), until each new sample lands within the slop
         // of the anchor and the armed timer is left alone.
         send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
         send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
-        val settled = view.holdSnapRunnable
+        val settled = view.holdSnap.pending
         send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
-        assertTrue("a resting tip does not re-arm the timer", view.holdSnapRunnable === settled)
+        assertTrue("a resting tip does not re-arm the timer", view.holdSnap.pending === settled)
 
         send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(map.x(230.4)), floatArrayOf(map.y(300.1)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
-        assertTrue("lift-off dropped the hold", view.holdSnapRunnable == null)
-        assertTrue("and nothing was snapped: the tip never rested", !view.holdSnapped)
+        assertTrue("lift-off dropped the hold", view.holdSnap.pending == null)
+        assertTrue("and nothing was snapped: the tip never rested", !view.holdSnap.snapped)
     }
 
     /**
@@ -602,15 +602,15 @@ class StylusInputTest {
             send(view, downTime, if (i == 0) downTime else now(), action, floatArrayOf(map.x(px)), floatArrayOf(map.y(py)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
         }
 
-        val freehand = view.current!!.size
+        val freehand = view.ink.current!!.size
         assertTrue("the freehand stroke has many samples ($freehand)", freehand > 20)
-        val armed = view.holdSnapRunnable
+        val armed = view.holdSnap.pending
         assertTrue("the resting tip has the hold armed", armed != null)
 
         armed!!.run()
 
-        assertTrue("the held stroke was snapped while the tip was still down", view.holdSnapped)
-        val preview = view.holdFigure
+        assertTrue("the held stroke was snapped while the tip was still down", view.holdSnap.snapped)
+        val preview = view.holdSnap.figure
         assertNotNull("the hold found a figure to preview", preview)
         assertEquals("the preview is one clean segment", 2, preview!!.points.size)
         assertEquals(
@@ -623,12 +623,12 @@ class StylusInputTest {
             "and the segment spans what was drawn",
             kotlin.math.abs(preview.points[1].x - preview.points[0].x) > 150.0,
         )
-        assertEquals("the samples themselves are untouched", freehand, view.current!!.size)
+        assertEquals("the samples themselves are untouched", freehand, view.ink.current!!.size)
 
         // A preview, not a lock: drawing on drops it and the user's own stroke is what is left.
         send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(420.0)), floatArrayOf(map.y(300.5)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
-        assertTrue("drawing on extends the raw stroke (${view.current!!.size})", view.current!!.size > freehand)
-        assertNull("and takes the preview away", view.holdFigure)
+        assertTrue("drawing on extends the raw stroke (${view.ink.current!!.size})", view.ink.current!!.size > freehand)
+        assertNull("and takes the preview away", view.holdSnap.figure)
 
         send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(map.x(420.0)), floatArrayOf(map.y(300.5)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
         assertEquals("the lift committed one stroke", 1, strokesOf(view).size)

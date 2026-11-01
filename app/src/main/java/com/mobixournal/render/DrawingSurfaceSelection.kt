@@ -27,7 +27,7 @@ internal fun DrawingSurfaceView.beginSelect(event: MotionEvent) {
     scrolling = false
     erasing = false
     placing = false
-    current = null
+    ink.current = null
     gestures.beginSelect(event)
 }
 
@@ -178,7 +178,7 @@ private fun DrawingSurfaceView.pasteOnto(pageIndex: Int, elements: List<Element>
 
 /** Down with the text-select tool: anchor the selection at the word nearest the touch. */
 internal fun DrawingSurfaceView.beginTextSelect(event: MotionEvent) {
-    scrolling = false; erasing = false; placing = false; current = null
+    scrolling = false; erasing = false; placing = false; ink.current = null
     val index = pdfTextIndex ?: return
     val pageIndex = layout.pageAt(event.x + scrollX, event.y + scrollY)?.index ?: return
     val box = layout.boxes.getOrNull(pageIndex) ?: return

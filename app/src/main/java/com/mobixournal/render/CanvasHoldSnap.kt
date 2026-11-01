@@ -61,7 +61,12 @@ internal class HoldSnap(
     /** The stroke's sample count when [figure] fired; a grown stroke is no longer that figure. */
     private var samples = 0
 
-    private var pending: Runnable? = null
+    /**
+     * The timer waiting to fire, or null when the tip is not being watched. Exposed because a test that
+     * drives hybrid input by hand runs this callback itself: an unattached view only queues its post.
+     */
+    var pending: Runnable? = null
+        private set
 
     /**
      * A stroke has started at [points]: anchor the hold at its last sample and arm the timer, so a press

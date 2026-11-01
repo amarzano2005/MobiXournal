@@ -69,7 +69,7 @@ internal fun DrawingSurfaceView.appendDimensionLabel(raw: List<StrokePoint>, col
     val start = raw.firstOrNull() ?: return
     val end = raw.lastOrNull() ?: return
     val label = measurementLabel(start.x, start.y, end.x, end.y, colorArgb) ?: return
-    val updated = ElementEdits.addElement(doc, currentPage, label) { resolvedActiveLayer(it) } ?: return
+    val updated = ElementEdits.addElement(doc, ink.currentPage, label) { resolvedActiveLayer(it) } ?: return
     doc = updated
     relayout()
 }

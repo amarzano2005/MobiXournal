@@ -34,8 +34,8 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
     gestureStartDoc = doc
     gesturePointerId = start.id
     val box = gestureBoxAt(start.x, start.y)
-        ?: run { current = null; return }
-    currentPage = box.index
+        ?: run { ink.current = null; return }
+    ink.currentPage = box.index
     if (shapeDraft.active) {
         // Grid snap first, then the guide — a placed guide is the stronger constraint and must
         // not be undone by pulling the point back onto the ruling. The grid snap is the *joint* one
@@ -48,24 +48,24 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
         )
         val (sx, sy) = guided(box, gx, gy)
         shapeDraft.place(sx, sy, nominalShapeWidthPt())
-        currentStrokes = null
-        current = ArrayList(
+        ink.currentStrokes = null
+        ink.current = ArrayList(
             listOf(StrokePoint(shapeDraft.startX, shapeDraft.startY, shapeDraft.widthPt, dtMs = 0)),
         )
     } else {
         // Decimate against this page's real px/pt, so a stroke drawn zoomed out or in a
         // multi-column view keeps the same document-space detail as one drawn at 100%.
-        smoother.reset(strokePrecision.stepPxFor(box.scale))
+        ink.smoother.reset(strokePrecision.stepPxFor(box.scale))
         // The press is the stroke's first sample, through the same filter as every other one: the
         // smoother still low-passes position and pressure, and `point` still turns that pressure into
         // a width with [PressureCurve].
-        current = ArrayList<StrokePoint>().also { points ->
-            smoother.accept(start.x, start.y, start.pressure, force = true)?.let {
+        ink.current = ArrayList<StrokePoint>().also { points ->
+            ink.smoother.accept(start.x, start.y, start.pressure, force = true)?.let {
                 points += point(box, it.x, it.y, it.pressure, start.timeMs, start.tiltRad, start.azimuthRad)
             }
         }
         // Hold-to-snap starts counting from where the tip first landed.
-        holdSnap.start(current)
+        holdSnap.start(ink.current)
     }
 }
 
@@ -91,11 +91,11 @@ internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Bool
             tableRows, tableCols, tableHeader,
         )
         if (multi != null) {
-            currentStrokes = multi
-            current = null
+            ink.currentStrokes = multi
+            ink.current = null
         } else {
-            currentStrokes = null
-            current = ArrayList(
+            ink.currentStrokes = null
+            ink.current = ArrayList(
                 ShapeBuilder.build(
                     shapeKind ?: return,
                     shapeDraft.startX, shapeDraft.startY, shapeDraft.endX, shapeDraft.endY, shapeDraft.widthPt,
@@ -108,8 +108,8 @@ internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Bool
         }
         render()
     } else {
-        current?.let { points ->
-            smoother.accept(sample.x, sample.y, sample.pressure, force)?.let {
+        ink.current?.let { points ->
+            ink.smoother.accept(sample.x, sample.y, sample.pressure, force)?.let {
                 points += point(box, it.x, it.y, it.pressure, sample.timeMs, sample.tiltRad, sample.azimuthRad)
             }
             // Rest the tip and the stroke snaps to geometry before lift-off.
@@ -168,7 +168,7 @@ internal fun DrawingSurfaceView.eraseAtPointer(pointer: InkPointer) {
         erasing = true
         gestureStartDoc = doc
         gesturePointerId = pointer.id
-        currentPage = gestureBoxAt(pointer.x, pointer.y)?.index ?: return
+        ink.currentPage = gestureBoxAt(pointer.x, pointer.y)?.index ?: return
     }
     val box = gestureBox() ?: return
     // Eraser tip and barrel button both use WHOLE_STROKE mode to delete entire strokes.
@@ -200,7 +200,7 @@ internal fun DrawingSurfaceView.switchStrokeToErase(event: MotionEvent) {
     // does not route (it decided this gesture was a stroke when the tip landed). The rest of the
     // gesture is the view's own eraser then, and the router is told so it keeps no stale contact.
     routed = false
-    pointerRouter.reset()
+    ink.pointerRouter.reset()
 }
 
 /** A hit from an eraser drag the router does not own (the barrel switched mid-stroke). */
@@ -214,7 +214,7 @@ internal fun DrawingSurfaceView.eraseAt(box: PageBox, vx: Float, vy: Float, mode
     val px = box.toPtX(vx, scrollX)
     val py = box.toPtY(vy, scrollY)
     eraseX = vx; eraseY = vy
-    eraseOnPage(currentPage, px, py, eraserRadiusPt, mode)
+    eraseOnPage(ink.currentPage, px, py, eraserRadiusPt, mode)
     render()
 }
 
@@ -222,7 +222,7 @@ internal fun DrawingSurfaceView.eraseAt(box: PageBox, vx: Float, vy: Float, mode
 internal fun DrawingSurfaceView.beginPlace(event: MotionEvent, pointerIndex: Int) {
     scrolling = false
     erasing = false
-    current = null
+    ink.current = null
     placing = true
     placeDownX = event.getX(pointerIndex)
     placeDownY = event.getY(pointerIndex)
@@ -299,15 +299,15 @@ internal fun DrawingSurfaceView.point(
 internal fun DrawingSurfaceView.commitCurrent() {
     if (commitInsertionShapes()) return
 
-    val multi = currentStrokes
+    val multi = ink.currentStrokes
     if (multi != null) {
-        currentStrokes = null
-        current = null
+        ink.currentStrokes = null
+        ink.current = null
         shapeDraft.finish()
         for (mPts in multi) {
             if (mPts.size >= 2) {
                 appendStroke(
-                    currentPage,
+                    ink.currentPage,
                     Stroke(tool, strokeColor(), "round", mPts, true, lineStyle = currentLineStyle),
                 )
             }
@@ -316,8 +316,8 @@ internal fun DrawingSurfaceView.commitCurrent() {
         return
     }
     // Lift-off ends any pending hold, and a stroke the hold already snapped stays snapped.
-    val raw = current ?: run { holdSnap.reset(); return }
-    current = null
+    val raw = ink.current ?: run { holdSnap.reset(); return }
+    ink.current = null
     val wasShaping = shapeDraft.active
     shapeDraft.finish()
     val holdWasSnapped = holdSnap.snapped
@@ -357,12 +357,12 @@ internal fun DrawingSurfaceView.commitCurrent() {
     if (!wasShaping && tool == Tool.HIGHLIGHTER) {
         val bands = MagneticHighlighter.strokes(
             finalPts,
-            pdfTextIndex?.words(currentPage).orEmpty(),
+            pdfTextIndex?.words(ink.currentPage).orEmpty(),
             strokeColor(),
         )
         if (bands.isNotEmpty()) {
             // Same gesture, same `gestureStartDoc`: many strokes, ONE undo step.
-            bands.forEach { appendStroke(currentPage, it) }
+            bands.forEach { appendStroke(ink.currentPage, it) }
             render()
             return
         }
@@ -375,7 +375,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
             tool, strokeColor(), "round", finalPts, uniform,
             lineStyle = currentLineStyle,
         )
-        appendStroke(currentPage, stroke)
+        appendStroke(ink.currentPage, stroke)
         // A dimension line carries its value: the measurement goes in as a text box of its own.
         if (wasShaping && shapeKind == ShapeKind.DIMENSION) appendDimensionLabel(raw, strokeColor())
     }
@@ -388,8 +388,8 @@ internal fun DrawingSurfaceView.commitCurrent() {
  */
 private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
     if (shapeDraft.active && shapeKind == ShapeKind.TABLE) {
-        current = null
-        currentStrokes = null
+        ink.current = null
+        ink.currentStrokes = null
         shapeDraft.finish()
         holdSnap.reset()
         commitTableInsertion()
@@ -397,8 +397,8 @@ private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
     }
     if (shapeDraft.active && shapeKind?.let { CircuitElementFactory.isCircuitKind(it) } == true) {
         val kind = shapeKind!!
-        current = null
-        currentStrokes = null
+        ink.current = null
+        ink.currentStrokes = null
         shapeDraft.finish()
         holdSnap.reset()
         commitCircuitInsertion(kind)
@@ -418,8 +418,8 @@ private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
  */
 private fun DrawingSurfaceView.magnetised(pts: List<StrokePoint>, shaping: Boolean): List<StrokePoint> {
     if (!shaping || shapeKind?.let(CircuitElementFactory::isConnectorKind) != true) return pts
-    val page = pageAt(currentPage) ?: return pts
-    val scale = layout.boxes.getOrNull(currentPage)?.scale ?: 1f
+    val page = pageAt(ink.currentPage) ?: return pts
+    val scale = layout.boxes.getOrNull(ink.currentPage)?.scale ?: 1f
     return CircuitSnapping.snapStrokeEndpoints(
         pts, CircuitSnapping.collectAllTargets(page),
         thresholdPt = CircuitSnapping.thresholdFor(scale),

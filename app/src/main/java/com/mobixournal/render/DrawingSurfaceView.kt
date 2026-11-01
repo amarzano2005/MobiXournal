@@ -125,11 +125,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
      */
     var onMissingBackground: ((List<String>) -> Unit)? = null
 
-    /** In-progress stroke (page-local pt space) and the page it belongs to. */
-    internal var current: ArrayList<StrokePoint>? = null
-    /** In-progress multi-stroke shape (e.g. capacitor with an open gap). */
-    internal var currentStrokes: List<List<StrokePoint>>? = null
-    internal var currentPage = 0
+    /**
+     * The ink gesture in progress — its stroke, its page, its smoother and its router — owned by
+     * [InkGesture] (`CanvasInkGesture.kt`).
+     */
+    internal val ink = InkGesture(newRouter = { newPointerRouter() })
     /**
      * The shape gesture in progress — its anchor, its live end, the width it draws at — owned by
      * [ShapeDraft] (`CanvasShapeDraft.kt`), the one place figures, tables, circuit components and the
@@ -184,7 +184,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         unschedule = { runnable -> removeCallbacks(runnable) },
         freehand = { recognizeShapes && !shapeDraft.active },
         inking = { tool == Tool.PEN || tool == Tool.HIGHLIGHTER },
-        stroke = { current },
+        stroke = { ink.current },
         onSnapped = { render() },
     )
     internal var erasing = false
@@ -377,10 +377,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * sample still draws a light line at this fraction of the tool's width.
      */
     var minimumPressure: Float = PressureCurve.MINIMUM_PRESSURE_DEFAULT
-    /** The shared pointer router for the gesture in flight; rebuilt per gesture ([newPointerRouter]). */
-    internal var pointerRouter: InkPointerRouter = newPointerRouter()
-    /** Jitter filter for the in-progress freehand stroke; reset at the start of each stroke. */
-    internal val smoother = StrokeSmoother()
     /** How much digitiser detail freehand strokes keep (see [StrokePrecision]); from Settings. */
     // The decimation radius depends on the page's px/pt as well as this setting, so it is computed
     // per stroke in [startStroke] rather than pinned here.
@@ -707,8 +703,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
         if (incoming === docValue) return
         cancelIndexing()
         docValue = if (incoming.pages.isEmpty()) incoming.copy(pages = listOf(blankPage())) else incoming
-        current = null
-        currentStrokes = null
+        ink.current = null
+        ink.currentStrokes = null
         gestureStartDoc = null
         selection = null
         onSelectionChanged?.invoke(false)
@@ -889,7 +885,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     private fun afterHistoryMove() {
-        current = null
+        ink.current = null
         resetPageWindow()
         relayout()
         render()
@@ -1149,9 +1145,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Down with the vertical-space tool: clear the other modes and hand off to [VerticalSpaceDrag]. */
     internal fun beginVerticalSpace(event: MotionEvent) {
-        scrolling = false; erasing = false; placing = false; current = null; currentStrokes = null
+        scrolling = false; erasing = false; placing = false; ink.current = null; ink.currentStrokes = null
         val page = vspace.begin(event.x, event.y) ?: return
-        currentPage = page
+        ink.currentPage = page
         gesturePointerId = event.getPointerId(0)
         render()
     }
@@ -1161,7 +1157,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * re-selecting it lands back where you left off (see `com.mobixournal.tabs`).
      */
     fun visiblePageIndex(): Int {
-        return layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index ?: currentPage
+        return layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index ?: ink.currentPage
     }
 
     /**
