@@ -27,7 +27,7 @@ internal class MomentumDriver(
     private val paintFrame: () -> Unit,
     /** Drop any repaint already queued for the coming vsync, so one vsync posts one buffer. */
     private val cancelQueuedPaint: () -> Unit,
-) {
+): ScrollMomentum {
 
     /** Scales the release velocity fed into a fling; 1 = as-flung, 0 disables momentum. */
     var strength = Momentum.NORMAL
@@ -57,7 +57,7 @@ internal class MomentumDriver(
      * @param x Focus X in view pixels.
      * @param y Focus Y in view pixels.
      */
-    fun track(eventTimeMs: Long, x: Float, y: Float) = velocityEstimator.add(eventTimeMs, x, y)
+    override fun track(eventTimeMs: Long, x: Float, y: Float) = velocityEstimator.add(eventTimeMs, x, y)
 
     /**
      * Re-baseline the estimate at ([x], [y]) — used when a pan starts, and when a finger leaving
@@ -66,13 +66,13 @@ internal class MomentumDriver(
      * @param x Focus X in view pixels.
      * @param y Focus Y in view pixels.
      */
-    fun rebaseline(eventTimeMs: Long, x: Float, y: Float) {
+    override fun rebaseline(eventTimeMs: Long, x: Float, y: Float) {
         velocityEstimator.reset()
         velocityEstimator.add(eventTimeMs, x, y)
     }
 
     /** Forget any latched release, so a fresh pan starts from no momentum. */
-    fun clearRelease() {
+    override fun clearRelease() {
         releaseVx = 0f
         releaseVy = 0f
     }
@@ -101,7 +101,7 @@ internal class MomentumDriver(
      * flies; [panSensitivity] then scales the glide to match the visual pan gain.
      * @param panSensitivity Scale factor for scroll gain (typically 1.0).
      */
-    fun launch(panSensitivity: Float) {
+    override fun launch(panSensitivity: Float) {
         if (!canScroll()) return
         val (seedX, seedY) = Momentum.seed(releaseVx, releaseVy, strength, curve)
         fling.start(seedX * panSensitivity, seedY * panSensitivity)

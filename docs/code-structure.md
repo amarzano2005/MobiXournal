@@ -54,7 +54,8 @@ state is the fix, and it is **under way**: a cluster becomes a class in `Canvas<
 dwell timer, its anchor, the figure it found), `CanvasSearch.kt` (the query, its hits, the handwriting
 index and its worker), `CanvasShapeDraft.kt` (a shape tool's anchor, live end and pinned width) and
 `CanvasTaps.kt` (the tap timings and both double-tap sequences) and `CanvasInkGesture.kt` (the stroke in
-progress, its page, its smoother and its router) so far —  constructed by the view, holding its own state, taking
+progress, its page, its smoother and its router), `CanvasScroll.kt` (the pan/pinch baselines, the glide
+and the drag auto-scroll loop) and `CanvasPressure.kt` (the pen-width model) so far —  constructed by the view, holding its own state, taking
 its inputs as lambdas so it is testable with no `View`. A **new** state cluster and the code that moves it
 belong in such an object, never in another `DrawingSurface*.kt` extension. The pile is now **18 files**, and
 it is only allowed to shrink — each extraction lowers the ceiling in `PackageStructureTest`:

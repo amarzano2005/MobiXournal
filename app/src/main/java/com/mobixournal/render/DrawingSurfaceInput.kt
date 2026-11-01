@@ -55,7 +55,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             // the way desktop Xournal++ switches tools under the pen.
             if (ink.current != null && !shapeDraft.active) switchStrokeToErase(event)
             when {
-                scrolling -> doScroll(event)
+                scroll.active -> doScroll(event)
                 erasing -> if (routed) feedPointerSamples(event) else eraseMove(event)
                 placing -> placeMove(event)
                 backgroundSelecting -> backgroundSelectMove(event)
@@ -65,16 +65,14 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 gestures.resizing -> gestures.resizeSelect(event)
                 gestures.rotating -> gestures.rotateSelect(event)
                 gestures.moving -> {
-                    dragLastX = event.x; dragLastY = event.y
-                    updateDragAutoScroll(event.x, event.y)
+                    scroll.updateDrag(event.x, event.y)
                     gestures.moveSelect(event)
                 }
                 vspace.active -> vspace.move(event.y)
                 gestures.banding -> {
                     // Dragging the marquee itself into an edge band scrolls the page too, so a
                     // selection can reach past the viewport without letting go and panning first.
-                    dragLastX = event.x; dragLastY = event.y
-                    updateDragAutoScroll(event.x, event.y)
+                    scroll.updateDrag(event.x, event.y)
                     gestures.bandMove(event)
                 }
                 textSelecting -> textSelectMove(event)
@@ -87,7 +85,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             backgroundSelecting -> commitBackgroundSelect()
             else -> {
                 cancelSelectionDrag()
-                if (scrolling && finishMultiFingerTap(event)) { cancelGesture(); render(); return true }
+                if (scroll.active && finishMultiFingerTap(event)) { cancelGesture(); render(); return true }
                 captureReleaseVelocity(event); handleHandTapUp()
                 // The router hears the lift too, so its contact map is empty for the next gesture.
                 if (routed) routePointer(event, event.actionIndex, InkPointerPhase.UP)
@@ -263,20 +261,18 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
         endGesture()
         return
     }
-    lastFocusY = focusY(event, skip = upIdx)
-    lastFocusX = focusX(event, skip = upIdx)
-    // The span also jumps when a finger leaves; re-baseline it next frame so the drop isn't read as
-    // a pinch-out, mirroring the focus/velocity reset below.
-    lastSpan = 0f
-    momentum.rebaseline(event.eventTime, lastFocusX, lastFocusY)
+    // The span also jumps when a finger leaves; re-baseline it so the drop isn't read as a pinch-out,
+    // mirroring the focus/velocity reset that goes with it.
+    scroll.rebaseSpan()
+    scroll.rebaseFocus(focusX(event, skip = upIdx), focusY(event, skip = upIdx), event.eventTime)
 }
 
 /** Drop any in-progress draw/erase/place/band/move without committing (a stylus is taking over). */
 internal fun DrawingSurfaceView.abandonInProgress() {
     dismissRadialHud(commit = false)
-    stopAutoScroll(); holdSnap.reset()
+    scroll.stopAutoScroll(); holdSnap.reset()
     ink.current = null; ink.currentStrokes = null; shapeDraft.finish(); erasing = false; placing = false
-    scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
+    scroll.active = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestures.reset(); multiTap.reset()
     // The gesture is gone, so its contacts are too: a router left holding them would read the next
     // sample as a two-finger navigation.
@@ -285,9 +281,10 @@ internal fun DrawingSurfaceView.abandonInProgress() {
 
 internal fun DrawingSurfaceView.cancelGesture() {
     dismissRadialHud(commit = false)
-    momentum.stop(); stopAutoScroll(); holdSnap.reset()
+    momentum.stop(); scroll.stopAutoScroll(); holdSnap.reset()
     guideDrag.end(null)
-    ink.current = null; ink.currentStrokes = null; shapeDraft.finish(); scrolling = false; erasing = false; placing = false
+    ink.current = null; ink.currentStrokes = null; shapeDraft.finish()
+    scroll.active = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
     textSelecting = false; vspace.reset()
     gesturePointerId = -1; stylusOwner = false; multiTap.reset()
@@ -335,103 +332,34 @@ internal fun DrawingSurfaceView.beginScroll(event: MotionEvent) {
     ink.current = null
     erasing = false
     placing = false
-    scrolling = true
-    lastFocusY = focusY(event, skip = -1)
-    lastFocusX = focusX(event, skip = -1)
-    lastSpan = spanOf(event)
-    momentum.clearRelease()
-    momentum.rebaseline(event.eventTime, lastFocusX, lastFocusY)
+    scroll.begin(
+        focusX = focusX(event, skip = -1),
+        focusY = focusY(event, skip = -1),
+        span = spanOf(event),
+        timeMs = event.eventTime,
+    )
 }
 
+/**
+ * One frame of the pan: the object applies the delta and the pinch, and holds everything back while the
+ * gesture is still a candidate for a two-/three-finger tap.
+ */
 internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
-    val fy = focusY(event, skip = -1)
-    val fx = focusX(event, skip = -1)
-    val span = spanOf(event)
-    val spanChanged = lastSpan > 0f && kotlin.math.abs(span - lastSpan) > ViewConfiguration.get(context).scaledTouchSlop
-    if (multiTapCandidate && !multiTapMoved && !spanChanged) {
-        lastFocusY = fy
-        lastFocusX = fx
-        lastSpan = span
-        return
-    }
-    // Pan gain: 1 tracks the finger one-to-one, <1 pans slower, >1 faster, 0 freezes the document.
-    // The viewport owns the clamps ([ViewportState.scrollBy]).
-    scrollViewportBy((lastFocusX - fx) * panSensitivity, (lastFocusY - fy) * panSensitivity)
-    lastFocusY = fy
-    lastFocusX = fx
-    // Two fingers also pinch-zoom: a change in span since the last frame scales zoom about the focus.
-    if (lastSpan > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX && span > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX) zoomAbout(fx, fy, span / lastSpan)
-    lastSpan = span
-    momentum.track(event.eventTime, fx, fy)
-    render()
+    scroll.move(
+        focusX = focusX(event, skip = -1),
+        focusY = focusY(event, skip = -1),
+        span = spanOf(event),
+        timeMs = event.eventTime,
+        holdForGesture = multiTapCandidate && !multiTapMoved,
+    )
 }
 
-// --- drag auto-scroll: keep scrolling while a selection is dragged into an edge band -------------
-
-/**
- * Update the drag auto-scroll direction from a pointer's position (view px): pushing into an edge
- * band (top, bottom, left, right) starts the page scrolling that way, and moving back out stops it.
- * Idempotent, so it is safe to call on every MOVE.
- */
-internal fun DrawingSurfaceView.updateDragAutoScroll(viewX: Float, viewY: Float) {
-    val edgePx = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_EDGE_DP * resources.displayMetrics.density
-    val dirX = when {
-        viewX > width - edgePx -> 1
-        viewX < edgePx -> -1
-        else -> 0
-    }
-    val dirY = when {
-        viewY > height - edgePx -> 1
-        viewY < edgePx -> -1
-        else -> 0
-    }
-    if (dirX == dragAutoScrollDirX && dirY == dragAutoScrollDirY) return
-    dragAutoScrollDirX = dirX
-    dragAutoScrollDirY = dirY
-    if (dirX != 0 || dirY != 0) postAutoScroll() else stopAutoScroll()
-}
-
-/** Stop the drag auto-scroll repeat (a released/cancelled gesture, or the drag left the edge band). */
-internal fun DrawingSurfaceView.stopAutoScroll() {
-    dragAutoScrollDirX = 0
-    dragAutoScrollDirY = 0
-    if (autoScrollPosted) {
-        choreographer.removeFrameCallback(autoScrollCallback)
-        autoScrollPosted = false
-    }
-}
-
-private fun DrawingSurfaceView.postAutoScroll() {
-    if (autoScrollPosted) return
-    autoScrollPosted = true
-    choreographer.postFrameCallback(autoScrollCallback)
-}
-
-/**
- * One auto-scroll frame: scroll one step toward the edge the finger is in (horizontally and/or vertically)
- * and re-apply the gesture at the finger's last position — the moved selection, or the marquee being dragged
- * out — so it rides the scrolling sheet, then repost.
- */
-internal fun DrawingSurfaceView.autoScrollFrame() {
-    autoScrollPosted = false
-    val dirX = dragAutoScrollDirX
-    val dirY = dragAutoScrollDirY
-    if (dirX == 0 && dirY == 0) return
-    val step = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_STEP_DP * resources.displayMetrics.density
-    if (!scrollViewportBy(dirX * step, dirY * step)) {
-        stopAutoScroll() // pinned at a bound in both axes: nothing left to scroll into
-        return
-    }
-    if (gestures.banding) gestures.bandTo(dragLastX, dragLastY)
-    else gestures.moveSelectTo(dragLastX, dragLastY)
-    postAutoScroll()
-}
 
 internal fun DrawingSurfaceView.endGesture() {
     guideDrag.end(null)
     // Snapshot then clear the mode flags first, so any render() inside a commit (e.g. the
     // rubber-band) sees the gesture already ended and doesn't paint a stale marquee/overlay.
-    val wasScrolling = scrolling
+    val wasScrolling = scroll.active
     val wasErasing = erasing
     val wasPlacing = placing
     val wasMoving = gestures.moving
@@ -441,11 +369,11 @@ internal fun DrawingSurfaceView.endGesture() {
     val wasTextSelecting = textSelecting
     val wasVspacing = vspace.active
     vspace.reset()
-    scrolling = false
+    scroll.active = false
     erasing = false
     placing = false
     textSelecting = false
-    stopAutoScroll()
+    scroll.stopAutoScroll()
     gestures.reset()
     when {
         wasPlacing -> commitPlace()
@@ -463,7 +391,7 @@ internal fun DrawingSurfaceView.endGesture() {
     stylusOwner = false
     // The gesture is over: nothing of it may reach the next one through the router.
     ink.pointerRouter.reset(); routed = false
-    if (wasScrolling) momentum.launch(panSensitivity)
+    if (wasScrolling) scroll.glide()
     if (search.query.isNotEmpty() && (wasMoving || wasTransforming || wasVspacing)) {
         rebuildSearch()
         render()

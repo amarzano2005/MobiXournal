@@ -36,9 +36,9 @@ import android.view.MotionEvent
 internal fun DrawingSurfaceView.newPointerRouter(): InkPointerRouter = InkPointerRouter(
     settings = inputSettings,
     activeTool = { activeTool() },
-    pressureEnabled = pressureEnabled,
-    pressureMultiplier = pressureMultiplier,
-    minimumPressure = minimumPressure,
+    pressureEnabled = penPressure.enabled,
+    pressureMultiplier = penPressure.multiplier,
+    minimumPressure = penPressure.minimum,
     // A tap on the tablet leaves a dot at the tip, so the press is ink at once. (The desktop wants
     // the opposite — there a click selects — and asks for it with `startOnDown = false`.)
     startOnDown = true,

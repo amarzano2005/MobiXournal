@@ -150,7 +150,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     // Last eraser contact point (view px), so the tip outline follows the rub — finger touches included.
     internal var eraseX = 0f
     internal var eraseY = 0f
-    internal var scrolling = false
 
     internal val multiTap = MultiFingerTapDetector()
 
@@ -191,11 +190,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var placing = false
     internal var placeDownX = 0f
     internal var placeDownY = 0f
-    internal var lastFocusY = 0f
-    internal var lastFocusX = 0f
-    /** The two-finger span (mean pointer distance from the focus, view px) at the last pan frame,
-     * so a change in span drives a proportional pinch-zoom. 0 means "re-baseline on the next frame". */
-    internal var lastSpan = 0f
 
     // Momentum scrolling: a released pan keeps gliding, decelerating, until it stalls or hits a bound.
     // The whole loop — velocity tracking, the release seed, and the per-frame glide — is [MomentumDriver]'s.
@@ -235,15 +229,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var paintPosted = false
     internal val paintCallback = Choreographer.FrameCallback { paint() }
 
-    // Drag auto-scroll: while a selection is dragged into an edge band the page keeps
-    // scrolling and the element travels with it (desktop behaviour). Direction is -1 / +1 / 0;
-    // the repeat is driven by [autoScrollCallback] so it scrolls even under a held finger.
-    internal var dragAutoScrollDirX = 0
-    internal var dragAutoScrollDirY = 0
-    internal var dragLastX = 0f
-    internal var dragLastY = 0f
-    internal var autoScrollPosted = false
-    internal val autoScrollCallback = Choreographer.FrameCallback { autoScrollFrame() }
 
     /**
      * The canvas's taps — the platform's double-tap and long-press timings, the Hand tool's tap sequence and
@@ -363,20 +348,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Input-layer settings (finger-draw / barrel action) consulted by [InputClassifier]; from Settings. */
     var inputSettings: InputSettings = InputSettings()
     /**
-     * Whether the pen's width follows pressure at all (desktop Xournal++'s "Pressure sensitivity").
-     * Off draws every stroke at [baseWidthPt], so a pen stroke and a shape match exactly.
+     * The pen-width model — pressure on or off, its multiplier and its floor — owned by [PenPressure]
+     * (`CanvasPressure.kt`). Read per sample, so a slider moved in Settings applies to the next one.
      */
-    var pressureEnabled: Boolean = true
-    /**
-     * Raw pressure is scaled by this before the floor, then times the tool's width — desktop's
-     * "pressure multiplier". 1 leaves the digitiser's value unchanged; above 1 thickens past the size.
-     */
-    var pressureMultiplier: Float = 1f
-    /**
-     * The floor under the filtered pressure (desktop Xournal++'s "minimum pressure"): a zero-pressure
-     * sample still draws a light line at this fraction of the tool's width.
-     */
-    var minimumPressure: Float = PressureCurve.MINIMUM_PRESSURE_DEFAULT
+    internal val penPressure = PenPressure()
     /** How much digitiser detail freehand strokes keep (see [StrokePrecision]); from Settings. */
     // The decimation radius depends on the page's px/pt as well as this setting, so it is computed
     // per stroke in [startStroke] rather than pinned here.
@@ -630,6 +605,31 @@ class DrawingSurfaceView @JvmOverloads constructor(
         snapSpacingPt = { page -> if (snapToGrid) Snapping.spacingY(page.background) else 0.0 },
         refresh = { relayout(); render() },
     )
+
+    /**
+     * The canvas's scrolling — the pan/pinch baselines, the glide and the drag auto-scroll loop — owned by
+     * [ScrollGesture] (`CanvasScroll.kt`).
+     */
+    internal val scroll = ScrollGesture(
+        scrollBy = { dx, dy -> scrollViewportBy(dx, dy) },
+        zoomAbout = { focusX, focusY, factor -> zoomAbout(focusX, focusY, factor) },
+        momentum = momentum,
+        panSensitivity = { panSensitivity },
+        touchSlopPx = { taps.touchSlopPx },
+        edgePx = { DrawingSurfaceDefaults.DRAG_AUTOSCROLL_EDGE_DP * resources.displayMetrics.density },
+        stepPx = { DrawingSurfaceDefaults.DRAG_AUTOSCROLL_STEP_DP * resources.displayMetrics.density },
+        viewWidth = { width },
+        viewHeight = { height },
+        // A drag rides the scrolling page: the marquee re-applies itself, and so does a moved selection.
+        dragAt = { x, y -> if (gestures.banding) gestures.bandTo(x, y) else gestures.moveSelectTo(x, y) },
+        render = { render() },
+        postFrame = { choreographer.postFrameCallback(autoScrollCallback) },
+        removeFrame = { choreographer.removeFrameCallback(autoScrollCallback) },
+    )
+
+    /** The auto-scroll frame: the loop itself lives in [ScrollGesture], this is only its clock. */
+    private val autoScrollCallback: Choreographer.FrameCallback =
+        Choreographer.FrameCallback { scroll.autoScrollFrame() }
 
     /** The setsquare/compass overlay and the finger that poses it — see [GuideDrag]. */
     internal val guideDrag = GuideDrag(
@@ -1145,7 +1145,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Down with the vertical-space tool: clear the other modes and hand off to [VerticalSpaceDrag]. */
     internal fun beginVerticalSpace(event: MotionEvent) {
-        scrolling = false; erasing = false; placing = false; ink.current = null; ink.currentStrokes = null
+        scroll.active = false; erasing = false; placing = false; ink.current = null; ink.currentStrokes = null
         val page = vspace.begin(event.x, event.y) ?: return
         ink.currentPage = page
         gesturePointerId = event.getPointerId(0)
@@ -1299,7 +1299,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      */
     internal fun setPenDebug(enabled: Boolean) = diagnostics.setEnabled(enabled) {
         devices()
-        parameters(pressureEnabled, pressureMultiplier, minimumPressure, baseWidthPt)
+        parameters(penPressure.enabled, penPressure.multiplier, penPressure.minimum, baseWidthPt)
     }
 
     /** Forget the recorded lines, leaving the panel open (and recording) — the user's Clear button. */
@@ -1307,7 +1307,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Re-state the pressure parameters in force: called when Settings are pushed onto the canvas. */
     internal fun refreshPenParameters() =
-        diagnostics.parameters(pressureEnabled, pressureMultiplier, minimumPressure, baseWidthPt)
+        diagnostics.parameters(penPressure.enabled, penPressure.multiplier, penPressure.minimum, baseWidthPt)
 
     /** Button-only events (press/release with the tip off the glass) arrive here, not in touch. */
     override fun onGenericMotionEvent(event: MotionEvent): Boolean =

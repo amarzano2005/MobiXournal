@@ -15,7 +15,7 @@ import kotlin.math.min
 
 /** Down with the background-select tool: clear other edit modes and start a rectangle marquee. */
 internal fun DrawingSurfaceView.beginBackgroundSelect(event: MotionEvent) {
-    scrolling = false
+    scroll.active = false
     erasing = false
     placing = false
     ink.current = null

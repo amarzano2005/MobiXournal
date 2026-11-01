@@ -151,6 +151,8 @@ app/
       CanvasShapeDraft.kt    # a shape tool's drag as one object: the anchor, the live end, the pinned width and the tap rule (tested)
       CanvasTaps.kt          # the canvas's taps as one object: platform timings, the Hand tool's double-tap and a living element's (tested)
       CanvasInkGesture.kt    # the ink gesture in progress as one object: the stroke, the shape, its page, the smoother and the router (tested)
+      CanvasScroll.kt        # scrolling as one object: the pan/pinch baselines, the glide and the drag auto-scroll loop (tested)
+      CanvasPressure.kt      # the pen-width model as one object: pressure on/off, its multiplier and its floor (tested)
       PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
       DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)
       InkCache.kt            # page-ink rasters built on a worker (zoom buckets), so panning blits instead of re-drawing

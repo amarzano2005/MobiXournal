@@ -325,7 +325,9 @@ class StylusInputTest {
 
         val widths = strokesOf(view).single().points.map { it.width }
         val expected = pressures.map {
-            PressureCurve.widthPt(view.baseWidthPt, it, view.pressureEnabled, view.pressureMultiplier, view.minimumPressure)
+            PressureCurve.widthPt(
+                view.baseWidthPt, it, view.penPressure.enabled, view.penPressure.multiplier, view.penPressure.minimum,
+            )
         }
         assertTrue("the stroke stored several vertices ($widths)", widths.size >= 3)
         assertEquals(
@@ -353,7 +355,7 @@ class StylusInputTest {
     fun pressureSensitivityOffStoresOneUniformWidth() = onView { view ->
         view.tool = Tool.PEN
         view.baseWidthPt = 2f
-        view.pressureEnabled = false
+        view.penPressure.enabled = false
         drawGradedStroke(view, floatArrayOf(0.05f, 0.5f, 1f))
 
         val widths = strokesOf(view).single().points.map { it.width }

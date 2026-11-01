@@ -184,9 +184,9 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     showHover = s.showHover
     fingerTaps.twoFingerTapAction = s.twoFingerTapAction
     fingerTaps.threeFingerTapAction = s.threeFingerTapAction
-    pressureEnabled = s.pressureEnabled
-    pressureMultiplier = s.pressureMultiplier
-    minimumPressure = s.minimumPressure
+    penPressure.enabled = s.pressureEnabled
+    penPressure.multiplier = s.pressureMultiplier
+    penPressure.minimum = s.minimumPressure
     strokePrecision = s.strokePrecision
     recognizeShapes = s.recognizeShapes
     // The pen-tip ring's slots: the user's own palette (the editable custom colour last), then the

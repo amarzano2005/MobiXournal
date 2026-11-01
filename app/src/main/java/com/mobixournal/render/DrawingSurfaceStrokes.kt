@@ -28,7 +28,7 @@ internal var strokeStartEventTimeMs: Long = 0L
  */
 internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
     strokeStartEventTimeMs = start.timeMs
-    scrolling = false
+    scroll.active = false
     shapeDraft.begin(shape = shapeKind != null)
     holdSnap.reset()
     gestureStartDoc = doc
@@ -164,7 +164,7 @@ fun DrawingSurfaceView.insertTable(
  */
 internal fun DrawingSurfaceView.eraseAtPointer(pointer: InkPointer) {
     if (!erasing) {
-        scrolling = false
+        scroll.active = false
         erasing = true
         gestureStartDoc = doc
         gesturePointerId = pointer.id
@@ -220,7 +220,7 @@ internal fun DrawingSurfaceView.eraseAt(box: PageBox, vx: Float, vy: Float, mode
 
 /** A tap in a placement tool: remember where it went down; a small drag cancels it. */
 internal fun DrawingSurfaceView.beginPlace(event: MotionEvent, pointerIndex: Int) {
-    scrolling = false
+    scroll.active = false
     erasing = false
     ink.current = null
     placing = true
@@ -258,7 +258,7 @@ internal fun DrawingSurfaceView.widthForPressure(pressure: Float): Double = if (
     // Desktop Xournal++'s model, exactly: a point's width is the raw pressure — scaled by the
     // multiplier and floored at the minimum — times the tool's width. A zero reading is not treated
     // specially; it simply takes the floor, where the desktop's own filter puts it.
-    PressureCurve.widthPt(baseWidthPt, pressure, pressureEnabled, pressureMultiplier, minimumPressure)
+    penPressure.widthPt(baseWidthPt, pressure)
 }
 
 /**
