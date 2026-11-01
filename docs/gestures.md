@@ -7,6 +7,19 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 **is** — tool detection, the diagnostics panel, graphics tablets, onboarding — is
 [stylus.md](stylus.md)'s._
 
+## One move, one gesture (the priority order)
+
+**Several gestures run at once, so every move has to be routed.** A guide stays posed while the pen rules
+along it, a barrel press switches a stroke to the eraser mid-gesture, and the marquee's edge band scrolls
+the page under a finger that has not let go. `GestureRouter` (`CanvasGestureRouter.kt`) answers "which
+one is this move?" from a snapshot of the canvas's modes, in a fixed priority: **pan** first, then
+**erase**, **place**, **background select**, the three point handles (**plot slider**, **table divider**,
+**polygon vertex**), the selection body (**resize**, **rotate**, **move**), then **vertical space**,
+**band**, **text select** and finally the **ink** the shared router owns. The order used to be implicit in
+a thirteen-branch `when` inside the event handler; it is now a value in one place, and
+`GestureRouterTest` reads `CanvasGesture`'s declaration order against it so the two cannot drift. The
+framework's own `when (actionMasked)` stays where it is — that dispatches events, not gestures.
+
 ## Mouse wheel
 
 **Mouse wheel.** `ACTION_SCROLL` events from a mouse arrive in `onGenericMotionEvent` and are turned

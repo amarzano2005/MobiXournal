@@ -54,30 +54,31 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             // mid-stroke ends the ink drawn so far and hands the rest of the gesture to the eraser,
             // the way desktop Xournal++ switches tools under the pen.
             if (ink.current != null && !shapeDraft.active) switchStrokeToErase(event)
-            when {
-                scroll.active -> doScroll(event)
-                erasing -> if (routed) feedPointerSamples(event) else eraseMove(event)
-                placing -> placeMove(event)
-                backgroundSelecting -> backgroundSelectMove(event)
-                gestures.slidingParam -> gestures.slideParam(event)
-                gestures.draggingDivider -> gestures.dragDivider(event)
-                gestures.draggingVertex -> gestures.dragVertex(event)
-                gestures.resizing -> gestures.resizeSelect(event)
-                gestures.rotating -> gestures.rotateSelect(event)
-                gestures.moving -> {
+            // Which gesture this move belongs to is decided in one place, by priority (`CanvasGestureRouter`).
+            when (GestureRouter.route(gestureSituation())) {
+                CanvasGesture.PAN -> doScroll(event)
+                CanvasGesture.ERASE -> if (routed) feedPointerSamples(event) else eraseMove(event)
+                CanvasGesture.PLACE -> placeMove(event)
+                CanvasGesture.BACKGROUND_SELECT -> backgroundSelectMove(event)
+                CanvasGesture.SLIDE_PARAM -> gestures.slideParam(event)
+                CanvasGesture.DIVIDER -> gestures.dragDivider(event)
+                CanvasGesture.VERTEX -> gestures.dragVertex(event)
+                CanvasGesture.RESIZE -> gestures.resizeSelect(event)
+                CanvasGesture.ROTATE -> gestures.rotateSelect(event)
+                CanvasGesture.MOVE -> {
                     scroll.updateDrag(event.x, event.y)
                     gestures.moveSelect(event)
                 }
-                vspace.active -> vspace.move(event.y)
-                gestures.banding -> {
+                CanvasGesture.VERTICAL_SPACE -> vspace.move(event.y)
+                CanvasGesture.BAND -> {
                     // Dragging the marquee itself into an edge band scrolls the page too, so a
                     // selection can reach past the viewport without letting go and panning first.
                     scroll.updateDrag(event.x, event.y)
                     gestures.bandMove(event)
                 }
-                textSelecting -> textSelectMove(event)
-                routed && (ink.current != null || ink.currentStrokes != null) -> feedPointerSamples(event)
-                else -> Unit
+                CanvasGesture.TEXT_SELECT -> textSelectMove(event)
+                CanvasGesture.INK -> feedPointerSamples(event)
+                CanvasGesture.NONE -> Unit
             }
         }
         MotionEvent.ACTION_POINTER_UP -> onPointerUp(event)
@@ -99,6 +100,27 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
     }
     return true
 }
+
+/**
+ * The canvas's modes as one value, so [GestureRouter] decides a move's gesture without reaching into the
+ * surface. One line here per mode it reads, and nothing else on this path can influence the answer.
+ */
+internal fun DrawingSurfaceView.gestureSituation(): GestureSituation = GestureSituation(
+    panning = scroll.active,
+    erasing = erasing,
+    placing = placing,
+    backgroundSelecting = backgroundSelecting,
+    slidingParam = gestures.slidingParam,
+    draggingDivider = gestures.draggingDivider,
+    draggingVertex = gestures.draggingVertex,
+    resizing = gestures.resizing,
+    rotating = gestures.rotating,
+    movingSelection = gestures.moving,
+    verticalSpace = vspace.active,
+    banding = gestures.banding,
+    textSelecting = textSelecting,
+    routingInk = routed && ink.inProgress,
+)
 
 /** Barrel tracking plus the wheel; null means "not ours" and falls through to [SurfaceView]. */
 internal fun DrawingSurfaceView.handleGenericMotion(event: MotionEvent): Boolean? {
