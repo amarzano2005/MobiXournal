@@ -45,6 +45,32 @@ class CiCoverageTest {
     }
 
     /**
+     * The **instrumented** half, which the check above cannot see: `src/androidTest` is not a suite any
+     * CI task runs (no runner here has a device), but it is code, and code that stops compiling is a
+     * broken claim whatever executes it. It is compiled by a named Gradle line, and this asserts that
+     * the line is there — otherwise the gate is as deletable as the absence was.
+     */
+    @Test
+    fun `an instrumented source set is compiled by CI`() {
+        val instrumented = modules().filter { File(repoRoot(), "$it/src/androidTest").isDirectory }
+        assertTrue(
+            "no module carries an instrumented source set: this guard would pass vacuously",
+            instrumented.isNotEmpty(),
+        )
+
+        val lines = gradleLines()
+        val uncompiled = instrumented.filterNot { module ->
+            lines.any { it.contains(":$module:compile") && it.contains("AndroidTestKotlin") }
+        }
+        assertTrue(
+            "these modules have instrumented tests that no CI run compiles: $uncompiled\n" +
+                "name the task in .github/workflows/build.yml, e.g. " +
+                "`./gradlew :app:compileDebugAndroidTestKotlin`",
+            uncompiled.isEmpty(),
+        )
+    }
+
+    /**
      * The other direction, so the check above cannot be blinded by a rewrite: if the workflow stops
      * being readable as Gradle invocations it would report "nothing missing" for a file that no longer
      * builds anything.
@@ -68,16 +94,16 @@ class CiCoverageTest {
         line.contains(":$module:test") && !line.contains("-x :$module:test")
     }
 
-    /** Every module declared by `settings.gradle.kts` that holds a test source set (`src/test*`). */
-    private fun testedModules(): List<String> {
-        val root = repoRoot()
-        val settings = File(root, "settings.gradle.kts").readText()
-        return Regex("""include\(":([^"]+)"\)""")
-            .findAll(settings)
+    /** Every module declared by `settings.gradle.kts`. */
+    private fun modules(): List<String> =
+        Regex("""include\(":([^"]+)"\)""")
+            .findAll(File(repoRoot(), "settings.gradle.kts").readText())
             .map { it.groupValues[1] }
-            .filter { module -> hasTests(File(root, "$module/src")) }
             .toList()
-    }
+
+    /** Every module declared by `settings.gradle.kts` that holds a test source set (`src/test*`). */
+    private fun testedModules(): List<String> =
+        modules().filter { module -> hasTests(File(repoRoot(), "$module/src")) }
 
     private fun hasTests(src: File): Boolean =
         src.listFiles().orEmpty().any { it.isDirectory && it.name.startsWith("test") }

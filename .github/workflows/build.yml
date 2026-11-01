@@ -47,6 +47,14 @@ jobs:
       - name: Run the app and core suites
         run: ./gradlew :app:testDebugUnitTest :mobix-core:test --stacktrace
 
+      # The instrumented suite is **compiled** here, not run: no runner in this workflow carries a
+      # device. `app/src/androidTest` is the half of the suite that only a device can execute, so it
+      # compiled against whatever the canvas happened to have at the time — twice in one refactor
+      # series it stopped compiling and every step stayed green, because only `src/test` is ever named
+      # by a suite task. Naming the compile task makes that a failed build instead of a silence.
+      - name: Compile the instrumented tests
+        run: ./gradlew :app:compileDebugAndroidTestKotlin --stacktrace
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 

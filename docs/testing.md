@@ -96,7 +96,10 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   and it fails in the other direction too (no Gradle line found, or `:desktop:test` gone) so a rewritten
   workflow cannot blind it. The rule exists because the modules do not share a task name — the Android
   app has `testDebugUnitTest`, the plain JVM modules have `test` — so a workflow naming one of them runs
-  one module and reports success for the rest.
+  one module and reports success for the rest. The **instrumented** half is the same rule from the other
+  side: `src/androidTest` is not a suite any CI task can run (no runner here has a device), so it is
+  *compiled* by a named task instead, and the guard fails when that line goes missing or when a module
+  grows an `androidTest` source set nobody compiles.
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
 - **`ToolGlyphWeightTest`** (`ui/`) — both toolbars draw the same `Icons.Outlined` tool set, so both
@@ -147,8 +150,10 @@ the Android job so Skiko's rasterising never gates or slows the APK build.
 ## What CI runs
 
 `.github/workflows/build.yml` is the only place a suite is guaranteed to run, and it names its tasks
-project by project: the Android job runs `:app:testDebugUnitTest :mobix-core:test` and then builds the
-APK, the Windows job runs `:desktop:test` (above). That explicitness is load-bearing rather than
+project by project: the Android job runs `:app:testDebugUnitTest :mobix-core:test`, compiles the
+instrumented tests with `:app:compileDebugAndroidTestKotlin` — compiled, not run, because no runner here
+has a device, and an `androidTest` that stops compiling is a broken claim all the same — and then builds
+the APK, the Windows job runs `:desktop:test` (above). That explicitness is load-bearing rather than
 verbose — `testDebugUnitTest` exists only in the Android module, so a workflow naming it alone ran that
 suite and left `mobix-core` unexecuted, which is exactly where the `.xopp`/`.mobix` codecs, the document
 model and `FormatDriftTest` live: every step passed, and a whole module's tests were never called.
