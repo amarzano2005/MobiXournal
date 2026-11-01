@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopPdfImport
+import com.mobixournal.desktop.sheet.PageBackdrop
+import com.mobixournal.desktop.sheet.number
+
 import com.mobixournal.format.model.Background
 import com.mobixournal.render.ABSOLUTE_DOMAIN
 import java.io.File

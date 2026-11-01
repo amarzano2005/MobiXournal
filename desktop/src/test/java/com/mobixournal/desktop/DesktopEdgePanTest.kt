@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.DesktopShell
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene

@@ -1,5 +1,18 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.InkSample
+import com.mobixournal.desktop.ink.PenPacket
+import com.mobixournal.desktop.ink.PenPacketStroke
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.PageInkGesture
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.mobixournal.format.mobix.SyntheticNotebook

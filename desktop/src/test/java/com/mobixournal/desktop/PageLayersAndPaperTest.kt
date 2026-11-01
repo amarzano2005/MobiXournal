@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.sheet.PageView
+import com.mobixournal.desktop.sheet.drawPageContent
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.renderPageBitmap
+
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toPixelMap
 import com.mobixournal.format.mobix.SyntheticNotebook

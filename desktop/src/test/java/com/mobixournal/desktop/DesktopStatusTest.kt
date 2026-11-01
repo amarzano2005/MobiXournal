@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.displayRefreshHz
+import com.mobixournal.desktop.shell.frameLabel
+import com.mobixournal.desktop.shell.refreshLabel
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

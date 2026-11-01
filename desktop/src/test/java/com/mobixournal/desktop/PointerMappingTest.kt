@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.pagePointOf
+import com.mobixournal.desktop.sheet.ChromeInset
+import com.mobixournal.desktop.sheet.SheetLayout
+import com.mobixournal.desktop.sheet.Viewport
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test

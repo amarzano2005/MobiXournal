@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.PenContact
+import com.mobixournal.desktop.ink.ScreenYMapping
+import com.mobixournal.desktop.ink.WintabApi
+import com.mobixournal.desktop.ink.WintabLogContext
+import com.mobixournal.desktop.ink.WintabPacket
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.tools.Field
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.DesktopShellState
+
 import com.mobixournal.format.mobix.SyntheticNotebook
 import java.io.File
 import org.junit.Assert.assertFalse

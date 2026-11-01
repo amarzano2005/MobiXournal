@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.drawPdfPreviewBands
+import com.mobixournal.desktop.io.drawPdfTextSelection
+
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap

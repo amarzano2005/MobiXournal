@@ -1,5 +1,19 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.GuideAim
+import com.mobixournal.desktop.sheet.GuideAimPill
+import com.mobixournal.desktop.sheet.PageCanvas
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.placedGuideOn
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize

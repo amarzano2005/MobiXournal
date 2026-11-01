@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.PageSidebar
+import com.mobixournal.desktop.shell.selectPage
+
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi

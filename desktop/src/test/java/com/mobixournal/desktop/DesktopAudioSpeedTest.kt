@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopAudioPlayer
+import com.mobixournal.desktop.io.resample
+import com.mobixournal.desktop.shell.speedLabel
+
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

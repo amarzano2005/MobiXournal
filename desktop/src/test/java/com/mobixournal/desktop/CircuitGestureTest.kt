@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.CircuitSpan
+import com.mobixournal.desktop.sheet.circuitElementForSpan
+import com.mobixournal.desktop.sheet.circuitSpan
+import com.mobixournal.desktop.sheet.snapSelectionMove
+import com.mobixournal.desktop.sheet.snapWireEnds
+
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitPin

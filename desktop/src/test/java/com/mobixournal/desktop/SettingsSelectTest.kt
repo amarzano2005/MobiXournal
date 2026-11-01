@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
+import com.mobixournal.desktop.settings.nextChoice
+import com.mobixournal.desktop.settings.selectMenuWidthFor
+
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

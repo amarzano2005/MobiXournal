@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.DesktopAudioStore
+import com.mobixournal.desktop.io.DesktopSaves
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.io.save
+
 import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.model.Background

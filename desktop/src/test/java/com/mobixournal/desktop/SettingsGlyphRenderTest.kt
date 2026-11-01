@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.SettingsSectionRow
+import com.mobixournal.desktop.settings.drawSettingsGlyph
+import com.mobixournal.desktop.settings.glyph
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size

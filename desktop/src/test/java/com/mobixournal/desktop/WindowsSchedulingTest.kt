@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.WindowsScheduling
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.number
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

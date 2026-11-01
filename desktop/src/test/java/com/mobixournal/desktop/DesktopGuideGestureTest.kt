@@ -1,5 +1,14 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.DesktopGuidePose
+import com.mobixournal.desktop.sheet.GUIDE_HANDLE_PX
+import com.mobixournal.desktop.sheet.GuideGrab
+import com.mobixournal.desktop.sheet.guideDragged
+import com.mobixournal.desktop.sheet.guidePress
+import com.mobixournal.desktop.sheet.guideReachPt
+import com.mobixournal.desktop.sheet.placedGuideOn
+
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Snapping

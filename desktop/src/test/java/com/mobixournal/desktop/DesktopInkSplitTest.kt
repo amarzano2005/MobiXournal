@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.ColourEditorTarget
+import com.mobixournal.desktop.ink.DesktopInkState
+import com.mobixournal.desktop.ink.DesktopInks
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.tools.DesktopTool
+
 import com.mobixournal.design.PenPalette
 import com.mobixournal.render.InkGeometry
 import java.io.File

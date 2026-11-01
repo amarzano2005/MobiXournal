@@ -1,5 +1,11 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopSaves
+import com.mobixournal.desktop.io.saveAsName
+import com.mobixournal.desktop.io.saveAsRenamed
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
+
 import com.mobixournal.format.SaveFormat
 import org.junit.Assert.assertEquals
 import org.junit.Test

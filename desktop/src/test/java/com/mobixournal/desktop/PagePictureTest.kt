@@ -1,5 +1,11 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.PagePicture
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.appendedElements
+import com.mobixournal.desktop.sheet.drawPageContent
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue

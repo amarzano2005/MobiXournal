@@ -1,5 +1,11 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.DesktopImagePlacement
+import com.mobixournal.desktop.sheet.DesktopClipboard
+import com.mobixournal.desktop.sheet.pasteClipboard
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+
 import com.mobixournal.format.model.ImageElement
 import java.awt.datatransfer.Clipboard
 import java.awt.datatransfer.DataFlavor

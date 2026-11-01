@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.WinInk
+import com.mobixournal.desktop.ink.WinInkEngine
+import com.mobixournal.desktop.ink.of
+
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool

@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopContainer
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.sheet.PageBackdrop
+import com.mobixournal.desktop.shell.DesktopPages
+import com.mobixournal.desktop.shell.DesktopTabs
+
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document

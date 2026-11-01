@@ -1,5 +1,23 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.PressureFeel
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
+import com.mobixournal.desktop.settings.DesktopSettingSection
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.settings.FitOnOpen
+import com.mobixournal.desktop.settings.InspectorPolicy
+import com.mobixournal.desktop.settings.PenStream
+import com.mobixournal.desktop.settings.RailSide
+import com.mobixournal.desktop.settings.SettingsKeyAction
+import com.mobixournal.desktop.settings.SidebarPolicy
+import com.mobixournal.desktop.settings.StripPlacement
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.shellCommand
+import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
+
 import androidx.compose.ui.input.key.Key
 import com.mobixournal.render.PressureCurve
 import java.io.File

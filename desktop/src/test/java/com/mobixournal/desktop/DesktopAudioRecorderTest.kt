@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.CaptureLine
+import com.mobixournal.desktop.io.DesktopAudioRecorder
+import com.mobixournal.desktop.io.DesktopAudioStore
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.PAN_GAIN
+import com.mobixournal.desktop.ink.PenPacket
+import com.mobixournal.desktop.ink.PenPacketPan
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.PageIndexScroll
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

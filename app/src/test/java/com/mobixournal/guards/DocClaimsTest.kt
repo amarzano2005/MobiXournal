@@ -158,13 +158,18 @@ class DocClaimsTest {
     /** One forbidden sentence, and why it is forbidden. */
     private data class Claim(val text: String, val why: String, val onlyAbout: String? = null)
 
-    /** The titles `DesktopSettingSection` declares, in declaration order. */
+    /**
+     * The titles `DesktopSettingSection` declares, in declaration order.
+     *
+     * Found by name under the window's source tree rather than by its old flat path: the window's code is
+     * split into topic packages ([code-structure.md](code-structure.md)), and this guard is about what the doc
+     * *says*, not about where the file sits.
+     */
     private fun desktopSettingsEnum(): List<String> {
-        val file = File(
-            repoRoot(),
-            "desktop/src/main/java/com/mobixournal/desktop/SettingsSections.kt",
-        )
-        if (!file.isFile) return emptyList()
+        val file = File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop")
+            .walkTopDown()
+            .firstOrNull { it.isFile && it.name == "SettingsSections.kt" }
+            ?: return emptyList()
         val body = file.readText().substringAfter("enum class DesktopSettingSection")
         return Regex("""(?m)^\s{4}[A-Z_]+\(\s*\n\s*"([^"]+)"""")
             .findAll(body).map { it.groupValues[1] }.toList()

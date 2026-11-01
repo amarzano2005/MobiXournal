@@ -1,5 +1,26 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.sheet.placeLivingElement
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.tools.DESKTOP_TOOLS_THAT_ACT
+import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.TEXT_FONT
+import com.mobixournal.desktop.tools.TEXT_LINE_HEIGHT
+import com.mobixournal.desktop.tools.TEXT_MAX_SIZE_PT
+import com.mobixournal.desktop.tools.TEXT_MIN_SIZE_PT
+import com.mobixournal.desktop.tools.TextBoxDraft
+import com.mobixournal.desktop.tools.TextBoxKey
+import com.mobixournal.desktop.tools.groupOf
+import com.mobixournal.desktop.tools.textBoxCommand
+import com.mobixournal.desktop.tools.textBoxWidth
+import com.mobixournal.desktop.tools.textPlacement
+import com.mobixournal.desktop.tools.textSizeFor
+
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue

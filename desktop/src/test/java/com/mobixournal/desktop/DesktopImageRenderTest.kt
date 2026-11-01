@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.DesktopImageCache
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.shell.renderPageBitmap
+
 import androidx.compose.ui.graphics.toPixelMap
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.mobix.MobixDocument

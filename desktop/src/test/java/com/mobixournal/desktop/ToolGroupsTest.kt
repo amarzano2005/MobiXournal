@@ -1,5 +1,18 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.toolPickerKey
+import com.mobixournal.desktop.tools.DESKTOP_TOOLS_THAT_ACT
+import com.mobixournal.desktop.tools.DESKTOP_TOOLS_WITHOUT_A_SLOT
+import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
+import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.SlotClick
+import com.mobixournal.desktop.tools.ToolSelection
+import com.mobixournal.desktop.tools.groupOf
+import com.mobixournal.desktop.tools.slotClick
+import com.mobixournal.desktop.tools.toggledPicker
+import com.mobixournal.desktop.tools.toolForShortcut
+
 import androidx.compose.ui.input.key.Key
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

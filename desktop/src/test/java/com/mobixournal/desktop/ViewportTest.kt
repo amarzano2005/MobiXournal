@@ -1,5 +1,11 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.REVEAL_MARGIN_DP
+import com.mobixournal.desktop.sheet.Viewport
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

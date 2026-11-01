@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.InkSample
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.PageInkGesture
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import com.mobixournal.format.model.Stroke

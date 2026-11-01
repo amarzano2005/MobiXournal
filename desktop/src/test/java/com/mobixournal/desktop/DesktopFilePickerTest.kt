@@ -1,5 +1,16 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.DesktopFilePickerWindows
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
+import com.mobixournal.desktop.shell.BACKUP_TYPES
+import com.mobixournal.desktop.shell.DOCUMENT_OPEN_TYPES
+import com.mobixournal.desktop.shell.DOCUMENT_SAVE_TYPES
+import com.mobixournal.desktop.shell.PDF_TYPES
+import com.mobixournal.desktop.shell.documentFormatOf
+import com.mobixournal.desktop.shell.documentTypeIndexOf
+import com.mobixournal.desktop.shell.filterOf
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

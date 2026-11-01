@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.io.DesktopPdfImport
+import com.mobixournal.desktop.shell.DesktopShellState
+
 import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PageRangeRequest
 import com.mobixournal.render.PageRanges

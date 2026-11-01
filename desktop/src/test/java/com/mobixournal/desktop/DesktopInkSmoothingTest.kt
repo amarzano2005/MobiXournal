@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.InkCurve
+import com.mobixournal.desktop.ink.StrokePathCache
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.shapeStroke
+import com.mobixournal.desktop.ink.smoothedInk
+import com.mobixournal.desktop.sheet.PageInk
+
 import com.mobixournal.format.model.StrokePoint
 import kotlin.math.PI
 import kotlin.math.cos

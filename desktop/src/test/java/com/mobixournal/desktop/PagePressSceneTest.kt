@@ -1,5 +1,15 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.sheet.ChromeInset
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.PageCanvas
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.DesktopTabs
+
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene

@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.OutlineRow
+import com.mobixournal.desktop.io.contentsRowsOf
+import com.mobixournal.desktop.io.outlineRows
+import com.mobixournal.desktop.shell.Header
+
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page

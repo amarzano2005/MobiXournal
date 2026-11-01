@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettingSection
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.tools.DesktopTool
+
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

@@ -1,0 +1,136 @@
+package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopTheme
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ImageElement
+import com.mobixournal.render.PageSelection
+import com.mobixournal.render.SelectionRegion
+
+/**
+ * The selection drawn **over the page**, in the window's own chrome ink — no material of its own.
+ *
+ * `docs/interface-contract.md` puts a selection in the same family as the rest of the chrome: a dashed
+ * accent line, solid square handles at the corners and a round one above the box for the turn. It is not a
+ * floating surface and it never covers ink: the outline is a hairline, and the handles are eight screen pixels
+ * of the accent, so what is selected is still what the user sees.
+ *
+ * [pxPerPt] is the sheet's own scale (`zoom × density`), so the outline follows a zoom while its stroke and
+ * its handles stay the same size on screen — a handle that grew with the page would be a slab at 400 %.
+ */
+internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, living: Element? = null) {
+    drawRegion(selection.region, pxPerPt, dashed = true)
+    drawHandles(selection, pxPerPt, isImage = living is ImageElement)
+    // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
+    // where the box's handles are square, so the two never read as the same thing.
+    if (living != null) drawGrips(living, pxPerPt)
+}
+
+/** A living element's grips — a hollow ring per grip, the same size at every zoom. */
+private fun DrawScope.drawGrips(element: Element, pxPerPt: Float) {
+    for (point in livingGripsOf(element)) {
+        val centre = Offset((point.x * pxPerPt).toFloat(), (point.y * pxPerPt).toFloat())
+        drawCircle(color = Color.Black.copy(alpha = 0.45f), radius = GRIP_SIZE / 2f + 1f, center = centre)
+        drawCircle(color = DesktopTheme.accent, radius = GRIP_SIZE / 2f, center = centre)
+    }
+}
+
+/** The region being traced right now — one outline, no handles until it is committed. */
+internal fun DrawScope.drawSelectionPreview(region: SelectionRegion, pxPerPt: Float) {
+    drawRegion(region, pxPerPt, dashed = false)
+}
+
+/** A rectangle or a loop, scaled from page points to the canvas's pixels. */
+private fun DrawScope.drawRegion(region: SelectionRegion, pxPerPt: Float, dashed: Boolean) {
+    val path = Path()
+    when (region) {
+        is SelectionRegion.Rect -> {
+            val box = region.bounds
+            path.addRect(
+                Rect(
+                    (box.left * pxPerPt).toFloat(), (box.top * pxPerPt).toFloat(),
+                    (box.right * pxPerPt).toFloat(), (box.bottom * pxPerPt).toFloat(),
+                ),
+            )
+        }
+        is SelectionRegion.Polygon -> {
+            val points = region.points
+            if (points.size < 2) return
+            path.moveTo((points[0].x * pxPerPt).toFloat(), (points[0].y * pxPerPt).toFloat())
+            for (point in points.drop(1)) path.lineTo((point.x * pxPerPt).toFloat(), (point.y * pxPerPt).toFloat())
+            path.close()
+        }
+    }
+    drawPath(
+        path = path,
+        color = DesktopTheme.accent,
+        style = Stroke(
+            width = if (dashed) 1.2f else 1.6f,
+            cap = StrokeCap.Round,
+            // The marching dashes say "this is a selection, not a new object"; the live trace is solid, so the
+            // user can see the loop they are drawing rather than an animation of it.
+            pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(6f, 4f)) else null,
+        ),
+    )
+}
+
+/** Four corner squares, edge handles when [isImage], and the rotate handle when not an image. */
+private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float, isImage: Boolean = false) {
+    val box = selection.bounds
+    fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
+    val corners = listOf(
+        off(box.left, box.top), off(box.right, box.top),
+        off(box.right, box.bottom), off(box.left, box.bottom),
+    )
+    for (corner in corners) {
+        drawRect(
+            color = DesktopTheme.accent,
+            topLeft = Offset(corner.x - HANDLE_SIZE / 2f, corner.y - HANDLE_SIZE / 2f),
+            size = Size(HANDLE_SIZE, HANDLE_SIZE),
+        )
+    }
+    if (isImage) {
+        val midX = (box.left + box.right) / 2.0
+        val midY = (box.top + box.bottom) / 2.0
+        val edges = listOf(
+            off(midX, box.top),
+            off(box.right, midY),
+            off(midX, box.bottom),
+            off(box.left, midY),
+        )
+        for (edge in edges) {
+            drawRect(
+                color = DesktopTheme.accent,
+                topLeft = Offset(edge.x - HANDLE_SIZE / 2f, edge.y - HANDLE_SIZE / 2f),
+                size = Size(HANDLE_SIZE, HANDLE_SIZE),
+            )
+        }
+    } else {
+        // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.
+        // The gap is a screen distance turned into page points, so the ring clears the outline at every zoom.
+        val (rotateX, rotateY) = rotateHandleOf(box, gapPt = (ROTATE_GAP_PX / pxPerPt).toDouble())
+        val rotate = off(rotateX, rotateY)
+        val topMiddle = off((box.left + box.right) / 2.0, box.top)
+        drawLine(DesktopTheme.accent, topMiddle, rotate, strokeWidth = 1f)
+        drawCircle(color = DesktopTheme.accent, radius = HANDLE_SIZE * 0.55f, center = rotate)
+        drawCircle(color = Color.Black.copy(alpha = 0.35f), radius = HANDLE_SIZE * 0.28f, center = rotate)
+    }
+}
+
+/** One handle's side, in **screen** pixels — the same at every zoom. */
+internal const val HANDLE_SIZE = 7f
+
+/** A grip's diameter, in screen pixels — a ring the size of the box's squares. */
+internal const val GRIP_SIZE = 7f
+
+/** How far above the outline the turn handle floats, in screen pixels. */
+internal const val ROTATE_GAP_PX = 22f

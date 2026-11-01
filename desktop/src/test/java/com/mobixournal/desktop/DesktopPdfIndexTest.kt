@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopPdfIndexCache
+import com.mobixournal.desktop.io.DesktopPdfIndexer
+import com.mobixournal.desktop.settings.glyph
+
 import com.mobixournal.render.PdfOutlineEntry
 import java.io.File
 import org.apache.pdfbox.pdmodel.PDDocument

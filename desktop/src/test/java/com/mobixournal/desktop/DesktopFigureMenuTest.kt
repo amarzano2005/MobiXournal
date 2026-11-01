@@ -1,5 +1,23 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.shapeFromDrag
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.sheet.FigureShape
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.FIGURE_TOOLS
+import com.mobixournal.desktop.tools.FigureSettings
+import com.mobixournal.desktop.tools.SlotClick
+import com.mobixournal.desktop.tools.ToolSelection
+import com.mobixournal.desktop.tools.figureMenu
+import com.mobixournal.desktop.tools.figureMenuRowSize
+import com.mobixournal.desktop.tools.figureSlotGlyph
+import com.mobixournal.desktop.tools.groupOf
+import com.mobixournal.desktop.tools.slotClick
+
 import com.mobixournal.design.ToolGlyph
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeKind

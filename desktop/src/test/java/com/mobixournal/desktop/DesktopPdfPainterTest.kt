@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopPdfPainter
+
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement

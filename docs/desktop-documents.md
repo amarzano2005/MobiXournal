@@ -13,7 +13,7 @@ decides what the window says when the open is refused. Three cases, three senten
 PDF (pdf), not a MobiXournal document`); an `OutOfMemoryError` is reported as memory, because a page taller than the heap is not a
 corrupt notebook; and a **`LinkageError`** is reported as *the window being stale*, not the file being
 broken. That last case is real — a run produced `NoClassDefFoundError:
-com/mobixournal/desktop/DocumentLoader$openMobix$1`, and the notebook was untouched. It is a fact of how
+com/mobixournal/desktop/io/DocumentLoader$openMobix$1`, and the notebook was untouched. It is a fact of how
 the preview is launched: `:desktop:run` executes `build/classes`, so a Gradle build during a session
 rewrites the class files under the live JVM and any synthetic class the JVM had not loaded yet is gone.
 Closing the window and relaunching is the fix; the same file opens in ~40 ms in a fresh process.

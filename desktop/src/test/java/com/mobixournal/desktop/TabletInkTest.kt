@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.InkUser32
+import com.mobixournal.desktop.ink.PenContact
+import com.mobixournal.desktop.ink.PenPointerInfo
+import com.mobixournal.desktop.ink.PenSource
+import com.mobixournal.desktop.ink.TabletInk
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.penLabel
+
 import kotlin.math.PI
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -3,7 +3,7 @@ package com.mobixournal.panes
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.tabs.SnapshotSources
-import com.mobixournal.tabs.TabManager
+import com.mobixournal.tabs.TabSessions
 import com.mobixournal.tabs.TabStore
 
 /**
@@ -32,7 +32,7 @@ class EditorPane(
     var surface: DrawingSurfaceView? = null
 
     /** The documents open in this pane and which one is showing. */
-    val tabs = TabManager()
+    val tabs = TabSessions()
 
     /**
      * The sticky save format for this pane. "Save As" sets it; every later plain Save reuses it.

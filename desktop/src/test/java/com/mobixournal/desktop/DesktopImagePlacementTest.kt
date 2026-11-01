@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.DesktopImagePlacement
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.tools.DesktopTool
+
 import com.mobixournal.format.model.ImageElement
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream

@@ -1,5 +1,17 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopPenPreset
+import com.mobixournal.desktop.ink.PressureFeel
+import com.mobixournal.desktop.ink.decodePenPresets
+import com.mobixournal.desktop.ink.encodePenPresets
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.uniquePenPresetId
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.settings.DesktopSettingSection
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.settings.SettingsKeyAction
+
 import androidx.compose.ui.input.key.Key
 import com.mobixournal.render.PressureCurve
 import java.io.File

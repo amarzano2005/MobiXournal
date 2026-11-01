@@ -1,5 +1,18 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopDocuments
+import com.mobixournal.desktop.io.DesktopRecovery
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.sheet.connectorKindFor
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.PageSetup
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.recover
+import com.mobixournal.desktop.tools.DesktopTool
+
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.LineStyle

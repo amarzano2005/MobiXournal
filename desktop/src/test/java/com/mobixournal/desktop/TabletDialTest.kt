@@ -1,5 +1,14 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.comGuid
+import com.mobixournal.desktop.ink.dialZoomFactor
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.DesktopShellState
+
 import com.mobixournal.format.mobix.SyntheticNotebook
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

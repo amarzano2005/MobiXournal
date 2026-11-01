@@ -6,9 +6,9 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 ## The tablet on Windows: Wintab, Windows Ink, and the dial
 
-Four readers sit beside Compose — `desktop/TabletWintab.kt` (the pen's packet stream), `desktop/TabletInk.kt`
-(the same pen through Windows Ink, when a driver offers it), `desktop/TabletWheel.kt` (which wheel turned)
-and `desktop/TabletDial.kt` (a radial controller, if one is ever bound) — opened by `DesktopTablet` from
+Four readers sit beside Compose — `desktop/ink/TabletWintab.kt` (the pen's packet stream), `desktop/ink/TabletInk.kt`
+(the same pen through Windows Ink, when a driver offers it), `desktop/ink/TabletWheel.kt` (which wheel turned)
+and `desktop/ink/TabletDial.kt` (a radial controller, if one is ever bound) — opened by `DesktopTablet` from
 `DesktopApp`, rebuilt when the device tree changes, and closed with the window. The pen's stream **draws** the stroke (`PenPacketStroke`, below)
 while the mouse keeps Compose's own pointer events; what the other readers add is a reading for the event
 being handled and the dial's notch as a zoom. The hand's own pan, and why it travels further than the pen,

@@ -43,7 +43,7 @@ import com.mobixournal.render.PdfFonts
 import com.mobixournal.render.Placement
 import com.mobixournal.render.TextPdfGenerator
 import com.mobixournal.render.onStylusButtonKey
-import com.mobixournal.tabs.TabManager
+import com.mobixournal.tabs.TabSessions
 import com.mobixournal.tabs.TabStore
 import com.mobixournal.ui.AppSettings
 import com.mobixournal.ui.EditorScreen
@@ -208,7 +208,7 @@ class MainActivity : ComponentActivity() {
     internal var lastDurationMs: Int? = null
 
     /** The active pane's open documents and which one is showing (see `com.mobixournal.tabs`). */
-    internal val tabs: TabManager get() = pane.tabs
+    internal val tabs: TabSessions get() = pane.tabs
 
     /** Bumped whenever a tab list or selection changes, so the tab strips re-read them. */
     internal var tabsTick = mutableStateOf(0)

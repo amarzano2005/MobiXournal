@@ -11,7 +11,9 @@
 
 Three Gradle modules: `app` (the Android shell), `mobix-core` (platform-free model, codecs, shared
 geometry) and `desktop` (the Compose preview, `docs/desktop-workstation.md`). Code is split into small,
-single-responsibility files per `AGENTS.md`.
+single-responsibility files per `AGENTS.md`, and the window states its subjects in its packages —
+`desktop.sheet`, `.ink`, `.io`, `.settings`, `.tools`, `.shell`, with only the entry points in the root
+package ([code-structure.md](code-structure.md) owns the rule and `PackageStructureTest` enforces it).
 
 **The `MainActivity*.kt` family.** An activity can't be split into classes — the framework
 constructs exactly one — so it is split into four files instead, one class plus three files of
@@ -132,7 +134,7 @@ app/
       MirrorSync.kt          # keeps the several views of one document in step; DocumentSessions.kt is their one undo history per document
     tabs/                    # several documents open at once, cached across app restarts
       OpenTab.kt             # one open document: id, title, source URI, save format, PDF, page
-      TabManager.kt          # the tab list + selection rules (pure; no Android, no canvas)
+      TabSessions.kt          # the tab list + selection rules (pure; no Android, no canvas)
       TabIndex.kt            # the session index text format (pure encode/decode)
       TabStore.kt            # filesDir/tabs: index + one .xopp snapshot per tab
       DocColors.kt           # the dot colour that marks two tabs as views of the same document (pure)

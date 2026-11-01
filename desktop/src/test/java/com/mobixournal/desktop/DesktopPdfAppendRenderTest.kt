@@ -1,5 +1,11 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTabs
+
 import com.mobixournal.format.SaveFormat
 import java.io.File
 import org.apache.pdfbox.pdmodel.PDDocument

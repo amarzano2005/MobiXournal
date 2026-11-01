@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.tools.PendingPlacement
+
 import com.mobixournal.design.PenPalette
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.LivingSlot

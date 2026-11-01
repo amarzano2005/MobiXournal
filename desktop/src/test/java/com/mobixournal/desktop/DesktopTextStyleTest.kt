@@ -1,5 +1,22 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.sheet.LivingFamily
+import com.mobixournal.desktop.sheet.LivingTarget
+import com.mobixournal.desktop.sheet.SelectionAction
+import com.mobixournal.desktop.sheet.attachedLivingEditor
+import com.mobixournal.desktop.sheet.hasInspector
+import com.mobixournal.desktop.sheet.livingSummary
+import com.mobixournal.desktop.sheet.livingTarget
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.sheet.placeLivingElement
+import com.mobixournal.desktop.sheet.replaceLiving
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.tools.ChoiceRow
+import com.mobixournal.desktop.tools.formatNumber
+import com.mobixournal.desktop.tools.parseNumber
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable

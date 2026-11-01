@@ -1,5 +1,15 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.ColourEditorTarget
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.settle
+import com.mobixournal.desktop.tools.ColourDraft
+import com.mobixournal.desktop.tools.ColourPicker
+import com.mobixournal.desktop.tools.ColourPickerPanel
+import com.mobixournal.desktop.tools.PaletteFlyout
+
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.unit.Density

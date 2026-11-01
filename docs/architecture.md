@@ -21,6 +21,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | Spoke | What it owns | Read when |
 |---|---|---|
 | [`repo-layout.md`](repo-layout.md) | the repository map: every module, package and file | you need to know where code lives |
+| [`code-structure.md`](code-structure.md) | where new code belongs: the size rules, the window's seven packages, the closed root, the caps and buckets | you add a file, a package or a subsystem |
 | [`codebase.md`](codebase.md) | what it is built on, the shared-core rule, branding and identity | you ask what the project is or what must not cross into `mobix-core` |
 | [`stack.md`](stack.md) | pinned tech stack: Kotlin, Compose M3, SurfaceView, PDFBox, SAF | you wonder why a dependency or framework is chosen |
 | [`xopp-format.md`](xopp-format.md) | on-disk `.xopp` schema: containers, gzip XML, elements, round-trip fidelity | you read or write `.xopp` or debug Xournal++ compatibility |

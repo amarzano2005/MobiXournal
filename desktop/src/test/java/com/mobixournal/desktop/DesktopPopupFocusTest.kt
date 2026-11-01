@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.tools.FloatingSurface
+import com.mobixournal.desktop.tools.MenuSurface
+
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,8 +33,12 @@ class DesktopPopupFocusTest {
 
     @Test
     fun `every popup opens as a menu that does not take the keyboard`() {
-        val folder = File("src/main/java/com/mobixournal/desktop")
-        val sources = folder.listFiles { file -> file.extension == "kt" }.orEmpty()
+        // The window's sources are split into topic packages (`docs/code-structure.md`), so this walks the
+        // tree instead of listing one folder: a popup in a new package must not escape the rule.
+        val sources = File("src/main/java/com/mobixournal/desktop")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .toList()
         assertTrue("the desktop sources are where the test expects them", sources.isNotEmpty())
 
         val offenders = mutableListOf<String>()

@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopSettingsBackup
+import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.settings.PenStream
+import com.mobixournal.desktop.settings.StripPlacement
+
 import com.mobixournal.design.PenPalette
 import com.mobixournal.render.PressureCurve
 import java.io.File

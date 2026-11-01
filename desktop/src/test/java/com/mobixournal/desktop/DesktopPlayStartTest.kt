@@ -1,5 +1,11 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopAudioSession
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.shell.DesktopTab
+
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.AudioRef

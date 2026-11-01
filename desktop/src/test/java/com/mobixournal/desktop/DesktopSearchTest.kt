@@ -1,5 +1,24 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.PageHandwriting
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopContainer
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.io.DesktopPdfIndex
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.PageBackdrop
+import com.mobixournal.desktop.sheet.REVEAL_MARGIN_DP
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.shell.DesktopSearch
+import com.mobixournal.desktop.shell.DesktopSearchEngine
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.shellCommand
+
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document

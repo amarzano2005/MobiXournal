@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.EDGE_PAN_BAND_PX
+import com.mobixournal.desktop.sheet.EDGE_PAN_SPEED_PX
+import com.mobixournal.desktop.sheet.edgePanDelta
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

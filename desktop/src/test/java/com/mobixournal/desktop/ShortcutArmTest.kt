@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.settings.DesktopSettingSection
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.settings.SettingsKeyAction
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.ui.input.key.Key
 import java.io.File
 import org.junit.Assert.assertEquals

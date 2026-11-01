@@ -1,5 +1,21 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettingSection
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.SettingsGroup
+import com.mobixournal.desktop.settings.SettingsMetrics
+import com.mobixournal.desktop.settings.SettingsRow
+import com.mobixournal.desktop.settings.SettingsSelect
+import com.mobixournal.desktop.settings.SettingsSurface
+import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.shell.DesktopShell
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.tools.bandSurface
+import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.hoverFill
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -254,7 +270,7 @@ class DesktopSettingsStyleTest {
         val offenders = mutableListOf<String>()
         val files = listOf("SettingsRows.kt", "SettingsSections.kt", "SettingsSurface.kt")
         for (name in files) {
-            val file = File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/$name")
+            val file = desktopSource(name)
             file.readLines().forEachIndexed { index, line ->
                 // A size is `12.sp`; `spacedBy` is not a font. The patterns are exact on purpose, so the
                 // guard can be read as the rule it enforces.
@@ -279,8 +295,8 @@ class DesktopSettingsStyleTest {
      */
     @Test
     fun `the surface is the window's floating material`() {
-        val text = File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/SettingsSurface.kt").readText() +
-            File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/SettingsRows.kt").readText()
+        val text = desktopSource("SettingsSurface.kt").readText() +
+            desktopSource("SettingsRows.kt").readText()
         assertTrue(
             "the panel is the floating recipe, on the settings' own almost-solid fill",
             text.contains("glassSurface(fill = DesktopTheme.settingsPanel)"),
@@ -289,6 +305,18 @@ class DesktopSettingsStyleTest {
         assertTrue("a row takes the contract's hover step", text.contains("hoverFill("))
         assertTrue("the picked answer is the steel slot", text.contains("DesktopTheme.activeSlot"))
     }
+
+    /**
+     * One file of the Settings sources, wherever the theme packages put it.
+     *
+     * The window's code is split into topic packages (`docs/code-structure.md`), so a style test that named a
+     * file by its old flat path would fail for the move rather than for the rule it is checking.
+     */
+    private fun desktopSource(name: String): File =
+        File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop")
+            .walkTopDown()
+            .firstOrNull { it.isFile && it.name == name }
+            ?: error("no desktop source named $name")
 
     private fun repoRoot(): File {
         var dir: File? = File(".").absoluteFile

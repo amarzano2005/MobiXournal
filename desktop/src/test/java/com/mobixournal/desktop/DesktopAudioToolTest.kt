@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.scrubMs
+import com.mobixournal.desktop.tools.DESKTOP_TOOLS_THAT_ACT
+import com.mobixournal.desktop.tools.DESKTOP_TOOLS_WITHOUT_A_SLOT
+import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
+import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.toolForShortcut
+
 import com.mobixournal.design.ToolGlyph
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

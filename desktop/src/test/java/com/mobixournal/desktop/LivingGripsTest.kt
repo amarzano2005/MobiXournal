@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.GRIP_MIN_CELL_PT
+import com.mobixournal.desktop.sheet.LivingGrip
+import com.mobixournal.desktop.sheet.TapTracker
+import com.mobixournal.desktop.sheet.dragGrip
+import com.mobixournal.desktop.sheet.gripAt
+import com.mobixournal.desktop.sheet.livingGripsOf
+
 import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement

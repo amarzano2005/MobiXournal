@@ -1,5 +1,11 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.CURSOR_MIN_PX
+import com.mobixournal.desktop.shell.toolCursorDiameterPx
+import com.mobixournal.desktop.shell.toolPointerIcon
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.ui.input.pointer.PointerIcon
 import com.mobixournal.render.eraserRadiusPt
 import java.awt.Cursor

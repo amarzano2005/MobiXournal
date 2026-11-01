@@ -77,7 +77,8 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
 - **`SourceStructureTest`** (`guards/`) — a ratchet on file and function size, measured over every
   main source set rather than only the app: `app/src/main`, `mobix-core/src/main` and
   `desktop/src/main` (keys are relative to `com/mobixournal/`, so the desktop shell's files read
-  `desktop/DesktopShell.kt`). The entries listed in it may not grow, and no new file may appear past
+  `desktop/shell/DesktopShell.kt` — the window's topic packages are stated in
+  [code-structure.md](code-structure.md)). The entries listed in it may not grow, and no new file may appear past
   the budget. Splitting a listed file is what the test rewards; the remedy for a failure is a split,
   or a deliberate bump of a recorded number. The app test task declares `docs/`,
   `desktop/src/main/java`, `AGENTS.md` and `README.md` as inputs (the desktop tree is not a compile

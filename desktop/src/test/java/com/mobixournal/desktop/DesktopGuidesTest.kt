@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.DesktopGuidePose
+import com.mobixournal.desktop.sheet.GuideAim
+import com.mobixournal.desktop.sheet.guideAimLabel
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.sheet.placedGuideOn
+
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.GuideKind
 import kotlin.math.PI

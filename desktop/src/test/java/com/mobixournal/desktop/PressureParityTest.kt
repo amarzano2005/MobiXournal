@@ -1,5 +1,12 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.PressureFeel
+import com.mobixournal.desktop.ink.TabletInk
+import com.mobixournal.desktop.ink.TabletWintab
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopSettingsState
+
 import com.mobixournal.render.PressureCurve
 import java.io.File
 import org.junit.After

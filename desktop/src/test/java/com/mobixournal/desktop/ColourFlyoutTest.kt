@@ -1,5 +1,15 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.PaletteCodec
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.tools.ColourSlot
+import com.mobixournal.desktop.tools.SizeSlot
+import com.mobixournal.desktop.tools.StripSide
+import com.mobixournal.desktop.tools.ToolStripMetrics
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Alignment

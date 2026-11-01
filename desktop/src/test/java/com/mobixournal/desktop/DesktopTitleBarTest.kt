@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopTheme
+
 import com.mobixournal.design.DesignTokens
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

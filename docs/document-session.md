@@ -108,7 +108,7 @@ is therefore a swap, driven by `MainActivity`:
 
 ```
 snapshot the surface into the outgoing OpenTab (document, save format, canvas geometry, PDF path, page)
-  → TabManager.select(index)
+  → TabSessions.select(index)
   → load the incoming OpenTab into the surface (setPdfSource → load → goToPage)
 ```
 
@@ -168,7 +168,7 @@ Consequences worth knowing:
 ## Split view: the same thing, twice
 
 Split view is modelled as **panes**, not as a second mode. An `EditorPane` (`panes/EditorPane.kt`)
-bundles everything that used to be a per-activity singleton — the canvas, a `TabManager`, the sticky
+bundles everything that used to be a per-activity singleton — the canvas, a `TabSessions`, the sticky
 `SaveFormat`, the pending save name and its own `TabStore` directory. `MainActivity` holds a fixed
 list of two of them plus an `activePane` index; `surface`, `tabs`, `saveFormat` and `pendingSaveName`
 are now *accessors* onto the pane in focus, which is why the open/save/import/audio code is still

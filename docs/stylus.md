@@ -23,7 +23,7 @@ The input layer's **decisions** are platform-free and live in `mobix-core/render
 a two-finger pan and a pinch. Each shell keeps only its **adapter**, and both are live: the tablet's is
 `render/DrawingSurfaceRouter.kt` — a `MotionEvent` → `InkPointer`, one per historical sample as well as
 one per event — with `MotionEventPointer.kt` reading the platform vocabulary, and the window's is
-`desktop/PageCanvasInput.kt` (`PageInkGesture`). What each platform actually fills is *measured*, not
+`desktop/sheet/PageCanvasInput.kt` (`PageInkGesture`). What each platform actually fills is *measured*, not
 assumed, so the router treats every field as optional: Android fills the tool type, pressure (per
 historical sample too), tilt/azimuth and the barrel; the window's Compose pointer fills the tool type,
 pressure and its buttons but **no tilt or azimuth** (Compose 1.7.3 has no such axis), so it folds in the

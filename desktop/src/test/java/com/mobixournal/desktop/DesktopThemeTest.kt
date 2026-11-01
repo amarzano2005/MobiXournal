@@ -1,5 +1,19 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.OpenFailureCard
+import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.sheet.PageCanvas
+import com.mobixournal.desktop.sheet.PageView
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.shell.DesktopShell
+import com.mobixournal.desktop.shell.PageSidebar
+import com.mobixournal.desktop.shell.TabStrip
+import com.mobixournal.desktop.tools.ColourPickerPanel
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.DesignTokens
@@ -225,7 +239,7 @@ class DesktopThemeTest {
         )
         val offenders = mutableListOf<String>()
         for (name in chrome) {
-            val file = File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/$name")
+            val file = desktopSource(name)
             assertTrue("File must exist: $name", file.isFile)
             for ((index, line) in file.readLines().withIndex()) {
                 val code = line.substringBefore("//")
@@ -267,8 +281,7 @@ class DesktopThemeTest {
     @Test
     fun `the window imports no Material icon`() {
         val offenders = mutableListOf<String>()
-        File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop").listFiles().orEmpty()
-            .filter { it.extension == "kt" }
+        desktopSources()
             .forEach { file ->
                 file.readLines().forEachIndexed { index, line ->
                     if (line.contains("androidx.compose.material.icons")) {
@@ -282,7 +295,7 @@ class DesktopThemeTest {
     /** The theme itself must read the tokens, not repeat them. */
     @Test
     fun `the theme is built from tokens`() {
-        val theme = File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/DesktopTheme.kt")
+        val theme = desktopSource("DesktopTheme.kt")
         val text = theme.readText()
         assertTrue("DesktopTheme must read DesignTokens", text.contains("import com.mobixournal.design.DesignTokens"))
         assertFalse(
@@ -290,6 +303,22 @@ class DesktopThemeTest {
             text.contains("Color(0x"),
         )
     }
+
+    /**
+     * One file of the window's sources, wherever the theme packages put it.
+     *
+     * The window's code is split into topic packages (`docs/code-structure.md`), so a style test that named a
+     * file by its old flat path would fail for the move rather than for the rule it is checking.
+     */
+    private fun desktopSource(name: String): File = desktopSources().firstOrNull { it.name == name }
+        ?: error("no desktop source named $name")
+
+    /** Every Kotlin source of the window, in every topic package. */
+    private fun desktopSources(): List<File> =
+        File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .toList()
 
     private fun repoRoot(): File {
         var dir: File? = File(".").absoluteFile

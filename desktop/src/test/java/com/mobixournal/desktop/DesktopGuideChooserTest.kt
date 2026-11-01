@@ -1,5 +1,17 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.sheet.DesktopGuidePose
+import com.mobixournal.desktop.sheet.guideSlotGlyph
+import com.mobixournal.desktop.sheet.placedGuideOn
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.tools.DESKTOP_TOOLS_THAT_ACT
+import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.groupOf
+
 import com.mobixournal.design.ToolGlyph
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.render.DrawingGuide

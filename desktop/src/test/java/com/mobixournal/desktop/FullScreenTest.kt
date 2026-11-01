@@ -1,5 +1,16 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.shell.DEFAULT_TARGET_HZ
+import com.mobixournal.desktop.shell.DisplaySurface
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.modeFor
+import com.mobixournal.desktop.shell.refreshLabel
+import com.mobixournal.desktop.shell.requestRefresh
+import com.mobixournal.desktop.shell.shellCommand
+
 import androidx.compose.ui.input.key.Key
 import java.awt.DisplayMode
 import java.io.File

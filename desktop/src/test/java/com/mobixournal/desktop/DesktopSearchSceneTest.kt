@@ -1,5 +1,17 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopContainer
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.sheet.PageBackdrop
+import com.mobixournal.desktop.shell.DesktopSearch
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.HeaderSearchField
+import com.mobixournal.desktop.shell.SearchResultsSection
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

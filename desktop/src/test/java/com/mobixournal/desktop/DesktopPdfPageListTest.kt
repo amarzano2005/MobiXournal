@@ -1,5 +1,18 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopContainer
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.io.DesktopPdfExport
+import com.mobixournal.desktop.io.DesktopPdfImport
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.sheet.PageBackdrop
+import com.mobixournal.desktop.shell.DesktopPages
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.renderPageBitmap
+import com.mobixournal.desktop.shell.thumbnail
+
 import androidx.compose.ui.graphics.toPixelMap
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background

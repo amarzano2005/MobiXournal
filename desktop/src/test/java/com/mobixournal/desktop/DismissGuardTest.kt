@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.settle
+import com.mobixournal.desktop.tools.DismissGuard
+import com.mobixournal.desktop.tools.REOPEN_WINDOW_NANOS
+
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -1,5 +1,25 @@
 package com.mobixournal.desktop
 
+
+import com.mobixournal.desktop.ink.DesktopInk
+import com.mobixournal.desktop.ink.InkSample
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.pagePointOf
+import com.mobixournal.desktop.ink.strokeOf
+import com.mobixournal.desktop.io.DesktopContainer
+import com.mobixournal.desktop.io.DesktopSaves
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.sheet.PageInkGesture
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.renderPageBitmap
+import com.mobixournal.desktop.tools.DesktopTool
+
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap

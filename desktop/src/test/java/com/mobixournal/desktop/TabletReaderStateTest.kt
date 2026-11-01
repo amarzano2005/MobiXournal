@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.DesktopTablet
+import com.mobixournal.desktop.sheet.PageCanvas
+
 import androidx.compose.runtime.MutableState
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.DesktopDropTarget
+import com.mobixournal.desktop.io.DroppedFileKind
+import com.mobixournal.desktop.shell.DesktopShellState
+
 import com.mobixournal.format.model.ImageElement
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream

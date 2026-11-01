@@ -1,5 +1,9 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettingSection
+import com.mobixournal.desktop.settings.glyph
+
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.GlyphPart
 import com.mobixournal.design.SettingsGlyph

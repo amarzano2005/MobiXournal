@@ -1,5 +1,29 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.withElement
+
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.sheet.DesktopClipboard
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.LivingFamily
+import com.mobixournal.desktop.sheet.PASTE_OFFSET_PT
+import com.mobixournal.desktop.sheet.SelectionAction
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.alignSelection
+import com.mobixournal.desktop.sheet.copySelection
+import com.mobixournal.desktop.sheet.cutSelection
+import com.mobixournal.desktop.sheet.duplicateSelection
+import com.mobixournal.desktop.sheet.livingFamilyOf
+import com.mobixournal.desktop.sheet.pasteClipboard
+import com.mobixournal.desktop.sheet.restyleSelection
+import com.mobixournal.desktop.sheet.selectionBarOffset
+import com.mobixournal.desktop.sheet.selectionBarUi
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.shellCommand
+
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntOffset

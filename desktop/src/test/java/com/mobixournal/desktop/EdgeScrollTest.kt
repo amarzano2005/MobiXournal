@@ -1,5 +1,13 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.sheet.EDGE_PAN_BAND_PX
+import com.mobixournal.desktop.sheet.EDGE_PAN_MAX_TICK_MS
+import com.mobixournal.desktop.sheet.EDGE_PAN_SPEED_PX
+import com.mobixournal.desktop.sheet.EDGE_PAN_TICK_MS
+import com.mobixournal.desktop.sheet.EDGE_PAN_UNIT_MS
+import com.mobixournal.desktop.sheet.EdgeScroll
+
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

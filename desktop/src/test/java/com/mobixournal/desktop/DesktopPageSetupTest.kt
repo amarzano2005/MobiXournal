@@ -1,5 +1,20 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopDocuments
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.StripPlacement
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.shell.DesktopShell
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.PageSetup
+import com.mobixournal.desktop.shell.PageSetupSection
+import com.mobixournal.desktop.shell.PageUnit
+import com.mobixournal.desktop.shell.formatDimension
+import com.mobixournal.desktop.shell.matchesSize
+import com.mobixournal.desktop.shell.settle
+import com.mobixournal.desktop.tools.resized
+
 import androidx.compose.foundation.background
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

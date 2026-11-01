@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.StrokePathCache
+import com.mobixournal.desktop.ink.of
+
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool

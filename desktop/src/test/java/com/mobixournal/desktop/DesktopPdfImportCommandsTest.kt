@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.shell.DesktopShellState
+
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Background
 import com.mobixournal.render.ImportPdfMode

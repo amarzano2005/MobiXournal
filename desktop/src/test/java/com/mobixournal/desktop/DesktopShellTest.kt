@@ -1,5 +1,36 @@
 package com.mobixournal.desktop
 
+
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.io.DocumentLoader
+import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.PageCanvas
+import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.sheet.pageLabel
+import com.mobixournal.desktop.sheet.zoomLabel
+import com.mobixournal.desktop.shell.DesktopShell
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.PageSidebar
+import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.THUMB_WIDTH
+import com.mobixournal.desktop.shell.TabStrip
+import com.mobixournal.desktop.shell.ZOOM_STEP
+import com.mobixournal.desktop.shell.isZoomIn
+import com.mobixournal.desktop.shell.isZoomOut
+import com.mobixournal.desktop.shell.pageProgress
+import com.mobixournal.desktop.shell.renderPageBitmap
+import com.mobixournal.desktop.shell.selectPage
+import com.mobixournal.desktop.shell.shellCommand
+import com.mobixournal.desktop.shell.thumbnail
+import com.mobixournal.desktop.shell.zoomBy
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf

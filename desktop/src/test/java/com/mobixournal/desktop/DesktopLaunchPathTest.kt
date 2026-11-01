@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.describeOpenFailure
+import com.mobixournal.desktop.io.documentFromCommandLine
+import com.mobixournal.desktop.io.launchDocument
+
 import java.io.File
 import java.io.FileNotFoundException
 import org.junit.Assert.assertEquals

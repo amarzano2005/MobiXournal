@@ -1,5 +1,10 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.tools.pickForDrag
+import com.mobixournal.desktop.tools.pinnedElementAt
+import com.mobixournal.desktop.tools.selectionConnectorKind
+
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitPin
