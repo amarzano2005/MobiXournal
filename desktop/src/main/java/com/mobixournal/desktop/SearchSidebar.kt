@@ -41,8 +41,7 @@ internal fun SearchResultsSection(tab: DesktopTab, onSearchHit: (Int) -> Unit) {
     // A query typed but not yet answered: the walk reads every page, and reading ink takes longer than
     // reading text boxes — so "No results" a frame into a search would be a lie about a document still
     // being read. The old query's rows are held back with it ([SearchRunner] answers one query at a time).
-    val trimmed = tab.searchQuery.trim()
-    val pending = trimmed.length >= DesktopSearchEngine.MIN_QUERY && trimmed != search.query
+    val pending = tab.isSearchPending
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
         Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Canvas(Modifier.size(14.dp)) {

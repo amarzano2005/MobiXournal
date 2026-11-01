@@ -56,6 +56,24 @@ internal data class DesktopSearch(
 }
 
 /**
+ * True while the field holds a query the tab's [DesktopSearch] does not answer yet — the walk is still
+ * running ([SearchRunner]).
+ *
+ * The answer carries the query it belongs to, so "is it done" is a comparison rather than a flag kept up to
+ * date by hand: a flag set at the start of the walk and cleared at the end can be left `true` by a cancelled
+ * walk that a keystroke replaced. It is the one rule behind the three readouts — the field's counter, the
+ * status bar's count and the results heading — because a query still being read must not be reported as
+ * `0 / 0`, the value that means *this query found nothing*.
+ *
+ * A query below [DesktopSearchEngine.MIN_QUERY] is answered on the spot with no hits, so it is never pending.
+ */
+internal val DesktopTab.isSearchPending: Boolean
+    get() {
+        val trimmed = searchQuery.trim()
+        return trimmed.length >= DesktopSearchEngine.MIN_QUERY && trimmed != search.query
+    }
+
+/**
  * The walk from a query to its matches, off the UI thread.
  *
  * The engine is mobix-core's ([DocumentSearch]) — the same one the tablet's field uses — so a phrase found

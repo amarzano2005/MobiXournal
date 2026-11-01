@@ -134,10 +134,10 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
   and the picked rows have their own clipboard: **Copy**, **Cut** and **Paste** in the bar under the pick,
   which also works between two open documents.
 - **Search the document** (the magnifier in the band, the menu's **Search** row, or `Ctrl + F`): it finds
-  typed text boxes, formulas by their source, the words of a PDF page and **your handwriting**, counting the
-  matches as you type. The sidebar lists them with their page and a snippet — saying *Searching…* while the
-  pages are still being read — the page shows the current match in the accent, and `Enter` / `Shift + Enter`
-  or the field's two arrows step through them, the sheet scrolling to the word. The search writes nothing.
+  typed text boxes, formulas by their source, PDF words and **your handwriting**, counting matches as you
+  type — and while the pages are still being read the field, the status bar and the sidebar say *Searching…*,
+  never `0 / 0`. The sidebar lists the matches, the page shows the current one in the accent, and `Enter` /
+  `Shift + Enter` or the field's arrows step through them, the sheet scrolling to the word. Nothing is written.
 - **The PDF's text, read as text**: **Select text (PDF)** (`Shift + S`) drags across a PDF page's words and
   copies them (`Ctrl + C`, or the selection's **Copy** bar); the **highlighter snaps** to the line it crosses
   over real PDF text, previewed as you drag and committed as ordinary ink. Neither writes to the document, and

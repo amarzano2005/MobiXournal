@@ -55,6 +55,14 @@ does two things, not one: it goes to the match's **page** and then moves the she
 wholly on screen, so stepping along one line does not make the sheet twitch, and a box taller than the
 window is shown from its top. A click on a result row runs the same pair.
 
+While the walk has not answered the query, the field's counter, the status bar's count and the results
+heading all read **Searching…** instead of `0 / 0` — the count that means *this query found nothing*, which
+used to be shown while ink was still being recognised. The rule is one property, `DesktopTab.isSearchPending`:
+it compares the field's trimmed text with the query the answer on hand belongs to, because an answer carries
+its own query and a flag raised at the start of the walk and lowered at the end can be left raised by the
+cancellation a keystroke causes. The two chevrons and `Enter` refuse to step while it is true: the hits on
+hand are the previous query's, and a step would take the reader to a word they are not searching for.
+
 ## How a handwritten word matches
 
 A word carries its **primary** reading plus any **alternate candidates** the engine offered. Once the

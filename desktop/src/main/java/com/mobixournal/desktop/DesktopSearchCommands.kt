@@ -37,6 +37,9 @@ internal fun DesktopShellState.setSearchQuery(query: String) {
 /** Step to the next (or previous) match and go to its page — `Enter` and `Shift+Enter` in the field. */
 internal fun DesktopShellState.stepSearch(forward: Boolean): Boolean {
     val tab = tabs.active ?: return false
+    // Until the walk answers *this* query, the hits on hand belong to the previous one: stepping through
+    // them would take the reader to a word they are not searching for (`DesktopTab.isSearchPending`).
+    if (tab.isSearchPending) return false
     val answer = if (forward) tab.search.next() else tab.search.previous()
     if (answer.hits.isEmpty()) return false
     tab.search = answer

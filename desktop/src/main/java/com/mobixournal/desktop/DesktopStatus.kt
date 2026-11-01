@@ -87,6 +87,29 @@ internal fun displayRefreshHz(): Int? {
     }.getOrNull()?.takeIf { it > 0 }
 }
 
+/**
+ * The search's count on the status band, beside the page counter: both answer "where am I", and a reader who
+ * pressed Enter wants to know how many matches are left without looking back up at the field.
+ *
+ * It mirrors the field's state instead of recomputing it: a query the walk has not answered yet reads as
+ * *Searching…* here too, because `0 / 0 found` would be a count of matches that do not exist
+ * (`DesktopTab.isSearchPending`).
+ */
+@Composable
+private fun SearchCount(tab: DesktopTab) {
+    if (tab.searchQuery.isBlank()) return
+    Spacer(Modifier.width(10.dp))
+    if (tab.isSearchPending) {
+        Text("Searching…", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+    } else {
+        Text(
+            "${tab.search.position} / ${tab.search.total} found",
+            color = DesktopTheme.accent,
+            style = DesktopTheme.numeric,
+        )
+    }
+}
+
 /** The bottom bar: page, zoom, container and how far through the document the page is. */
 @Composable
 internal fun StatusBar(
@@ -118,16 +141,7 @@ internal fun StatusBar(
         val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) }.getOrNull() }
         val fit = page?.let { tab.fitFor(it.width.toFloat(), it.height.toFloat()) } ?: tab.fit
         Text(pageLabel(tab.page, tab.pageCount), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
-        // The search's count sits beside the page counter: both answer "where am I", and a reader who
-        // pressed Enter wants to know how many matches are left without looking back up at the field.
-        if (tab.search.isActive) {
-            Spacer(Modifier.width(10.dp))
-            Text(
-                "${tab.search.position} / ${tab.search.total} found",
-                color = DesktopTheme.accent,
-                style = DesktopTheme.numeric,
-            )
-        }
+        SearchCount(tab)
         // A refused command says what happened and what to do, and sits here until the next command
         // replaces it (`docs/ui-modernization.md` — the error-copy rule).
         refusal?.let { sentence ->

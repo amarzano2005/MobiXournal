@@ -166,6 +166,49 @@ class DesktopSearchTest {
         assertTrue("nothing is active", !search(tab, " ").isActive)
     }
 
+    /**
+     * The counter's rule: a query is **pending** until an answer carrying *that* query lands, and pending is
+     * what the field, the status bar and the results heading print as *Searching…* instead of `0 / 0` — the
+     * count that means "this query found nothing" and used to be shown while the pages were still being read.
+     */
+    @Test
+    fun `a query is pending until its own answer lands`() {
+        val tab = tab("pending.xopp", listOf(page(listOf(text("alpha beta")))))
+
+        tab.searchQuery = "beta"
+        assertTrue("nothing answers it yet", tab.isSearchPending)
+
+        tab.search = search(tab, "beta")
+        assertTrue("its own answer ends the wait", !tab.isSearchPending)
+
+        tab.searchQuery = "alpha"
+        assertTrue("the old answer is not this query's answer", tab.isSearchPending)
+    }
+
+    @Test
+    fun `a query too short to run is never pending`() {
+        val tab = tab("short-pending.xopp", listOf(page(listOf(text("alpha beta")))))
+
+        tab.searchQuery = "a"
+
+        assertTrue("answered on the spot, with nothing", !tab.isSearchPending)
+    }
+
+    /**
+     * Stepping while the walk is still reading would walk the **previous** query's hits: the reader presses
+     * `Enter` and lands on a word they are not looking for. The command refuses instead.
+     */
+    @Test
+    fun `enter does not step a query that has not been answered`() {
+        val state = DesktopShellState().also { it.tabs.open(document("step.xopp", listOf(page()))) }
+        val tab = state.active!!
+        tab.search = DesktopSearch(query = "beta", hits = listOf(SearchHit(0, emptyList())))
+        tab.searchQuery = "alpha"
+
+        assertTrue("a step is refused", !state.stepSearch(forward = true))
+        assertEquals("and the answer on hand is untouched", "beta", tab.search.query)
+    }
+
     @Test
     fun `enter wraps past the last match and shift-enter past the first`() {
         val hits = listOf(SearchHit(0, emptyList()), SearchHit(1, emptyList()), SearchHit(2, emptyList()))

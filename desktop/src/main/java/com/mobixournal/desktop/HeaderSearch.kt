@@ -66,7 +66,10 @@ internal fun HeaderSearchField(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Canvas(Modifier.size(16.dp)) {
-            drawChromeGlyph(ChromeGlyph.SEARCH, if (search.isActive) DesktopTheme.accent else DesktopTheme.inkMuted)
+            drawChromeGlyph(
+                ChromeGlyph.SEARCH,
+                if (tab.searchQuery.isNotBlank()) DesktopTheme.accent else DesktopTheme.inkMuted,
+            )
         }
         Spacer(Modifier.width(8.dp))
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
@@ -110,36 +113,60 @@ internal fun HeaderSearchField(
                     },
             )
         }
-        if (search.isActive) {
-            Spacer(Modifier.width(6.dp))
-            // The count is the state, not decoration: `0 / 0` is what "nothing found" reads as, and it is
-            // what a reader checks before pressing Enter again.
-            Text(
-                "${search.position} / ${search.total}",
-                color = if (search.total == 0) DesktopTheme.inkMuted else DesktopTheme.inkSecondary,
-                style = DesktopTheme.numeric,
-            )
-            Spacer(Modifier.width(4.dp))
-            // The two steps, for a mouse: `Enter` and `Shift+Enter` are the same commands, and both move
-            // the sheet to the word (`DesktopSearchCommands.stepSearch`). Up is "earlier in the
-            // document", the direction the results list is read in.
-            SearchStepButton(ChromeGlyph.CHEVRON_UP, "Previous match", search.total > 0, onPrevious)
-            SearchStepButton(ChromeGlyph.CHEVRON_DOWN, "Next match", search.total > 0, onNext)
-            Spacer(Modifier.width(4.dp))
-            Box(
-                Modifier
-                    .size(16.dp)
-                    .clickable { onQuery("") },
-                contentAlignment = Alignment.Center,
-            ) {
-                Canvas(Modifier.size(12.dp)) {
-                    drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.inkSecondary)
-                }
-            }
-        }
+        // What the capsule keeps right of the text: the field's whole answer, in its own composable so the
+        // text box stays the question and this stays the reply.
+        SearchFieldActions(tab, search, onQuery, onNext, onPrevious)
     }
     // The field owns the keyboard while it is up — asked once per opening, not per keystroke.
     androidx.compose.runtime.LaunchedEffect(tab) { focus.requestFocus() }
+}
+
+/**
+ * The field's **answer**, right of its text: the count, the two steps and the clear cross.
+ *
+ * Everything here belongs to having a query, not to having an answer, so a query still being read keeps its
+ * cross and its steps on screen. While the walk has not answered *this* query the count is replaced by
+ * **Searching…** — `0 / 0` means *this query found nothing*, and printing it over a document still being read
+ * was a lie the reader had to wait out (`DesktopTab.isSearchPending`).
+ */
+@Composable
+private fun SearchFieldActions(
+    tab: DesktopTab,
+    search: DesktopSearch,
+    onQuery: (String) -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+) {
+    if (tab.searchQuery.isEmpty()) return
+    Spacer(Modifier.width(6.dp))
+    if (tab.isSearchPending) {
+        Text("Searching…", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+    } else {
+        Text(
+            "${search.position} / ${search.total}",
+            color = if (search.total == 0) DesktopTheme.inkMuted else DesktopTheme.inkSecondary,
+            style = DesktopTheme.numeric,
+        )
+    }
+    Spacer(Modifier.width(4.dp))
+    // The two steps, for a mouse: `Enter` and `Shift+Enter` are the same commands, and both move the sheet
+    // to the word (`DesktopSearchCommands.stepSearch`). Up is "earlier in the document", the direction the
+    // results list is read in. They are greyed while the answer on hand is the *previous* query's, so a step
+    // cannot walk a list the counter is not showing.
+    val canStep = !tab.isSearchPending && search.total > 0
+    SearchStepButton(ChromeGlyph.CHEVRON_UP, "Previous match", canStep, onPrevious)
+    SearchStepButton(ChromeGlyph.CHEVRON_DOWN, "Next match", canStep, onNext)
+    Spacer(Modifier.width(4.dp))
+    Box(
+        Modifier
+            .size(16.dp)
+            .clickable { onQuery("") },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(12.dp)) {
+            drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.inkSecondary)
+        }
+    }
 }
 
 /**
