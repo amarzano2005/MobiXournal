@@ -20,6 +20,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import com.mobixournal.design.ChromeGlyph
 
 /**
  * The **glass picker** a grouped slot opens: its members as rows, each one the glyph it would put on the
@@ -41,6 +42,11 @@ internal fun ToolGroupPicker(
     onPick: (DesktopTool) -> Unit,
     onDismiss: () -> Unit,
     offset: IntOffset,
+    /**
+     * The **Off** row above the members, for the guides slot: the tablet's own menu opens with one, and a
+     * guide is a thing laid on the page that has to be taken off it again.
+     */
+    onOff: (() -> Unit)? = null,
 ) {
     Popup(offset = offset, onDismissRequest = onDismiss, properties = FloatingSurface) {
         Column(
@@ -49,6 +55,9 @@ internal fun ToolGroupPicker(
                 .padding(vertical = 4.dp, horizontal = 4.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
+            if (onOff != null) {
+                OffRow(onClick = onOff, onDismiss = onDismiss)
+            }
             for (member in group.members) {
                 PickerRow(
                     tool = member,
@@ -57,6 +66,30 @@ internal fun ToolGroupPicker(
                 )
             }
         }
+    }
+}
+
+/**
+ * The guides' **Off** row: the same frame as a member's, with the close mark instead of a tool face and
+ * no key — it is a command on the instrument that is placed, not a tool of its own.
+ */
+@Composable
+private fun OffRow(onClick: () -> Unit, onDismiss: () -> Unit) {
+    Row(
+        Modifier
+            .hoverFill(DesktopTheme.railSlotShape, active = false)
+            .pointerInput(onClick) {
+                detectTapGestures {
+                    onClick()
+                    onDismiss()
+                }
+            }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Canvas(Modifier.size(18.dp)) { drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.chromeInk) }
+        Spacer(Modifier.width(8.dp))
+        Text("Off", color = DesktopTheme.ink, style = DesktopTheme.label)
     }
 }
 

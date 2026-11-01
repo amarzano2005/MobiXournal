@@ -341,6 +341,22 @@ sealed interface DrawingGuide {
     }
 }
 
+/**
+ * The [GuideKind] a live [DrawingGuide] is — the key a chooser, a remembered pose and a slot's face are
+ * matched against.
+ *
+ * One mapping for both shells: the tablet remembers a pose by kind, and the window's guides slot wears the
+ * picture of the instrument that is actually placed.
+ */
+val DrawingGuide.guideKind: GuideKind
+    get() = when (this) {
+        is DrawingGuide.Setsquare -> GuideKind.SETSQUARE
+        is DrawingGuide.Compass -> GuideKind.COMPASS
+        is DrawingGuide.Protractor -> GuideKind.PROTRACTOR
+        is DrawingGuide.Ruling -> GuideKind.RULING
+        is DrawingGuide.Chemistry -> GuideKind.CHEMISTRY
+    }
+
 /** Which guide overlay is on the canvas, if any — the user-facing choice behind [DrawingGuide]. */
 enum class GuideKind(val label: String) {
     NONE("Off"),

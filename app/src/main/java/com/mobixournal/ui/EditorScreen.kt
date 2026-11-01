@@ -32,6 +32,7 @@ import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.EraserMode
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.guideKind
 import com.mobixournal.render.InputSettings
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement

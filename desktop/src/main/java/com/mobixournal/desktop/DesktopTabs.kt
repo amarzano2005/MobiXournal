@@ -77,6 +77,16 @@ class DesktopTab(
     var selection: PageSelection? by mutableStateOf(null)
 
     /**
+     * The **drawing guide** standing on this tab's page, or null when none is.
+     *
+     * View state, like the selection: a guide is an input aid the tablet has never written to a document
+     * (only the stroke it ruled reaches the file), so it is kept here rather than in the page — it is not
+     * saved, one undo does not restore it, and closing the tab drops it. [DesktopGuidePose.page] pins it
+     * to the page it was placed on, so turning a page leaves the ink alone.
+     */
+    var guide: DesktopGuidePose? by mutableStateOf(null)
+
+    /**
      * The current PDF's text layer and Contents outline, or null for a document with no PDF (or one
      * whose index has not landed yet). **View state**: it is read off the file, never written to it, and
      * one `Ctrl+Z` does not have to restore it.

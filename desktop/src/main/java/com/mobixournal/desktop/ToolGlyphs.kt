@@ -118,6 +118,9 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.VERTICAL_SPACE -> ToolGlyph.VSPACE
         DesktopTool.LASSO -> ToolGlyph.LASSO
         DesktopTool.MARQUEE -> ToolGlyph.MARQUEE
+        // The guides slot wears the instrument's own catalogue art — one picture on both shells.
+        DesktopTool.SETSQUARE -> ToolGlyph.SETSQUARE
+        DesktopTool.COMPASS -> ToolGlyph.COMPASS
         // The catalogue's I-beam over a sheet — the tablet's own picture of its PDF text tool.
         DesktopTool.PDF_TEXT_SELECT -> ToolGlyph.SELECT_TEXT
         DesktopTool.TEXT -> ToolGlyph.TEXT

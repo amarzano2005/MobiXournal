@@ -27,6 +27,9 @@ internal fun toggleFamily(target: DesktopTool): List<DesktopTool> = when (target
         listOf(DesktopTool.ERASER, DesktopTool.ERASER_WHOLE)
     DesktopTool.MARQUEE, DesktopTool.LASSO ->
         listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)
+    // The guides are one slot with two members: a second answer is a different instrument, never a toggle.
+    DesktopTool.SETSQUARE, DesktopTool.COMPASS ->
+        listOf(DesktopTool.SETSQUARE, DesktopTool.COMPASS)
     else -> listOf(target)
 }
 

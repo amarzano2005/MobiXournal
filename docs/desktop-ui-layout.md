@@ -176,6 +176,8 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Triangle | `Alt + R` | The Triangle slot's menu: four kinds, plus a scalene one's angles |
 | | Trapezoid | `Alt + Z` | The Trapezoid slot's menu: three kinds, plus a scalene one's base angles |
 | | Polygon | `P` | The Polygon slot's menu: three to twelve sides, the live count on the slot |
+| | Setsquare guide | `Q` | One slot with the compass: picking it lays the instrument on the page |
+| | Compass guide | `Shift + Q` | The guides slot's second member |
 | **STEM & Advanced** | Vertical space | `Shift + V` | Reflow tool in the rail's Tool pop-up |
 | | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
 | | Function Plot $f(x)$ | `M` | 1-tap STEM dock button; asks formula, range and flags first |

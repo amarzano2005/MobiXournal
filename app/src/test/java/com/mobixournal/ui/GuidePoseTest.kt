@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Snapping
+import com.mobixournal.render.guideKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

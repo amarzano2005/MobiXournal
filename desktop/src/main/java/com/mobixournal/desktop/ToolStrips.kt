@@ -143,6 +143,12 @@ data class ToolStripState(
      */
     val figures: FigureStrip = FigureStrip(),
     /**
+     * The **guides slot's** own answer: the instrument standing on the active tab, and the two commands
+     * that place it and put it away. One value, so the rail's slot and the ribbon's cannot show different
+     * instruments (`docs/drawing-tools.md`).
+     */
+    val guides: GuideStrip = GuideStrip(),
+    /**
      * The **page** section, drawn after the strip's divider: the tablet's own menu of what a page is
      * (its paper and its format) and what the document's page list can become (add, remove, step).
      * Commands on the page, not ink, which is why they stand apart from the tools and the palette
@@ -224,7 +230,7 @@ fun ToolRail(
                         onOpenPicker = { state.onOpenGroup(index) }, onClosePicker = { state.onOpenGroup(null) },
                         circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
                         onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
-                        figures = state.figures, side = StripSide.RIGHT,
+                        figures = state.figures, guides = state.guides, side = StripSide.RIGHT,
                     )
                 }
                 StripDivider(vertical = true)
@@ -290,7 +296,7 @@ fun ToolRibbon(
                         onOpenPicker = { state.onOpenGroup(index) }, onClosePicker = { state.onOpenGroup(null) },
                         circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
                         onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
-                        figures = state.figures, side = StripSide.BELOW,
+                        figures = state.figures, guides = state.guides, side = StripSide.BELOW,
                     )
                 }
                 StripDivider(vertical = false)
@@ -356,6 +362,7 @@ private fun ToolSlot(
     onCircuitKind: (CircuitFamily, ShapeKind) -> Unit,
     onCircuitPicker: (CircuitFamily?) -> Unit,
     figures: FigureStrip,
+    guides: GuideStrip,
     side: StripSide,
 ) {
     val tool = group.faceFor(selection)
@@ -386,13 +393,17 @@ private fun ToolSlot(
     val density = LocalDensity.current
     val slotPx = with(density) { ToolStripMetrics.slotSize.roundToPx() }
     val gapPx = with(density) { ToolStripMetrics.tooltipGap.roundToPx() }
+    // The pill and the picker open on the same side, at the same distance: one slot, one offset.
+    val surfaceOffset = side.surfaceOffset(slotPx, gapPx)
 
     Box {
         val isScaleneEdit = active && figures.isScalene(tool)
         val armedCircuit = circuitFamilyOf(tool)?.let { circuitKinds[it] ?: it.face }
         SlotFace(
             tool = tool,
-            glyph = figureSlotGlyph(tool, figures.shape),
+            // A guides slot wears the instrument that is **placed**, so a reader back on the pen can still
+            // see which one is on the sheet; every other slot draws its own face.
+            glyph = guideSlotGlyph(tool, guides.placed) ?: figureSlotGlyph(tool, figures.shape),
             circuitKind = armedCircuit,
             badge = if (figure == DesktopTool.POLYGON) "${figures.shape.polygonSides}" else null,
             group = group,
@@ -407,15 +418,7 @@ private fun ToolSlot(
         )
         // The pill stands aside while the slot's own surface is up — any of them, so a circuit slot's
         // palette or a figure's variants are not covered by its tooltip.
-        if (hovered && !surface.up) {
-            TooltipPill(
-                tool = tool,
-                offset = when (side) {
-                    StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
-                    StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
-                },
-            )
-        }
+        if (hovered && !surface.up) TooltipPill(tool = tool, offset = surfaceOffset)
         SlotPickerStack(
             group = group,
             selection = selection,
@@ -424,6 +427,7 @@ private fun ToolSlot(
             circuitKinds = circuitKinds,
             circuitPickerOpen = circuitPickerOpen,
             figures = figures,
+            guides = guides,
             onSelect = onSelect,
             onClosePicker = onClosePicker,
             // A dismissal is the popup's own (a click outside it), and it is remembered so that same
@@ -433,81 +437,18 @@ private fun ToolSlot(
             onDismissFigure = { guard.closed(group); figures.onMenu(null) },
             onCircuitKind = onCircuitKind,
             onCircuitPicker = onCircuitPicker,
-            offset = when (side) {
-                StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
-                StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
-            },
+            offset = surfaceOffset,
         )
     }
 }
 
 /**
- * The lists a slot can open, in one place: the group's members, a circuit family's component palette and
- * a figure's own variants. Which of the three belongs to which slot is the window's rule, so it lives
- * beside the slot rather than in each strip.
+ * Where a slot's transient surfaces open: beside it on the rail, under it on the ribbon and in the
+ * settings list's own strips.
  */
-@Composable
-private fun SlotPickerStack(
-    group: ToolGroup,
-    selection: ToolSelection,
-    tool: DesktopTool,
-    pickerOpen: Boolean,
-    circuitKinds: Map<CircuitFamily, ShapeKind>,
-    circuitPickerOpen: CircuitFamily?,
-    figures: FigureStrip,
-    onSelect: (DesktopTool) -> Unit,
-    onClosePicker: () -> Unit,
-    /** The group picker was put away by a press outside it. */
-    onDismissPicker: () -> Unit,
-    /** The circuit palette was put away by a press outside it. */
-    onDismissCircuit: () -> Unit,
-    /** A figure's variant menu was put away by a press outside it. */
-    onDismissFigure: () -> Unit,
-    onCircuitKind: (CircuitFamily, ShapeKind) -> Unit,
-    onCircuitPicker: (CircuitFamily?) -> Unit,
-    offset: IntOffset,
-) {
-    if (pickerOpen) {
-        ToolGroupPicker(
-            group = group,
-            selection = selection,
-            onPick = { member ->
-                onSelect(member)
-                onClosePicker()
-            },
-            onDismiss = onDismissPicker,
-            offset = offset,
-        )
-    }
-    val figure = tool.takeIf { it in FIGURE_TOOLS }
-    if (figure != null && figures.menu == figure) {
-        FigureKindPicker(
-            tool = figure,
-            shape = figures.shape,
-            // A pick lands on the figure it answers: a menu opened from the chevron of a slot that was
-            // not picked takes that slot's tool in the same gesture, as the tablet's count picker does.
-            onPick = { shape ->
-                onSelect(figure)
-                figures.onShape(shape)
-            },
-            onEdit = figures.onOpenDialog,
-            onDismiss = onDismissFigure,
-            offset = offset,
-        )
-    }
-    val family = circuitFamilyOf(tool)
-    if (family != null && circuitPickerOpen == family) {
-        CircuitKindPicker(
-            family = family,
-            current = circuitKinds[family] ?: family.face,
-            onPick = { kind ->
-                onCircuitKind(family, kind)
-                onCircuitPicker(null)
-            },
-            onDismiss = onDismissCircuit,
-            offset = offset,
-        )
-    }
+private fun StripSide.surfaceOffset(slotPx: Int, gapPx: Int): IntOffset = when (this) {
+    StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
+    StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
 }
 
 /**
@@ -649,10 +590,7 @@ private fun StripCommandSlot(
             StripPill(
                 label = label,
                 accent = "",
-                offset = when (offsetSide) {
-                    StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
-                    StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
-                },
+                offset = offsetSide.surfaceOffset(slotPx, gapPx),
             )
         }
     }

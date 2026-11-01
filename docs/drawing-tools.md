@@ -233,6 +233,11 @@ was posed on is gone, so a stored pose can never be applied to the wrong instrum
 Protractor with 15° radial snapping) and Lattices (page ruling, 60°/120° chemistry) with dedicated glyphs
 from the shared `ToolGlyphCatalogue` (`SETSQUARE`, `COMPASS`), so the window's guides slot wears the same
 picture; tapping an active guide toggles it off, and placement operates cleanly without triggering asynchronous
+settings feedback loops. The **window** carries the same two instruments in one slot (`Q` / `Shift + Q`):
+picking one lays it on the active tab's page at the point the reader is looking (`DesktopGuidePose` on the tab,
+view state like the selection, never written to the document), its face is the instrument actually standing
+there, and its picker opens with the tablet's own **Off**, which takes it away and hands back the tool that
+was in hand.
 settings feedback loops. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and the window's `DesktopPdfPainter`

@@ -58,6 +58,9 @@ class ToolStripsTest {
         "Vertical space" to "Shift+V",
         "Lasso" to "V",
         "Marquee" to "S",
+        // The tablet's drawing guides: one slot, two instruments, and the picker's Off row.
+        "Setsquare" to "Q",
+        "Compass" to "Shift+Q",
         // The tablet's PDF text tool: selects a PDF page's words and copies them, and lays no ink.
         "Select text (PDF)" to "Shift+S",
         "Text" to "X",
@@ -99,8 +102,8 @@ class ToolStripsTest {
         for (tool in DesktopTool.entries) {
             assertSame("${tool.shortcut} must name ${tool.label}", tool, toolForShortcut(tool.shortcut))
         }
-        assertNull(toolForShortcut("Q"))
-        assertNull(toolForShortcut("Shift+Q"))
+        assertNull(toolForShortcut("Z"))
+        assertNull(toolForShortcut("Shift+Z"))
     }
 
     /**
@@ -120,7 +123,7 @@ class ToolStripsTest {
         assertEquals("Shift+X is the axes tool", DesktopTool.AXES, toolForKey(Key.X, shift = true, ctrl = false))
         assertEquals("Alt+K is the logic-gate palette", DesktopTool.CIRCUIT_LOGIC, toolForKey(Key.K, false, false, alt = true))
         assertNull("Ctrl+B stays the sidebar", toolForKey(Key.B, shift = false, ctrl = true))
-        assertNull("a key no tool claims picks nothing", toolForKey(Key.Q, shift = false, ctrl = false))
+        assertNull("a key no tool claims picks nothing", toolForKey(Key.Z, shift = false, ctrl = false))
     }
 
     @Test
@@ -245,7 +248,7 @@ class ToolStripsTest {
         val railPng = save(
             // Tall enough for every slot: the figure submenu is one more slot than the strip had. In a
             // shorter window the rail scrolls (`verticalScroll` in `ToolRail`), which this does not test.
-            ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 1000, Density(1f)) {
+            ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 1300, Density(1f)) {
                 ToolRail(ToolStripState(), onSelect = {})
             },
             "tools-rail",
@@ -263,7 +266,7 @@ class ToolStripsTest {
 
         val ribbonPng = save(
             // Wide enough for every slot: the figure submenu added one, and the ribbon is a row.
-            ImageComposeScene(1100, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
+            ImageComposeScene(1200, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
                 ToolRibbon(
                     state = ToolStripState(selection = ToolSelection(DesktopTool.POLYGON)),
                     onSelect = {},
@@ -295,7 +298,7 @@ class ToolStripsTest {
     fun `the rail's capsule ends under its last slot`() {
         val lane = ToolStripMetrics.railWidth.value.toInt()
         val png = save(
-            ImageComposeScene(lane, 1400, Density(1f)) { ToolRail(ToolStripState(), onSelect = {}) },
+            ImageComposeScene(lane, 1600, Density(1f)) { ToolRail(ToolStripState(), onSelect = {}) },
             "tools-rail-tall",
         )
         val image = ImageIO.read(ByteArrayInputStream(png))

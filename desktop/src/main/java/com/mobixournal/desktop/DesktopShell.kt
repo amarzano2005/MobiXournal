@@ -48,6 +48,7 @@ import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.CircuitFamily
+import com.mobixournal.render.GuideKind
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.ShapeKind
 import java.io.File
@@ -165,7 +166,7 @@ class DesktopShellState(
     }
 
     /** The pick, and the file that remembers it ([DesktopToolPicks]). */
-    private val picks = DesktopToolPicks(settings)
+    internal val picks = DesktopToolPicks(settings)
 
     /** The picked tool — what a primary drag does. Restored from the file, with that slot's ink. */
     val tools: ToolSelection get() = picks.selection
@@ -209,7 +210,7 @@ class DesktopShellState(
      * and the chevron open the same one and `Esc` can close it.
      */
     var openGroup by mutableStateOf<Int?>(null)
-        private set
+        internal set
 
     /**
      * The part each **circuit slot** is armed with, one per family.
@@ -321,33 +322,16 @@ class DesktopShellState(
             onCircuitKind = ::pickCircuitKind,
             onCircuitPicker = ::showCircuitKinds,
             figures = prefs.figures.strip,
+            // The guides slot: what is standing on the active tab, and the two commands it answers.
+            guides = GuideStrip(
+                placed = placedGuide?.kind,
+                onPlace = { kind -> placeGuide(kind) },
+                onOff = { clearGuide() },
+            ),
             // The page's own menu: a command of the page, not of the ink beside it.
             pages = pagesSection.actions({ openPageSetup(PageSetupSection.PAPER) }, { openPageSetup(PageSetupSection.FORMAT) }),
             onInsertImage = { onInsertImagePicker?.invoke() },
         )
-
-    /**
-     * Pick a tool (a slot, a picker row or its accelerator); the canvas reads it on the next press.
-     *
-     * Picking also closes the group picker: its job was to choose, and it has.
-     */
-    fun selectTool(tool: DesktopTool) {
-        // A text box is finished by leaving its tool: the typing is committed, never silently dropped.
-        if (tool != DesktopTool.TEXT) textBox.commit(tabs.active, ::edited)
-        if (selectionToolOf(tool) == null) tabs.active?.selection = null
-        picks.pick(tool)
-        openGroup = null
-    }
-
-    /** A **toggle** press: pick the family's tool, or put back the last one ([toggledTool]). */
-    fun toggleTool(target: DesktopTool) {
-        selectTool(picks.toggleTarget(target))
-    }
-
-    /** `Alt + Down`: open the picked tool's group picker, or close the one that is up. */
-    fun toggleToolPicker() {
-        openGroup = toggledPicker(openGroup, tools)
-    }
 
     /**
      * Pick the ink colour **of the picked tool**, and remember it: the pen and the highlighter keep their

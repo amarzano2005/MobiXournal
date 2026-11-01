@@ -4,6 +4,7 @@ import com.mobixournal.format.json.JsonNode
 import com.mobixournal.format.json.JsonParser
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.GuideKind
+import com.mobixournal.render.guideKind
 
 /**
  * A remembered **drawing-guide pose**: the live guide plus the page index it was posed on, so an
@@ -16,16 +17,6 @@ import com.mobixournal.render.GuideKind
  * [GuidePoseCodec] writes nothing for those, so a stored pose is always an instrument's.
  */
 data class GuidePose(val page: Int, val guide: DrawingGuide)
-
-/** The [GuideKind] a live [DrawingGuide] is — the key a remembered pose is matched against. */
-val DrawingGuide.guideKind: GuideKind
-    get() = when (this) {
-        is DrawingGuide.Setsquare -> GuideKind.SETSQUARE
-        is DrawingGuide.Compass -> GuideKind.COMPASS
-        is DrawingGuide.Protractor -> GuideKind.PROTRACTOR
-        is DrawingGuide.Ruling -> GuideKind.RULING
-        is DrawingGuide.Chemistry -> GuideKind.CHEMISTRY
-    }
 
 /**
  * True for the guide kinds a finger **poses**: the setsquare, the compass and the protractor. Losing

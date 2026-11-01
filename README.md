@@ -118,9 +118,8 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
   block or **Settings → Stylus** — and the menu keeps them as chips, one click from a light hand or a firm one.
   **A file to try it on**: `udiff.xopp`, at the root of this repository.
-- **Save As asks the format in the save window itself**: its **File type** list offers `.mobix`, `.xopp` and
-  the zipped package, and the name field wears that suffix — one dialog, both answers. `Ctrl + S` keeps
-  writing back in the format the document already had.
+- **Save As asks the format in the save window itself**: its **File type** list offers `.mobix`, `.xopp` and the
+  zipped package, with the suffix in the name field; `Ctrl + S` writes back in the document's own format.
 - **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — its own document or added
   after the one you have — and asks which pages (*pages 3 to 7 of 412*): on the tablet, after the pick.
 - **The PDF's pages are the document's pages**: every sheet in the sidebar wears the PDF page it stands
@@ -143,6 +142,7 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
   over real PDF text, previewed as you drag and committed as ordinary ink. Neither writes to the document, and
   a page with no text layer (a scan, a `.mobix` page) says so. A PDF's **Contents** sits under the sidebar's
   layers: indented bookmarks leading to the page that shows each sheet, listed only once you open it.
+- **The setsquare and compass on the PC**: one guides slot (`Q` / `Shift + Q`) lays the instrument where you are looking; the menu's **Off** takes it away. A guide is never saved into the document.
 - **A remote or synced file** has to be available offline before it opens — a placeholder is not a document.
 - **Not yet**: importing anything but a document or a PDF, editing layers, and an installer — see
   [`TODO.toml`](TODO.toml) and [`docs/desktop-workstation.md`](docs/desktop-workstation.md) (*What the window does not do*).

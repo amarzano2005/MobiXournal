@@ -6,6 +6,7 @@ import com.mobixournal.design.ShortcutKeys
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.GuideKind
+import com.mobixournal.render.guideKind
 import com.mobixournal.render.Momentum
 import com.mobixournal.render.MomentumCurve
 import com.mobixournal.render.PageStacker
@@ -70,9 +71,8 @@ enum class ThemeMode(val label: String) {
  * @property guideKind Which on-canvas drawing guide (setsquare/compass) is laid on the page, restored on launch.
  * @property penWidths The three user-configurable pen-tip widths (pt) behind the S/M/L size slots, in slot order.
  * @property customColor The user-defined colour (opaque ARGB) behind the palette's editable custom slot,
- *   or null while the slot is still empty — the factory state. An empty slot is drawn as an outlined
- *   placeholder and the picker's editor opens with [DEFAULT_CUSTOM_COLOR] as its starting point; the
- *   moment the user confirms a colour it is stored here and the slot becomes one-tap pickable again.
+ *   or null while it is empty — the factory state; an empty slot is an outlined placeholder, its editor
+ *   opens on [DEFAULT_CUSTOM_COLOR], and a confirmed colour makes the slot one-tap pickable again.
  * @property defaultTool Which tool is active when a document first opens.
  * @property momentum How far a released pan keeps gliding — the momentum-strength factor (0 = off, 1 = normal).
  * @property momentumCurve The velocity→coast response shape for momentum (linear … exponential).

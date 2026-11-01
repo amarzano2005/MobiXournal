@@ -75,6 +75,18 @@ val FIGURE_TOOLS: Set<DesktopTool> = setOf(
 )
 
 /**
+ * The **drawing guides**: one slot, two instruments, and a picker that also offers *Off*.
+ *
+ * They are one family for the same reason the erasers are: both members stand for one instrument on the
+ * page, so putting the slot away must put back the tool that was in hand rather than swap one guide for
+ * the other (`toggleFamily` reads this).
+ */
+val GUIDE_TOOLS: Set<DesktopTool> = setOf(DesktopTool.SETSQUARE, DesktopTool.COMPASS)
+
+/** Whether [this] slot is the guides' — the one whose picker carries the tablet's *Off* row. */
+internal fun ToolGroup.isGuides(): Boolean = members.all { it in GUIDE_TOOLS }
+
+/**
  * Whether [this] slot has a submenu: a group with several members, **or** a circuit family's palette,
  * **or** a figure's own variants.
  *
@@ -157,6 +169,10 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
     // The two ways to select a region on the page: a rectangle and a freehand loop.
     ToolGroup(listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)),
+    // The tablet's drawing guides (`docs/drawing-tools.md`): one slot, two instruments, and the *Off* row
+    // of the tablet's own menu in its picker. A guide lays no ink of its own — it pulls the pen's onto its
+    // edge — so it is not a member of an ink slot.
+    ToolGroup(listOf(DesktopTool.SETSQUARE, DesktopTool.COMPASS)),
     // Reading a PDF's text layer: a slot of its own, because it selects rather than inks — it draws no
     // stroke and writes nothing to the page (`docs/pdf.md`), so it cannot be a member of the ink slots.
     ToolGroup(listOf(DesktopTool.PDF_TEXT_SELECT)),
@@ -217,6 +233,10 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.VERTICAL_SPACE,
     DesktopTool.MARQUEE,
     DesktopTool.LASSO,
+    // A guide acts on the page without inking it: the press poses the instrument and every stroke drawn
+    // afterwards is ruled against it (`GuideGesture`, `projectGuide`).
+    DesktopTool.SETSQUARE,
+    DesktopTool.COMPASS,
     // The PDF text slot selects and copies; it never edits the page.
     DesktopTool.PDF_TEXT_SELECT,
     // The Text slot types in place: a press opens a box, and the commit writes one element.

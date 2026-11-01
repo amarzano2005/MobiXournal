@@ -25,6 +25,11 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     VERTICAL_SPACE("Vertical space", "Shift+V"),
     LASSO("Lasso", "V"),
     MARQUEE("Marquee", "S"),
+    // The tablet's **drawing guides**, one slot with two members (`docs/drawing-tools.md`): a setsquare to
+    // rule along and a compass to sweep. A guide is not ink — it is a stateless instrument the page's
+    // strokes are pulled onto — so picking one **places** it and the pose then lives on the tab.
+    SETSQUARE("Setsquare", "Q"),
+    COMPASS("Compass", "Shift+Q"),
     // The tablet's **Select text (PDF)** tool, and the window's: it selects a PDF page's text layer and
     // copies it, and it lays no ink — a selection drag must never be taken by the pen's packets.
     PDF_TEXT_SELECT("Select text (PDF)", "Shift+S"),
