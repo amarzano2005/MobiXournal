@@ -41,10 +41,10 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             beginPointer(event, 0); beginHandTap(event); armSelectionDrag(event)
         }
         MotionEvent.ACTION_POINTER_DOWN -> {
-            handTapCandidate = false; cancelSelectionDrag(); onPointerDown(event)
+            taps.cancelHand(); cancelSelectionDrag(); onPointerDown(event)
         }
         MotionEvent.ACTION_MOVE -> {
-            if (handTapCandidate) trackHandTapMove(event)
+            taps.handMove(event.x, event.y)
             multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)
             trackSelectionDragArm(event)
             // The guide is dragged by its own finger and runs *alongside* the other gestures —
@@ -88,14 +88,14 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             else -> {
                 cancelSelectionDrag()
                 if (scrolling && finishMultiFingerTap(event)) { cancelGesture(); render(); return true }
-                captureReleaseVelocity(event); handleHandTapUp(event)
+                captureReleaseVelocity(event); handleHandTapUp()
                 // The router hears the lift too, so its contact map is empty for the next gesture.
                 if (routed) routePointer(event, event.actionIndex, InkPointerPhase.UP)
                 endGesture()
             }
         }
         MotionEvent.ACTION_CANCEL -> {
-            handTapCandidate = false; cancelSelectionDrag(); cancelGesture()
+            taps.cancelHand(); cancelSelectionDrag(); cancelGesture()
         }
         else -> return null
     }
@@ -508,37 +508,15 @@ internal fun DrawingSurfaceView.spanOf(event: MotionEvent): Float {
 
 /** Arm double-tap tracking for a fresh single-finger touch, but only while the Hand tool is active. */
 internal fun DrawingSurfaceView.beginHandTap(event: MotionEvent) {
-    handTapCandidate = handMode
-    handTapMoved = false
-    handTapDownTime = event.eventTime
-    handTapDownX = event.x
-    handTapDownY = event.y
-}
-
-/** A moved-too-far touch is a pan, not a tap — disqualify it from forming a double-tap. */
-internal fun DrawingSurfaceView.trackHandTapMove(event: MotionEvent) {
-    if (hypot(event.x - handTapDownX, event.y - handTapDownY) > doubleTapSlopPx) handTapMoved = true
+    taps.beginHand(armed = handMode, timeMs = event.eventTime, x = event.x, y = event.y)
 }
 
 /** On lift, confirm a tap and — if it pairs with the previous one in time and place — fire the double-tap. */
-internal fun DrawingSurfaceView.handleHandTapUp(event: MotionEvent) {
-    if (!handTapCandidate) return
-    handTapCandidate = false
+internal fun DrawingSurfaceView.handleHandTapUp() {
     // A flick is a pan, not a tap — even one whose travel stayed inside the tap slop. Without this
     // a short-but-fast swipe in the overview grid would count as a tap and jump back to the page
     // under the finger, cancelling the glide it should have started.
-    if (handTapMoved || momentum.hasRelease) { handFirstTapTime = 0L; return }
-    val pairsWithPrevious = handFirstTapTime != 0L &&
-        handTapDownTime - handFirstTapTime <= doubleTapTimeoutMs &&
-        hypot(handTapDownX - handFirstTapX, handTapDownY - handFirstTapY) <= doubleTapSlopPx
-    if (pairsWithPrevious) {
-        handFirstTapTime = 0L // consume, so a third tap doesn't immediately re-fire
-        onHandDoubleTap(handTapDownX)
-    } else {
-        handFirstTapTime = handTapDownTime
-        handFirstTapX = handTapDownX
-        handFirstTapY = handTapDownY
-    }
+    if (taps.endHand(flicked = momentum.hasRelease)) onHandDoubleTap(taps.tapX)
 }
 
 /** Route a Hand-tool double-tap by horizontal zone: left third → prev page, right third → next, centre → toggle full-page. */

@@ -4,19 +4,14 @@
  *
  * It lives beside [LivingEditTargets] rather than in `DrawingSurfaceInput` because it is one topic —
  * "how a living element is opened" — and because the dispatch itself is pure and tested on the JVM,
- * while this file is only the event half: the same double-tap window and slop the barrel and the Hand
- * tool use ([DrawingSurfaceView.doubleTapTimeoutMs]), measured in view pixels, keyed to the element
- * under the first tap so a tap on a *different* element never pairs with it.
+ * while this file is only the event half: the same double-tap window and slop the Hand tool uses
+ * ([TapClassifier]), measured in view pixels, keyed to the element under the first tap so a tap on a
+ * *different* element never pairs with it — and held per canvas rather than in file-level variables, so
+ * two panes cannot pair with each other's taps.
  */
 package com.mobixournal.render
 
 import android.view.MotionEvent
-import kotlin.math.hypot
-
-private var lastLivingTapTime = 0L
-private var lastLivingTapX = 0f
-private var lastLivingTapY = 0f
-private var lastLivingTapKey: Any? = null
 
 /**
  * If this `ACTION_DOWN` completes a double-tap on a living element, select that element, open its
@@ -33,15 +28,7 @@ internal fun DrawingSurfaceView.tryLivingDoubleTap(event: MotionEvent): Boolean 
     val hit = livingEditHit(page, box.toPtX(event.x, scrollX), box.toPtY(event.y, scrollY)) ?: return false
     // Where the first tap landed, so the pair is about one element on one page.
     val key = box.index to hit.ref
-    val now = event.eventTime
-    val isDouble = now - lastLivingTapTime <= doubleTapTimeoutMs &&
-        hypot(event.x - lastLivingTapX, event.y - lastLivingTapY) <= doubleTapSlopPx &&
-        lastLivingTapKey == key
-    lastLivingTapTime = if (isDouble) 0L else now
-    lastLivingTapX = event.x
-    lastLivingTapY = event.y
-    lastLivingTapKey = key
-    if (!isDouble) return false
+    if (!taps.livingTap(event.eventTime, event.x, event.y, key)) return false
     selection = ActiveSelection(box.index, setOf(hit.ref))
     onSelectionChanged?.invoke(true)
     reportSelectionRect()

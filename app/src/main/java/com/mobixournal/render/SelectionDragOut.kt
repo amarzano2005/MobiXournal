@@ -42,14 +42,14 @@ internal fun DrawingSurfaceView.armSelectionDrag(event: MotionEvent) {
     out.downY = event.y
     val runnable = Runnable { startSelectionDrag() }
     out.fire = runnable
-    postDelayed(runnable, longPressMs)
+    postDelayed(runnable, taps.longPressMs)
 }
 
 /** A touch that travels before the timeout is a move or a resize; stop waiting to lift it. */
 internal fun DrawingSurfaceView.trackSelectionDragArm(event: MotionEvent) {
     val out = selectionDragOut
     if (!out.armed) return
-    if (hypot(event.x - out.downX, event.y - out.downY) > touchSlopPx) cancelSelectionDrag()
+    if (hypot(event.x - out.downX, event.y - out.downY) > taps.touchSlopPx) cancelSelectionDrag()
 }
 
 /** Disarm any pending lift (release, a second finger, or a gesture that became a move). */

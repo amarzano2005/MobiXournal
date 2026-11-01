@@ -245,23 +245,17 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var autoScrollPosted = false
     internal val autoScrollCallback = Choreographer.FrameCallback { autoScrollFrame() }
 
-    // Hand-tool double-tap: a centre double-tap toggles full-page view, a left/right-edge double-tap
-    // pages back/forward. Detected manually (single-finger tap = down→up without exceeding tap slop).
-    internal val doubleTapTimeoutMs = ViewConfiguration.getDoubleTapTimeout().toLong()
-    internal val doubleTapSlopPx = ViewConfiguration.get(context).scaledDoubleTapSlop.toFloat()
-    /** The current single touch's down time/position, and whether it has moved past tap slop (→ a pan). */
-    internal var handTapDownTime = 0L
-    internal var handTapDownX = 0f
-    internal var handTapDownY = 0f
-    internal var handTapCandidate = false
-    internal var handTapMoved = false
-    /** The previous confirmed tap's down time/position, to match the next tap against for a double-tap. */
-    internal var handFirstTapTime = 0L
-    internal var handFirstTapX = 0f
-    internal var handFirstTapY = 0f
-
-    internal val longPressMs = ViewConfiguration.getLongPressTimeout().toLong()
-    internal val touchSlopPx = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    /**
+     * The canvas's taps — the platform's double-tap and long-press timings, the Hand tool's tap sequence and
+     * the living element's — owned by [TapClassifier] (`CanvasTaps.kt`). The canvas reports presses to it;
+     * `SelectionDragOut` reads its long-press window.
+     */
+    internal val taps = TapClassifier(
+        doubleTapTimeoutMs = ViewConfiguration.getDoubleTapTimeout().toLong(),
+        doubleTapSlopPx = ViewConfiguration.get(context).scaledDoubleTapSlop.toFloat(),
+        longPressMs = ViewConfiguration.getLongPressTimeout().toLong(),
+        touchSlopPx = ViewConfiguration.get(context).scaledTouchSlop.toFloat(),
+    )
 
     /** Places and edits text boxes, images and LaTeX images (see [TextEditController]). */
     internal val textEdits = TextEditController(
