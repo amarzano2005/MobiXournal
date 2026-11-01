@@ -25,6 +25,72 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-guides-overlay-and-readout"
+title = "Desktop guides: the overlay, the angle readout and the snap marker"
+description = "Painted the placed instrument in the window (paintPlacedGuide) in the new shared GUIDE_RGB/GUIDE_FILL_ALPHA tokens, added the aim pill (degrees, or the compass's opening) with its snapped accent and the snap tick, and covered it with DesktopGuideRenderTest and guideAimLabel cases."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-guides-project-the-ink"
+title = "Desktop guides: project every drawn vertex onto the guide"
+description = "Every drawn vertex now passes DrawingGuide.project before the draft in PageInkGesture, and the geometry drag projects its ends in preview(), so a stroke ruled along the setsquare is written straight as ordinary ink — one undo step, nothing of the guide in the file."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-guides-place-and-pose"
+title = "Desktop guides: place and pose the instrument with the pointer"
+description = "Added GuideGesture.kt (guidePress/guideDragged/guideReachPt) asked before the ink router, so a body press slides the instrument and a tip press aims or opens it with Shift on the shared snap steps, writing no page edit and no undo step; Esc restores the grab-time pose."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-guides-slot-and-chooser"
+title = "Desktop guides: the guides slot, its chooser and the tab's guide"
+description = "Added the SETSQUARE/COMPASS tools in one guides slot with the tablet's Off/Setsquare/Compass picker, DesktopGuidePose on the tab as pure view state, and the chooser/slot/glyph tests; picking Off hands the tool back through the erasers' family rule."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-guides-glyphs-in-the-catalogue"
+title = "Desktop guides: setsquare and compass glyphs in the shared catalogue"
+description = "Added ToolGlyph.SETSQUARE and ToolGlyph.COMPASS with their 24-unit art to the shared catalogue, rebuilt the tablet's two guide icons from it, and covered them with the catalogue's on-grid/stroke tests."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-guides-geometry-into-mobix-core"
+title = "Desktop guides: move DrawingGuide and the grab rules into mobix-core"
+description = "Moved DrawingGuide (setsquare, compass, protractor, ruling, chemistry) and its test into mobix-core, lifted grabHandle/grabbableBody out of GuideDrag so both shells ask the same rule, and added the handle/body cases to DrawingGuideTest."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-guides-setsquare-compass"
 title = "Desktop: the setsquare and compass guides (scope)"
 description = "Broken into six atomic tasks, no code written. The investigation answered the scope's five questions. (1) Geometry: `DrawingGuide` (`app/src/main/java/com/mobixournal/render/DrawingGuide.kt`) is already pure - kotlin.math, `Snapping` and `TriangularLattice`, all of the last two already in mobix-core - so it needs a MOVE, not a rewrite, and the pure grab rules still trapped in app's `GuideDrag` (`tipOf`, `bodyHit`) move with it so the shells share them (desktop-guides-geometry-into-mobix-core). (2) State: a guide is view state on the tablet, never a document element (`DrawingGuide` says so, and only the resulting stroke reaches .xopp), so the window gives the same answer - a pose pinned to a page on the tab, dropped when the tab closes, remembering it across a restart deliberately out of scope - which is the scope rule of AGENTS.md, not a shortcut (desktop-guides-slot-and-chooser). The pointer model is the tablet's, reused rather than reinvented: a press on the body slides the instrument, a press on its tip re-poses it (`aimedAt`/`openedTo`), and Shift snaps the aim through the shared `Snapping.snapAngle` (desktop-guides-place-and-pose). (3) The slot: the tablet's rail no longer carries a guides button - the compact guide popup in the secondary top bar does - so the window gets one slot of its own holding the two instruments, with the tablet's Off/Setsquare/Compass menu as its picker, the catalogue glyphs, and `inksByPackets()` false because a guide drag is not ink and the pen's packets must stand aside for it. (4) The readout: the angle comes from a pure `guideAimLabel`, the snap marker from `Snapping.snapAngle`, both drawn in the window's own tokens over the page (desktop-guides-overlay-and-readout). (5) Two findings that shaped the children: `ToolGlyph` had no setsquare or compass at all (the tablet's three guide icons are hand-built ImageVectors), so the art goes into the shared catalogue first (desktop-guides-glyphs-in-the-catalogue); and the window has no grid snapping, so the guide is the only projection at its ink edge - no precedence to invent (desktop-guides-project-the-ink). Each child names its JVM test, its ImageComposeScene test, its render artefact and the docs it updates; the order is geometry, glyphs, slot, pointer, ink, overlay."
