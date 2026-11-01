@@ -116,7 +116,6 @@ class DesktopRingTest {
         assertNotNull(open)
         assertEquals(nib.x, open!!.cx, 1e-4f)
         assertEquals(nib.y, open.cy, 1e-4f)
-        assertTrue("a key-opened ring is a picker", open.picker)
 
         assertTrue("the second press closes it", ring.summon())
         assertNull(ring.open)
@@ -203,42 +202,6 @@ class DesktopRingTest {
         assertFalse("nothing is open, so the press is not the ring's", ring.press(nib.x, nib.y, density))
     }
 
-    /**
-     * A **picker** ignores a release: the release of the click that opened it is that click's own release,
-     * and reading it as the pick is what made the tablet's ring flash open and shut.
-     */
-    @Test
-    fun `a picker ignores the release of the click that opened it`() {
-        val sink = Sink()
-        val ring = ring(sink = sink)
-        ring.notePointer(nib, density)
-        ring.summon(picker = true)
-        val count = ring.slots.size
-
-        assertTrue(ring.release(slotCentre(1, count).x, slotCentre(1, count).y, density))
-        assertNotNull(ring.open)
-        assertTrue(sink.colours.isEmpty())
-    }
-
-    /** A **held** ring is the pen's: the release is its commit, and no slot under it means nothing runs. */
-    @Test
-    fun `a held ring commits on the release and nothing when it is let go over no slot`() {
-        val sink = Sink()
-        val ring = ring(sink = sink)
-        ring.notePointer(nib, density)
-        val count = ring.slots.size
-
-        ring.summon(picker = false)
-        assertTrue(ring.release(slotCentre(3, count).x, slotCentre(3, count).y, density))
-        assertEquals(listOf(PenPalette.COLORS[3]), sink.colours)
-        assertNull(ring.open)
-
-        ring.summon(picker = false)
-        assertTrue(ring.release(nib.x, nib.y, density))
-        assertEquals("the dead zone runs nothing", 1, sink.colours.size)
-        assertNull(ring.open)
-    }
-
     @Test
     fun `the pick follows the pointer and a dismissal commits nothing`() {
         val sink = Sink()
@@ -272,29 +235,50 @@ class DesktopRingTest {
     }
 
     @Test
-    fun `the ring carries only the families the Ring page leaves on`() {
-        val narrow = RingContents(swatches = false, widths = true, tools = setOf(DesktopTool.HIGHLIGHTER))
-        val slots = narrow.slots(PenPalette.COLORS, null)
-        assertEquals(PenPalette.DEFAULT_WIDTHS.size + 1, slots.size)
-        assertEquals(HudSlot.Width(PenPalette.DEFAULT_WIDTHS.first()), slots.first())
-        assertEquals(HudSlot.ToolFace(Tool.HIGHLIGHTER), slots.last())
+    fun `a ring given its own faces carries exactly those, in that order`() {
+        val faces = listOf(
+            HudSlot.Colour(PenPalette.RED),
+            HudSlot.ToolFace(Tool.HIGHLIGHTER),
+            HudSlot.Width(2.5f),
+        )
+        assertEquals(faces, RingContents.Fixed(faces).slots(PenPalette.COLORS, null))
 
-        val hollow = RingContents(swatches = false, widths = false, tools = emptySet())
-        assertTrue("nothing on the ring, nothing to flick into", hollow.slots(PenPalette.COLORS, null).isEmpty())
+        val auto = RingContents.Auto.slots(PenPalette.COLORS, null)
+        assertEquals(
+            "the automatic ring is the palette, the widths and the three tools",
+            PenPalette.COLORS.size + PenPalette.DEFAULT_WIDTHS.size + 3,
+            auto.size,
+        )
+        assertTrue(
+            "a fixed ring with no faces offers nothing",
+            RingContents.Fixed(emptyList()).slots(PenPalette.COLORS, null).isEmpty(),
+        )
     }
 
     @Test
-    fun `a ring the page emptied does not open at all`() {
+    fun `a ring with no faces does not open at all`() {
         val hollow = DesktopRing(
             palette = { PenPalette.COLORS },
             custom = { null },
             onColour = {},
             onWidth = {},
             onTool = {},
-            contents = { RingContents(swatches = false, widths = false, tools = emptySet()) },
+            contents = { RingContents.Fixed(emptyList()) },
         )
         assertFalse("the key has nothing to offer", hollow.summon())
         assertNull(hollow.open)
+    }
+
+    @Test
+    fun `the faces survive the round trip through the stored line`() {
+        val faces = listOf(
+            HudSlot.Colour(PenPalette.BLUE),
+            HudSlot.Width(1.25f),
+            HudSlot.ToolFace(Tool.ERASER),
+        )
+        assertEquals(faces, RingContents.decode(RingContents.encode(faces)))
+        assertNull("a line naming nothing this build reads is the automatic ring", RingContents.decode("nonsense"))
+        assertNull(RingContents.decode(null))
     }
 
 }

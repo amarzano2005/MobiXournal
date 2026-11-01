@@ -209,21 +209,17 @@ The mechanism is a real context of the window's own: `TabletAreaMap` turns the r
 `CXO_SYSTEM` cleared — a screen-mapped context would ignore every field. A driver that declares no usable
 axis, or a context it refuses to open, **keeps the system context** rather than leaving a dead pen.
 
-- **Pen button → Side button** (`tablet.penButton`): *Erase* — the default, and what the window has always
-  done, since Windows hands the barrel on as the emulated right button the router reads as the eraser — or
-  *Ring at the pen*, which gives the button to the pen-tip HUD: a press with the tip off the glass opens it at
-  the nib, the release commits the slot under the pen, and a tip that lands cancels it without inking. The
-  tablet's own `BarrelAction`, and the window's share of it ([`desktop-ui-layout.md`](desktop-ui-layout.md)).
+## Ring — what each position of the pen-tip ring holds
 
-## Ring — what the pen-tip ring holds
-
-Under **Drawing**, beside Colors: **Swatches** (`ring.swatches`), **Widths** (`ring.widths`) and one row
-per writing tool (`ring.tools`) leave each family on the ring or off it, and the ring is rebuilt from them
-when it opens, so a switch is in force on the next summon rather than on the next launch. **Key** is the
-Shortcuts table's own *Ring at the pen* row, armed here and bound by the window — the door a **pen button
-its driver turns into a keyboard key** has, because such a pen never sends a barrel bit for *Stylus → Pen
-button* to read (**Side button** names that answer and opens its page). Every family off is a ring that
-does not open: the key does nothing rather than draw an empty ring.
+Under **Drawing**, beside Colors: the ring is a circle of up to sixteen **positions**, and every one of
+them is a row whose control is a select over the answers the window can commit — **Pen**, **Highlighter**,
+**Eraser**, the three widths and the palette's colours, stored as one line (`ring.slots`: `c:` a colour,
+`w:` a width, `t:` a tool). Naming a face **pins** the ring: an untouched ring is *automatic* — the palette,
+the widths and the three tools, following the palette — and the first change makes it the reader's own,
+frozen until **Reset to defaults** removes the key and brings the automatic ring back. A position answered
+with *Empty* leaves the ring, and a ring with no positions does not open at all. **Key** is the Shortcuts
+table's *Ring at the pen* row, armed from here. There is no *side button* row: on a PC a pen's buttons
+arrive as keyboard keys, so the key is the whole door.
 
 ## Toolbar — the strips' place and their order
 

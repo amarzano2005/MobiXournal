@@ -186,7 +186,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Audio Tap / Replay | `Y` | The header audio pill's Play — no tool slot |
 | **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Tap on color swatch / Rail slot |
 | | Tool Group Picker | `Alt + Down` | Chevron, right-click or hold on a grouped slot |
-| | Pen-tip ring (HUD) | `Alt + B` | The stylus barrel button, once **Pen button → Ring at the pen** |
+| | Pen-tip ring (HUD) | `Alt + B` | Its own row in **Settings → Ring** — a pen button mapped to a key too |
 | | Stroke Width Up / Down | `]`, `[` | Rail's size slot |
 | | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture |
 | | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap |
@@ -216,15 +216,12 @@ control, and the strips keep everything else.
   rim, the steel plate under the picked slot and the accent ring around it, a swatch in its own colour inside a
   chrome-ink rim, a width as a dot of that width, a tool as its catalogue glyph. Tokens only — `DesktopThemeTest`
   sweeps the chrome sources.
-- **What it carries** is chosen, not fixed: **Settings → Ring** leaves the swatches, the widths or a tool off,
-  and the key that opens it is that page's own row ([`desktop-settings.md`](desktop-settings.md)).
-- **The pen's own button** (*Settings → Stylus → Pen button → Side button*, `tablet.penButton`): *Erase*, the default, keeps the
-  window's old behaviour — Windows' emulated right button, the router's eraser. *Ring at the pen* gives the barrel
-  to the ring, the tablet's `BarrelAction.HUD`: a press with the tip **off the glass** opens it at the nib, the
-  moves under the held button light the pick, and the **release commits** the slot under the pen. A tip that lands
-  while it is open cancels it and writes nothing (the contact was aimed at a face), the pen leaving the tablet's
-  proximity takes it away, and `Esc` still puts it away. With the ring holding the button a barrel **while the tip
-  draws** inks with the tool in hand instead of erasing, so the button has one meaning at a time.
+- **What it carries** is the reader's, position by position: **Settings → Ring** sets each face — a colour, a
+  width or a tool — or leaves the ring automatic, and the key that opens it is that page's own row
+  ([`desktop-settings.md`](desktop-settings.md)).
+- **There is no pen-button row.** On a PC a pen's buttons arrive as **keyboard keys**, mapped by its driver,
+  so a button reaches the ring by pressing its key; a pen that sends a real barrel bit has that bit read and
+  reported by the tablet probe, and the window gives it no job.
 - **The dial is not part of it** (decision 2026-11-01). A turn still zooms at the cursor, its documented job in
   [`desktop-tablet.md`](desktop-tablet.md): the ring is a pick the pen is already making, and a second device for
   the same choice would be a second rule about what a notch means.

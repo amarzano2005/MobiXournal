@@ -56,11 +56,10 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     val audio = DesktopAudioSettings(store)
 
     /** The pen-tip ring's own choices: what it holds, edited by the Ring page (`RingSettingsState`). */
-    internal val ring = RingSettingsState(store.ring)
+    internal val ring = RingSettingsState(store)
 
     /** Whether the surface is up. */
     var open by mutableStateOf(false)
-        private set
 
     /** The section the surface shows; the list on its left picks another. */
     var section by mutableStateOf(DesktopSettingSection.DEFAULT)
@@ -128,10 +127,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** The pen stream the window prefers. */
     var penStream by mutableStateOf(store.penStream)
-        private set
-
-    /** What the pen's side button does — erase, as it always has, or the ring (`PenButton`). */
-    var penButton by mutableStateOf(store.penButton)
         private set
 
     /** Whether a press changes the width at all — the tablet's *Pressure sensitivity*. */
@@ -473,12 +468,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         store.penStream = value
     }
 
-    /** Give the pen's side button to [value] — the eraser, or the ring — and remember it. */
-    fun choosePenButton(value: PenButton) {
-        penButton = value
-        store.penButton = value
-    }
-
     /** Which eraser the eraser toggle switches to, and remember it for the next session. */
     fun chooseToggleEraser(tool: DesktopTool) {
         toggleEraserTool = tool
@@ -593,7 +582,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         frameTime = store.frameTime
         targetHz = store.targetHz
         penStream = store.penStream
-        penButton = store.penButton
         audio.refresh()
         pressureEnabled = store.pressureEnabled
         minimumPressure = store.minimumPressure

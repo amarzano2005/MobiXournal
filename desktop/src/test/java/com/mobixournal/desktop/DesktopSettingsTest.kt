@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.format.model.Tool
+import com.mobixournal.render.HudSlot
+
 import com.mobixournal.desktop.ink.PressureFeel
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
@@ -9,7 +12,6 @@ import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.sheet.RingContents
 import com.mobixournal.desktop.settings.FitOnOpen
 import com.mobixournal.desktop.settings.InspectorPolicy
-import com.mobixournal.desktop.settings.PenButton
 import com.mobixournal.desktop.settings.PenStream
 import com.mobixournal.desktop.settings.RailSide
 import com.mobixournal.desktop.settings.SettingsKeyAction
@@ -193,29 +195,6 @@ class DesktopSettingsTest {
         assertEquals(SidebarPolicy.AUTOMATIC, SidebarPolicy.of("sometimes"))
         assertEquals(InspectorPolicy.AUTOMATIC, InspectorPolicy.of("always"))
         assertEquals(PenStream.AUTOMATIC, PenStream.of("bluetooth"))
-        assertEquals(PenButton.ERASE, PenButton.of("both"))
-    }
-
-    /**
-     * The pen's **side button**: the eraser until the reader gives it to the ring, and the answer survives a
-     * restart — a setting that only reached the running window would look applied until the next launch.
-     */
-    @Test
-    fun `the pen's button survives a restart, and the eraser is the default`() {
-        val file = File(temp.root, "button.properties")
-        assertEquals("never a change nobody asked for", PenButton.ERASE, DesktopSettings(file).penButton)
-
-        val policy = DesktopSettingsState(DesktopSettings(file))
-        policy.choosePenButton(PenButton.HUD)
-        assertEquals("the ring is the live answer", PenButton.HUD, policy.penButton)
-
-        val reopened = DesktopSettings(file)
-        assertEquals("and it is written to the file", PenButton.HUD, reopened.penButton)
-        assertEquals(
-            "the state a second window builds over it agrees",
-            PenButton.HUD,
-            DesktopSettingsState(reopened).penButton,
-        )
     }
 
     @Test
@@ -308,23 +287,27 @@ class DesktopSettingsTest {
     }
 
     @Test
-    fun `the ring's parts survive a restart, and reset puts them all back`() {
+    fun `the ring's positions survive a restart, and reset puts the automatic ring back`() {
         val file = File(temp.root, "ring.properties")
         val policy = DesktopSettingsState(DesktopSettings(file))
-        policy.ring.chooseSwatches(false)
-        policy.ring.chooseWidths(false)
-        policy.ring.chooseTool(DesktopTool.HIGHLIGHTER, false)
+        assertEquals("a fresh window draws the automatic ring", RingContents.Auto, policy.ring.contents)
+
+        policy.ring.chooseFace(0, HudSlot.ToolFace(Tool.ERASER))
+        policy.ring.addPosition()
 
         val reopened = DesktopSettingsState(DesktopSettings(file))
-        assertFalse("the swatches were switched off", reopened.ring.contents.swatches)
-        assertFalse("and so were the widths", reopened.ring.contents.widths)
-        assertEquals(setOf(DesktopTool.PEN, DesktopTool.ERASER), reopened.ring.contents.tools)
+        assertEquals(HudSlot.ToolFace(Tool.ERASER), reopened.ring.slots.first())
+        assertTrue("the position that was added is there", reopened.ring.slots.size > 1)
+        assertTrue(
+            "and the ring is the reader's own, not the palette's",
+            reopened.ring.contents is RingContents.Fixed,
+        )
 
         reopened.ring.reset()
-        assertEquals(RingContents.FACTORY, reopened.ring.contents)
+        assertEquals(RingContents.Auto, reopened.ring.contents)
         assertEquals(
-            "the factory ring is what the next window reads",
-            RingContents.FACTORY,
+            "the automatic ring is what the next window reads",
+            RingContents.Auto,
             DesktopSettingsState(DesktopSettings(file)).ring.contents,
         )
     }

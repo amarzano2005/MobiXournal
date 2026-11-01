@@ -1,8 +1,6 @@
 package com.mobixournal.desktop.sheet
 
 import androidx.compose.ui.geometry.Offset
-import com.mobixournal.desktop.ink.PenBarrel
-import com.mobixournal.design.PenPalette
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.HudSlot
@@ -12,19 +10,19 @@ import kotlin.math.hypot
 /**
  * The window's **pen-tip ring** — the desktop half of `docs/ui-modernization.md`, *The pen-tip HUD*.
  *
- * It is the tablet's ring, not a second one: the order, the cap, the angles, the seam and the dead zone all
- * come from `RadialHud` (`mobix-core`), and this file only adds the two things a window has that a tablet
- * does not — the ring's own **open state** in canvas pixels, and the window's vocabulary for what a slot
- * commits ([DesktopTool] instead of the document's [Tool]).
+ * It is the tablet's ring, not a second one: the angles, the seam and the dead zone all come from
+ * `RadialHud` (`mobix-core`), and this file only adds the two things a window has that a tablet does not —
+ * the ring's own **open state** in canvas pixels, and the window's vocabulary for what a slot commits
+ * ([DesktopTool] instead of the document's [Tool]).
  *
  * [DesktopHudState.cx]/[cy] are the canvas's pixels, because that is where the nib is: the pointer over the
  * page is reported by the canvas ([PageCanvas]'s `onPointerAt`) and the ring is anchored at the last reading,
- * so a flick is measured from the pen rather than from a palette parked on the screen.
+ * so a pick is measured from the pen rather than from a palette parked on the screen.
  *
- * [DesktopHudState.picker] is how it will close. A ring opened with a **key** has no held button to release,
- * so it is a picker: a press commits a slot, a press inside the ring does nothing, a press well outside it or
- * `Esc` closes it. A ring opened by the **pen's button** (task `summon-the-ring-from-the-pen-button`) is held,
- * so its release commits and a tip that lands cancels it — the tablet's `HudTrigger`.
+ * How it closes is one rule, because there is one way to open it: a ring is opened by a **key** (or by a pen
+ * button a driver turns into one), so it has no held button to release — a **press on a slot commits it**, a
+ * press inside the ring but off a slot does nothing, a press well outside it or `Esc` closes it. That is the
+ * tablet's picker, and the window has no second mode.
  *
  * Plain Kotlin over Ints and Floats, so every rule here is a JVM test (`DesktopRingTest`); the drawing is
  * [drawDesktopRadialHud]'s and the state is [com.mobixournal.desktop.shell.DesktopRing]'s.
@@ -34,8 +32,6 @@ internal data class DesktopHudState(
     val cy: Float,
     /** The slot under the pointer, or null when it is over no slot. */
     val active: Int? = null,
-    /** True for a ring opened by the keyboard (commit on a press); false for the pen's held ring. */
-    val picker: Boolean = true,
 )
 
 /**
@@ -53,30 +49,17 @@ internal class HudUi(
     val slots: List<HudSlot> = emptyList(),
     /** The nib's place, in canvas pixels, reported to the shell that anchors the ring there. */
     val onPointerAt: (at: Offset, density: Float) -> Unit = { _, _ -> },
-    /**
-     * The pen's **side button**, when the window gives it to the ring (`PenButton.HUD`) — null when it keeps
-     * erasing, which is the default and the window's behaviour before the ring existed.
-     */
-    val barrel: PenBarrel? = null,
-    /**
-     * True while the **secondary button erases** — the default — and false when the button is the ring's.
-     *
-     * A lambda, not a value: the canvas's pointer handler is built once per gesture and outlives a
-     * recomposition, so a setting read at composition would keep the old answer until the next gesture was
-     * rebuilt. Windows' emulation reports the barrel as the secondary button, and the router must not hear it
-     * as the eraser while the packets are using it as the summon.
-     */
-    val barrelErases: () -> Boolean = { true },
 )
 
 /** The ring's contents, its geometry and its two pointer rules. */
 internal object DesktopHud {
 
     /**
-     * The three writing tools the ring offers — the tablet's own three.
+     * The **automatic ring's** three writing tools — the tablet's own three.
      *
      * All three are in [com.mobixournal.desktop.tools.DESKTOP_TOOLS_THAT_ACT], and a test says so: a slot
      * whose tool does nothing would be worse than an absent one, which is the rule the strips already keep.
+     * A reader who wants a different ring sets its positions one by one (`RingContents.Fixed`).
      */
     val TOOLS: List<DesktopTool> = listOf(
         DesktopTool.PEN,
@@ -88,13 +71,13 @@ internal object DesktopHud {
     const val AIR_DP = 10f
 
     /**
-     * The ring's contents, in the tablet's order: the user's palette in their stored order (the editable
-     * custom slot last among the swatches), then the three widths, then the three tools.
+     * The **automatic** ring's contents, in the tablet's order: the user's palette in their stored order (the
+     * editable custom slot last among the swatches), then the three widths, then the three tools.
      */
     fun slots(
         palette: List<Int>,
         custom: Int?,
-        widths: List<Float> = PenPalette.DEFAULT_WIDTHS,
+        widths: List<Float> = com.mobixournal.design.PenPalette.DEFAULT_WIDTHS,
         tools: List<DesktopTool> = TOOLS,
     ): List<HudSlot> = RadialHud.slots(palette, custom, widths, tools.mapNotNull(::documentTool))
 
@@ -114,8 +97,7 @@ internal object DesktopHud {
     }
 
     /** The ring opened at ([cx], [cy]) in the canvas's pixels. */
-    fun openAt(cx: Float, cy: Float, picker: Boolean = true): DesktopHudState =
-        DesktopHudState(cx = cx, cy = cy, picker = picker)
+    fun openAt(cx: Float, cy: Float): DesktopHudState = DesktopHudState(cx = cx, cy = cy)
 
     /** The same ring with the slot under ([x], [y]) lit — null when the pointer is over none. */
     fun tracked(
@@ -127,9 +109,9 @@ internal object DesktopHud {
     ): DesktopHudState = state.copy(active = indexAt(state, x, y, count, density))
 
     /**
-     * The slot a press or a release at ([x], [y]) commits, or null when it commits nothing: inside the dead
-     * zone, or off the slot band. The arithmetic is `RadialHud.slotIndexAt`'s — this only converts the dp
-     * constants into the canvas's pixels.
+     * The slot a press at ([x], [y]) commits, or null when it commits nothing: inside the dead zone, or off
+     * the slot band. The arithmetic is `RadialHud.slotIndexAt`'s — this only converts the dp constants into
+     * the canvas's pixels.
      */
     fun indexAt(
         state: DesktopHudState,
@@ -162,4 +144,8 @@ internal object DesktopHud {
         val reach = (RadialHud.RING_RADIUS_DP + RadialHud.SLOT_DIAMETER_DP / 2f + AIR_DP) * density
         return hypot(x - state.cx, y - state.cy) <= reach
     }
+
+    /** The slot count the ring draws at [cycle] — the automatic ring is [TOOLS]' own count. */
+    fun slotsOf(contents: RingContents, palette: List<Int>, custom: Int?): List<HudSlot> =
+        contents.slots(palette, custom)
 }

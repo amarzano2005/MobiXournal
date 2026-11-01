@@ -2,7 +2,6 @@ package com.mobixournal.desktop
 
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
-import com.mobixournal.desktop.ink.PenBarrel
 import com.mobixournal.desktop.ink.PenPacket
 import com.mobixournal.desktop.ink.PenPacketStroke
 import com.mobixournal.desktop.ink.of
@@ -72,8 +71,6 @@ class PenPacketStrokeTest {
         hovered: MutableList<Offset?> = mutableListOf(),
         tool: DesktopTool = DesktopTool.PEN,
         ink: DesktopInk = DesktopInk(width = 4f),
-        /** The pen's side button, when the window gives it to the ring. */
-        barrel: PenBarrel? = null,
     ): PenPacketStroke {
         val gesture = PageInkGesture(
             tab = tab,
@@ -94,38 +91,7 @@ class PenPacketStrokeTest {
             size = { size },
             onOwnership = { owned.add(it) },
             onHover = { hovered.add(it) },
-            barrel = barrel,
         )
-    }
-
-    /**
-     * The pen's button, counted the way the ring would receive it: one `down`, one `up`, any number of
-     * `move`s — and a `cancel` when a tip or the pen's departure takes the ring away.
-     */
-    private class Recorder : PenBarrel {
-        var downs = 0
-        var ups = 0
-        var moves = 0
-        var cancels = 0
-        var at: Offset? = null
-
-        override fun down(at: Offset): Boolean {
-            downs++
-            this.at = at
-            return true
-        }
-
-        override fun move(at: Offset) {
-            moves++
-        }
-
-        override fun up(at: Offset) {
-            ups++
-        }
-
-        override fun cancel() {
-            cancels++
-        }
     }
 
     private fun packet(
@@ -440,58 +406,6 @@ class PenPacketStrokeTest {
             path.send(packet(260f, 200f, pressure = 0f, tip = false, atNanos = later + 20_000_000L))
             assertEquals("which the lift commits separately", before + 2, strokes(tab).size)
             assertEquals(2, strokes(tab).last().points.size)
-        } finally {
-            tab.document.close()
-        }
-    }
-
-    /**
-     * The pen's **side button** is a held bit in the packets, so the ring must see one edge per press and one
-     * per release — a ring reopened or recommitted on every packet would flicker at 400 Hz. A press with the
-     * tip off the glass is the summon; a press while the tip draws is the tool's and is not one.
-     */
-    @Test
-    fun `the barrel reports one edge per press, not one per packet`() {
-        val tab = DesktopTabs().open(DocumentLoader.load(notebook("barrel.mobix")))
-        tab.fit = FitMode.NONE
-        tab.viewport = Viewport(zoom = 1f)
-        try {
-            val before = strokes(tab).size
-            val barrel = Recorder()
-            val path = path(tab, size = Size(600f, 900f), barrel = barrel)
-
-            // Hovering with the button down is what the summon is; the driver repeats the bit every packet.
-            path.send(packet(100f, 100f, pressure = null, tip = false, barrel = true))
-            path.send(packet(110f, 104f, pressure = null, tip = false, barrel = true))
-            path.send(packet(120f, 108f, pressure = null, tip = false, barrel = true))
-            assertEquals("one press, however many readings", 1, barrel.downs)
-            assertEquals("and every reading moved the pick", 2, barrel.moves)
-            assertEquals("the ring is anchored where the press landed", Offset(100f, 100f), barrel.at)
-
-            path.send(packet(120f, 108f, pressure = null, tip = false))
-            path.send(packet(120f, 108f, pressure = null, tip = false))
-            assertEquals("one release", 1, barrel.ups)
-            assertEquals("and no extra release from the packets after it", 1, barrel.ups)
-            assertEquals("nothing was drawn under the ring", before, strokes(tab).size)
-
-            // A tip that lands while the ring holds the pen cancels it, and the contact inks nothing.
-            val cancelling = Recorder()
-            val second = path(tab, size = Size(600f, 900f), barrel = cancelling)
-            second.send(packet(100f, 100f, pressure = null, tip = false, barrel = true))
-            second.send(packet(100f, 100f, pressure = 0.5f, tip = true, barrel = true))
-            assertEquals("a tip cancels the ring", 1, cancelling.cancels)
-            assertFalse("and the pen is not drawing", second.drawing)
-            assertEquals("so the page keeps every stroke it had", before, strokes(tab).size)
-
-            // A barrel pressed while the tip is already drawing is the tool's button, not the ring's.
-            val drawing = Recorder()
-            val third = path(tab, size = Size(600f, 900f), barrel = drawing)
-            third.send(packet(100f, 100f, pressure = 0.5f, tip = true, atNanos = 5_000_000_000L))
-            third.send(packet(140f, 140f, pressure = 0.6f, tip = true, barrel = true, atNanos = 5_010_000_000L))
-            assertEquals("no ring for a press under the tip", 0, drawing.downs)
-            third.send(packet(140f, 140f, pressure = 0f, tip = false, atNanos = 5_020_000_000L))
-            assertEquals("and no commit either", 0, drawing.ups)
-            assertEquals("the stroke is the tool's", before + 1, strokes(tab).size)
         } finally {
             tab.document.close()
         }

@@ -45,8 +45,7 @@ class DesktopSettings(val file: File = defaultFile()) {
     init {
         runCatching { if (file.isFile) file.inputStream().use(properties::load) }
     }
-
-    /** The pen-tip ring's answers — what it holds (`ring.swatches`, `ring.widths`, `ring.tools`). */
+    /** The pen-tip ring's answers — what it holds (`ring.slots`). */
     internal val ring = RingSettingsStore(properties, ::save)
 
     /**
@@ -369,19 +368,6 @@ class DesktopSettings(val file: File = defaultFile()) {
     private fun percentOf(raw: String?): Int =
         raw?.trim()?.toIntOrNull()?.coerceIn(AREA_PERCENT_RANGE) ?: TabletAreaMap.DEFAULT_PERCENT
 
-    /**
-     * What the pen's side button does (`tablet.penButton`): erase, as the window always has, or the ring.
-     *
-     * An unreadable value falls back to [PenButton.DEFAULT] — the eraser — so a file written by a build that
-     * knew another meaning leaves the pen the way it was rather than with a button that does nothing.
-     */
-    var penButton: PenButton
-        get() = PenButton.of(properties.getProperty(KEY_PEN_BUTTON))
-        set(value) {
-            properties.setProperty(KEY_PEN_BUTTON, value.name)
-            save()
-        }
-
     /** Which pen stream the window prefers — Wintab and Windows Ink, or whichever this host has. */
     var penStream: PenStream
         get() = PenStream.of(properties.getProperty(KEY_PEN_STREAM))
@@ -589,7 +575,6 @@ class DesktopSettings(val file: File = defaultFile()) {
         const val KEY_PEN_STREAM = "tablet.penStream"
 
         /** What the pen's side button does: erase, or summon the ring. */
-        const val KEY_PEN_BUTTON = "tablet.penButton"
 
         /** The refresh rate the window asks for in full screen — a wish, honoured where the panel can. */
         const val KEY_TARGET_HZ = "display.targetHz"

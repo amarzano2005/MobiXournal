@@ -127,10 +127,6 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                             onPress = { x, y, density -> state.ring.press(x, y, density) },
                             slots = state.ring.slots,
                             onPointerAt = { at, density -> state.ring.notePointer(at, density) },
-                            // The pen's side button is the ring's only while the setting says so; on the
-                            // default it keeps erasing, through Windows' copy of it as the right button.
-                            barrel = state.penBarrel,
-                            barrelErases = { state.penBarrel == null },
                         ),
                     )
                 }

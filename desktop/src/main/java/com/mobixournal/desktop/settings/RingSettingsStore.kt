@@ -4,47 +4,36 @@ import com.mobixournal.desktop.sheet.RingContents
 import java.util.Properties
 
 /**
- * The ring's three answers in the settings file, as one value ([DesktopSettings.ring]).
+ * The ring's faces in the settings file, as one value ([DesktopSettings.ring]).
  *
- * A store of its own rather than three properties on [DesktopSettings] for the reason the pen presets
- * have one: the window's settings file is a list of subjects, and a subject that grows a third key should
- * not make the file that holds every other subject longer.
- *
- * The keys are `ring.swatches`, `ring.widths` and `ring.tools`, and a key the file does not carry is the
- * factory answer — so a fresh install's ring holds everything without a single stored line.
+ * One key, `ring.slots`, and its **absence is the automatic ring**: a fresh install carries the palette, the
+ * three widths and the three tools without a single stored line, and could not be told apart from a line
+ * that spelled them out. The absence also means "follow the palette", which is what a reader who never
+ * edited the ring should get when they add a colour to the strip.
  */
 internal class RingSettingsStore(
     private val properties: Properties,
     private val save: () -> Unit,
 ) {
 
-    /** What the ring holds — read from the three keys, written in one go by the Settings page. */
+    /** What the ring holds — the reader's own faces, or [RingContents.Auto] when nothing is stored. */
     var contents: RingContents
-        get() = RingContents(
-            swatches = flag(KEY_SWATCHES, true),
-            widths = flag(KEY_WIDTHS, true),
-            tools = RingContents.toolsOf(properties.getProperty(KEY_TOOLS)),
-        )
+        get() = RingContents.decode(properties.getProperty(KEY_SLOTS))
+            ?.let(RingContents::Fixed)
+            ?: RingContents.Auto
         set(value) {
-            properties.setProperty(KEY_SWATCHES, value.swatches.toString())
-            properties.setProperty(KEY_WIDTHS, value.widths.toString())
-            properties.setProperty(KEY_TOOLS, RingContents.encodeTools(value.tools))
+            when (value) {
+                // The automatic ring is the *absence* of the key, so a reset is a removal and a build that
+                // later changes what "automatic" means is what such a file gets.
+                is RingContents.Auto -> properties.remove(KEY_SLOTS)
+                is RingContents.Fixed -> properties.setProperty(KEY_SLOTS, RingContents.encode(value.faces))
+            }
             save()
         }
 
-    /** A stored switch, or [fallback] when the key is absent or was hand-edited into something else. */
-    private fun flag(key: String, fallback: Boolean): Boolean =
-        properties.getProperty(key)?.trim()?.toBooleanStrictOrNull() ?: fallback
-
     companion object {
 
-        /** Whether the palette's swatches are on the ring. */
-        const val KEY_SWATCHES = "ring.swatches"
-
-        /** Whether the pen's three widths are on the ring. */
-        const val KEY_WIDTHS = "ring.widths"
-
-        /** The writing tools the ring offers, by [com.mobixournal.desktop.tools.DesktopTool] name. */
-        const val KEY_TOOLS = "ring.tools"
+        /** The ring's own positions, in order: `c:…` a colour, `w:…` a width, `t:…` a tool. */
+        const val KEY_SLOTS = "ring.slots"
     }
 }

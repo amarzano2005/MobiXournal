@@ -137,125 +137,12 @@ class PenPacketSceneTest {
         }
     }
 
-    /**
-     * The pen's **side button**, with the window's setting on the ring: a press with the tip off the glass
-     * opens the ring at the nib, the release commits the slot under the pen, and no stroke is written —
-     * the tablet's `BarrelAction.HUD`, brought to the window by `PenButton.HUD`.
-     */
-    @Test
-    fun `a barrel press summons the ring and a release over a swatch commits it`() {
-        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
-        tab.fit = FitMode.NONE
-        tab.viewport = Viewport(zoom = 1f)
-        val packets = FakePackets()
-        val picked = mutableListOf<Int>()
-        val ring = DesktopRing(
-            palette = { PenPalette.COLORS },
-            custom = { null },
-            onColour = { picked += it },
-            onWidth = {},
-            onTool = {},
-        )
-        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
-            PageCanvas(
-                tab = tab,
-                panMode = false,
-                onViewport = {},
-                onFit = {},
-                ink = DesktopInk(width = 4f),
-                hud = hudOf(ring),
-                packets = packets,
-            )
-        }
-        try {
-            scene.render()
-            Snapshot.sendApplyNotifications()
-            val before = strokes(tab).size
-            // A hover first: the ring opens where the nib is, and the nib is a reading of the packets.
-            packets.send(200f, 300f, pressure = null, tip = false)
-            settle(scene)
-            // The button, with the tip off the glass — the one press the ring is summoned with.
-            packets.send(200f, 300f, pressure = null, tip = false, barrel = true)
-            settle(scene)
-            val open = ring.open
-            assertNotNull("the barrel summoned the ring at the nib", open)
-            assertEquals("the packet's own position", 200f, open!!.cx, 2f)
-            assertEquals(300f, open.cy, 2f)
-            assertFalse("a held ring, not a picker", open.picker)
-
-            // The pick follows the pen, and the release under a swatch is the commit.
-            val (sx, sy) = RadialHud.slotCenter(open.cx, open.cy, 0, ring.slots.size, RadialHud.RING_RADIUS_DP)
-            packets.send(sx, sy, pressure = null, tip = false, barrel = true)
-            settle(scene)
-            packets.send(sx, sy, pressure = null, tip = false, barrel = false)
-            settle(scene)
-
-            assertEquals("the swatch under the pen is the pick", listOf(PenPalette.COLORS.first()), picked)
-            assertNull("and the ring closed", ring.open)
-            assertEquals("the button wrote nothing on the page", before, strokes(tab).size)
-        } finally {
-            scene.close()
-            tab.document.close()
-        }
-    }
-
-    /**
-     * A **tip** that lands while the button holds the ring: the ring goes away and the contact inks nothing.
-     * The press was aimed at a face, and a stroke under it would be a mark the hand never meant to make.
-     */
-    @Test
-    fun `a tip that lands on the open ring cancels it and writes nothing`() {
-        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
-        tab.fit = FitMode.NONE
-        tab.viewport = Viewport(zoom = 1f)
-        val packets = FakePackets()
-        val ring = DesktopRing(
-            palette = { PenPalette.COLORS },
-            custom = { null },
-            onColour = {},
-            onWidth = {},
-            onTool = {},
-        )
-        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
-            PageCanvas(
-                tab = tab,
-                panMode = false,
-                onViewport = {},
-                onFit = {},
-                ink = DesktopInk(width = 4f),
-                hud = hudOf(ring),
-                packets = packets,
-            )
-        }
-        try {
-            scene.render()
-            Snapshot.sendApplyNotifications()
-            val before = strokes(tab).size
-            packets.send(200f, 300f, pressure = null, tip = false)
-            settle(scene)
-            packets.send(200f, 300f, pressure = null, tip = false, barrel = true)
-            settle(scene)
-            assertNotNull("the ring is open", ring.open)
-
-            packets.send(200f, 300f, pressure = 0.5f, tip = true, barrel = true)
-            settle(scene)
-
-            assertNull("the tip put the ring away", ring.open)
-            assertEquals("and nothing reached the page", before, strokes(tab).size)
-        } finally {
-            scene.close()
-            tab.document.close()
-        }
-    }
-
     /** The canvas's door to [ring], as the workspace hands it over when the pen's button is the ring. */
     private fun hudOf(ring: DesktopRing) = HudUi(
         open = { ring.open },
         onPress = { x, y, density -> ring.press(x, y, density) },
         slots = ring.slots,
         onPointerAt = { at, density -> ring.notePointer(at, density) },
-        barrel = ring,
-        barrelErases = { false },
     )
 
     /** Let the canvas's packet ticker run: a packet asks for a frame, and the batch is applied on it. */

@@ -112,12 +112,12 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
   (`%APPDATA%\MobiXournal\audio`); its **Play** (or `Y`) replays a point, and a clip makes it a transport (scrubber, speed 1×–2×) that writes the page as recorded. Audio belongs to the tab it was recorded in: switching documents shows that document's own recording, never the one being made next door, and **Settings → Audio ▸ Outside the app** copies every recording out to a folder of your own at the end of a take, as the tablet offers.
 - **The tablet's figures**: the **triangle**, the **trapezoid** and the **polygon** each have their own slot, and each slot's own menu picks what it draws — the four triangle kinds, the three trapezoid kinds, or the polygon's three to twelve sides, with the live count printed on the slot. **Settings → Figures** sets the same variants, their angles and the side count, next to the width figures are drawn at.
 - **Keys**: every tool and command has one — including `Alt + B`, the ring at the pen: the tablet's pen-tip
-  HUD where the nib is, holding your swatches, the widths and the writing tools. **Settings → Ring** picks what
-  it carries and its key; the table is in [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and
-  **Settings → Shortcuts** rebinds any of them — the three **switch** keys too (eraser, hand, selection).
+  HUD where the nib is. **Settings → Ring** sets what each position holds and the key that opens it; the table
+  is in [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and **Settings → Shortcuts** rebinds any of
+  them — the three **switch** keys too (eraser, hand, selection).
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
-  block or **Settings → Stylus** — and the menu keeps them as chips; there too, **Pen button** gives the barrel
-  to *Erase* (as it always was) or to the ring at the nib. **A file to try it on**: `udiff.xopp`, at the root.
+  block or **Settings → Stylus** — and the menu keeps them as chips. **A file to try it on**: `udiff.xopp`, at
+  the root of this repository.
 - **Save As asks the format in the save window itself**: its **File type** list offers `.mobix`, `.xopp` and the
   zipped package, with the suffix in the name field; `Ctrl + S` writes back in the document's own format.
 - **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — its own document or added

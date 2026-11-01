@@ -2,7 +2,6 @@ package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.ColourEditorTarget
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.DesktopInkState
-import com.mobixournal.desktop.ink.PenBarrel
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopRecovery
@@ -16,7 +15,6 @@ import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
-import com.mobixournal.desktop.settings.PenButton
 import com.mobixournal.desktop.settings.ShortcutTable
 import com.mobixournal.desktop.sheet.DefaultSheet
 import com.mobixournal.desktop.sheet.DesktopClipboard
@@ -331,12 +329,6 @@ class DesktopShellState(
         palette = { palette }, custom = { paletteCustom }, contents = { prefs.ring.contents },
         onColour = ::pickColour, onWidth = ::pickWidth, onTool = { selectTool(it) },
     )
-
-    /**
-     * The pen's side button **as the ring**, or null while it keeps erasing (`PenButton`) — the one answer the
-     * workspace hands the canvas, so the setting is read in a single place rather than per packet.
-     */
-    internal val penBarrel: PenBarrel? get() = ring.takeIf { prefs.penButton == PenButton.HUD }
 
     /** The ink of the picked tool — the pen's, or the highlighter's colour and width **slot**. */
     val ink: DesktopInk get() = inkState.ink

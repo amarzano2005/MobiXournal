@@ -1,78 +1,111 @@
 package com.mobixournal.desktop.settings
 
-import com.mobixournal.desktop.sheet.RingContents
 import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.design.PenPalette
+import com.mobixournal.format.model.Tool
+import com.mobixournal.render.HudSlot
+import com.mobixournal.render.RadialHud
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import java.util.Locale
 
 /**
- * **Ring**: what the pen-tip ring holds, and the key that opens it.
+ * **Ring**: what each position of the pen-tip ring holds, and the key that opens it.
  *
- * The page is the ring's own, beside *Colors* rather than inside *Shortcuts*, because the ring is a
- * writing surface and not another list of keys: its contents are chosen here, while its key stays one row
- * of the table the Shortcuts page owns ([ShortcutTable]) and is armed from here through the same
- * `armedShortcut` the window binds.
+ * A **position**, not a family: the ring is a circle of up to [RadialHud.MAX_SLOTS] faces and the reader
+ * decides face by face — a colour, a width or a writing tool, or the position removed. That is why the page
+ * is a list of rows where each row's control is a [SettingsSelect] over the same answers, and why the first
+ * edit pins the ring: an automatic ring follows the palette, and one the reader arranged is theirs.
  *
- * **The pen button a driver turns into a key** is why the key row is on this page: a tablet whose buttons
- * arrive as keyboard keys — Windows maps them in the vendor's software, not as a barrel bit — still opens
- * the ring, because all it has to send is the key this row holds. The barrel itself remains *Stylus → Pen
- * button*'s row, for the pens that really do send one.
+ * There is no *side button* row: on a PC a pen's buttons arrive as keyboard keys (the vendor's software maps
+ * them), so the button reaches the ring by pressing the **key** — which is the row above. A pen that sends a
+ * real barrel bit nowadays gets the same treatment: the bit is read and reported by the tablet probe
+ * ([`desktop-tablet.md`](../../../../../docs/desktop-tablet.md)), and no setting here hands it a job.
  *
- * Every row is the window's own grammar (`docs/desktop-settings.md`): a toggle ends in the switch, a
- * command has nothing at its end, and a shortcut ends in the capsule with the key it holds.
+ * Every row is the window's own grammar (`docs/desktop-settings.md`): a choice ends in a select, a command
+ * has nothing at its end, and the key ends in the capsule with the key it holds.
  */
 @Composable
 internal fun RingSettings(policy: DesktopSettingsState) {
-    val contents = policy.ring.contents
-    SettingsGroup("On the ring") {
-        SettingsRow(
-            label = "Swatches",
-            note = "The palette's colours, with the custom slot last.",
-            onClick = { policy.ring.chooseSwatches(!contents.swatches) },
-        ) {
-            SettingsSwitch(contents.swatches)
-        }
-        SettingsRow(
-            label = "Widths",
-            note = "The pen's three widths, as the strip's own.",
-            onClick = { policy.ring.chooseWidths(!contents.widths) },
-        ) {
-            SettingsSwitch(contents.widths)
-        }
-        for (tool in RingContents.TOOL_FACES) {
+    val ring = policy.ring
+    val slots = ring.slots
+    val candidates = ring.candidates()
+    SettingsGroup("Positions") {
+        if (slots.isEmpty()) {
             SettingsRow(
-                label = tool.label,
-                note = ringToolNote(tool),
-                onClick = { policy.ring.chooseTool(tool, tool !in contents.tools) },
+                label = "Nothing on the ring",
+                note = "Add a position below, or reset to the automatic ring.",
             ) {
-                SettingsSwitch(tool in contents.tools)
+                Text("Empty", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
             }
         }
-    }
-    RingSummonGroup(policy)
-    SettingsGroup("Factory settings") {
+        for ((index, face) in slots.withIndex()) {
+            SettingsSelect(
+                label = "Position ${index + 1}",
+                note = "Clockwise from the top: what the ring holds there.",
+                options = candidates,
+                picked = face,
+                optionLabel = ::faceLabel,
+                onPick = { choice -> ring.chooseFace(index, choice) },
+            )
+        }
+        SettingsCommand(
+            label = "Add a position",
+            note = "The first face the ring does not carry yet, up to ${RadialHud.MAX_SLOTS}.",
+            onClick = ring::addPosition,
+        )
         SettingsCommand(
             label = "Reset to defaults",
-            note = "Every part back on the ring.",
-            onClick = policy.ring::reset,
+            note = "The palette, the three widths and the three tools, following the palette again.",
+            onClick = ring::reset,
         )
     }
-    SettingsNote("The ring opens only when it has something to offer; a second press puts it away.")
-}
-
-/** The sentence under one tool's row — what that face puts in hand. */
-private fun ringToolNote(tool: com.mobixournal.desktop.tools.DesktopTool): String = when (tool) {
-    com.mobixournal.desktop.tools.DesktopTool.PEN -> "The pen, with the colour it holds."
-    com.mobixournal.desktop.tools.DesktopTool.HIGHLIGHTER -> "The marker, with its own colour."
-    else -> "The eraser in use."
+    RingSummonGroup(policy)
+    SettingsNote("A position answered with Empty leaves the ring; an empty ring does not open at all.")
 }
 
 /**
- * **Opening it**: the key that summons the ring, armed on the spot, and the pen's own door.
+ * The face a select shows, in the words the rest of the window uses: the tool's own name, the width in
+ * points, the colour's factory name with its hex — because a swatch's identity on a list is its number, not
+ * its picture.
+ */
+private fun faceLabel(face: HudSlot?): String = when (face) {
+    null -> "Empty"
+    is HudSlot.Colour -> faceLabel(face.argb)
+    is HudSlot.Width -> String.format(Locale.ROOT, "%.2f pt", face.pt)
+    is HudSlot.ToolFace -> when (face.tool) {
+        Tool.PEN -> "Pen"
+        Tool.HIGHLIGHTER -> "Highlighter"
+        Tool.ERASER -> "Eraser"
+    }
+}
+
+/** The factory palette's own names, so a list of colours reads as colours and not as eight hex codes. */
+private val SWATCH_NAMES: Map<Int, String> = mapOf(
+    PenPalette.BLACK to "Black",
+    PenPalette.RED to "Red",
+    PenPalette.GREEN to "Green",
+    PenPalette.BLUE to "Blue",
+    PenPalette.ORANGE to "Orange",
+    PenPalette.YELLOW to "Yellow",
+    PenPalette.MAGENTA to "Magenta",
+    PenPalette.WHITE to "White",
+)
+
+/** A swatch: its name when it is one of the factory eight, then its hex. */
+private fun faceLabel(argb: Int): String {
+    val hex = String.format(Locale.ROOT, "#%06X", argb and 0xFFFFFF)
+    val name = SWATCH_NAMES[argb]
+    return if (name == null) hex else "$name · $hex"
+}
+
+/**
+ * **Opening it**: the key that summons the ring, armed on the spot.
  *
- * The key row is the Shortcuts page's row, reached from here: one table, one binding, two places it is
- * read from — a second field for the same answer is how two surfaces come to disagree about it.
+ * The row is the Shortcuts page's own (`ShellCommand.RADIAL_HUD`, one table, one binding), reached from here
+ * because this is the page a reader comes to when the ring will not open. A pen button that a driver turns
+ * into a keyboard key presses this key, which is how a PC pen reaches the ring at all.
  */
 @Composable
 private fun RingSummonGroup(policy: DesktopSettingsState) {
@@ -90,13 +123,6 @@ private fun RingSummonGroup(policy: DesktopSettingsState) {
                 key.isEmpty() -> Text("None", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
                 else -> ShortcutKeyChip(key)
             }
-        }
-        SettingsRow(
-            label = "Side button",
-            note = "A pen that sends a barrel bit: erase, or the ring, on the Stylus page.",
-            onClick = { policy.show(DesktopSettingSection.STYLUS) },
-        ) {
-            Text(policy.penButton.label, color = DesktopTheme.ink, style = DesktopTheme.label)
         }
     }
 }
