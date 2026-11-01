@@ -136,11 +136,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * connector magnet read it from.
      */
     internal val shapeDraft = ShapeDraft()
-    /** Pointer id owning the current draw/erase gesture, so a resting palm can't perturb it. */
-    internal var gesturePointerId = -1
-    /** True while a stylus/eraser tip owns the current draw/erase gesture (drives palm rejection). */
-    internal var stylusOwner = false
-    internal var routed = false // fed to [pointerRouter] for this gesture? `DrawingSurfaceRouter.kt`
+    /**
+     * The gesture in flight as a transaction — the pointer that owns it, whether the shared router is
+     * feeding it, and the document it opened on, so one gesture is one undo step ([GestureSession]).
+     */
+    internal val session = GestureSession()
     // Hover preview position (view px) and whether a stylus is currently hovering.
     internal var hovering = false
     internal var hoverX = 0f
@@ -257,8 +257,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Undo/redo snapshots of the whole [Document] (cheap: immutable pages/layers share structure). */
     internal var history = EditHistory<Document>()
-    /** The document as it was when the current gesture began, so one gesture is one undo step. */
-    internal var gestureStartDoc: Document? = null
 
     /** The page/layer edit commands and the two commit pipelines behind them (see [PageCommands]). */
     private val pages = PageCommands(
@@ -507,7 +505,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         activeLayerOf = { resolvedActiveLayer(it) },
         lassoMode = { lassoMode },
         snapRotation = { snapRotation },
-        beginGesture = { gestureStartDoc = it },
+        beginGesture = { session.open(it) },
         refresh = { relayout(); render() },
         render = { render() },
         onSelectionChanged = { onSelectionChanged?.invoke(it); reportSelectionRect() },
@@ -599,7 +597,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         setDocument = { doc = it },
         layout = { layout },
         viewport = viewport,
-        beginGesture = { gestureStartDoc = it },
+        beginGesture = { session.open(it) },
         // Snap to grid on → the gap opened is a whole number of ruled lines (desktop behaviour).
         // Read live, so toggling the setting mid-session applies to the next drag.
         snapSpacingPt = { page -> if (snapToGrid) Snapping.spacingY(page.background) else 0.0 },
@@ -705,7 +703,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
         docValue = if (incoming.pages.isEmpty()) incoming.copy(pages = listOf(blankPage())) else incoming
         ink.current = null
         ink.currentStrokes = null
-        gestureStartDoc = null
+        // The document was replaced under any gesture in flight: it has nothing left to close.
+        session.abort()
         selection = null
         onSelectionChanged?.invoke(false)
         // One history per document: when the mirror hands over the document's stack, the two views
@@ -1148,7 +1147,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         scroll.active = false; erasing = false; placing = false; ink.current = null; ink.currentStrokes = null
         val page = vspace.begin(event.x, event.y) ?: return
         ink.currentPage = page
-        gesturePointerId = event.getPointerId(0)
+        session.pointerId = event.getPointerId(0)
         render()
     }
 

@@ -31,8 +31,8 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
     scroll.active = false
     shapeDraft.begin(shape = shapeKind != null)
     holdSnap.reset()
-    gestureStartDoc = doc
-    gesturePointerId = start.id
+    session.open(doc)
+    session.pointerId = start.id
     val box = gestureBoxAt(start.x, start.y)
         ?: run { ink.current = null; return }
     ink.currentPage = box.index
@@ -166,8 +166,8 @@ internal fun DrawingSurfaceView.eraseAtPointer(pointer: InkPointer) {
     if (!erasing) {
         scroll.active = false
         erasing = true
-        gestureStartDoc = doc
-        gesturePointerId = pointer.id
+        session.open(doc)
+        session.pointerId = pointer.id
         ink.currentPage = gestureBoxAt(pointer.x, pointer.y)?.index ?: return
     }
     val box = gestureBox() ?: return
@@ -189,23 +189,22 @@ internal fun DrawingSurfaceView.eraseAtPointer(pointer: InkPointer) {
  */
 internal fun DrawingSurfaceView.switchStrokeToErase(event: MotionEvent) {
     if (!barrelButton.held || inputSettings.barrelAction != BarrelAction.ERASE) return
-    val pointerIndex = event.findPointerIndex(gesturePointerId)
+    val pointerIndex = event.findPointerIndex(session.pointerId)
     if (pointerIndex < 0) return
-    val start = gestureStartDoc
     commitCurrent()
+    // The ink drawn and the erase it turned into stay one undo step: the session is already open, so
+    // the erase below does not reopen it on the half-edited document.
     eraseAtPointer(event.inkPointer(pointerIndex, InkPointerPhase.DOWN, barrelHeld = true))
-    // The ink drawn and the erase it turned into stay one undo step.
-    gestureStartDoc = start
     // A barrel pressed mid-gesture is the **barrel key** half of the input layer, which the router
     // does not route (it decided this gesture was a stroke when the tip landed). The rest of the
     // gesture is the view's own eraser then, and the router is told so it keeps no stale contact.
-    routed = false
+    session.routed = false
     ink.pointerRouter.reset()
 }
 
 /** A hit from an eraser drag the router does not own (the barrel switched mid-stroke). */
 internal fun DrawingSurfaceView.eraseMove(event: MotionEvent) {
-    val pointerIndex = event.findPointerIndex(gesturePointerId)
+    val pointerIndex = event.findPointerIndex(session.pointerId)
     if (pointerIndex < 0) return
     eraseAtPointer(event.inkPointer(pointerIndex, InkPointerPhase.MOVE, barrelButton.held))
 }
@@ -361,7 +360,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
             strokeColor(),
         )
         if (bands.isNotEmpty()) {
-            // Same gesture, same `gestureStartDoc`: many strokes, ONE undo step.
+            // Same gesture, so the same open session: many strokes, ONE undo step.
             bands.forEach { appendStroke(ink.currentPage, it) }
             render()
             return

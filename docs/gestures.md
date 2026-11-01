@@ -34,9 +34,23 @@ untouched and the same scroll clamps apply, so a wheel at a bound is left uncons
 **Palm rejection** is the stateful half. The router owns the rule where a contact begins: a pen outranks
 a hand that landed first (its gesture is abandoned, not finished), and once a pen owns the gesture a later
 finger is dropped. The view keeps the document-shaped half — the active draw/erase gesture is *owned by
-a pointer id* (`gesturePointerId`) and only that pointer is sampled, never pointer 0 — so a resting palm
-can't perturb the stroke. A pen arriving mid-gesture still runs `onPointerDown` → `abandonInProgress`,
-which also resets the router so it holds no stale contact.
+a pointer id* (`session.pointerId`, `GestureSession`) and only that pointer is sampled, never pointer 0 —
+so a resting palm can't perturb the stroke. A pen arriving mid-gesture still runs `onPointerDown` →
+`abandonInProgress`, which also resets the router so it holds no stale contact.
+
+## One gesture, one undo step (`GestureSession`)
+
+**A gesture is a transaction over the document**, and `GestureSession` (`CanvasGestureSession.kt`) is its
+state: the document it opened on, the pointer that owns it, whether a pen owns it, whether the shared
+router is feeding it — and the two ways it ends. `commit(doc)` answers the snapshot the history records,
+or **null** when the document never changed (a tap that wrote nothing leaves no empty step), and either
+way it closes the gesture. `abort()` closes it with nothing to record: a cancelled event, or the mirrored
+document that replaced the one the gesture opened on. The baseline is the **first** one of the gesture,
+so a barrel press that turns a stroke into an erase mid-gesture — the erase opens a gesture too — cannot
+reset it onto the half-edited document. `GestureSessionTest` states both rules directly: however many
+edits, one undo step; and abort, no step at all. The `erasing`/`placing`/marquee flags stay on the view:
+they say what the gesture is *doing* (the painters and the router read them every frame), not when it
+began.
 
 ## Pressure → width (`PressureCurve`)
 

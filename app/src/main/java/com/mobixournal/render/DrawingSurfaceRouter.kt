@@ -73,7 +73,7 @@ internal fun DrawingSurfaceView.routePointer(
  * visible stutter under a fast rub.
  */
 internal fun DrawingSurfaceView.feedPointerSamples(event: MotionEvent) {
-    val index = event.findPointerIndex(gesturePointerId)
+    val index = event.findPointerIndex(session.pointerId)
     if (index < 0) return
     if (ink.current != null || ink.currentStrokes != null) {
         for (h in 0 until event.historySize) {
