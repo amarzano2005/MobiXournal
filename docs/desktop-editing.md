@@ -52,6 +52,24 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
   The arithmetic is shared: `VerticalSpaceOps`, its `Snapping` and the per-element move (`ElementShift`)
   live in `mobix-core`, and the app's `SelectionOps.translate` delegates to the same `ElementShift`.
 
+## Posing a drawing guide
+
+A placed setsquare or compass is **not ink and not an edit**: it is view state on the tab
+(`DesktopGuidePose`), and dragging it writes no page edit and no undo step. The pure half is
+`GuideGesture` — `guidePress` asks the shared `DrawingGuide.hasHandle`/`grabHandle`/`grabbableBody` for the
+part a press took, and `guideDragged` re-poses the instrument from the pose **as it was at grab time**, so a
+drag cannot compound its own error. A press on the **body** slides it (the offset between press and anchor is
+kept, so it does not jump under the hand); a press on the **handle** — the setsquare's long-leg tip, the
+compass's pencil point — turns it or opens it through the tablet's own `aimedAt`/`openedTo`, and `Shift`
+lands the angle on a step of the shared `Snapping.snapAngle` (0°, 45° and 90° exactly). The drawing edges are
+**not** grabbable: they belong to the pen.
+
+**Who may hold it** is the tablet's rule, not a second one: a pen draws and a hand holds. A mouse or a touch
+press always poses the instrument; a stylus press does so only while the guides slot is the tool in hand,
+because otherwise a stroke drawn across the instrument's body would drag it away instead of drawing along it.
+`Esc` puts the grab-time pose back through `DesktopShellState.liveDrag`. The reach is a **screen** distance
+(`GUIDE_HANDLE_PX` divided by zoom and density), so a handle that is easy to hit at 30 % is no coin at 300 %.
+
 ## Placing a living element: Plot, Table and Circuit
 
 Plot (`M`) and Table (`T`) place a living element instead of drawing it: a drag is its box, a click its

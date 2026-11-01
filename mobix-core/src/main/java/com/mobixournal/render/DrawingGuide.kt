@@ -342,6 +342,18 @@ sealed interface DrawingGuide {
 }
 
 /**
+ * True for the guides a finger can **hold**: the setsquare, the compass and the protractor.
+ *
+ * The two invisible rules ([DrawingGuide.Ruling] and [DrawingGuide.Chemistry]) answer an anchor because
+ * something has to sit somewhere, but there is no instrument there to grab — so a shell asks this before
+ * it offers a handle or a grab region at all.
+ */
+val DrawingGuide.hasHandle: Boolean
+    get() = this is DrawingGuide.Setsquare ||
+        this is DrawingGuide.Compass ||
+        this is DrawingGuide.Protractor
+
+/**
  * The [GuideKind] a live [DrawingGuide] is — the key a chooser, a remembered pose and a slot's face are
  * matched against.
  *

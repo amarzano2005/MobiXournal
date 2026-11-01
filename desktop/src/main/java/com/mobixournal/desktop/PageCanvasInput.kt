@@ -202,6 +202,9 @@ private suspend fun PointerInputScope.pageGestureLoop(
         // page's pins: its own two ends, not a box — the tablet's rule, and the one a rotated part needs
         // (`CircuitGesture.circuitPress`).
         if (circuitPress(down, tool, tab, shapeInk, dragView, targets, onEdited)) return@awaitEachGesture
+        // A press on the placed **instrument** poses it, whatever tool is in hand: the guide is an aid on the
+        // page, not a tool that inks, and this is the gesture the guides slot exists for (`GuideGesture`).
+        if (guideDrag(down, tool, tab, dragView, targets.onLiveDrag)) return@awaitEachGesture
         // A selection, a living element or a figure takes the drag before the ink sees it.
         if (
             preInkPress(down, tool, tab, dragView, pageW, pageH, previewRegion, onEdited, taps, targets)
@@ -252,6 +255,66 @@ private suspend fun AwaitPointerEventScope.inkDrag(
     }
     gesture.cancel()
     return false
+}
+
+/**
+ * The **guide pose**: a press on the instrument's body slides it, a press on its handle turns or opens it,
+ * and Shift snaps the angle to the shared steps.
+ *
+ * Nothing is written to the page — a guide is view state (`DesktopGuidePose` on the tab) — so the whole
+ * gesture is one field write per frame and **no** undo step. It is asked before the ink router for the
+ * reason the tablet asks its finger first: the instrument is held by a hand while the pen rules along it,
+ * so taking the press here is what makes it usable at all. `Esc` puts the pose back through the shell's
+ * live drag, like a figure's cancel.
+ *
+ * **Who may hold it**, the tablet's own answer: a pen draws and a hand holds. So a mouse or a touch press
+ * always poses the instrument, while a stylus press does so only when the guides slot is the tool in hand —
+ * otherwise a pen stroke drawn across the instrument's body would drag it instead of drawing along it.
+ *
+ * False when the press missed, so the gesture falls through to the tool in hand.
+ */
+private suspend fun AwaitPointerEventScope.guideDrag(
+    down: PointerInputChange,
+    tool: DesktopTool,
+    tab: DesktopTab,
+    view: DragView,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+): Boolean {
+    val start = tab.guide ?: return false
+    if (down.type == PointerType.Stylus && tool !in GUIDE_TOOLS) return false
+    val (sx, sy) = pagePointOf(down.position.x, down.position.y, density, view.current())
+    if (sx !in 0.0..view.pageW.toDouble() || sy !in 0.0..view.pageH.toDouble()) return false
+    val zoom = view.current().zoom
+    val reach = guideReachPt(zoom, density)
+    val grab = guidePress(start, tab.page, sx, sy, reach)
+    if (grab == GuideGrab.NONE) return false
+    val grabDx = if (grab == GuideGrab.BODY) sx - start.guide.x else 0.0
+    val grabDy = if (grab == GuideGrab.BODY) sy - start.guide.y else 0.0
+    var cancelled = false
+    onLiveDrag({
+        cancelled = true
+        tab.guide = start
+    })
+    try {
+        while (!cancelled) {
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+            val (px, py) = pagePointOf(change.position.x, change.position.y, density, view.current())
+            tab.guide = guideDragged(
+                start = start,
+                grab = grab,
+                grabDx = grabDx,
+                grabDy = grabDy,
+                px = px,
+                py = py,
+                snapAngle = currentEvent.keyboardModifiers.isShiftPressed,
+            )
+            change.consume()
+        }
+    } finally {
+        onLiveDrag(null)
+    }
+    return true
 }
 
 /**

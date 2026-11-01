@@ -58,7 +58,10 @@ internal fun toolCursorDiameterPx(tool: DesktopTool, widthPt: Float, zoom: Float
     when (tool) {
         // A tap tool has no width to promise either: the audio tap skips to a stroke, it does not draw
         // a ring of the pen's size over the page.
-        DesktopTool.HAND, DesktopTool.TEXT, DesktopTool.AUDIO, DesktopTool.PDF_TEXT_SELECT -> null
+        // The guides too: the slot poses an instrument, it lays no band, so a pen-sized ring would promise
+        // ink it never draws.
+        DesktopTool.HAND, DesktopTool.TEXT, DesktopTool.AUDIO, DesktopTool.PDF_TEXT_SELECT,
+        DesktopTool.SETSQUARE, DesktopTool.COMPASS -> null
         // Both erasers show the tip they cut with: the whole-stroke eraser is a disc like the partial one,
         // it simply takes everything the disc touches.
         DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density)

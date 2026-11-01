@@ -237,7 +237,9 @@ settings feedback loops. The **window** carries the same two instruments in one 
 picking one lays it on the active tab's page at the point the reader is looking (`DesktopGuidePose` on the tab,
 view state like the selection, never written to the document), its face is the instrument actually standing
 there, and its picker opens with the tablet's own **Off**, which takes it away and hands back the tool that
-was in hand.
+was in hand. A press on its body slides it and a press on its handle turns or opens it, with **Shift**
+landing the angle on the shared snap steps — a mouse or a touch holds it always, a pen only while the guides
+slot is in hand, which is the tablet's own *a pen draws, a hand holds* (`docs/desktop-editing.md`).
 settings feedback loops. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and the window's `DesktopPdfPainter`

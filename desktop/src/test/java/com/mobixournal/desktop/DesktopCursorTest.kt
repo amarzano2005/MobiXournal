@@ -109,6 +109,9 @@ class DesktopCursorTest {
      *
      * **Audio tap** is the other: it picks the stroke under the pointer and replays it, so a ring the pen's
      * size would promise ink it never lays down (`desktop-audio-tap-and-y-key`).
+     *
+     * **The guides** are the third: the slot poses an instrument laid on the page rather than drawing a band
+     * of its own, and its strokes are the pen's (`docs/drawing-tools.md`).
      */
     @Test
     fun `the ring is for the tools that lay ink at a width`() {
@@ -116,7 +119,8 @@ class DesktopCursorTest {
             val ring = toolCursorDiameterPx(tool, 4f, zoom = 1f, density = 1f)
             // The PDF text slot selects words with an I-beam; a nib-sized ring would promise ink.
             if (tool == DesktopTool.HAND || tool == DesktopTool.TEXT || tool == DesktopTool.AUDIO ||
-                tool == DesktopTool.PDF_TEXT_SELECT
+                tool == DesktopTool.PDF_TEXT_SELECT || tool == DesktopTool.SETSQUARE ||
+                tool == DesktopTool.COMPASS
             ) {
                 assertNull("$tool is not a band of ink, so it has no ring", ring)
             } else {

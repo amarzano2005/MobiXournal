@@ -142,7 +142,7 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
   over real PDF text, previewed as you drag and committed as ordinary ink. Neither writes to the document, and
   a page with no text layer (a scan, a `.mobix` page) says so. A PDF's **Contents** sits under the sidebar's
   layers: indented bookmarks leading to the page that shows each sheet, listed only once you open it.
-- **The setsquare and compass on the PC**: one guides slot (`Q` / `Shift + Q`) lays the instrument where you are looking; the menu's **Off** takes it away. A guide is never saved into the document.
+- **The setsquare and compass on the PC**: one guides slot (`Q` / `Shift + Q`) lays the instrument where you are looking — drag its body with the mouse (or with the pen while the slot is in hand) to slide it, its tip to turn or open it, and hold **Shift** to land on 15° steps; the menu's **Off** takes it away. A guide is never saved into the document.
 - **A remote or synced file** has to be available offline before it opens — a placeholder is not a document.
 - **Not yet**: importing anything but a document or a PDF, editing layers, and an installer — see
   [`TODO.toml`](TODO.toml) and [`docs/desktop-workstation.md`](docs/desktop-workstation.md) (*What the window does not do*).

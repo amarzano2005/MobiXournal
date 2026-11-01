@@ -73,7 +73,7 @@ internal class GuideDrag(
         // A ruling snap — the page's own ruling, or the chemistry lattice — is a mode, not an
         // instrument: there is nothing to hold, so a finger on the page keeps panning/drawing
         // instead of grabbing an invisible anchor.
-        if (g is DrawingGuide.Ruling || g is DrawingGuide.Chemistry) return false
+        if (!g.hasHandle) return false
         val box = layout().boxes.getOrNull(page) ?: return false
         val px = box.toPtX(event.getX(pointerIndex), viewport.scrollX)
         val py = box.toPtY(event.getY(pointerIndex), viewport.scrollY)
