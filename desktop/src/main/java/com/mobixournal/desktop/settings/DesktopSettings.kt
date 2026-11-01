@@ -1,13 +1,10 @@
 package com.mobixournal.desktop.settings
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.DesktopInks
-import com.mobixournal.desktop.ink.DesktopPenPreset
 import com.mobixournal.desktop.ink.PaletteCodec
 import com.mobixournal.desktop.ink.TabletArea
 import com.mobixournal.desktop.ink.TabletAreaMap
 import com.mobixournal.desktop.ink.TabletWindowArea
-import com.mobixournal.desktop.ink.decodePenPresets
-import com.mobixournal.desktop.ink.encodePenPresets
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocuments
 import com.mobixournal.desktop.io.save
@@ -42,7 +39,8 @@ import java.util.Properties
  */
 class DesktopSettings(val file: File = defaultFile()) {
 
-    private val properties = Properties()
+    /** The file's keys, writable by the extension store of one subject (`DesktopPenPresets`). */
+    internal val properties = Properties()
 
     init {
         runCatching { if (file.isFile) file.inputStream().use(properties::load) }
@@ -163,38 +161,6 @@ class DesktopSettings(val file: File = defaultFile()) {
                 KEY_PRESSURE_MULTIPLIER,
                 value.coerceIn(PressureCurve.MULTIPLIER_MIN, PressureCurve.MULTIPLIER_MAX).toString(),
             )
-            save()
-        }
-
-    /**
-     * The pen's saved pressure presets (`tablet.penPresets`) — the tablet's named pairs, in menu order.
-     *
-     * One line of `id;name;minimum;multiplier` entries, the same plain-text style as the strip's order. A
-     * stored line this build cannot read falls back to the factory preset rather than emptying the menu, and
-     * the list can never be stored empty: the last preset is the one the reader is drawing with.
-     */
-    var penPresets: List<DesktopPenPreset>
-        get() = decodePenPresets(properties.getProperty(KEY_PEN_PRESETS))
-        set(value) {
-            val kept = value.ifEmpty { DesktopPenPreset.DEFAULT_PRESETS }
-            properties.setProperty(KEY_PEN_PRESETS, encodePenPresets(kept))
-            save()
-        }
-
-    /**
-     * Which preset is live (`tablet.selectedPenPreset`), or the first saved one when the stored id is gone.
-     *
-     * Falling back rather than reporting an id nothing matches is what keeps the menu from having no chip
-     * highlighted on a file that was hand-edited or written by a build with a preset this one lacks.
-     */
-    var selectedPenPresetId: String
-        get() {
-            val presets = penPresets
-            val stored = properties.getProperty(KEY_SELECTED_PEN_PRESET)?.trim()
-            return presets.firstOrNull { it.id == stored }?.id ?: presets.first().id
-        }
-        set(value) {
-            properties.setProperty(KEY_SELECTED_PEN_PRESET, value)
             save()
         }
 
@@ -400,6 +366,19 @@ class DesktopSettings(val file: File = defaultFile()) {
     private fun percentOf(raw: String?): Int =
         raw?.trim()?.toIntOrNull()?.coerceIn(AREA_PERCENT_RANGE) ?: TabletAreaMap.DEFAULT_PERCENT
 
+    /**
+     * What the pen's side button does (`tablet.penButton`): erase, as the window always has, or the ring.
+     *
+     * An unreadable value falls back to [PenButton.DEFAULT] — the eraser — so a file written by a build that
+     * knew another meaning leaves the pen the way it was rather than with a button that does nothing.
+     */
+    var penButton: PenButton
+        get() = PenButton.of(properties.getProperty(KEY_PEN_BUTTON))
+        set(value) {
+            properties.setProperty(KEY_PEN_BUTTON, value.name)
+            save()
+        }
+
     /** Which pen stream the window prefers — Wintab and Windows Ink, or whichever this host has. */
     var penStream: PenStream
         get() = PenStream.of(properties.getProperty(KEY_PEN_STREAM))
@@ -571,7 +550,7 @@ class DesktopSettings(val file: File = defaultFile()) {
     }
 
     /** Write the file; a failure leaves the window running on the value just chosen. */
-    private fun save() {
+    internal fun save() {
         runCatching {
             file.parentFile?.mkdirs()
             file.outputStream().use { properties.store(it, "MobiXournal desktop settings") }
@@ -605,6 +584,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The preferred pen stream. */
         const val KEY_PEN_STREAM = "tablet.penStream"
+
+        /** What the pen's side button does: erase, or summon the ring. */
+        const val KEY_PEN_BUTTON = "tablet.penButton"
 
         /** The refresh rate the window asks for in full screen — a wish, honoured where the panel can. */
         const val KEY_TARGET_HZ = "display.targetHz"

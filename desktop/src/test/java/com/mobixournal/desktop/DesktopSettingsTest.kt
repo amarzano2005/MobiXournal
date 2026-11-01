@@ -8,6 +8,7 @@ import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.FitOnOpen
 import com.mobixournal.desktop.settings.InspectorPolicy
+import com.mobixournal.desktop.settings.PenButton
 import com.mobixournal.desktop.settings.PenStream
 import com.mobixournal.desktop.settings.RailSide
 import com.mobixournal.desktop.settings.SettingsKeyAction
@@ -190,6 +191,29 @@ class DesktopSettingsTest {
         assertEquals(SidebarPolicy.AUTOMATIC, SidebarPolicy.of("sometimes"))
         assertEquals(InspectorPolicy.AUTOMATIC, InspectorPolicy.of("always"))
         assertEquals(PenStream.AUTOMATIC, PenStream.of("bluetooth"))
+        assertEquals(PenButton.ERASE, PenButton.of("both"))
+    }
+
+    /**
+     * The pen's **side button**: the eraser until the reader gives it to the ring, and the answer survives a
+     * restart — a setting that only reached the running window would look applied until the next launch.
+     */
+    @Test
+    fun `the pen's button survives a restart, and the eraser is the default`() {
+        val file = File(temp.root, "button.properties")
+        assertEquals("never a change nobody asked for", PenButton.ERASE, DesktopSettings(file).penButton)
+
+        val policy = DesktopSettingsState(DesktopSettings(file))
+        policy.choosePenButton(PenButton.HUD)
+        assertEquals("the ring is the live answer", PenButton.HUD, policy.penButton)
+
+        val reopened = DesktopSettings(file)
+        assertEquals("and it is written to the file", PenButton.HUD, reopened.penButton)
+        assertEquals(
+            "the state a second window builds over it agrees",
+            PenButton.HUD,
+            DesktopSettingsState(reopened).penButton,
+        )
     }
 
     @Test

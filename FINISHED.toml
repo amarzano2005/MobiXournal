@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "summon-the-ring-from-the-pen-button"
+title = "Summon the ring from the pen's button"
+description = "The pen's own summon. PenButton (ERASE default | HUD) as tablet.penButton, its settings group Settings → Stylus → Pen button → Side button, mirrored in DesktopSettingsState; DesktopShell.penBarrel hands the ring over only when the setting says so. PenBarrel (ink/PenPacketStroke) takes the barrel bit as one edge per press and one per release — a press with the tip off the glass opens the ring, the moves track the pick, the release commits; a tip that lands cancels it and writes nothing, the pen leaving proximity cancels it, and with the setting on Windows' emulated secondary button no longer reaches the router as the eraser (buttonsOf). DesktopRing implements the four events off its remembered density. Tests: PenPacketStrokeTest's barrel-edge test (one press, one release, cancels, no ring under a drawing tip), PenPacketSceneTest's two barrel scene tests, DesktopSettingsTest's round trip with the eraser default. Docs: desktop-settings.md (the new group, replacing the 'no barrel-button row' paragraph), desktop-ui-layout.md (the ring's pen half), desktop-tablet.md, README. Settings and state files were split to stay under their ceilings: DesktopPenPresets.kt and SettingsKeyAction.kt, with the two ceilings lowered."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop", "stylus"]
+
+[[task]]
+id = "draw-the-ring-and-summon-it-from-the-keyboard"
+title = "Draw the ring and summon it from the keyboard"
+description = "The window's ring, reachable without hardware. sheet/DesktopHud.kt: DesktopHudState, the HudUi door a canvas is handed, DesktopHud (contents from RadialHud.slots with PenPalette.COLORS/DEFAULT_WIDTHS and pen/highlighter/eraser, indexAt and within over the shared dp constants). sheet/DesktopHudPaint.kt paints it as a floating surface (floating fill, hairline rim, activeSlot plate, accent ring, swatch/width/glyph faces, nib dot; tokens only). shell/DesktopRing.kt holds the one open ring, tracks the pick, and commits through pickColour/pickWidth/selectTool. PageCanvas owns the painter layer and the nib publish; Alt+B (ShortcutTable row 'Ring at the pen', ShellCommand.RADIAL_HUD) summons and dismisses; Esc and a press outside it dismiss, while every press under it is the ring's and inks nothing (PageCanvasInput). The Esc order moved to WindowEscape.keys so the shell file stays under its ceiling. Tests: DesktopRingTest (14: contents/order/cap/custom slot, HUD tools all in DESKTOP_TOOLS_THAT_ACT, every centre back to its slot, boundaries/seam/dead zone/off-band, the outside rule, the Alt+B and Esc rows), DesktopRingRenderTest (3: closed paints nothing, open paints glass+rim+swatch, a click commits and writes nothing, a click outside changes no ink). Docs: desktop-ui-layout.md §4, interface-contract.md (floating surface), README; the dial keeps its zoom and gives the ring no role."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop", "stylus"]
+
+[[task]]
+id = "read-the-pen-barrel-button-from-the-packet-stream"
+title = "Read the pen's barrel button from the packet stream"
+description = "WintabButtons (BTN_STYLUS = 2, tip(), barrel()) now reads pkButtons' low word, masking the tip and any other button number, and PenPacket gained barrel: Boolean = false filled by TabletWintab.emit(); the probe writes one row per button edge (buttons=0x… tip=… barrel=…) so a press cannot be buried in a 400 Hz stream. TabletWintabTest gained theBarrelIsItsOwnButtonBit (no buttons, the tip's own number, the side button's, a high-word change bit alone, both together). docs/desktop-tablet.md records the decode and what the bit decides, inside its 300-line budget. No live press was measured on the Gaomon here: the reader and the probe row are what a hardware pass confirms."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop", "stylus"]
+
+[[task]]
+id = "move-the-radial-hud-geometry-into-mobix-core"
+title = "Move the radial HUD's geometry into mobix-core"
+description = "RadialHud (object) and the sealed HudSlot moved out of app/render into mobix-core, keeping the package com.mobixournal.render, so every tablet call site compiled untouched and the window could ask the same ring what a flick means. RadialHudTest moved with it, unchanged, and gained theWindowsContentsFitTheSameRing (the eight swatches, the three widths, the three tools; a 24-swatch palette still capped with the custom slot kept). docs/ui-modernization.md says the geometry is one home and both shells paint it. Verified: :mobix-core:test, :app:testDebugUnitTest, :desktop:test and the guards green."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-01
+completed = 2026-11-01
+tags = ["desktop", "stylus"]
+
+[[task]]
 id = "desktop-pen-tip-radial-hud"
 title = "Desktop: pen-tip radial HUD (scope)"
 description = "Investigated and broken into four atomic children (orders 106-109): move-the-radial-hud-geometry-into-mobix-core, read-the-pen-barrel-button-from-the-packet-stream, draw-the-ring-and-summon-it-from-the-keyboard, summon-the-ring-from-the-pen-button. No code was written for the scope itself; everything below is what the code reading found. (1) The ring's geometry is already platform-free — `RadialHud` and `HudSlot` import only `Tool` and `kotlin.math` — so it moves into `mobix-core` verbatim, keeping its package, and the app's every call site compiles untouched; both shells then draw one ring (the tablet from its Canvas, the window from a DrawScope painter, the `ToolGlyphCatalogue` pattern: one set of arithmetic, one painter per shell). (2) The pen's side button does not reach the window at all today: `PenPacket` carries `tip`, `near` and `eraser` only, and `TabletWintab.consume()` reads `packet.buttons and 0xFFFF` and asks only `BTN_TIP`. The bit for a side button is therefore a **measurement** on this machine (Wintab at 400 packets a second is the stream here; no `WM_POINTER` arrives at all), with a PASS/FAIL and a documented fallback — the keyboard summon alone — if the driver reports nothing. (3) The window already has what the ring must hold and the one path it must commit through: `DesktopInkState.palette`/`paletteCustom`, `PenPalette.DEFAULT_WIDTHS`, and `selectTool`/`pickColour`/`pickWidth` are the entries its strips and flyouts use, while `DESKTOP_TOOLS_THAT_ACT` holds PEN, HIGHLIGHTER and ERASER — the tablet's three — so a test can prove no member is offered that does not act. (4) A mouse gets a **key**, not a middle-click: the tertiary button already pans (`PageCanvasInput`), so the door is `Alt+B` in the remappable `ShortcutTable`, opening the ring as a picker (a click commits, `Esc` or a click outside closes), while the pen's held button opens it as the tablet's hover gesture. (5) Decisions the children carry: the dial is given **no role** in the ring — it keeps its documented job of zooming at the cursor — and the barrel's meaning is the tablet's own `BarrelAction` model, a Settings -> Stylus choice between `erase` (default) and `hud`, so a pen whose button is wanted for erasing loses nothing. Docs land with the children: docs/ui-modernization.md, docs/desktop-ui-layout.md, docs/desktop-tablet.md and docs/desktop-settings.md (both at their 300-line budget, so their new rows are paid for by compressing the same files), docs/interface-contract.md and README."

@@ -220,8 +220,29 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
 @Composable
 private fun StylusSettings(policy: DesktopSettingsState) {
     StylusPressureGroup(policy)
+    StylusButtonGroup(policy)
     StylusAreaGroup(policy)
     SettingsNote("The status bar names the stream actually open.")
+}
+
+/**
+ * **The pen's button**: the one meaning the side button can be given, beside the two that describe the pen.
+ *
+ * A group of its own rather than a row in *Pressure* because it is not a reading about the pen — it is a
+ * command on the window, and it is the setting that turns the ring into a barrel summon.
+ */
+@Composable
+private fun StylusButtonGroup(policy: DesktopSettingsState) {
+    SettingsGroup("Pen button") {
+        SettingsSelect(
+            label = "Side button",
+            note = "Erase is the emulated right button; the ring opens at the nib.",
+            options = PenButton.entries,
+            picked = policy.penButton,
+            optionLabel = { it.label },
+            onPick = policy::choosePenButton,
+        )
+    }
 }
 
 /**

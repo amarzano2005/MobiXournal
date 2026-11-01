@@ -69,6 +69,8 @@ internal fun PenPacketStrokes(
     penAtNanos: MutableState<Long>,
     /** The magnetic highlighter's live bands, painted in place of the freehand preview. */
     bands: MutableState<List<MagneticHighlighter.Band>>? = null,
+    /** The pen's side button, when the window gives it to the ring (`HudUi.barrel`); null keeps the eraser. */
+    barrel: PenBarrel? = null,
     packets: PenPacketSource?,
 ) {
     // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
@@ -96,13 +98,15 @@ internal fun PenPacketStrokes(
         if (hover.value != at) hover.value = at
         penAtNanos.value = System.nanoTime()
     }
-    val stroke = remember(gesture) {
+    // Keyed on the barrel too: a setting that gives the button to the ring must reach the stroke that reads it.
+    val stroke = remember(gesture, barrel) {
         PenPacketStroke(
             gesture = gesture,
             origin = origin,
             size = extent,
             onOwnership = { owns.value = it },
             onHover = showAt,
+            barrel = barrel,
         )
     }
     DisposableEffect(packets, stroke) {

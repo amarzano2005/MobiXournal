@@ -11,6 +11,25 @@ import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.PointerKind
 
 /**
+ * The pen's **side button**, as the window's ring reads it — the tablet's `BarrelAction.HUD` on this side.
+ *
+ * The packets describe a **held bit**, so an edge is the event, not a packet: [down] once when it is pressed,
+ * [move] while it is held, [up] when it is released. [down] answers whether the ring took the pen — a ring with
+ * nothing in it, or one that was already open, does not — and from then until the release a tip that lands is
+ * [cancel]led rather than drawn: the contact was aimed at a face, not at the page.
+ *
+ * An interface rather than a direct reference because the ring is the shell's state and this is the pen's
+ * reader: the window hands its ring over only while `penButton` is the ring, so with the default (the eraser)
+ * there is no barrel path at all.
+ */
+internal interface PenBarrel {
+    fun down(at: Offset): Boolean
+    fun move(at: Offset)
+    fun up(at: Offset)
+    fun cancel()
+}
+
+/**
  * A stroke drawn from the **tablet's own packets**, the way Xournal++ draws one.
  *
  * The measurement in `docs/desktop-workstation.md` is why this exists: Windows sends this pen no
@@ -67,7 +86,12 @@ internal class PenPacketStroke(
      * moved from the driver's 400 readings instead of from the mouse's copy of them.
      */
     private val onHover: (Offset?) -> Unit = {},
+    /** The pen's side button, when the window gives it to the ring, and null when it keeps erasing. */
+    private val barrel: PenBarrel? = null,
 ) {
+
+    /** True while the ring the button opened owns the pen — the bit, as an edge, never a packet. */
+    private var barrelHeld = false
 
     /** True between the tip's first packet and its lift. Written only by [flush]'s thread. */
     var drawing: Boolean = false
@@ -178,6 +202,7 @@ internal class PenPacketStroke(
             )
         } ?: raw
         val inside = local.x >= 0f && local.y >= 0f && local.x <= size().width && local.y <= size().height
+        if (barrel != null && barrelTakes(packet, raw, inside)) return
         // Every reading moves the ring, tip or not: a hovering pen is exactly what a ring is for. The raw
         // position is used — a ring is tens of pixels wide, so the whole-pixel staircase is not visible
         // on it, and the stroke's own smoothing must not be disturbed by a pass of hovering.
@@ -208,6 +233,42 @@ internal class PenPacketStroke(
             pending.addLast(pointer(packet, local))
         }
         lastPacketNanos = packet.atNanos
+    }
+
+    /**
+     * The side button's own state machine, on the frame thread, one **edge** per event.
+     *
+     * The driver repeats a held bit in every packet it sends, so acting on the level would reopen or recommit
+     * the ring at 400 readings a second. True when the ring owns this packet, in which case it inks nothing:
+     * that is a tip landing on an open ring, which cancels it, and the pen leaving the tablet's proximity,
+     * which takes the ring with it — a surface anchored at a nib that is no longer there can be reached by
+     * nothing.
+     */
+    private fun barrelTakes(packet: PenPacket, raw: Offset, inside: Boolean): Boolean {
+        val ring = barrel ?: return false
+        when {
+            // The summon: a press with the tip **off** the glass, on the page. A press while the tip draws is
+            // the tool's, which is why the bit alone is not the trigger.
+            packet.barrel && !barrelHeld && !packet.tip && inside -> barrelHeld = ring.down(raw)
+            // Every reading while it is held is the pick following the pen.
+            packet.barrel && barrelHeld -> ring.move(raw)
+            // The release is the commit: the slot under the pen runs, and the ring closes.
+            !packet.barrel && barrelHeld -> {
+                barrelHeld = false
+                ring.up(raw)
+            }
+        }
+        if (barrelHeld && packet.tip) {
+            barrelHeld = false
+            ring.cancel()
+            return true
+        }
+        if (barrelHeld && !packet.near) {
+            barrelHeld = false
+            ring.cancel()
+            return true
+        }
+        return false
     }
 
     /**

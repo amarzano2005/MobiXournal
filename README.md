@@ -116,8 +116,8 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
   click on a slot or away from it. The table is in [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and
   **Settings → Shortcuts** rebinds any of them — the three **switch** keys too (eraser, hand, selection).
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
-  block or **Settings → Stylus** — and the menu keeps them as chips, one click from a light hand or a firm one.
-  **A file to try it on**: `udiff.xopp`, at the root of this repository.
+  block or **Settings → Stylus** — and the menu keeps them as chips; there too, **Pen button** gives the barrel
+  to *Erase* (as it always was) or to the ring at the nib. **A file to try it on**: `udiff.xopp`, at the root.
 - **Save As asks the format in the save window itself**: its **File type** list offers `.mobix`, `.xopp` and the
   zipped package, with the suffix in the name field; `Ctrl + S` writes back in the document's own format.
 - **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — its own document or added

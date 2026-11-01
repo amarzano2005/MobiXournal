@@ -11,6 +11,8 @@ import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.SettingsKeyAction
+import com.mobixournal.desktop.settings.penPresets
+import com.mobixournal.desktop.settings.selectedPenPresetId
 
 import androidx.compose.ui.input.key.Key
 import com.mobixournal.render.PressureCurve

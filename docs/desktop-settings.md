@@ -215,9 +215,11 @@ The mechanism is a real context of the window's own: `TabletAreaMap` turns the r
 `CXO_SYSTEM` cleared — a screen-mapped context would ignore every field. A driver that declares no usable
 axis, or a context it refuses to open, **keeps the system context** rather than leaving a dead pen.
 
-The window has **no barrel-button row**: the driver reads the pen's buttons and the window receives them as
-the eraser tip, so there is no second meaning to configure — and a row for it was a page of one dead
-setting.
+- **Pen button → Side button** (`tablet.penButton`): *Erase* — the default, and what the window has always
+  done, since Windows hands the barrel on as the emulated right button the router reads as the eraser — or
+  *Ring at the pen*, which gives the button to the pen-tip HUD: a press with the tip off the glass opens it at
+  the nib, the release commits the slot under the pen, and a tip that lands cancels it without inking. The
+  tablet's own `BarrelAction`, and the window's share of it ([`desktop-ui-layout.md`](desktop-ui-layout.md)).
 
 ## Toolbar — the strips' place and their order
 

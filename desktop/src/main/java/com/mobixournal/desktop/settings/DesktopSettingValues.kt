@@ -233,3 +233,25 @@ enum class PenStream(val label: String) {
             entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: DEFAULT
     }
 }
+
+/**
+ * **What the pen's side button does** — the window's half of the tablet's `BarrelAction`.
+ *
+ * `ERASE` is what the window has always done, through Windows' emulated secondary button, and it stays the
+ * default: a setting that silently changed the pen of everyone who never opened it would be a regression with
+ * a new name. `HUD` gives the button to the **ring** (`docs/ui-modernization.md`, *The pen-tip HUD*), which is
+ * the whole reason the button exists on the tablet — and, like the tablet, a barrel held while the tip is down
+ * then draws with the tool in hand instead of erasing.
+ */
+enum class PenButton(val label: String) {
+    ERASE("Erase"),
+    HUD("Ring at the pen"),
+    ;
+
+    companion object {
+        val DEFAULT: PenButton = ERASE
+
+        fun of(name: String?): PenButton =
+            entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: DEFAULT
+    }
+}

@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.sheet
 
 import androidx.compose.ui.geometry.Offset
+import com.mobixournal.desktop.ink.PenBarrel
 import com.mobixournal.design.PenPalette
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.format.model.Tool
@@ -52,6 +53,20 @@ internal class HudUi(
     val slots: List<HudSlot> = emptyList(),
     /** The nib's place, in canvas pixels, reported to the shell that anchors the ring there. */
     val onPointerAt: (at: Offset, density: Float) -> Unit = { _, _ -> },
+    /**
+     * The pen's **side button**, when the window gives it to the ring (`PenButton.HUD`) — null when it keeps
+     * erasing, which is the default and the window's behaviour before the ring existed.
+     */
+    val barrel: PenBarrel? = null,
+    /**
+     * True while the **secondary button erases** — the default — and false when the button is the ring's.
+     *
+     * A lambda, not a value: the canvas's pointer handler is built once per gesture and outlives a
+     * recomposition, so a setting read at composition would keep the old answer until the next gesture was
+     * rebuilt. Windows' emulation reports the barrel as the secondary button, and the router must not hear it
+     * as the eraser while the packets are using it as the summon.
+     */
+    val barrelErases: () -> Boolean = { true },
 )
 
 /** The ring's contents, its geometry and its two pointer rules. */

@@ -2,6 +2,7 @@ package com.mobixournal.desktop.sheet
 import com.mobixournal.desktop.ink.inksByPackets
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
+import com.mobixournal.desktop.ink.PenBarrel
 import com.mobixournal.desktop.ink.PenContactStream
 import com.mobixournal.desktop.ink.PenPacketPan
 import com.mobixournal.desktop.ink.PenPacketSource
@@ -85,6 +86,7 @@ internal fun PageSheet(
         extent = extent,
         onViewport = onViewport,
         onEdited = onEdited,
+        barrel = hud.barrel,
         packets = packets,
     )
     SheetCanvas(
@@ -176,6 +178,8 @@ private fun PenPaths(
     extent: () -> Size,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
+    /** The pen's side button, when the window gives it to the ring; null keeps the eraser. */
+    barrel: PenBarrel? = null,
     packets: PenPacketSource?,
 ) {
     // A held **Space** is the hand's pan with any slot picked, so it takes the packets away from the
@@ -198,6 +202,7 @@ private fun PenPaths(
             hover = pointer.hover,
             penAtNanos = pointer.atNanos,
             bands = pointer.pdfBands,
+            barrel = barrel,
             packets = packets,
         )
     }

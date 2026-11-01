@@ -249,7 +249,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
             verticalSpaceDrag(down, tab, dragView, grabLine, liveShift, onEdited)
             return@awaitEachGesture
         }
-        if (inkDrag(down, gesture, packetsOwn)) return@awaitEachGesture
+        if (inkDrag(down, gesture, packetsOwn, hud.barrelErases())) return@awaitEachGesture
     }
 }
 
@@ -294,8 +294,10 @@ private suspend fun AwaitPointerEventScope.inkDrag(
     down: PointerInputChange,
     gesture: PageInkGesture,
     packetsOwn: () -> Boolean,
+    /** False when the pen's barrel belongs to the ring: Windows' copy of it must not read as the eraser. */
+    barrelErases: Boolean,
 ): Boolean {
-    gesture.down(down, buttonsOf(currentEvent))
+    gesture.down(down, buttonsOf(currentEvent, barrelErases))
     while (true) {
         if (packetsOwn()) {
             gesture.cancel()
@@ -303,10 +305,10 @@ private suspend fun AwaitPointerEventScope.inkDrag(
         }
         val change = awaitPointerEvent().changes.firstOrNull() ?: break
         if (change.changedToUpIgnoreConsumed()) {
-            gesture.up(change, buttonsOf(currentEvent))
+            gesture.up(change, buttonsOf(currentEvent, barrelErases))
             break
         }
-        if (change.pressed) gesture.move(change, buttonsOf(currentEvent))
+        if (change.pressed) gesture.move(change, buttonsOf(currentEvent, barrelErases))
         if (gesture.drawing) change.consume()
     }
     gesture.cancel()
@@ -692,6 +694,6 @@ internal fun PointerInputChange.pointerKind(): PointerKind = when (type) {
 }
 
 /** The button bits [InkPointer] reads — the tip (or left click) and the barrel (or right click). */
-private fun buttonsOf(event: PointerEvent): Int =
+private fun buttonsOf(event: PointerEvent, barrelErases: Boolean = true): Int =
     (if (event.buttons.isPrimaryPressed) InkPointer.PRIMARY else 0) or
-        (if (event.buttons.isSecondaryPressed) InkPointer.SECONDARY else 0)
+        (if (barrelErases && event.buttons.isSecondaryPressed) InkPointer.SECONDARY else 0)

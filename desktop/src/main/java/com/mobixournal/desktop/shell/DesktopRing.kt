@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import com.mobixournal.desktop.ink.PenBarrel
 import com.mobixournal.desktop.sheet.DesktopHud
 import com.mobixournal.desktop.sheet.DesktopHudState
 import com.mobixournal.desktop.tools.DesktopTool
@@ -31,7 +32,7 @@ internal class DesktopRing(
     private val onColour: (Int) -> Unit,
     private val onWidth: (Float) -> Unit,
     private val onTool: (DesktopTool) -> Unit,
-) {
+) : PenBarrel {
 
     /** The open ring, or null while nothing is on screen — nothing exists until it is summoned. */
     var open by mutableStateOf<DesktopHudState?>(null)
@@ -56,8 +57,17 @@ internal class DesktopRing(
      */
     fun notePointer(at: Offset, density: Float) {
         anchor = at
+        this.density = density
         track(at.x, at.y, density)
     }
+
+    /**
+     * The canvas's density, remembered from the nib's last reading.
+     *
+     * The pen's packets are in pixels and the ring's geometry in dp, and a barrel press always follows a
+     * hover — which is the reading this is remembered from — so the packets never have to carry it.
+     */
+    private var density = 1f
 
     /**
      * Open the ring at the nib — or close it, when it is already open (the keyboard's second press).
@@ -109,6 +119,34 @@ internal class DesktopRing(
         }
         if (!DesktopHud.within(state, x, y, density)) open = null
         return true
+    }
+
+    /**
+     * The pen's button, which the window reads as the ring's when `penButton` says so: a press opens the ring
+     * at the nib, and the release commits — the tablet's own summon.
+     */
+    override fun down(at: Offset): Boolean {
+        // A second press of a button that has no held state to speak of is a dismissal, never a commit.
+        if (open != null) {
+            open = null
+            return false
+        }
+        if (slots.isEmpty()) return false
+        open = DesktopHud.openAt(at.x, at.y, picker = false)
+        return true
+    }
+
+    /** The pick following the pen while the button is held. */
+    override fun move(at: Offset) = track(at.x, at.y, density)
+
+    /** The release commits the slot under the pen, exactly as a held ring's release always has. */
+    override fun up(at: Offset) {
+        release(at.x, at.y, density)
+    }
+
+    /** The ring put away **without** committing: a tip that landed, or a pen that left the tablet. */
+    override fun cancel() {
+        open = null
     }
 
     /**

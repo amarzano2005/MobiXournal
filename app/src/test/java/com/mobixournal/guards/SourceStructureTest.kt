@@ -58,9 +58,8 @@ class SourceStructureTest {
         // to name the packages their neighbours now live in: 44, 25 and 19 import lines, nothing else. Their
         // subject is unchanged and each was one line under the budget before, so the ceiling follows the move
         // rather than the file growing a second topic — the next change here splits.
-        "desktop/shell/DesktopShell.kt" to 726,
-        "desktop/settings/DesktopSettingsState.kt" to 717,
-        "desktop/settings/DesktopSettings.kt" to 711,
+        "desktop/shell/DesktopShell.kt" to 722,
+        "desktop/settings/DesktopSettingsState.kt" to 710,
     )
 
     /** A function past this is the "~100 lines max" in `AGENTS.md`: extract a helper. */

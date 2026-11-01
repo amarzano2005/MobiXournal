@@ -43,24 +43,6 @@ import java.io.File
  * The surface is a **section of the window**, not a dialog over the page: it takes the whole body between
  * the header and the status bar, so no glass is ever drawn on a sheet (`docs/interface-contract.md`).
  */
-/** What one key means to the Settings surface. */
-enum class SettingsKeyAction {
-    /** The key is not the surface's: nothing is up, or the field is typing. */
-    NONE,
-
-    /** `Esc` with a search word in the field: clear it, and keep the page. */
-    CLEAR_SEARCH,
-
-    /** `Esc` while a preset is being named: put the field away, and keep the page. */
-    CANCEL_PRESET,
-
-    /** `Esc` on a plain surface: put it away. */
-    CLOSE,
-
-    /** Any other key while the surface is up: the surface takes it, so the page hears nothing. */
-    CAPTURE,
-}
-
 class DesktopSettingsState(private val store: DesktopSettings) {
 
     init {
@@ -145,6 +127,10 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** The pen stream the window prefers. */
     var penStream by mutableStateOf(store.penStream)
+        private set
+
+    /** What the pen's side button does — erase, as it always has, or the ring (`PenButton`). */
+    var penButton by mutableStateOf(store.penButton)
         private set
 
     /** Whether a press changes the width at all — the tablet's *Pressure sensitivity*. */
@@ -487,6 +473,12 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         store.penStream = value
     }
 
+    /** Give the pen's side button to [value] — the eraser, or the ring — and remember it. */
+    fun choosePenButton(value: PenButton) {
+        penButton = value
+        store.penButton = value
+    }
+
     /** Which eraser the eraser toggle switches to, and remember it for the next session. */
     fun chooseToggleEraser(tool: DesktopTool) {
         toggleEraserTool = tool
@@ -601,6 +593,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         frameTime = store.frameTime
         targetHz = store.targetHz
         penStream = store.penStream
+        penButton = store.penButton
         audio.refresh()
         pressureEnabled = store.pressureEnabled
         minimumPressure = store.minimumPressure
