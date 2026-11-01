@@ -36,8 +36,10 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   `ANDROID_TOOLCHAIN`).
 - **How to run it:**
   - `scripts/build.sh` — the default check loop: `:app:testDebugUnitTest :mobix-core:test
-    :app:assembleDebug` — **both** suites, because `testDebugUnitTest` exists only in the Android
-    module and would leave the core (codecs, model, `FormatDriftTest`) unrun (`docs/testing.md`).
+    :app:compileDebugAndroidTestKotlin :app:assembleDebug` — **both** suites, because
+    `testDebugUnitTest` exists only in the Android module and would leave the core (codecs, model,
+    `FormatDriftTest`) unrun, plus the instrumented-test **compile** (`docs/testing.md`), because no
+    device executes those here and an uncompiled `androidTest` is a claim nobody checked.
   - `scripts/build.sh <tasks…>` — arbitrary Gradle tasks, e.g. `scripts/build.sh :app:testDebugUnitTest`
     or `scripts/build.sh clean assembleDebug`.
   - Direct equivalent: `/data/android/build.sh <project-dir> <tasks…>`.
@@ -90,7 +92,8 @@ the platform defaults), records `sdk.dir` **only when `local.properties` doesn't
 would use without building; `--jdk`/`--sdk` override the search; every other argument is a Gradle task.
 
 ```sh
-scripts/host-build.sh                       # both unit-test suites + debug APK (the loop's default)
+scripts/host-build.sh                       # the loop's default: both suites, the instrumented-test
+                                            # compile, then the debug APK
 scripts/host-build.sh --list                # which JDK and SDK it picked, then stop
 scripts/host-build.sh :app:testDebugUnitTest   # any Gradle task passes through
 ```

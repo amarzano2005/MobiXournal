@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Host fallback for the build/check loop: find a JDK the Gradle wrapper can actually start on,
-# point JAVA_HOME at it, locate the Android SDK, then run the given Gradle tasks (default: unit
-# tests + debug APK).
+# point JAVA_HOME at it, locate the Android SDK, then run the given Gradle tasks (default: both
+# unit-test suites, the instrumented-test compile, then the debug APK — the same loop CI runs).
 #
 # Why this exists: `scripts/build.sh` is the front door whenever the shared /data/android toolchain
 # (or Docker) is present, but a plain host has no JDK/SDK picker — and `./gradlew` on its own is
@@ -15,7 +15,7 @@
 # See docs/tools.md -> "Host fallback" for the pipeline this belongs to.
 #
 # Usage: scripts/host-build.sh [--jdk PATH] [--sdk PATH] [--list] [gradle tasks...]
-#        scripts/host-build.sh                           # unit tests + debug APK
+#        scripts/host-build.sh                           # the loop's default (see below)
 #        scripts/host-build.sh --list                    # report the JDK/SDK it would use
 #        scripts/host-build.sh connectedDebugAndroidTest # any Gradle task passes through
 set -eu
@@ -35,7 +35,7 @@ usage() {
     echo "  --jdk PATH  use this JDK (default: the first supported one found)"
     echo "  --sdk PATH  use this Android SDK (default: ANDROID_HOME, then the usual locations)"
     echo "  --list      print the JDK and SDK that would be used, then stop"
-    echo "  (no tasks)  :app:testDebugUnitTest :mobix-core:test :app:assembleDebug"
+    echo "  (no tasks)  both unit-test suites, the instrumented-test compile, then the debug APK"
 }
 
 die() {
@@ -250,9 +250,10 @@ ANDROID_SDK_ROOT="$SDK"
 export JAVA_HOME ANDROID_HOME ANDROID_SDK_ROOT
 
 # Both suites by default: `testDebugUnitTest` is the Android module's only, so naming it alone skips
-# `mobix-core` — the codecs, the model and the format drift test.
+# `mobix-core` — the codecs, the model and the format drift test. The instrumented tests are compiled
+# rather than run (no device here), as CI does, so a broken `androidTest` fails this loop too.
 if [ "$#" -eq 0 ]; then
-    set -- :app:testDebugUnitTest :mobix-core:test :app:assembleDebug
+    set -- :app:testDebugUnitTest :mobix-core:test :app:compileDebugAndroidTestKotlin :app:assembleDebug
 fi
 
 if [ -x "$REPO/gradlew" ]; then

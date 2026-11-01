@@ -159,5 +159,6 @@ suite and left `mobix-core` unexecuted, which is exactly where the `.xopp`/`.mob
 model and `FormatDriftTest` live: every step passed, and a whole module's tests were never called.
 `CiCoverageTest` closes that from both sides, failing the build when a module with tests is missing from
 the workflow or when the workflow stops being readable as Gradle invocations. The local front doors
-(`scripts/build.sh`, `scripts/host-build.sh`) default to the same two suites, so the missing run shows up
-before the push instead of after it.
+(`scripts/build.sh`, `scripts/host-build.sh`) default to the same two suites **and** the instrumented
+compile, so the missing run — or the `androidTest` that stopped compiling — shows up before the push
+instead of after it.

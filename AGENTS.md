@@ -229,11 +229,11 @@ The **repository layout** (every package/module and what it does) lives in
 
 ```sh
 # 1. On Linux container hosts with /data/android (Profile A):
-scripts/build.sh                           # both unit-test suites + debug APK inside container
+scripts/build.sh                           # both suites + instrumented compile + debug APK, in container
 scripts/build.sh :app:testDebugUnitTest :mobix-core:test   # both unit-test suites only
 
 # 2. On hosts without /data/android via Git Bash / POSIX shell (Profiles B, C & D):
-scripts/host-build.sh                      # auto-discovers JDK 21 + SDK, runs unit tests + debug APK
+scripts/host-build.sh                      # auto-discovers JDK 21 + SDK, then the same loop as CI
 
 # 3. Direct PowerShell fast path on a Windows host (Profiles B & D):
 .\gradlew.bat :app:testDebugUnitTest :mobix-core:test   # both suites (JVM; no device needed)

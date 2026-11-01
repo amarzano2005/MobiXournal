@@ -20,7 +20,8 @@ import org.junit.Test
  * `settings.gradle.kts` and compared against the Gradle lines of `.github/workflows/`; a new module
  * joins the build and the next CI run refuses to start until it is named too. The local front doors
  * (`scripts/build.sh`, `scripts/host-build.sh`) default to the same two suites so the gap is not
- * merely moved to the pre-push loop.
+ * merely moved to the pre-push loop — and both compile the instrumented tests as well, which is the
+ * same gate from the side nothing on either runner can execute.
  */
 class CiCoverageTest {
 
@@ -67,6 +68,25 @@ class CiCoverageTest {
                 "name the task in .github/workflows/build.yml, e.g. " +
                 "`./gradlew :app:compileDebugAndroidTestKotlin`",
             uncompiled.isEmpty(),
+        )
+    }
+
+    /**
+     * The **local** front doors run the same gate, so the instrumented-test compile is not a CI-only
+     * rule that the pre-push loop skips: both default to it, and losing it there fails this test
+     * rather than showing up as an `androidTest` that only Android Studio notices.
+     */
+    @Test
+    fun `the local front doors compile the instrumented tests`() {
+        val doors = listOf("scripts/build.sh", "scripts/host-build.sh")
+        val problems = doors.filterNot { door ->
+            File(repoRoot(), door).takeIf { it.isFile }?.readText()
+                ?.contains("compileDebugAndroidTestKotlin") == true
+        }
+        assertTrue(
+            "these front doors no longer compile the instrumented tests in their default tasks: " +
+                "$problems — a broken `androidTest` would then fail the first CI run instead of the loop",
+            problems.isEmpty(),
         )
     }
 
