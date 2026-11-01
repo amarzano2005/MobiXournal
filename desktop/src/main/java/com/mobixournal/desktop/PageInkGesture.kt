@@ -290,7 +290,14 @@ internal class PageInkGesture(
      * A sample arriving while a figure is previewed means the stroke **grew**: the figure was a preview
      * of a stroke that no longer exists, so the hand's own ink comes back and the dwell starts over.
      */
-    private fun addSample(x: Double, y: Double, factor: Float, pointer: InkPointer) {
+    private fun addSample(x0: Double, y0: Double, factor: Float, pointer: InkPointer) {
+        // The placed **guide** rules the ink: every drawn vertex within reach of an edge comes onto it, the
+        // tablet's own rule (`DrawingGuide.project`) and the whole point of laying one down. A window with
+        // no guide, or one pinned to another page, answers the point unchanged, so this is the identity
+        // for every stroke drawn without an instrument. It is applied *before* the draft, so the preview,
+        // the dwell's figure and the committed `Stroke` are one set of points — and the stroke that lands
+        // on the page is ordinary ink that round-trips through either format.
+        val (x, y) = tab.guide.project(tab.page, x0, y0)
         val moved = draft.isEmpty() || hypot(x - anchorX, y - anchorY) >= ShapeDwell.SLOP_PT
         if (dwellFigure != null) {
             // A driver repeating a resting pen must not undo the preview: the hand has not moved.

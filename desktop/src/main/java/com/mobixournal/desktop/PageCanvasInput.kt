@@ -438,12 +438,19 @@ private suspend fun AwaitPointerEventScope.shapeDrag(
     fun preview(px: Float, py: Float): List<StrokePoint> {
         val (x1, y1) = pagePointOf(px, py, density, view.current())
         val constrained = currentEvent.keyboardModifiers.isShiftPressed
+        val guide = tab.guide
         val points = snapWireEnds(
             kind,
             shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained, figures = figures),
             page,
             view.current().zoom * density,
-        )
+        ).map { point ->
+            // A placed guide rules the figure last, so it wins over the hand *and* over the pin magnet —
+            // the order the tablet applies it in (`guided()` after the grid snap). Projecting here rather
+            // than at the commit is what keeps the preview the same points the lift writes.
+            val (gx, gy) = guide.project(tab.page, point.x, point.y)
+            point.copy(x = gx, y = gy)
+        }
         draft.clear()
         draft.addAll(points.map { point -> InkSample(point.x, point.y, 1f, samplePointer(lastChange)) })
         return points

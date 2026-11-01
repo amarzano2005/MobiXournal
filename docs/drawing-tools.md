@@ -239,7 +239,11 @@ view state like the selection, never written to the document), its face is the i
 there, and its picker opens with the tablet's own **Off**, which takes it away and hands back the tool that
 was in hand. A press on its body slides it and a press on its handle turns or opens it, with **Shift**
 landing the angle on the shared snap steps — a mouse or a touch holds it always, a pen only while the guides
-slot is in hand, which is the tablet's own *a pen draws, a hand holds* (`docs/desktop-editing.md`).
+slot is in hand, which is the tablet's own *a pen draws, a hand holds* (`docs/desktop-editing.md`). Its ink
+rule is the surface's: `PageInkGesture` projects **every** drawn vertex through `DrawingGuide.project` before
+the sample reaches the draft, so the preview, the dwell's figure and the committed `Stroke` are one set of
+points — and the geometry drag projects its two ends in `preview()` the same way. The window has no grid
+snapping, so there is no precedence to state: the guide is the only constraint at its ink edge.
 settings feedback loops. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and the window's `DesktopPdfPainter`

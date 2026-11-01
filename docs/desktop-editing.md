@@ -70,6 +70,12 @@ because otherwise a stroke drawn across the instrument's body would drag it away
 `Esc` puts the grab-time pose back through `DesktopShellState.liveDrag`. The reach is a **screen** distance
 (`GUIDE_HANDLE_PX` divided by zoom and density), so a handle that is easy to hit at 30 % is no coin at 300 %.
 
+**What it does to the ink** is the tablet's own rule: every vertex drawn within `DrawingGuide.GRAB_PT`
+of one of its edges is pulled onto it, in the preview and in the stroke that lands, so a freehand line ruled
+along the setsquare is straight in the file. A vertex further away is the hand's own, which is what lets the pen
+leave the instrument without switching it off; a guide pinned to another page constrains nothing. The stroke
+written is ordinary ink of the tool's width — one undo step, and nothing about the guide reaches the document.
+
 ## Placing a living element: Plot, Table and Circuit
 
 Plot (`M`) and Table (`T`) place a living element instead of drawing it: a drag is its box, a click its

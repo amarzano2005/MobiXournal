@@ -12,6 +12,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.mobix.SyntheticNotebook
+import com.mobixournal.format.model.Stroke
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.GuideKind
 import java.io.File
@@ -19,6 +20,7 @@ import kotlin.math.PI
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -166,6 +168,67 @@ class DesktopGuideSceneTest {
             scene.close()
             tab.document.close()
         }
+    }
+
+    @Test
+    fun `a stroke drawn beside the setsquare is written along its edge`() {
+        val (tab, scene) = desktop(DesktopTool.PEN)
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+
+            // A wobble 3-7 pt below the long leg (y = 245), drawn with the pen: the guide pulls every
+            // vertex onto the edge, and the stroke that lands is ordinary ink of the tool's width.
+            stroke(scene, listOf(140f to 250f, 175f to 248f, 205f to 252f, 235f to 249f))
+
+            val strokes = tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
+            val written = strokes.lastOrNull() ?: error("the stroke never reached the page")
+            assertEquals("the stroke really has the drag's vertices", 4, written.points.size)
+            for (point in written.points) {
+                assertEquals("every vertex sits on the guide's edge", 245.0, point.y, 1e-6)
+            }
+            assertTrue("the stroke is one undo step", tab.canUndo)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `a stroke on the far side of the page is written exactly as drawn`() {
+        val (tab, scene) = desktop(DesktopTool.PEN)
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+            stroke(scene, listOf(60f to 500f, 100f to 505f, 140f to 502f))
+            val written = tab.document.page(0).layers.flatMap { it.elements }
+                .filterIsInstance<Stroke>().lastOrNull() ?: error("the stroke never reached the page")
+            val ys = written.points.map { it.y }
+            assertTrue("the hand's own wobble survived", ys.toSet().size > 1)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /** A pen stroke through [points]: press, move past the tap slop, then a move at each point, then lift. */
+    private fun stroke(scene: ImageComposeScene, points: List<Pair<Float, Float>>) {
+        val (startX, startY) = points.first()
+        send(scene, PointerEventType.Press, startX, startY, 1_000L, PointerType.Stylus, pressed = true, shift = false)
+        points.drop(1).forEachIndexed { index, (x, y) ->
+            send(
+                scene,
+                PointerEventType.Move,
+                x,
+                y,
+                1_016L + index * 16L,
+                PointerType.Stylus,
+                pressed = true,
+                shift = false,
+            )
+        }
+        val (endX, endY) = points.last()
+        send(scene, PointerEventType.Release, endX, endY, 1_100L, PointerType.Stylus, pressed = false, shift = false)
     }
 
     /** A press, two moves and a release — one gesture, in the pointer type the test is about. */
