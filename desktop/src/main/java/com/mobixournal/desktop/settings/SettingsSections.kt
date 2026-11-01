@@ -10,7 +10,6 @@ import com.mobixournal.desktop.shell.displayRefreshHz
 import com.mobixournal.desktop.shell.frameLabel
 import com.mobixournal.desktop.shell.refreshLabel
 import com.mobixournal.desktop.tools.FiguresSettings
-import com.mobixournal.desktop.tools.Readout
 import com.mobixournal.desktop.tools.formatNumber
 
 import androidx.compose.foundation.background
@@ -469,8 +468,8 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         }
         // What the panel is *really* at — never the target. A refused mode read back as applied is the one
         // lie a refresh readout must not tell.
-        Readout("Display", refreshLabel(displayRefreshHz()))
-        frameLabel(FrameMeter.averageMs, policy.frameTime)?.let { Readout("Painting", it) }
+        SettingsReadout("Display", refreshLabel(displayRefreshHz()))
+        frameLabel(FrameMeter.averageMs, policy.frameTime)?.let { SettingsReadout("Painting", it) }
     }
 }
 
@@ -498,7 +497,7 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
                 style = DesktopTheme.numeric,
             )
         }
-        Readout("Destination", "Documents\\MobiXournal\\Untitled n" + policy.newDocumentFormat.extension)
+        SettingsReadout("Destination", "Documents\\MobiXournal\\Untitled n" + policy.newDocumentFormat.extension)
     }
 }
 
@@ -560,8 +559,8 @@ private fun AudioSettings(policy: DesktopSettingsState) {
         ) {
             PillLevelMeter(if (DesktopAudioSession.recording) DesktopAudioSession.level else 0f)
         }
-        Readout("Recording format", "44.1 kHz · mono · 16-bit WAV")
-        Readout("Recordings", "%APPDATA%\\MobiXournal\\audio")
+        SettingsReadout("Recording format", "44.1 kHz · mono · 16-bit WAV")
+        SettingsReadout("Recordings", "%APPDATA%\\MobiXournal\\audio")
     }
     // The tablet's *Save separate audio*: the take leaves the window's own store, so another program
     // (or another machine) can play it. On by the reader's choice, never by itself.
@@ -654,8 +653,8 @@ private fun BackupSettings(policy: DesktopSettingsState) {
 @Composable
 private fun AboutSettings() {
     SettingsGroup("MobiXournal Desktop") {
-        Readout("Version", DESKTOP_VERSION)
-        Readout("Reads and writes", ".xopp · .mobix")
+        SettingsReadout("Version", DESKTOP_VERSION)
+        SettingsReadout("Reads and writes", ".xopp · .mobix")
     }
     SettingsNote("MobiXournal is an independent, unofficial note-taking and scientific drafting app.")
 }

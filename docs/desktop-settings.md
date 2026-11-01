@@ -64,7 +64,8 @@ One rule per kind of thing, so a reader can tell an answer from an action at a g
   because a full-bleed row is cut by the popup's rounded edge — a line of selection with its end sliced off
   (`SettingsSelect`);
 - a **toggle** ends in the switch, and the whole row is the hit area (`Pressure sensitivity`);
-- a **readout** ends in a word or a number with no control at all (`Recovery snapshot` → *After every edit*);
+- a **readout** ends in a word or a number with no control at all, at the row's own inset so its small type sits
+  on the labels' column (`Recovery snapshot` → *After every edit*);
 - a **command** is a row with **nothing at its end**: the label is in the accent and the row is the button
   (`Reset to defaults`, `Export settings…`, `SettingsCommand`) — one label for every way back to the
   factory values, in whichever section it stands.
@@ -111,8 +112,10 @@ closing the window) puts the panel's previous mode back.
 ## Shortcuts — the key table, as a page
 
 Every command the window has is a row: the tools (their slot's key), and the shell's own commands (open, save,
-save as, export, the clipboard, pages, zoom, full screen, Settings). Each group is a **heading over its rows**
-and nothing else — there is no separate *Detect* row and no group that repeats its own name as a row.
+save as, export, the clipboard, pages, zoom, full screen, Settings) — **sorted into families** in the strips' own
+order (`ShortcutFamilies`: the switches first, then ink, selection and text, shapes, STEM, guides, document, editing, view, the pen) and
+**searchable** by name, by the chord the window holds or by the tool a key picks. Each group is a **heading over
+its rows** and nothing else: no separate *Detect* row, and no group that repeats its own name as a row.
 
 Renaming is **click the row, then press the key**: the row lights with *Press a key…*, and the next press this
 table has a name for is bound to it. The press is the **window's**, not the page's — the arm is
@@ -146,8 +149,8 @@ rectangle and loop), so a press while *either* member is in hand already counts 
 rather than jumping to the sibling. A last tool that is itself in the family cannot be the answer, so the pen
 is.
 
-Which member a press **picks** is a choice, so each of the two families carries a cascade under its row —
-*Eraser* (partial / whole stroke) and *Selection* (marquee / lasso) — stored as `interface.toggleEraser` and
+Which member a press **picks** is a choice, answered **in the toggle's own row** — *Partial / Whole stroke*
+beside the eraser's key, *Lasso / Marquee* beside the selection's — and stored as `interface.toggleEraser` and
 `interface.toggleSelection`. The hand has no siblings, so its row is alone.
 
 The bindings the table does **not** own stay in `DesktopKeys.unlistedCommand`: `=` arriving as `Shift+0` on an

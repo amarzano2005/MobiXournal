@@ -173,7 +173,7 @@ internal fun SettingsRow(
                         .pointerInput(onClick) { detectTapGestures { press.value?.invoke() } }
                 },
             )
-            .padding(horizontal = 12.dp, vertical = 5.dp),
+            .padding(horizontal = ROW_INSET, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
@@ -210,7 +210,7 @@ internal fun SettingsCommand(label: String, note: String? = null, onClick: () ->
             .reportHelp(note)
             .hoverFill(RectangleShape)
             .pointerInput(onClick) { detectTapGestures { press.value() } }
-            .padding(horizontal = 12.dp, vertical = 5.dp),
+            .padding(horizontal = ROW_INSET, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = DesktopTheme.accent, style = DesktopTheme.body, modifier = Modifier.weight(1f))
@@ -265,6 +265,9 @@ internal fun SettingsNote(text: String) {
     Spacer(Modifier.height(6.dp))
     Text(text, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
 }
+
+/** A row's own horizontal inset inside its card, shared by its readouts too. */
+internal val ROW_INSET = 12.dp
 
 /** How wide a slider draws inside a row — long enough to aim at, never the whole row. */
 private val SLIDER_WIDTH = 150.dp

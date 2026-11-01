@@ -76,6 +76,27 @@ internal fun <T> SettingsSelect(
     optionLabel: (T) -> String,
     onPick: (T) -> Unit,
 ) {
+    SettingsRow(label = label, note = note) {
+        SettingsChoiceChip(options = options, picked = picked, optionLabel = optionLabel, onPick = onPick)
+    }
+}
+
+/**
+ * The same choice **as a control**, for a row that already has a name of its own: the answer in hand on a
+ * capsule with a chevron, the rest of the list in a menu under it.
+ *
+ * It is the one choice control of the window, extracted from [SettingsSelect] so a row can carry a choice
+ * *beside* something else — the Shortcuts page puts it next to the key a toggle press holds, where "which
+ * eraser?" belongs on the line that asks it. Two drawings of a select would be two hover steps and two
+ * widths for the same gesture.
+ */
+@Composable
+internal fun <T> SettingsChoiceChip(
+    options: List<T>,
+    picked: T,
+    optionLabel: (T) -> String,
+    onPick: (T) -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
     var anchor by remember { mutableStateOf(IntSize.Zero) }
     // The click that closes the list must not open it again (see [DismissGuard]): the popup's own dismissal
@@ -83,36 +104,34 @@ internal fun <T> SettingsSelect(
     val guard = remember { DismissGuard() }
     val pick = rememberUpdatedState(onPick)
     val menuWidth = selectMenuWidth(options.map(optionLabel))
-    SettingsRow(label = label, note = note) {
-        Box {
-            SettingsSelectCapsule(
-                text = optionLabel(picked),
-                open = open,
-                onToggle = { open = !open && guard.mayOpen(Unit) },
-                onStep = { delta -> pick.value(nextChoice(options, picked, delta)) },
-                onSize = { anchor = it },
-            )
-            if (open) {
-                // Under the capsule, its right edge on the capsule's: a list that grew rightwards would walk
-                // out of a panel whose column ends at the page's edge.
-                val shift = with(LocalDensity.current) { (menuWidth - anchor.width.toDp()).roundToPx() }
-                Popup(
-                    offset = IntOffset(-shift, anchor.height + 4),
-                    onDismissRequest = {
-                        guard.closed(Unit)
-                        open = false
-                    },
-                    properties = FloatingSurface,
-                ) {
-                    SettingsSelectMenu(
-                        options = options,
-                        picked = picked,
-                        optionLabel = optionLabel,
-                        width = menuWidth,
-                    ) { option ->
-                        pick.value(option)
-                        open = false
-                    }
+    Box {
+        SettingsSelectCapsule(
+            text = optionLabel(picked),
+            open = open,
+            onToggle = { open = !open && guard.mayOpen(Unit) },
+            onStep = { delta -> pick.value(nextChoice(options, picked, delta)) },
+            onSize = { anchor = it },
+        )
+        if (open) {
+            // Under the capsule, its right edge on the capsule's: a list that grew rightwards would walk
+            // out of a panel whose column ends at the page's edge.
+            val shift = with(LocalDensity.current) { (menuWidth - anchor.width.toDp()).roundToPx() }
+            Popup(
+                offset = IntOffset(-shift, anchor.height + 4),
+                onDismissRequest = {
+                    guard.closed(Unit)
+                    open = false
+                },
+                properties = FloatingSurface,
+            ) {
+                SettingsSelectMenu(
+                    options = options,
+                    picked = picked,
+                    optionLabel = optionLabel,
+                    width = menuWidth,
+                ) { option ->
+                    pick.value(option)
+                    open = false
                 }
             }
         }
