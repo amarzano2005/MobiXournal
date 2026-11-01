@@ -10,7 +10,7 @@ import com.mobixournal.desktop.tools.DESKTOP_TOOLS_THAT_ACT
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Tool
-import com.mobixournal.render.HudSlot
+import com.mobixournal.desktop.sheet.RingFace
 import com.mobixournal.render.RadialHud
 
 import androidx.compose.ui.geometry.Offset
@@ -66,27 +66,27 @@ class DesktopRingTest {
 
     @Test
     fun `the ring holds the palette, then the widths, then the three writing tools`() {
-        val slots = DesktopHud.slots(PenPalette.COLORS, null)
+        val slots = RingContents.Auto.slots(PenPalette.COLORS, null)
         assertEquals(PenPalette.COLORS.size + PenPalette.DEFAULT_WIDTHS.size + 3, slots.size)
-        assertEquals(HudSlot.Colour(PenPalette.COLORS.first()), slots.first())
+        assertEquals(RingFace.Colour(PenPalette.COLORS.first()), slots.first())
         assertEquals(
-            HudSlot.Width(PenPalette.DEFAULT_WIDTHS.first()),
+            RingFace.Width(PenPalette.DEFAULT_WIDTHS.first()),
             slots[PenPalette.COLORS.size],
         )
-        assertEquals(HudSlot.ToolFace(Tool.PEN), slots[slots.size - 3])
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), slots.last())
+        assertEquals(RingFace.Tool(DesktopTool.PEN), slots[slots.size - 3])
+        assertEquals(RingFace.Tool(DesktopTool.ERASER), slots.last())
     }
 
     @Test
     fun `the editable custom slot is the last swatch, and a long palette still keeps the widths and tools`() {
         val custom = 0xFF123456.toInt()
-        val short = DesktopHud.slots(PenPalette.COLORS, custom)
-        assertEquals(HudSlot.Colour(custom), short[PenPalette.COLORS.size])
+        val short = RingContents.Auto.slots(PenPalette.COLORS, custom)
+        assertEquals(RingFace.Colour(custom), short[PenPalette.COLORS.size])
 
-        val long = DesktopHud.slots((1..PenPalette.MAX_COLORS).map { 0xFF000000.toInt() or it }, custom)
+        val long = RingContents.Auto.slots((1..PenPalette.MAX_COLORS).map { 0xFF000000.toInt() or it }, custom)
         assertEquals(RadialHud.MAX_SLOTS, long.size)
-        assertEquals("the custom slot keeps its place at the palette's cap", HudSlot.Colour(custom), long[9])
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), long.last())
+        assertEquals("the custom slot keeps its place at the palette's cap", RingFace.Colour(custom), long[9])
+        assertEquals(RingFace.Tool(DesktopTool.ERASER), long.last())
     }
 
     /**
@@ -95,13 +95,13 @@ class DesktopRingTest {
      */
     @Test
     fun `every tool the ring offers is one the canvas acts on`() {
-        assertEquals(3, DesktopHud.TOOLS.size)
-        for (tool in DesktopHud.TOOLS) {
+        assertEquals(3, RingContents.TOOLS.size)
+        for (tool in RingContents.TOOLS) {
             assertTrue("$tool is offered by the ring but does not act", tool in DESKTOP_TOOLS_THAT_ACT)
         }
         assertEquals(
             setOf(DesktopTool.PEN, DesktopTool.HIGHLIGHTER, DesktopTool.ERASER),
-            DesktopHud.TOOLS.toSet(),
+            RingContents.TOOLS.toSet(),
         )
     }
 
@@ -129,8 +129,8 @@ class DesktopRingTest {
     fun `an empty palette still leaves the widths and the tools`() {
         val ring = ring(palette = emptyList(), custom = null)
         assertEquals(
-            PenPalette.DEFAULT_WIDTHS.size + DesktopHud.TOOLS.size,
-            DesktopHud.slots(emptyList(), null).size,
+            PenPalette.DEFAULT_WIDTHS.size + RingContents.TOOLS.size,
+            RingContents.Auto.slots(emptyList(), null).size,
         )
         assertTrue(ring.summon())
         assertNotNull(ring.open)
@@ -237,9 +237,9 @@ class DesktopRingTest {
     @Test
     fun `a ring given its own faces carries exactly those, in that order`() {
         val faces = listOf(
-            HudSlot.Colour(PenPalette.RED),
-            HudSlot.ToolFace(Tool.HIGHLIGHTER),
-            HudSlot.Width(2.5f),
+            RingFace.Colour(PenPalette.RED),
+            RingFace.Tool(DesktopTool.HIGHLIGHTER),
+            RingFace.Width(2.5f),
         )
         assertEquals(faces, RingContents.Fixed(faces).slots(PenPalette.COLORS, null))
 
@@ -272,9 +272,9 @@ class DesktopRingTest {
     @Test
     fun `the faces survive the round trip through the stored line`() {
         val faces = listOf(
-            HudSlot.Colour(PenPalette.BLUE),
-            HudSlot.Width(1.25f),
-            HudSlot.ToolFace(Tool.ERASER),
+            RingFace.Colour(PenPalette.BLUE),
+            RingFace.Width(1.25f),
+            RingFace.Tool(DesktopTool.ERASER),
         )
         assertEquals(faces, RingContents.decode(RingContents.encode(faces)))
         assertNull("a line naming nothing this build reads is the automatic ring", RingContents.decode("nonsense"))

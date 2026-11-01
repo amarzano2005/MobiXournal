@@ -200,11 +200,11 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 
 The tablet's **pen-tip HUD** ([`ui-modernization.md`](ui-modernization.md), *The pen-tip HUD*) on the PC: `Alt + B`
 opens a ring centred on the nib — the last place the pointer was over the page, and the canvas's centre until a
-pointer has been there at all — and nothing is on screen until it is summoned. It holds the tablet's own
-contents in the tablet's own order: the palette's swatches (the editable custom HEX slot last among them), the
-three pen widths, then pen / highlighter / eraser. Three writing tools and no more: the ring is a writing
-control, and the strips keep everything else.
-
+pointer has been there at all — and nothing is on screen until it is summoned. What it carries is the reader's
+([`desktop-settings.md`](desktop-settings.md)): an untouched ring is the tablet's own contents in the tablet's own
+order — the palette's swatches (the editable custom HEX slot last among them), the three pen widths, then pen /
+highlighter / eraser — and any face can be given **any tool the window acts on**, so the ring is not held to the
+three writing tools: the lasso, the lasso's marquee or a logic gate can sit at the pen as easily as the eraser.
 - **How it closes.** A key-opened ring is a **picker** — there is no held button to release — so a **click on a
   slot** commits it and closes the ring, a click inside the ring but off a slot does nothing (it was aimed at
   the ring, not through it), and a click well outside it, `Esc`, or a second `Alt + B` puts it away without
@@ -216,9 +216,10 @@ control, and the strips keep everything else.
   rim, the steel plate under the picked slot and the accent ring around it, a swatch in its own colour inside a
   chrome-ink rim, a width as a dot of that width, a tool as its catalogue glyph. Tokens only — `DesktopThemeTest`
   sweeps the chrome sources.
-- **What it carries** is the reader's, position by position: **Settings → Ring** sets each face — a colour, a
-  width or a tool — or leaves the ring automatic, and the key that opens it is that page's own row
-  ([`desktop-settings.md`](desktop-settings.md)).
+- **What it carries** is the reader's, face by face, and **Settings → Ring** *shows* it: that page draws the
+  circle, and a click on a face chooses a **colour** (the palette's, custom included), a **tool** (every one the
+  window acts on) or a **width** (S / M / L) — or takes the face off — with the ring redrawn as the choice
+  lands, so the ring is arranged by looking at it. The key that opens it is that page's own row.
 - **There is no pen-button row.** On a PC a pen's buttons arrive as **keyboard keys**, mapped by its driver,
   so a button reaches the ring by pressing its key; a pen that sends a real barrel bit has that bit read and
   reported by the tablet probe, and the window gives it no job.

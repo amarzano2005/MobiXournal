@@ -1,85 +1,295 @@
 package com.mobixournal.desktop.settings
 
 import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.sheet.RingFace
+import com.mobixournal.desktop.sheet.drawRing
+import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.FloatingSurface
+import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.design.PenPalette
-import com.mobixournal.format.model.Tool
-import com.mobixournal.render.HudSlot
 import com.mobixournal.render.RadialHud
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import java.util.Locale
+import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 /**
- * **Ring**: what each position of the pen-tip ring holds, and the key that opens it.
+ * **Ring**: the ring itself, drawn between its settings, and the key that opens it.
  *
- * A **position**, not a family: the ring is a circle of up to [RadialHud.MAX_SLOTS] faces and the reader
- * decides face by face — a colour, a width or a writing tool, or the position removed. That is why the page
- * is a list of rows where each row's control is a [SettingsSelect] over the same answers, and why the first
- * edit pins the ring: an automatic ring follows the palette, and one the reader arranged is theirs.
+ * The page shows the ring **as it will be drawn at the pen** — one glass disc, the same faces, the same
+ * order — because a list of rows cannot answer the question this page exists for: *what does my ring look
+ * like?* A click on a face opens its chooser, and the chooser is the three families the ring can hold, each
+ * with every answer it has:
  *
- * There is no *side button* row: on a PC a pen's buttons arrive as keyboard keys (the vendor's software maps
- * them), so the button reaches the ring by pressing the **key** — which is the row above. A pen that sends a
- * real barrel bit nowadays gets the same treatment: the bit is read and reported by the tablet probe
- * ([`desktop-tablet.md`](../../../../../docs/desktop-tablet.md)), and no setting here hands it a job.
+ * - **Colours** — the palette the strips carry, the custom colour included: "the colours I want" is a
+ *   palette, not a second list of eight.
+ * - **Tools** — *every* tool the window puts in hand, from the pen to a logic gate, so a ring slot can be
+ *   anything a strip has.
+ * - **Widths** — the pen's three slots, S / M / L.
  *
- * Every row is the window's own grammar (`docs/desktop-settings.md`): a choice ends in a select, a command
- * has nothing at its end, and the key ends in the capsule with the key it holds.
+ * A face answered with **Remove** leaves the ring. The first pick **pins** the ring: an untouched ring is
+ * automatic (the palette, the three widths and the three writing tools, following the palette) and a ring
+ * the reader arranged is theirs until **Reset to defaults**.
+ *
+ * Nothing here is a side-button setting: on a PC a pen's buttons arrive as keyboard keys, so the key row is
+ * the whole door (`docs/desktop-settings.md`).
  */
 @Composable
 internal fun RingSettings(policy: DesktopSettingsState) {
     val ring = policy.ring
-    val slots = ring.slots
-    val candidates = ring.candidates()
-    SettingsGroup("Positions") {
-        if (slots.isEmpty()) {
-            SettingsRow(
-                label = "Nothing on the ring",
-                note = "Add a position below, or reset to the automatic ring.",
-            ) {
-                Text("Empty", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-            }
-        }
-        for ((index, face) in slots.withIndex()) {
-            SettingsSelect(
-                label = "Position ${index + 1}",
-                note = "Clockwise from the top: what the ring holds there.",
-                options = candidates,
-                picked = face,
-                optionLabel = ::faceLabel,
-                onPick = { choice -> ring.chooseFace(index, choice) },
-            )
-        }
+    SettingsGroup("The ring") {
+        RingDrawing(policy)
         SettingsCommand(
             label = "Add a position",
-            note = "The first face the ring does not carry yet, up to ${RadialHud.MAX_SLOTS}.",
+            note = "One more face, at the end of the ring — up to ${RadialHud.MAX_SLOTS}.",
             onClick = ring::addPosition,
         )
         SettingsCommand(
             label = "Reset to defaults",
-            note = "The palette, the three widths and the three tools, following the palette again.",
+            note = "The automatic ring: the palette, the three widths and the three writing tools.",
             onClick = ring::reset,
         )
     }
     RingSummonGroup(policy)
-    SettingsNote("A position answered with Empty leaves the ring; an empty ring does not open at all.")
+    SettingsNote(
+        "Click a face to give it a colour, a tool or a width — or to take it off. " +
+            "A ring with no faces does not open.",
+    )
+}
+
+/** The ring drawn at its own size, with the chooser of whichever face was clicked. */
+@Composable
+private fun RingDrawing(policy: DesktopSettingsState) {
+    val faces = policy.ring.slots
+    var picked by remember { mutableStateOf<Int?>(null) }
+    val density = LocalDensity.current
+    // One place decides the ring's size: the painter and the hit test read the same radii.
+    val boardPx = with(density) { BOARD.toPx() }
+    val ringRadiusPx = with(density) { RadialHud.RING_RADIUS_DP.dp.toPx() }
+    val slotRadiusPx = with(density) { RadialHud.SLOT_DIAMETER_DP.dp.toPx() / 2f }
+    Box(Modifier.fillMaxWidth().height(BOARD + 16.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(BOARD)) {
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(faces, boardPx) {
+                        detectTapGestures { at ->
+                            picked = faceAt(
+                                at = at,
+                                count = faces.size,
+                                cx = boardPx / 2f,
+                                cy = boardPx / 2f,
+                                ringRadius = ringRadiusPx,
+                                slotRadius = slotRadiusPx,
+                            )
+                        }
+                    },
+            ) {
+                drawRing(
+                    centre = Offset(size.width / 2f, size.height / 2f),
+                    faces = faces,
+                    active = picked,
+                    ringRadius = ringRadiusPx,
+                    slotRadius = slotRadiusPx,
+                    hairline = 1.dp.toPx(),
+                    air = 10.dp.toPx(),
+                )
+            }
+            if (faces.isEmpty()) {
+                Text(
+                    "Nothing on the ring",
+                    color = DesktopTheme.inkMuted,
+                    style = DesktopTheme.label,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
+            val index = picked
+            if (index != null && index in faces.indices) {
+                Popup(
+                    offset = IntOffset(
+                        with(density) { (BOARD + 12.dp).roundToPx() },
+                        with(density) { 8.dp.roundToPx() },
+                    ),
+                    onDismissRequest = { picked = null },
+                    properties = FloatingSurface,
+                ) {
+                    RingFaceMenu(
+                        face = faces[index],
+                        colours = policy.ring.colourChoices(),
+                        tools = policy.ring.toolChoices(),
+                        widths = policy.ring.widthChoices(),
+                    ) { choice ->
+                        policy.ring.chooseFace(index, choice)
+                        picked = null
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
- * The face a select shows, in the words the rest of the window uses: the tool's own name, the width in
- * points, the colour's factory name with its hex — because a swatch's identity on a list is its number, not
- * its picture.
+ * The face a tap at ([at]) landed on, or null when it landed on the ring's dead zone or off it.
+ *
+ * The arithmetic is `RadialHud`'s — the same centres the painter used — so a click and a pick at the pen
+ * cannot disagree about which face is under a point.
  */
-private fun faceLabel(face: HudSlot?): String = when (face) {
-    null -> "Empty"
-    is HudSlot.Colour -> faceLabel(face.argb)
-    is HudSlot.Width -> String.format(Locale.ROOT, "%.2f pt", face.pt)
-    is HudSlot.ToolFace -> when (face.tool) {
-        Tool.PEN -> "Pen"
-        Tool.HIGHLIGHTER -> "Highlighter"
-        Tool.ERASER -> "Eraser"
+private fun faceAt(at: Offset, count: Int, cx: Float, cy: Float, ringRadius: Float, slotRadius: Float): Int? {
+    if (count <= 0) return null
+    for (index in 0 until count) {
+        val (x, y) = RadialHud.slotCenter(cx, cy, index, count, ringRadius)
+        if (hypot(at.x - x, at.y - y) <= slotRadius) return index
+    }
+    return null
+}
+
+/** The ring's own size: the disc (116 dp radius, a 40 dp face, 10 dp of air) and a little margin. */
+private val BOARD = 292.dp
+
+/** The chooser's width — a list, not a page: its longest answer is a tool's name. */
+private val MENU_WIDTH = 248.dp
+
+/** The chooser's height cap: the answer lists are long, and a menu taller than the panel cannot be read. */
+private val MENU_HEIGHT = 320.dp
+
+/**
+ * **One face's chooser**: the three families, each with every answer it has, and *Remove* at the end.
+ *
+ * It is the same glass and the same inset rows as a select's list (`SettingsSelect`), because a menu is a
+ * menu in this window; what it adds is the **heads** — a face can be one of three kinds of thing, and a
+ * flat list of forty answers would make the reader hunt for where the tools start.
+ */
+@Composable
+private fun RingFaceMenu(
+    face: RingFace,
+    colours: List<RingFace.Colour>,
+    tools: List<RingFace.Tool>,
+    widths: List<RingFace.Width>,
+    onPick: (RingFace?) -> Unit,
+) {
+    Column(
+        Modifier
+            .width(MENU_WIDTH)
+            .heightIn(max = MENU_HEIGHT)
+            .verticalScroll(rememberScrollState())
+            .glassSurface(fill = DesktopTheme.settingsPanel)
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+    ) {
+        if (colours.isNotEmpty()) {
+            FaceHead("Colours")
+            for (choice in colours) {
+                FaceRow(label = colourLabel(choice.argb), chosen = choice == face, onClick = { onPick(choice) }) {
+                    Box(Modifier.size(14.dp).clip(CircleShape).background(Color(choice.argb)))
+                }
+            }
+        }
+        if (tools.isNotEmpty()) {
+            FaceHead("Tools")
+            for (choice in tools) {
+                FaceRow(label = choice.tool.label, chosen = choice == face, onClick = { onPick(choice) }) {
+                    Canvas(Modifier.size(14.dp)) { drawToolGlyph(choice.tool, DesktopTheme.ink) }
+                }
+            }
+        }
+        if (widths.isNotEmpty()) {
+            FaceHead("Widths")
+            for (choice in widths) {
+                FaceRow(label = widthLabel(choice.pt), chosen = choice == face, onClick = { onPick(choice) }) {
+                    Box(Modifier.size(14.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier
+                                .size((4f + 8f * (choice.pt / PenPalette.WIDTH_MAX).coerceIn(0.1f, 1f)).dp)
+                                .clip(CircleShape)
+                                .background(DesktopTheme.chromeInk),
+                        )
+                    }
+                }
+            }
+        }
+        FaceHead("Leave it out")
+        FaceRow(label = "Remove this position", chosen = false, onClick = { onPick(null) }) {
+            Box(Modifier.size(14.dp))
+        }
     }
 }
+
+/** A heading inside the chooser: what family the answers under it belong to. */
+@Composable
+private fun FaceHead(title: String) {
+    Text(
+        title,
+        color = DesktopTheme.inkMuted,
+        style = DesktopTheme.label,
+        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp),
+    )
+}
+
+/** One answer: its mark, its name, and the accent when it is the face the ring already carries. */
+@Composable
+private fun FaceRow(
+    label: String,
+    chosen: Boolean,
+    onClick: () -> Unit,
+    mark: @Composable () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 30.dp)
+            .hoverFill(
+                DesktopTheme.railSlotShape,
+                base = if (chosen) DesktopTheme.activeSlot.copy(alpha = 0.35f) else Color.Transparent,
+            )
+            .pointerInput(label) { detectTapGestures { onClick() } }
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        mark()
+        Spacer(Modifier.width(10.dp))
+        Text(
+            label,
+            color = if (chosen) DesktopTheme.accent else DesktopTheme.ink,
+            style = DesktopTheme.body,
+            maxLines = 1,
+        )
+    }
+}
+
+
 
 /** The factory palette's own names, so a list of colours reads as colours and not as eight hex codes. */
 private val SWATCH_NAMES: Map<Int, String> = mapOf(
@@ -94,11 +304,14 @@ private val SWATCH_NAMES: Map<Int, String> = mapOf(
 )
 
 /** A swatch: its name when it is one of the factory eight, then its hex. */
-private fun faceLabel(argb: Int): String {
+private fun colourLabel(argb: Int): String {
     val hex = String.format(Locale.ROOT, "#%06X", argb and 0xFFFFFF)
     val name = SWATCH_NAMES[argb]
     return if (name == null) hex else "$name · $hex"
 }
+
+/** A width face, in the points the pen draws with. */
+private fun widthLabel(pt: Float): String = String.format(Locale.ROOT, "%.2f pt", pt)
 
 /**
  * **Opening it**: the key that summons the ring, armed on the spot.

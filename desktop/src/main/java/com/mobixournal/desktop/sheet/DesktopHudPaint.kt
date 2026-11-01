@@ -8,7 +8,6 @@ import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawToolGlyph
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.PenPalette
-import com.mobixournal.render.HudSlot
 import com.mobixournal.render.RadialHud
 import kotlin.math.sqrt
 
@@ -17,68 +16,81 @@ import kotlin.math.sqrt
  * `drawRadialHud`, which paints the same ring on its canvas.
  *
  * It is a **floating surface** (`docs/interface-contract.md` §1) that happens to be round: the glass at
- * `floatingPanelAlpha`, a hairline rim, the steel plate under the picked slot and the accent ring around it.
- * Every colour is a [DesktopTheme] token — no literal, which is what `DesktopThemeTest` sweeps — so the two
- * shells cannot show two materials, and the window's own window can be read on paper, on ink and on the black
- * desk.
+ * `floatingPanelAlpha`, a hairline rim, the steel plate under the picked face and the accent ring around it.
+ * Every colour is a [DesktopTheme] token — no literal, which is what `DesktopThemeTest` sweeps.
+ *
+ * [drawRing] is the one painter, in the caller's pixels: the page over a page's canvas (with the nib marker
+ * under it), and the Settings page's own drawing beside the rows that fill it. Two painters would be two
+ * answers to "what does a face look like", which is how the tablet's and the window's rings would drift.
  *
  * Faces are read without labels, exactly as on the tablet: a swatch is its own colour inside a rim (a white
  * swatch would otherwise vanish on the glass), a width is a dot of that width, and a tool is its
- * `ToolGlyphCatalogue` glyph through the window's adapter.
- *
- * Drawn into the page's canvas, in the canvas's own pixels: [DesktopHudState.cx]/[cy] are the nib.
+ * `ToolGlyphCatalogue` glyph through the window's adapter — any tool, since a face is a [RingFace.Tool].
  */
 internal fun DrawScope.drawDesktopRadialHud(
     state: DesktopHudState,
-    slots: List<HudSlot>,
+    faces: List<RingFace>,
     density: Float,
 ) {
-    if (slots.isEmpty()) return
-    val centre = Offset(state.cx, state.cy)
-    val slotRadius = RadialHud.SLOT_DIAMETER_DP * density / 2f
-    val ringRadius = RadialHud.RING_RADIUS_DP * density
-    val hairline = (DesignTokens.HAIRLINE_STROKE_WIDTH_DP * density).toFloat()
+    drawRing(
+        centre = Offset(state.cx, state.cy),
+        faces = faces,
+        active = state.active,
+        ringRadius = RadialHud.RING_RADIUS_DP * density,
+        slotRadius = RadialHud.SLOT_DIAMETER_DP * density / 2f,
+        hairline = (DesignTokens.HAIRLINE_STROKE_WIDTH_DP * density).toFloat(),
+        air = DesktopHud.AIR_DP * density,
+        nib = density,
+    )
+}
+
+/**
+ * The ring at ([centre]), in pixels: the glass disc, the rim, one face per slot and the accent around
+ * [active]. [nib] is the size of the nib marker (0 for none) — a page draws it, a settings preview does not.
+ */
+internal fun DrawScope.drawRing(
+    centre: Offset,
+    faces: List<RingFace>,
+    active: Int?,
+    ringRadius: Float,
+    slotRadius: Float,
+    hairline: Float,
+    air: Float,
+    nib: Float = 0f,
+) {
+    if (faces.isEmpty()) return
 
     // The glass: one disc under the whole ring, which is what makes it a surface rather than a scatter of
     // buttons — and the rim that says where it ends.
-    drawCircle(
-        color = DesktopTheme.floating,
-        radius = ringRadius + slotRadius + DesktopHud.AIR_DP * density,
-        center = centre,
-    )
-    drawCircle(
-        color = DesktopTheme.hairline,
-        radius = ringRadius,
-        center = centre,
-        style = Stroke(width = hairline),
-    )
+    drawCircle(color = DesktopTheme.floating, radius = ringRadius + slotRadius + air, center = centre)
+    drawCircle(color = DesktopTheme.hairline, radius = ringRadius, center = centre, style = Stroke(width = hairline))
 
-    slots.forEachIndexed { index, slot ->
-        val (x, y) = RadialHud.slotCenter(state.cx, state.cy, index, slots.size, ringRadius)
+    faces.forEachIndexed { index, face ->
+        val (x, y) = RadialHud.slotCenter(centre.x, centre.y, index, faces.size, ringRadius)
         val at = Offset(x, y)
-        val picked = state.active == index
-        // The picked slot sits on the steel plate, so a black swatch or a thin width dot still reads.
+        val picked = active == index
+        // The picked face sits on the steel plate, so a black swatch or a thin width dot still reads.
         if (picked) drawCircle(color = DesktopTheme.activeSlot, radius = slotRadius, center = at)
-        when (slot) {
-            is HudSlot.Colour -> {
-                drawCircle(color = Color(slot.argb), radius = slotRadius - 2f * density, center = at)
+        when (face) {
+            is RingFace.Colour -> {
+                drawCircle(color = Color(face.argb), radius = slotRadius - 2f * hairline, center = at)
                 // A rim of chrome ink at 35 %: white would vanish on the light glass, black on a dark swatch.
                 drawCircle(
                     color = DesktopTheme.chromeInk.copy(alpha = SWATCH_RIM_ALPHA),
-                    radius = slotRadius - 2f * density,
+                    radius = slotRadius - 2f * hairline,
                     center = at,
                     style = Stroke(width = hairline),
                 )
             }
-            is HudSlot.Width -> drawCircle(
+            is RingFace.Width -> drawCircle(
                 color = DesktopTheme.chromeInk,
-                radius = widthDotRadius(slot.pt, density),
+                radius = widthDotRadius(face.pt, slotRadius),
                 center = at,
             )
-            is HudSlot.ToolFace -> DesktopHud.slotOf(slot.tool)?.let { tool ->
+            is RingFace.Tool -> {
                 val side = slotRadius * GLYPH_BOX_SCALE
                 drawToolGlyph(
-                    tool = tool,
+                    tool = face.tool,
                     color = DesktopTheme.chromeInk,
                     side = side,
                     at = Offset(x - side / 2f, y - side / 2f),
@@ -88,15 +100,14 @@ internal fun DrawScope.drawDesktopRadialHud(
         if (picked) {
             drawCircle(
                 color = DesktopTheme.accent,
-                radius = slotRadius + 3f * density,
+                radius = slotRadius + 3f * hairline,
                 center = at,
                 style = Stroke(width = hairline),
             )
         }
     }
 
-    // The nib marker: the ring is anchored *here*, which is what makes it a control at the pen.
-    drawCircle(color = DesktopTheme.chromeInk, radius = 3f * density, center = centre)
+    if (nib > 0f) drawCircle(color = DesktopTheme.chromeInk, radius = 3f * nib, center = centre)
 }
 
 /** The swatch's rim: chrome ink at 35 %, the tablet's `hudSwatchRim`. */
@@ -105,6 +116,9 @@ private const val SWATCH_RIM_ALPHA = 0.35f
 /** A glyph drawn at 120 % of a slot's radius, which is the tablet's optical size inside its 40 dp face. */
 private const val GLYPH_BOX_SCALE = 1.2f
 
-/** A width slot's dot: 2.5 dp at the thinnest tip, about 12 dp at the widest — the tablet's own ramp. */
-private fun widthDotRadius(pt: Float, density: Float): Float =
-    (2.5f + 9.5f * sqrt((pt / PenPalette.WIDTH_MAX).coerceIn(0.1f, 1f))) * density
+/**
+ * A width face's dot: 2.5 dp at the thinnest tip, about 12 dp at the widest — the tablet's own ramp, scaled
+ * by the slot it is drawn in so a preview and the page's ring read the same.
+ */
+private fun widthDotRadius(pt: Float, slotRadius: Float): Float =
+    slotRadius * (0.125f + 0.475f * sqrt((pt / PenPalette.WIDTH_MAX).coerceIn(0.1f, 1f)))

@@ -1,7 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.format.model.Tool
-import com.mobixournal.render.HudSlot
+import com.mobixournal.desktop.sheet.RingFace
 
 import com.mobixournal.desktop.ink.PressureFeel
 import com.mobixournal.desktop.ink.of
@@ -292,11 +292,11 @@ class DesktopSettingsTest {
         val policy = DesktopSettingsState(DesktopSettings(file))
         assertEquals("a fresh window draws the automatic ring", RingContents.Auto, policy.ring.contents)
 
-        policy.ring.chooseFace(0, HudSlot.ToolFace(Tool.ERASER))
+        policy.ring.chooseFace(0, RingFace.Tool(DesktopTool.ERASER))
         policy.ring.addPosition()
 
         val reopened = DesktopSettingsState(DesktopSettings(file))
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), reopened.ring.slots.first())
+        assertEquals(RingFace.Tool(DesktopTool.ERASER), reopened.ring.slots.first())
         assertTrue("the position that was added is there", reopened.ring.slots.size > 1)
         assertTrue(
             "and the ring is the reader's own, not the palette's",

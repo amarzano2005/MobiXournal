@@ -7,11 +7,11 @@ import androidx.compose.ui.geometry.Offset
 import com.mobixournal.desktop.sheet.DesktopHud
 import com.mobixournal.desktop.sheet.DesktopHudState
 import com.mobixournal.desktop.sheet.RingContents
+import com.mobixournal.desktop.sheet.RingFace
 import com.mobixournal.desktop.tools.DesktopTool
-import com.mobixournal.render.HudSlot
 
 /**
- * The window's **open ring**: where it is, the slot under the pointer, and the one path a slot commits
+ * The window's **open ring**: where it is, the face under the pointer, and the one path a face commits
  * through.
  *
  * It is a piece of the shell's state rather than a second one — the same shape `DesktopInkState` has — so
@@ -19,17 +19,16 @@ import com.mobixournal.render.HudSlot
  * the entries the strips already use ([DesktopInkState.pickColour] / `pickWidth` and `selectTool`): a ring
  * choice can never mean something the user could not have set by hand.
  *
- * Its geometry and its contents are [DesktopHud]'s and `RadialHud`'s; this class only holds the state and the
- * three things a pointer can do to it — open, move, press. That is what makes the whole ring a JVM test
- * (`DesktopRingTest`) with no window and no scene.
+ * Its geometry is [DesktopHud]'s and `RadialHud`'s, its faces are [RingContents]'s (Settings → Ring), and
+ * this class holds only the state and the three things a pointer can do to it — open, move, press. That is
+ * what makes the whole ring a JVM test (`DesktopRingTest`) with no window and no scene.
  *
  * There is no held mode: the ring is opened by a **key** (`Alt + B`, or whatever the Shortcuts table holds),
- * and a pen button a driver turns into a keyboard key presses that same key. So a press on a slot is the
- * commit, and the release of the press that opened the ring never is — a ring that read it as a pick is what
- * used to flash open and shut.
+ * and a pen button a driver turns into a keyboard key presses that same key. So a press on a face is the
+ * commit, and the release of the press that opened the ring never is.
  *
  * The palette is read through lambdas because it is the ink's own state, restored from the settings file and
- * edited by the colour panel: the ring must show what the flyout shows, at the moment it opens.
+ * edited by the colour panel: an automatic ring must show what the flyout shows, at the moment it opens.
  */
 internal class DesktopRing(
     private val palette: () -> List<Int>,
@@ -60,8 +59,8 @@ internal class DesktopRing(
     var anchor by mutableStateOf<Offset?>(null)
         private set
 
-    /** The ring's contents, rebuilt from the palette as it is now and the faces Settings chose. */
-    val slots: List<HudSlot> get() = contents().slots(palette(), custom())
+    /** The faces this ring draws, from the palette as it is now and the choices Settings stored. */
+    val slots: List<RingFace> get() = contents().slots(palette(), custom())
 
     /**
      * The pointer's newest reading. Moves the pick while the ring is up, and remembers where the nib is so
@@ -100,7 +99,7 @@ internal class DesktopRing(
         return true
     }
 
-    /** Light the slot under ([x], [y]) — the pick a movement would commit. */
+    /** Light the face under ([x], [y]) — the pick a movement would commit. */
     fun track(x: Float, y: Float, density: Float) {
         val state = open ?: return
         val faces = slots
@@ -111,7 +110,7 @@ internal class DesktopRing(
 
     /**
      * A **press** on the page while the ring is up. True when the ring took it, in which case the canvas
-     * writes nothing: a slot under it commits, a press inside the ring but off a slot does nothing (the
+     * writes nothing: a face under it commits, a press inside the ring but off a face does nothing (the
      * press was aimed at the ring, not through it), and one well outside it closes the ring.
      */
     fun press(x: Float, y: Float, density: Float): Boolean {
@@ -127,12 +126,12 @@ internal class DesktopRing(
         return true
     }
 
-    /** The one commit path: a colour, a width or a tool, through the entries the strips and flyouts use. */
-    fun commit(slot: HudSlot) {
-        when (slot) {
-            is HudSlot.Colour -> onColour(slot.argb)
-            is HudSlot.Width -> onWidth(slot.pt)
-            is HudSlot.ToolFace -> DesktopHud.slotOf(slot.tool)?.let(onTool)
+    /** The one commit path: a colour, a width or any tool, through the entries the strips already use. */
+    fun commit(face: RingFace) {
+        when (face) {
+            is RingFace.Colour -> onColour(face.argb)
+            is RingFace.Width -> onWidth(face.pt)
+            is RingFace.Tool -> onTool(face.tool)
         }
     }
 }

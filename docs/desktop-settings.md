@@ -209,17 +209,18 @@ The mechanism is a real context of the window's own: `TabletAreaMap` turns the r
 `CXO_SYSTEM` cleared — a screen-mapped context would ignore every field. A driver that declares no usable
 axis, or a context it refuses to open, **keeps the system context** rather than leaving a dead pen.
 
-## Ring — what each position of the pen-tip ring holds
+## Ring — the ring drawn, and what each face holds
 
-Under **Drawing**, beside Colors: the ring is a circle of up to sixteen **positions**, and every one of
-them is a row whose control is a select over the answers the window can commit — **Pen**, **Highlighter**,
-**Eraser**, the three widths and the palette's colours, stored as one line (`ring.slots`: `c:` a colour,
-`w:` a width, `t:` a tool). Naming a face **pins** the ring: an untouched ring is *automatic* — the palette,
-the widths and the three tools, following the palette — and the first change makes it the reader's own,
-frozen until **Reset to defaults** removes the key and brings the automatic ring back. A position answered
-with *Empty* leaves the ring, and a ring with no positions does not open at all. **Key** is the Shortcuts
-table's *Ring at the pen* row, armed from here. There is no *side button* row: on a PC a pen's buttons
-arrive as keyboard keys, so the key is the whole door.
+Under **Drawing**, beside Colors: **the ring as it is drawn at the pen** — one glass disc, the same faces in
+the same order — not a list of rows, so the page answers *what does my ring look like*. **Clicking a face**
+opens its chooser, the three families the ring can hold, each with every answer it has: **Colours** (the
+palette's swatches, the custom HEX one included), **Tools** (every tool the window puts in hand, from the pen
+to a logic gate) and **Widths** (the pen's three slots). *Remove this position* leaves the ring. The first pick
+**pins** it — an untouched ring is *automatic*: the palette, the widths and the three writing tools, following
+the palette — and **Reset to defaults** brings that back. Sixteen faces at most, stored as one line
+(`ring.slots`: `c:` a colour, `w:` a width, `t:` a tool); a ring with no faces does not open. **Key** is the
+Shortcuts table's *Ring at the pen* row, armed from here. There is no *side button* row: on a PC a pen's
+buttons arrive as keyboard keys, so the key is the whole door.
 
 ## Toolbar — the strips' place and their order
 
