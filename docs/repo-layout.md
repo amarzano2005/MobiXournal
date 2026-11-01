@@ -100,7 +100,8 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              #   begins, how hard it draws, what a stream means (pure)
     render/PageEraser.kt, StrokeEraser.kt, StrokeHitTester.kt # erase: page mode, the split, the hit
     render/CanvasGeometry.kt, BoardSlicer.kt, CanvasAutoSlicer.kt # a board: what it is, its sheets (pure)
-    render/VerticalSpaceOps.kt, Snapping.kt, ElementShift.kt, DrawingGuide.kt # reflow a page, the ruling as a
+    render/VerticalSpaceOps.kt, Snapping.kt, ElementShift.kt, DrawingGuide.kt # reflow a page (and the block a
+                             #   grab line carries, held across a drag), the ruling as a
                              #   snap lattice, moving one element, and the guide instruments — their projection,
                              #   their ruling and chemistry snaps, and the parts a finger grabs (pure)
     io/DocumentEncoder.kt    # THE SAVE without Android: three formats, a SaveTarget, a SaveShape

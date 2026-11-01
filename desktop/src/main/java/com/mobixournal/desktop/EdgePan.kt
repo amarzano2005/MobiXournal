@@ -155,8 +155,25 @@ internal class DragView(
     private var lastTickNanos = 0L
     private var session: Session? = null
 
-    /** The drag in flight: where its pointer rests on screen, and what it re-applies when the sheet moves. */
-    private class Session(var x: Float, var y: Float, val onScrolled: (Float, Float) -> Unit)
+    /**
+     * The drag in flight: where its pointer rests on screen, and what it re-applies when the sheet moves.
+     *
+     * [flushEveryTick] is the heavy drags' half of the same idea: a drag that must **re-derive the page**
+     * from the pointer (vertical space rewrites every element below the line) cannot pay that per pointer
+     * event, because a pen reports several hundred samples a second and the work then saturates the thread
+     * the events arrive on — the input itself goes late. Such a drag only records where the pointer is
+     * ([pending]) and lets the canvas's own ticker re-apply it once per tick, so the reflow happens at a
+     * rate a frame can afford and the event loop stays free.
+     */
+    private class Session(
+        var x: Float,
+        var y: Float,
+        val flushEveryTick: Boolean,
+        val onScrolled: (Float, Float) -> Unit,
+    ) {
+        /** True when the pointer has moved since the last re-apply — the drag has work waiting. */
+        var pending: Boolean = false
+    }
 
     /** The viewport in force now. */
     fun current(): Viewport = viewport()
@@ -169,15 +186,26 @@ internal class DragView(
      * scope, where the timer that ticks this cannot live. The ticker is launched once per canvas instead
      * (`pageGestures`) and calls in from outside.
      */
-    fun beginDrag(x: Float, y: Float, onScrolled: (Float, Float) -> Unit) {
+    fun beginDrag(
+        x: Float,
+        y: Float,
+        flushEveryTick: Boolean = false,
+        onScrolled: (Float, Float) -> Unit,
+    ) {
         scroll.reset()
         lastTickNanos = System.nanoTime()
-        session = Session(x, y, onScrolled)
+        session = Session(x, y, flushEveryTick, onScrolled)
     }
 
-    /** Where the drag's pointer is now — read by the ticker when no event is arriving. */
+    /**
+     * Where the drag's pointer is now — read by the ticker when no event is arriving.
+     *
+     * For a [beginDrag] that asked to be flushed, this only **marks** the drag as moved: the work is left to
+     * the next [tick], so a burst of samples costs one re-apply instead of one per sample.
+     */
     fun moved(x: Float, y: Float) {
         session?.let {
+            if (it.x != x || it.y != y) it.pending = true
             it.x = x
             it.y = y
         }
@@ -194,8 +222,17 @@ internal class DragView(
      */
     fun tick(nowNanos: Long = System.nanoTime()) {
         val live = session ?: return
-        if (!panAtEdge(live.x, live.y, nowNanos)) return
-        live.onScrolled(live.x, live.y)
+        if (panAtEdge(live.x, live.y, nowNanos)) {
+            live.pending = false
+            live.onScrolled(live.x, live.y)
+            return
+        }
+        // A pointer still in the middle scrolls nothing, but a drag that asked to be flushed still owes its
+        // re-apply: the sample that arrived between two ticks is the position the sheet must show.
+        if (live.flushEveryTick && live.pending) {
+            live.pending = false
+            live.onScrolled(live.x, live.y)
+        }
     }
 
     /** One step of the ease for a pointer at ([x], [y]); true when the viewport moved. */

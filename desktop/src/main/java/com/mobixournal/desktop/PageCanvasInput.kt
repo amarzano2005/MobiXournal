@@ -511,6 +511,12 @@ private fun commitShape(
  *
  * Like the figure's drag, it scrolls the view at the canvas's border and re-applies itself on every tick,
  * so space can be opened at the far end of a page-long block without lifting the pen (`DragView`).
+ *
+ * Unlike a figure, it re-derives **the page**: every element below the line is rewritten. That is a few
+ * milliseconds on a dense sheet, and a pen reports several hundred samples a second, so the reflow is left
+ * to the canvas's ticker (`DragView.beginDrag(flushEveryTick = true)`) instead of running per sample — per
+ * event, the work saturated the thread the samples arrive on and the drag fell behind the hand. What the
+ * block is, and where it was, is answered **once**, at grab time (`VerticalSpaceOps.blockBelow`).
  */
 private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
     start: PointerInputChange,
@@ -524,20 +530,28 @@ private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
     var lastY = start.position.y
     val index = tab.page
     val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
+    // The block, fixed for the whole gesture: the elements below the line as it was at grab time, so passing
+    // an element on the way down never recruits it, and no frame recomputes a bounding box to find out.
+    val block = VerticalSpaceOps.blockBelow(original, y0)
     // The state before the gesture, taken once: a drag that shifts nothing never records it, so a pass
     // over empty space leaves no undo step behind.
     val before = tab.document.snapshot()
     var recorded = false
     var cancelled = false
+    /** The shift already on the page — a tick where the hand rested must cost nothing at all. */
+    var appliedDy = Double.NaN
     grabLine.value = y0
 
     /** Reflow the page so everything below the grab line answers the pointer at [py]. */
     fun reflow(py: Float) {
         val (_, y1) = pagePointOf(start.position.x, py, density, view.current())
+        val dy = y1 - y0
+        if (dy == appliedDy) return
+        appliedDy = dy
         // Always re-applied from the page as it was **at grab time**: the block is what lay below the line
-        // then, so passing an element on the way down never recruits it (the tablet's rule).
-        val shifted = VerticalSpaceOps.shiftBelow(listOf(original), 0, y0, y1 - y0)[0]
-        if (shifted == original) return
+        // then, so the drag cannot compound or recruit (the tablet's rule).
+        val shifted = VerticalSpaceOps.shiftBlock(original, block, dy)
+        if (shifted === original) return
         if (!recorded) {
             tab.record(before)
             recorded = true
@@ -548,14 +562,20 @@ private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
 
     // At the border the sheet travels and the block keeps following on the canvas's ticker, so a
     // paragraph longer than the window can be opened in one drag.
-    view.beginDrag(start.position.x, lastY) { _, py -> reflow(py) }
+    view.beginDrag(start.position.x, lastY, flushEveryTick = true) { _, py -> reflow(py) }
     try {
         while (!cancelled) {
             val change = awaitPointerEvent().changes.firstOrNull() ?: break
             lastY = change.position.y
+            // Where the pointer is, not what the page becomes: the ticker does one reflow per tick, and a
+            // burst of samples between two of them collapses into the position the hand is at now.
             view.moved(start.position.x, lastY)
-            reflow(lastY)
-            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) {
+                // The lift settles the last sample: the ticker stops with the drag, so without this the page
+                // would stop up to a tick short of where the hand let go.
+                reflow(lastY)
+                break
+            }
             change.consume()
         }
     } finally {

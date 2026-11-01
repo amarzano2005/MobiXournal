@@ -39,10 +39,15 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
   `DesktopTool.eraserMode()` (`EraserMode.STANDARD` / `WHOLE_STROKE`), which `PageInkGesture` passes to
   the same shared `PageEraser`, and one erased gesture is still one undo step either way.
 - **Vertical space reflows the page.** `Vertical space` (`Shift+V`) drops a grab line where the press
-  landed, painted as a hairline across the sheet above the ink; each move re-applies
-  `VerticalSpaceOps.shiftBelow` to the page **as it was at grab time**, so the block follows the pointer
+  landed, painted as a hairline across the sheet above the ink; the drag re-applies
+  `VerticalSpaceOps.shiftBlock` to the page **as it was at grab time**, so the block follows the pointer
   without recruiting the elements it passes, and the whole drag is one undo step. A drag that shifts
-  nothing records nothing. Snapping stays **off** (`snapSpacingPt = 0.0`, a continuous drag): the tablet
+  nothing records nothing. The reflow is **the ticker's, not the event's**: rewriting every element below the
+  line costs milliseconds on a dense sheet and a pen reports several hundred samples a second, so a sample
+  only records where the pointer is (`DragView.beginDrag(flushEveryTick = true)`) and the canvas's 8 ms
+  ticker applies one reflow per tick, the lift settling the last position. The block itself — which elements
+  the line carried — is read **once**, at grab time (`VerticalSpaceOps.blockBelow`), because it cannot
+  change during the gesture. Snapping stays **off** (`snapSpacingPt = 0.0`, a continuous drag): the tablet
   snaps to the ruling only when its Snap-to-grid setting is on, and the window has no such setting yet.
   Like a geometry slot, the drag is **not ink**, so the pen's packets stand aside for it too
   (`DesktopTool.inksByPackets()`): only the pen and the two erasers are fed from the driver. That is what

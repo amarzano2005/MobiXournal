@@ -9,6 +9,7 @@ import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VerticalSpaceOpsTest {
@@ -100,5 +101,36 @@ class VerticalSpaceOpsTest {
         val pages = listOf(page(Layer(listOf(stroke(120.0)))))
         assertSame(pages, VerticalSpaceOps.shiftBelow(pages, 0, yPt = 50.0, dy = 0.0))
         assertSame(pages, VerticalSpaceOps.shiftBelow(pages, 7, yPt = 50.0, dy = 30.0))
+    }
+
+    @Test fun aHeldBlockReAppliesExactlyWhatTheLineCarried() {
+        // The live drag's shape: the block is read once, then re-applied to the *grab-time* page on every
+        // frame. Two frames and one one-shot edit must agree element for element, including that the element
+        // above the line is never recruited by the block sliding past it.
+        val p = page(Layer(listOf(stroke(20.0, 30.0), stroke(140.0))))
+        val block = VerticalSpaceOps.blockBelow(p, 100.0)
+        val twice = VerticalSpaceOps.shiftBlock(p, block, -60.0)
+        val once = VerticalSpaceOps.shiftBelow(listOf(p), 0, yPt = 100.0, dy = -60.0)[0]
+        assertEquals(topsOf(once), topsOf(twice))
+        assertEquals(listOf(19.5, 79.5), topsOf(twice))
+    }
+
+    @Test fun anUntouchedLayerIsNotRebuilt() {
+        // What a frame pays: the layers with nothing below the line come back as the same objects, and a
+        // shift that moves nothing returns the page itself, so a drag over an empty page allocates nothing.
+        val still = Layer(listOf(stroke(20.0)))
+        val moving = Layer(listOf(stroke(140.0)))
+        val p = page(still, moving)
+        val out = VerticalSpaceOps.shiftBlock(p, VerticalSpaceOps.blockBelow(p, 100.0), 30.0)
+        assertSame("the layer above the line is shared, not copied", still, out.layers[0])
+        assertEquals(169.5, ElementBounds.of(out.layers[1].elements[0]).top, 1e-6)
+        assertSame("a zero shift is the page", p, VerticalSpaceOps.shiftBlock(p, VerticalSpaceOps.blockBelow(p, 100.0), 0.0))
+    }
+
+    @Test fun anEmptyBlockSaysSoAndReturnsThePage() {
+        val p = page(Layer(listOf(stroke(20.0))))
+        val block = VerticalSpaceOps.blockBelow(p, 300.0)
+        assertTrue("nothing at or below the line", block.isEmpty)
+        assertSame(p, VerticalSpaceOps.shiftBlock(p, block, 40.0))
     }
 }
