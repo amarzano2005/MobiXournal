@@ -230,8 +230,9 @@ the three instruments qualify (`DrawingGuide.isRememberable`) — the ruling and
 re-derive their anchor from the page — and the pose is dropped when the kind changes or the page it
 was posed on is gone, so a stored pose can never be applied to the wrong instrument. The guide chooser
 (`DrawingGuidePopup`, rail and secondary top bar) groups options into Off, Instruments (Setsquare, Compass,
-Protractor with 15° radial snapping) and Lattices (page ruling, 60°/120° chemistry) with dedicated vector
-glyphs; tapping an active guide toggles it off, and placement operates cleanly without triggering asynchronous
+Protractor with 15° radial snapping) and Lattices (page ruling, 60°/120° chemistry) with dedicated glyphs
+from the shared `ToolGlyphCatalogue` (`SETSQUARE`, `COMPASS`), so the window's guides slot wears the same
+picture; tapping an active guide toggles it off, and placement operates cleanly without triggering asynchronous
 settings feedback loops. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and the window's `DesktopPdfPainter`

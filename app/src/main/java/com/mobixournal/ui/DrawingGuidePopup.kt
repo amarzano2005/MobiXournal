@@ -34,51 +34,25 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ToolGlyph
+import com.mobixournal.design.ToolGlyphCatalogue
 import com.mobixournal.render.GuideKind
 import com.mobixournal.ui.theme.rememberChromeInk
 
-/** Outline glyph for the technical Setsquare (30/60/90 triangle ruler). */
+/**
+ * The guide chooser's faces, from the **shared** catalogue.
+ *
+ * They used to be two vectors built here, which meant the window's guides slot could only have drawn a
+ * second setsquare of its own. [ToolGlyph.SETSQUARE] and [ToolGlyph.COMPASS] are the one art now, on the
+ * 24-unit grid `glyphVector` builds from, so the tablet's menu and the PC's slot show one picture.
+ */
 val SetsquareIcon: ImageVector by lazy {
-    ImageVector.Builder("Setsquare", 24.dp, 24.dp, 24f, 24f).apply {
-        path(
-            fill = null,
-            stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
-            strokeLineCap = StrokeCap.Round,
-            strokeLineJoin = StrokeJoin.Round,
-        ) {
-            moveTo(4f, 20f)
-            lineTo(20f, 20f)
-            lineTo(4f, 7f)
-            close()
-            moveTo(7f, 17f)
-            lineTo(13f, 17f)
-            lineTo(7f, 12f)
-            close()
-        }
-    }.build()
+    glyphVector("Setsquare", ToolGlyphCatalogue.parts(ToolGlyph.SETSQUARE))
 }
 
-/** Outline glyph for the drafting compass. */
+/** Outline glyph for the drafting compass, from the shared catalogue. */
 val CompassIcon: ImageVector by lazy {
-    ImageVector.Builder("Compass", 24.dp, 24.dp, 24f, 24f).apply {
-        path(
-            fill = null,
-            stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
-            strokeLineCap = StrokeCap.Round,
-            strokeLineJoin = StrokeJoin.Round,
-        ) {
-            moveTo(12f, 3f)
-            lineTo(12f, 6f)
-            moveTo(12f, 6f)
-            lineTo(6f, 21f)
-            moveTo(12f, 6f)
-            lineTo(18f, 21f)
-            moveTo(8.5f, 14f)
-            quadTo(12f, 15.5f, 15.5f, 14f)
-        }
-    }.build()
+    glyphVector("Compass", ToolGlyphCatalogue.parts(ToolGlyph.COMPASS))
 }
 
 /** Outline glyph for the semicircular graduated protractor. */

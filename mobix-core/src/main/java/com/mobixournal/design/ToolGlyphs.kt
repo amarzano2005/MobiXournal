@@ -65,6 +65,17 @@ enum class ToolGlyph {
     /** The polygon: an outline of no fixed number of sides, with its corners marked. */
     POLYGON,
 
+    /**
+     * The drafting **setsquare** — the 30/60/90 triangle a guide is held against.
+     *
+     * Not a tool that lays ink: it wears the window's guides slot and a row of the tablet's guide chooser,
+     * so its picture belongs here with every other face either shell can put on a slot.
+     */
+    SETSQUARE,
+
+    /** The drafting **compass** — two legs from the pivot and the arc they sweep. */
+    COMPASS,
+
     TABLE,
     RESISTOR,
     CAPACITOR,
@@ -186,6 +197,15 @@ object ToolGlyphCatalogue {
         // not read as one more fixed-sided figure either side of a number.
         ToolGlyph.POLYGON -> polygon(12f, 3f, 21f, 10f, 17f, 21f, 5f, 21f, 3f, 10f) +
             listOf(GlyphPart.Circle(12f, 3f, 1.1f), GlyphPart.Circle(21f, 10f, 1.1f), GlyphPart.Circle(5f, 21f, 1.1f))
+        // The two guide instruments. Their art is the tablet's own guide vectors transcribed onto this
+        // grid, so the menu it has always drawn and the window's slot are one picture.
+        ToolGlyph.SETSQUARE -> polygon(4f, 20f, 20f, 20f, 4f, 7f) + polygon(7f, 17f, 13f, 17f, 7f, 12f)
+        ToolGlyph.COMPASS -> listOf(
+            GlyphPart.Line(12f, 3f, 12f, 6f),
+            GlyphPart.Line(12f, 6f, 6f, 21f),
+            GlyphPart.Line(12f, 6f, 18f, 21f),
+            GlyphPart.Quad(8.5f, 14f, 12f, 15.5f, 15.5f, 14f),
+        )
         ToolGlyph.TABLE -> table()
         ToolGlyph.RESISTOR -> resistor()
         ToolGlyph.CAPACITOR -> capacitor()
