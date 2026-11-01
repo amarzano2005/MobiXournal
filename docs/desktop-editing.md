@@ -125,6 +125,17 @@ belongs to the selection, never to what lies beneath it: the group is never repl
 second click landed on, and only a selection of exactly one living element opens its editor — the tablet's
 double-tap, which the pencil already is.
 
+The drag writes the page **per sample** (each sample transforms the caught elements against the grab-time
+snapshot) and the sheet therefore records itself again on the frame that follows, which is the price this
+gesture pays and has been measured rather than assumed: one sample costs the model ~0.2 ms and the frame
+~1 ms of recording on the written sheet `DesktopWritingCostTest` uses (a frame that replays costs ~0.02 ms).
+Against the vertical-space drag's 5.2 ms of reflow per sample — which re-recorded the sheet 48 times a second
+— that is not the jank source, so this gesture deliberately keeps the simple write-then-record shape instead
+of a second two-half preview (`ShiftPictures` exists for the tool that needed it). `DesktopSelectionCostTest`
+pins the numbers: **one record per frame, never one per sample**, a replay that stays an order of magnitude
+cheaper than a record, and a sample whose cost is the selection rather than the page. A change that makes the
+drag copy the whole sheet per pointer event fails that test instead of reaching a hand.
+
 ## Reading a PDF page: text selection and the magnetic highlighter
 
 Two gestures treat a PDF page as **text** rather than as paper, and neither writes to the file:
