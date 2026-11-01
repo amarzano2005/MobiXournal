@@ -39,7 +39,6 @@ import com.mobixournal.render.Placement
 import com.mobixournal.render.RadialHud
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.Uncompilable
-import com.mobixournal.render.tracePenParameters
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.bandSideEdge
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
@@ -230,7 +229,7 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     panSensitivity = s.panSensitivity
     // With pen diagnostics open, print the pressure filter as the surface now holds it: that line is
     // what turns "the sensitivity slider does nothing" into either the new value or a missing wire.
-    tracePenParameters()
+    refreshPenParameters()
 }
 
 /**

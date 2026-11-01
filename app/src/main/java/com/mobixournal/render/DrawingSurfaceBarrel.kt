@@ -79,7 +79,7 @@ internal fun DrawingSurfaceView.pressBarrelButton(eventTime: Long, firmwareClick
     }
     if (firmwareClick) {
         if (!vendorClicks.fires(eventTime)) {
-            notePenDebug("CLICK swallowed (same gesture)")
+            diagnostics.note("CLICK swallowed (same gesture)")
             return
         }
         if (current != null || erasing) endGesture()
@@ -100,7 +100,7 @@ internal fun DrawingSurfaceView.pressBarrelButton(eventTime: Long, firmwareClick
  */
 internal fun DrawingSurfaceView.runBarrelClickAction() {
     val action = inputSettings.barrelDoubleAction
-    notePenDebug("CLICK -> " + action.name.lowercase().replace('_', ' '))
+    diagnostics.note("CLICK -> " + action.name.lowercase().replace('_', ' '))
     runQuickAction(action)
 }
 

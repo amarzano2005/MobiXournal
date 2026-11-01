@@ -101,11 +101,9 @@ import com.mobixournal.render.SearchStatus
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.applyChromeColors
-import com.mobixournal.render.clearPenDebug
 import com.mobixournal.render.replaceMathBlock
 import com.mobixournal.render.replaceShapeElement
 import com.mobixournal.render.repaintAfterResize
-import com.mobixournal.render.setPenDebug
 import com.mobixournal.render.resetZoom
 import com.mobixournal.render.zoomIn
 import com.mobixournal.render.zoomOut
@@ -1637,7 +1635,7 @@ fun EditorPaneView(
                             }
                         }
                         // The diagnostics panel is fed straight from the canvas it reports on.
-                        it.onPenDebug = { lines -> state.penDebugLines = lines }
+                        it.diagnostics.onSnapshot = { lines -> state.penDebugLines = lines }
                         state.surface = it
                         onSurfaceCreated(index, it)
                     }

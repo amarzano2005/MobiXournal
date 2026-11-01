@@ -49,7 +49,11 @@ subjects and is split (the doc and the guard gain the new row in the same commit
 The other half of the same story. `DrawingSurfaceView` is one object whose state is reached by extension
 functions in **20 files** (`DrawingSurface*.kt`, ~5 000 lines): input, selection, painting, the page's
 services, hover/barrel, the karaoke painter, and so on. Splitting those into objects that *own* their state is
-the real fix and is not done; what is enforced now is that the pile **stops growing**:
+the fix, and it is **under way**: a cluster becomes a class in `Canvas<Subject>.kt` beside the canvas
+(`CanvasDiagnostics.kt` — the pen log, its coalesced push and the frame watchdog — is the first), constructed
+by the view, holding its own state, with three entry points at most. A **new** blank state and the code that
+moves it belong in such an object, never in another `DrawingSurface*.kt` extension. Until every cluster is
+out, the pile is only allowed to shrink:
 
 - the number of `DrawingSurface*.kt` files may not exceed **20** (a new one fails the build),
 - each of them keeps the `DrawingSurface<Facet>` name, so the file name still answers which facet it is,

@@ -14,7 +14,7 @@ import java.util.Locale
  *
  * Android-free — plain strings and ints — so the buffer is unit-testable on the JVM
  * (see `PenInputLogTest`); the mapping from `MotionEvent`/`KeyEvent` to the arguments of
- * [PenEventText] happens in `DrawingSurfacePenDebug.kt`.
+ * [PenEventText] happens in `CanvasDiagnostics.kt`.
  */
 internal class PenInputLog(private val capacity: Int = DEFAULT_CAPACITY) {
 

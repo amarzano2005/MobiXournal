@@ -17,7 +17,7 @@ import kotlin.math.hypot
  * above hands those events on to [SurfaceView].
  */
 internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
-    tracePenMotion(event)
+    diagnostics.motion(event)
     // The barrel latch tracks touch events too, so a button pressed — or let go — with the tip already
     // on the glass is seen just as one pressed while hovering is.
     barrelButton.onMotion(event.buttonState, buttonKindOf(event))
@@ -104,7 +104,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
 
 /** Barrel tracking plus the wheel; null means "not ours" and falls through to [SurfaceView]. */
 internal fun DrawingSurfaceView.handleGenericMotion(event: MotionEvent): Boolean? {
-    tracePenMotion(event)
+    diagnostics.motion(event)
     trackBarrelClicks(event)
     if (event.actionMasked == MotionEvent.ACTION_SCROLL && handleWheelScroll(event)) return true
     return null
@@ -127,7 +127,7 @@ internal fun DrawingSurfaceView.finishMultiFingerTap(event: MotionEvent): Boolea
 
 /** The hover preview's state machine; null means "not ours" and falls through to [SurfaceView]. */
 internal fun DrawingSurfaceView.handleHover(event: MotionEvent): Boolean? {
-    tracePenMotion(event)
+    diagnostics.motion(event)
     trackBarrelClicks(event)
     if (event.actionMasked == MotionEvent.ACTION_HOVER_EXIT) {
         // The pen left the glass's range without a release event the app could see: the ring goes

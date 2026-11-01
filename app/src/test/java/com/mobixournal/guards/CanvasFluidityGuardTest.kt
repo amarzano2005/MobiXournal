@@ -97,8 +97,8 @@ class CanvasFluidityGuardTest {
     fun `the frame watchdog is fed by the paint with the raster count`() {
         val text = source("DrawingSurfacePaint.kt")
         assertTrue(
-            "paint() must feed FrameWatchdog, or the panel has no frame numbers at all",
-            text.contains("frameWatchdog.painted("),
+            "paint() must feed the canvas's FrameWatchdog, or the panel has no frame numbers at all",
+            text.contains("diagnostics.frame("),
         )
         assertTrue(
             "and it must carry the ink cache's raster count, the number that shows a per-frame rebuild",

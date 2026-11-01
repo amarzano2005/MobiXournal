@@ -132,7 +132,7 @@ paths above are claims about hardware the app cannot see, the input layer carrie
 lines are formatted by **`PenEventText`** — tool types, actions, button bits, the **raw pressure**
 the tablet reports for the pointer, the **tilt and azimuth axes shown in degrees** (a spec sheet quotes
 degrees; the document stores the platform's radians), key codes with their names, and the input-device
-list with each device's source flags (`DrawingSurfacePenDebug.kt` records the devices when the panel
+list with each device's source flags (`CanvasDiagnostics.kt` records the devices when the panel
 opens). Pressure and both axes are part of the de-duplication key, so a press that never moves — or a
 pen tilted without moving — still shows up.
 

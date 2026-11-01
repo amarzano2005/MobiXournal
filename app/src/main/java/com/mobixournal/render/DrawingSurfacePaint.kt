@@ -151,9 +151,7 @@ internal fun DrawingSurfaceView.paint() {
  * ([DrawingSurfaceView.postPenLogFlush]) already keeps a burst of events down to one push per UI pass.
  */
 private fun DrawingSurfaceView.reportFrame(elapsedNanos: Long) {
-    val line = frameWatchdog.painted(elapsedNanos / 1e6, inkCache.rasters) ?: return
-    if (!penDebugEnabled) return
-    if (penLog.record(line)) postPenLogFlush()
+    diagnostics.frame(elapsedNanos / 1e6, inkCache.rasters)
 }
 
 /**

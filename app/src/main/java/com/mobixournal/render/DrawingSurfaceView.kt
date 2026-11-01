@@ -1427,7 +1427,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         // The diagnostics panel watches every key, not only the barrel's: what a pen's button really
         // arrives as is exactly what the panel is for.
-        tracePenKey(event)
+        diagnostics.key(event)
         // A stylus barrel button may be reported as a key event (Android 14+ Bluetooth pens); catch it
         // here as well as at the activity, so it still works wherever the event is delivered first.
         if (onStylusButtonKey(event)) return true
@@ -1469,49 +1469,30 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal val barrelButton = BarrelButtonState()
 
     // --- pen diagnostics -------------------------------------------------------------------------
-    // A live log of the raw input stream, shown on the canvas itself (see `DrawingSurfacePenDebug`
-    // and [PenInputLog]). Off unless the user switches it on from the top-bar menu.
+    // A live log of the raw input stream, shown on the canvas itself, and the frame record beside it. The
+    // log, the flag, the coalesced push and the watchdog are [CanvasDiagnostics]'s state — this view owns
+    // the reference and the three entry points the editor calls, and nothing else.
 
-    /** Whether the pen-event log is recording. */
-    internal var penDebugEnabled = false
-
-    /** Receives the log's snapshots while the panel is on — the editor's overlay renders them. */
-    internal var onPenDebug: ((List<String>) -> Unit)? = null
-
-    /** The buffered diagnostic lines. */
-    internal val penLog = PenInputLog()
+    /** The canvas's own diagnostics: the stylus stream the panel shows and the frames it counts. */
+    internal val diagnostics = CanvasDiagnostics(post = { runnable -> post(runnable) })
 
     /**
-     * The canvas's own frame record — how fast frames come, how long the worst took, how much of it was the
-     * paint and how many page rasters the cache produced ([FrameWatchdog]).
+     * Switch the pen panel on or off (the editor's menu item).
      *
-     * Pushed into [penLog] once a second while the pen panel is on, so the numbers appear where a stylus
-     * problem is already being read instead of needing a second overlay.
+     * Switching it on describes the pen first — the devices it arrives from and the pressure parameters in
+     * force — because those are what make the first lines readable.
      */
-    internal val frameWatchdog = FrameWatchdog()
-
-    private var penLogFlushPosted = false
-
-    /**
-     * Push the log to [onPenDebug] once per UI pass, coalescing a burst of events into one snapshot:
-     * a pen moving across the glass emits far faster than anything can re-render.
-     */
-    private val penLogFlush = Runnable {
-        penLogFlushPosted = false
-        onPenDebug?.invoke(penLog.snapshot())
+    internal fun setPenDebug(enabled: Boolean) = diagnostics.setEnabled(enabled) {
+        devices()
+        parameters(pressureEnabled, pressureMultiplier, minimumPressure, baseWidthPt)
     }
 
-    /** Schedule the coalesced snapshot push ([penLogFlush]). */
-    internal fun postPenLogFlush() {
-        if (penLogFlushPosted) return
-        penLogFlushPosted = true
-        // Before the first layout (or while detached) `post` never runs; deliver straight away instead
-        // of leaving the panel stuck empty.
-        if (!post(penLogFlush)) {
-            penLogFlushPosted = false
-            onPenDebug?.invoke(penLog.snapshot())
-        }
-    }
+    /** Forget the recorded lines, leaving the panel open (and recording) — the user's Clear button. */
+    internal fun clearPenDebug() = diagnostics.clear()
+
+    /** Re-state the pressure parameters in force: called when Settings are pushed onto the canvas. */
+    internal fun refreshPenParameters() =
+        diagnostics.parameters(pressureEnabled, pressureMultiplier, minimumPressure, baseWidthPt)
 
     /** Button-only events (press/release with the tip off the glass) arrive here, not in touch. */
     override fun onGenericMotionEvent(event: MotionEvent): Boolean =
