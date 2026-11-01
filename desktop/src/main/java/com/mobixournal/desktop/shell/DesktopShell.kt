@@ -324,6 +324,12 @@ class DesktopShellState(
      */
     private val inkState = DesktopInkState(settings) { tools.current }
 
+    /** The pen-tip ring: where it is open, and the strips' own entries as its commits (`DesktopRing`). */
+    internal val ring = DesktopRing(
+        palette = { palette }, custom = { paletteCustom },
+        onColour = ::pickColour, onWidth = ::pickWidth, onTool = { selectTool(it) },
+    )
+
     /** The ink of the picked tool — the pen's, or the highlighter's colour and width **slot**. */
     val ink: DesktopInk get() = inkState.ink
 
@@ -528,28 +534,8 @@ class DesktopShellState(
         // The Settings surface owns the keyboard while it is up: `Esc` clears its search or closes it, and
         // nothing on the page underneath is a command while a page it cannot see is covered.
         if (prefs.onKey(event)) return true
-        // A question owns `Esc` before anything else: Cancel is the answer that loses nothing.
-        if (event.key == Key.Escape && closeRequest != null) {
-            cancelClose()
-            return true
-        }
-        // A living element's editor owns `Esc` first: the lane closes before a selection or a message.
-        if (event.key == Key.Escape && editingLiving != null) {
-            closeLivingEditor()
-            return true
-        }
-        // A selection owns `Esc` while there is one: the outline goes before a message is dismissed.
-        if (event.key == Key.Escape && dismissSelection(tabs.active)) return true
-        // A colour panel that is up owns `Esc`: it closes before anything else the key might mean.
-        if (event.key == Key.Escape && editing != null) {
-            cancelColourEdit()
-            return true
-        }
-        // So does a tool group's picker: a chevron that opened a list must not hang over the page.
-        if (event.key == Key.Escape && openGroup != null) {
-            openGroup = null
-            return true
-        }
+        // `Esc` walks the surfaces the shell puts over the page, newest first (`WindowEscape.keys`).
+        if (event.key == Key.Escape && WindowEscape.keys(this)) return true
         // `Alt + Down` is the picker's key, checked before the table where bare `Down` means "next page".
         if (toolPickerKey(event.key, alt = event.isAltPressed)) {
             toggleToolPicker()
@@ -617,6 +603,8 @@ class DesktopShellState(
                 return true
             }
             // The three switches need no document: they only change what a drag would do.
+            // The ring at the pen: `Alt+B` opens it where the nib is, a second press puts it away.
+            ShellCommand.RADIAL_HUD -> return ring.summon()
             ShellCommand.TOGGLE_ERASER, ShellCommand.TOGGLE_HAND, ShellCommand.TOGGLE_SELECTION -> {
                 toggleTool(
                     when (command) {
@@ -708,7 +696,7 @@ class DesktopShellState(
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.TOGGLE_FULLSCREEN, ShellCommand.SAVE, ShellCommand.SAVE_AS,
             ShellCommand.EXPORT_PDF, ShellCommand.TOGGLE_ERASER, ShellCommand.TOGGLE_HAND,
-            ShellCommand.TOGGLE_SELECTION -> false
+            ShellCommand.TOGGLE_SELECTION, ShellCommand.RADIAL_HUD -> false
         }
     }
 

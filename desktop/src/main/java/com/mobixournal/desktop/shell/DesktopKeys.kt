@@ -97,6 +97,16 @@ enum class ShellCommand {
     TOGGLE_ERASER,
     TOGGLE_HAND,
     TOGGLE_SELECTION,
+
+    /**
+     * Open the **pen-tip ring** at the nib, or put an open one away (`Alt+B`) — the window's half of
+     * `docs/ui-modernization.md` (*The pen-tip HUD*).
+     *
+     * It is the door a **mouse** has: the pen's side button summons the ring too, but only a tablet has one
+     * and the tertiary button already pans the page. A key-opened ring is a picker — a click on a slot
+     * commits it — because there is no held button to release.
+     */
+    RADIAL_HUD,
 }
 
 /** What an ink key means, independent of the platform's event type (and therefore testable). */

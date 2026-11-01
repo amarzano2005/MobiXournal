@@ -41,6 +41,8 @@ internal fun Modifier.sheetGestures(
     targets: PagePressTargets,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
+    /** The pen-tip ring: while it is up, every press on the page belongs to it. */
+    hud: HudUi = HudUi(),
 ): Modifier = pointerInput(
     tab, panMode, tool, ink, shapeInk, pen,
     sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH,
@@ -77,6 +79,7 @@ internal fun Modifier.sheetGestures(
         guideAim = pointer.guideAim,
         onViewport = onViewport,
         onEdited = onEdited,
+        hud = hud,
     )
 }
 

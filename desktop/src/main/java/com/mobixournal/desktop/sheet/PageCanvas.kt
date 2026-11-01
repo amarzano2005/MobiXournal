@@ -24,7 +24,6 @@ import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.TextBoxUi
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,18 +37,15 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
@@ -154,16 +150,13 @@ internal fun PageCanvas(
      * what is left of it, so opening a document puts the sheet in the clear space beside the bar.
      */
     chrome: ChromeInset = ChromeInset.NONE,
+    /** The pen-tip ring: up or not, what it holds, and where the nib is reported (`HudUi`). */
+    hud: HudUi = HudUi(),
     modifier: Modifier = Modifier,
 ) {
     // The page, its drafts and the two readings the gesture scope shares: one call (`PageCanvasMemory`).
     val state = rememberPageCanvasMemory(tab, ink, circuitKind, onPlaceLiving, onEdited)
-    BoxWithConstraints(
-        modifier
-            .background(DESK)
-            .clipToBounds()
-            .onGloballyPositioned(state.canvas.memory::track),
-    ) {
+    BoxWithConstraints(modifier.nibReporting(state.canvas.memory, state.density, hud)) {
         CanvasBox(
             tab = tab,
             page = state.page,
@@ -196,7 +189,9 @@ internal fun PageCanvas(
             onEdited = onEdited,
             packets = packets,
             chrome = chrome,
+            hud = hud,
         )
+        DesktopHudLayer(hud, state.canvas.memory, state.density)
     }
 }
 /**
@@ -321,6 +316,8 @@ internal fun SheetCanvas(
     onViewport: (Viewport) -> Unit,
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
+    /** The pen-tip ring: up or not, what it holds, and that its press is never the page's. */
+    hud: HudUi = HudUi(),
 ) {
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`SheetMark`).
     val mark = sheetMark(tool, ink, shapeInk, sheet, density, pointer)
@@ -348,6 +345,7 @@ internal fun SheetCanvas(
                 onViewport = onViewport,
                 onFit = onFit,
                 onEdited = onEdited,
+                hud = hud,
             ),
         ) {
             paintSheetOf(
@@ -439,6 +437,7 @@ private fun Modifier.sheetInput(
     onViewport: (Viewport) -> Unit,
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
+    hud: HudUi = HudUi(),
 ): Modifier = this
     .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode))
     .hoverTracking(pointer, followMouse)
@@ -451,6 +450,7 @@ private fun Modifier.sheetInput(
     }
     .sheetGestures(
         tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft, targets, onViewport, onEdited,
+        hud = hud,
     )
 
 /**

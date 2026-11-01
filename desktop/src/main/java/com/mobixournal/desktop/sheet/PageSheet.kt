@@ -69,6 +69,8 @@ internal fun PageSheet(
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
     packets: PenPacketSource?,
+    /** The pen-tip ring: up or not, what it holds, and that its press is never the page's. */
+    hud: HudUi = HudUi(),
 ) {
     PenPaths(
         tab = tab,
@@ -115,8 +117,26 @@ internal fun PageSheet(
         onViewport = onViewport,
         onFit = onFit,
         onEdited = onEdited,
+        hud = hud,
     )
-    // What floats over the sheet — the Text field and the selection's bar — in the page's own mapping.
+    SheetOverlaysOf(tab, text, sheet, density, selectionBar, extent)
+}
+
+/**
+ * What floats over the sheet — the Text field and the selection's bar — in the page's own mapping.
+ *
+ * A named composable because the page's own layout is already the canvas and this is the one piece that is not
+ * a surface of the page: it reads the mapping rather than taking part in it.
+ */
+@Composable
+private fun SheetOverlaysOf(
+    tab: DesktopTab,
+    text: TextBoxUi,
+    sheet: SheetLayout,
+    density: Float,
+    selectionBar: SelectionBarUi,
+    extent: () -> Size,
+) {
     SheetOverlays(
         text = text,
         zoom = sheet.zoom,
@@ -238,6 +258,8 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     packets: PenPacketSource?,
     /** The room the floating strips take, so a fitted page is framed beside them (`ChromeInset`). */
     chrome: ChromeInset,
+    /** The pen-tip ring: up or not, what it holds, and that its press is never the page's. */
+    hud: HudUi = HudUi(),
 ) {
     val viewW = maxWidth.value
     val viewH = maxHeight.value
@@ -278,5 +300,6 @@ internal fun BoxWithConstraintsScope.CanvasBox(
         onFit = onFit,
         onEdited = onEdited,
         packets = packets,
+        hud = hud,
     )
 }

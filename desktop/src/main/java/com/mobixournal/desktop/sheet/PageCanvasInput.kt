@@ -120,6 +120,8 @@ internal suspend fun PointerInputScope.pageGestures(
     guideAim: MutableState<GuideAim?>? = null,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
+    /** The pen-tip ring: while it is up, every press on the page belongs to it. */
+    hud: HudUi = HudUi(),
 ) {
     // The drags' shared view: the live mapping, and the eased edge scroll each of them may ask for.
     val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
@@ -154,7 +156,7 @@ internal suspend fun PointerInputScope.pageGestures(
             draft = draft, grabLine = grabLine, liveShift = liveShift, previewRegion = previewRegion,
             guideAim = guideAim, onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
-            viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
+            viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport, hud = hud,
         )
     }
 }
@@ -183,9 +185,16 @@ private suspend fun PointerInputScope.pageGestureLoop(
     viewH: Float,
     onViewport: (Viewport) -> Unit,
     viewport: () -> Viewport,
+    hud: HudUi = HudUi(),
 ) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
+        // The ring lies over the page: while it is up **every** press belongs to it, and none of them inks,
+        // pans or selects.
+        if (hud.open() != null) {
+            ringTakesThePress(hud, down.position, density)
+            return@awaitEachGesture
+        }
         // The packets own the pen only for the slots they draw (`inksByPackets`), and never while Space
         // is held: that is the hand's pan (`PenPacketPan`), and a pen that inked through it would draw a
         // line across the page it is scrolling. Standing aside for every slot would leave a
@@ -201,24 +210,9 @@ private suspend fun PointerInputScope.pageGestureLoop(
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
-        // The Text slot **types** instead of drawing: a press opens a box at that point and hands the
-        // keyboard to the field it opens. The click is the whole gesture, and nothing is written until
-        // the box is committed, so an abandoned one leaves no element and no undo step.
-        if (tool == DesktopTool.TEXT) {
-            val (tx, ty) = pagePointOf(down.position.x, down.position.y, density, vp)
-            if (tx in 0.0..pageW.toDouble() && ty in 0.0..pageH.toDouble()) {
-                targets.onTextPress?.invoke(tx, ty, pageW.toDouble(), pageH.toDouble())
-            }
-            return@awaitEachGesture
-        }
-        // The **Audio tap** slot replays rather than draws: a press picks the topmost stroke under the point
-        // and plays its recording from the point touched, exactly as the tablet's Play object does. It is
-        // never ink and never a drag, so the gesture ends at the click.
-        if (tool == DesktopTool.AUDIO) {
-            val (ax, ay) = pagePointOf(down.position.x, down.position.y, density, vp)
-            if (ax in 0.0..pageW.toDouble() && ay in 0.0..pageH.toDouble()) {
-                DesktopAudioSession.tapAt(tab, ax, ay)
-            }
+        // A slot whose product is not ink **clicks** instead of drawing — the Text box it opens, the take the
+        // Audio slot replays — so the gesture ends at the press and no page edit is recorded.
+        if (clickSlotTakesThePress(down, tool, tab, vp, density, pageW, pageH, targets)) {
             return@awaitEachGesture
         }
         // The **PDF text** slot reads instead of drawing: a press anchors the word under it and the drag
@@ -257,6 +251,37 @@ private suspend fun PointerInputScope.pageGestureLoop(
         }
         if (inkDrag(down, gesture, packetsOwn)) return@awaitEachGesture
     }
+}
+
+/**
+ * The two slots whose gesture is one **click**: Text opens a box and hands the keyboard to its field, Audio
+ * replays the take under the point. True when the press was one of them — on the page, or off it (a click in
+ * the margin opens nothing and writes nothing).
+ *
+ * A text box is written on commit and a replay is never ink, so neither leaves an element or an undo step
+ * behind an abandoned gesture.
+ */
+private fun clickSlotTakesThePress(
+    down: PointerInputChange,
+    tool: DesktopTool,
+    tab: DesktopTab,
+    viewport: Viewport,
+    density: Float,
+    pageW: Float,
+    pageH: Float,
+    targets: PagePressTargets,
+): Boolean {
+    if (tool != DesktopTool.TEXT && tool != DesktopTool.AUDIO) return false
+    val (x, y) = pagePointOf(down.position.x, down.position.y, density, viewport)
+    if (x in 0.0..pageW.toDouble() && y in 0.0..pageH.toDouble()) {
+        // The box opens where it was typed on; the Audio slot is the tablet's Play object, from the touch.
+        if (tool == DesktopTool.TEXT) {
+            targets.onTextPress?.invoke(x, y, pageW.toDouble(), pageH.toDouble())
+        } else {
+            DesktopAudioSession.tapAt(tab, x, y)
+        }
+    }
+    return true
 }
 
 /**

@@ -186,6 +186,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Audio Tap / Replay | `Y` | The header audio pill's Play — no tool slot |
 | **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Tap on color swatch / Rail slot |
 | | Tool Group Picker | `Alt + Down` | Chevron, right-click or hold on a grouped slot |
+| | Pen-tip ring (HUD) | `Alt + B` | The stylus barrel button, bound to **Hud** in Settings → Stylus |
 | | Stroke Width Up / Down | `]`, `[` | Rail's size slot |
 | | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture |
 | | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap |
@@ -194,3 +195,27 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 - **Universal Shortcut & Individual Color Remapping**: All keybindings, tools, and **individual color palette slots**
   are remappable via **Settings → Input & Shortcuts**: a shortcut or a stylus gesture can select a specific
   user-defined HEX color (e.g. `Alt+1` for Pure Black `#000000`), not just the 3 factory favourites.
+
+### 4. The pen-tip ring (`Alt + B`)
+
+The tablet's **pen-tip HUD** ([`ui-modernization.md`](ui-modernization.md), *The pen-tip HUD*) on the PC: `Alt + B`
+opens a ring centred on the nib — the last place the pointer was over the page, and the canvas's centre until a
+pointer has been there at all — and nothing is on screen until it is summoned. It holds the tablet's own
+contents in the tablet's own order: the palette's swatches (the editable custom HEX slot last among them), the
+three pen widths, then pen / highlighter / eraser. Three writing tools and no more: the ring is a writing
+control, and the strips keep everything else.
+
+- **How it closes.** A key-opened ring is a **picker** — there is no held button to release — so a **click on a
+  slot** commits it and closes the ring, a click inside the ring but off a slot does nothing (it was aimed at
+  the ring, not through it), and a click well outside it, `Esc`, or a second `Alt + B` puts it away without
+  changing anything. Every press while the ring is up is the ring's: nothing is inked, panned or selected under it.
+- **What a commit is.** The entries the rail and the flyouts already use (`pickColour`, `pickWidth`,
+  `selectTool`), so a ring choice cannot mean something you could not have set by hand; the picked tool's own
+  ink is what changes, exactly as the colour capsule changes it.
+- **Material.** A floating surface that happens to be round: the floating fill at its panel alpha, the hairline
+  rim, the steel plate under the picked slot and the accent ring around it, a swatch in its own colour inside a
+  chrome-ink rim, a width as a dot of that width, a tool as its catalogue glyph. Tokens only — `DesktopThemeTest`
+  sweeps the chrome sources.
+- **The dial is not part of it** (decision 2026-11-01). A turn still zooms at the cursor, its documented job in
+  [`desktop-tablet.md`](desktop-tablet.md): the ring is a pick the pen is already making, and a second device for
+  the same choice would be a second rule about what a notch means.

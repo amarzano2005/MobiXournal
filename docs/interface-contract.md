@@ -47,6 +47,9 @@ Every surface is one of three objects. Pick the class from what the element *doe
   `ChromeGeometryGuardTest.bandsShadeTheirOwnClosingEdgeAndCastNothing` fails the build if a tablet band
   gains an elevation again, or loses its own edge.
 - A picker, menu or dialog that comes and goes **may** lie over the page; a band **may not**.
+- **The pen-tip ring is a floating surface that happens to be round** ([`ui-modernization.md`](ui-modernization.md)):
+  the floating fill and the rim at its own radius instead of the 20 dp panel corner, the picked slot on the steel
+  with the accent ring around it — a menu's tokens, arranged round because the choice is made with a flick.
 - **The window's tool strips take a lane, as the tablet's do** (decision 2026-10-28). The rail stands in a
   band down an edge and the ribbon in a band under the header — the header's own material and its one 4 dp
   lift — with the tablet's capsule standing *in* that band: the rail 52 dp in a 64 dp lane, the ribbon

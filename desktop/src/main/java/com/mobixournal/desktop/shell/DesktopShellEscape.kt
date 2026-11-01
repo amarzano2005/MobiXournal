@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettingsState
+import com.mobixournal.desktop.sheet.dismissSelection
 
 /**
  * `Esc`, in the order the window's surfaces stack: the drag in flight, the placement question, the
@@ -17,6 +18,43 @@ import com.mobixournal.desktop.settings.DesktopSettingsState
  * panel closes through its own state.
  */
 internal object WindowEscape {
+
+    /**
+     * The shell's own `Esc` order, for the surfaces it puts **over the page**: the pen-tip ring, the close
+     * question, a living element's editor, a selection, a colour panel, a tool group's picker. Newest first,
+     * because the newest thing on screen is the one the key was aimed at.
+     *
+     * It lives beside [dismiss] rather than in the shell file for the same reason: the *order* is the whole of
+     * what it answers, and it reads only values the window's own chrome draws from.
+     */
+    fun keys(state: DesktopShellState): Boolean {
+        // The ring lies over everything it floats over, and nothing exists until it is summoned: whatever it
+        // covers, it is the newest surface on screen.
+        if (state.ring.dismiss()) return true
+        // A question owns `Esc` before anything else: Cancel is the answer that loses nothing.
+        if (state.closeRequest != null) {
+            state.cancelClose()
+            return true
+        }
+        // A living element's editor owns `Esc` next: the lane closes before a selection or a message.
+        if (state.editingLiving != null) {
+            state.closeLivingEditor()
+            return true
+        }
+        // A selection owns `Esc` while there is one: the outline goes before a message is dismissed.
+        if (dismissSelection(state.tabs.active)) return true
+        // A colour panel that is up owns `Esc`: it closes before anything else the key might mean.
+        if (state.editing != null) {
+            state.cancelColourEdit()
+            return true
+        }
+        // So does a tool group's picker: a chevron that opened a list must not hang over the page.
+        if (state.openGroup != null) {
+            state.openGroup = null
+            return true
+        }
+        return false
+    }
 
     /** Close the newest surface on screen; false when there is nothing to put away. */
     fun dismiss(state: DesktopShellState): Boolean {

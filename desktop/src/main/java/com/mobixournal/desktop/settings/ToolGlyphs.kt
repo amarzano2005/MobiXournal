@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import com.mobixournal.design.GlyphPart
 import com.mobixournal.design.ToolGlyph
 import com.mobixournal.design.ToolGlyphCatalogue
@@ -33,12 +34,29 @@ internal fun DrawScope.drawToolGlyph(glyph: ToolGlyph, color: Color) =
     drawGlyphParts(ToolGlyphCatalogue.parts(glyph), color)
 
 /**
+ * The same glyph in a box of its own, at ([at]) — a face painted into a larger surface rather than into a
+ * composable of its own size.
+ *
+ * The ring ([com.mobixournal.desktop.sheet.drawDesktopRadialHud]) is one canvas over the whole page, so
+ * `size.minDimension` there is the *window*, and a glyph scaled by it would be drawn at a slot's width and
+ * a window's height. [side] is the box the face gets; everything else is the shared adapter's rule.
+ */
+internal fun DrawScope.drawToolGlyph(tool: DesktopTool, color: Color, side: Float, at: Offset) {
+    withTransform({ translate(at.x, at.y) }) {
+        drawGlyphParts(ToolGlyphCatalogue.parts(tool.glyph), color, side = side)
+    }
+}
+
+/**
  * A glyph's parts, drawn on the 24-unit grid at the catalogue's stroke — the one adapter the whole
  * window shares, so the chrome's own art ([ChromeGlyph]) weighs exactly what a tool slot does.
+ *
+ * [side] is the square the glyph is drawn in: the scope's own smaller dimension by default (the case of a
+ * composable that *is* the slot), and an explicit size for a face painted into a larger canvas.
  */
-internal fun DrawScope.drawGlyphParts(parts: List<GlyphPart>, color: Color) {
+internal fun DrawScope.drawGlyphParts(parts: List<GlyphPart>, color: Color, side: Float = size.minDimension) {
     val grid = DesktopTheme.TOOL_GLYPH_GRID
-    val scale = size.minDimension / grid
+    val scale = side / grid
     val stroke = DesktopTheme.TOOL_GLYPH_STROKE_UNITS * scale
     for (part in parts) {
         when (part) {

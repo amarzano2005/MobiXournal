@@ -111,10 +111,10 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
 - **Audio, the tablet's way**: the capsule left of Save records, pauses and plays back, and a take's strokes carry their offset
   (`%APPDATA%\MobiXournal\audio`); its **Play** (or `Y`) replays a point, and a clip makes it a transport (scrubber, speed 1×–2×) that writes the page as recorded. Audio belongs to the tab it was recorded in: switching documents shows that document's own recording, never the one being made next door, and **Settings → Audio ▸ Outside the app** copies every recording out to a folder of your own at the end of a take, as the tablet offers.
 - **The tablet's figures**: the **triangle**, the **trapezoid** and the **polygon** each have their own slot, and each slot's own menu picks what it draws — the four triangle kinds, the three trapezoid kinds, or the polygon's three to twelve sides, with the live count printed on the slot. **Settings → Figures** sets the same variants, their angles and the side count, next to the width figures are drawn at.
-- **Keys**: every tool and command has one; the table is in
-  [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and **Settings → Shortcuts** rebinds any of them.
-  That page also holds three **switch** keys — eraser, hand and selection — where one press picks the tool and
-  the next puts back the one you were using.
+- **Keys**: every tool and command has one — including `Alt + B`, the ring at the pen: the tablet's pen-tip
+  HUD where the nib is, holding your swatches, the three widths and pen / highlighter / eraser, closed by a
+  click on a slot or away from it. The table is in [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and
+  **Settings → Shortcuts** rebinds any of them — the three **switch** keys too (eraser, hand, selection).
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
   block or **Settings → Stylus** — and the menu keeps them as chips, one click from a light hand or a firm one.
   **A file to try it on**: `udiff.xopp`, at the root of this repository.

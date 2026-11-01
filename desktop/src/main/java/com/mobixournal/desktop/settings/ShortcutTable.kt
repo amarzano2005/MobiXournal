@@ -75,6 +75,8 @@ internal object ShortcutTable {
         entry(ShellCommand.OPEN_SETTINGS, "Settings", "Ctrl+,"),
         entry(ShellCommand.TOGGLE_FULLSCREEN, "Full screen", "F11"),
         entry(ShellCommand.START_PAN, "Pan with the pointer", "Space"),
+        // The ring at the pen — the door a mouse has, since the tertiary button already pans.
+        entry(ShellCommand.RADIAL_HUD, "Ring at the pen", "Alt+B"),
         entry(ShellCommand.NEXT_PAGE, "Next page", "PageDown"),
         entry(ShellCommand.PREVIOUS_PAGE, "Previous page", "PageUp"),
         entry(ShellCommand.ZOOM_IN, "Zoom in", "Ctrl+="),

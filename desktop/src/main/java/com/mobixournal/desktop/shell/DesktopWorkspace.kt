@@ -8,6 +8,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.PdfIndexLoader
 import com.mobixournal.desktop.settings.InspectorPolicy
 import com.mobixournal.desktop.settings.RailSide
+import com.mobixournal.desktop.sheet.HudUi
 import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.sheet.SelectionAction
 import com.mobixournal.desktop.sheet.selectionBarUi
@@ -119,6 +120,14 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                         // No chrome inset: the bands take their room out of the row, so the canvas is already
                         // the clear space a fitted page is framed in — nothing of the chrome lies over the sheet.
                         modifier = Modifier.fillMaxSize(),
+                        // The ring: up or not (read live, so a press sees the ring as it is), what it holds,
+                        // the nib's place it is anchored to, and that a press on it is never the page's.
+                        hud = HudUi(
+                            open = { state.ring.open },
+                            onPress = { x, y, density -> state.ring.press(x, y, density) },
+                            slots = state.ring.slots,
+                            onPointerAt = { at, density -> state.ring.notePointer(at, density) },
+                        ),
                     )
                 }
                 // The rail is one composable with two homes — the lane before the canvas or the lane
