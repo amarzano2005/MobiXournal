@@ -352,8 +352,8 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
         return
     }
     // A held stroke paints the figure the hold found, in place of the ink — the raw samples stay
-    // untouched underneath (`holdFigure` in `DrawingSurfaceView.kt`).
-    val preview = holdFigure?.takeIf { holdSamples == current?.size }
+    // untouched underneath (`HoldSnap.preview`).
+    val preview = current?.let { holdSnap.preview(it.size) }
     val pts = preview?.points ?: current ?: return
     // The magnetic highlighter previews what the lift will commit: while the drag is over text, the
     // flat bands stand in for the freehand path, so the snap is never a surprise at touch-up.

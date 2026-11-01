@@ -185,18 +185,19 @@ class DrawingSurfaceView @JvmOverloads constructor(
         requestRender()
     }
 
-    // Hold-to-snap state (see `DrawingSurfaceHoldSnap.kt`): a timer that turns an in-progress
-    // freehand stroke into clean geometry when the stylus rests, and the anchor that arms it.
-    internal var holdSnapRunnable: Runnable? = null
-    internal var holdAnchorX = 0.0
-    internal var holdAnchorY = 0.0
-    /** True once the in-progress stroke was snapped by a hold, so the commit keeps the clean shape. */
-    internal var holdSnapped = false
-    /** The hold's figure: painted instead of the ink, and the shape kept at lift-off if still (see
-     * `DrawingSurfaceHoldSnap.kt`). */
-    internal var holdFigure: RecognisedFigure? = null
-    /** [current]'s sample count when [holdFigure] fired; a grown stroke is no longer that figure. */
-    internal var holdSamples = 0
+    /**
+     * Hold-to-snap: the timer, its anchor and the figure it found, all owned by [HoldSnap]
+     * (`CanvasHoldSnap.kt`). The canvas hands it what it needs to read — the stroke in progress, whether
+     * snapping applies, and how to repaint — and keeps none of its state.
+     */
+    internal val holdSnap = HoldSnap(
+        schedule = { runnable, delayMs -> postDelayed(runnable, delayMs) },
+        unschedule = { runnable -> removeCallbacks(runnable) },
+        freehand = { recognizeShapes && !shaping },
+        inking = { tool == Tool.PEN || tool == Tool.HIGHLIGHTER },
+        stroke = { current },
+        onSnapped = { render() },
+    )
     internal var erasing = false
     internal var placing = false
     internal var placeDownX = 0f

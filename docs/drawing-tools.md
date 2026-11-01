@@ -95,13 +95,13 @@ it back inside the sheet, so turning the plotter on while zoomed into a corner l
 the eye already is rather than at the sheet's own middle. Same idea as `placeGuide`, and the same
 fallback to the page centre before the canvas has been laid out.
 
-## Hold-to-snap (`DrawingSurfaceHoldSnap.kt`)
+## Hold-to-snap (`CanvasHoldSnap.kt`)
 
-**Hold-to-snap (`DrawingSurfaceHoldSnap.kt`).** The shape recogniser is also reachable *before* lift-off:
+**Hold-to-snap (`CanvasHoldSnap.kt`).** The shape recogniser is also reachable *before* lift-off:
 resting the stylus on the glass for `SHAPE_DWELL_MS` (300 ms) **paints** the recognised geometry in
 place of the stroke in progress, so the user watches the snap happen. Each sample that moves the tip
 past `SHAPE_DWELL_SLOP_PT` (3 pt in page space, so it reads the same at any zoom) re-arms a
-`postDelayed` timer; the timer firing stores the figure in `holdFigure` with the stroke's sample
+`postDelayed` timer; the timer firing stores the figure in `HoldSnap.figure` with the stroke's sample
 count, and `drawCurrent` paints that figure instead of the samples. The samples themselves are never
 rewritten: `commitCurrent` keeps the held figure only while the count still matches, so lift-off on a
 resting tip commits the shape (uniform-width, like a shape tool's output) and a hand that draws on

@@ -145,7 +145,7 @@ app/
       DrawingSurfaceInput.kt # the surface's touch/hover state machine: gesture dispatch, scroll and gesture end (extensions)
       DrawingSurfaceStrokes.kt # ink capture from the router's events, plus place; DrawingSurfaceRouter.kt is the MotionEvent -> InkPointer feeding
       DrawingSurfacePlots.kt # the plot insertions: insertMultiPlot's ink and insertPlotElement's living plot (extensions); PlotElementFactory.kt holds the box and the element, Android-free
-      DrawingSurfaceHoldSnap.kt # hold-to-snap: the stillness timer that rewrites a stroke in progress as geometry (extensions)
+      CanvasHoldSnap.kt      # hold-to-snap as one object: the stillness timer, its anchor and the figure it found (tested)
       CanvasDiagnostics.kt   # the canvas's diagnostics as one object: the pen log, its coalesced push and the frame watchdog (tested)
       PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
       DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)

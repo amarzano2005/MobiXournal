@@ -30,9 +30,7 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
     strokeStartEventTimeMs = start.timeMs
     scrolling = false
     shaping = shapeKind != null
-    cancelHoldSnap()
-    holdSnapped = false
-    holdFigure = null
+    holdSnap.reset()
     gestureStartDoc = doc
     gesturePointerId = start.id
     val box = gestureBoxAt(start.x, start.y)
@@ -69,9 +67,7 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
             }
         }
         // Hold-to-snap starts counting from where the tip first landed.
-        holdAnchorX = current?.lastOrNull()?.x ?: 0.0
-        holdAnchorY = current?.lastOrNull()?.y ?: 0.0
-        armHoldSnap()
+        holdSnap.start(current)
     }
 }
 
@@ -118,7 +114,7 @@ internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Bool
                 points += point(box, it.x, it.y, it.pressure, sample.timeMs, sample.tiltRad, sample.azimuthRad)
             }
             // Rest the tip and the stroke snaps to geometry before lift-off.
-            maybeArmHoldSnap(points)
+            holdSnap.advance(points)
             if (force) render()
         }
     }
@@ -321,17 +317,14 @@ internal fun DrawingSurfaceView.commitCurrent() {
         return
     }
     // Lift-off ends any pending hold, and a stroke the hold already snapped stays snapped.
-    cancelHoldSnap()
-    val raw = current ?: return
+    val raw = current ?: run { holdSnap.reset(); return }
     current = null
     val wasShaping = shaping
     shaping = false
-    val holdWasSnapped = holdSnapped
-    holdSnapped = false
+    val holdWasSnapped = holdSnap.snapped
     // What the hold found is the figure to keep, but only while the stroke has not grown since it
     // fired: a stroke the user carried on drawing is theirs again and gets re-read below.
-    val heldFigure = holdFigure?.takeIf { holdSamples == raw.size }
-    holdFigure = null
+    val heldFigure = holdSnap.take(raw.size)
     var figure: RecognisedFigure? = null
 
     // Shape tools emit exact geometry — only freehand samples get thinned.
@@ -399,8 +392,7 @@ private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
         current = null
         currentStrokes = null
         shaping = false
-        cancelHoldSnap()
-        holdSnapped = false
+        holdSnap.reset()
         commitTableInsertion()
         return true
     }
@@ -409,8 +401,7 @@ private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
         current = null
         currentStrokes = null
         shaping = false
-        cancelHoldSnap()
-        holdSnapped = false
+        holdSnap.reset()
         commitCircuitInsertion(kind)
         return true
     }

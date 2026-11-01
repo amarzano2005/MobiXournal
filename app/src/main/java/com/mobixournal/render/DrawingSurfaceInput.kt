@@ -274,7 +274,7 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
 /** Drop any in-progress draw/erase/place/band/move without committing (a stylus is taking over). */
 internal fun DrawingSurfaceView.abandonInProgress() {
     dismissRadialHud(commit = false)
-    stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
+    stopAutoScroll(); holdSnap.reset()
     current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestures.reset(); multiTap.reset()
@@ -285,7 +285,7 @@ internal fun DrawingSurfaceView.abandonInProgress() {
 
 internal fun DrawingSurfaceView.cancelGesture() {
     dismissRadialHud(commit = false)
-    momentum.stop(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
+    momentum.stop(); stopAutoScroll(); holdSnap.reset()
     guideDrag.end(null)
     current = null; currentStrokes = null; shaping = false; scrolling = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
