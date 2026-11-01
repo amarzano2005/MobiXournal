@@ -54,7 +54,13 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   `TabletInk` already watches, and `DesktopTablet` answers by rebuilding every reader for the request it
   was opened with: a trailing 400 ms timer, so a burst of messages is one rebuild and the *last* message
   wins (an unplug and a re-plug inside the window cannot leave the readers on the unplugged state), and
-  the rebuild is deferred out of the procedure it closes rather than closing it underneath itself.
+  the rebuild is deferred out of the procedure it closes rather than closing it underneath itself. The
+  readers themselves are **snapshot state** (`DesktopTablet.ink`/`wintab`/`wheel`), because the canvas
+  reads the pen stream and the packet source *during composition*: a plain field left the composed page
+  pointing at the reader that had just been closed, so the live packets had no subscriber and the window
+  said `pen: Wintab` while it drew from the emulated mouse — the "input goes mad when I plug it in"
+  report. State makes the rebuild reach the canvas, which disposes the closed subscription and takes the
+  new one, and a stroke that was in flight is committed where it stopped (`PenPacketStroke.finish`).
 - **One window procedure, two readers.** `TabletWintab` opens its context on the same window and Wintab
   delivers packets as `WT_PACKET` (0x7FF0) to whoever subclassed it, so `TabletInk`'s procedure hands
   every message on to a hook instead of a second procedure fighting it for the window. Each packet is

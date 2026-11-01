@@ -263,6 +263,20 @@ internal class PenPacketStroke(
         finishStroke()
     }
 
+    /**
+     * Finish the stroke the packets are carrying **now**, without waiting for a silence.
+     *
+     * The canvas calls this when it lets go of the packet source — a tablet plugged or unplugged under a
+     * running window rebuilds the readers, and the subscription it held may well be holding half a stroke.
+     * The ink the hand already drew is the user's, so it is committed where it stopped, exactly as the
+     * stale path commits it: an unplug must not swallow a line that was already on the paper.
+     */
+    fun finish() {
+        if (!drawing) return
+        drainPending()
+        finishStroke()
+    }
+
     private fun finishStroke() {
         pending.clear()
         gesture.finish()

@@ -74,16 +74,26 @@ internal class DesktopTablet {
      */
     private var reopenTimer: Timer? = null
 
-    /** Windows Ink's reader — also the window procedure Wintab's packets arrive through. */
-    var ink: TabletInk? = null
+    /**
+     * Windows Ink's reader — also the window procedure Wintab's packets arrive through.
+     *
+     * **Snapshot state, like the other two readers below**, because the canvas reads these identities
+     * during composition: a [scheduleReopen] replaces them with new objects, and a plain `var` would leave the
+     * composed page pointing at the readers that were just closed. That is what made plugging the tablet
+     * in under a running window look like broken input — the live pen stream and the live packet source
+     * were the new ones, nobody was listening to them, and the canvas went on folding a closed reader's
+     * silence into the emulated mouse. Reading them as state is what makes the rebuild reach the canvas,
+     * which disposes its old subscription and takes the new one.
+     */
+    var ink: TabletInk? by mutableStateOf(null)
         private set
 
-    /** Wintab's reader, when the driver offers one. */
-    var wintab: TabletWintab? = null
+    /** Wintab's reader, when the driver offers one — snapshot state, for the reason [ink] gives. */
+    var wintab: TabletWintab? by mutableStateOf(null)
         private set
 
-    /** The tablet's wheel, or null when raw input is unavailable. */
-    var wheel: TabletWheel? = null
+    /** The tablet's wheel, or null when raw input is unavailable — snapshot state, as [ink] says. */
+    var wheel: TabletWheel? by mutableStateOf(null)
         private set
 
     private var dialReader: TabletDial? = null

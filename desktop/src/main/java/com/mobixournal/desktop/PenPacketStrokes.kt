@@ -15,6 +15,20 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
+ * Let go of the packet source.
+ *
+ * The subscription stops; the stroke the packets were carrying is **committed where it stopped**, because a
+ * hot-plug rebuild replaces the source under a line that may be half drawn and that ink is the user's; and
+ * the Compose gesture is handed the pen back — the ownership flag is what stands it aside, and a flag stuck
+ * on `true` would leave the next slot's drag (a figure, a grab line) unable to start at all.
+ */
+private fun releasePackets(stop: (() -> Unit)?, stroke: PenPacketStroke, owns: MutableState<Boolean>) {
+    stop?.invoke()
+    stroke.finish()
+    owns.value = false
+}
+
+/**
  * The tablet's packets, drawing this canvas's stroke.
  *
  * The gesture is the canvas's **own**, not the one `pageGestures` builds per pointer gesture: a packet
@@ -87,13 +101,7 @@ internal fun PenPacketStrokes(
     }
     DisposableEffect(packets, stroke) {
         val stop = packets?.listen(stroke::packet)
-        // Leaving the packet path mid-stroke (a slot switch, a page change) must hand the pen back: the
-        // ownership flag is what stands the Compose gesture aside, and a flag stuck on `true` would leave
-        // the next slot's drag — a figure, a grab line — unable to start at all.
-        onDispose {
-            stop?.invoke()
-            owns.value = false
-        }
+        onDispose { releasePackets(stop, stroke, owns) }
     }
     // One publish per frame: the packets buffered since the last repaint are handed to the gesture
     // here, so 400 packets a second cost one invalidation per frame instead of 400 — and the same
