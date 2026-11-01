@@ -130,28 +130,17 @@ internal class GuideDrag(
      * @param g Guide to get tip position from.
      * @return (x, y) of the tip in page points.
      */
-    fun tipOf(g: DrawingGuide): Pair<Double, Double> = when (g) {
-        is DrawingGuide.Setsquare -> g.corners()[1]
-        is DrawingGuide.Compass -> (g.x + g.radius) to g.y
-        is DrawingGuide.Protractor -> g.tip()
-        // No handle to hold: an invisible-rule guide's anchor is only where it was asked for.
-        is DrawingGuide.Ruling -> g.x to g.y
-        is DrawingGuide.Chemistry -> g.x to g.y
-    }
+    fun tipOf(g: DrawingGuide): Pair<Double, Double> = g.grabHandle()
 
     /**
      * True when ([px], [py]) is on the guide's grabbable body: the setsquare's *interior* or the
      * compass's hub. Deliberately **not** the drawing edge — the edge belongs to the pen, so that a
      * finger drawn along it still draws instead of dragging the instrument out from under itself.
+     *
+     * The rule itself is [DrawingGuide.grabbableBody]'s, so the window grabs the instrument by exactly
+     * the same parts this finger does.
      */
     private fun bodyHit(g: DrawingGuide, px: Double, py: Double, hubReach: Double): Boolean =
-        when (g) {
-            is DrawingGuide.Setsquare -> g.contains(px, py)
-            is DrawingGuide.Compass -> hypot(px - g.x, py - g.y) <= hubReach
-            is DrawingGuide.Protractor -> g.contains(px, py)
-            // Nothing to slide: [begin] never gets this far with an invisible-rule guide.
-            is DrawingGuide.Ruling -> false
-            is DrawingGuide.Chemistry -> false
-        }
+        g.grabbableBody(px, py, hubReach)
 
 }

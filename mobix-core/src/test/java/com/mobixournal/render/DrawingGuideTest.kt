@@ -225,6 +225,45 @@ class DrawingGuideTest {
         assertEquals(100.0, protractor.y, eps)
     }
 
+    // --- the grab rules both shells share ---------------------------------------------------------
+
+    @Test
+    fun `a setsquare is turned by its long-leg tip and slid by its interior`() {
+        val g = DrawingGuide.Setsquare(x = 0.0, y = 0.0, size = 100.0, angle = 0.0)
+        assertEquals(100.0 to 0.0, g.grabHandle())
+        assertTrue("the body is the handle you slide", g.grabbableBody(20.0, 10.0, reach = 12.0))
+        // The edge belongs to the pen: a press just outside the long leg drags nothing.
+        assertTrue("the drawing edge is not a grab", !g.grabbableBody(20.0, -3.0, reach = 12.0))
+        assertTrue(!g.grabbableBody(200.0, 200.0, reach = 12.0))
+    }
+
+    @Test
+    fun `a compass is opened by its pencil point and slid by its hub`() {
+        val g = DrawingGuide.Compass(x = 10.0, y = 20.0, radius = 50.0)
+        assertEquals(60.0 to 20.0, g.grabHandle())
+        assertTrue(g.grabbableBody(10.0, 20.0, reach = 12.0))
+        assertTrue("the circumference is the pen's", !g.grabbableBody(60.0, 20.0, reach = 12.0))
+        assertTrue(!g.grabbableBody(10.0, 45.0, reach = 12.0))
+    }
+
+    @Test
+    fun `a protractor is turned by its 0 degree mark and slid by its body`() {
+        val p = DrawingGuide.Protractor(x = 0.0, y = 0.0, radius = 100.0, angle = 0.0)
+        assertEquals(100.0 to 0.0, p.grabHandle())
+        assertTrue(p.grabbableBody(0.0, -50.0, reach = 12.0))
+        assertTrue("below the base is outside the instrument", !p.grabbableBody(0.0, 50.0, reach = 12.0))
+    }
+
+    @Test
+    fun `the invisible rules have nothing to hold`() {
+        val ruling = DrawingGuide.Ruling(120.0, 340.0)
+        val chemistry = DrawingGuide.Chemistry(120.0, 340.0)
+        for (g in listOf(ruling, chemistry)) {
+            assertEquals("a rule's handle is only its anchor", 120.0 to 340.0, g.grabHandle())
+            assertTrue("and no press can grab it", !g.grabbableBody(120.0, 340.0, reach = 12.0))
+        }
+    }
+
     // --- Protractor tests -------------------------------------------------------------------------
 
     @Test

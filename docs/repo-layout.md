@@ -100,8 +100,9 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              #   begins, how hard it draws, what a stream means (pure)
     render/PageEraser.kt, StrokeEraser.kt, StrokeHitTester.kt # erase: page mode, the split, the hit
     render/CanvasGeometry.kt, BoardSlicer.kt, CanvasAutoSlicer.kt # a board: what it is, its sheets (pure)
-    render/VerticalSpaceOps.kt, Snapping.kt, ElementShift.kt # reflow a page, the ruling as a snap lattice,
-                             #   and moving one element — the maths both shells share (pure)
+    render/VerticalSpaceOps.kt, Snapping.kt, ElementShift.kt, DrawingGuide.kt # reflow a page, the ruling as a
+                             #   snap lattice, moving one element, and the guide instruments — their projection,
+                             #   their ruling and chemistry snaps, and the parts a finger grabs (pure)
     io/DocumentEncoder.kt    # THE SAVE without Android: three formats, a SaveTarget, a SaveShape
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
@@ -154,12 +155,11 @@ app/
       PageCommands.kt        # the page/layer edit commands and the two undoable commit pipelines
       SelectionGestureController.kt # the marquee/lasso pick and the move/resize/rotate drags
       VerticalSpaceDrag.kt   # the vertical-space tool's live grab-line drag
-      GuideDrag.kt           # the setsquare/compass/protractor (and ruling/chemistry) guide pose and the finger that moves it
+      GuideDrag.kt           # the finger that poses the setsquare/compass/protractor guide: which part is held and what a drag does, on the shared DrawingGuide pose maths
       TextEditController.kt  # placing/editing text boxes, images and LaTeX images from a tap
       ElementEdits.kt        # the document edits behind those placements (pure, tested)
       PageStacker.kt         # lays the pages in one vertical column, each fit to the view width (pure geometry)
       PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
-      DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling and chemistry snaps: project a drawn point onto an edge, a ray, the page's ruling or a 60° lattice node (pure)
       ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
       BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted/isometric at the page's own spacing, or a PDF page image)
       PageRegionRenderer.kt  # synchronous flattened rectangular page-region copies

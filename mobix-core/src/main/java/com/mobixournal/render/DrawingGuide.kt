@@ -15,8 +15,9 @@ import kotlin.math.sin
  * own and pulls *every* vertex onto the page's background ruling.) What lands in the `.xopp` file is
  * an ordinary stroke — which is why a guide has no place in the format and none is written there.
  *
- * Kept free of Android types so the projection maths is unit-testable on the JVM;
- * [DrawingSurfaceView] owns the live pose, draws the overlay and applies [project].
+ * Plain Kotlin, no Android or Compose types, so the projection maths is unit-testable on the JVM and
+ * both shells can share it: each canvas owns the live pose, draws its own overlay and applies [project]
+ * at its input edge (the tablet's `DrawingSurfaceView`, the window's `PageInkGesture`).
  */
 sealed interface DrawingGuide {
 
@@ -26,6 +27,25 @@ sealed interface DrawingGuide {
 
     /** [x]/[y] displaced by ([dx], [dy]) pt, everything else unchanged. */
     fun moved(dx: Double, dy: Double): DrawingGuide
+
+    /**
+     * The point a finger holds to **re-pose** this instrument: the setsquare's long-leg tip, the
+     * compass's pencil point, the protractor's 0° mark.
+     *
+     * The two invisible rules have nothing to hold and answer their anchor, which is only where they were
+     * asked for — a caller that checks [grabbableBody] first never draws a handle there.
+     */
+    fun grabHandle(): Pair<Double, Double>
+
+    /**
+     * True when ([px], [py]) is on the part a finger grabs to **slide** this instrument: the setsquare's
+     * interior, the compass's hub ([reach] pt around it), the protractor's body.
+     *
+     * Deliberately **not** the drawing edge: the edge belongs to the pen, so a stroke drawn against it
+     * never drags the instrument out from under itself. False for the ruling and chemistry rules, which
+     * have nothing to hold, so a finger on the page keeps drawing.
+     */
+    fun grabbableBody(px: Double, py: Double, reach: Double): Boolean
 
     /**
      * ([px], [py]) pulled onto the guide's nearest drawing edge, or returned unchanged when it is
@@ -60,6 +80,11 @@ sealed interface DrawingGuide {
         }
 
         override fun moved(dx: Double, dy: Double): Setsquare = copy(x = x + dx, y = y + dy)
+
+        /** The long-leg tip, which is where a finger turns and resizes the triangle. */
+        override fun grabHandle(): Pair<Double, Double> = corners()[1]
+
+        override fun grabbableBody(px: Double, py: Double, reach: Double): Boolean = contains(px, py)
 
         /**
          * True when ([px], [py]) lies inside the triangle. This is the *grab* region, kept distinct
@@ -122,6 +147,12 @@ sealed interface DrawingGuide {
 
         override fun moved(dx: Double, dy: Double): Compass = copy(x = x + dx, y = y + dy)
 
+        /** The pencil point, which is where a finger opens or closes the compass. */
+        override fun grabHandle(): Pair<Double, Double> = (x + radius) to y
+
+        override fun grabbableBody(px: Double, py: Double, reach: Double): Boolean =
+            hypot(px - x, py - y) <= reach
+
         /** This compass opened so its circumference passes through ([tx], [ty]). */
         fun openedTo(tx: Double, ty: Double): Compass =
             copy(radius = hypot(tx - x, ty - y).coerceAtLeast(MIN_SIZE_PT))
@@ -150,6 +181,10 @@ sealed interface DrawingGuide {
     ) : DrawingGuide {
 
         override fun moved(dx: Double, dy: Double): Protractor = copy(x = x + dx, y = y + dy)
+
+        override fun grabHandle(): Pair<Double, Double> = tip()
+
+        override fun grabbableBody(px: Double, py: Double, reach: Double): Boolean = contains(px, py)
 
         /** Direction unit vector along the base diameter (0° mark). */
         val ux: Double get() = cos(angle)
@@ -236,6 +271,10 @@ sealed interface DrawingGuide {
 
         override fun moved(dx: Double, dy: Double): Chemistry = copy(x = x + dx, y = y + dy)
 
+        override fun grabHandle(): Pair<Double, Double> = x to y
+
+        override fun grabbableBody(px: Double, py: Double, reach: Double): Boolean = false
+
         override fun project(px: Double, py: Double): Pair<Double, Double> =
             TriangularLattice.nearestNode(px, py, spacingPt, x, y)
     }
@@ -263,6 +302,10 @@ sealed interface DrawingGuide {
     ) : DrawingGuide {
 
         override fun moved(dx: Double, dy: Double): Ruling = copy(x = x + dx, y = y + dy)
+
+        override fun grabHandle(): Pair<Double, Double> = x to y
+
+        override fun grabbableBody(px: Double, py: Double, reach: Double): Boolean = false
 
         override fun project(px: Double, py: Double): Pair<Double, Double> = lattice.snap(px, py)
     }

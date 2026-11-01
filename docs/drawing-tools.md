@@ -190,7 +190,7 @@ applied at the input edge rather than in the geometry builders: with **Snap to g
 drag's start and end points are rounded onto the page background's ruling before they reach
 `ShapeBuilder`, and with **Snap rotation** on, the *swept* angle (not the absolute one) of the rotate
 handle is rounded to 15° before it reaches `SelectionOps.rotate` — snapping the swept angle means a
-snapped drag returns exactly to the element's original orientation. A **drawing guide** (`DrawingGuide`, pure and tested) is the same idea taken further: a setsquare
+snapped drag returns exactly to the element's original orientation. A **drawing guide** (`DrawingGuide`, pure and tested, in `mobix-core` so both shells pose one instrument) is the same idea taken further: a setsquare
 (right triangle) or compass (circle) posed in page-local pt, whose `project` pulls any point within
 `GRAB_PT` onto its nearest edge and leaves anything further away untouched. `DrawingSurfaceView`
 owns the live pose, paints the overlay in `paint()` (it is chrome, not ink, so it stays out of
