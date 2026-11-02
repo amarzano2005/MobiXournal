@@ -34,8 +34,9 @@ Every surface is one of three objects. Pick the class from what the element *doe
 - **On paper a band is the sheet's white, edged by one shade on the side that looks at the canvas.** A
   band takes the glass at **full** opacity there (`panel`), so the header is the same white as the page it
   frames and the system caption can be given that white too; what separates it from the sheet is a
-  gradient drawn *inside* its canvas-facing edge (`BAND_EDGE_ALPHA_LIGHT`, reaching `BAND_EDGE_SHADOW_DP`),
-  the header's bottom and the sidebar's right meeting at the corner as one frame. A capsule is that white
+  gradient drawn **on the paper** along the canvas' own edges (`BAND_EDGE_ALPHA_LIGHT`, reaching
+  `BAND_EDGE_SHADOW_DP`) — the canvas draws the top line and the side line, so they turn its corner and
+  neither band's shade runs across the band beside it. A capsule is that white
   with the family's ink rim, the picked steel at `HOVER_SLOT_ALPHA_LIGHT` under the pointer and the full
   steel when picked, while an **unavailable command is its muted glyph alone**. The rim carries more of the
   same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20), and a floating surface is solid there (`panel`): at 0.88

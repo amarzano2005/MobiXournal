@@ -1,8 +1,6 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.DismissGuard
 import com.mobixournal.desktop.tools.FloatingSurface
-import com.mobixournal.desktop.tools.BandEdge
-import com.mobixournal.desktop.tools.bandEdgeShadow
 import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.ink.of
@@ -112,9 +110,6 @@ internal fun Header(
             .fillMaxWidth()
             .height(DesktopTheme.headerHeight)
             .bandSurface()
-            // One shade down the edge that looks at the canvas — the sidebar draws the other half of it,
-            // and the two meet at the corner (`docs/interface-contract.md` §1).
-            .bandEdgeShadow(BandEdge.BOTTOM)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -16,8 +16,10 @@ import com.mobixournal.desktop.tools.DesktopTextBox
 import com.mobixournal.desktop.tools.InkActions
 import com.mobixournal.desktop.tools.InspectorLane
 import com.mobixournal.desktop.tools.TextBoxUi
+import com.mobixournal.desktop.tools.BandEdge
 import com.mobixournal.desktop.tools.ToolRail
 import com.mobixournal.desktop.tools.ToolRibbon
+import com.mobixournal.desktop.tools.bandEdgeShade
 import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.tools.resized
 import com.mobixournal.desktop.tools.selectTool
@@ -48,6 +50,24 @@ import com.mobixournal.format.model.LineStyle
  * design language. The capsules are opaque to the pointer — their slots' input and their own scroll pane
  * claim every press that starts on them — so a drag begun on a strip is never a stroke drawn beneath it.
  */
+/**
+ * The bands' one shade, drawn on the page: the canvas draws the top line and the side line itself, so
+ * they turn its own corner where the two bands meet and neither band's shade runs across the band
+ * beside it (`docs/interface-contract.md` §1).
+ */
+@Composable
+private fun Modifier.canvasBandShade(state: DesktopShellState): Modifier {
+    val placement = state.prefs.stripPlacement
+    val railOnLeft = state.prefs.railSide == RailSide.LEFT
+    val bandOnLeft = state.sidebarVisible || (placement.showsRail && railOnLeft)
+    val bandOnRight = (placement.showsRail && !railOnLeft) ||
+        state.prefs.inspectorPolicy != InspectorPolicy.NEVER
+    return this
+        .bandEdgeShade(BandEdge.TOP)
+        .then(if (bandOnLeft) Modifier.bandEdgeShade(BandEdge.START) else Modifier)
+        .then(if (bandOnRight) Modifier.bandEdgeShade(BandEdge.END) else Modifier)
+}
+
 @Composable
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
     Row(Modifier.fillMaxSize()) {
@@ -59,7 +79,7 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
             if (placement.showsRibbon) StripRibbon(state)
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 if (placement.showsRail && railOnLeft) StripRail(state)
-                Box(Modifier.weight(1f).fillMaxHeight()) {
+                Box(Modifier.weight(1f).fillMaxHeight().canvasBandShade(state)) {
                     // The PDF's text layer and Contents, read once per file off the UI thread and published
                     // on the tab: the selection, the magnetic highlighter and the sidebar all read it there.
                     PdfIndexLoader(tab)

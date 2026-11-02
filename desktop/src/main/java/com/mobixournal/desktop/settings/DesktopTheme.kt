@@ -240,7 +240,7 @@ object DesktopTheme {
     val bandEdgeShadow: Color get() =
         if (light) ink.copy(alpha = DesignTokens.BAND_EDGE_ALPHA_LIGHT) else Color.Transparent
 
-    /** How far [bandEdgeShadow] reaches into the band. */
+    /** How far that shade reaches onto the paper. */
     val bandEdgeShadowWidth = DesignTokens.BAND_EDGE_SHADOW_DP.dp
 
     /** The cast shadow under a floating capsule — the rail, the ribbon, a header control: 6 dp. */

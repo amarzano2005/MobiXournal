@@ -201,24 +201,35 @@ internal fun Modifier.bandSurface(
 ): Modifier = shadow(shadow, RectangleShape, clip = false)
     .background(fill)
 
-/** Which side of a band looks onto the canvas: the header's bottom, the sidebar's right. */
-internal enum class BandEdge { BOTTOM, END }
+/** Which side of a surface a band's shade falls on. */
+internal enum class BandEdge { TOP, BOTTOM, START, END }
 
 /**
- * The shade down a band's **canvas-facing edge** — one line, one direction, drawn inside the band.
+ * A band's shade, cast **on the paper** along the canvas' edge — [DesktopTheme.bandEdgeShadow] across
+ * [DesktopTheme.bandEdgeShadowWidth].
  *
  * A band's cast lift is all round, and on paper it is invisible: a white header over a white page needs an
- * edge facing the page, not a halo. This draws that edge as a gradient over the band's own fill (behind
- * its controls), at [DesktopTheme.bandEdgeShadow] across [DesktopTheme.bandEdgeShadowWidth]. A host that
- * draws it on the header and on the sidebar gets **one** frame: the two lines meet at the corner.
+ * edge facing the page, not a halo. That edge belongs to the paper, so the canvas draws it on its top and
+ * on whichever sides a band stands beside — the lines then meet exactly at the page's corner, one frame,
+ * with no step where the header's line would have crossed the sidebar beside it
+ * (`docs/interface-contract.md` §1). Drawing it over the content is the point: a page is opaque, so a
+ * `drawBehind` shade would never be seen.
  */
 @Composable
-internal fun Modifier.bandEdgeShadow(edge: BandEdge): Modifier {
+internal fun Modifier.bandEdgeShade(edge: BandEdge): Modifier = bandEdge(edge)
+
+@Composable
+private fun Modifier.bandEdge(edge: BandEdge): Modifier {
     val ink = DesktopTheme.bandEdgeShadow
     if (ink.alpha <= 0f) return this
     val reach = with(LocalDensity.current) { DesktopTheme.bandEdgeShadowWidth.toPx() }
-    return drawBehind {
+    val paint: DrawScope.() -> Unit = {
         when (edge) {
+            BandEdge.TOP -> drawRect(
+                brush = Brush.verticalGradient(listOf(ink, Color.Transparent), startY = 0f, endY = reach),
+                topLeft = Offset(0f, 0f),
+                size = Size(size.width, reach),
+            )
             BandEdge.BOTTOM -> drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color.Transparent, ink),
@@ -227,6 +238,11 @@ internal fun Modifier.bandEdgeShadow(edge: BandEdge): Modifier {
                 ),
                 topLeft = Offset(0f, size.height - reach),
                 size = Size(size.width, reach),
+            )
+            BandEdge.START -> drawRect(
+                brush = Brush.horizontalGradient(listOf(ink, Color.Transparent), startX = 0f, endX = reach),
+                topLeft = Offset(0f, 0f),
+                size = Size(reach, size.height),
             )
             BandEdge.END -> drawRect(
                 brush = Brush.horizontalGradient(
@@ -239,6 +255,7 @@ internal fun Modifier.bandEdgeShadow(edge: BandEdge): Modifier {
             )
         }
     }
+    return drawWithContent { drawContent(); paint() }
 }
 
 /**
