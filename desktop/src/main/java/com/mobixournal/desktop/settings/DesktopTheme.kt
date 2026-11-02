@@ -69,10 +69,11 @@ object DesktopTheme {
      * a lift) and still the same colour family. The decision and its reasoning are
      * `docs/ui-modernization.md`'s; `DesktopThemeTest` pins the composite.
      */
-    val glass: Color get() = tokenColour(
-        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
-        DesignTokens.DESKTOP_BAND_ALPHA,
-    )
+    val glass: Color get() = if (light) {
+        tokenColour(DesignTokens.GLASS_LIGHT_RGB)
+    } else {
+        tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA)
+    }
 
     /**
      * The fill a chrome **control** wears — a header capsule, the search field, a menu chip.
@@ -83,7 +84,8 @@ object DesktopTheme {
      * the band is the tinted surface and the control is the white one, which is how a light toolbar is
      * drawn everywhere. On black this is [glass] untouched, so nothing on the black desk moves.
      */
-    val control: Color get() = if (light) tokenColour(DesignTokens.GLASS_LIGHT_RGB) else glass
+    val control: Color get() =
+        if (light) activeSlot.copy(alpha = DesignTokens.CONTROL_ALPHA_LIGHT) else glass
 
     /**
      * A **field inside a floating panel** — a name box, a page range, a preset capsule.
@@ -188,7 +190,9 @@ object DesktopTheme {
     )
 
     /** The same steel at the hover step: what a slot under the pointer wears, short of picked. */
-    val hoverSlot: Color get() = activeSlot.copy(alpha = DesignTokens.HOVER_SLOT_ALPHA)
+    val hoverSlot: Color get() = activeSlot.copy(
+        alpha = if (light) DesignTokens.HOVER_SLOT_ALPHA_LIGHT else DesignTokens.HOVER_SLOT_ALPHA,
+    )
 
     /** The chrome's ink on the glass. */
     val ink: Color get() = tokenColour(if (light) DesignTokens.INK_LIGHT_RGB else DesignTokens.INK_DARK_RGB)
@@ -365,11 +369,13 @@ object DesktopTheme {
      * for the band: the Windows title bar, which the system paints and cannot be given a fill with an
      * alpha.
      */
-    val bandRgb: Int get() = blendRgb(
-        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
-        DesignTokens.DESKTOP_BAND_ALPHA,
-        if (light) DesignTokens.DESK_LIGHT_RGB else DesignTokens.DESK_RGB,
-    )
+    val bandRgb: Int get() = if (light) {
+        // The band is already opaque on paper, so the system caption takes its own colour: a blend here
+        // painted the window's top strip a shade darker than the band under it.
+        DesignTokens.GLASS_LIGHT_RGB
+    } else {
+        blendRgb(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA, DesignTokens.DESK_RGB)
+    }
 
     /** [bandRgb] in Win32's `COLORREF` order (`0x00BBGGRR`), which is what DWM attributes take. */
     val bandColourRef: Int get() = colourRef(bandRgb)

@@ -264,6 +264,24 @@ object DesignTokens {
     const val ACTIVE_SLOT_LIGHT_RGB: Int = 0xDEE3E7
     const val CHROME_INK_LIGHT_RGB: Int = 0x171C26
 
+    /**
+     * A **control's** fill on paper: the picked steel at 35 %, so a capsule reads on a white band.
+     *
+     * The light band is the sheet's own white — a tinted band was a grey frame round a white page — which
+     * leaves a capsule nothing to contrast with. The light chrome therefore puts the *shade* on the
+     * control instead: resting at this alpha, a step deeper under the pointer, and the full steel when it
+     * is picked.
+     */
+    const val CONTROL_ALPHA_LIGHT: Float = 0.35f
+
+    /**
+     * The hover step on paper: a deeper shade of the same steel than [CONTROL_ALPHA_LIGHT].
+     *
+     * The dark answer is [HOVER_SLOT_ALPHA]; on a white band the resting fill is already a shade, so the
+     * hover has to go further to be a step rather than the same tone again.
+     */
+    const val HOVER_SLOT_ALPHA_LIGHT: Float = 0.55f
+
     /** The light theme's hairline: black, so an edge is an edge on paper as it is on black. */
     const val HAIRLINE_LIGHT_RGB: Int = 0x000000
 

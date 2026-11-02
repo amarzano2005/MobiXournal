@@ -27,19 +27,27 @@ import org.junit.Test
  * The dark recipe is one material for both — a capsule and the band it stands in are the same glass, and
  * the rim's white hairline is what makes the capsule an object. Carried onto paper unchanged, that
  * produced white discs on a white band and a menu whose chips could not be seen at all (the owner's
- * screenshot, 2026-11-02). So the light theme inverts the pair: the band is the tinted surface, the
- * control is the white one, and the edge is more of the same ink. This test holds the three answers —
+ * screenshot, 2026-11-02). So the light theme puts the shade on the control instead: the band is the
+ * sheet's own white, the capsule is the picked steel at a third, and the edge is more of the same ink.
+ * This test holds those answers —
  * and the dark ones unchanged, which is the part a future light-theme tweak is most likely to disturb.
  */
 class LightMaterialTest {
 
     @Test
-    fun `on paper a control is the light surface and its band the tinted one`() {
+    fun `on paper the band is the sheet's white and the control the shade`() {
         DesktopTheme.use(true)
         try {
-            val band = luminance(DesktopTheme.tokenColour(DesktopTheme.bandRgb))
+            val band = luminance(DesktopTheme.glass)
             val control = luminance(DesktopTheme.control)
-            assertTrue("a control is the lighter of the two on paper ($control vs $band)", control > band + 0.01f)
+            assertEquals("the band is the sheet's own white", DesktopTheme.panel, DesktopTheme.glass)
+            assertEquals("and the system caption is that white too", DesignTokens.GLASS_LIGHT_RGB, DesktopTheme.bandRgb)
+            val resting = onPaper(DesktopTheme.control)
+            val hovered = onPaper(DesktopTheme.hoverSlot)
+            val picked = onPaper(DesktopTheme.activeSlot)
+            assertTrue("a control is the shade on paper ($resting vs $band)", resting < band - 0.01f)
+            assertTrue("the pointer is a step deeper ($hovered)", hovered < resting)
+            assertTrue("and the picked slot deeper still ($picked)", picked < hovered)
             assertTrue(
                 "the desk is greyer than the band it carries (${luminance(DesktopTheme.desk)} vs $band)",
                 luminance(DesktopTheme.desk) < band,
@@ -85,6 +93,18 @@ class LightMaterialTest {
     /** Perceived lightness, enough to say "this one is the lighter surface". */
     private fun luminance(colour: Color): Float =
         0.2126f * colour.red + 0.7152f * colour.green + 0.0722f * colour.blue
+
+    /**
+     * [colour] as it lands **on the light band**, which is white: an alpha fill is not a tone until
+     * something is behind it, and [luminance] alone read resting and hover as the same colour.
+     */
+    private fun onPaper(colour: Color): Float = luminance(
+        Color(
+            red = colour.red * colour.alpha + (1f - colour.alpha),
+            green = colour.green * colour.alpha + (1f - colour.alpha),
+            blue = colour.blue * colour.alpha + (1f - colour.alpha),
+        ),
+    )
 
     /**
      * The panel's half of the rule, in **pixels**: a floating surface over inked paper shows no ink.

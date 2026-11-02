@@ -31,15 +31,15 @@ Every surface is one of three objects. Pick the class from what the element *doe
   leg deep black on the dark scheme and grey on the light one, breaking it at the corner.
 - **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads
   as two grey rules across the window. The edge is a band's whole boundary.
-- **On paper a band and its control swap places.** A capsule takes `DesktopTheme.control` — the glass on
-  the black desk, **white** in the light theme — while the band under it keeps the tinted glass, and the
-  drawn edge becomes more of the same ink (`RIM_ALPHA_TOP_LIGHT`, 0.20) in place of the white hairline's
-  0.12. Lifting the dark recipe onto paper made a header button a white disc on a white band and a menu
-  chip invisible: on paper "raised" is a shade *around* the object, not a highlight on it.
-  `LightMaterialTest` fails if the pair stops being inverted.
-  The band's 4 dp cast lift is a grey smudge across a white sheet as well, so on paper it falls to a
-  hairline-thin shade (`BAND_SHADOW_LIGHT_DP`); a floating surface is **solid** there (`panel`), because
-  at 0.88 the page's own ink read through an open menu.
+- **On paper the band is the sheet's white and the control is the shade.** A band takes the glass at
+  **full** opacity there (`panel`), so the header is the same white as the page it frames and the system
+  caption can be given that white too; a capsule is the picked steel at `CONTROL_ALPHA_LIGHT`, a step
+  deeper under the pointer (`HOVER_SLOT_ALPHA_LIGHT`) and the full steel when picked, while an
+  **unavailable command is its muted glyph alone**, with no capsule at all. The drawn edge is more of the
+  same ink (`RIM_ALPHA_TOP_LIGHT`, 0.20) than the white hairline's 0.12, a band casts a hairline-thin
+  shade (`BAND_SHADOW_LIGHT_DP`) rather than a 4 dp smudge across the sheet, and a floating surface is
+  solid there (`panel`): at 0.88 the page's own ink read through an open menu. `LightMaterialTest` holds
+  every answer, its pixel test included.
 - **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a
   shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's
   lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**
