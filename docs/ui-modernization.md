@@ -195,7 +195,7 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
       "springStiffness": 380,
       "springDamping": 28,
       "fadeTransitionMs": 150,
-      "glassMotion": { "startScale": 0.82, "openDamping": 0.74, "openStiffness": 550, "fadeInMs": 110, "closeDamping": 0.85, "closeStiffness": 850, "fadeOutMs": 170, "exitHoldMs": 230 }
+      "glassMotion": { "startScale": 0.82, "openDamping": 0.6, "openStiffness": 620, "fadeInMs": 110, "closeDamping": 0.85, "closeStiffness": 850, "fadeOutMs": 170, "exitHoldMs": 230 }
     }
   }
 }
@@ -217,11 +217,17 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
 - **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own
   monoline icon in a tinted disc at the head of its row (`SectionRow`), and the same glyph follows the row
   into the search results. The glyph is part of the enum, so a new section cannot be added without one.
-- **Dialogs leave the way they arrived**: a dialog is its own window, so Compose tore it down the instant its
-  flag cleared — the entrance spring played in full and the panel vanished mid-frame. `DialogPresence(visible)`
-  holds the window composed for `FLOATING_EXIT_MS` (230 ms) while the surface runs the entrance animation
-  backwards, and `rememberClosingArgument` keeps the dialog's subject when the flag was a nullable one. Every floating
-  dialog — the editor's, the pages menu's, the settings pickers' — is gated that way.
+- **Everything floating leaves the way it arrived**: a dialog and a pop-up each live in their own window, and
+  Compose tore that window down the instant its flag cleared — the entrance spring played in full and the panel
+  vanished mid-frame, which read as "it only animates one way". `DialogPresence(visible)` holds the window
+  composed for `FLOATING_EXIT_MS` (230 ms) while the surface inside runs the same spring backwards; it reads
+  nothing but the flag, so the toolbar's pop-ups (`ToolbarMenu`) gate their window with it exactly as every
+  floating dialog — the editor's, the pages menu's, the settings pickers' — already did.
+  `rememberClosingArgument` keeps a dialog's subject when the flag was a nullable one.
+- **The spring is felt on the panel, once**: the bounce belongs to the surface — 82 % to 100 % on an
+  under-damped spring (ζ ≈ 0.6, about a tenth over and back) — while the alpha only fades. Rows, chips and
+  glyphs inside a menu never animate separately: a panel where every item also slides reads as a bag of
+  parts, not as one sheet of glass.
 - **The plot editor anchors to its element**: editing an existing `PlotElement` opens `PlotInspectorAnchor`
   beside the selection (committed through `applyPlotEdit`, unedited fields kept); a new plot uses the modal
   `AdvancedFunctionGraphDialog`, whose placement arithmetic is viewport-centred.

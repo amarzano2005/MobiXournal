@@ -215,11 +215,14 @@ object DesignTokens {
         /** Where a panel starts (and ends) its arrival: 82 % of its size, around the anchor. */
         const val START_SCALE: Float = 0.82f
 
-        /** The arrival spring's damping — under-damped, so it settles with a cushioned snap. */
-        const val OPEN_DAMPING_RATIO: Float = 0.74f
+        /**
+         * The arrival spring's damping — under-damped on purpose: ζ ≈ 0.6, so the panel settles into its
+         * size with a bounce you can actually see (~10 % over, then back) instead of stopping dead.
+         */
+        const val OPEN_DAMPING_RATIO: Float = 0.6f
 
-        /** The arrival spring's stiffness. */
-        const val OPEN_STIFFNESS: Float = 550f
+        /** The arrival spring's stiffness — quick enough that the bounce lands inside ~250 ms. */
+        const val OPEN_STIFFNESS: Float = 620f
 
         /** The arrival's alpha fade, in ms. */
         const val FADE_IN_MS: Int = 110

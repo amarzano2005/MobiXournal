@@ -133,8 +133,9 @@ const val FLOATING_EXIT_MS = DesignTokens.GlassMotion.EXIT_HOLD_MS
 
 /**
  * Whether the floating surface being composed is on its way **out**. [DialogPresence] provides it while
- * a dialog plays its closing half, so [liquidGlassSpringAnimation] can run the animation backwards
- * before the window is taken away.
+ * a surface plays its closing half — a dialog's window or a pop-up's — so [liquidGlassSpringAnimation]
+ * can run the animation backwards before that window is taken away. Reading it as the default is what
+ * makes the departure automatic: a surface cannot forget the return half because it never asks for it.
  */
 val LocalFloatingSurfaceClosing = compositionLocalOf { false }
 
@@ -145,7 +146,7 @@ val LocalFloatingSurfaceClosing = compositionLocalOf { false }
  */
 @Composable
 fun Modifier.liquidGlassSpringAnimation(
-    expanded: Boolean = true,
+    expanded: Boolean = !LocalFloatingSurfaceClosing.current,
     origin: TransformOrigin = TransformOrigin(0f, 0f),
 ): Modifier {
     val start = DesignTokens.GlassMotion.START_SCALE
@@ -297,14 +298,16 @@ fun FloatingDialog(
 }
 
 /**
- * Keeps a dialog's content **composed** for as long as its closing animation takes.
+ * Keeps a floating surface **composed** for as long as its closing animation takes — a dialog's window,
+ * or a pop-up's.
  *
- * A dialog lives in its own window, and Compose tears that window down the instant the caller stops
+ * Both live in a window of their own, and Compose tears that window down the instant the caller stops
  * composing it — so a `visible` flag that flips to false used to make the panel vanish mid-frame while
  * its *opening* spring played in full. [DialogPresence] is the missing half: it watches the flag, tells
  * the surface inside that it is closing ([LocalFloatingSurfaceClosing], which
  * [liquidGlassSpringAnimation] reads as "expanded = false"), waits out [FLOATING_EXIT_MS], and only
- * then lets the content go.
+ * then lets the content go. It reads the flag only — nothing here is dialog-specific — which is why the
+ * toolbar's pop-ups gate their window with it too.
  *
  * Callers gate a dialog with it instead of `if (visible) { … }`:
  *

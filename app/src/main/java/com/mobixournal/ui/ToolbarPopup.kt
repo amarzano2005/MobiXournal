@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeInk
@@ -119,8 +120,11 @@ internal fun BoxScope.MenuChevron(tint: Color = rememberChromeInk()) {
  * It is a [Popup] of our own rather than a Material `DropdownMenu` because none of that is a parameter
  * the Material menu exposes: its fill, its tint wash, its corner and its elevation all come from menu
  * tokens. Owning the panel is what lets the fill be exact (no tint step over it), the corner be the
- * dock's own, the edge be the chrome's hairline, and the panel arrive and leave on the app's spring
- * ([liquidGlassSpringAnimation]) — the one motion every floating surface in the app shares.
+ * dock's own, the edge be the chrome's hairline, and the panel arrive **and leave** on the app's spring
+ * ([liquidGlassSpringAnimation]) — the one motion every floating surface in the app shares. The departure
+ * is real: the window is held open for [DialogPresence]'s exit instead of vanishing with the flag, so the
+ * panel draws back to 82 % and fades rather than blinking out (which is what "the menu only animates
+ * one way" looked like).
  *
  * Routing every toolbar menu through here is what keeps the whole chrome on one colour and one corner:
  * a stray raw `DropdownMenu` brings the paler, squarer panel back (`ToolbarMenuGuardTest` fails the
@@ -147,7 +151,27 @@ internal fun ToolbarMenu(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    if (!expanded) return
+    // The window is **held** for the departure. A pop-up's window is torn down between two frames the
+    // instant `expanded` clears, so the old early return played the arrival and cut the exit — a surface
+    // that is gone cannot draw back. [DialogPresence] keeps it composed for `FLOATING_EXIT_MS` and tells
+    // the panel inside that it is closing, which is the same half every dialog already plays.
+    DialogPresence(expanded) {
+        ToolbarMenuWindow(onDismissRequest = onDismissRequest, modifier = modifier, content = content)
+    }
+}
+
+/**
+ * The pop-up's window: one panel, placed against its anchor and grown from the corner that touches it.
+ *
+ * Split out of [ToolbarMenu] so the menu keeps its arrival **and** its departure — the holding
+ * [DialogPresence] has to wrap the window itself, not the flag.
+ */
+@Composable
+private fun ToolbarMenuWindow(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
     val density = LocalDensity.current
     val positionProvider = remember(density) {
@@ -169,7 +193,7 @@ internal fun ToolbarMenu(
                 .clip(RoundedCornerShape(TOP_BAR_DOCK_CORNER))
                 .background(rememberFloatingSurfaceColor())
                 .floatingRim()
-                .liquidGlassSpringAnimation(expanded = true, origin = transformOrigin),
+                .liquidGlassSpringAnimation(origin = transformOrigin),
         ) {
             Column(
                 modifier = Modifier

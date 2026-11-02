@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -42,6 +43,28 @@ class ToolbarMenuGuardTest {
         assertTrue(
             "the wrapper itself must not fall back to the Material menu either (${owner.path})",
             !menuCall.containsMatchIn(owner.readText()),
+        )
+    }
+
+    /**
+     * A pop-up **leaves** as well as arrives.
+     *
+     * Its window is its own, and Compose tears that window down between two frames the instant the flag
+     * clears — which is why the menu used to play its arrival and vanish (reported as "it only animates
+     * one way"). The window therefore has to sit inside `DialogPresence(expanded)`, the same hold every
+     * floating dialog uses, and must not return early on the flag: an early return *is* the window being
+     * taken away before the departure can be drawn.
+     */
+    @Test
+    fun aPopupIsHeldComposedForItsExit() {
+        val owner = mainSources().first { it.readText().contains("fun ToolbarMenu(") }.readText()
+        assertTrue(
+            "ToolbarMenu must hold its window with DialogPresence(expanded), or the exit is cut off",
+            owner.contains("DialogPresence(expanded)"),
+        )
+        assertFalse(
+            "and must not return early on the flag — that is the window torn down mid-arrival",
+            owner.contains("if (!expanded) return"),
         )
     }
 
