@@ -28,15 +28,15 @@ What it does today:
   one page**, with `Ctrl + B` remembered per document (`DesktopSidebar`) — the page alone on the
   true-black desk, and a 24 dp status bar with the page counter, the zoom, the fit mode, the pen stream, the
   display's refresh rate with its frame budget (`120 Hz · 8.3 ms frame`) and the container. The chrome is
-  the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk — paper in the light theme, from **Settings → Appearance → Theme**: a 48 dp header carrying the
+  the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 48 dp header carrying the
   **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is), the search field always
-  beside them, which `Ctrl + F` only hands the keyboard ([search.md](search.md) owns it), the strip's own **`+`**,
-  the document's **path** cut short, a **Share** capsule and, on the right, **undo, redo, Save and Export PDF**
-  on 36 dp capsules with 20 dp glyphs; the band is 8 dp taller than the tablet's token because it carries that row of
+  beside them, which `Ctrl + F` only hands the keyboard ([search.md](search.md) owns it), the strip's own **`+`** and, on the right,
+  **undo, redo, Save and Export PDF** — the mobile bar's four commands, on 36 dp
+  capsules with 20 dp glyphs; the band is 8 dp taller than the tablet's token because it carries that row of
   controls as well as the tabs (`DesktopTheme.headerHeight`), under a **native caption painted in the
   band's own composite colour** (`DesktopTitleBar.kt`: immersive dark mode, the caption, border and text
   colours through DWM). It carries **no app name and no icon** (`captionIcon` keeps the art for the taskbar
-  only), with the tablet's own glyphs, one catalogue each, Inter
+  only), with the tablet's own glyphs — monoline tools and the chrome's filled marks, one catalogue each — Inter
   with tabular figures, one cast shadow under each band and one under the sheet. The art is the
   tablet's launcher icon **without its navy field**, enlarged inside its tile so the mark reads at taskbar
   size (`desktop/icon/`).

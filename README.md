@@ -104,8 +104,8 @@ strokes, highlighters, text, images, PDF backgrounds and the living tables, grap
 It also edits them: pen and highlighter, both erasers, the figure tools, text boxes, vertical space and the
 selection with its action bar and inspector lane all write to the page, each gesture one undo step, and
 `Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu (on the band too),
-a **Share** menu under the file's own path, its imports and exports (a PDF, or PNG/SVG per page) and the
-Settings panel — with the window's **theme**, System, Dark or Light — are the tablet's, drawn in the same glass. A notebook reads its pages as you scroll, and the pen's packet stream draws the ink when a
+its imports and exports (a PDF either way, or PNG/SVG per page) and the Settings panel are the tablet's, drawn
+in the same glass. A notebook reads its pages as you scroll, and the pen's packet stream draws the ink when a
 graphics tablet is attached. Rest the pen on the page and the stroke perfects itself while you hold it.
 
 - **Audio, the tablet's way**: the capsule left of Save records, pauses and plays back, and a take's strokes carry their offset
