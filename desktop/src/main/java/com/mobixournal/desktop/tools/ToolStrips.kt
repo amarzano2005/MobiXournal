@@ -14,7 +14,6 @@ import com.mobixournal.desktop.sheet.circuitFamilyOf
 import com.mobixournal.desktop.sheet.guideSlotGlyph
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.PageMenuActions
-import com.mobixournal.desktop.shell.PageSectionSlot
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -254,10 +253,6 @@ fun ToolRail(
                         else -> StripCommand(item, state, ink, StripSide.RIGHT)
                     }
                 }
-                // The page itself, after its own rule: paper and format act on the sheet under the ink,
-                // not on the ink, so it is the last object of the strip rather than one more tool in it.
-                StripDivider(vertical = true)
-                PageSectionSlot(state.pages, StripSide.RIGHT)
             }
         }
     }
@@ -316,40 +311,11 @@ fun ToolRibbon(
                         else -> StripCommand(item, state, ink, StripSide.BELOW)
                     }
                 }
-                StripDivider(vertical = false)
-                PageSectionSlot(state.pages, StripSide.BELOW)
             }
         }
     }
 }
 
-/**
- * A hairline between the tools and the ink slots — the only rule inside a strip.
- *
- * It is a **gap with one edge**, not a second band: the tools are what you draw with, the colour and the
- * width are what they draw *in*, and the strip already has an edge on the page side. The vertical rail
- * gets a short horizontal stroke, the ribbon a full-height vertical one.
- */
-@Composable
-private fun StripDivider(vertical: Boolean) {
-    if (vertical) {
-        Box(
-            Modifier
-                .padding(vertical = ToolStripMetrics.gap)
-                .width(ToolStripMetrics.slotSize)
-                .height(1.dp)
-                .background(DesktopTheme.hairline),
-        )
-    } else {
-        Box(
-            Modifier
-                .padding(horizontal = ToolStripMetrics.gap)
-                .width(1.dp)
-                .height(ToolStripMetrics.slotSize)
-                .background(DesktopTheme.hairline),
-        )
-    }
-}
 
 /**
  * One tool slot of a strip: the picked glyph in the accent, a hover pill, and the gesture it answers.

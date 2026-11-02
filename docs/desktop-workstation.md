@@ -208,10 +208,10 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
   on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
-- **Owns the page, from one section**: after a divider, one **Pages** slot wearing the tablet's ruled sheet
-  (`ChromeGlyph.DESCRIPTION`) opens the phone's menu — **Add/Remove page**, **Previous/Next**, **Page
-  background** and **Page format** (A4/A5/Letter/Legal, mm/in/pt, **Default** and **Set as default**). Its
-  commands are the tablet's `PageOps`, one undo step each (`DesktopPagesTest` adds, removes and steps).
+- **The band owns the page, from one section**: left of the search field, one **Pages** button wearing the
+  tablet's ruled sheet (`ChromeGlyph.DESCRIPTION`) opens the phone's menu — **Add/Remove page**, the two page
+  steps, **Page background** and **Page format** (A4/A5/Letter/Legal, mm/in/pt, **Default**, **Set as default**),
+  the tablet's `PageOps` at one undo step each (`DesktopPagesTest`); the strip ends with its last tool.
 - **Marks the pins a connection would join, and joins them**: while a connector is armed — the Line tool or
   a circuit family — every pin wears an accent dot and the part being pulled out shows its own, as the
   tablet draws them; the ends of a wire and of a placed part are **magnetised** onto the nearest pin

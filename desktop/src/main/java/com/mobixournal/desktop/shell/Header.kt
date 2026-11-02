@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.DismissGuard
+import com.mobixournal.desktop.tools.FloatingSurface
 import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.ink.of
@@ -31,7 +33,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
 
 /**
@@ -46,6 +51,9 @@ import com.mobixournal.design.ChromeGlyph
  * The *placement* chooser this band used to end with is gone (`docs/desktop-workstation.md`): moving the
  * strips is a setting, and a setting belongs in the Interface section rather than in the chrome it moves.
  */
+/** The gap **either side** of the history pair: the field's side and the capsule's, the same one. */
+private val HEADER_GROUP_GAP = 12.dp
+
 @Composable
 internal fun Header(
     tabs: DesktopTabs,
@@ -88,6 +96,12 @@ internal fun Header(
     onSearchPrevious: () -> Unit = {},
     onSearchClose: () -> Unit = {},
     /**
+     * The pages' menu on the band, immediately left of the search field: the tablet's page section, with
+     * the rows [PageMenuPanel] carries — the window's one door to them, now that the strip ends with its
+     * last tool.
+     */
+    pages: PageMenuActions = PageMenuActions(),
+    /**
      * The menu's **Search** row: `Ctrl+F`'s command, which asks the always-on field for the keyboard and
      * sends the reader to it. **Unavailable with no tab** — a search over nothing has nothing to search.
      */
@@ -129,13 +143,12 @@ internal fun Header(
             onNew = onNew,
             modifier = Modifier.weight(1f),
         )
-        HeaderSearchSlot(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
-        // Two groups, not one row of four: the history step and the file command are answered by
-        // different questions ("what did I just do" and "where does this go"), and the wider gap is the
-        // whole of the difference this band has room to draw.
-        Spacer(Modifier.width(12.dp))
+        HeaderSearchSlot(tab, pages, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+        // The history pair sits **halfway** between the field and the audio capsule: one gap on each
+        // side, the same one, so the two steps read as their own group rather than as the field's tail.
+        Spacer(Modifier.width(HEADER_GROUP_GAP))
         HeaderHistory(tab, onUndo, onRedo)
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(HEADER_GROUP_GAP))
         HeaderAudioSlot(audio, tabs, onAudioTap)
         HeaderFileCommands(tab, onSave, onExportPdf)
     }
@@ -164,16 +177,19 @@ private fun HeaderFileCommands(tab: DesktopTab?, onSave: () -> Unit, onExportPdf
 }
 
 /**
- * The band's **search field**, which stands there always, right of the tabs.
+ * The band's two document controls: the **pages' menu**, then the **search field**, which stands there
+ * always.
  *
- * The field used to be a magnifier that opened it, and a magnifier is a second thing to learn for a
- * door `Ctrl+F` already names; a field that is simply on the band takes the band's spare width beside the
- * tabs and moves neither the tabs nor the file commands when it is used (`docs/desktop-ui-layout.md`).
- * The pages are reached from the strip's own slot and the sidebar, so the band stays the file's row.
+ * The field used to be a magnifier that opened it, and a magnifier is a second thing to learn for a door
+ * `Ctrl+F` already names; a field that is simply on the band takes the band's spare width beside the tabs
+ * and moves neither the tabs nor the file commands when it is used (`docs/desktop-ui-layout.md`). The
+ * pages' menu stands on its left, because the page is what the reader is looking at: adding, removing or
+ * stepping one is a command of the frame, and the strip keeps the tools.
  */
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
     tab: DesktopTab?,
+    pages: PageMenuActions,
     onSearch: (String) -> Unit,
     onSearchNext: () -> Unit,
     onSearchPrevious: () -> Unit,
@@ -181,7 +197,44 @@ private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
 ) {
     if (tab != null) {
         Spacer(Modifier.width(10.dp))
+        HeaderPagesSlot(pages)
+        Spacer(Modifier.width(6.dp))
         HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+    }
+}
+
+/**
+ * The **Pages** door: the tablet's page section button on the band, opening the six rows of
+ * [PageMenuPanel] under it — the page's commands from the place the reader looks for the document rather
+ * than for the tools.
+ */
+@Composable
+private fun HeaderPagesSlot(pages: PageMenuActions) {
+    var open by remember { mutableStateOf(false) }
+    // The click that closes the menu must not open it again (see [DismissGuard]).
+    val guard = remember { DismissGuard() }
+    val density = LocalDensity.current
+    val drop = with(density) { (DesktopTheme.headerControlSize + 4.dp).roundToPx() }
+    Box {
+        HeaderGlyph(
+            active = open,
+            enabled = pages.canManage,
+            onClick = {
+                if (open) open = false else if (guard.mayOpen(Unit)) open = true
+            },
+        ) { color -> drawChromeGlyph(ChromeGlyph.DESCRIPTION, color) }
+        if (open) {
+            Popup(
+                offset = IntOffset(0, drop),
+                onDismissRequest = {
+                    guard.closed(Unit)
+                    open = false
+                },
+                properties = FloatingSurface,
+            ) {
+                PageMenuPanel(pages) { open = false }
+            }
+        }
     }
 }
 

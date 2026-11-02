@@ -116,6 +116,8 @@ internal fun DesktopShell(
             onSearchNext = { state.stepSearch(forward = true) },
             onSearchPrevious = { state.stepSearch(forward = false) },
             onSearchClose = { state.closeSearch() },
+            // The pages' menu on the band: the one set of page commands, left of the search field.
+            pages = state.stripState.pages,
             // The menu's Search row still runs `Ctrl+F`'s command; the field itself is always on the band.
             onSearchOpen = { state.apply(ShellCommand.FIND) },
         )

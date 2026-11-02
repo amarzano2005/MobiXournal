@@ -71,14 +71,12 @@ internal object InkSlotMetrics {
     val swatchRing = 2.dp
 }
 
-/** The diameter a width is drawn at **in the strip's slot**: 3 dp per point, so S and L differ. */
-internal fun dotSize(width: Float): Dp = (width * 3f).coerceIn(2f, 14f).dp
-
 /**
- * The diameter a width is **offered** at in the stroke panel: twice the slot's scale, so the three dots
- * are read at a glance rather than measured. A picker is looked at, a slot is glanced at.
+ * The diameter a width is drawn at, in the strip's slot and in the panel's three choices: 6 dp per
+ * point, so S, M and L are read at a glance instead of measured. The dot lives in a 40 dp slot, which
+ * is what the ceiling keeps it inside.
  */
-internal fun widthOptionDotSize(width: Float): Dp = (width * 6f).coerceIn(4f, 20f).dp
+internal fun dotSize(width: Float): Dp = (width * 6f).coerceIn(4f, 20f).dp
 
 /**
  * The key that picks [colour]: its favourite's digit, or all three digits when the colour is not one.
@@ -383,7 +381,7 @@ private fun WidthRow(ink: DesktopInk, onPick: (Float) -> Unit) {
             ) {
                 Box(
                     Modifier
-                        .size(widthOptionDotSize(width))
+                        .size(dotSize(width))
                         .background(Color(ink.colour), CircleShape)
                         .border(1.dp, DesktopTheme.inkMuted, CircleShape),
                 )
