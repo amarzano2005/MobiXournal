@@ -637,7 +637,7 @@ internal fun SettingsSearchField(
     Box(
         modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)
-            .background(DesktopTheme.glass, DesktopTheme.capsuleShape)
+            .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart,
     ) {

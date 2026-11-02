@@ -74,6 +74,34 @@ object DesktopTheme {
     )
 
     /**
+     * The fill a chrome **control** wears — a header capsule, the search field, a menu chip.
+     *
+     * On the black desk a control and its band are one material, and the rim's white hairline is what
+     * tells them apart. On paper that recipe collapses: a white capsule on a white band is a ghost, and
+     * the window's buttons stopped reading as objects at all. So the light theme **inverts** the pair —
+     * the band is the tinted surface and the control is the white one, which is how a light toolbar is
+     * drawn everywhere. On black this is [glass] untouched, so nothing on the black desk moves.
+     */
+    val control: Color get() = if (light) tokenColour(DesignTokens.GLASS_LIGHT_RGB) else glass
+
+    /**
+     * A **field inside a floating panel** — a name box, a page range, a preset capsule.
+     *
+     * A panel is near-white, so [control] would vanish inside it; on paper a field steps *down* a tone
+     * instead ([card]), the way a sunken field does. On the black desk it stays the band's glass, which
+     * is what these boxes have always worn.
+     */
+    val panelField: Color get() = if (light) card else glass
+
+    /** The rim's alpha at the top of a floating surface: lit on black, shaded on paper. */
+    val rimAlphaTop: Float get() =
+        if (light) DesignTokens.RIM_ALPHA_TOP_LIGHT else DesignTokens.RIM_ALPHA_TOP
+
+    /** The rim's alpha at the bottom of a floating surface. */
+    val rimAlphaBottom: Float get() =
+        if (light) DesignTokens.RIM_ALPHA_BOTTOM_LIGHT else DesignTokens.RIM_ALPHA_BOTTOM
+
+    /**
      * What floats over the page: the bands' own RGB with the see-through turned down to
      * `floatingPanelAlpha`, so a message or a menu is the same material as the bar it belongs to.
      */
@@ -370,10 +398,16 @@ object DesktopTheme {
      * The lane is a band, and a band takes no rim (`docs/chrome.md`) — so this is a *tone*, the way the
      * hover step is, not a second surface with an edge of its own.
      */
-    val card: Color get() = activeSlot.copy(alpha = CARD_ALPHA)
+    val card: Color get() = activeSlot.copy(alpha = if (light) CARD_ALPHA_LIGHT else CARD_ALPHA)
 
     /** How much of the picked slot's steel a card wears: enough to separate, never a second grey block. */
     const val CARD_ALPHA: Float = 0.22f
+
+    /**
+     * How much of it a card wears **on paper**: more, because 22 % of a pale steel over a white panel is
+     * a tone the eye cannot find, and a settings card that cannot be seen is not a card.
+     */
+    const val CARD_ALPHA_LIGHT: Float = 0.55f
 
     /**
      * The paper a **preview of a page** is drawn on: the app's white sheet.

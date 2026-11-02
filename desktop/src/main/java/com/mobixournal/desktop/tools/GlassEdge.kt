@@ -53,8 +53,8 @@ internal fun DrawScope.drawGlassRim(cornerRadiusPx: Float, ink: Color) {
     drawRoundRect(
         brush = Brush.verticalGradient(
             colors = listOf(
-                ink.copy(alpha = DesignTokens.RIM_ALPHA_TOP),
-                ink.copy(alpha = DesignTokens.RIM_ALPHA_BOTTOM),
+                ink.copy(alpha = DesktopTheme.rimAlphaTop),
+                ink.copy(alpha = DesktopTheme.rimAlphaBottom),
             ),
             startY = 0f,
             endY = size.height,
@@ -167,7 +167,7 @@ internal fun Modifier.hoverFill(
 @Composable
 internal fun Modifier.hoverCapsule(
     cornerRadius: Dp = DesktopTheme.capsuleRadius,
-    fill: Color = DesktopTheme.glass,
+    fill: Color = DesktopTheme.control,
     hoverFill: Color = DesktopTheme.hoverSlot,
     shadow: Dp = DesktopTheme.capsuleShadow,
     active: Boolean = false,
@@ -213,7 +213,7 @@ internal fun Modifier.bandSurface(
 @Composable
 internal fun Modifier.glassCapsule(
     cornerRadius: Dp = DesktopTheme.capsuleRadius,
-    fill: Color = DesktopTheme.glass,
+    fill: Color = DesktopTheme.control,
     shadow: Dp = DesktopTheme.capsuleShadow,
 ): Modifier {
     val shape = RoundedCornerShape(cornerRadius)

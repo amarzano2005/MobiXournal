@@ -145,7 +145,7 @@ internal fun PageSelectionBar(
         modifier
             .fillMaxWidth()
             .height(PageSelectionMetrics.BAR_HEIGHT)
-            .background(DesktopTheme.glass)
+            .background(DesktopTheme.panelField)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.Center,
     ) {

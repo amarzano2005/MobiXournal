@@ -117,6 +117,19 @@ object DesignTokens {
     /** The rim's alpha at the bottom — the end that falls away into the desk. */
     const val RIM_ALPHA_BOTTOM: Float = 0.04f
 
+    /**
+     * The rim's alphas on the **light** theme: the same edge, drawn in ink rather than in light.
+     *
+     * On black the rim is a white hairline at 12 %, which is exactly what turns a capsule into an object.
+     * The same 12 % of near-black on a white band is `#E1E2E4` — four levels of a 255-step ramp, not an
+     * edge — and the window's buttons went back to being invisible discs on a pale band. On paper the
+     * edge is a *shade*, so the light pair carries more of it; the dark pair is unchanged.
+     */
+    const val RIM_ALPHA_TOP_LIGHT: Float = 0.26f
+
+    /** The light rim's bottom: fainter, but still a line a reader can follow round a capsule. */
+    const val RIM_ALPHA_BOTTOM_LIGHT: Float = 0.09f
+
     /** The feathered inner ring's width, as a multiple of [RIM_WIDTH_DP]. */
     const val RIM_INNER_WIDTH_SCALE: Float = 1.5f
 
@@ -223,10 +236,14 @@ object DesignTokens {
     const val DESK_RGB: Int = 0x000000
 
     /**
-     * The window's **light** desk: the app's warm paper neutral, which is also the surround of a sheet in
-     * the light theme. The dark theme's desk is [DESK_RGB]; the two are one token pair, not two palettes.
+     * The window's **light** desk: the grey a sheet lies on in the light theme. The dark theme's desk is
+     * [DESK_RGB]; the two are one token pair, not two palettes.
+     *
+     * Deliberately **not** a near-white. At `0xF8F9FA` the desk, the bands and the sheet were three tones
+     * inside four levels of the ramp: a reader could not see where the paper ended and the window began,
+     * and every band looked like a hole in the page. A sheet is white; its surround is not.
      */
-    const val DESK_LIGHT_RGB: Int = 0xF8F9FA
+    const val DESK_LIGHT_RGB: Int = 0xE9EDF1
 
     /** The light theme's ink roles: near-black on paper, and the two greys under it. */
     const val INK_LIGHT_RGB: Int = 0x171C26

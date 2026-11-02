@@ -31,6 +31,12 @@ Every surface is one of three objects. Pick the class from what the element *doe
   leg deep black on the dark scheme and grey on the light one, breaking it at the corner.
 - **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads
   as two grey rules across the window. The edge is a band's whole boundary.
+- **On paper a band and its control swap places.** A capsule takes `DesktopTheme.control` — the glass on
+  the black desk, **white** in the light theme — while the band under it keeps the tinted glass, and the
+  drawn edge becomes more of the same ink (`RIM_ALPHA_TOP_LIGHT`, 0.26) in place of the white hairline's
+  0.12. Lifting the dark recipe onto paper made a header button a white disc on a white band and a menu
+  chip invisible: on paper "raised" is a shade *around* the object, not a highlight on it.
+  `LightMaterialTest` fails if the pair stops being inverted.
 - **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a
   shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's
   lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**

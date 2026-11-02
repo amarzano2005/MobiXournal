@@ -42,7 +42,7 @@ import com.mobixournal.design.ChromeGlyph
  *
  * It sits in the band beside the tabs rather than in the sidebar because the sidebar belongs to the pages
  * and can be shut: a search whose field disappears with the page list would be a feature that depends on
- * another one's state. The capsule is the header's own material (`DesktopTheme.glass` on
+ * another one's state. The capsule is the header's own material (`DesktopTheme.control` on
  * [DesktopTheme.capsuleShape], `docs/interface-contract.md` §1), with catalogue glyphs only — a magnifier
  * while there is a query to run, the clear cross while there is a query to drop.
  *
@@ -65,7 +65,7 @@ internal fun HeaderSearchField(
         Modifier
             .height(DesktopTheme.headerControlSize)
             .width(SEARCH_FIELD_WIDTH)
-            .background(DesktopTheme.glass, DesktopTheme.capsuleShape)
+            .background(DesktopTheme.control, DesktopTheme.capsuleShape)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

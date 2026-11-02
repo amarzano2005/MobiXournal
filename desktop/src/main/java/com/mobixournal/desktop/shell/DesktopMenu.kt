@@ -456,7 +456,7 @@ private fun MenuChip(
             .height(MenuMetrics.chipHeight)
             .hoverCapsule(
                 cornerRadius = MenuMetrics.chipRadius,
-                fill = DesktopTheme.glass,
+                fill = DesktopTheme.control,
                 active = !enabled,
             )
             .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }

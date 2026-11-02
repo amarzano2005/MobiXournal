@@ -92,7 +92,7 @@ internal fun HeaderAudioPill(
             .height(DesktopTheme.headerControlSize)
             .glassCapsule(
                 cornerRadius = DesktopTheme.headerControlSize / 2,
-                fill = DesktopTheme.glass,
+                fill = DesktopTheme.control,
                 shadow = DesktopTheme.bandShadow,
             )
             .padding(horizontal = 6.dp),

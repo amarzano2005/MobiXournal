@@ -150,7 +150,7 @@ internal fun PageNumberField(value: String, label: String, onValue: (String) -> 
         Modifier
             .width(64.dp)
             .height(32.dp)
-            .background(DesktopTheme.glass, DesktopTheme.capsuleShape)
+            .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
             .semantics { contentDescription = label }
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart,

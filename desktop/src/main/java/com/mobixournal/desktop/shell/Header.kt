@@ -287,7 +287,7 @@ internal fun HeaderGlyph(
     val fill = when {
         active && enabled -> DesktopTheme.activeSlot
         hovered && enabled -> DesktopTheme.hoverSlot
-        else -> DesktopTheme.glass
+        else -> DesktopTheme.control
     }
     Box(
         Modifier
