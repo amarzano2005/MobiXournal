@@ -15,6 +15,8 @@ import com.mobixournal.desktop.tools.ToolRail
 import com.mobixournal.desktop.tools.ToolStripMetrics
 import com.mobixournal.desktop.tools.ToolStripState
 import com.mobixournal.desktop.tools.colourKeyLabel
+import com.mobixournal.desktop.tools.dotSize
+import com.mobixournal.desktop.tools.widthLetter
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
@@ -138,7 +140,7 @@ class InkShortcutsTest {
         assertEquals("all three when the colour is not a favourite", "1 2 3", colourKeyLabel(favourites, PenPalette.WHITE))
     }
 
-    /** The rail drawn with a non-default ink: the capsule is that colour and the dot follows the width. */
+    /** The rail drawn with a non-default ink: the slot is that colour, and its letter is the size. */
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun `the rail shows the ink the keys picked`() {
@@ -146,21 +148,22 @@ class InkShortcutsTest {
         val narrow = railPng(DesktopInk(PenPalette.GREEN, 0.85f), "ink-keys-s")
 
         val image = ImageIO.read(ByteArrayInputStream(wide))
-        // The stroke slot is a dot of the ink at the width it draws, so its area is the width's — a
-        // coordinate would move with the strip's arrangement, the colour does not.
+        // The stroke slot is a dot of the ink — a coordinate would move with the strip's arrangement,
+        // the colour does not.
         assertTrue(
             "the stroke slot draws the picked colour",
             countInk(image, PenPalette.GREEN) > 4,
         )
-        // Green, whole image: the swatch contributes the same pixels to both renders, so the only difference
-        // left is the size dot — a wider width is a wider dot. Sampling a band of the rail was fragile here:
-        // the strip's height follows the group list, and a band sized for one layout measured empty capsule.
+        // One dot for **every** width, deliberately (`InkSlotMetrics.previewSize`): a dot drawn at the width
+        // itself made M a smudge and left the three sizes incomparable, so the letter under it is what says
+        // S, M or L — and the panel's three choices are the ones that read a width as a dot.
         val wideDot = countInk(image, PenPalette.GREEN)
         val narrowDot = countInk(ImageIO.read(ByteArrayInputStream(narrow)), PenPalette.GREEN)
-        assertTrue(
-            "the L dot has more ink than the S dot (L=$wideDot, S=$narrowDot)",
-            wideDot > narrowDot,
-        )
+        assertEquals("one dot at every width (L=$wideDot, S=$narrowDot)", wideDot, narrowDot)
+        assertEquals("L is the wide pen's letter", "L", widthLetter(2.6f))
+        assertEquals("S is the thin one's", "S", widthLetter(0.85f))
+        assertTrue("and the two renders differ, because the letter does", !wide.contentEquals(narrow))
+        assertTrue("the panel's dots are the ones that read the width", dotSize(2.6f) > dotSize(0.85f))
     }
 
     // --- rendering ------------------------------------------------------------------------------

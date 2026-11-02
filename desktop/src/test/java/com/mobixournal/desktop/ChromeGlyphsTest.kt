@@ -49,8 +49,9 @@ class ChromeGlyphsTest {
     fun `every glyph fills its grid and nothing outside it`() {
         for (glyph in ChromeGlyph.entries) {
             val bounds = chromePath(glyph).getBounds()
-            assertTrue("$glyph has width", bounds.width > 4f)
-            assertTrue("$glyph has height", bounds.height > 4f)
+            // The *area* is what proves a mark is there: a minus is one rule, 14 units long and 2 thick —
+            // the phone's own picture — and a per-axis minimum would call it a missing button.
+            assertTrue("$glyph has area", bounds.width * bounds.height > 16f)
             assertTrue(
                 "$glyph stays on the grid (${bounds.left}, ${bounds.top} .. ${bounds.right}, ${bounds.bottom})",
                 bounds.left >= -0.01f && bounds.top >= -0.01f &&
