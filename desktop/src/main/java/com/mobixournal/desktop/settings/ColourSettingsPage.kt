@@ -2,6 +2,7 @@ package com.mobixournal.desktop.settings
 import com.mobixournal.desktop.tools.ColourPicker
 import com.mobixournal.desktop.tools.ColourPickerPanel
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -10,7 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +60,12 @@ internal fun ColorsSettings(palette: PaletteActions) {
                     editing = null
                 },
             )
+            // The panel opens **under the row it edits**. Appended to the foot of the group it opened
+            // below every other swatch, so a reader who clicked Edit on Black went looking for it past
+            // White — and on a short page its Set button was under the panel's own edge.
+            if (editing == index) {
+                InlinePicker(palette, colours, index) { editing = null }
+            }
         }
         SettingsCommand(
             label = "Add colour",
@@ -72,25 +82,43 @@ internal fun ColorsSettings(palette: PaletteActions) {
                 },
             )
         }
-        // The target is re-read every composition: a Delete that shortens the list while the picker is
-        // open must not leave it editing an index that has gone.
-        val target = editing?.takeIf { it in 0..colours.size }
-        if (target != null) {
-            val isNew = target == colours.size
-            ColourPickerPanel(
-                title = if (isNew) "New colour" else "Edit ${paletteColourName(colours[target])}",
-                initial = if (isNew) colours.lastOrNull() ?: PenPalette.BLACK else colours[target],
-                onSet = { colour ->
-                    if (isNew) palette.add(colour) else palette.define(target, colour)
-                    editing = null
-                },
-                onCancel = { editing = null },
-                modifier = Modifier.padding(start = ROW_INSET, top = 4.dp, bottom = 10.dp),
-            )
+        if (editing == colours.size) {
+            InlinePicker(palette, colours, colours.size) { editing = null }
         }
     }
     SettingsNote(
         "Every picker draws this list: the stroke panel's swatches, the pen-tip ring and the text dialog.",
+    )
+}
+
+/**
+ * The colour panel, opened **inside the page under the row it edits** — and scrolled into view.
+ *
+ * It is not a second surface over the settings surface: the page already floats over the sheet, and two
+ * layers would be a question about which one a key belongs to. What the page has to do instead is make
+ * room for it, which is the [BringIntoViewRequester]'s job: the reader clicked a row near the bottom of a
+ * scrolling column, and a panel that opened below the fold would be the same bug in another place.
+ *
+ * [target] is `colours.size` for a colour not yet in the list — the add command's own case.
+ */
+// `BringIntoViewRequester` is still the foundation's experimental surface in this Compose line.
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun InlinePicker(palette: PaletteActions, colours: List<Int>, target: Int, onClose: () -> Unit) {
+    val isNew = target == colours.size
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(target) { requester.bringIntoView() }
+    ColourPickerPanel(
+        title = if (isNew) "New colour" else "Edit ${paletteColourName(colours[target])}",
+        initial = if (isNew) colours.lastOrNull() ?: PenPalette.BLACK else colours[target],
+        onSet = { colour ->
+            if (isNew) palette.add(colour) else palette.define(target, colour)
+            onClose()
+        },
+        onCancel = onClose,
+        modifier = Modifier
+            .bringIntoViewRequester(requester)
+            .padding(start = ROW_INSET, top = 6.dp, bottom = 6.dp),
     )
 }
 

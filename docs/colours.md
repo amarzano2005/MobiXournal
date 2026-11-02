@@ -29,9 +29,10 @@ redefining it redefines it for both tools. `DesktopInkSplitTest` pins the pair.
 (`%APPDATA%\MobiXournal\desktop.properties`): `palette.colours` as a comma-separated list of eight-digit
 ARGB hex, `ink.colour` / `ink.width` and `ink.highlighterColour` / `ink.highlighterWidth` for what the
 strips show per tool, and `interface.colourFavourites` / `interface.highlighterFavourites` for the two
-ternas. The rail's **stroke slot** — under the highlighter whose ink it answers for — opens one glass
-panel with the palette row, the four line styles and the `S`/`M`/`L` widths, so a colour, a pattern and a
-size are one decision in one place. Reading
+ternas. The rail's **stroke slot** — under the highlighter whose ink it answers for — carries the ink as
+one **fixed-size** dot with the width's letter (`S`/`M`/`L`) under it, and opens one glass panel with the
+palette row, the four line styles and the same three widths, so a colour, a pattern and a size are one
+decision in one place. Reading
 the file runs the list through `PenPalette.sanitised`, so an edited file cannot put a transparent colour,
 a duplicate or an empty palette in front of the picker. The row ends in the editable custom slot and the
 add-colour swatch; both open the window's own panel — a saturation/value square, a hue slider and a
@@ -44,7 +45,7 @@ app's `ui/` and reads `AppSettings`.
 **The palette itself is editable from the window's Settings**, under **Drawing → Colors** — the phone's own
 four verbs, over the same rules: a row per swatch, the row picks it, **Edit** redefines the entry in its
 place, **Delete** removes it, **Add colour** appends, and **Restore default palette** writes the factory
-eight back (the last swatch cannot be deleted, and the ceiling is `PenPalette.MAX_COLORS`). The page's
+eight back; the panel opens in the page under the row it edits and is scrolled into view (the last swatch cannot be deleted, and the ceiling is `PenPalette.MAX_COLORS`). The page's
 subject is a `PaletteActions` reading the window's live palette, so a swatch changed there is changed in the
 strip's stroke panel and in the pen-tip ring the moment it is committed — never a second list. The factory
 ternas are shared with the tablet as well: `PenPalette.PEN_FAVOURITES` (black, red, green) and

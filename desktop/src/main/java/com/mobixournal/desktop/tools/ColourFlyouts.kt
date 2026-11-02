@@ -69,14 +69,27 @@ internal object InkSlotMetrics {
 
     /** The ring the picked swatch wears: the slot's padding, in dp. */
     val swatchRing = 2.dp
+
+    /**
+     * The dot the strip's stroke slot draws, in dp: **one size for every width**, so the colour is what
+     * the circle says and the letter under it is what the size says. 15 dp plus a hair and the label fits
+     * the slot's 40 dp without widening it.
+     */
+    val previewSize = 15.dp
 }
 
 /**
- * The diameter a width is drawn at, in the strip's slot and in the panel's three choices: 6 dp per
- * point, so S, M and L are read at a glance instead of measured. The dot lives in a 40 dp slot, which
- * is what the ceiling keeps it inside.
+ * The diameter a width is drawn at in the panel's **three choices**: 6 dp per point, so S, M and L are
+ * read at a glance instead of measured. The dot lives in a 40 dp row, which is what the ceiling keeps it
+ * inside. The strip's own slot does not use it: there the size is the letter's word.
  */
 internal fun dotSize(width: Float): Dp = (width * 6f).coerceIn(4f, 20f).dp
+
+/** The letter a width goes by, in the slot and in the panel's three choices: `S`, `M` or `L`. */
+internal fun widthLetter(width: Float): String {
+    val slot = PenPalette.widthSlot(width)
+    return PenPalette.WIDTH_LABELS.getOrElse(slot) { "${slot + 1}" }
+}
 
 /**
  * The key that picks [colour]: its favourite's digit, or all three digits when the colour is not one.
@@ -90,7 +103,8 @@ internal fun colourKeyLabel(favourites: List<Int>, colour: Int): String {
 }
 
 /**
- * The **stroke's own settings**, as one slot: the ink in a capsule, drawn at the width it will draw at.
+ * The **stroke's own settings**, as one slot: the ink at **one fixed size**, with the width's letter under
+ * it, because a dot drawn at the width itself made `M` a smudge and left the three sizes incomparable.
  *
  * It used to be two slots — a colour and a width — parked at the tail of the strip, away from the tool
  * that spends them. It stands now **under the highlighter whose ink it answers for**, and its panel asks
@@ -131,15 +145,23 @@ internal fun StrokeSlot(
                 .pointerInput(Unit) { detectTapGestures { open = !open && guard.mayOpen(Unit) } },
             contentAlignment = Alignment.Center,
         ) {
-            // The ink at its own width: one picture for the colour and the size, as the tablet's stroke
-            // button draws it. A black or white ink would read as a hole in the glass, so the dot keeps
-            // the ring the palette's swatches wear.
-            Box(
-                Modifier
-                    .size(dotSize(ink.width))
-                    .background(Color(ink.colour), CircleShape)
-                    .border(1.dp, DesktopTheme.inkMuted, CircleShape),
-            )
+            // The ink at one fixed size, with the width's letter beneath it: one picture for the colour
+            // and one word for the size. A black or white ink would read as a hole in the glass, so the
+            // dot keeps the ring the palette's swatches wear.
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    Modifier
+                        .size(InkSlotMetrics.previewSize)
+                        .background(Color(ink.colour), CircleShape)
+                        .border(1.dp, DesktopTheme.inkMuted, CircleShape),
+                )
+                Spacer(Modifier.height(1.dp))
+                Text(
+                    text = widthLetter(ink.width),
+                    color = DesktopTheme.inkSecondary,
+                    style = DesktopTheme.numeric,
+                )
+            }
         }
         if (hovered && !open) {
             StripPill(label = "Stroke", accent = colourKeyLabel(favourites, ink.colour), offset = anchor)

@@ -76,7 +76,7 @@ internal fun ColourPickerPanel(
         Spacer(Modifier.height(12.dp))
         SaturationValueField(
             draft = draft,
-            modifier = Modifier.fillMaxWidth().height(140.dp),
+            modifier = Modifier.fillMaxWidth().height(110.dp),
             onChange = { saturation, value -> draft = draft.withSaturation(saturation).withValue(value) },
         )
         Spacer(Modifier.height(12.dp))

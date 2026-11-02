@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,8 +32,8 @@ import org.junit.rules.TemporaryFolder
  *
  * The claims are the ones a user could notice were false: the palette and the picked ink are still there
  * after a restart; a hand-edited settings file cannot put a transparent colour or an empty palette in
- * front of the picker; picking writes the file; and the colour capsule really is the ink colour, with the
- * size slot's dot wider at `L` than at `S`.
+ * front of the picker; picking writes the file; and the colour capsule really is the ink colour, at one
+ * fixed size, with the width's letter under it.
  *
  * The flyouts themselves open as `Popup`s and are **not** covered here (the same limitation the placement
  * chooser has): a headless scene does not open one, so their contents are checked by the layout and the
@@ -126,33 +125,39 @@ class ColourFlyoutTest {
         assertEquals(null, PaletteCodec.parseHex(""))
     }
 
-    /** The stroke slot's dot is the ink colour, and it grows with the width. */
+    /**
+     * The stroke slot: **one fixed dot** in the ink's colour, and the width's letter under it.
+     *
+     * The dot used to be drawn at the stroke's own width, which made `M` a two-pixel smudge and left the
+     * three sizes incomparable by clicking between them. The size is the letter's job now: the same ink
+     * paints the same number of pixels at `S` and at `L`, while the slot's own picture changes.
+     */
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
-    fun `the slot shows the ink`() {
+    fun `the slot shows the ink at one size, with the width's letter`() {
         val wide = ImageIO.read(ByteArrayInputStream(renderSlot(DesktopInk(PenPalette.GREEN, 2.6f), "ink-slot-l")))
-        assertEquals(
+        val column = (0 until wide.height).map { y -> wide.getRGB(SLOT_CENTRE_X, y) and 0xFFFFFF }
+        assertTrue(
             "the dot is filled with the ink colour",
-            PenPalette.GREEN and 0xFFFFFF,
-            wide.getRGB(SLOT_CENTRE_X, SLOT_CENTRE_Y) and 0xFFFFFF,
+            (PenPalette.GREEN and 0xFFFFFF) in column,
         )
 
         val narrow = ImageIO.read(ByteArrayInputStream(renderSlot(DesktopInk(PenPalette.GREEN, 0.85f), "ink-slot-s")))
         val wideDot = inkPixels(wide)
         val narrowDot = inkPixels(narrow)
         assertTrue("the stroke slot drew a dot ($wideDot px)", wideDot > 0)
+        assertEquals("the dot is one size whatever the width", wideDot, narrowDot)
         assertTrue(
-            "the L dot is wider than the S dot ($wideDot vs $narrowDot)",
-            wideDot > narrowDot,
+            "the width's letter is drawn under the dot",
+            (0 until wide.height).any { y ->
+                (0 until wide.width).any { x -> wide.getRGB(x, y) != narrow.getRGB(x, y) }
+            },
         )
-        assertNotEquals("changing the width repaints the slot", wideDot, narrowDot)
     }
 
-    /** Where the slot's dot sits: the slot is centred in the rail's lane, and its dot in the slot. */
+    /** Where the slot sits: centred across the rail's lane. */
     private val SLOT_CENTRE_X: Int
         get() = (ToolStripMetrics.railSlotLeft + ToolStripMetrics.slotSize / 2).value.toInt()
-
-    private val SLOT_CENTRE_Y: Int get() = 20
 
     // --- rendering ------------------------------------------------------------------------------
 
