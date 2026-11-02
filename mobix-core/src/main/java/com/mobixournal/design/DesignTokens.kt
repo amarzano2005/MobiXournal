@@ -227,20 +227,24 @@ object DesignTokens {
         /** The arrival's alpha fade, in ms. */
         const val FADE_IN_MS: Int = 110
 
-        /** The closing spring's damping: stiffer, so the panel leaves without a visible bounce. */
-        const val CLOSE_DAMPING_RATIO: Float = 0.85f
+        /**
+         * The closing spring's damping — better damped than the arrival's, so the panel leaves without a
+         * visible bounce: a dismissal is something you asked for, not something to watch settle.
+         */
+        const val CLOSE_DAMPING_RATIO: Float = 0.9f
 
-        /** The closing spring's stiffness. */
-        const val CLOSE_STIFFNESS: Float = 850f
+        /** The closing spring's stiffness: the draw-back lands in about 110 ms. */
+        const val CLOSE_STIFFNESS: Float = 1400f
 
         /** The closing alpha fade, in ms. */
-        const val FADE_OUT_MS: Int = 170
+        const val FADE_OUT_MS: Int = 110
 
         /**
-         * How long a host keeps a closing surface composed. A shorter hold played the exit out in
-         * ~8 frames, which read as no animation at all.
+         * How long a host keeps a closing surface composed. Long enough for the fade to land, short
+         * enough that the return reads as a dismissal rather than as a panel taking its time to go: held
+         * for 230 ms it was as long as the arrival, which made closing a menu feel sluggish.
          */
-        const val EXIT_HOLD_MS: Int = 230
+        const val EXIT_HOLD_MS: Int = 150
     }
 
     // --- Palette --------------------------------------------------------------------------------

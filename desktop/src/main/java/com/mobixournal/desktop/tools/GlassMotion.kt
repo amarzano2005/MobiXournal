@@ -44,7 +44,7 @@ val LocalGlassClosing = compositionLocalOf { false }
  * Without it, `if (open) { Panel() }` tears the panel down between two frames the instant `open` clears:
  * the arrival plays in full and the departure does not exist. Gate the call with this instead, and the
  * content hears [LocalGlassClosing] (which [glassSpring] reads as "not visible") and is released after
- * [DesignTokens.GlassMotion.EXIT_HOLD_MS] — the same 230 ms the tablet's `DialogPresence` holds a dialog
+ * [DesignTokens.GlassMotion.EXIT_HOLD_MS] — the same hold the tablet's `DialogPresence` keeps a dialog
  * window for.
  */
 @Composable

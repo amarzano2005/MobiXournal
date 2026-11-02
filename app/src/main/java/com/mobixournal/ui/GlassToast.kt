@@ -54,9 +54,9 @@ fun GlassToastHost(
                 color = glassBg,
                 shadowElevation = 8.dp,
                 modifier = Modifier
+                    .liquidGlassSpringAnimation(expanded = true, origin = TransformOrigin(0.5f, 1f))
                     .padding(horizontal = 24.dp)
-                    .floatingRim(20.dp)
-                    .liquidGlassSpringAnimation(expanded = true, origin = TransformOrigin(0.5f, 1f)),
+                    .floatingRim(20.dp),
             ) {
                 Box(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),

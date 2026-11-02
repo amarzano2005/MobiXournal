@@ -106,9 +106,10 @@ fun AudioMiniPlayer(
             color = glassColor,
             shadowElevation = 8.dp,
             modifier = Modifier
+                // Outside the rim, so the whole panel leaves rather than its contents alone.
+                .liquidGlassSpringAnimation(expanded = visible, origin = TransformOrigin(0.5f, 0.5f))
                 .width(300.dp)
-                .floatingRim(16.dp)
-                .liquidGlassSpringAnimation(expanded = visible, origin = TransformOrigin(0.5f, 0.5f)),
+                .floatingRim(16.dp),
         ) {
             MiniPlayerBody(
                 playheadMs = playheadMs,

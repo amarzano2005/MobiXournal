@@ -190,10 +190,14 @@ private fun ToolbarMenuWindow(
         // *inside* the panel's top rows — the grey wash the desktop deliberately does not have.
         Box(
             modifier = modifier
+                // **Outside** the fill. Modifiers compose left to right, so a spring written after
+                // `background` owns only the panel's children: the glass then arrives opaque and at full
+                // size while the rows inside it move — which is the report "the pop-up has no animation,
+                // the things inside it do". Out here it scales and fades the whole panel.
+                .liquidGlassSpringAnimation(origin = transformOrigin)
                 .clip(RoundedCornerShape(TOP_BAR_DOCK_CORNER))
                 .background(rememberFloatingSurfaceColor())
-                .floatingRim()
-                .liquidGlassSpringAnimation(origin = transformOrigin),
+                .floatingRim(),
         ) {
             Column(
                 modifier = Modifier

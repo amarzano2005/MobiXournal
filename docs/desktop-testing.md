@@ -47,7 +47,7 @@ tablet's material and in this window's, by `GlassParityRenderTest`), and
 brighter at the top than at the bottom, or it is a border and not the family's edge, and a band of ink under
 the panel still reading through it, or the fill is a slab. `GlassMotionTest` drives the arrival through a
 scene's frame clock (`render(nanoTime)`): nothing at t=0, faint at 40 ms inside its 82 % box, the glass at
-full size by 700 ms, with `GlassPresence` holding it composed through the 230 ms exit.
+full size by 700 ms, with `GlassPresence` holding it composed through the exit.
 `PageLayersAndPaperTest` reads pixels too: `isometric-paper.png`'s line midpoints must fall on
 `BackgroundGrid.isometric`'s segments, and `hidden-layer.png` is a two-layer page with one off — the band
 that is gone is the check. `DesktopSelectionCostTest` is the selection drag's **price**, not its behaviour: one record per frame and

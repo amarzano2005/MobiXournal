@@ -125,9 +125,10 @@ internal fun DrawScope.drawFloatingRim(
 internal val MENU_RIM_WIDTH = DesignTokens.RIM_WIDTH_DP.dp
 
 /**
- * How long a floating surface takes to **draw back** when it closes: the closing spring settles in
- * about 200 ms and the fade lands at 170 ms, so the window is held for 230 ms — long enough for the
- * exit to read (a shorter hold played it out in ~8 frames, which looked exactly like a snap).
+ * How long a floating surface stays composed once it closes: the closing spring draws it back and the
+ * fade lands at [DesignTokens.GlassMotion.FADE_OUT_MS], so the window is held for
+ * [DesignTokens.GlassMotion.EXIT_HOLD_MS] — long enough for the return to read, short enough that
+ * dismissing a menu feels like the menu getting out of the way.
  */
 const val FLOATING_EXIT_MS = DesignTokens.GlassMotion.EXIT_HOLD_MS
 
@@ -143,6 +144,10 @@ val LocalFloatingSurfaceClosing = compositionLocalOf { false }
  * Apple-style liquid glass opening and closing animation for popups, menus, and dialogs: a fluid,
  * organic spring on the scale with an alpha fade. Always on — it is the app's own motion language,
  * not a preference, so there is no switch to turn it off.
+ *
+ * Apply it **before** the fill in the chain — `Modifier.liquidGlassSpringAnimation(…).background(…)` —
+ * as the desktop's colour panel already does. Composed after `background`, the layer holds only the
+ * panel's children: the fill and the rim land full-size and fully opaque and only the rows move.
  */
 @Composable
 fun Modifier.liquidGlassSpringAnimation(
@@ -183,7 +188,8 @@ fun Modifier.liquidGlassSpringAnimation(
             // settled later would have its tail cut off by the window going away.
             launch {
                 // A spring on the way out too, so the panel reads as drawing back rather than as being
-                // cut: lightly damped, so it settles in ~200 ms without a visible bounce.
+                // cut: stiffer and better damped than the arrival, so it lands in ~110 ms with no bounce
+                // — a dismissal is something you asked for, not something to watch.
                 scale.animateTo(
                     targetValue = start,
                     animationSpec = spring(
@@ -278,11 +284,11 @@ fun FloatingDialog(
             onDismissRequest = onDismissRequest,
             containerColor = surface,
             modifier = modifier
-                .floatingRim()
                 .liquidGlassSpringAnimation(
                     expanded = !LocalFloatingSurfaceClosing.current,
                     origin = TransformOrigin(0.5f, 0.5f),
-                ),
+                )
+                .floatingRim(),
             properties = properties,
             // No tonal wash: with `surface` and `surfaceTint` the same colour the RGB would survive it,
             // but the composite still stacks the tint's alpha over the fill's and lands the panel a

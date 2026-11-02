@@ -66,6 +66,13 @@ class ToolbarMenuGuardTest {
             "and must not return early on the flag — that is the window torn down mid-arrival",
             owner.contains("if (!expanded) return"),
         )
+        // And the spring must be the outer layer: composed after the fill it holds only the panel's
+        // children, so the glass lands opaque and full-size and only the rows inside it move.
+        assertTrue(
+            "the spring must wrap the fill, not sit inside it (animation before clip/background)",
+            owner.indexOf(".liquidGlassSpringAnimation(") in
+                0..<owner.indexOf(".background(rememberFloatingSurfaceColor())"),
+        )
     }
 
     /**

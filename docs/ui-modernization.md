@@ -195,7 +195,7 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
       "springStiffness": 380,
       "springDamping": 28,
       "fadeTransitionMs": 150,
-      "glassMotion": { "startScale": 0.82, "openDamping": 0.6, "openStiffness": 620, "fadeInMs": 110, "closeDamping": 0.85, "closeStiffness": 850, "fadeOutMs": 170, "exitHoldMs": 230 }
+      "glassMotion": { "startScale": 0.82, "openDamping": 0.6, "openStiffness": 620, "fadeInMs": 110, "closeDamping": 0.9, "closeStiffness": 1400, "fadeOutMs": 110, "exitHoldMs": 150 }
     }
   }
 }
@@ -220,10 +220,16 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
 - **Everything floating leaves the way it arrived**: a dialog and a pop-up each live in their own window, and
   Compose tore that window down the instant its flag cleared — the entrance spring played in full and the panel
   vanished mid-frame, which read as "it only animates one way". `DialogPresence(visible)` holds the window
-  composed for `FLOATING_EXIT_MS` (230 ms) while the surface inside runs the same spring backwards; it reads
+  composed for `FLOATING_EXIT_MS` (150 ms) while the surface inside runs the same spring backwards; it reads
   nothing but the flag, so the toolbar's pop-ups (`ToolbarMenu`) gate their window with it exactly as every
   floating dialog — the editor's, the pages menu's, the settings pickers' — already did.
-  `rememberClosingArgument` keeps a dialog's subject when the flag was a nullable one.
+  `rememberClosingArgument` keeps a dialog's subject when the flag was a nullable one. The return is quicker
+  than the arrival on purpose — 110 ms of fade, a stiffer spring, inside a 150 ms hold — because a dismissal
+  is something the user asked for, and holding it as long as the entrance made closing a menu feel sluggish.
+- **The spring goes outside the fill**: the animation modifier comes *before* the `background`/glass in a
+  surface's chain. Written after it, the layer owns only the panel's children — the fill and the rim stay
+  full-size and opaque while the rows inside move, which is exactly the report "the pop-up has no animation,
+  the things inside it do". The desktop learned the same lesson on its colour panel and says so there.
 - **The spring is felt on the panel, once**: the bounce belongs to the surface — 82 % to 100 % on an
   under-damped spring (ζ ≈ 0.6, about a tenth over and back) — while the alpha only fades. Rows, chips and
   glyphs inside a menu never animate separately: a panel where every item also slides reads as a bag of
