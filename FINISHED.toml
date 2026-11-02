@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-light-theme-and-header-extras"
+title = "Desktop: light theme, breadcrumb and Share (scope)"
+description = "Broke the scope into three task-level items and wrote no code for it: desktop-light-theme-tokens-and-a-setting (two token sets behind one accessor, an interface.theme setting defaulting to the system, the DWM title bar following it, and the proof a document looks the same in both themes), desktop-document-path-breadcrumb-in-the-header (the open path on the band, shortened from the left by a pure shortenPath, the full path on hover, the search field unmoved) and desktop-share-menu-reveal-copy-path-export (Show in Explorer, Copy path and Export in one glass menu, disabled rather than hidden when a document is unsaved). The scope header search field it mentioned is already built by desktop-page-management-and-search and is untouched; the band placement of the three new pieces is left to desktop-ultrawide-21x9-layout."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-11-02
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-ring-free-positions"
 title = "Desktop: the ring's positions are freely chosen"
 description = "Settings -> Ring is a per-position editor: every face of the ring is a row answered with a select over the answers the window can commit - Pen, Highlighter, Eraser, the three widths, the palette's colours - plus Empty, which removes the position. RingContents is now a sealed Auto | Fixed: Auto is the untouched ring (palette, widths, the three tools, following the palette) and Fixed is the reader's own list, stored as one ring.slots line (c:/w:/t:) whose absence means Auto, so Reset to defaults is a key removal. The first change pins the ring; removing the last position falls back to Auto; a ring with no faces does not open at all. The side button goes entirely: PenButton, tablet.penButton, the Stylus group, the window's penBarrel, HudUi.barrel/barrelErases, the ring's PenBarrel half and its held release, and the packet stroke's barrel state machine - on a PC a pen's buttons arrive as keyboard keys, so the ring's key is the whole door. The WintabButtons reading and PenPacket.barrel stay as telemetry, reported by the tablet probe. Tests: DesktopRingTest (Fixed carries exactly its faces, an empty ring does not open, the stored line round-trips), DesktopSettingsTest (positions survive a restart, reset restores Auto); the barrel scene/stroke tests are gone with the path. Docs: desktop-settings.md (the Ring section rewritten, the Pen button bullet removed), desktop-ui-layout.md, desktop-tablet.md, ui-modernization.md, README; SourceStructureTest ceilings lowered (DesktopShell 714, DesktopSettingsState exemption deleted). Verified: desktop suite green, DocsGuardTest/DocClaimsTest/SourceStructureTest green, :desktop:createDistributable regenerated."
