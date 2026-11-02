@@ -92,11 +92,9 @@ fun AudioMiniCapsule(
         // lifts the transport off the band there.
         color = if (isDark) glassColor else Color.Transparent,
         shadowElevation = if (isDark) 6.dp else 0.dp,
-        modifier = if (isDark) {
-            modifier.floatingRim(ModernTheme.capsuleCornerRadiusDp)
-        } else {
-            modifier
-        },
+        // The **edge** stays in both themes: on paper the fill and the lift go, and the family's drawn rim
+        // is what keeps the transport an object in the chrome.
+        modifier = modifier.floatingRim(ModernTheme.capsuleCornerRadiusDp),
     ) {
         if (vertical) {
             Column(

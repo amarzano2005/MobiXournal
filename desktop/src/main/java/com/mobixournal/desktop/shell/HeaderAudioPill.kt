@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.glassCapsule
+import com.mobixournal.desktop.tools.glassRim
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopTabAudio
@@ -88,14 +89,16 @@ internal fun HeaderAudioPill(
     val sound = audio.of(tab())
 
     Row(
-        // On **paper** the pill is its three buttons and nothing else: the band behind it is already the
-        // sheet's white, so the control's white fill drew a white box round them instead of an object in
-        // the chrome. On black the capsule stays — there it is what lifts the transport off the band.
+        // On **paper** the pill keeps its buttons and its **rim**, and nothing else: the band behind it is
+        // already the sheet's white, so the control's white fill drew a white box round them. On black the
+        // capsule stays — there it is what lifts the transport off the band.
         modifier
             .height(DesktopTheme.headerControlSize)
             .then(
                 if (DesktopTheme.isLight) {
-                    Modifier
+                    // No fill and no lift on paper — but the family's **drawn edge** stays: the rim is what
+                    // keeps the transport an object in the chrome once the white box behind it is gone.
+                    Modifier.glassRim(cornerRadius = DesktopTheme.headerControlSize / 2)
                 } else {
                     Modifier.glassCapsule(
                         cornerRadius = DesktopTheme.headerControlSize / 2,
