@@ -118,6 +118,9 @@ internal fun DesktopShell(
             onSearchClose = { state.closeSearch() },
             // The pages' menu on the band: the one set of page commands, left of the search field.
             pages = state.stripState.pages,
+            // The Share door: the commands over whatever tab is in view, and the export it opens.
+            share = state.shareActions(),
+            onShareExport = onExportPdfPicker,
             // The menu's Search row still runs `Ctrl+F`'s command; the field itself is always on the band.
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {

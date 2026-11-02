@@ -77,6 +77,12 @@ enum class ChromeGlyph {
     ADD,
 
     /**
+     * Share: three marks and the two lines between them — the window's Share menu, transcribed from the
+     * tablet's own `Icons.Outlined.Share` like every other mark here.
+     */
+    SHARE,
+
+    /**
      * Take away: the minus half of a stepper — the Pages menu's quick sizes are its first reader.
      *
      * The tablet's `Icons.Outlined.Remove` transcribed like every other mark here, so the window steps a
@@ -200,6 +206,11 @@ object ChromeGlyphCatalogue {
             "M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"
         ChromeGlyph.ADD -> "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z"
         ChromeGlyph.MINUS -> "M19 13H5v-2h14v2Z"
+        ChromeGlyph.SHARE ->
+            "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11" +
+                "c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 " +
+                "9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 " +
+                "4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"
         ChromeGlyph.SEARCH ->
             "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 " +
                 "5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 " +

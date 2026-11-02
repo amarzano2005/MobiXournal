@@ -101,6 +101,10 @@ internal fun Header(
      * last tool.
      */
     pages: PageMenuActions = PageMenuActions(),
+    /** The **Share** door: show in Explorer, copy the path, export — null in a band with no document. */
+    share: ShareActions? = null,
+    /** What the Share menu's **Export…** opens: the export commands the menu's own chips run. */
+    onShareExport: () -> Unit = {},
 ) {
     val tab = tabs.active
     Row(
@@ -144,8 +148,42 @@ internal fun Header(
         HeaderHistory(tab, onUndo, onRedo)
         Spacer(Modifier.width(HEADER_GROUP_GAP))
         HeaderAudioSlot(audio, tabs, onAudioTap)
+        HeaderShareSlot(share, onShareExport)
         HeaderFileCommands(tab, onSave, onExportPdf)
     }
+}
+
+/**
+ * The **Share** door: one capsule with the catalogue's share mark, opening the three rows of
+ * [ShareMenuPanel] under it. Greyed out with no document, because there is nothing to point at yet.
+ */
+@Composable
+private fun HeaderShareSlot(share: ShareActions?, onExport: () -> Unit) {
+    share ?: return
+    var open by remember { mutableStateOf(false) }
+    val guard = remember { DismissGuard() }
+    val density = LocalDensity.current
+    val drop = with(density) { (DesktopTheme.headerControlSize + 4.dp).roundToPx() }
+    Box {
+        HeaderGlyph(
+            active = open,
+            enabled = share.hasDocument,
+            onClick = { if (open) open = false else if (guard.mayOpen(Unit)) open = true },
+        ) { color -> drawChromeGlyph(ChromeGlyph.SHARE, color) }
+        if (open) {
+            Popup(
+                offset = IntOffset(0, drop),
+                onDismissRequest = {
+                    guard.closed(Unit)
+                    open = false
+                },
+                properties = FloatingSurface,
+            ) {
+                ShareMenuPanel(share, onExport) { open = false }
+            }
+        }
+    }
+    Spacer(Modifier.width(6.dp))
 }
 
 /**
@@ -190,6 +228,8 @@ private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
     onSearchClose: () -> Unit,
 ) {
     if (tab != null) {
+        Spacer(Modifier.width(10.dp))
+        HeaderBreadcrumb(tab, Modifier.weight(1f, fill = false))
         Spacer(Modifier.width(10.dp))
         HeaderPagesSlot(pages)
         Spacer(Modifier.width(6.dp))

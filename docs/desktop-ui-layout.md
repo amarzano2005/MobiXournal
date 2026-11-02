@@ -49,6 +49,11 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 - **The window's bands are blacker than the tablet's** (2026-10-25): the same glass RGB at
   `DESKTOP_BAND_ALPHA` (0.58), because 0.85 composites to `#131314`, which in a maximised window on a 34"
   screen read as a grey slab beside the phone; the band is `#0C0C0D` — the one tone the shells do not share.
+- **The window's tone is a stored choice** (2026-11-02): **System**, **Dark** or **Light** under
+  Settings → Appearance, System unless the file says otherwise. The light scheme is the tokens' own
+  `*_LIGHT_RGB` set, so the desk turns the greyer paper, the bands near-white and the ink dark: one flag
+  (`DesktopTheme.use`) repaints every surface, the native caption included, because each colour is a getter
+  over it rather than a constant.
 
 **The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status bar
 and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**
@@ -71,6 +76,11 @@ marks and the add/close/eye included — and **both** shells read it, so two scr
   close buttons and every tool slot wear the steel at `hoverSlotAlpha` (0.45) while hovered, one step
   short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`. Before that the rail answered only
   with its tooltip and the sidebar not at all.
+- **The band names the document and offers it** (2026-11-02): the header prints the file's **path**, cut on
+  whole segments from the left so the drive and the file name survive (`shortenPath`), the whole path in a
+  glass popup while the pointer is on it; beside the tabs a **Share** capsule shows the file in Explorer or
+  copies its path, and both rows put the reason on the status bar instead while the document has unsaved
+  edits — there is no file to point at yet.
 - **No motion of its own**: the windows' surfaces arrive on `DesignTokens.GlassMotion` too. The `Popup`
 flyouts still appear instantly — a desktop popup has no composition to hold open once its flag clears.
 - **The colours and corners are the tokens**: 16 dp tab capsules, the 20 dp panel corner, a 40 dp header,

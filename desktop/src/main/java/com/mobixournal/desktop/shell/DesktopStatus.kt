@@ -193,6 +193,12 @@ internal fun StatusBar(
             Text(painted, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         }
         Spacer(Modifier.weight(1f))
+        // The Share menu's answer — `Copied C:\…`, or why it could not — in the accent beside the PDF
+        // text's notice: both are one sentence about the press that has just happened.
+        DesktopShareNotice.text?.let { message ->
+            Spacer(Modifier.width(14.dp))
+            Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
+        }
         // The PDF text slot's own sentence — `Copied 4 words`, or the reason it could select nothing — in
         // the accent, because it is news about what the press just did (`DesktopPdfTextNotice`).
         DesktopPdfTextNotice.text?.let { message ->
