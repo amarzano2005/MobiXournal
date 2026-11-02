@@ -29,8 +29,9 @@ redefining it redefines it for both tools. `DesktopInkSplitTest` pins the pair.
 (`%APPDATA%\MobiXournal\desktop.properties`): `palette.colours` as a comma-separated list of eight-digit
 ARGB hex, `ink.colour` / `ink.width` and `ink.highlighterColour` / `ink.highlighterWidth` for what the
 strips show per tool, and `interface.colourFavourites` / `interface.highlighterFavourites` for the two
-ternas. The strip tails carry a colour slot
-and a size slot, opening the palette row and the `S`/`M`/`L` widths as floating glass flyouts. Reading
+ternas. The rail's **stroke slot** — under the highlighter whose ink it answers for — opens one glass
+panel with the palette row, the four line styles and the `S`/`M`/`L` widths, so a colour, a pattern and a
+size are one decision in one place. Reading
 the file runs the list through `PenPalette.sanitised`, so an edited file cannot put a transparent colour,
 a duplicate or an empty palette in front of the picker. The row ends in the editable custom slot and the
 add-colour swatch; both open the window's own panel — a saturation/value square, a hue slider and a

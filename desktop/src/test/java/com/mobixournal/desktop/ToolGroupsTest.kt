@@ -197,19 +197,24 @@ class ToolGroupsTest {
     fun `every figure is a slot of its own, in the order the rail draws them`() {
         val figures = listOf(
             DesktopTool.LINE,
+            // The two arrowheads are one slot: the second member of the arrow's, as the erasers are.
             DesktopTool.ARROW,
-            DesktopTool.DOUBLE_ARROW,
             DesktopTool.RECTANGLE,
             DesktopTool.ELLIPSE,
             DesktopTool.AXES,
         )
-        for (figure in figures) {
+        for (figure in figures - DesktopTool.ARROW) {
             assertEquals("${figure.label} shares a slot", listOf(figure), groupOf(figure)!!.members)
         }
         assertEquals(
             "the figures keep the strip's order, one slot each",
             figures,
-            DESKTOP_TOOL_GROUPS.map { it.face }.filter { it in figures.toSet() },
+            DESKTOP_TOOL_GROUPS.map { it.face }.filter { it in (figures + DesktopTool.DOUBLE_ARROW).toSet() },
+        )
+        assertEquals(
+            "the double arrow is the arrow slot's second member",
+            listOf(DesktopTool.ARROW, DesktopTool.DOUBLE_ARROW),
+            groupOf(DesktopTool.DOUBLE_ARROW)!!.members,
         )
         val stemFigures = listOf(DesktopTool.TRIANGLE, DesktopTool.TRAPEZOID, DesktopTool.POLYGON)
         for (figure in stemFigures) {

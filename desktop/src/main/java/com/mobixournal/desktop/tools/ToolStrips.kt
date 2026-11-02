@@ -239,28 +239,24 @@ fun ToolRail(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for ((index, group) in state.groups.withIndex()) {
-                    ToolSlot(
-                        group = group, selection = state.selection,
-                        pickerOpen = state.openGroup == index, onSelect = onSelect,
-                        onOpenPicker = { state.onOpenGroup(index) }, onClosePicker = { state.onOpenGroup(null) },
-                        circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
-                        onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
-                        figures = state.figures, guides = state.guides, side = StripSide.RIGHT,
-                    )
+                for (item in stripItems(state.groups)) {
+                    when (item) {
+                        is StripItem.Tools -> ToolSlot(
+                            group = item.group, selection = state.selection,
+                            pickerOpen = state.openGroup == item.index, onSelect = onSelect,
+                            onOpenPicker = { state.onOpenGroup(item.index) },
+                            onClosePicker = { state.onOpenGroup(null) },
+                            circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
+                            onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
+                            figures = state.figures, guides = state.guides, side = StripSide.RIGHT,
+                        )
+
+                        else -> StripCommand(item, state, ink, StripSide.RIGHT)
+                    }
                 }
-                StripDivider(vertical = true)
-                ColourSlot(
-                    state.ink, state.palette, state.custom, state.favourites,
-                    ink.onColour, ink.onLineStyle, ink.onEditCustom, ink.onAddColour,
-                    side = StripSide.RIGHT,
-                )
-                SizeSlot(state.ink, ink.onWidth, side = StripSide.RIGHT)
                 // The page itself, after its own rule: paper and format act on the sheet under the ink,
-                // not on the ink, so they are the last two objects of the strip rather than four more
-                // tools in it.
+                // not on the ink, so it is the last object of the strip rather than one more tool in it.
                 StripDivider(vertical = true)
-                ImageSlot(state.onInsertImage, StripSide.RIGHT)
                 PageSectionSlot(state.pages, StripSide.RIGHT)
             }
         }
@@ -305,25 +301,22 @@ fun ToolRibbon(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for ((index, group) in state.groups.withIndex()) {
-                    ToolSlot(
-                        group = group, selection = state.selection,
-                        pickerOpen = state.openGroup == index, onSelect = onSelect,
-                        onOpenPicker = { state.onOpenGroup(index) }, onClosePicker = { state.onOpenGroup(null) },
-                        circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
-                        onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
-                        figures = state.figures, guides = state.guides, side = StripSide.BELOW,
-                    )
+                for (item in stripItems(state.groups)) {
+                    when (item) {
+                        is StripItem.Tools -> ToolSlot(
+                            group = item.group, selection = state.selection,
+                            pickerOpen = state.openGroup == item.index, onSelect = onSelect,
+                            onOpenPicker = { state.onOpenGroup(item.index) },
+                            onClosePicker = { state.onOpenGroup(null) },
+                            circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
+                            onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
+                            figures = state.figures, guides = state.guides, side = StripSide.BELOW,
+                        )
+
+                        else -> StripCommand(item, state, ink, StripSide.BELOW)
+                    }
                 }
                 StripDivider(vertical = false)
-                ColourSlot(
-                    state.ink, state.palette, state.custom, state.favourites,
-                    ink.onColour, ink.onLineStyle, ink.onEditCustom, ink.onAddColour,
-                    side = StripSide.BELOW,
-                )
-                SizeSlot(state.ink, ink.onWidth, side = StripSide.BELOW)
-                StripDivider(vertical = false)
-                ImageSlot(state.onInsertImage, StripSide.BELOW)
                 PageSectionSlot(state.pages, StripSide.BELOW)
             }
         }

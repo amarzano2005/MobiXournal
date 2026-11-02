@@ -6,7 +6,9 @@ import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.ToolRibbon
 import com.mobixournal.desktop.tools.ToolSelection
 import com.mobixournal.desktop.tools.ToolStripMetrics
+import com.mobixournal.desktop.tools.StripItem
 import com.mobixournal.desktop.tools.ToolStripState
+import com.mobixournal.desktop.tools.stripItems
 import com.mobixournal.desktop.tools.opensSubmenu
 
 import androidx.compose.runtime.getValue
@@ -53,7 +55,12 @@ class ToolSlotClickTest {
             )
         }
         try {
-            val index = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.CIRCUIT in it.members }
+            // The slot's place in the strip: the stroke's panel and the image picker are slots too, so a
+            // group's index in the arrangement is not its place on the band.
+            val group = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.CIRCUIT in it.members }
+            val index = stripItems(DESKTOP_TOOL_GROUPS).indexOfFirst {
+                it is StripItem.Tools && it.index == group
+            }
             val x = ToolStripMetrics.ribbonSlotLeft.value +
                 index * (ToolStripMetrics.slotSize.value + ToolStripMetrics.gap.value) +
                 ToolStripMetrics.slotSize.value / 2
@@ -85,7 +92,10 @@ class ToolSlotClickTest {
             )
         }
         try {
-            val index = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.ERASER in it.members }
+            val group = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.ERASER in it.members }
+            val index = stripItems(DESKTOP_TOOL_GROUPS).indexOfFirst {
+                it is StripItem.Tools && it.index == group
+            }
             val x = ToolStripMetrics.ribbonSlotLeft.value +
                 index * (ToolStripMetrics.slotSize.value + ToolStripMetrics.gap.value) +
                 ToolStripMetrics.slotSize.value / 2

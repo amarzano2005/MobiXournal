@@ -394,8 +394,10 @@ class DesktopShellTest {
             assertTrue("the page is painted below the header ($paper px)", paper > image.width / 4)
             assertTrue("the sheet has a left edge", edge > 3)
 
-            // …and it carries the window's one shadow: the desk beside it is lifted off black.
-            val beside = image.getRGB(edge - 4, row) and 0xFFFFFF
+            // …and it carries the window's one shadow: the desk immediately beside it is lifted off
+            // black. Two pixels, not four: the shadow is a short ramp at a fitted zoom, and four pixels
+            // out is the desk itself.
+            val beside = image.getRGB(edge - 2, row) and 0xFFFFFF
             assertTrue(
                 "the sheet must cast its shadow on the desk (found #%06X)".format(beside),
                 beside != 0,

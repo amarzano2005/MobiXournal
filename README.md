@@ -103,7 +103,7 @@ strokes, highlighters, text, images, PDF backgrounds and the living tables, grap
 
 It also edits them: pen and highlighter, both erasers, the figure tools, text boxes, vertical space and the
 selection with its action bar and inspector lane all write to the page, each gesture one undo step, and
-`Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu,
+`Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu (on the band too),
 its imports and exports (a PDF either way, or PNG/SVG per page) and the Settings panel are the tablet's, drawn
 in the same glass. A notebook reads its pages as you scroll, and the pen's packet stream draws the ink when a
 graphics tablet is attached. Rest the pen on the page and the stroke perfects itself while you hold it.
@@ -132,7 +132,7 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
   blank sheet where the pages end, *Duplicate page* copies the one you picked (a copy of its own, ids and all),
   and the picked rows have their own clipboard: **Copy**, **Cut** and **Paste** in the bar under the pick,
   which also works between two open documents.
-- **Search the document** (the magnifier in the band, the menu's **Search** row, or `Ctrl + F`): it finds
+- **Search the document** (the field in the band, the menu's **Search** row, or `Ctrl + F`): it finds
   typed text boxes, formulas by their source, PDF words and **your handwriting**, counting matches as you
   type — and while the pages are still being read the field, the status bar and the sidebar say *Searching…*,
   never `0 / 0`. The sidebar lists the matches, the page shows the current one in the accent, and `Enter` /

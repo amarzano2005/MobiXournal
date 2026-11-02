@@ -146,11 +146,11 @@ class InkShortcutsTest {
         val narrow = railPng(DesktopInk(PenPalette.GREEN, 0.85f), "ink-keys-s")
 
         val image = ImageIO.read(ByteArrayInputStream(wide))
-        // The ink slots sit at the tail of the rail and the rail now floats in its lane, so the swatch
-        // is found by its own colour rather than by a coordinate that moved when the capsule arrived.
+        // The stroke slot is a dot of the ink at the width it draws, so its area is the width's — a
+        // coordinate would move with the strip's arrangement, the colour does not.
         assertTrue(
-            "the capsule is the picked colour",
-            countInk(image, PenPalette.GREEN) > 40,
+            "the stroke slot draws the picked colour",
+            countInk(image, PenPalette.GREEN) > 4,
         )
         // Green, whole image: the swatch contributes the same pixels to both renders, so the only difference
         // left is the size dot — a wider width is a wider dot. Sampling a band of the rail was fragile here:

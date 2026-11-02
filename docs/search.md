@@ -44,8 +44,8 @@ Ink is read **lazily and once**: `PageHandwriting` recognises a page the first t
 by letter recognises a written page once, and an edited page is read again. There is no upfront index on the
 PC (the tablet builds one, see below): a search costs the pages it reads, never the whole notebook.
 
-The field has three doors, all running the same `ShellCommand.FIND`: `Ctrl + F`, the magnifier capsule in the
-band beside undo/redo, and the menu's **Search** row.
+The field stands on the band always, and two doors run the same `ShellCommand.FIND`: `Ctrl + F`, which hands
+it the keyboard, and the menu's **Search** row.
 
 Stepping through the matches is one pair of commands behind four doors: `Enter` and `Shift + Enter` in the
 field, and the field's own two chevrons (up = earlier in the document, down = later) for a mouse. Each step

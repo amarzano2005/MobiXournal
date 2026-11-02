@@ -121,8 +121,11 @@ internal fun HeaderSearchField(
         // text box stays the question and this stays the reply.
         SearchFieldActions(tab, search, onQuery, onNext, onPrevious)
     }
-    // The field owns the keyboard while it is up — asked once per opening, not per keystroke.
-    androidx.compose.runtime.LaunchedEffect(tab) { focus.requestFocus() }
+    // The field owns the keyboard while the search is **asked for** (`Ctrl+F`) — once per request, not
+    // per keystroke, and not on a tab switch, where the reader is looking at the page instead.
+    androidx.compose.runtime.LaunchedEffect(tab, tab.searchOpen) {
+        if (tab.searchOpen) focus.requestFocus()
+    }
 }
 
 /**

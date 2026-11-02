@@ -86,19 +86,24 @@ internal fun colourKeyLabel(favourites: List<Int>, colour: Int): String {
 }
 
 /**
- * The colour slot: the ink's colour in a capsule. A click opens the palette flyout, which is drawn in
- * the floating material with the swatches in one horizontally scrolling row — the compact shape
- * `docs/colours.md` asks for, so a long palette widens the flyout instead of growing it downward.
+ * The **stroke's own settings**, as one slot: the ink in a capsule, drawn at the width it will draw at.
+ *
+ * It used to be two slots — a colour and a width — parked at the tail of the strip, away from the tool
+ * that spends them. It stands now **under the highlighter whose ink it answers for**, and its panel asks
+ * the three questions the tablet's pop-up asks together: the colour, the line style and the width
+ * (`docs/colours.md`). Picking a swatch, a pattern or a width leaves the panel up, because the three are
+ * one decision; the reader closes it on the slot again, or on the page.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-internal fun ColourSlot(
+internal fun StrokeSlot(
     ink: DesktopInk,
     palette: List<Int>,
     /** The palette's editable custom slot — shared by both tools, hence not part of [ink]. */
     custom: Int? = null,
     favourites: List<Int> = emptyList(),
     onPick: (Int) -> Unit,
+    onWidth: (Float) -> Unit,
     onLineStyle: (LineStyle) -> Unit = {},
     onEditCustom: () -> Unit = {},
     onAddColour: () -> Unit = {},
@@ -106,7 +111,7 @@ internal fun ColourSlot(
 ) {
     var open by remember { mutableStateOf(false) }
     var hovered by remember { mutableStateOf(false) }
-    // A second click on the slot closes its flyout instead of reopening it (see [DismissGuard]).
+    // A second click on the slot closes its panel instead of reopening it (see [DismissGuard]).
     val guard = remember { DismissGuard() }
     val anchor = flyoutOffset(side)
     Box {
@@ -122,17 +127,18 @@ internal fun ColourSlot(
                 .pointerInput(Unit) { detectTapGestures { open = !open && guard.mayOpen(Unit) } },
             contentAlignment = Alignment.Center,
         ) {
+            // The ink at its own width: one picture for the colour and the size, as the tablet's stroke
+            // button draws it. A black or white ink would read as a hole in the glass, so the dot keeps
+            // the ring the palette's swatches wear.
             Box(
                 Modifier
-                    .size(InkSlotMetrics.swatchSize)
-                    .background(Color(ink.colour), DesktopTheme.capsuleShape)
-                    // The ink can be black or white, and the glass is neither: one ring keeps a black
-                    // ink visible on the dark strip instead of reading as a hole in it.
-                    .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape),
+                    .size(dotSize(ink.width))
+                    .background(Color(ink.colour), CircleShape)
+                    .border(1.dp, DesktopTheme.inkMuted, CircleShape),
             )
         }
-        if (hovered) {
-            StripPill(label = "Colour", accent = colourKeyLabel(favourites, ink.colour), offset = anchor)
+        if (hovered && !open) {
+            StripPill(label = "Stroke", accent = colourKeyLabel(favourites, ink.colour), offset = anchor)
         }
         if (open) {
             Popup(
@@ -143,16 +149,15 @@ internal fun ColourSlot(
                 },
                 properties = FloatingSurface,
             ) {
-                PaletteFlyout(
+                StrokeFlyout(
+                    ink = ink,
                     palette = palette,
-                    current = ink.colour,
                     custom = custom,
-                    lineStyle = ink.lineStyle,
-                    onPick = { colour ->
-                        onPick(colour)
-                        open = false
-                    },
+                    onPick = onPick,
+                    onWidth = onWidth,
                     onLineStyle = onLineStyle,
+                    // The two panels a swatch opens are the window's own surfaces, so they dismiss this
+                    // one: a second floating panel over the first would ask which one a key belongs to.
                     onEditCustom = {
                         onEditCustom()
                         open = false
@@ -167,63 +172,29 @@ internal fun ColourSlot(
     }
 }
 
-/**
- * The size slot: a dot at the current width, in the current colour. Its flyout offers the three width
- * slots (`S`/`M`/`L` from [PenPalette]), the one in use wearing the steel.
- */
-@OptIn(ExperimentalComposeUiApi::class)
+/** The panel behind that slot: the swatches, the four patterns and the three widths, in that order. */
 @Composable
-internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide) {
-    var open by remember { mutableStateOf(false) }
-    var hovered by remember { mutableStateOf(false) }
-    // A second click on the slot closes its flyout instead of reopening it (see [DismissGuard]).
-    val guard = remember { DismissGuard() }
-    val anchor = flyoutOffset(side)
-    Box {
-        Box(
-            Modifier
-                .size(ToolStripMetrics.slotSize)
-                .background(
-                    if (open) DesktopTheme.activeSlot else Color.Transparent,
-                    DesktopTheme.railSlotShape,
-                )
-                .onPointerEvent(PointerEventType.Enter) { hovered = true }
-                .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(Unit) { detectTapGestures { open = !open && guard.mayOpen(Unit) } },
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                Modifier
-                    .size(dotSize(ink.width))
-                    .background(Color(ink.colour), CircleShape)
-                    .border(1.dp, DesktopTheme.inkMuted, CircleShape),
-            )
-        }
-        if (hovered) {
-            StripPill(
-                label = "Width",
-                accent = PenPalette.WIDTH_LABELS.getOrElse(PenPalette.widthSlot(ink.width)) { "?" },
-                offset = anchor,
-            )
-        }
-        if (open) {
-            Popup(
-                offset = anchor,
-                onDismissRequest = {
-                    guard.closed(Unit)
-                    open = false
-                },
-                properties = FloatingSurface,
-            ) {
-                SizeFlyout(
-                    ink = ink,
-                    onPick = { width ->
-                        onPick(width)
-                        open = false
-                    },
-                )
-            }
-        }
+internal fun StrokeFlyout(
+    ink: DesktopInk,
+    palette: List<Int>,
+    custom: Int?,
+    onPick: (Int) -> Unit,
+    onWidth: (Float) -> Unit,
+    onLineStyle: (LineStyle) -> Unit,
+    onEditCustom: () -> Unit,
+    onAddColour: () -> Unit,
+) {
+    Column(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
+        SwatchRow(
+            palette = palette,
+            current = ink.colour,
+            custom = custom,
+            onPick = onPick,
+            onEditCustom = onEditCustom,
+            onAddColour = onAddColour,
+        )
+        LineStylePicker(lineStyle = ink.lineStyle, onPick = onLineStyle)
+        WidthRow(ink = ink, onPick = onWidth)
     }
 }
 
@@ -243,29 +214,54 @@ internal fun PaletteFlyout(
     onAddColour: () -> Unit,
 ) {
     Column(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
-        ) {
-            for (colour in palette) {
-                Box(
-                    Modifier
-                        .size(InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2)
-                        .background(
-                            if (colour == current) DesktopTheme.activeSlot else Color.Transparent,
-                            DesktopTheme.capsuleShape,
-                        )
-                        .padding(InkSlotMetrics.swatchRing)
-                        .background(Color(colour), DesktopTheme.capsuleShape)
-                        .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
-                        .pointerInput(colour) { detectTapGestures { onPick(colour) } },
-                )
-            }
-            CustomSwatch(custom = custom, onPick = onPick, onEdit = onEditCustom)
-            AddSwatch(onAdd = onAddColour)
-        }
+        SwatchRow(
+            palette = palette,
+            current = current,
+            custom = custom,
+            onPick = onPick,
+            onEditCustom = onEditCustom,
+            onAddColour = onAddColour,
+        )
         LineStylePicker(lineStyle = lineStyle, onPick = onLineStyle)
+    }
+}
+
+/**
+ * The swatches, as one scrolling row: the stored palette, the editable custom slot, then the add-colour
+ * ring — the three parts `docs/colours.md` describes, in that order.
+ *
+ * Shared by the palette flyout and the stroke panel, so the window cannot drift into two palettes.
+ */
+@Composable
+private fun SwatchRow(
+    palette: List<Int>,
+    current: Int,
+    custom: Int?,
+    onPick: (Int) -> Unit,
+    onEditCustom: () -> Unit,
+    onAddColour: () -> Unit,
+) {
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
+    ) {
+        for (colour in palette) {
+            Box(
+                Modifier
+                    .size(InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2)
+                    .background(
+                        if (colour == current) DesktopTheme.activeSlot else Color.Transparent,
+                        DesktopTheme.capsuleShape,
+                    )
+                    .padding(InkSlotMetrics.swatchRing)
+                    .background(Color(colour), DesktopTheme.capsuleShape)
+                    .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
+                    .pointerInput(colour) { detectTapGestures { onPick(colour) } },
+            )
+        }
+        CustomSwatch(custom = custom, onPick = onPick, onEdit = onEditCustom)
+        AddSwatch(onAdd = onAddColour)
     }
 }
 
@@ -359,13 +355,12 @@ private fun AddSwatch(onAdd: () -> Unit) {
 }
 
 /** The three width slots, each a dot at its own width and its label under it. */
+/** The three width slots, as the row the stroke panel prints under the patterns. */
 @Composable
-private fun SizeFlyout(ink: DesktopInk, onPick: (Float) -> Unit) {
+private fun WidthRow(ink: DesktopInk, onPick: (Float) -> Unit) {
     val picked = PenPalette.widthSlot(ink.width)
     Row(
-        Modifier
-            .glassSurface()
-            .padding(6.dp),
+        Modifier.padding(top = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
     ) {

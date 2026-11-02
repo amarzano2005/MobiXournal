@@ -187,8 +187,9 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     // Every figure is a slot of its own, as the tablet's rail draws them: one click picks a figure,
     // never a picker. The strip scrolls, so the seven slots cost no reachability.
     ToolGroup(listOf(DesktopTool.LINE)),
-    ToolGroup(listOf(DesktopTool.ARROW)),
-    ToolGroup(listOf(DesktopTool.DOUBLE_ARROW)),
+    // The two arrowheads share one slot, as the erasers do: a variant of the same figure re-faces the
+    // button the reader already has, instead of a second button for the one-headed twin.
+    ToolGroup(listOf(DesktopTool.ARROW, DesktopTool.DOUBLE_ARROW)),
     ToolGroup(listOf(DesktopTool.RECTANGLE)),
     ToolGroup(listOf(DesktopTool.ELLIPSE)),
     // The tablet's STEM figures, **one slot each** as the tablet's rail draws them: a triangle and a

@@ -190,7 +190,6 @@ private fun StripRibbon(state: DesktopShellState, modifier: Modifier = Modifier)
     ToolRibbon(
         state = state.stripState,
         onSelect = state::selectTool,
-        // The ribbon also carries the pen's line style; the rail leaves it to the colour flyout.
         ink = state.inkActions(onLineStyle = state::pickLineStyle),
         modifier = modifier,
     )
@@ -207,7 +206,7 @@ private fun StripRail(state: DesktopShellState, modifier: Modifier = Modifier) {
     ToolRail(
         state = state.stripState,
         onSelect = state::selectTool,
-        ink = state.inkActions(),
+        ink = state.inkActions(onLineStyle = state::pickLineStyle),
         modifier = modifier,
     )
 }

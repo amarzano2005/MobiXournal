@@ -23,7 +23,9 @@ import com.mobixournal.desktop.tools.ToolRail
 import com.mobixournal.desktop.tools.ToolRibbon
 import com.mobixournal.desktop.tools.ToolSelection
 import com.mobixournal.desktop.tools.ToolStripMetrics
+import com.mobixournal.desktop.tools.StripItem
 import com.mobixournal.desktop.tools.ToolStripState
+import com.mobixournal.desktop.tools.stripItems
 import com.mobixournal.desktop.tools.toolForShortcut
 
 import androidx.compose.runtime.snapshots.Snapshot
@@ -210,9 +212,14 @@ class ToolStripsTest {
             }
         }
 
+        // The slot's place **in the strip**, not in the group list: the stroke's panel sits under the
+        // highlighter, so the eraser is one row further down than its group index says.
         val group = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.ERASER in it.members }
+        val slotIndex = stripItems(DESKTOP_TOOL_GROUPS).indexOfFirst {
+            it is StripItem.Tools && it.index == group
+        }
         val x0 = ToolStripMetrics.railSlotLeft.value.toInt()
-        val y0 = ToolStripMetrics.railSlotTop.value.toInt() + group * slotStride
+        val y0 = ToolStripMetrics.railSlotTop.value.toInt() + slotIndex * slotStride
         val slot = ToolStripMetrics.slotSize.value.toInt()
         val partial = slotPixels(DesktopTool.ERASER)
         val whole = slotPixels(DesktopTool.ERASER_WHOLE)
@@ -304,7 +311,10 @@ class ToolStripsTest {
         val ribbon = ImageIO.read(ByteArrayInputStream(ribbonPng))
         // The slot that faces Polygon is the figures group's — not the last slot, which is the Circuit
         // slot since the STEM slots joined the strip.
-        val figures = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.POLYGON in it.members }
+        val figureGroup = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.POLYGON in it.members }
+        val figures = stripItems(DESKTOP_TOOL_GROUPS).indexOfFirst {
+            it is StripItem.Tools && it.index == figureGroup
+        }
         val pickedSlotX = ToolStripMetrics.ribbonSlotLeft.value.toInt() + (figures * slotStride) + 2
         assertEquals(
             "the ribbon marks the picked tool with the active slot",
@@ -564,7 +574,10 @@ class ToolStripsTest {
         val image = ImageIO.read(ByteArrayInputStream(png))
         val slot = ToolStripMetrics.slotSize.value.toInt()
         val centre = (if (vertical) ToolStripMetrics.railWidth.value.toInt() else image.height) / 2
-        for (index in DESKTOP_TOOL_GROUPS.indices) {
+        // Every slot the strip draws, the stroke's panel and the image picker included: they are
+        // buttons of the strip too, and a glyph that stopped drawing there would be as dead as a tool's.
+        val items = stripItems(DESKTOP_TOOL_GROUPS)
+        for (index in items.indices) {
             val x0 = if (vertical) {
                 ToolStripMetrics.railSlotLeft.value.toInt()
             } else {
@@ -582,11 +595,19 @@ class ToolStripsTest {
                     if (difference(image.getRGB(x, y) and 0xFFFFFF, background) > 24) ink++
                 }
             }
+            val name = when (val item = items[index]) {
+                is StripItem.Tools -> item.group.face.label
+                StripItem.Stroke -> "Stroke"
+                StripItem.Image -> "Insert image"
+            }
+            // A tool's glyph is 20 dp of monoline art; the stroke slot is a dot at the ink's own width,
+            // which is two or three pixels across at the thinnest slot, so it is asked for less ink.
+            val needed = if (items[index] is StripItem.Tools) 20 else 4
             assertTrue(
-                "${DESKTOP_TOOL_GROUPS[index].face.label} drew nothing in the " +
+                "$name drew nothing in the " +
                     "${if (vertical) "rail" else "ribbon"}" +
                     " (slot ${if (vertical) "at y = $y0, lane centre x = $centre" else "at x = $x0"})",
-                ink > 20,
+                ink > needed,
             )
         }
     }

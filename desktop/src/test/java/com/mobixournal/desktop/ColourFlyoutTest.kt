@@ -5,8 +5,7 @@ import com.mobixournal.desktop.ink.PaletteCodec
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.shell.DesktopShellState
-import com.mobixournal.desktop.tools.ColourSlot
-import com.mobixournal.desktop.tools.SizeSlot
+import com.mobixournal.desktop.tools.StrokeSlot
 import com.mobixournal.desktop.tools.StripSide
 import com.mobixournal.desktop.tools.ToolStripMetrics
 
@@ -127,37 +126,42 @@ class ColourFlyoutTest {
         assertEquals(null, PaletteCodec.parseHex(""))
     }
 
-    /** The colour capsule is the ink colour, and the size slot's dot grows with the width. */
+    /** The stroke slot's dot is the ink colour, and it grows with the width. */
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
-    fun `the slots show the ink`() {
-        val wide = ImageIO.read(ByteArrayInputStream(renderSlots(DesktopInk(PenPalette.GREEN, 2.6f), "ink-slots-l")))
+    fun `the slot shows the ink`() {
+        val wide = ImageIO.read(ByteArrayInputStream(renderSlot(DesktopInk(PenPalette.GREEN, 2.6f), "ink-slot-l")))
         assertEquals(
-            "the colour capsule is filled with the ink colour",
+            "the dot is filled with the ink colour",
             PenPalette.GREEN and 0xFFFFFF,
-            wide.getRGB(24, 20) and 0xFFFFFF,
+            wide.getRGB(SLOT_CENTRE_X, SLOT_CENTRE_Y) and 0xFFFFFF,
         )
 
-        val narrow = ImageIO.read(ByteArrayInputStream(renderSlots(DesktopInk(PenPalette.GREEN, 0.85f), "ink-slots-s")))
+        val narrow = ImageIO.read(ByteArrayInputStream(renderSlot(DesktopInk(PenPalette.GREEN, 0.85f), "ink-slot-s")))
         val wideDot = inkPixels(wide)
         val narrowDot = inkPixels(narrow)
-        assertTrue("the size slot drew a dot ($wideDot px)", wideDot > 0)
+        assertTrue("the stroke slot drew a dot ($wideDot px)", wideDot > 0)
         assertTrue(
             "the L dot is wider than the S dot ($wideDot vs $narrowDot)",
             wideDot > narrowDot,
         )
-        assertNotEquals("changing the width repaints the strip", wideDot, narrowDot)
+        assertNotEquals("changing the width repaints the slot", wideDot, narrowDot)
     }
+
+    /** Where the slot's dot sits: the slot is centred in the rail's lane, and its dot in the slot. */
+    private val SLOT_CENTRE_X: Int
+        get() = (ToolStripMetrics.railSlotLeft + ToolStripMetrics.slotSize / 2).value.toInt()
+
+    private val SLOT_CENTRE_Y: Int get() = 20
 
     // --- rendering ------------------------------------------------------------------------------
 
-    /** The two ink slots, stacked, at their strip size. */
+    /** The one stroke slot, at the strip's size. */
     @OptIn(ExperimentalComposeUiApi::class)
-    private fun renderSlots(ink: DesktopInk, name: String): ByteArray {
-        val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 88, Density(1f)) {
+    private fun renderSlot(ink: DesktopInk, name: String): ByteArray {
+        val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 40, Density(1f)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                ColourSlot(ink, PenPalette.COLORS, onPick = {}, side = StripSide.RIGHT)
-                SizeSlot(ink, onPick = {}, side = StripSide.RIGHT)
+                StrokeSlot(ink, PenPalette.COLORS, onPick = {}, onWidth = {}, side = StripSide.RIGHT)
             }
         }
         val png = try {
@@ -170,11 +174,11 @@ class ColourFlyoutTest {
         return png
     }
 
-    /** How many pixels of the ink colour the size slot (the lower half of the render) holds. */
+    /** How many pixels of the ink colour the render holds. */
     private fun inkPixels(image: java.awt.image.BufferedImage): Int {
         var count = 0
         for (x in 0 until image.width) {
-            for (y in 44 until image.height) {
+            for (y in 0 until image.height) {
                 if ((image.getRGB(x, y) and 0xFFFFFF) == (PenPalette.GREEN and 0xFFFFFF)) count++
             }
         }

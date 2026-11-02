@@ -116,8 +116,10 @@ internal fun DesktopShell(
             onSearchNext = { state.stepSearch(forward = true) },
             onSearchPrevious = { state.stepSearch(forward = false) },
             onSearchClose = { state.closeSearch() },
-            // The band's magnifier and the menu's Search row: the same command `Ctrl+F` runs, so the key,
-            // the button and the menu row cannot drift apart.
+            // The pages' menu on the band: one action set with the strip's own slot, so the two doors
+            // cannot grow different rows.
+            pages = state.stripState.pages,
+            // The menu's Search row still runs `Ctrl+F`'s command; the field itself is always on the band.
             onSearchOpen = { state.apply(ShellCommand.FIND) },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
