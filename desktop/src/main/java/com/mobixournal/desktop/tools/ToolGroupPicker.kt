@@ -53,7 +53,7 @@ internal fun ToolGroupPicker(
      */
     onOff: (() -> Unit)? = null,
 ) {
-    Popup(offset = offset, onDismissRequest = onDismiss, properties = FloatingSurface) {
+    GlassPopup(offset = offset, onDismissRequest = onDismiss, properties = FloatingSurface) {
         Column(
             Modifier
                 .glassSurface()

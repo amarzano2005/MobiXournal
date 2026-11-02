@@ -9,6 +9,8 @@ import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.tools.GlassPopup
+import com.mobixournal.desktop.tools.GlassPresence
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -219,8 +221,8 @@ private fun HeaderPagesSlot(pages: PageMenuActions) {
                 if (open) open = false else if (guard.mayOpen(Unit)) open = true
             },
         ) { color -> drawChromeGlyph(ChromeGlyph.DESCRIPTION, color) }
-        if (open) {
-            Popup(
+        GlassPresence(open) {
+            GlassPopup(
                 offset = IntOffset(0, drop),
                 onDismissRequest = {
                     guard.closed(Unit)

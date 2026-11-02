@@ -11,6 +11,7 @@ import com.mobixournal.desktop.tools.FigureStrip
 import com.mobixournal.desktop.tools.ToolGroup
 import com.mobixournal.desktop.tools.ToolGroupPicker
 import com.mobixournal.desktop.tools.ToolSelection
+import com.mobixournal.desktop.tools.GlassPresence
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.IntOffset
@@ -44,7 +45,7 @@ internal fun SlotPickerStack(
     onCircuitPicker: (CircuitFamily?) -> Unit,
     offset: IntOffset,
 ) {
-    if (pickerOpen) {
+    GlassPresence(pickerOpen) {
         ToolGroupPicker(
             group = group,
             selection = selection,
@@ -59,14 +60,16 @@ internal fun SlotPickerStack(
         )
     }
     val figure = tool.takeIf { it in FIGURE_TOOLS }
-    if (figure != null && figures.menu == figure) {
+    GlassPresence(figure != null && figures.menu == figure) {
+        // The value the menu was opened with, kept while it closes: `figures.menu` is already null then.
+        val shown = figure ?: return@GlassPresence
         FigureKindPicker(
-            tool = figure,
+            tool = shown,
             shape = figures.shape,
             // A pick lands on the figure it answers: a menu opened from the chevron of a slot that was
             // not picked takes that slot's tool in the same gesture, as the tablet's count picker does.
             onPick = { shape ->
-                onSelect(figure)
+                onSelect(shown)
                 figures.onShape(shape)
             },
             onEdit = figures.onOpenDialog,
@@ -75,12 +78,13 @@ internal fun SlotPickerStack(
         )
     }
     val family = circuitFamilyOf(tool)
-    if (family != null && circuitPickerOpen == family) {
+    GlassPresence(family != null && circuitPickerOpen == family) {
+        val shown = family ?: return@GlassPresence
         CircuitKindPicker(
-            family = family,
-            current = circuitKinds[family] ?: family.face,
+            family = shown,
+            current = circuitKinds[shown] ?: shown.face,
             onPick = { kind ->
-                onCircuitKind(family, kind)
+                onCircuitKind(shown, kind)
                 onCircuitPicker(null)
             },
             onDismiss = onDismissCircuit,

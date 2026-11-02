@@ -222,7 +222,9 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   vanished mid-frame, which read as "it only animates one way". `DialogPresence(visible)` holds the window
   composed for `FLOATING_EXIT_MS` (150 ms) while the surface inside runs the same spring backwards; it reads
   nothing but the flag, so the toolbar's pop-ups (`ToolbarMenu`) gate their window with it exactly as every
-  floating dialog — the editor's, the pages menu's, the settings pickers' — already did.
+  floating dialog — the editor's, the pages menu's, the settings pickers' — already did. The window has the
+  same half under its own name: `GlassPresence` holds a flyout's composition, and `GlassPopup` is that hold
+  plus the spring in one call, so a menu closes the way it opened on both shells.
   `rememberClosingArgument` keeps a dialog's subject when the flag was a nullable one. The return is quicker
   than the arrival on purpose — 110 ms of fade, a stiffer spring, inside a 150 ms hold — because a dismissal
   is something the user asked for, and holding it as long as the entrance made closing a menu feel sluggish.

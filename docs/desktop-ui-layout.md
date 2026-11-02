@@ -71,8 +71,10 @@ marks and the add/close/eye included — and **both** shells read it, so two scr
   close buttons and every tool slot wear the steel at `hoverSlotAlpha` (0.45) while hovered, one step
   short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`. Before that the rail answered only
   with its tooltip and the sidebar not at all.
-- **No motion of its own**: the windows' surfaces arrive on `DesignTokens.GlassMotion` too. The `Popup`
-flyouts still appear instantly — a desktop popup has no composition to hold open once its flag clears.
+- **No motion of its own**: the window's surfaces arrive **and leave** on `DesignTokens.GlassMotion`, read
+from the shared tokens rather than picked here. A flyout is opened through `GlassPopup` — a `GlassPresence`
+hold plus the same spring — so a menu that closes draws back instead of vanishing; only the bars' hover
+tooltips still land with the pointer (`interface-contract.md` §7 owns that exception).
 - **The colours and corners are the tokens**: 16 dp tab capsules, the 20 dp panel corner, a 40 dp header,
 a 24 dp status bar, Inter with tabular figures, dark-first. `DesktopThemeTest` re-reads the JSON block
 above and `ChromeMaterialRenderTest` proves the lift, the flat fill and the rim as pixels.

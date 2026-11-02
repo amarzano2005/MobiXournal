@@ -191,8 +191,23 @@ the strip's pixels, so a readout that stops being drawn fails the build.
 ## 7. Motion
 
 Only `DesignTokens.GlassMotion` (stiffness, damping, fade). No bespoke `tween`, no `animateFloatAsState`
-with hand-picked durations, and no animation on a band. A desktop `Popup` may appear instantly — a popup
-has no composition to hold open once its flag clears — but it may not animate on its own curve.
+with hand-picked durations, and no animation on a band.
+
+- **Everything floating arrives *and* leaves** on that spring — a pop-up, a flyout, a list, a dialog, a
+  toast, on both shells. A surface that animates one way only is a defect, not a simplification; the
+  numbers and their reasoning live in [`ui-modernization.md`](ui-modernization.md).
+- **The surface is held composed for the exit.** A dialog's window and a pop-up's window are torn down
+  between two frames the instant the flag clears, so a bare `if (open) { … }` cannot animate out: gate it
+  with `DialogPresence(visible)` on the tablet or `GlassPresence(visible)` in the window, and open the
+  window's pop-up through `GlassPopup`, which is the gate and the spring in one call.
+  `GlassPopupGuardTest` fails the build on a raw `Popup(`.
+- **The spring goes outside the fill**: the animation modifier comes *before* the `background` /
+  `glassSurface()` / `glassPanel()` in a surface's chain. Written after it, the layer owns only the
+  panel's children — the glass lands opaque and full-size while the rows inside move.
+- **The bounce belongs to the panel, once.** Rows, chips and glyphs inside a surface never animate
+  separately.
+- **A hover tooltip is not a surface that arrives**: it is the pointer's readout, so it lands with the
+  pointer (`StripPill` in the window). That is the one recorded exception, and it is a deliberate one.
 
 ## 8. Keyboard (desktop)
 

@@ -17,6 +17,8 @@ import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.tools.DismissGuard
 import com.mobixournal.desktop.tools.MenuSurface
+import com.mobixournal.desktop.tools.GlassPopup
+import com.mobixournal.desktop.tools.GlassPresence
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -103,8 +105,8 @@ internal fun HeaderMenu(
         HeaderGlyph(active = open, onClick = { open = !open && guard.mayOpen(MENU_TRIGGER) }) { color ->
             drawChromeGlyph(ChromeGlyph.MENU, color)
         }
-        if (open) {
-            Popup(
+        GlassPresence(open) {
+            GlassPopup(
                 offset = with(density) { IntOffset(0, (DesktopTheme.headerHeight + 6.dp).roundToPx()) },
                 // A draft that was being named goes with the panel: a name field reopened by the next
                 // click would be a question the reader already walked away from.

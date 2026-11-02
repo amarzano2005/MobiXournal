@@ -1,4 +1,7 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.GlassPopup
+import com.mobixournal.desktop.tools.GlassPresence
+import com.mobixournal.desktop.tools.rememberClosingValue
 
 import com.mobixournal.desktop.shell.ShellCommand
 import com.mobixournal.desktop.sheet.RingFace
@@ -137,9 +140,10 @@ private fun RingDrawing(policy: DesktopSettingsState) {
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-            val index = picked
-            if (index != null && index in faces.indices) {
-                Popup(
+            val index = rememberClosingValue(picked)
+            GlassPresence(index != null && index in faces.indices) {
+                val faceIndex = index ?: return@GlassPresence
+                GlassPopup(
                     offset = IntOffset(
                         with(density) { (BOARD + 12.dp).roundToPx() },
                         with(density) { 8.dp.roundToPx() },
@@ -148,12 +152,12 @@ private fun RingDrawing(policy: DesktopSettingsState) {
                     properties = FloatingSurface,
                 ) {
                     RingFaceMenu(
-                        face = faces[index],
+                        face = faces[faceIndex],
                         colours = policy.ring.colourChoices(),
                         tools = policy.ring.toolChoices(),
                         widths = policy.ring.widthChoices(),
                     ) { choice ->
-                        policy.ring.chooseFace(index, choice)
+                        policy.ring.chooseFace(faceIndex, choice)
                         picked = null
                     }
                 }

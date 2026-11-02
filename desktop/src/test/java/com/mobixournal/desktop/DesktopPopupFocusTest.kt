@@ -52,6 +52,9 @@ class DesktopPopupFocusTest {
                 when {
                     call.contains("properties = FloatingSurface") -> Unit
                     call.contains("properties = MenuSurface") -> keyboardTakers += file.name
+                    // `GlassPopup`'s own window takes its properties as a parameter, and its default is
+                    // the menu's `FloatingSurface` — the one call that cannot spell the literal.
+                    call.contains("properties = properties") && file.name == "GlassMotion.kt" -> Unit
                     else -> offenders += "${file.name}:${index + 1}"
                 }
             }

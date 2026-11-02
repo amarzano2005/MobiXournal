@@ -13,9 +13,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.mobixournal.design.DesignTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -29,10 +33,9 @@ import kotlinx.coroutines.launch
  * `DesignTokens.GlassMotion` numbers, for the window's surfaces — which is the only way two shells can
  * claim one motion language while drawing in two modules.
  *
- * The window's flyouts live in a `Popup` and still appear instantly: a desktop popup has no composition
- * of its own to hold open after its flag clears, so there is no exit to play — the honest state, kept
- * rather than faked. The surfaces drawn **inside** the shell (the colour panel first) get the full
- * behaviour through [GlassPresence].
+ * Every surface gets the full behaviour, the flyouts included: [GlassPopup] is the window's one pop-up,
+ * and a hover tooltip is the pointer's readout rather than a surface the user fired
+ * (`docs/interface-contract.md` §7 records that exception).
  */
 
 /** Whether the glass currently being composed is on its way **out** ([GlassPresence] provides it). */
@@ -65,6 +68,59 @@ fun GlassPresence(visible: Boolean, content: @Composable () -> Unit) {
     if (shown) {
         CompositionLocalProvider(LocalGlassClosing provides closing) { content() }
     }
+}
+
+/**
+ * The window's **one pop-up**: a [Popup] that arrives *and leaves* on the shared spring.
+ *
+ * A desktop `Popup` used to appear instantly because its caller composed it under `if (open)`: the content
+ * left the composition between two frames the moment the flag cleared, so there was nothing to run a
+ * closing half on, and the window showed its menus popping while the surfaces inside the shell sprang.
+ * [GlassPresence] is the missing half — it holds the composition for
+ * [DesignTokens.GlassMotion.EXIT_HOLD_MS] and tells the panel inside that it is closing — and this is the
+ * only way the window opens one: `GlassPopup(visible = open, offset = …, onDismissRequest = …) { Panel() }`.
+ *
+ * The spring is applied **outside** the panel's fill ([Modifier.glassSpring] wraps the content, whose own
+ * `glassSurface()` draws the glass): an alpha layer placed after a fill fades the empty space under the
+ * panel and leaves the panel itself opaque and full-sized.
+ *
+ * A hover tooltip is not this — it is the pointer's readout, not a surface the user fired
+ * (`docs/interface-contract.md` §7).
+ */
+@Composable
+internal fun GlassPopup(
+    visible: Boolean = !LocalGlassClosing.current,
+    onDismissRequest: () -> Unit,
+    offset: IntOffset,
+    properties: PopupProperties = FloatingSurface,
+    content: @Composable () -> Unit,
+) {
+    GlassPresence(visible) {
+        Popup(offset = offset, onDismissRequest = onDismissRequest, properties = properties) {
+            Box(Modifier.glassSpring()) { content() }
+        }
+    }
+}
+
+/**
+ * The subject of a pop-up gated on a nullable state (`flag != null`).
+ *
+ * [GlassPresence] keeps a surface composed while it closes, and by then the state that opened it is
+ * already null — so the panel needs the value it was opened *with*. This holds the last non-null one for
+ * exactly as long as that composition lives: no state write, so it cannot loop a recomposition, and the
+ * value is forgotten the moment the window really goes. The tablet's `rememberClosingArgument` is the
+ * same idea on the other shell.
+ */
+@Composable
+internal fun <T : Any> rememberClosingValue(value: T?): T? {
+    val held = remember { HeldValue<T>() }
+    if (value != null) held.value = value
+    return held.value
+}
+
+/** A plain cell [rememberClosingValue] writes into — deliberately not snapshot state. */
+private class HeldValue<T> {
+    var value: T? = null
 }
 
 /**

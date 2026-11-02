@@ -9,6 +9,8 @@ import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DismissGuard
 import com.mobixournal.desktop.tools.FloatingSurface
 import com.mobixournal.desktop.tools.StripPill
+import com.mobixournal.desktop.tools.GlassPopup
+import com.mobixournal.desktop.tools.GlassPresence
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -200,7 +202,7 @@ internal fun SelectionBar(
                     "",
                     active = alignOpen,
                 ) { alignOpen = !alignOpen && alignGuard.mayOpen(Unit) }
-                if (alignOpen) {
+                GlassPresence(alignOpen) {
                     AlignMenu(ui) {
                         alignGuard.closed(Unit)
                         alignOpen = false
@@ -221,7 +223,7 @@ internal fun SelectionBar(
 /** The six alignments and the two distributions, in the bar's own material, anchored under the button. */
 @Composable
 private fun AlignMenu(ui: SelectionBarUi, onClose: () -> Unit) {
-    Popup(offset = IntOffset(0, 46), onDismissRequest = onClose, properties = FloatingSurface) {
+    GlassPopup(offset = IntOffset(0, 46), onDismissRequest = onClose, properties = FloatingSurface) {
         Column(Modifier.glassSurface().padding(6.dp)) {
             Text("Align", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
             Spacer(Modifier.height(4.dp))

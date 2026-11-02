@@ -4,6 +4,8 @@ import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.DismissGuard
 import com.mobixournal.desktop.tools.FloatingSurface
+import com.mobixournal.desktop.tools.GlassPopup
+import com.mobixournal.desktop.tools.GlassPresence
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
@@ -112,11 +114,11 @@ internal fun <T> SettingsChoiceChip(
             onStep = { delta -> pick.value(nextChoice(options, picked, delta)) },
             onSize = { anchor = it },
         )
-        if (open) {
+        GlassPresence(open) {
             // Under the capsule, its right edge on the capsule's: a list that grew rightwards would walk
             // out of a panel whose column ends at the page's edge.
             val shift = with(LocalDensity.current) { (menuWidth - anchor.width.toDp()).roundToPx() }
-            Popup(
+            GlassPopup(
                 offset = IntOffset(-shift, anchor.height + 4),
                 onDismissRequest = {
                     guard.closed(Unit)

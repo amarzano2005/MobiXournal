@@ -166,8 +166,8 @@ internal fun StrokeSlot(
         if (hovered && !open) {
             StripPill(label = "Stroke", accent = colourKeyLabel(favourites, ink.colour), offset = anchor)
         }
-        if (open) {
-            Popup(
+        GlassPresence(open) {
+            GlassPopup(
                 offset = anchor,
                 onDismissRequest = {
                     guard.closed(Unit)
