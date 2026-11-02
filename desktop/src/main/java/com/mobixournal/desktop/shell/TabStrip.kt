@@ -1,5 +1,4 @@
 package com.mobixournal.desktop.shell
-import com.mobixournal.desktop.tools.glassRim
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -50,9 +49,10 @@ import kotlin.math.roundToInt
 /**
  * The open documents, as a strip under the header.
  *
- * Each tab shows its document's label and a monoline close glyph; the active one is the only one drawn
- * as a raised surface, so "which document am I in" is answered by one thing instead of by a border, a
- * colour and a shadow at once. A tab whose edits are not in the file yet carries a small accent dot after
+ * Each tab shows its document's label and a monoline close glyph; the active one is the only one that
+ * wears both the steel fill and the **accent edge** — the tablet's own pair for a selected chip, a 1 dp
+ * ring of the primary colour at 60 % — so "which document am I in" is one bluish outline on a raised
+ * capsule. A tab whose edits are not in the file yet carries a small accent dot after
  * the label — the strip's only status readout, and the reason closing it asks before it goes. A **double-click edits the label in place** — a tab label is a label,
  * not the file's name — and **dragging sideways reorders** the strip. The `+` at the end is the same
  * open action the header button and `Ctrl+T` invoke.
@@ -91,9 +91,7 @@ fun TabStrip(
                     .widthIn(min = 120.dp, max = 240.dp)
                     .background(if (active) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.capsuleShape)
                     .hoverFill(DesktopTheme.capsuleShape, active = active)
-                    // A tab is an object lying in the band's space, so the active one wears the family's
-                    // rim (a band takes none): that is what turns the flat steel strip into a capsule.
-                    .then(if (active) Modifier.glassRim(DesktopTheme.capsuleRadius) else Modifier)
+                    .tabEdge(active)
                     .pointerInput(tab.key) {
                         detectTapGestures(
                             onTap = { onActivate(index) },
@@ -226,6 +224,23 @@ private fun AddTabButton(onNew: () -> Unit) {
         }
     }
 }
+
+/**
+ * **The edge a tab wears**: the accent ring when it is the document in front, and nothing when it is not.
+ *
+ * The tablet answers "which one is open" with a 1 dp ring of the primary colour at 60 % on a raised chip, and
+ * the window's tabs had only a whites-only rim on the steel fill — two materials for one state. Its own
+ * helper because the strip's row is a row: a style that reads as five lines inside it is a style that
+ * pushed the function past `SourceStructureTest`'s ceiling.
+ */
+private fun Modifier.tabEdge(active: Boolean): Modifier = if (active) {
+    border(1.dp, DesktopTheme.accent.copy(alpha = TAB_ACCENT_ALPHA), DesktopTheme.capsuleShape)
+} else {
+    this
+}
+
+/** The picked tab's edge: the tablet's 60 % accent ring, the one mark a selected chip wears. */
+private const val TAB_ACCENT_ALPHA = 0.6f
 
 /** Fallback width of a tab before its first layout pass has been measured. */
 private const val TAB_FALLBACK_PX = 140f

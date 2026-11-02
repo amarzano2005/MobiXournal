@@ -225,7 +225,11 @@ the same command (`TapTracker`: 400 ms, 8 px), so the tablet's double-tap has a 
 one does not answer `EDIT`, so a family added later cannot ship uneditable.
 
 That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the
-rectangle that is left and nothing lies over the sheet. It is drawn in **three parts, always** — a header, a
+rectangle that is left and nothing lies over the sheet. It is made of the **settings panel's** material
+(`DesktopTheme.settingsPanel`, the near-solid glass of `docs/desktop-settings.md`) rather than the bands',
+because this column is read while an element is edited and holds the same kind of fields a settings page
+does — while still taking **no rim**: a lane is geometry of its own, not a pane lying on the ink
+(`docs/chrome.md`). It is drawn in **three parts, always** — a header, a
 body of cards and a footer — and it is up **only while there is something to edit**: a placement asking its
 values, the one element the pencil opened, or a **text box being typed** — a box in the field has a face, a
 size and an ink too, and the moment to set them is while the words are being written, so pressing with the

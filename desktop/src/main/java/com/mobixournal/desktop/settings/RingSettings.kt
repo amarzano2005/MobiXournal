@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -140,9 +141,12 @@ private fun RingDrawing(policy: DesktopSettingsState) {
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-            val index = rememberClosingValue(picked)
-            GlassPresence(index != null && index in faces.indices) {
-                val faceIndex = index ?: return@GlassPresence
+            // The **face** is what is held, not just its index: removing a position shortens the list, and
+            // an index kept past the end read one place beyond it — the chooser threw `Index 13 out of
+            // bounds for length 13` while it was drawing back. A face is a value; it cannot go stale.
+            val shown = rememberClosingValue(picked?.let { at -> faces.getOrNull(at)?.let { at to it } })
+            GlassPresence(shown != null) {
+                val (faceIndex, face) = shown ?: return@GlassPresence
                 GlassPopup(
                     offset = IntOffset(
                         with(density) { (BOARD + 12.dp).roundToPx() },
@@ -152,7 +156,7 @@ private fun RingDrawing(policy: DesktopSettingsState) {
                     properties = FloatingSurface,
                 ) {
                     RingFaceMenu(
-                        face = faces[faceIndex],
+                        face = face,
                         colours = policy.ring.colourChoices(),
                         tools = policy.ring.toolChoices(),
                         widths = policy.ring.widthChoices(),
@@ -233,13 +237,8 @@ private fun RingFaceMenu(
             FaceHead("Widths")
             for (choice in widths) {
                 FaceRow(label = widthLabel(choice.pt), chosen = choice == face, onClick = { onPick(choice) }) {
-                    Box(Modifier.size(14.dp), contentAlignment = Alignment.Center) {
-                        Box(
-                            Modifier
-                                .size((4f + 8f * (choice.pt / PenPalette.WIDTH_MAX).coerceIn(0.1f, 1f)).dp)
-                                .clip(CircleShape)
-                                .background(DesktopTheme.chromeInk),
-                        )
+                    Box(Modifier.size(WIDTH_DOT_BOX), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(widthDot(choice.pt)).clip(CircleShape).background(DesktopTheme.chromeInk))
                     }
                 }
             }
@@ -316,6 +315,24 @@ private fun colourLabel(argb: Int): String {
 
 /** A width face, in the points the pen draws with. */
 private fun widthLabel(pt: Float): String = String.format(Locale.ROOT, "%.2f pt", pt)
+
+/** The square a width's dot lives in, so the three rows' marks line up whatever their size. */
+private val WIDTH_DOT_BOX = 16.dp
+
+/**
+ * **A width's dot**: its diameter is the stroke's own, spread across the pen's three slots.
+ *
+ * The scale is the *widths the pen ships* rather than the pointer's whole range: measured against the
+ * 0.5 – 15 pt range a table can hold, 0.85 and 2.6 pt came out 4.4 dp and 5.4 dp — three rows of dots the
+ * eye read as one size, which is exactly the thing the mark exists to answer. Across 0.85 – 2.6 pt the
+ * three land six, nine and fourteen dp apart, so S / M / L are told apart before the labels are read.
+ */
+private fun widthDot(pt: Float): Dp {
+    val smallest = PenPalette.DEFAULT_WIDTHS.min()
+    val largest = PenPalette.DEFAULT_WIDTHS.max()
+    val t = ((pt - smallest) / (largest - smallest)).coerceIn(0f, 1f)
+    return (6f + 8f * t).dp
+}
 
 /**
  * **Opening it**: the key that summons the ring, armed on the spot.

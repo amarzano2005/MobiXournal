@@ -104,7 +104,11 @@ internal fun InspectorLane(
         modifier
             .width(INSPECTOR_WIDTH)
             .fillMaxHeight()
-            .bandSurface(),
+            // The **settings panel's** material (`DesktopTheme.settingsPanel`, the near-solid glass), not
+            // the bands': this column is read while an element is edited, and its fields are the same kind
+            // of thing the settings page holds. A lane still takes no rim (`docs/chrome.md`) — it is
+            // geometry of its own, standing beside the page rather than lying over it.
+            .bandSurface(fill = DesktopTheme.settingsPanel),
     ) {
         LaneHeader(
             tool = pending?.slot?.tool() ?: drafting?.let { DesktopTool.TEXT } ?: live?.family?.tool(),

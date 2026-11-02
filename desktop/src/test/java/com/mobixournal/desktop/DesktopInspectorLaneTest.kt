@@ -83,7 +83,7 @@ class DesktopInspectorLaneTest {
 
     /**
      * The lane's own column, just inside its right edge: past the cards' 12 dp padding, so the pixel is the
-     * band's glass and not a card's tone — and it is the page's own pixel when no lane is drawn.
+     * lane's own glass and not a card's tone — and it is the page's own pixel when no lane is drawn.
      */
     private val lanePixelX = 992
     private val lanePixelY = 320
@@ -92,12 +92,12 @@ class DesktopInspectorLaneTest {
     fun `the lane is closed until there is something to edit`() {
         val state = shell()
         try {
-            assertNotBand("nothing selected: the page keeps the width", render(state))
+            assertNotLane("nothing selected: the page keeps the width", render(state))
 
             // A selection alone is the bar's business, not the lane's.
             val tab = state.tabs.active!!
             tab.selection = PageSelection(rectRegion(80.0, 90.0, 260.0, 240.0), emptySet())
-            assertNotBand("a selection does not open a column of labels", render(state))
+            assertNotLane("a selection does not open a column of labels", render(state))
         } finally {
             state.tabs.closeAll()
         }
@@ -110,16 +110,16 @@ class DesktopInspectorLaneTest {
             val tab = state.tabs.active!!
             state.selectTool(DesktopTool.PLOT)
             state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(100.0, 120.0, 340.0, 264.0))
-            assertNearBand("the question owns the lane", render(state))
+            assertNearLane("the question owns the lane", render(state))
 
             state.confirmPlacement()
-            assertNotBand("the question answered, the lane goes", render(state))
+            assertNotLane("the question answered, the lane goes", render(state))
 
             state.runSelection(SelectionAction.EDIT)
-            assertNearBand("the pencil opens it again", render(state))
+            assertNearLane("the pencil opens it again", render(state))
 
             state.closeLivingEditor()
-            assertNotBand("and Done closes it", render(state))
+            assertNotLane("and Done closes it", render(state))
         } finally {
             state.tabs.closeAll()
         }
@@ -245,7 +245,7 @@ class DesktopInspectorLaneTest {
                 "a selection that no longer names it cannot keep an editor open",
                 attachedLivingEditor(tab, state.editingLiving),
             )
-            assertNotBand("so the column goes with it", render(state))
+            assertNotLane("so the column goes with it", render(state))
         } finally {
             state.tabs.closeAll()
         }
@@ -319,10 +319,10 @@ class DesktopInspectorLaneTest {
                 tab,
                 TextElement("Sans Bold", 18.0, 120.0, 200.0, 0xFF112233.toInt(), "words", id = "txt_lane"),
             )
-            assertNotBand("a selection alone opens no column", render(state))
+            assertNotLane("a selection alone opens no column", render(state))
 
             state.runSelection(SelectionAction.EDIT)
-            assertNearBand("the box's family, size and ink are the lane's to set", render(state))
+            assertNearLane("the box's family, size and ink are the lane's to set", render(state))
 
             state.commitLiving(textBox(tab).withItalic(true))
 
@@ -341,21 +341,21 @@ class DesktopInspectorLaneTest {
      *
      * The style of a box has to be settable while it is being written — that is the moment the user is
      * looking at it — so the lane comes up with the in-place field and goes with it, one gesture each way
-     * and no hunting for the box afterwards. The pixels are the lane's own band, as in every test here.
+     * and no hunting for the box afterwards. The pixels are the lane's own glass, as in every test here.
      */
     @Test
     fun `the lane opens with the text box and closes with it`() {
         val state = shell()
         try {
             val tab = state.tabs.active!!
-            assertNotBand("nothing being typed: no column", render(state))
+            assertNotLane("nothing being typed: no column", render(state))
 
             state.textBox.begin(tab, 120.0, 200.0, 595.0, 842.0, state.ink) { _, _ -> }
             state.textBox.change(TextFieldValue("typing", TextRange(6)))
-            assertNearBand("the box's face and size are the lane's while typing", render(state))
+            assertNearLane("the box's face and size are the lane's while typing", render(state))
 
             state.textBox.commit(tab) { _, _ -> }
-            assertNotBand("the commit closes the box and the column with it", render(state))
+            assertNotLane("the commit closes the box and the column with it", render(state))
         } finally {
             state.tabs.closeAll()
         }
@@ -442,21 +442,28 @@ class DesktopInspectorLaneTest {
         }
     }
 
-    /** A pixel of the band: the glass at its token alpha over the desk, within a rounding step. */
-    private fun assertNearBand(message: String, image: BufferedImage) =
-        assertTrue(message, nearBand(image.getRGB(lanePixelX, lanePixelY) and 0xFFFFFF))
+    /** A pixel of the lane: the settings surface's near-solid glass over the desk, within a rounding step. */
+    private fun assertNearLane(message: String, image: BufferedImage) =
+        assertTrue(message, nearLane(image.getRGB(lanePixelX, lanePixelY) and 0xFFFFFF))
 
-    /** No lane: the column the lane would take is page or desk, not the band's glass. */
-    private fun assertNotBand(message: String, image: BufferedImage) =
-        assertTrue(message, !nearBand(image.getRGB(lanePixelX, lanePixelY) and 0xFFFFFF))
+    /** No lane: the column the lane would take is page or desk, not the lane's glass. */
+    private fun assertNotLane(message: String, image: BufferedImage) =
+        assertTrue(message, !nearLane(image.getRGB(lanePixelX, lanePixelY) and 0xFFFFFF))
 
-    private fun nearBand(actual: Int): Boolean {
-        val expected = DesktopTheme.bandRgb
-        return listOf(16, 8, 0).all { shift ->
-            val want = (expected shr shift) and 0xFF
-            val got = (actual shr shift) and 0xFF
-            kotlin.math.abs(want - got) <= 3
-        }
+    /**
+     * The lane's fill composited over the desk: `DesktopTheme.settingsPanel` at its own 0.97 — the number the
+     * settings surface is read at — and no longer the bands' 0.58. The column is therefore a tone lighter than
+     * the bands beside it, which is the separation the settings material exists for.
+     */
+    private fun nearLane(actual: Int): Boolean {
+        val fill = DesktopTheme.settingsPanel
+        val desk = DesktopTheme.desk
+        val alpha = fill.alpha
+        fun over(foreground: Float, background: Float): Int =
+            ((foreground * alpha + background * (1f - alpha)) * 255f).toInt()
+        val expected = listOf(over(fill.red, desk.red), over(fill.green, desk.green), over(fill.blue, desk.blue))
+        val got = listOf((actual shr 16) and 0xFF, (actual shr 8) and 0xFF, actual and 0xFF)
+        return expected.indices.all { kotlin.math.abs(expected[it] - got[it]) <= 3 }
     }
 
     private fun elements(tab: DesktopTab): List<com.mobixournal.format.model.Element> =
