@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-light-materials-on-paper"
+title = "Desktop: the light theme's materials read on paper"
+description = "Gave the light theme a real desk (0xE9EDF1), inverted the band and its control on paper (control white, band tinted, panelField for fields inside a panel), made a card visible (CARD_ALPHA_LIGHT) and the drawn edge a shade of ink (RIM_ALPHA_TOP_LIGHT); the black desk is unchanged, and LightMaterialTest plus the rule in docs/interface-contract.md keep it that way. Checked with headless renders of the shell, the overflow menu and the settings surface."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-02
+completed = 2026-11-02
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-remove-breadcrumb-and-share"
+title = "Desktop: remove the header's path breadcrumb and Share door"
+description = "Removed per the owner's request: shortenPath and its glass popup, ShareActions with its status notice and unsaved refusal, the header extras and their render test, and the SHARE glyph, restoring the band's previous order (Pages, search, history, audio, Save, PDF) and the README and spoke text that described them."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-02
+completed = 2026-11-02
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-share-menu-reveal-copy-path-export"
 title = "Desktop: a Share menu (reveal, copy path, export)"
 description = "A Share capsule in the header with injectable ShareActions (show in Explorer, copy the path, export), the command's answer in the status bar beside the PDF readout, and a refusal sentence when the document is unsaved. Owned by docs/desktop-ui-layout.md."
