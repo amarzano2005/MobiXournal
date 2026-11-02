@@ -52,6 +52,20 @@ object PenPalette {
     val COLORS: List<Int> = listOf(BLACK, RED, GREEN, BLUE, ORANGE, YELLOW, MAGENTA, WHITE)
 
     /**
+     * The pen's factory favourites: **black, red, green**, the three the digits `1`–`3` take on a fresh
+     * install. The tablet's `AppSettings.DEFAULT_PEN_FAVORITES` and the window's settings file both read
+     * this list, so the two shells cannot offer different first three.
+     */
+    val PEN_FAVOURITES: List<Int> = listOf(BLACK, RED, GREEN)
+
+    /**
+     * The highlighter's factory favourites: **yellow, green, blue** — the marker's own three, not the
+     * palette's first three. A window that filled both ternas from [COLORS] offered a highlighter whose
+     * quick colours were black, red and green, which is a pen's set worn by the wrong tool.
+     */
+    val HIGHLIGHTER_FAVOURITES: List<Int> = listOf(YELLOW, GREEN, BLUE)
+
+    /**
      * The most colours a palette may hold: room for every desktop swatch plus a working set of one's
      * own, while a picker's swatch grid still fits two or three rows.
      */

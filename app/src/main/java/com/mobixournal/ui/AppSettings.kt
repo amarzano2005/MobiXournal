@@ -446,11 +446,10 @@ data class AppSettings(
         const val FAVORITE_COUNT: Int = 3
 
         /** Factory pen favourites — black, red, green: the three colours handwriting actually uses. */
-        val DEFAULT_PEN_FAVORITES: List<Int> = listOf(XOPP_BLACK, XOPP_RED, XOPP_GREEN)
+        val DEFAULT_PEN_FAVORITES: List<Int> = PenPalette.PEN_FAVOURITES
 
         /** Factory highlighter favourites — yellow first, then green and blue. */
-        val DEFAULT_HIGHLIGHTER_FAVORITES: List<Int> =
-            listOf(XOPP_YELLOW, XOPP_GREEN, XOPP_BLUE)
+        val DEFAULT_HIGHLIGHTER_FAVORITES: List<Int> = PenPalette.HIGHLIGHTER_FAVOURITES
 
         /** Factory default highlighter width — the largest pen-width slot, the one width that stays bold. */
         val DEFAULT_HIGHLIGHTER_WIDTH: Float = DEFAULT_PEN_WIDTHS[2]

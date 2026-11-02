@@ -115,9 +115,9 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
   where the nib is. **Settings → Ring** *draws* the ring — a click on a face sets a **colour**, **any tool of the
   window** or a **width** — and the key beside it opens it; the table is in [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md)
   and **Settings → Shortcuts** rebinds any of them — the three **switch** keys too (eraser, hand, selection).
-- **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
-  block or **Settings → Stylus** — and the menu keeps them as chips. **A file to try it on**: `udiff.xopp`, at
-  the root of this repository.
+- **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen block
+  or **Settings → Stylus**; the menu keeps them as chips. **A file to try it on**: `udiff.xopp`, at the root.
+- **Settings → Colors is the palette itself**: redefine a swatch in its place, add or delete one, or **Restore default palette** — the same list the strip, the ring and the text dialog draw.
 - **Save As asks the format in the save window itself**: its **File type** list offers `.mobix`, `.xopp` and the
   zipped package, with the suffix in the name field; `Ctrl + S` writes back in the document's own format.
 - **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — its own document or added

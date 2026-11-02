@@ -95,8 +95,9 @@ enum class DesktopSettingSection(
     ),
     COLORS(
         "Colors",
-        "The pen's colour, width, line style and favourites.",
-        "colours colors palette swatch favourites favorites width thickness line style dashed",
+        "The palette, the pen's colour and width, the line style and the favourites.",
+        "colours colors palette swatch favourites favorites add remove delete redefine restore reset " +
+            "width thickness line style dashed",
         SettingsGlyph.COLORS,
     ),
     RING(
@@ -183,7 +184,11 @@ enum class DesktopSettingSection(
  * rather than a blank page, so the reader knows the word was the problem and not the window.
  */
 @Composable
-internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSettingSection?) {
+internal fun DesktopSettingPage(
+    policy: DesktopSettingsState,
+    palette: PaletteActions,
+    section: DesktopSettingSection?,
+) {
     if (section == null) {
         Text("No setting matches that.", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
         return
@@ -195,7 +200,7 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
         DesktopSettingSection.STYLUS -> StylusSettings(policy)
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
         DesktopSettingSection.FIGURES -> FiguresSettings(policy)
-        DesktopSettingSection.COLORS -> ColorsSettings()
+        DesktopSettingSection.COLORS -> ColorsSettings(palette)
         DesktopSettingSection.RING -> RingSettings(policy)
         DesktopSettingSection.SHORTCUTS -> ShortcutsSettings(policy)
         DesktopSettingSection.AUDIO -> AudioSettings(policy)
@@ -386,19 +391,6 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
                 note = "Every slot back where a fresh install draws it.",
                 onClick = policy::resetToolOrder,
             )
-        }
-    }
-}
-
-/** **Colors**: the palette lives in the strip, and this page says so rather than duplicating it. */
-@Composable
-private fun ColorsSettings() {
-    SettingsGroup("The palette") {
-        SettingsRow(
-            label = "Colour, width and line style",
-            note = "The strip's colour capsule, and the keys 1–3.",
-        ) {
-            Text("In the strip", color = DesktopTheme.ink, style = DesktopTheme.label)
         }
     }
 }

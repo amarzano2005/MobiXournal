@@ -12,6 +12,7 @@ import com.mobixournal.desktop.io.askImportPdf
 import com.mobixournal.desktop.io.clipboardCommand
 import com.mobixournal.desktop.io.describeOpenFailure
 import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.settings.PaletteActions
 import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
@@ -354,6 +355,9 @@ class DesktopShellState(
     /** The palette the colour flyout offers. */
     val palette: List<Int> get() = inkState.palette
 
+    /** The Colors page's subject: that same palette, and the writes its rows make (`PaletteActions`). */
+    internal val paletteEditor: PaletteActions get() = PaletteActions.of(inkState)
+
     /** The terna the picked tool picks from — keys `1`–`3` and `Alt`+digit read this one. */
     val favourites: List<Int> get() = inkState.favourites
 
@@ -382,12 +386,7 @@ class DesktopShellState(
             onInsertImage = { onInsertImagePicker?.invoke() },
         )
 
-    /**
-     * Pick the ink colour **of the picked tool**, and remember it: the pen and the highlighter keep their
-     * own, so switching to the highlighter never repaints the pencil.
-     */
     /** Pick the picked tool's ink colour, and remember it — what [DesktopInkState] keeps per tool. */
-    /** The menu's one pen preset: the tool in hand back on its factory colour, width and plain line. */
     fun pickColour(colour: Int) = inkState.pickColour(colour)
 
     /** Pick the picked tool's stroke width, and remember it. */

@@ -214,7 +214,7 @@ axis, or a context it refuses to open, **keeps the system context** rather than 
 
 ## Ring — the ring drawn, and what each face holds
 
-Under **Drawing**, beside Colors: **the ring as it is drawn at the pen** — one glass disc, the same faces in
+Under **Drawing**, beside **Colors** (the palette's own page — [colours.md](colours.md)): **the ring as it is drawn at the pen** — one glass disc, the same faces in
 the same order — not a list of rows, so the page answers *what does my ring look like*. **Clicking a face**
 opens its chooser, the three families the ring can hold, each with every answer it has: **Colours** (the
 palette's swatches, the custom HEX one included), **Tools** (every tool the window puts in hand, from the pen

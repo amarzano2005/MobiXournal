@@ -221,4 +221,36 @@ internal class DesktopInkState(
         }
         editing = null
     }
+
+    /**
+     * Redefine palette entry [index]: the swatch keeps its **place**, the colour changes, the entry stays
+     * opaque and the list stays distinct — the tablet's own rule for its Colors page ([PenPalette]).
+     */
+    fun definePaletteColour(index: Int, colour: Int) {
+        if (index !in palette.indices) return
+        palette = palette.toMutableList().also { it[index] = PenPalette.opaque(colour) }.distinct()
+        settings.paletteColours = palette
+    }
+
+    /** Append [colour] — opaque, de-duplicated and capped at [PenPalette.MAX_COLORS]. */
+    fun addPaletteColour(colour: Int) {
+        palette = PenPalette.add(palette, colour)
+        settings.paletteColours = palette
+    }
+
+    /**
+     * Remove entry [index], refusing the **last** one: a picker with nothing in it cannot pick, which is
+     * why the tablet dims its own delete button at a single swatch.
+     */
+    fun removePaletteColour(index: Int) {
+        if (palette.size <= 1 || index !in palette.indices) return
+        palette = palette.filterIndexed { at, _ -> at != index }
+        settings.paletteColours = palette
+    }
+
+    /** The factory eight back, in the tablet's published order ([PenPalette.COLORS]). */
+    fun resetPalette() {
+        palette = PenPalette.COLORS
+        settings.paletteColours = palette
+    }
 }

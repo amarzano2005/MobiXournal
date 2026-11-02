@@ -59,7 +59,11 @@ import kotlin.math.roundToInt
  * one back, which is what makes a change visible on the page behind it the moment it is clicked.
  */
 @Composable
-internal fun SettingsSurface(policy: DesktopSettingsState, modifier: Modifier = Modifier) {
+internal fun SettingsSurface(
+    policy: DesktopSettingsState,
+    palette: PaletteActions = PaletteActions(),
+    modifier: Modifier = Modifier,
+) {
     // What the help line is saying: the sentence of the row under the pointer, written by the row itself.
     val help = remember { mutableStateOf("") }
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -88,7 +92,7 @@ internal fun SettingsSurface(policy: DesktopSettingsState, modifier: Modifier = 
                             .verticalScroll(rememberScrollState())
                             .padding(start = 16.dp, end = 22.dp, top = 2.dp, bottom = 18.dp),
                     ) {
-                        DesktopSettingPage(policy, policy.shownSection)
+                        DesktopSettingPage(policy, palette, policy.shownSection)
                     }
                 }
             }

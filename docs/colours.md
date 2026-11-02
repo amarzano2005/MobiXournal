@@ -41,6 +41,16 @@ contract as the tablet's dialog (always opaque, a strict hex field, an invalid e
 valid colour and says so) built in the desktop's glass, because `CustomColorPickerDialog` lives in the
 app's `ui/` and reads `AppSettings`.
 
+**The palette itself is editable from the window's Settings**, under **Drawing → Colors** — the phone's own
+four verbs, over the same rules: a row per swatch, the row picks it, **Edit** redefines the entry in its
+place, **Delete** removes it, **Add colour** appends, and **Restore default palette** writes the factory
+eight back (the last swatch cannot be deleted, and the ceiling is `PenPalette.MAX_COLORS`). The page's
+subject is a `PaletteActions` reading the window's live palette, so a swatch changed there is changed in the
+strip's stroke panel and in the pen-tip ring the moment it is committed — never a second list. The factory
+ternas are shared with the tablet as well: `PenPalette.PEN_FAVOURITES` (black, red, green) and
+`PenPalette.HIGHLIGHTER_FAVOURITES` (yellow, green, blue) are what both `AppSettings`' defaults and the
+window's settings file read, so a fresh shell on either platform offers the same six.
+
 The one colour picker all three sites share (the pen pop-up, the text-box dialog, the selection
 recolour menu), plus the shortcut tables that jump straight to a colour or a tool (see
 `ShortcutsSection.kt` and the `toolShortcutKeys` / `colorShortcutKeys` maps in `AppSettings`):

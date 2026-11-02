@@ -452,7 +452,10 @@ class DesktopSettings(val file: File = defaultFile()) {
 
     /** The highlighter's three favourites: its own, exactly as the tablet keeps a terna per tool. */
     var highlighterFavourites: List<Int>
-        get() = PaletteCodec.decodeFavourites(properties.getProperty(KEY_HIGHLIGHTER_FAVOURITES))
+        get() = PaletteCodec.decodeFavourites(
+            properties.getProperty(KEY_HIGHLIGHTER_FAVOURITES),
+            PenPalette.HIGHLIGHTER_FAVOURITES,
+        )
         set(value) {
             properties.setProperty(
                 KEY_HIGHLIGHTER_FAVOURITES,

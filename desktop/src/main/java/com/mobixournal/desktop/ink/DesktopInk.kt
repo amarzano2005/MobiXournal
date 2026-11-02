@@ -80,8 +80,9 @@ enum class ColourEditorTarget {
  * favourite rather than the pen's.
  */
 data class DesktopFavourites(
-    val pen: List<Int> = PenPalette.COLORS.take(PaletteCodec.FAVOURITES),
-    val highlighter: List<Int> = PenPalette.COLORS.take(PaletteCodec.FAVOURITES),
+    val pen: List<Int> = PenPalette.PEN_FAVOURITES,
+    /** The tablet's own marker terna — yellow, green, blue ([PenPalette.HIGHLIGHTER_FAVOURITES]). */
+    val highlighter: List<Int> = PenPalette.HIGHLIGHTER_FAVOURITES,
 ) {
 
     /** The terna [tool] picks from — the pen's for every slot that is not the highlighter. */
@@ -115,13 +116,15 @@ internal object PaletteCodec {
 
     /**
      * The three favourite colours: opaque, de-duplicated, and always exactly [FAVOURITES] long — a
-     * missing or short entry is filled from the factory palette, so keys 1–3 always have a colour.
+     * missing or short entry is padded from [factory], so keys 1–3 always have a colour. The factory set
+     * is a parameter because the pen and the highlighter ship different three
+     * ([PenPalette.PEN_FAVOURITES] / [PenPalette.HIGHLIGHTER_FAVOURITES]).
      */
-    fun decodeFavourites(raw: String?): List<Int> {
+    fun decodeFavourites(raw: String?, factory: List<Int> = PenPalette.PEN_FAVOURITES): List<Int> {
         val parsed = raw?.split(',')?.mapNotNull { entry -> entry.trim().toLongOrNull(16)?.toInt() }
             ?.map(PenPalette::opaque)
             ?: emptyList()
-        return (parsed + PenPalette.COLORS).distinct().take(FAVOURITES)
+        return (parsed + factory).distinct().take(FAVOURITES)
     }
 
     /** One colour as the eight-digit hex the file holds. */
