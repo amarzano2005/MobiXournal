@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.platform.Font
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobixournal.design.DesignTokens
@@ -105,7 +106,8 @@ object DesktopTheme {
      * What floats over the page: the bands' own RGB with the see-through turned down to
      * `floatingPanelAlpha`, so a message or a menu is the same material as the bar it belongs to.
      */
-    val floating: Color get() = glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
+    val floating: Color get() =
+        if (light) panel else glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
 
     /**
      * The failed-open card's fill: [glass] at **full** opacity.
@@ -222,7 +224,8 @@ object DesktopTheme {
      * A band is not a panel: it takes this one lift and no rim (`docs/chrome.md`), which is what makes
      * the header read as chrome over the canvas rather than as a slab lying on the page.
      */
-    val bandShadow = DesignTokens.BAND_SHADOW_DP.dp
+    val bandShadow: Dp get() =
+        if (light) DesignTokens.BAND_SHADOW_LIGHT_DP.dp else DesignTokens.BAND_SHADOW_DP.dp
 
     /** The cast shadow under a floating capsule — the rail, the ribbon, a header control: 6 dp. */
     val capsuleShadow = DesignTokens.CAPSULE_SHADOW_DP.dp

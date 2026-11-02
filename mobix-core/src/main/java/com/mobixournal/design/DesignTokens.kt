@@ -97,6 +97,16 @@ object DesignTokens {
     /** The cast shadow under a **band**: 4 dp — the tablet's header, status bar and rail lane. */
     const val BAND_SHADOW_DP: Int = 4
 
+    /**
+     * The cast shadow under a band on **paper**: 1 dp, a tight shade rather than a lift.
+     *
+     * Four dp of black over a true-black desk is invisible, which is why the window has it; cast onto a
+     * white sheet, the same shadow is a grey gradient across the page under the header and above the
+     * status bar — a smudge, not an edge. On paper the band's tone against the desk does the separating,
+     * and what is left is one hairline-thin shade.
+     */
+    const val BAND_SHADOW_LIGHT_DP: Int = 1
+
     /** The cast shadow under a **floating capsule**: 6 dp — the tablet's rail, a header control. */
     const val CAPSULE_SHADOW_DP: Int = 6
 

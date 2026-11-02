@@ -37,6 +37,9 @@ Every surface is one of three objects. Pick the class from what the element *doe
   0.12. Lifting the dark recipe onto paper made a header button a white disc on a white band and a menu
   chip invisible: on paper "raised" is a shade *around* the object, not a highlight on it.
   `LightMaterialTest` fails if the pair stops being inverted.
+  The band's 4 dp cast lift is a grey smudge across a white sheet as well, so on paper it falls to a
+  hairline-thin shade (`BAND_SHADOW_LIGHT_DP`); a floating surface is **solid** there (`panel`), because
+  at 0.88 the page's own ink read through an open menu.
 - **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a
   shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's
   lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**
