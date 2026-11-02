@@ -58,8 +58,14 @@ fun rotateHandleOf(bounds: Bounds, gapPt: Double = ROTATE_HANDLE_GAP_PT): Pair<D
  * What [selection]'s handle at page point (x, y) is — [SelectionHandle.NONE] when the point is off it.
  *
  * [tolPt] is the grab radius in page points, which the canvas derives from pixels so a handle is equally easy
- * to hit at every zoom. The rotate handle is checked first: it sits above the box, where nothing else can be,
- * and a press meant for it that landed a hair low should not start a new selection.
+ * to hit at every zoom, capped at a **third** of the box as the tablet caps it: on a tiny selection a fixed
+ * radius reaches every touch and turns the move into a resize. The rotate handle is checked first: it sits
+ * above the box, where nothing else can be, and a press meant for it that landed a hair low should not start
+ * a new selection.
+ *
+ * Both families of handle are asked by default: the four corners and the four **edge midpoints**, which are
+ * the tablet's own eight (`docs/selection.md`). [includeEdges] stays a parameter only so a caller can state
+ * its intent; [includeRotate] is false for an image, whose model carries no rotation.
  */
 fun selectionHandleAt(
     selection: PageSelection,
@@ -67,13 +73,14 @@ fun selectionHandleAt(
     y: Double,
     tolPt: Double,
     rotateGapPt: Double = ROTATE_HANDLE_GAP_PT,
-    includeEdges: Boolean = false,
-    includeRotate: Boolean = !includeEdges,
+    includeEdges: Boolean = true,
+    includeRotate: Boolean = true,
 ): SelectionHandle {
     val box = selection.bounds
+    val reach = minOf(tolPt, minOf(box.right - box.left, box.bottom - box.top) / 3.0)
     if (includeRotate) {
         val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
-        if (near(x, y, rotateX, rotateY, tolPt)) return SelectionHandle.ROTATE
+        if (near(x, y, rotateX, rotateY, reach)) return SelectionHandle.ROTATE
     }
     val corners = listOf(
         SelectionHandle.TOP_LEFT to (box.left to box.top),
@@ -82,7 +89,7 @@ fun selectionHandleAt(
         SelectionHandle.BOTTOM_RIGHT to (box.right to box.bottom),
     )
     for ((handle, at) in corners) {
-        if (near(x, y, at.first, at.second, tolPt)) return handle
+        if (near(x, y, at.first, at.second, reach)) return handle
     }
     if (includeEdges) {
         val midX = (box.left + box.right) / 2.0
@@ -94,7 +101,7 @@ fun selectionHandleAt(
             SelectionHandle.RIGHT to (box.right to midY),
         )
         for ((handle, at) in edges) {
-            if (near(x, y, at.first, at.second, tolPt)) return handle
+            if (near(x, y, at.first, at.second, reach)) return handle
         }
     }
     return if (selection.region.inside(x, y)) SelectionHandle.BODY else SelectionHandle.NONE

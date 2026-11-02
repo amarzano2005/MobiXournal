@@ -20,9 +20,10 @@ import com.mobixournal.render.SelectionRegion
  * The selection drawn **over the page**, in the window's own chrome ink — no material of its own.
  *
  * `docs/interface-contract.md` puts a selection in the same family as the rest of the chrome: a dashed
- * accent line, solid square handles at the corners and a round one above the box for the turn. It is not a
- * floating surface and it never covers ink: the outline is a hairline, and the handles are eight screen pixels
- * of the accent, so what is selected is still what the user sees.
+ * accent line, solid square handles on the four corners and the four **edge midpoints** (one axis each, as
+ * the tablet draws them) and a round one above the box for the turn. It is not a floating surface and it
+ * never covers ink: the outline is a hairline, and the handles are eight screen pixels of the accent, so what
+ * is selected is still what the user sees.
  *
  * [pxPerPt] is the sheet's own scale (`zoom × density`), so the outline follows a zoom while its stroke and
  * its handles stay the same size on screen — a handle that grew with the page would be a slab at 400 %.
@@ -83,7 +84,12 @@ private fun DrawScope.drawRegion(region: SelectionRegion, pxPerPt: Float, dashed
     )
 }
 
-/** Four corner squares, edge handles when [isImage], and the rotate handle when not an image. */
+/**
+ * The eight squares — four corners, four edge midpoints — and, when [isImage] is false, the turn's stem and ring.
+ *
+ * The edge squares are drawn for **every** selection, not only an image's: they are the one-axis stretch the
+ * tablet has always carried, and a handle the hit test answers to must be visible or it may as well be absent.
+ */
 private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float, isImage: Boolean = false) {
     val box = selection.bounds
     fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
@@ -98,23 +104,22 @@ private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float, isIm
             size = Size(HANDLE_SIZE, HANDLE_SIZE),
         )
     }
-    if (isImage) {
-        val midX = (box.left + box.right) / 2.0
-        val midY = (box.top + box.bottom) / 2.0
-        val edges = listOf(
-            off(midX, box.top),
-            off(box.right, midY),
-            off(midX, box.bottom),
-            off(box.left, midY),
+    val midX = (box.left + box.right) / 2.0
+    val midY = (box.top + box.bottom) / 2.0
+    val edges = listOf(
+        off(midX, box.top),
+        off(box.right, midY),
+        off(midX, box.bottom),
+        off(box.left, midY),
+    )
+    for (edge in edges) {
+        drawRect(
+            color = DesktopTheme.accent,
+            topLeft = Offset(edge.x - HANDLE_SIZE / 2f, edge.y - HANDLE_SIZE / 2f),
+            size = Size(HANDLE_SIZE, HANDLE_SIZE),
         )
-        for (edge in edges) {
-            drawRect(
-                color = DesktopTheme.accent,
-                topLeft = Offset(edge.x - HANDLE_SIZE / 2f, edge.y - HANDLE_SIZE / 2f),
-                size = Size(HANDLE_SIZE, HANDLE_SIZE),
-            )
-        }
-    } else {
+    }
+    if (!isImage) {
         // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.
         // The gap is a screen distance turned into page points, so the ring clears the outline at every zoom.
         val (rotateX, rotateY) = rotateHandleOf(box, gapPt = (ROTATE_GAP_PX / pxPerPt).toDouble())

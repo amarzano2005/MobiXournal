@@ -100,7 +100,11 @@ inflated rectangle. Beyond move/delete, the outline carries **eight resize handl
 both factors being the pointer's distance ratio), and the four **edge midpoints** stretch **one axis
 only** (`ResizeAxis.X` / `ResizeAxis.Y`, the pure `axisScaleFactor` measuring travel from the opposite
 edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion resize, so a drawing can be
-widened without being made taller. A resize stretches **geometry, not ink**: stroke widths are
+widened without being made taller. The window carries the same eight: `SelectionOverlay` draws them,
+`selectionHandleAt` answers them and `scaleFactors` computes the two factors, so a corner keeps the
+proportions and a side stretches one axis on both shells; the one handle an image gives up is the turn,
+because its model carries no rotation. Both shells also cap a handle's reach at a third of the selection,
+so a small element keeps a middle to be moved by. A resize stretches **geometry, not ink**: stroke widths are
 carried through untouched (a longer arrow is not a fatter one) and a recognised arrowhead stays at
 the size it was drawn, so only the shaft lengthens (`StrokeStretch`), while text sizes follow the
 scale because letters are the figure there. Their grab radius is capped at a **third** of the
@@ -204,9 +208,10 @@ selected. A control the selection cannot support is dimmed and does nothing (`do
 wears a ring on each corner, and dragging one bends the figure — the side leading into the corner snaps onto
 the 0/30/45/90 directions within the tablet's 7° tolerance, `Shift` frees it — while a table wears a ring on
 each **interior** divider, and dragging one widens the column beside it without moving the box or a single
-cell's text. Outer edges are not grips (the box's own corner squares scale those), a grip is caught before
-those five handles, and the radius is the handles' own screen-pixel rule, so a divider is as easy to catch
-zoomed out as in. A plot's interval and a component's outline are **not** grips: those numbers live in the
+cell's text. Outer edges are not grips (the box's own corner squares scale those), and a grip is caught
+before the eight handles — and before a press on the ink is read as a pick, so a corner answers a hand that
+lands a hair outside the outline. The radius is the handles' own screen-pixel rule, so a divider is as easy
+to catch zoomed out as in. A plot's interval and a component's outline are **not** grips: those numbers live in the
 lane. `LivingGripsTest` pins the arithmetic, `DesktopLivingGripsSceneTest` the gesture (one undo step per
 drag, a miss moving the element instead of dividing it).
 

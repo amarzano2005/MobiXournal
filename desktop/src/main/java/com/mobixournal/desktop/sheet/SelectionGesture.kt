@@ -137,14 +137,21 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
     val live = tab.selection
     val page = runCatching { tab.document.page(tab.page) }.getOrNull()
+    // A **grip** on the selected element — a figure's corner, a table's divider — is found here and acted on
+    // below the double-click: it is the finer control the tablet puts first, and a press a hair off the ink
+    // should bend the figure rather than carry the whole selection.
+    val living = live?.takeIf { it.refs.size == 1 }?.let { selectedLivingElement(tab) }
+    val grip = living?.let { gripAt(it, x0, y0, tol) }
     val isLiveImage = live?.takeIf { it.refs.size == 1 }?.let { one ->
         val ref = one.refs.first()
         page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) is ImageElement
     } ?: false
+    // The eight handles of the tablet: four corners and four edge midpoints. Only the turn is an image's
+    // to lose, because an image's model carries no rotation.
     val handle = if (live == null) {
         SelectionHandle.NONE
     } else {
-        selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap, includeEdges = isLiveImage)
+        selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage)
     }
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
     // which is where the hand aims when two parts have to be joined (`PinPress`).
@@ -175,6 +182,13 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     ) {
         return
     }
+    // The grip beats the selection's handles and the pick under the pointer — a vertex is caught even a hair
+    // outside the outline — while the double-click above still wins, so the same corner is also a way into the
+    // element's editor.
+    if (living != null && grip != null) {
+        dragLivingGrip(living, grip, x0, y0, tab, view, density, onLiveDrag, onEdited)
+        return
+    }
     if (grabbed.startsRegion()) {
         // A **click on an element** selects it, and the drag that follows carries it: the marquee used to
         // trace a zero-size region and drop the selection, so picking one thing up meant boxing it.
@@ -188,15 +202,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         traceRegion(tool, x0, y0, tab, view, density, region, onLiveDrag)
         return
     }
-    // A grip on the element itself — a figure's corner, a table's divider — is caught before the
-    // selection's own five handles, because it edits the recipe rather than the box.
     val selection = requireNotNull(live) { "a traced region was handled above" }
-    val living = if (selection.refs.size == 1) selectedLivingElement(tab) else null
-    val grip = living?.let { gripAt(it, x0, y0, tol) }
-    if (living != null && grip != null) {
-        dragLivingGrip(living, grip, x0, y0, tab, view, density, onLiveDrag, onEdited)
-        return
-    }
     transformSelection(selection, grabbed, x0, y0, tab, view, density, onLiveDrag, onEdited)
 }
 
@@ -331,11 +337,6 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     // The page at grab time: every move is applied to this, never to the result of the last move, so a
     // round trip returns the ink exactly where it started.
     val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
-    val singleElement = if (selection.refs.size == 1) {
-        val ref = selection.refs.first()
-        original.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
-    } else null
-    val isImage = singleElement is ImageElement
     val before = tab.document.snapshot()
     var recorded = false
     var cancelled = false
@@ -361,7 +362,6 @@ private suspend fun AwaitPointerEventScope.transformSelection(
             y0 = y0,
             x1 = x1,
             y1 = y1,
-            isImage = isImage,
             isShiftPressed = currentEvent.keyboardModifiers.isShiftPressed,
             scale = view.current().zoom * density,
         )
@@ -404,7 +404,6 @@ private fun transformPageSelection(
     y0: Double,
     x1: Double,
     y1: Double,
-    isImage: Boolean,
     isShiftPressed: Boolean,
     scale: Float,
 ): Pair<Page, PageSelection> = when (handle) {
@@ -424,9 +423,11 @@ private fun transformPageSelection(
             SelectionHandle.BOTTOM_LEFT,
             SelectionHandle.BOTTOM_RIGHT,
         )
-        val lockAspect = if (isCorner) {
-            if (isImage) !isShiftPressed else isShiftPressed
-        } else false
+        // One rule for every family, and the tablet's: a **corner** keeps the selection's proportions, a
+        // **side** stretches one axis, and `Shift` is the key that frees the corner. It used to depend on the
+        // element — a figure's corner was free and only an image's was locked — so the same drag did two
+        // different things on two pages of one document.
+        val lockAspect = isCorner && !isShiftPressed
         val (sx, sy) = scaleFactors(selection.bounds, handle, x1, y1, lockAspect = lockAspect)
         val (anchorX, anchorY) = anchorOf(selection.bounds, handle)
         SelectionEdit.scale(original, selection, sx, sy, anchorX, anchorY)

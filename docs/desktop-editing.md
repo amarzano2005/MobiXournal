@@ -116,7 +116,8 @@ that answer with the region moved the same way), `SelectionEdit` (the page rewri
 `mobix-core` and are shared with the tablet, alongside `ElementShift` and `VerticalSpaceOps`. What stays here
 is the pointer half — `DesktopSelection.kt` decides *which* handle a press grabbed and *how far* it was
 dragged (`selectionHandleAt`, `scaleFactors`, `rotationBetween`, all pure and JVM-tested), `SelectionGesture.kt`
-walks the drag, and `SelectionOverlay.kt` paints the outline, the five handles and the traced region. A
+walks the drag, and `SelectionOverlay.kt` paints the outline, the eight handles, a living element's grips and
+the traced region. A
 selection drag is **not ink**, so `DesktopTool.inksByPackets()` stays false for the slots: the pen's packets
 stand aside and a stylus in proximity still reaches the drag through the Compose pointer. A selection carries
 the tablet's **action bar** under its outline, and the **pencil** on it opens the selected living element in
@@ -171,11 +172,13 @@ Images are living document elements (ImageElement) on the active layer:
 - **Placement geometry**: Initial placement preserves the image's native aspect ratio, sized to fit
   comfortably within the visible page bounds and recorded as a single undo step.
 - **Selection and aspect-ratio handles**:
-  - Selecting a single ImageElement displays four corner squares and four edge-midpoint handles (rotate handle
-    is suppressed, matching the format's unrotated image model).
-  - **Corner handles**: Dragging a corner handle resizes the element preserving its aspect ratio by default.
-    Holding Shift unlocks the aspect ratio for free non-uniform scaling (and vice-versa for non-image elements).
-  - **Edge handles**: Dragging an edge handle stretches only the dragged axis (anchor is the opposite edge).
+  - Every selection — an image, ink, a living figure — wears the selection's eight handles: the four corner
+    squares and the four edge-midpoint ones. An image gives up only the rotate handle, matching the format's
+    unrotated image model.
+  - **Corner handles**: a corner drag keeps the element's proportions, as the tablet's does, and **Shift**
+    frees them for a free non-uniform scale.
+  - **Edge handles**: a side drag stretches only that axis (anchor is the opposite edge) — the choice between
+    a horizontal and a vertical stretch that the tablet's side dots offer.
   - **Non-resampling**: Scaling modifies bounding box coordinates (left, top, right, bottom) without decoding,
     re-encoding, or resampling raw image bytes, recording one undo step per gesture.
 - **Round-trip fidelity**: Preserved losslessly in both .mobix and .xopp containers under the sticky

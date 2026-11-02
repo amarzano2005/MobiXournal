@@ -90,6 +90,31 @@ class DesktopSelectionTest {
     }
 
     @Test
+    fun `the edge midpoints stretch one axis, as the tablet's do`() {
+        assertEquals("the top side", SelectionHandle.TOP, selectionHandleAt(selection, 150.0, 100.0, tolPt = 4.0))
+        assertEquals("the bottom side", SelectionHandle.BOTTOM, selectionHandleAt(selection, 150.0, 160.0, tolPt = 4.0))
+        assertEquals("the left side", SelectionHandle.LEFT, selectionHandleAt(selection, 100.0, 130.0, tolPt = 4.0))
+        assertEquals("the right side", SelectionHandle.RIGHT, selectionHandleAt(selection, 200.0, 130.0, tolPt = 4.0))
+        val (sx, sy) = scaleFactors(box, SelectionHandle.RIGHT, x = 300.0, y = 130.0)
+        assertEquals("a side drag widens the box", 2.0, sx, 1e-6)
+        assertEquals("and leaves the height alone", 1.0, sy, 1e-6)
+        val (lockedSx, lockedSy) = scaleFactors(box, SelectionHandle.TOP_LEFT, x = 0.0, y = 0.0, lockAspect = true)
+        assertEquals("a corner keeps both axes together, as the tablet's does", lockedSx, lockedSy, 1e-9)
+    }
+
+    @Test
+    fun `a tiny selection keeps its middle for the move`() {
+        // The tablet caps a handle's reach at a third of the selection, or a 15 pt figure could not be
+        // dragged at all: every touch would land within the radius of some handle.
+        val tiny = PageSelection(rectRegion(100.0, 100.0, 115.0, 112.0), setOf(ElementRef(0, 0)))
+        assertEquals(
+            "the middle is still the body",
+            SelectionHandle.BODY,
+            selectionHandleAt(tiny, 107.5, 106.0, tolPt = 30.0),
+        )
+    }
+
+    @Test
     fun `the turn handle sits above the outline and is grabbed first`() {
         assertEquals(SelectionHandle.ROTATE, selectionHandleAt(selection, 150.0, 100.0 - 26.0, tolPt = 4.0))
         // A press that lands between the ring and the edge is still the ring's: nothing else is up there.
