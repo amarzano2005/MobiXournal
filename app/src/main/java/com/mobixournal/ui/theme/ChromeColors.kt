@@ -160,22 +160,25 @@ const val MENU_RIM_ALPHA_TOP = DesignTokens.RIM_ALPHA_TOP
 /** Strength of the pop-up rim along the panel's shaded bottom edge. */
 const val MENU_RIM_ALPHA_BOTTOM = DesignTokens.RIM_ALPHA_BOTTOM
 
+/** The rim's **paper** pair: the window's own (0.20 / 0.09), read from the shared tokens. */
+const val MENU_RIM_ALPHA_TOP_LIGHT = DesignTokens.RIM_ALPHA_TOP_LIGHT
+const val MENU_RIM_ALPHA_BOTTOM_LIGHT = DesignTokens.RIM_ALPHA_BOTTOM_LIGHT
+
 /**
  * The rim's two strengths **for the theme in force**: on black the lit pair above, on paper the ink pair
- * the window draws (`RIM_ALPHA_TOP_LIGHT` 0.20 / `RIM_ALPHA_BOTTOM_LIGHT` 0.09).
+ * (`docs/interface-contract.md` §1 — one style, two shells).
  *
- * The dark pair is a hairline of light; the same 12 % of near-black on a white panel is four levels of a
- * 255-step ramp, not an edge, so on paper the rim carries more ink. The window learned that first, and
- * these read its tokens, so the two shells cannot disagree about how strong an edge is.
+ * The dark pair is a hairline of light; 12 % of near-black on a white panel is four levels of a 255-step
+ * ramp, not an edge, so on paper the rim carries more ink. The window learned that first.
  */
 @Composable
 fun rememberMenuRimAlphaTop(): Float =
-    if (chromeIsDark()) MENU_RIM_ALPHA_TOP else DesignTokens.RIM_ALPHA_TOP_LIGHT
+    if (chromeIsDark()) MENU_RIM_ALPHA_TOP else MENU_RIM_ALPHA_TOP_LIGHT
 
 /** The bottom end of that gradient — see [rememberMenuRimAlphaTop]. */
 @Composable
 fun rememberMenuRimAlphaBottom(): Float =
-    if (chromeIsDark()) MENU_RIM_ALPHA_BOTTOM else DesignTokens.RIM_ALPHA_BOTTOM_LIGHT
+    if (chromeIsDark()) MENU_RIM_ALPHA_BOTTOM else MENU_RIM_ALPHA_BOTTOM_LIGHT
 
 /**
  * How strong a **band's own bottom edge** is at its last pixel: the shading a band draws *inside*

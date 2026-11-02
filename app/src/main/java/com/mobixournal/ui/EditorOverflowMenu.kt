@@ -60,6 +60,7 @@ import com.mobixournal.ui.theme.menuSheenBottom
 import com.mobixournal.ui.theme.menuSheenTop
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
@@ -79,7 +80,7 @@ import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 @Composable
 private fun GlassPane(
     modifier: Modifier = Modifier,
-    corner: Dp = 12.dp,
+    corner: Dp = 16.dp,
     shadowElevation: Dp = 3.dp,
     padding: PaddingValues = PaddingValues(vertical = 9.dp, horizontal = 6.dp),
     wash: Color? = null,
@@ -93,7 +94,7 @@ private fun GlassPane(
         modifier = modifier
             .shadow(shadowElevation, shape)
             .clip(shape)
-            .background(rememberGlassSurfaceColor())
+            .background(rememberFloatingSurfaceColor())
             .background(Brush.verticalGradient(listOf(sheenTop, sheenBottom)))
             .then(if (wash != null) Modifier.background(wash) else Modifier)
             .floatingRim(corner)
@@ -118,7 +119,9 @@ private fun GlassActionButton(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val alpha = if (enabled) 1f else 0.38f
+    // A disabled action keeps its **ink role**, not a Material alpha: the window's menu greys the mark
+    // rather than fading the pane, so a row that cannot act keeps the shape of the rows around it.
+    val ink = if (enabled) tint else MaterialTheme.colorScheme.onSurfaceVariant
     GlassPane(modifier = modifier.clickable(enabled = enabled, onClick = onClick)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -127,14 +130,14 @@ private fun GlassActionButton(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = tint.copy(alpha = alpha),
+                tint = ink,
                 modifier = Modifier.size(16.dp),
             )
             Spacer(Modifier.width(6.dp))
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
-                color = tint.copy(alpha = alpha),
+                color = ink,
             )
         }
     }
@@ -459,7 +462,7 @@ private fun MenuQuickAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val alpha = if (enabled) 1f else 0.38f
+    val ink = if (enabled) rememberChromeInk() else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
@@ -471,14 +474,14 @@ private fun MenuQuickAction(
             icon,
             contentDescription = label,
             modifier = Modifier.size(22.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            tint = ink,
         )
         Spacer(Modifier.height(4.dp))
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            color = ink,
         )
     }
 }

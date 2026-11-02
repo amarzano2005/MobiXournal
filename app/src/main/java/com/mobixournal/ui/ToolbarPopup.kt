@@ -267,7 +267,9 @@ internal fun MenuHeading(text: String) {
         text,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        // The menu's own ink, as the window's heading row writes it: a heading names a part of the menu, it
+        // is not caption text about it.
+        color = MaterialTheme.colorScheme.onSurface,
     )
 }
 

@@ -22,6 +22,13 @@ Every surface is one of three objects. Pick the class from what the element *doe
 | **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | the glass fill at `floatingPanelAlpha` + the rim, at the 20 dp panel corner | never an opaque Material card or a system `Toast` |
 | **None** | the page's own content being authored — a stroke being drawn, a text box being typed | the document's own ink and face, in the document's own place | no fill, no rim, no padding |
 
+- **One style, two shells.** A look is decided **once**, in `DesignTokens` (`mobix-core`), and lands on the
+  tablet and the window in the same change: the glass, its alphas, each theme's rim pair, the desk, the ink
+  trio, the steel and the corners are **read**, never re-declared. A shell that needs a different number says
+  why in the token's own KDoc and here — today only the window's thinner band (`DESKTOP_BAND_ALPHA`) and its
+  strips' (`STRIP_GLASS_ALPHA`). `ColorContractGuardTest`
+  (`oneStyleTwoShellsTheLightMaterialIsReadFromTheTokens`) fails on a light-theme literal that should have
+  been a token; `LightMaterialTest` and `DesktopThemeTest` hold the window's side.
 - **A lane is air, not a band.** Painting a lane and its capsule both gives 0.85 over 0.85 (0.98) and the
   strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract
   exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`. **The tablet's bands

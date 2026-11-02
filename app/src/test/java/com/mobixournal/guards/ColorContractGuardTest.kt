@@ -72,6 +72,42 @@ class ColorContractGuardTest {
         assertEquals("Amber guide accent", 0xFFFFB300.toInt(), Amber.toArgb())
     }
 
+    /**
+     * `interface-contract.md` §1, **one style, two shells**: the tablet's light material is *read* from the
+     * shared tokens rather than re-declared, so a value cannot drift from the window's by a shade. A band on
+     * paper is that white at **full** opacity; a floating surface keeps the token's alpha; and the rim's
+     * paper pair is the window's own, not a second opinion.
+     */
+    @Test
+    fun oneStyleTwoShellsTheLightMaterialIsReadFromTheTokens() {
+        assertEquals(0xFF000000.toInt() or DesignTokens.DESK_LIGHT_RGB, DeskLight.toArgb())
+        assertEquals(0xFF000000.toInt() or DesignTokens.INK_LIGHT_RGB, TextDarkOnLight.toArgb())
+        assertEquals(
+            0xFF000000.toInt() or DesignTokens.INK_SECONDARY_LIGHT_RGB,
+            TextSecondaryOnLight.toArgb(),
+        )
+        assertEquals(
+            0xFF000000.toInt() or DesignTokens.ACTIVE_SLOT_LIGHT_RGB,
+            com.mobixournal.ui.theme.ActiveSlotLight.toArgb(),
+        )
+        assertEquals(
+            "a band on paper is the sheet's white",
+            1f,
+            com.mobixournal.ui.theme.ModernTheme.bandSurface(isDark = false).alpha,
+            0.005f,
+        )
+        assertEquals(
+            DesignTokens.FLOATING_PANEL_ALPHA,
+            com.mobixournal.ui.theme.ModernTheme.floatingSurface(isDark = false).alpha,
+            0.005f,
+        )
+        assertEquals(DesignTokens.RIM_ALPHA_TOP_LIGHT, com.mobixournal.ui.theme.MENU_RIM_ALPHA_TOP_LIGHT)
+        assertEquals(
+            DesignTokens.RIM_ALPHA_BOTTOM_LIGHT,
+            com.mobixournal.ui.theme.MENU_RIM_ALPHA_BOTTOM_LIGHT,
+        )
+    }
+
     @Test
     fun darkColorsEnforcesPureOledBlackAndSemanticTokens() {
         assertEquals("DarkColors.background must be DeskDark (#000000)", DeskDark, DarkColors.background)
