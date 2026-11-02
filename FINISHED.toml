@@ -25,6 +25,39 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-share-menu-reveal-copy-path-export"
+title = "Desktop: a Share menu (reveal, copy path, export)"
+description = "A Share capsule in the header with injectable ShareActions (show in Explorer, copy the path, export), the command's answer in the status bar beside the PDF readout, and a refusal sentence when the document is unsaved. Owned by docs/desktop-ui-layout.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-02
+completed = 2026-11-02
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-document-path-breadcrumb-in-the-header"
+title = "Desktop: document path breadcrumb in the header"
+description = "The header names the open document's folder: shortenPath() keeps the drive and the file and drops whole segments from the left, and the full path opens in a glass popup. Owned by docs/desktop-ui-layout.md, with README.md describing what a reader sees."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-02
+completed = 2026-11-02
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-light-theme-tokens-and-a-setting"
+title = "Desktop: light theme tokens and a theme setting"
+description = "Light tokens for every chrome colour in DesignTokens.kt, DesktopTheme.kt answering through getters over one live flag, a Theme row (System / Dark / Light, persisted as interface.theme through the new DesktopThemeStore.kt), DesktopSystemTheme reading the Windows preference, the title bar following the live answer, and the obsolete 'dark only in this build' row removed. Owned by docs/desktop-settings.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-02
+completed = 2026-11-02
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-light-theme-and-header-extras"
 title = "Desktop: light theme, breadcrumb and Share (scope)"
 description = "Broke the scope into three task-level items and wrote no code for it: desktop-light-theme-tokens-and-a-setting (two token sets behind one accessor, an interface.theme setting defaulting to the system, the DWM title bar following it, and the proof a document looks the same in both themes), desktop-document-path-breadcrumb-in-the-header (the open path on the band, shortened from the left by a pure shortenPath, the full path on hover, the search field unmoved) and desktop-share-menu-reveal-copy-path-export (Show in Explorer, Copy path and Export in one glass menu, disabled rather than hidden when a document is unsaved). The scope header search field it mentioned is already built by desktop-page-management-and-search and is untouched; the band placement of the three new pieces is left to desktop-ultrawide-21x9-layout."
