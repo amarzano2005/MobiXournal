@@ -79,6 +79,10 @@ internal fun pageBackgroundLabel(background: Background): String? =
  * The window's own half is **Manage pages**, under its own name at the foot: the two moves and the typed
  * range (`PageRangePanel`), which the tablet does not have and a desk with forty sheets needs. It is one
  * more section rather than five more rows at the top, so the rows the two shells share stay adjacent.
+ *
+ * Every row wears its **glyph** in the leading slot, as the phone's menu items do: the same pictures are
+ * read from `ChromeGlyphCatalogue`, so *Add page* is the `+` the strip's own add is, *Page background* is
+ * the paper the page-setup surface is, and a row on the PC is recognised before it is read.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -94,19 +98,39 @@ internal fun PageMenuPanel(actions: PageMenuActions, onClose: () -> Unit) {
         PageMenuHeading("Quick size")
         QuickSizeRow(actions, axis = PageMenuMetrics.Item.WIDTH)
         QuickSizeRow(actions, axis = PageMenuMetrics.Item.HEIGHT)
-        PageMenuRow("Add page", enabled = true) { onClose(); actions.addPage() }
-        PageMenuRow("Remove page", enabled = actions.canRemove) { onClose(); actions.removePage() }
+        PageMenuRow(glyph = ChromeGlyph.ADD, label = "Add page", enabled = true) { onClose(); actions.addPage() }
+        PageMenuRow(glyph = ChromeGlyph.MINUS, label = "Remove page", enabled = actions.canRemove) {
+            onClose()
+            actions.removePage()
+        }
         PageMenuRule()
-        PageMenuRow("Page format", enabled = true, value = actions.formatLabel) { onClose(); actions.format() }
-        PageMenuRow("Page background", enabled = true, value = actions.backgroundLabel) {
+        PageMenuRow(glyph = ChromeGlyph.PAGE_FORMAT, label = "Page format", enabled = true, value = actions.formatLabel) {
+            onClose()
+            actions.format()
+        }
+        PageMenuRow(
+            glyph = ChromeGlyph.PAGE_BACKGROUND,
+            label = "Page background",
+            enabled = true,
+            value = actions.backgroundLabel,
+        ) {
             onClose()
             actions.background()
         }
         PageMenuRule()
         PageMenuHeading("Manage pages")
-        PageMenuRow("Move page up", enabled = actions.canMoveUp) { onClose(); actions.movePageUp() }
-        PageMenuRow("Move page down", enabled = actions.canMoveDown) { onClose(); actions.movePageDown() }
-        PageMenuRow("Manage pages…", enabled = actions.canManage) { onClose(); actions.managePages() }
+        PageMenuRow(glyph = ChromeGlyph.CHEVRON_UP, label = "Move page up", enabled = actions.canMoveUp) {
+            onClose()
+            actions.movePageUp()
+        }
+        PageMenuRow(glyph = ChromeGlyph.CHEVRON_DOWN, label = "Move page down", enabled = actions.canMoveDown) {
+            onClose()
+            actions.movePageDown()
+        }
+        PageMenuRow(glyph = ChromeGlyph.DESCRIPTION, label = "Manage pages…", enabled = actions.canManage) {
+            onClose()
+            actions.managePages()
+        }
     }
 }
 
@@ -262,6 +286,10 @@ internal object PageMenuMetrics {
     /** The air between those two buttons, so a mistimed click lands on neither. */
     val glyphGap = 2.dp
 
+    /** A row's leading picture and the column it stands in: the phone's menu-item geometry. */
+    val rowGlyph = 16.dp
+    val glyphSlot = 20.dp
+
     /** A row's own horizontal inset, and the navigator's (it holds a capsule at each end). */
     val rowInset = 8.dp
     val navInset = 4.dp
@@ -313,10 +341,23 @@ internal object PageMenuMetrics {
     val bottom: Dp get() = top(Item.MANAGE_PAGES) + rowHeight + padding
 }
 
-/** One row: a label, an optional answer at its end, and the muted tone when the document cannot do it. */
+/**
+ * One row: its **glyph**, its label, an optional answer at the end, and the muted tone when the document
+ * cannot do it.
+ *
+ * The leading slot is the phone's own arrangement — a menu item is read by its picture first — and it is
+ * [PageMenuMetrics.glyphSlot] wide for every row, so the labels of a section start on one line whatever
+ * picture stands beside them.
+ */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun PageMenuRow(label: String, enabled: Boolean, value: String? = null, onClick: () -> Unit) {
+private fun PageMenuRow(
+    glyph: ChromeGlyph,
+    label: String,
+    enabled: Boolean,
+    value: String? = null,
+    onClick: () -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -327,6 +368,12 @@ private fun PageMenuRow(label: String, enabled: Boolean, value: String? = null, 
             .padding(horizontal = PageMenuMetrics.rowInset),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(Modifier.size(PageMenuMetrics.glyphSlot), contentAlignment = Alignment.CenterStart) {
+            Canvas(Modifier.size(PageMenuMetrics.rowGlyph)) {
+                drawChromeGlyph(glyph, if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted)
+            }
+        }
+        Spacer(Modifier.width(PageMenuMetrics.glyphGap))
         Text(
             label,
             color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,
