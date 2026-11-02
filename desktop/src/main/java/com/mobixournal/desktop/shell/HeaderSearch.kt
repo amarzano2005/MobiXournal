@@ -3,9 +3,9 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.desktop.tools.glassCapsule
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -42,8 +42,9 @@ import com.mobixournal.design.ChromeGlyph
  *
  * It sits in the band beside the tabs rather than in the sidebar because the sidebar belongs to the pages
  * and can be shut: a search whose field disappears with the page list would be a feature that depends on
- * another one's state. The capsule is the header's own material (`DesktopTheme.control` on
- * [DesktopTheme.capsuleShape], `docs/interface-contract.md` §1), with catalogue glyphs only — a magnifier
+ * another one's state. The capsule is a header **control**, wearing that class's whole recipe
+ * (`glassCapsule`: the fill, the lift and the drawn rim, `docs/interface-contract.md` §1) rather than a
+ * flat fill, with catalogue glyphs only — a magnifier
  * while there is a query to run, the clear cross while there is a query to drop.
  *
  * **Keys are the field's own**: `Enter` steps forward, `Shift+Enter` back and `Esc` closes the search, in
@@ -65,7 +66,14 @@ internal fun HeaderSearchField(
         Modifier
             .height(DesktopTheme.headerControlSize)
             .width(SEARCH_FIELD_WIDTH)
-            .background(DesktopTheme.control, DesktopTheme.capsuleShape)
+            // The header's **control** class in full, not a flat fill: the lift it casts and the family's
+            // drawn edge, the same recipe the pages button beside it wears (`glassCapsule`). Painted
+            // straight onto the band, the field was the one control in the header with no boundary.
+            .glassCapsule(
+                cornerRadius = DesktopTheme.headerControlSize / 2,
+                fill = DesktopTheme.control,
+                shadow = DesktopTheme.bandShadow,
+            )
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
