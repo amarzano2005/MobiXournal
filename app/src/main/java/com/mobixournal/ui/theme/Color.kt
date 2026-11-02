@@ -47,11 +47,16 @@ val DocumentRed = Color(0xFF000000.toInt() or DesignTokens.DOCUMENT_RED_RGB)
 /** True OLED Black canvas and desk background for dark mode (#000000). */
 val DeskDark = Color(0xFF000000)
 
-/** Clean warm paper light neutral desk background for light mode (#F8F9FA). */
-val DeskLight = Color(0xFFF8F9FA)
+/**
+ * The light theme's desk — the grey a sheet lies on (`#E9EDF1`), from the shared token
+ * (`DesignTokens.DESK_LIGHT_RGB`). Deliberately not a near-white: at `#F8F9FA` the desk, the bands and
+ * the page were three tones inside four levels of the ramp. The window settled that first; the token is
+ * the one home, so the tablet takes the same grey.
+ */
+val DeskLight = Color(0xFF000000.toInt() or DesignTokens.DESK_LIGHT_RGB)
 
-/** Neutral dark text on light surfaces (#1B212F). */
-val TextDarkOnLight = Color(0xFF1B212F)
+/** Neutral dark text on light surfaces — the shared ink token, `#171C26` (`DesignTokens.INK_LIGHT_RGB`). */
+val TextDarkOnLight = Color(0xFF000000.toInt() or DesignTokens.INK_LIGHT_RGB)
 
 /** High-legibility crisp light text on dark surfaces (#EDEDED). */
 val TextLightOnDark = Color(0xFFEDEDED)
@@ -65,8 +70,11 @@ val TextSecondaryOnDark = Color(0xFFA0A0A0)
  * It was a blue-grey (#596579), which put a colour cast on every caption, pop-up heading and hint in
  * the light theme — the palette is black, grey and the blue accent, so the secondary ink is grey like
  * its dark-theme twin ([TextSecondaryOnDark], #A0A0A0) with only a hint of cool, never a blue.
+ *
+ * The value is the shared token (`DesignTokens.INK_SECONDARY_LIGHT_RGB`, `#464C55`): the grey the window
+ * writes its own captions in, so two shells cannot drift a shade apart.
  */
-val TextSecondaryOnLight = Color(0xFF5E6266)
+val TextSecondaryOnLight = Color(0xFF000000.toInt() or DesignTokens.INK_SECONDARY_LIGHT_RGB)
 
 /** Hairline outline border for dark surfaces (#383838). */
 val OutlineDark = Color(0xFF383838)
@@ -107,7 +115,7 @@ val ActiveSlotDark = Color(0xFF38383E)
  * Active tool slot highlight in light mode: the light counterpart of [ActiveSlotDark] (#DEE3E7) — one
  * step **down** from the light container so a picked tool and a selected row still read as picked.
  */
-val ActiveSlotLight = Color(0xFFDEE3E7)
+val ActiveSlotLight = Color(0xFF000000.toInt() or DesignTokens.ACTIVE_SLOT_LIGHT_RGB)
 
 /** Highest light container: raised chips, the active-tool indicator (#DCE1E6). */
 val NeutralContainerLightHighest = Color(0xFFDCE1E6)

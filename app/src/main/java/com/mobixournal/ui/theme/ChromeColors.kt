@@ -59,7 +59,7 @@ fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
 /**
  * The fill of every chrome **bar**: the rail, the header slab, the figures' dock and their buttons.
  *
- * This is the app's frosted glass ([ModernTheme.glassSurface]), and it is deliberately *one* function
+ * This is the app's frosted glass ([ModernTheme.bandSurface]), and it is deliberately *one* function
  * rather than one call to the token per surface, so no two bands can end up different materials.
  * A **floating surface** takes [rememberFloatingSurfaceColor] instead — the same colour, less
  * see-through — rather than this, because a panel is what text is read on (it used to paint
@@ -73,7 +73,7 @@ fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
  * while its icons and text came from the dark scheme.
  */
 @Composable
-fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(chromeIsDark())
+fun rememberGlassSurfaceColor(): Color = ModernTheme.bandSurface(chromeIsDark())
 
 /**
  * The fill of every **floating surface**: the bars' glass with the see-through turned down
@@ -159,6 +159,23 @@ const val MENU_RIM_ALPHA_TOP = DesignTokens.RIM_ALPHA_TOP
 
 /** Strength of the pop-up rim along the panel's shaded bottom edge. */
 const val MENU_RIM_ALPHA_BOTTOM = DesignTokens.RIM_ALPHA_BOTTOM
+
+/**
+ * The rim's two strengths **for the theme in force**: on black the lit pair above, on paper the ink pair
+ * the window draws (`RIM_ALPHA_TOP_LIGHT` 0.20 / `RIM_ALPHA_BOTTOM_LIGHT` 0.09).
+ *
+ * The dark pair is a hairline of light; the same 12 % of near-black on a white panel is four levels of a
+ * 255-step ramp, not an edge, so on paper the rim carries more ink. The window learned that first, and
+ * these read its tokens, so the two shells cannot disagree about how strong an edge is.
+ */
+@Composable
+fun rememberMenuRimAlphaTop(): Float =
+    if (chromeIsDark()) MENU_RIM_ALPHA_TOP else DesignTokens.RIM_ALPHA_TOP_LIGHT
+
+/** The bottom end of that gradient — see [rememberMenuRimAlphaTop]. */
+@Composable
+fun rememberMenuRimAlphaBottom(): Float =
+    if (chromeIsDark()) MENU_RIM_ALPHA_BOTTOM else DesignTokens.RIM_ALPHA_BOTTOM_LIGHT
 
 /**
  * How strong a **band's own bottom edge** is at its last pixel: the shading a band draws *inside*

@@ -1,5 +1,7 @@
 package com.mobixournal.guards
 
+import com.mobixournal.design.DesignTokens
+
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
@@ -48,7 +50,7 @@ import org.junit.Test
  * Ensures that:
  *  1. Semantic tokens (DeskDark, DeskLight, OutlineDark, etc.) are strictly mapped to Theme roles.
  *  2. DarkColors enforces pure OLED black (#000000) for background and lowest surface container.
- *  3. LightColors enforces DeskLight (#F8F9FA) for background **and** a neutral container ramp, so a
+ *  3. LightColors enforces DeskLight (#E9EDF1) for background **and** a neutral container ramp, so a
  *     role left at Material 3's baseline cannot paint a lavender panel. See
  *     [noContainerInEitherSchemeCarriesAVioletWash].
  *  4. ModernTheme glass surface and hairline border tokens are identical between the top dock and rail,
@@ -60,7 +62,11 @@ class ColorContractGuardTest {
     @Test
     fun semanticDeskTokensMatchSpecification() {
         assertEquals("DeskDark must be pure OLED black #000000", 0xFF000000.toInt(), DeskDark.toArgb())
-        assertEquals("DeskLight must be paper neutral #F8F9FA", 0xFFF8F9FA.toInt(), DeskLight.toArgb())
+        assertEquals(
+            "DeskLight must be the shared paper neutral #E9EDF1",
+            0xFF000000.toInt() or DesignTokens.DESK_LIGHT_RGB,
+            DeskLight.toArgb(),
+        )
         assertEquals("Blue brand accent", 0xFF2563EB.toInt(), Blue.toArgb())
         assertEquals("BlueDark luminescent accent", 0xFF60A5FA.toInt(), BlueDark.toArgb())
         assertEquals("Amber guide accent", 0xFFFFB300.toInt(), Amber.toArgb())
@@ -83,7 +89,7 @@ class ColorContractGuardTest {
 
     @Test
     fun lightColorsEnforcesDeskLightAndSemanticTokens() {
-        assertEquals("LightColors.background must be DeskLight (#F8F9FA)", DeskLight, LightColors.background)
+        assertEquals("LightColors.background must be DeskLight (#E9EDF1)", DeskLight, LightColors.background)
         assertEquals("LightColors.onBackground must be TextDarkOnLight", TextDarkOnLight, LightColors.onBackground)
         assertEquals("LightColors.onSurface must be TextDarkOnLight", TextDarkOnLight, LightColors.onSurface)
         assertEquals("LightColors.onSurfaceVariant must be TextSecondaryOnLight", TextSecondaryOnLight, LightColors.onSurfaceVariant)
@@ -513,7 +519,7 @@ class ColorContractGuardTest {
         val shippedRamp = listOf(
             0xFF000000.toInt(), 0xFF161618.toInt(), 0xFF18181A.toInt(), 0xFF252528.toInt(),
             0xFF2C2C30.toInt(), 0xFF38383E.toInt(), 0xFF424248.toInt(),
-            0xFFF8F9FA.toInt(), 0xFFEAEDF0.toInt(), 0xFFF4F6F8.toInt(), 0xFFE3E7EB.toInt(),
+            0xFFE9EDF1.toInt(), 0xFFEAEDF0.toInt(), 0xFFF4F6F8.toInt(), 0xFFE3E7EB.toInt(),
             0xFFDCE1E6.toInt(), 0xFFDEE3E7.toInt(), 0xFF767B7F.toInt(), 0xFFC4C9CD.toInt(),
         )
         for (argb in shippedRamp) {

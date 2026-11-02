@@ -41,7 +41,10 @@ class ThemeTest {
 
     @Test
     fun lightColorsPreserveExpectedBaselines() {
-        assertEquals(Color(0xFFF8F9FA), LightColors.background)
+        assertEquals(
+            Color(0xFF000000.toInt() or com.mobixournal.design.DesignTokens.DESK_LIGHT_RGB),
+            LightColors.background,
+        )
         assertEquals(Color.White, LightColors.surface)
         assertEquals(Blue, LightColors.primary)
         assertEquals(Blue, LightColors.secondary)

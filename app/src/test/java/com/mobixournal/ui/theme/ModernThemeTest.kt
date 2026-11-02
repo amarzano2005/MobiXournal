@@ -79,6 +79,12 @@ class ModernThemeTest {
         assertEquals(ModernTheme.glassLight.blue, panelLight.blue)
         assertEquals(ModernTheme.floatingPanelAlpha, panelLight.alpha, 0.005f)
 
+        // A **band** on paper is the sheet's own white at full opacity — the page's ink must not read
+        // through chrome that carries the document's tabs — while a floating surface keeps the alpha.
+        assertEquals(1f, ModernTheme.bandSurface(isDark = false).alpha, 0.005f)
+        assertEquals(ModernTheme.glassLight.red, ModernTheme.bandSurface(isDark = false).red)
+        assertEquals(ModernTheme.glassDark, ModernTheme.bandSurface(isDark = true))
+
         // Every floating surface is cut with one corner, and it is a documented token.
         assertEquals(20.dp, ModernTheme.panelCornerRadiusDp)
         assertEquals(20, ModernTheme.PANEL_CORNER_RADIUS_DP_VAL)

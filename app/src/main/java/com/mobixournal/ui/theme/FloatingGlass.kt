@@ -67,23 +67,30 @@ internal fun Modifier.floatingRim(
     cornerRadius: Dp = ModernTheme.panelCornerRadiusDp,
 ): Modifier {
     val rim = rememberMenuRimColor()
+    val alphaTop = rememberMenuRimAlphaTop()
+    val alphaBottom = rememberMenuRimAlphaBottom()
     val radiusPx = with(LocalDensity.current) { cornerRadius.toPx() }
     return drawWithContent {
         drawContent()
-        drawFloatingRim(radiusPx, rim)
+        drawFloatingRim(radiusPx, rim, alphaTop, alphaBottom)
     }
 }
 
 /** [floatingRim]'s stroke, for a surface that already holds its own ink and radius. */
-internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
+internal fun DrawScope.drawFloatingRim(
+    cornerRadiusPx: Float,
+    rim: Color,
+    alphaTop: Float = MENU_RIM_ALPHA_TOP,
+    alphaBottom: Float = MENU_RIM_ALPHA_BOTTOM,
+) {
     val width = MENU_RIM_WIDTH.toPx()
     // Half a hairline in from the edge: a stroke straddles its path, and the outer half would be
     // wasted on the corner's own curve.
     drawRoundRect(
         brush = Brush.verticalGradient(
             colors = listOf(
-                rim.copy(alpha = MENU_RIM_ALPHA_TOP),
-                rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM),
+                rim.copy(alpha = alphaTop),
+                rim.copy(alpha = alphaBottom),
             ),
             startY = 0f,
             endY = size.height,
@@ -100,8 +107,8 @@ internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
         drawRoundRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    rim.copy(alpha = MENU_RIM_ALPHA_TOP * DesignTokens.RIM_INNER_ALPHA_SCALE),
-                    rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM * DesignTokens.RIM_INNER_ALPHA_SCALE),
+                    rim.copy(alpha = alphaTop * DesignTokens.RIM_INNER_ALPHA_SCALE),
+                    rim.copy(alpha = alphaBottom * DesignTokens.RIM_INNER_ALPHA_SCALE),
                 ),
                 startY = 0f,
                 endY = size.height,

@@ -94,13 +94,14 @@ recolour menu), plus the shortcut tables that jump straight to a colour or a too
 **The rule the whole palette answers to: black, grey, and one blue.** Nothing in the chrome is a
 second hue, a pastel, or a tint of the accent — *especially* not the violet-tinted neutrals Material 3
 fills in for any role a scheme does not name. See _The violet trap_ below for why that needs saying.
-- **`DeskDark` (`#000000`)** & **`DeskLight` (`#F8F9FA`)**: True OLED black canvas backdrop in dark
+- **`DeskDark` (`#000000`)** & **`DeskLight` (`#E9EDF1`)**: True OLED black canvas backdrop in dark
   mode and clean warm paper neutral in light mode (`rememberChromeColor()`). Both the canvas surround
   and the empty desk behind the toolbars read this token, ensuring absolute chromatic consistency
   between the main toolbar rail and secondary toolbar top bar without mismatched tones.
 - **Glass surfaces — the bars *and* the pop-ups**: one filler, `rememberGlassSurfaceColor()`, wraps
-  `ModernTheme.glassSurface(isDark)` (`glassDark` `rgba(22, 22, 24, 0.85)` / `glassLight`
-  `rgba(255, 255, 255, 0.88)`) and every chrome **bar** reads **it** rather than the token: the rail
+  `ModernTheme.bandSurface(isDark)` — the glass on black (`glassDark` `rgba(22, 22, 24, 0.85)`), and on
+  paper that same white at **full** opacity, because a band carries the document's tabs and the sheet's ink
+  must not read through chrome — and every chrome **bar** reads **it** rather than the token: the rail
   capsule, the header slab, the figures' dock, the tab chips. Hairlines are
   `ModernTheme.hairlineBorder(isDark)` throughout.
 - **The floating material — the same colour, less see-through**: everything that floats **over** the
@@ -145,8 +146,9 @@ fills in for any role a scheme does not name. See _The violet trap_ below for wh
 dynamic scheme used to re-pin primary and secondary *only*, which was the second way a lavender
 container could reach a light-theme screen.)
 - **The frame is one material**: `EditorTopBar` and the side rail lane (`RailLane`) both wear the band's glass — the lane composited over the chrome colour, so its pixels are the header's own — and together they are the two arms of one frame around the canvas. The canvas keeps its own background inside that frame: a deep `#000000` on the dark scheme and the greyer desk on the light one, which is why the lane must not borrow it (it would turn the frame's leg black in one theme and grey in the other). Neither band wears an elevation, and their shadow is **one** shadow: the header's closing edge is inset where the lane begins and the lane fades the same edge down its canvas side, so the corner has no seam — the rule and its strength are `interface-contract.md`'s.
-- **`TextLightOnDark` (`#EDEDED`)** & **`TextDarkOnLight` (`#1B212F`)**: High-legibility neutral text.
-- **`TextSecondaryOnDark` (`#A0A0A0`)** & **`TextSecondaryOnLight` (`#5E6266`)**: Secondary caption text —
+- **`TextLightOnDark` (`#EDEDED`)** & **`TextDarkOnLight` (`#171C26`)**: High-legibility neutral text — the
+  light value is the shared `INK_LIGHT_RGB` token, the ink the window writes with.
+- **`TextSecondaryOnDark` (`#A0A0A0`)** & **`TextSecondaryOnLight` (`#464C55`)**: Secondary caption text —
   both **neutral** greys. The light one was a blue-grey (`#596579`), which put a colour cast on every
   caption, pop-up heading and hint in the light theme.
 - **`BlueDark` (`#60A5FA`)** & **`Blue` (`#2563EB`)**: Modern crisp royal blue primary and secondary accents, replacing legacy purple across active tools, tabs, selection indicators, and chrome icons. The luminous dark accent takes true black ink (`OnAccentDark`) rather than Material 3's baseline `#381E72`.

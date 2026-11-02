@@ -189,6 +189,20 @@ object ModernTheme {
     fun glassSurface(isDark: Boolean): Color = if (isDark) glassDark else glassLight
 
     /**
+     * The fill of every chrome **band**: the header, the status bar, the rail's lane, a sidebar.
+     *
+     * On black it is the glass as it always was — over a true-black desk the alpha is invisible. On paper
+     * it is that white at **full** opacity ([glassLight] without its see-through): a band carries the
+     * document's tabs and rows of glyphs, and the sheet's ink must not read through chrome. What separates
+     * it from the page there is not its alpha but the one shade it draws down the edge that looks at the
+     * canvas (`bandClosingEdge`) — the window's own rule (`docs/interface-contract.md` §1).
+     *
+     * A **floating** surface keeps the alpha ([floatingSurface]): it lies *over* the page for a moment, so
+     * it is the one material meant to be seen through.
+     */
+    fun bandSurface(isDark: Boolean): Color = if (isDark) glassDark else glassLight.copy(alpha = 1f)
+
+    /**
      * Resolves the hairline border stroke colour depending on dark mode state.
      */
     fun hairlineBorder(isDark: Boolean): Color = if (isDark) hairlineBorder else hairlineBorderLight
