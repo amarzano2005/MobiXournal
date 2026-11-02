@@ -106,9 +106,19 @@ object DesktopTheme {
     /**
      * What floats over the page: the bands' own RGB with the see-through turned down to
      * `floatingPanelAlpha`, so a message or a menu is the same material as the bar it belongs to.
+     *
+     * **Glass on paper too.** The light theme's *bands* are solid ([glass]); a floating surface is not.
+     * It keeps that white at the token's alpha, so an open menu still lies over the page as a pane rather
+     * than as a card painted onto it — the owner's answer once the window was read beside the tablet,
+     * whose floating fill never stopped carrying the alpha. It used to pass [panel] here, and a solid
+     * panel is exactly the one thing a floating surface must not be (`Modifier.glassSurface`'s own
+     * contract): with it, the light theme had the rim and none of the glass.
+     *
+     * Legibility is the bound rather than taste: the token is the most see-through the body ink allows in
+     * both themes (`ColorContractGuardTest` recomputes both ratios), and `LightMaterialTest` measures the
+     * claim in pixels — the sheet's tone reaches the panel while the handwriting behind it does not.
      */
-    val floating: Color get() =
-        if (light) panel else glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
+    val floating: Color get() = glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
 
     /**
      * The failed-open card's fill: [glass] at **full** opacity.

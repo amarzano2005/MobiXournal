@@ -39,9 +39,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
   neither band's shade runs across the band beside it. A capsule is that white
   with the family's ink rim, the picked steel at `HOVER_SLOT_ALPHA_LIGHT` under the pointer and the full
   steel when picked, while an **unavailable command is its muted glyph alone**. The rim carries more of the
-  same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20), and a floating surface is solid there (`panel`): at 0.88
-  the page's own ink read through an open menu. `LightMaterialTest` holds every answer, its pixel test
-  included.
+  same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20). A **floating** surface is that recipe's one exception
+  to full opacity: it keeps the white at the `floatingPanelAlpha` token, so a menu is still glass over the
+  page, and the token is its bound — the sheet's tone shows through it, its handwriting does not.
+  `LightMaterialTest` holds every answer, its pixel test included.
 - **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a
   shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's
   lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**

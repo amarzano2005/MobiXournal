@@ -69,7 +69,17 @@ class LightMaterialTest {
                 "a card is a tone under the white panel, not a ghost",
                 luminance(DesktopTheme.card) < luminance(DesktopTheme.panel) - 0.01f,
             )
-            assertEquals("a floating surface is solid on paper", DesktopTheme.panel, DesktopTheme.floating)
+            // A floating surface is that same white, still glass: it carries the token's alpha and not
+            // the panel's 1.0, so the page stays visible under an open menu.
+            assertEquals(
+                "a floating surface is the panel's white, seen through",
+                DesignTokens.FLOATING_PANEL_ALPHA,
+                DesktopTheme.floating.alpha,
+                0.005f,
+            )
+            assertEquals("and it is that same white", DesktopTheme.panel.red, DesktopTheme.floating.red)
+            assertEquals(DesktopTheme.panel.green, DesktopTheme.floating.green)
+            assertEquals(DesktopTheme.panel.blue, DesktopTheme.floating.blue)
             assertTrue(
                 "and a band casts a hairline, never a smudge across the sheet",
                 DesktopTheme.bandShadow <= DesignTokens.BAND_SHADOW_LIGHT_DP.dp,
@@ -97,16 +107,18 @@ class LightMaterialTest {
     }
 
     /**
-     * The panel's half of the rule, in **pixels**: a floating surface over inked paper shows no ink.
+     * The panel's half of the rule, in **pixels**: on paper a floating surface shows the page and not its
+     * writing.
      *
-     * The solid fill is the whole claim. The dark theme's 0.88 is right over a black desk, where what is
-     * behind a menu is a faint lift; on paper the same 12 % is the page's handwriting read *through* the
-     * menu, which is what the owner saw (2026-11-02). This draws two black lines of words under a panel
-     * and fails if anything darker than a hair of paper survives inside it.
+     * Two claims, because either alone is cheap. At the panel's 1.0 the surface is a card — nothing of the
+     * sheet survives under it, which is what made the light theme's menus look painted on; much past the
+     * token and the page's own handwriting reads *through* the menu. The token's 0.88 sits between them:
+     * the sheet's tone still reaches the panel, the ink behind it is damped to a wash. This draws two black
+     * lines of words under a panel and measures the darkest pixel inside it, both ways.
      */
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
-    fun `on paper a floating surface hides the ink it covers`() {
+    fun `on paper a floating surface shows the page through its ink`() {
         DesktopTheme.use(true)
         val scene = ImageComposeScene(240, 140, Density(1f)) {
             DesktopTheme.Apply {
@@ -132,8 +144,12 @@ class LightMaterialTest {
                 }
             }
             assertTrue(
-                "the panel hides the ink behind it (darkest 0x%02X)".format(darkest),
-                darkest >= 0xF0,
+                "the sheet shows through the panel (darkest 0x%02X)".format(darkest),
+                darkest < 0xF0,
+            )
+            assertTrue(
+                "and the writing behind it is a wash, not text (darkest 0x%02X)".format(darkest),
+                darkest >= 0xB0,
             )
         } finally {
             scene.close()
