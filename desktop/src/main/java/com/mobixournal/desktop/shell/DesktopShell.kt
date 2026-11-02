@@ -382,7 +382,11 @@ class DesktopShellState(
                 onOff = { clearGuide() },
             ),
             // The page's own menu: a command of the page, not of the ink beside it.
-            pages = pagesSection.actions({ openPageSetup(PageSetupSection.PAPER) }, { openPageSetup(PageSetupSection.FORMAT) }),
+            pages = pagesSection.actions(
+                { openPageSetup(PageSetupSection.PAPER) },
+                { openPageSetup(PageSetupSection.FORMAT) },
+                ::setPageSize,
+            ),
             onInsertImage = { onInsertImagePicker?.invoke() },
         )
 

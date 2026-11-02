@@ -47,7 +47,16 @@ class DesktopPagesTest {
     @get:Rule
     val temp = TemporaryFolder()
 
-    private val counters = IntArray(PageMenuMetrics.ROWS)
+    private var add = 0
+    private var remove = 0
+    private var up = 0
+    private var down = 0
+    private var previous = 0
+    private var next = 0
+    private var manage = 0
+    private var format = 0
+    private var background = 0
+    private var sized = 0
 
     private fun pagesOf(tabs: DesktopTabs): DesktopPages =
         DesktopPages(tabs, { _, _ -> }, { DEFAULT_WIDTH to DEFAULT_HEIGHT })
@@ -146,56 +155,109 @@ class DesktopPagesTest {
         assertFalse("and none before the first", pagesOf(tabs).step(-1))
     }
 
-    /** Each row runs its own command — six rows, six counters, one click apiece. */
+    /** Each row runs its own command, one click apiece, by the panel's own arithmetic. */
     @Test
     fun `every row of the page menu runs its command`() {
         val scene = panelScene(canStep = true, canRemove = true)
         try {
             var at = 2_000L
-            for (index in 0 until PageMenuMetrics.ROWS) {
-                tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(index), at)
+            for (item in listOf(
+                PageMenuMetrics.Item.ADD,
+                PageMenuMetrics.Item.REMOVE,
+                PageMenuMetrics.Item.FORMAT,
+                PageMenuMetrics.Item.BACKGROUND,
+                PageMenuMetrics.Item.MOVE_UP,
+                PageMenuMetrics.Item.MOVE_DOWN,
+                PageMenuMetrics.Item.MANAGE_PAGES,
+            )) {
+                tap(scene, PageMenuMetrics.width.value / 2f, PageMenuMetrics.centre(item).value, at)
                 at += 512L
             }
-            for (index in 0 until PageMenuMetrics.ROWS) {
-                assertEquals("row $index ran once", 1, counters[index])
-            }
+
+            assertEquals("add ran", 1, add)
+            assertEquals("remove ran", 1, remove)
+            assertEquals("format ran", 1, format)
+            assertEquals("and so did the paper", 1, background)
+            assertEquals("move up ran", 1, up)
+            assertEquals("move down ran", 1, down)
+            assertEquals("the typed range ran", 1, manage)
         } finally {
             scene.close()
         }
     }
 
-    /** A one-page document leaves the two page-list commands dead, and the page's own two live. */
+    /** The navigator's two arrows step the page, and the quick sizes hand back a nudged sheet. */
+    @Test
+    fun `the navigator and the quick sizes answer`() {
+        val scene = panelScene(canStep = true, canRemove = true)
+        try {
+            var at = 4_000L
+            fun tapAt(x: Float, y: Float) {
+                tap(scene, x, y, at)
+                at += 512L
+            }
+            val nav = PageMenuMetrics.centre(PageMenuMetrics.Item.NAV).value
+            tapAt(PageMenuMetrics.navCentre(next = false).value, nav)
+            tapAt(PageMenuMetrics.navCentre(next = true).value, nav)
+            val width = PageMenuMetrics.centre(PageMenuMetrics.Item.WIDTH).value
+            tapAt(PageMenuMetrics.stepCentre(plus = true).value, width)
+            tapAt(PageMenuMetrics.stepCentre(plus = false).value, width)
+            val height = PageMenuMetrics.centre(PageMenuMetrics.Item.HEIGHT).value
+            tapAt(PageMenuMetrics.stepCentre(plus = true).value, height)
+
+            assertEquals("previous ran", 1, previous)
+            assertEquals("next ran", 1, next)
+            assertEquals("three nudges of the sheet", 3, sized)
+        } finally {
+            scene.close()
+        }
+    }
+
+    /** A one-page document leaves the list commands dead, and the page's own two live. */
     @Test
     fun `with a single page the list commands are dead and the rest answer`() {
         val scene = panelScene(canStep = false, canRemove = false)
         try {
             var at = 3_000L
-            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(0), at); at += 512L
-            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(1), at); at += 512L
-            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(2), at); at += 512L
-            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(3), at); at += 512L
-            tap(scene, PageMenuMetrics.width.value / 2f, rowCentre(7), at)
+            for (item in listOf(
+                PageMenuMetrics.Item.ADD,
+                PageMenuMetrics.Item.REMOVE,
+                PageMenuMetrics.Item.MOVE_UP,
+                PageMenuMetrics.Item.MOVE_DOWN,
+                PageMenuMetrics.Item.FORMAT,
+                PageMenuMetrics.Item.BACKGROUND,
+            )) {
+                tap(scene, PageMenuMetrics.width.value / 2f, PageMenuMetrics.centre(item).value, at)
+                at += 512L
+            }
 
-            assertEquals("add still works", 1, counters[0])
-            assertEquals("remove is dead", 0, counters[1])
-            assertEquals("moving up is dead", 0, counters[2])
-            assertEquals("and so is moving down", 0, counters[3])
-            assertEquals("format still works", 1, counters[7])
+            assertEquals("add still works", 1, add)
+            assertEquals("remove is dead", 0, remove)
+            assertEquals("moving up is dead", 0, up)
+            assertEquals("and so is moving down", 0, down)
+            assertEquals("format still works", 1, format)
+            assertEquals("and so does the paper", 1, background)
         } finally {
             scene.close()
         }
     }
 
     private fun rows() = PageMenuActions(
-        addPage = { counters[0]++ },
-        removePage = { counters[1]++ },
-        movePageUp = { counters[2]++ },
-        movePageDown = { counters[3]++ },
-        previousPage = { counters[4]++ },
-        nextPage = { counters[5]++ },
-        managePages = { counters[6]++ },
-        format = { counters[7]++ },
-        background = { counters[8]++ },
+        addPage = { add++ },
+        removePage = { remove++ },
+        movePageUp = { up++ },
+        movePageDown = { down++ },
+        previousPage = { previous++ },
+        nextPage = { next++ },
+        managePages = { manage++ },
+        format = { format++ },
+        background = { background++ },
+        // One past the first, so both arrows have somewhere to go: at page 0 the back arrow is dead,
+        // which is the panel's rule and would make the navigator's test assert the wrong thing.
+        page = 1,
+        pageCount = 4,
+        pageSize = DEFAULT_WIDTH to DEFAULT_HEIGHT,
+        onSize = { _, _ -> sized++ },
     )
 
     private fun panelScene(canStep: Boolean, canRemove: Boolean): ImageComposeScene {
@@ -206,24 +268,17 @@ class DesktopPagesTest {
             canMoveDown = canStep,
             canManage = true,
         )
-        val height = PanelBottom.value + 8f
+        val height = PageMenuMetrics.bottom.value + 8f
         return ImageComposeScene(
             PageMenuMetrics.width.value.toInt(),
             height.toInt(),
             Density(1f),
         ) {
-            Box(Modifier.size(PageMenuMetrics.width, PanelBottom + 8.dp).background(DesktopTheme.desk)) {
+            Box(Modifier.size(PageMenuMetrics.width, PageMenuMetrics.bottom + 8.dp).background(DesktopTheme.desk)) {
                 PageMenuPanel(actions) {}
             }
         }
     }
-
-    private fun rowCentre(index: Int): Float =
-        PageMenuMetrics.rowTop(index).value + PageMenuMetrics.rowHeight.value / 2f
-
-    private val PanelBottom
-        get() = PageMenuMetrics.rowTop(PageMenuMetrics.ROWS - 1) + PageMenuMetrics.rowHeight +
-            PageMenuMetrics.padding
 
     private fun tap(scene: ImageComposeScene, x: Float, y: Float, at: Long) {
         mouse(scene, PointerEventType.Press, x, y, at)

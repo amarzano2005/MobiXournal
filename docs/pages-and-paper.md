@@ -87,6 +87,13 @@ moved so its first page starts on the page you name, or removed, as **one** undo
 document or already starts where the move asks, and `PageRanges` owns those sentences, so the panel's dead
 buttons and the commands behind them cannot disagree.
 
+**The menu's shape** is the tablet's, and the window keeps it: a page **navigator** at the top (the sheet
+in view between the arrows that step it), two **quick sizes** that nudge the measure by the shared
+`PageSizeStep` without opening a dialog, *Add page* / *Remove page*, then *Page format* and *Page
+background* with their live answers printed at the end of the row. The window's own half is a **Manage
+pages** section at the foot — the two moves and the typed range — so the rows the two shells share stay
+adjacent.
+
 **Add/remove page** edit the page list through the pure, tested `PageOps` (`mobix-core`, the one the
 window's Pages menu also calls, so neither shell can invent its own rules for a new sheet; a new page is born at the
 **default page size** — the settings value `MainActivity.applyDefaultPageSize` pushes into

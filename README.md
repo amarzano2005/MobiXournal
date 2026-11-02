@@ -123,8 +123,8 @@ graphics tablet is attached. Rest the pen on the page and the stroke perfects it
 - **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — its own document or added
   after the one you have — and asks which pages (*pages 3 to 7 of 412*): on the tablet, after the pick.
 - **The PDF's pages are the document's pages**: every sheet in the sidebar wears the PDF page it stands
-  for, its row's **×** drops that sheet, and *Move page up* / *Move page down* in the pages menu reorder
-  them — one undo step each, and an export follows the order you leave them in. **Drag a thumbnail** onto
+  for, its row's **×** drops that sheet, and the pages menu — navigator, quick sizes, *Move page up* /
+  *Move page down* — reorders them, one undo step each, and the export follows that order. **Drag a thumbnail** onto
   another row to move it there, with the list scrolling itself near an edge; **Ctrl-click** picks several
   rows (**Shift** takes a run), and dragging one carries them all or the bar deletes them. **Manage pages…**
   acts on a whole run at once (*pages 3 to 7* moved or removed). Removing the sheet that carries the PDF's

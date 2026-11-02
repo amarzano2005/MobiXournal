@@ -20,6 +20,7 @@ import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PageRangeRequest
 import com.mobixournal.render.PageRanges
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -42,10 +43,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -53,6 +59,9 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.render.PageOps
+import com.mobixournal.render.PageSizeStep
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * What the **Pages** section can do, in one value the strip hands its slot.
@@ -81,6 +90,16 @@ data class PageMenuActions(
     val canMoveDown: Boolean = false,
     /** With no document open there is no page list to manage. */
     val canManage: Boolean = false,
+    /** The page in view and how many the document has — the navigator's own two numbers. */
+    val page: Int = 0,
+    val pageCount: Int = 0,
+    /** The sheet's measure in points, or null when there is no page — the **Quick size** rows. */
+    val pageSize: Pair<Double, Double>? = null,
+    /** Resize the page in view, which is what the quick-size buttons hand back. */
+    val onSize: (Double, Double) -> Unit = { _, _ -> },
+    /** The paper's two live answers, printed at the end of the page's own two rows. */
+    val formatLabel: String? = null,
+    val backgroundLabel: String? = null,
 )
 
 /**
@@ -466,10 +485,13 @@ internal class DesktopPages(
     fun actions(
         background: () -> Unit,
         format: () -> Unit,
+        /** Resize the page in view — the panel's quick-size buttons. */
+        onSize: (Double, Double) -> Unit = { _, _ -> },
     ): PageMenuActions {
         val tab = active()
         val count = tab?.document?.pageCount ?: 0
         val at = tab?.page ?: 0
+        val page = tab?.let { runCatching { it.document.page(it.page) }.getOrNull() }
         return PageMenuActions(
             addPage = { addPage() },
             removePage = { removePage() },
@@ -480,6 +502,12 @@ internal class DesktopPages(
             nextPage = { step(1) },
             format = format,
             background = background,
+            page = at,
+            pageCount = count,
+            pageSize = page?.let { it.width to it.height },
+            onSize = onSize,
+            formatLabel = page?.let { pageFormatLabel(it.width, it.height) },
+            backgroundLabel = page?.let { pageBackgroundLabel(it.background) },
             canStep = count > 1,
             canRemove = count > 1,
             canMoveUp = count > 1 && at > 0,
@@ -539,95 +567,4 @@ internal val DesktopShellState.pageRefusal: String?
 internal fun DesktopShellState.pagesChanged(tab: DesktopTab) {
     thumbnails[tab.key]?.clear()
     refreshThumbnails()
-}
-
-/** The panel behind that slot: six rows, each one command, closing as it runs it. */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-internal fun PageMenuPanel(actions: PageMenuActions, onClose: () -> Unit) {
-    Column(
-        Modifier
-            .glassSurface()
-            .width(PageMenuMetrics.width)
-            .padding(PageMenuMetrics.padding),
-        verticalArrangement = Arrangement.spacedBy(PageMenuMetrics.gap),
-    ) {
-        PageMenuRow("Add page", enabled = true) { onClose(); actions.addPage() }
-        PageMenuRow("Remove page", enabled = actions.canRemove) { onClose(); actions.removePage() }
-        PageMenuRule()
-        PageMenuRow("Move page up", enabled = actions.canMoveUp) { onClose(); actions.movePageUp() }
-        PageMenuRow("Move page down", enabled = actions.canMoveDown) { onClose(); actions.movePageDown() }
-        PageMenuRule()
-        PageMenuRow("Previous page", enabled = actions.canStep) { onClose(); actions.previousPage() }
-        PageMenuRow("Next page", enabled = actions.canStep) { onClose(); actions.nextPage() }
-        PageMenuRule()
-        PageMenuRow("Manage pages…", enabled = actions.canManage) { onClose(); actions.managePages() }
-        PageMenuRule()
-        PageMenuRow("Page format", enabled = true) { onClose(); actions.format() }
-        PageMenuRow("Page background", enabled = true) { onClose(); actions.background() }
-    }
-}
-
-/**
- * The panel's numbers, in one place: the layout reads them and so does `DesktopPagesTest`, which clicks
- * the rows by the same arithmetic the panel was laid out with — a test that guesses a coordinate fails
- * the day a gap changes for a good reason.
- */
-internal object PageMenuMetrics {
-    val width = 208.dp
-    val padding = 6.dp
-    val rowHeight = 30.dp
-    val ruleHeight = 11.dp
-    val gap = 1.dp
-
-    /** The rows in the order the panel draws them; a rule sits after every group of two. */
-    const val ROWS = 9
-
-    /** The top edge of row [index], from the panel's own top padding and its inter-row gaps. */
-    fun rowTop(index: Int): androidx.compose.ui.unit.Dp {
-        val rulesAbove = when {
-            index < 2 -> 0
-            index < 4 -> 1
-            index < 6 -> 2
-            index < 7 -> 3
-            else -> 4
-        }
-        return padding + (rowHeight + gap) * index + (ruleHeight + gap) * rulesAbove
-    }
-}
-
-/** One row: a label, a hover fill, and the muted tone when the document cannot do it. */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun PageMenuRow(label: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(PageMenuMetrics.rowHeight)
-            .background(Color.Transparent, DesktopTheme.capsuleShape)
-            .hoverFill(DesktopTheme.capsuleShape, active = !enabled)
-            .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Text(
-            label,
-            color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,
-            style = DesktopTheme.body,
-            maxLines = 1,
-        )
-    }
-}
-
-/** A hairline between the page list's commands and the page's own two questions. */
-@Composable
-private fun PageMenuRule() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(PageMenuMetrics.ruleHeight),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
-    }
 }
