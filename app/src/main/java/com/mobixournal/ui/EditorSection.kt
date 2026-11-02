@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.PageSizeStep
+import com.mobixournal.render.PageSizeUnit
 
 /**
  * Editor preferences, in the order a user meets them: what a new document starts as (tool, page
@@ -63,34 +64,42 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 }
 
 /**
- * The pixels one tap of the Pages menu's **quick size** buttons adds to, or takes from, a sheet
- * ([PageSizeStep]). Written in pixels — the unit a reader thinks in — and converted to the page's own
- * points when the button is pressed; 96 px is one inch whatever the screen's density.
+ * The millimetres one tap of the Pages menu's **quick size** buttons adds to, or takes from, a sheet
+ * ([PageSizeStep]). Written in millimetres — the page format's own unit, and a length of paper rather
+ * than of screen — and converted to the page's points when the button is pressed; the same 100 mm is
+ * 3.9 in or 283 pt when the format is read in those units.
  */
 @Composable
 private fun PageSizeStepControl(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    var text by remember { mutableStateOf(settings.pageSizeStepPx.toString()) }
+    var text by remember { mutableStateOf(pageSizeStepText(settings.pageSizeStepMm)) }
     // A step changed elsewhere (a restored backup) is what the field shows, not the last thing typed.
-    LaunchedEffect(settings.pageSizeStepPx) { text = settings.pageSizeStepPx.toString() }
+    LaunchedEffect(settings.pageSizeStepMm) { text = pageSizeStepText(settings.pageSizeStepMm) }
     OutlinedTextField(
         value = text,
         onValueChange = { typed ->
-            text = typed.filter { it.isDigit() }.take(4)
-            text.toIntOrNull()?.let { px ->
-                onChange(settings.copy(pageSizeStepPx = PageSizeStep.clampPx(px)))
+            text = typed.filter { it.isDigit() || it == '.' }.take(6)
+            text.toDoubleOrNull()?.let { mm ->
+                onChange(settings.copy(pageSizeStepMm = PageSizeStep.clampMm(mm)))
             }
         },
-        label = { Text("Step (px)") },
+        label = { Text("Step (mm)") },
         supportingText = {
             Text(
                 "The − and + beside Width and Height in the Pages menu change the sheet by this much. " +
-                    "96 px is one inch; the factory step is ${PageSizeStep.DEFAULT_PX} px.",
+                    "Millimetres are the page format's own unit, so the factory step of " +
+                    "${PageSizeStep.label(PageSizeStep.DEFAULT_MM)} reads as " +
+                    "${PageSizeStep.label(PageSizeStep.DEFAULT_MM, PageSizeUnit.IN)} or " +
+                    "${PageSizeStep.label(PageSizeStep.DEFAULT_MM, PageSizeUnit.PT)} there.",
             )
         },
         singleLine = true,
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     )
 }
+
+/** [mm] as the step field shows it: a whole step without a trailing `.0`, a fractional one as typed. */
+private fun pageSizeStepText(mm: Double): String =
+    if (mm == mm.toLong().toDouble()) mm.toLong().toString() else mm.toString()
 
 /** The default page width and height controls for new documents, synchronized with the Page Format popup. */
 @Composable

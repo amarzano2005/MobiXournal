@@ -1364,8 +1364,8 @@ private fun toolbarPagesCallbacks(
         onGoToPage = { surface?.goToPage(it) },
         pageSize = pane.pageSize,
         onPageSize = { w, h -> surface?.setPageSize(w, h) },
-        // The quick size buttons step by the user's own amount, in the page's unit.
-        sizeStepPt = PageSizeStep.pt(settings.pageSizeStepPx),
+        // The quick size buttons step by the user's own amount, in the sheet's own paper unit.
+        sizeStepPt = PageSizeStep.pt(settings.pageSizeStepMm),
         defaultPageSize = settings.defaultPageWidthPt to settings.defaultPageHeightPt,
         onSaveAsDefault = { w, h ->
             liveSettings = liveSettings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h)

@@ -117,10 +117,11 @@ data class AppSettings(
     val defaultPageHeightPt: Double = DEFAULT_PAGE_HEIGHT_PT,
     /**
      * How much one tap of the Pages menu's quick size buttons adds to, or takes from, a sheet's width
-     * or height — in **CSS pixels**, 96 to the inch (see [PageSizeStep]). 100 px is a little under
-     * 3 cm, a step a page can take a dozen times before it stops being a page.
+     * or height — in **millimetres**, the page format's own unit ([PageSizeStep]). 100 mm is the
+     * factory step; the app converts it to the page's points when the button is pressed, and the same
+     * 100 mm prints as 3.9 in or 283 pt when the format is read in those units.
      */
-    val pageSizeStepPx: Int = PageSizeStep.DEFAULT_PX,
+    val pageSizeStepMm: Double = PageSizeStep.DEFAULT_MM,
     /**
      * The format a **new** document is written in ([NewDocumentFormat]). Asked once at first launch
      * and changeable under Settings → App & data; `.mobix` is the recommended default, because the
@@ -414,8 +415,8 @@ data class AppSettings(
 
         const val KEY_DEFAULT_PAGE_WIDTH = "default_page_width_pt"
         const val KEY_DEFAULT_PAGE_HEIGHT = "default_page_height_pt"
-        /** The Pages menu's quick size step, in CSS pixels ([pageSizeStepPx]). */
-        const val KEY_PAGE_SIZE_STEP = "page_size_step_px"
+        /** The Pages menu's quick size step, in millimetres ([pageSizeStepMm]). */
+        const val KEY_PAGE_SIZE_STEP = "page_size_step_mm"
         /** Factory defaults for the three width slots — [PenPalette]'s, shared with the desktop. */
         val DEFAULT_PEN_WIDTHS: List<Float> get() = PenPalette.DEFAULT_WIDTHS
 
@@ -532,7 +533,9 @@ class SettingsStore(context: Context) {
         return AppSettings(
             defaultPageWidthPt = prefs.getFloat(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt.toFloat()).toDouble(),
             defaultPageHeightPt = prefs.getFloat(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt.toFloat()).toDouble(),
-            pageSizeStepPx = PageSizeStep.clampPx(prefs.getInt(KEY_PAGE_SIZE_STEP, d.pageSizeStepPx)),
+            pageSizeStepMm = PageSizeStep.clampMm(
+                prefs.getFloat(KEY_PAGE_SIZE_STEP, d.pageSizeStepMm.toFloat()).toDouble(),
+            ),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
             penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
             handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
@@ -684,7 +687,7 @@ class SettingsStore(context: Context) {
         val e = prefs.edit()
             .putFloat(KEY_DEFAULT_PAGE_WIDTH, s.defaultPageWidthPt.toFloat())
             .putFloat(KEY_DEFAULT_PAGE_HEIGHT, s.defaultPageHeightPt.toFloat())
-            .putInt(KEY_PAGE_SIZE_STEP, s.pageSizeStepPx)
+            .putFloat(KEY_PAGE_SIZE_STEP, s.pageSizeStepMm.toFloat())
             .putString(KEY_NEW_DOCUMENT_FORMAT, s.newDocumentFormat.name)
         // The canvas geometry is retired: every document is a page stack now, so a save clears the
         // preference an older install still carries.

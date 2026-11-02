@@ -184,12 +184,13 @@ private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
     val size = callbacks.pageSize ?: return
     val stepPt = callbacks.sizeStepPt
     if (stepPt <= 0.0) return
-    val stepPx = (stepPt / PageSizeStep.PT_PER_PX).roundToInt()
+    // The step is a length of paper, so it is announced in the unit it was written in (mm by default).
+    val stepLabel = PageSizeStep.label(PageSizeStep.mmOf(stepPt))
     MenuHeading("Quick size")
     QuickSizeRow(
         label = "Width",
         sizePt = size.first,
-        stepPx = stepPx,
+        stepLabel = stepLabel,
         onStep = { steps ->
             val (w, h) = PageSizeStep.step(size.first, size.second, steps, 0, stepPt)
             callbacks.onPageSize(w, h)
@@ -198,7 +199,7 @@ private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
     QuickSizeRow(
         label = "Height",
         sizePt = size.second,
-        stepPx = stepPx,
+        stepLabel = stepLabel,
         onStep = { steps ->
             val (w, h) = PageSizeStep.step(size.first, size.second, 0, steps, stepPt)
             callbacks.onPageSize(w, h)
@@ -209,11 +210,11 @@ private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
 /**
  * One axis of [QuickSizeRows]: its name, the sheet's current measure, and the two arrows that step it.
  *
- * The measure is shown in points because that is the page's own unit — the *step* is in pixels because
- * that is how the setting is written, and the row says both (`−100 px`).
+ * The measure is shown in points because that is the page's own unit — the *step* is in millimetres
+ * because that is how the setting is written, and the row says both (`−100 mm`).
  */
 @Composable
-private fun QuickSizeRow(label: String, sizePt: Double, stepPx: Int, onStep: (Int) -> Unit) {
+private fun QuickSizeRow(label: String, sizePt: Double, stepLabel: String, onStep: (Int) -> Unit) {
     Row(
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -221,10 +222,10 @@ private fun QuickSizeRow(label: String, sizePt: Double, stepPx: Int, onStep: (In
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text("${sizePt.roundToInt()} pt", style = MaterialTheme.typography.labelSmall)
         IconButton(onClick = { onStep(-1) }, enabled = sizePt > PageSizeStep.MIN_PAGE_PT) {
-            Icon(Icons.Outlined.Remove, contentDescription = "$label − $stepPx px")
+            Icon(Icons.Outlined.Remove, contentDescription = "$label − $stepLabel")
         }
         IconButton(onClick = { onStep(1) }) {
-            Icon(Icons.Outlined.Add, contentDescription = "$label + $stepPx px")
+            Icon(Icons.Outlined.Add, contentDescription = "$label + $stepLabel")
         }
     }
 }

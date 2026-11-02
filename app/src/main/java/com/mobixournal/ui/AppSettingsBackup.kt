@@ -40,7 +40,7 @@ object AppSettingsBackup {
         b.append("  \"version\": ").append(CURRENT_VERSION).append(",\n")
         b.append("  \"defaultPageWidthPt\": ").append(settings.defaultPageWidthPt).append(",\n")
         b.append("  \"defaultPageHeightPt\": ").append(settings.defaultPageHeightPt).append(",\n")
-        b.append("  \"pageSizeStepPx\": ").append(settings.pageSizeStepPx).append(",\n")
+        b.append("  \"pageSizeStepMm\": ").append(settings.pageSizeStepMm).append(",\n")
         b.append("  \"fingerDraws\": ").append(settings.fingerDraws).append(",\n")
         b.append("  \"barrelAction\": \"").append(settings.barrelAction.name).append("\",\n")
         b.append("  \"barrelDoubleAction\": \"").append(settings.barrelDoubleAction.name).append("\",\n")
@@ -251,8 +251,9 @@ object AppSettingsBackup {
         return AppSettings(
             defaultPageWidthPt = root.getDouble("defaultPageWidthPt", fallback.defaultPageWidthPt),
             defaultPageHeightPt = root.getDouble("defaultPageHeightPt", fallback.defaultPageHeightPt),
-            pageSizeStepPx = root.getIntOrNull("pageSizeStepPx")?.let(PageSizeStep::clampPx)
-                ?: fallback.pageSizeStepPx,
+            pageSizeStepMm = PageSizeStep.clampMm(
+                root.getDouble("pageSizeStepMm", fallback.pageSizeStepMm),
+            ),
             fingerDraws = root.getBool("fingerDraws", fallback.fingerDraws),
             barrelAction = readEnum("barrelAction", BarrelAction.values(), fallback.barrelAction),
             barrelDoubleAction = readEnum("barrelDoubleAction", QuickAction.values(), fallback.barrelDoubleAction),

@@ -69,12 +69,15 @@ a row of disabled chips, which would claim space to state only that.
 ## Quick page size (`ToolbarPagesPopup`)
 
 **Two rows, not a dialog.** The Pages pop-up opens with a **Quick size** pair — **Width** and **Height**,
-each with a minus and a plus — that changes one dimension of the page in view by `AppSettings.pageSizeStepPx`
-(100 px by default; adjustable under **Settings → Drawing → Editor**). The row shows the page's own unit
-(points) while the step is the user's pixels, converted once by `mobix-core`'s `PageSizeStep` at the fixed
-**96 px/inch** rate rather than the display's density: the size a reader types is a page size, and the same
-document must come out the same on a 320 dpi tablet and a 160 dpi one. The resize goes through the same
-`onPageSize` path as the Page size dialog, so the sheet and the stored format cannot disagree.
+each with a minus and a plus — that changes one dimension of the page in view by `AppSettings.pageSizeStepMm`
+(**100 mm** by default; adjustable under **Settings → Drawing → Editor**). The row shows the page's own unit
+(points) while the step is a length of **paper**, converted once by `mobix-core`'s `PageSizeStep` at the
+exact **25.4 mm/inch** — never the display's density: a step is a page size, and the same document must
+come out the same on a 320 dpi tablet and a 160 dpi one. The step is the **page format's own unit**: 100 mm
+reads as `PageSizeUnit.IN.defaultStep` (3.9 in) or `PageSizeUnit.PT.defaultStep` (283 pt) when a sheet is
+read there, the same 100 mm re-expressed rather than a second, unrelated number, and the window's Pages menu
+steps by that same default (`PageSizeStep.DEFAULT_MM`). The resize goes through the same `onPageSize` path as
+the Page size dialog, so the sheet and the stored format cannot disagree.
 
 ## Add/remove page
 

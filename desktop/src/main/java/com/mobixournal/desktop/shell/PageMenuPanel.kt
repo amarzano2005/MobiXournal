@@ -169,9 +169,10 @@ private fun PageNavRow(actions: PageMenuActions, onClose: () -> Unit) {
 /**
  * One axis of **Quick size**: the sheet's measure, and the two buttons that nudge it.
  *
- * The step is [PageSizeStep.DEFAULT_PX] — the tablet's own factory step — turned into points by the shared
- * rule, because a page is kept in points while a step is a reader's unit of pixels. Each tap applies at
- * once and the menu stays open, so three taps are three steps rather than three visits to the menu.
+ * The step is [PageSizeStep.DEFAULT_MM] — the tablet's own factory step, a length of paper — turned into
+ * points by the shared rule, because a page is kept in points while a step is read in millimetres. Each tap
+ * applies at once and the menu stays open, so three taps are three steps rather than three visits to the
+ * menu.
  */
 @Composable
 private fun QuickSizeRow(actions: PageMenuActions, axis: PageMenuMetrics.Item) {
@@ -179,7 +180,8 @@ private fun QuickSizeRow(actions: PageMenuActions, axis: PageMenuMetrics.Item) {
     val isWidth = axis == PageMenuMetrics.Item.WIDTH
     val measure = if (isWidth) size.first else size.second
     val label = if (isWidth) "Width" else "Height"
-    val stepPt = PageSizeStep.pt(PageSizeStep.DEFAULT_PX)
+    val stepPt = PageSizeStep.pt(PageSizeStep.DEFAULT_MM)
+    val stepLabel = PageSizeStep.label(PageSizeStep.DEFAULT_MM)
     fun nudge(steps: Int) {
         val (width, height) = if (isWidth) {
             PageSizeStep.step(size.first, size.second, steps, 0, stepPt)
@@ -205,13 +207,13 @@ private fun QuickSizeRow(actions: PageMenuActions, axis: PageMenuMetrics.Item) {
         Spacer(Modifier.width(6.dp))
         PageGlyphButton(
             glyph = ChromeGlyph.MINUS,
-            label = "$label − ${PageSizeStep.DEFAULT_PX} px",
+            label = "$label − $stepLabel",
             enabled = measure > PageSizeStep.MIN_PAGE_PT,
         ) { nudge(-1) }
         Spacer(Modifier.width(PageMenuMetrics.glyphGap))
         PageGlyphButton(
             glyph = ChromeGlyph.ADD,
-            label = "$label + ${PageSizeStep.DEFAULT_PX} px",
+            label = "$label + $stepLabel",
             enabled = true,
         ) { nudge(1) }
     }

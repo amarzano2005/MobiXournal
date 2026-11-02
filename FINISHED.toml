@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "quick-size-steps-by-100-mm-in-the-page-format-s-own-unit"
+title = "Quick size steps by 100 mm, in the page format's own unit"
+description = "The Pages menu's quick size step is a length of paper now: PageSizeStep's canonical unit is millimetres with DEFAULT_MM = 100 (clamped 1-300 mm), pt() converts at exactly 72/25.4 points per millimetre, and the new shared PageSizeUnit (mm/in/pt) answers defaultStep as the same 100 mm re-expressed - 3.9 in, 283 pt - plus label()/mmOf() for the rows. AppSettings.pageSizeStepPx became pageSizeStepMm (pref key page_size_step_mm, settings-backup field pageSizeStepMm, Settings field 'Step (mm)' with the three readings in its hint), ToolbarPagesPopup announces the step in millimetres, EditorRegions feeds sizeStepPt from it, and the window's PageMenuPanel steps by DEFAULT_MM instead of 100 CSS px. PageSizeStepTest covers the unit defaults, the labels, the step arithmetic and the clamp; docs/pages-and-paper.md and README describe the step in mm. Not compiled here: this container has no JDK and no Android SDK, so the mobix-core, app and desktop suites and :desktop:createDistributable still need scripts/host-build.sh on the owner's host."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-02
+completed = 2026-11-02
+tags = ["pages"]
+
+[[task]]
 id = "audio-service-a-sticky-restart-with-no-intent-must-stop-itself"
 title = "Audio service: a sticky restart with no intent must stop itself"
 description = "onStartCommand now has an else branch: a sticky restart, which is the only way to get a null intent, releases the wake lock and the foreground state and calls stopSelf with START_NOT_STICKY, instead of leaving a notification-less background service behind after the process died mid-recording. The ACTION_START/PAUSE/STOP paths are untouched. docs/audio-inking-sync.md (Background capture) states the rule. Not compiled in this container: no JDK and no Android SDK are installed, so the APK build and :desktop:createDistributable still need a run on the owner's host."
