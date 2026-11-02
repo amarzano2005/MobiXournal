@@ -73,6 +73,26 @@ class ToolGlyphCatalogueTest {
         assertEquals(1.5f, DesignTokens.TOOL_GLYPH_STROKE_UNITS, 0f)
     }
 
+    @Test
+    fun `a side count wears the polygon of its count`() {
+        val heptagon = ToolGlyphCatalogue.regularPolygon(7)
+        val ring = heptagon.single() as GlyphPart.Polyline
+        assertTrue("a side-count cell is one closed outline", ring.closed)
+        assertEquals("seven vertices for seven sides", 7, ring.points.size)
+        assertEquals("the first vertex sits at the top of the grid", 12f, ring.points.first().x, 0.01f)
+        assertEquals("inscribed, not at the rim", 2.88f, ring.points.first().y, 0.01f)
+        assertEquals(
+            "a count below a triangle is a triangle, not a line",
+            ToolGlyphCatalogue.regularPolygon(3),
+            ToolGlyphCatalogue.regularPolygon(1),
+        )
+        for (part in ToolGlyphCatalogue.regularPolygon(12)) {
+            for ((x, y) in coordinates(part)) {
+                assertTrue("a dodecagon leaves the grid at ($x, $y)", x in 0f..grid && y in 0f..grid)
+            }
+        }
+    }
+
     private fun coordinates(part: GlyphPart): List<Pair<Float, Float>> = when (part) {
         is GlyphPart.Line -> listOf(part.x1 to part.y1, part.x2 to part.y2)
         is GlyphPart.Polyline -> part.points.map { it.x to it.y }

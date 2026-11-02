@@ -36,6 +36,21 @@ fun ToolGlyph.imageVector(): ImageVector =
     toolGlyphVectors.getOrPut(this) { glyphVector("ToolGlyph.${name.lowercase()}", ToolGlyphCatalogue.parts(this)) }
 
 /**
+ * The **regular polygon of [sides]**, built once per count — the face of the Polygons slot's own menu.
+ *
+ * A side count is chosen as the figure it draws, so the picker's cells wear the polygon rather than the
+ * numeral alone: it is the same art the window's figure menu draws ([ToolGlyphCatalogue.regularPolygon]),
+ * so "seven" is one heptagon on both shells.
+ */
+private val regularPolygonVectors = HashMap<Int, ImageVector>()
+
+/** The regular [sides]-gon as an icon, on the catalogue's grid and stroke. */
+fun regularPolygonIcon(sides: Int): ImageVector =
+    regularPolygonVectors.getOrPut(sides) {
+        glyphVector("ToolGlyph.polygon$sides", ToolGlyphCatalogue.regularPolygon(sides))
+    }
+
+/**
  * The stroke glyph [parts] as an icon — the one place a [GlyphPart] list becomes an `ImageVector`.
  *
  * [name] is the vector's own identity, which is what a preview or a debugging tool prints; the geometry is

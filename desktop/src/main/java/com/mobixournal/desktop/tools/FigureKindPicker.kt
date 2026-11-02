@@ -2,8 +2,9 @@ package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
+import com.mobixournal.desktop.settings.drawGlyphParts
 import com.mobixournal.desktop.settings.drawToolGlyph
-import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.design.ToolGlyphCatalogue
 import com.mobixournal.desktop.sheet.FigureShape
 
 import androidx.compose.foundation.Canvas
@@ -21,19 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * The **menu of a figure slot**: the triangle's kinds, the trapezoid's kinds, or the polygon's side
@@ -123,7 +115,13 @@ private fun FigureOptionCell(
         ) {
             Canvas(Modifier.size(24.dp)) {
                 val glyph = option.glyph
-                if (glyph != null) drawToolGlyph(glyph, inkColour) else drawRegularPolygon(option.shape.polygonSides, inkColour)
+                if (glyph != null) {
+                    drawToolGlyph(glyph, inkColour)
+                } else {
+                    // A side count wears the polygon of its own count, from the shared catalogue, so
+                    // the tablet's Polygons menu and this one draw one heptagon.
+                    drawGlyphParts(ToolGlyphCatalogue.regularPolygon(option.shape.polygonSides), inkColour)
+                }
             }
             Text(option.label, color = DesktopTheme.ink, style = DesktopTheme.label)
         }
@@ -142,32 +140,4 @@ private fun FigureOptionCell(
             }
         }
     }
-}
-
-/**
- * A regular [sides]-gon in the cell's 24 dp frame, first vertex at the top — the figure the count will
- * draw, at the catalogue's monoline weight, so the cell and the slot agree about what "seven" looks like.
- */
-private fun DrawScope.drawRegularPolygon(sides: Int, colour: Color) {
-    val count = sides.coerceAtLeast(3)
-    val radius = size.minDimension * 0.38f
-    val cx = size.width / 2f
-    val cy = size.height / 2f
-    val path = Path()
-    for (i in 0 until count) {
-        val angle = -PI / 2.0 + 2.0 * PI * i / count
-        val x = cx + (radius * cos(angle)).toFloat()
-        val y = cy + (radius * sin(angle)).toFloat()
-        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-    }
-    path.close()
-    drawPath(
-        path = path,
-        color = colour,
-        style = Stroke(
-            width = DesktopTheme.TOOL_GLYPH_STROKE_UNITS * size.minDimension / DesktopTheme.TOOL_GLYPH_GRID,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round,
-        ),
-    )
 }

@@ -174,7 +174,10 @@ factory) and is chosen where the figure is: **the Polygons slot's own menu** is 
 (`PolygonSlotButton` — tap the slot to take the tool, tap it again or long-press for the picker, with
 the live count riding the button's top-left edge, the picker's caret in the bottom-right corner and the
 figure centred), and picking one also takes hold of the tool, because seven
-sides is always about drawing a heptagon next. **Settings → Figures** writes the same stored value, so
+sides is always about drawing a heptagon next. A count in that menu is drawn as **the polygon it makes**
+rather than as a numeral alone — `ToolGlyphCatalogue.regularPolygon` builds the three-to-twelve-sided
+outline on the shared glyph grid, so the tablet's picker and the window's figure menu show the same
+heptagon for seven. **Settings → Figures** writes the same stored value, so
 the two cannot disagree; an out-of-range number is clamped rather than rejected, and the tool needs no
 gesture of its own: the drag, the preview, the constant width and the undo step are the ones every
 other figure uses. The window's **Polygon slot** carries the same count: its menu is the 3–12 picker,

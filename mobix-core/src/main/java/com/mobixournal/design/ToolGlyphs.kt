@@ -1,5 +1,9 @@
 package com.mobixournal.design
 
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+
 /**
  * The **one catalogue of tool glyphs**, as plain geometry — no Compose, no platform.
  *
@@ -235,6 +239,35 @@ object ToolGlyphCatalogue {
         ToolGlyph.CHEM_BOND_SINGLE -> bondSingle()
         ToolGlyph.CHEM_BOND_DOUBLE -> bondDouble()
         ToolGlyph.CHEM_BOND_TRIPLE -> bondTriple()
+    }
+
+    /**
+     * The circle a side-count cell's polygon is inscribed in, on this 24-unit grid: the centre of the
+     * grid and 38% of it, the proportion the window's picker has always drawn.
+     */
+    private const val REGULAR_POLYGON_CENTRE = 12.0
+    private const val REGULAR_POLYGON_RADIUS = 9.12
+
+    /**
+     * The **regular polygon of [sides]**, on the grid — the picture a side-count cell wears.
+     *
+     * A count is easier to read as the figure it draws than as a numeral alone: both shells' Polygons
+     * menus show a heptagon for "seven", built from these same parts, so the tablet's picker and the
+     * window's cannot disagree about what a count looks like. First vertex at the top, the outline
+     * inscribed in [REGULAR_POLYGON_RADIUS] around the grid's centre, as every figure here is — the
+     * figure the tool will draw, drawn. A count below a triangle's is clamped to three rather than
+     * answering a shape the builder could not make.
+     */
+    fun regularPolygon(sides: Int): List<GlyphPart> {
+        val count = sides.coerceAtLeast(3)
+        val points = (0 until count).map { index ->
+            val angle = -PI / 2.0 + 2.0 * PI * index / count
+            GlyphPoint(
+                x = (REGULAR_POLYGON_CENTRE + REGULAR_POLYGON_RADIUS * cos(angle)).toFloat(),
+                y = (REGULAR_POLYGON_CENTRE + REGULAR_POLYGON_RADIUS * sin(angle)).toFloat(),
+            )
+        }
+        return listOf(GlyphPart.Polyline(points, closed = true))
     }
 
     /**

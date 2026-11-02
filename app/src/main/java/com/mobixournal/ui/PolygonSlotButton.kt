@@ -38,6 +38,10 @@ import com.mobixournal.ui.theme.rememberChromeInk
  *
  * The count is the one value Settings ▸ Figures writes too (`AppSettings.polygonSides`), so the two
  * surfaces cannot disagree; [POLYGON_SIDE_CHOICES] keeps both on the builder's own range.
+ *
+ * Each answer in the menu wears **the polygon of its own count**, not just the numeral: the circle of
+ * three to twelve sides is quick to read as a figure, and it is the same picture the window's figure
+ * menu draws (`ToolGlyphCatalogue.regularPolygon`), so "seven" is one heptagon on both shells.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -98,6 +102,7 @@ internal fun PolygonSlotButton(
             ToolVariantPicker(
                 heading = "Sides",
                 labels = POLYGON_SIDE_CHOICES.map { "$it" },
+                icons = POLYGON_SIDE_CHOICES.map(::regularPolygonIcon),
                 selectedIndex = polygonSideIndex(sides),
                 onPick = { index ->
                     open = false
