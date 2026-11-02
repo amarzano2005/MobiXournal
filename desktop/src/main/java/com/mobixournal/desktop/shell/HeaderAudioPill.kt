@@ -88,12 +88,21 @@ internal fun HeaderAudioPill(
     val sound = audio.of(tab())
 
     Row(
+        // On **paper** the pill is its three buttons and nothing else: the band behind it is already the
+        // sheet's white, so the control's white fill drew a white box round them instead of an object in
+        // the chrome. On black the capsule stays — there it is what lifts the transport off the band.
         modifier
             .height(DesktopTheme.headerControlSize)
-            .glassCapsule(
-                cornerRadius = DesktopTheme.headerControlSize / 2,
-                fill = DesktopTheme.control,
-                shadow = DesktopTheme.bandShadow,
+            .then(
+                if (DesktopTheme.isLight) {
+                    Modifier
+                } else {
+                    Modifier.glassCapsule(
+                        cornerRadius = DesktopTheme.headerControlSize / 2,
+                        fill = DesktopTheme.control,
+                        shadow = DesktopTheme.bandShadow,
+                    )
+                },
             )
             .padding(horizontal = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),

@@ -87,9 +87,16 @@ fun AudioMiniCapsule(
 
     Surface(
         shape = ModernTheme.capsuleShape,
-        color = glassColor,
-        shadowElevation = 6.dp,
-        modifier = modifier.floatingRim(ModernTheme.capsuleCornerRadiusDp),
+        // On paper the capsule is not painted: the band behind it is the sheet's white, so a white fill
+        // was a white box drawn round three round buttons. On black it keeps the glass, which is what
+        // lifts the transport off the band there.
+        color = if (isDark) glassColor else Color.Transparent,
+        shadowElevation = if (isDark) 6.dp else 0.dp,
+        modifier = if (isDark) {
+            modifier.floatingRim(ModernTheme.capsuleCornerRadiusDp)
+        } else {
+            modifier
+        },
     ) {
         if (vertical) {
             Column(
