@@ -31,15 +31,16 @@ Every surface is one of three objects. Pick the class from what the element *doe
   leg deep black on the dark scheme and grey on the light one, breaking it at the corner.
 - **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads
   as two grey rules across the window. The edge is a band's whole boundary.
-- **On paper the band is the sheet's white and the control is the shade.** A band takes the glass at
-  **full** opacity there (`panel`), so the header is the same white as the page it frames and the system
-  caption can be given that white too; a capsule is the picked steel at `CONTROL_ALPHA_LIGHT`, a step
-  deeper under the pointer (`HOVER_SLOT_ALPHA_LIGHT`) and the full steel when picked, while an
-  **unavailable command is its muted glyph alone**, with no capsule at all. The drawn edge is more of the
-  same ink (`RIM_ALPHA_TOP_LIGHT`, 0.20) than the white hairline's 0.12, a band casts a hairline-thin
-  shade (`BAND_SHADOW_LIGHT_DP`) rather than a 4 dp smudge across the sheet, and a floating surface is
-  solid there (`panel`): at 0.88 the page's own ink read through an open menu. `LightMaterialTest` holds
-  every answer, its pixel test included.
+- **On paper a band is the sheet's white, edged by one shade on the side that looks at the canvas.** A
+  band takes the glass at **full** opacity there (`panel`), so the header is the same white as the page it
+  frames and the system caption can be given that white too; what separates it from the sheet is a
+  gradient drawn *inside* its canvas-facing edge (`BAND_EDGE_ALPHA_LIGHT`, reaching `BAND_EDGE_SHADOW_DP`),
+  the header's bottom and the sidebar's right meeting at the corner as one frame. A capsule is that white
+  with the family's ink rim, the picked steel at `HOVER_SLOT_ALPHA_LIGHT` under the pointer and the full
+  steel when picked, while an **unavailable command is its muted glyph alone**. The rim carries more of the
+  same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20), and a floating surface is solid there (`panel`): at 0.88
+  the page's own ink read through an open menu. `LightMaterialTest` holds every answer, its pixel test
+  included.
 - **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a
   shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's
   lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**

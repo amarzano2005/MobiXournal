@@ -21,35 +21,40 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The light theme's material rule (`docs/interface-contract.md` §1): **on paper a band and its control
- * swap places**.
+ * The light theme's material rule (`docs/interface-contract.md` §1).
  *
- * The dark recipe is one material for both — a capsule and the band it stands in are the same glass, and
- * the rim's white hairline is what makes the capsule an object. Carried onto paper unchanged, that
- * produced white discs on a white band and a menu whose chips could not be seen at all (the owner's
- * screenshot, 2026-11-02). So the light theme puts the shade on the control instead: the band is the
- * sheet's own white, the capsule is the picked steel at a third, and the edge is more of the same ink.
- * This test holds those answers —
- * and the dark ones unchanged, which is the part a future light-theme tweak is most likely to disturb.
+ * The dark recipe is one material: a capsule and the band it stands in are the same glass, and the rim's
+ * white hairline is what makes the capsule an object. Carried onto paper unchanged it gave a grey band
+ * round a white page and capsules that could not be seen. So on paper the band is the sheet's own white at
+ * full opacity, its capsule is that same white inside the ink rim, the pointer steps to the picked steel at
+ * 35 %, and the **only** shadow is one shade down the edge that looks at the canvas — the header's bottom
+ * and the sidebar's right meeting at the corner. This test holds those answers, and the dark ones unchanged,
+ * which is the part a future light-theme tweak is most likely to disturb.
  */
 class LightMaterialTest {
 
     @Test
-    fun `on paper the band is the sheet's white and the control the shade`() {
+    fun `on paper the band is the sheet's white, edged on the canvas side`() {
         DesktopTheme.use(true)
         try {
             val band = luminance(DesktopTheme.glass)
-            val control = luminance(DesktopTheme.control)
             assertEquals("the band is the sheet's own white", DesktopTheme.panel, DesktopTheme.glass)
-            assertEquals("and the system caption is that white too", DesignTokens.GLASS_LIGHT_RGB, DesktopTheme.bandRgb)
-            val resting = onPaper(DesktopTheme.control)
+            assertEquals(
+                "and the system caption is that white too",
+                DesignTokens.GLASS_LIGHT_RGB,
+                DesktopTheme.bandRgb,
+            )
+            assertEquals("a capsule is that white as well", DesktopTheme.glass, DesktopTheme.control)
             val hovered = onPaper(DesktopTheme.hoverSlot)
             val picked = onPaper(DesktopTheme.activeSlot)
-            assertTrue("a control is the shade on paper ($resting vs $band)", resting < band - 0.01f)
-            assertTrue("the pointer is a step deeper ($hovered)", hovered < resting)
+            assertTrue("the pointer is a shade on it ($hovered)", hovered < band - 0.01f)
             assertTrue("and the picked slot deeper still ($picked)", picked < hovered)
             assertTrue(
-                "the desk is greyer than the band it carries (${luminance(DesktopTheme.desk)} vs $band)",
+                "a band carries its shade on the canvas-facing edge",
+                DesktopTheme.bandEdgeShadow.alpha > 0.05f,
+            )
+            assertTrue(
+                "the desk is greyer than the band it frames (${luminance(DesktopTheme.desk)} vs $band)",
                 luminance(DesktopTheme.desk) < band,
             )
             assertTrue(
@@ -75,7 +80,7 @@ class LightMaterialTest {
     }
 
     @Test
-    fun `on black a control is the band's own glass`() {
+    fun `on black nothing of the light recipe is left behind`() {
         DesktopTheme.use(false)
         try {
             assertEquals("the black desk moves nothing", DesktopTheme.glass, DesktopTheme.control)
@@ -85,26 +90,11 @@ class LightMaterialTest {
             assertEquals(DesktopTheme.activeSlot.copy(alpha = DesktopTheme.CARD_ALPHA), DesktopTheme.card)
             assertEquals(DesignTokens.FLOATING_PANEL_ALPHA, DesktopTheme.floating.alpha, 0.005f)
             assertEquals(DesignTokens.BAND_SHADOW_DP.dp, DesktopTheme.bandShadow)
+            assertEquals("and no canvas edge shade on black", Color.Transparent, DesktopTheme.bandEdgeShadow)
         } finally {
             DesktopTheme.use(false)
         }
     }
-
-    /** Perceived lightness, enough to say "this one is the lighter surface". */
-    private fun luminance(colour: Color): Float =
-        0.2126f * colour.red + 0.7152f * colour.green + 0.0722f * colour.blue
-
-    /**
-     * [colour] as it lands **on the light band**, which is white: an alpha fill is not a tone until
-     * something is behind it, and [luminance] alone read resting and hover as the same colour.
-     */
-    private fun onPaper(colour: Color): Float = luminance(
-        Color(
-            red = colour.red * colour.alpha + (1f - colour.alpha),
-            green = colour.green * colour.alpha + (1f - colour.alpha),
-            blue = colour.blue * colour.alpha + (1f - colour.alpha),
-        ),
-    )
 
     /**
      * The panel's half of the rule, in **pixels**: a floating surface over inked paper shows no ink.
@@ -150,4 +140,20 @@ class LightMaterialTest {
             DesktopTheme.use(false)
         }
     }
+
+    /** Perceived lightness, enough to say "this one is the lighter surface". */
+    private fun luminance(colour: Color): Float =
+        0.2126f * colour.red + 0.7152f * colour.green + 0.0722f * colour.blue
+
+    /**
+     * [colour] as it lands **on the light band**, which is white: an alpha fill is not a tone until
+     * something is behind it, and [luminance] alone read resting and hover as the same colour.
+     */
+    private fun onPaper(colour: Color): Float = luminance(
+        Color(
+            red = colour.red * colour.alpha + (1f - colour.alpha),
+            green = colour.green * colour.alpha + (1f - colour.alpha),
+            blue = colour.blue * colour.alpha + (1f - colour.alpha),
+        ),
+    )
 }

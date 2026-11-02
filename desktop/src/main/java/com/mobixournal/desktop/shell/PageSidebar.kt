@@ -1,5 +1,7 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.bandSurface
+import com.mobixournal.desktop.tools.BandEdge
+import com.mobixournal.desktop.tools.bandEdgeShadow
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -140,7 +142,7 @@ fun PageSidebar(
         modifier
             .width(SIDEBAR_WIDTH)
             .fillMaxHeight()
-            .bandSurface()
+            .bandSurface().bandEdgeShadow(BandEdge.END)
             // One edge, one pixel: the sidebar's own boundary with the canvas, no rim all round.
             .drawBehind {
                 drawLine(

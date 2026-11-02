@@ -84,8 +84,7 @@ object DesktopTheme {
      * the band is the tinted surface and the control is the white one, which is how a light toolbar is
      * drawn everywhere. On black this is [glass] untouched, so nothing on the black desk moves.
      */
-    val control: Color get() =
-        if (light) activeSlot.copy(alpha = DesignTokens.CONTROL_ALPHA_LIGHT) else glass
+    val control: Color get() = if (light) tokenColour(DesignTokens.GLASS_LIGHT_RGB) else glass
 
     /**
      * A **field inside a floating panel** — a name box, a page range, a preset capsule.
@@ -230,6 +229,19 @@ object DesktopTheme {
      */
     val bandShadow: Dp get() =
         if (light) DesignTokens.BAND_SHADOW_LIGHT_DP.dp else DesignTokens.BAND_SHADOW_DP.dp
+
+    /**
+     * The shade a band carries **down the edge that looks at the canvas**, or transparent on black.
+     *
+     * Drawn *inside* the band rather than cast: a band's edge is one direction, and a Compose shadow puts
+     * the same lift on four sides. The header's bottom and the sidebar's right take it, and the two meet at
+     * the corner as one frame (`docs/interface-contract.md` §1).
+     */
+    val bandEdgeShadow: Color get() =
+        if (light) ink.copy(alpha = DesignTokens.BAND_EDGE_ALPHA_LIGHT) else Color.Transparent
+
+    /** How far [bandEdgeShadow] reaches into the band. */
+    val bandEdgeShadowWidth = DesignTokens.BAND_EDGE_SHADOW_DP.dp
 
     /** The cast shadow under a floating capsule — the rail, the ribbon, a header control: 6 dp. */
     val capsuleShadow = DesignTokens.CAPSULE_SHADOW_DP.dp

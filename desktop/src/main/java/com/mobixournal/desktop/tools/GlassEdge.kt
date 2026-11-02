@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.draw.clip
@@ -199,6 +200,46 @@ internal fun Modifier.bandSurface(
     shadow: Dp = DesktopTheme.bandShadow,
 ): Modifier = shadow(shadow, RectangleShape, clip = false)
     .background(fill)
+
+/** Which side of a band looks onto the canvas: the header's bottom, the sidebar's right. */
+internal enum class BandEdge { BOTTOM, END }
+
+/**
+ * The shade down a band's **canvas-facing edge** — one line, one direction, drawn inside the band.
+ *
+ * A band's cast lift is all round, and on paper it is invisible: a white header over a white page needs an
+ * edge facing the page, not a halo. This draws that edge as a gradient over the band's own fill (behind
+ * its controls), at [DesktopTheme.bandEdgeShadow] across [DesktopTheme.bandEdgeShadowWidth]. A host that
+ * draws it on the header and on the sidebar gets **one** frame: the two lines meet at the corner.
+ */
+@Composable
+internal fun Modifier.bandEdgeShadow(edge: BandEdge): Modifier {
+    val ink = DesktopTheme.bandEdgeShadow
+    if (ink.alpha <= 0f) return this
+    val reach = with(LocalDensity.current) { DesktopTheme.bandEdgeShadowWidth.toPx() }
+    return drawBehind {
+        when (edge) {
+            BandEdge.BOTTOM -> drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, ink),
+                    startY = size.height - reach,
+                    endY = size.height,
+                ),
+                topLeft = Offset(0f, size.height - reach),
+                size = Size(size.width, reach),
+            )
+            BandEdge.END -> drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color.Transparent, ink),
+                    startX = size.width - reach,
+                    endX = size.width,
+                ),
+                topLeft = Offset(size.width - reach, 0f),
+                size = Size(reach, size.height),
+            )
+        }
+    }
+}
 
 /**
  * A **floating capsule** — the rail, the ribbon, the header's controls — the tablet's recipe in full:

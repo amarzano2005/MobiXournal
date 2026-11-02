@@ -264,23 +264,21 @@ object DesignTokens {
     const val ACTIVE_SLOT_LIGHT_RGB: Int = 0xDEE3E7
     const val CHROME_INK_LIGHT_RGB: Int = 0x171C26
 
-    /**
-     * A **control's** fill on paper: the picked steel at 35 %, so a capsule reads on a white band.
-     *
-     * The light band is the sheet's own white — a tinted band was a grey frame round a white page — which
-     * leaves a capsule nothing to contrast with. The light chrome therefore puts the *shade* on the
-     * control instead: resting at this alpha, a step deeper under the pointer, and the full steel when it
-     * is picked.
-     */
-    const val CONTROL_ALPHA_LIGHT: Float = 0.35f
+    /** The hover step on paper: the picked steel at 35 %, so a white capsule answers the pointer. */
+    const val HOVER_SLOT_ALPHA_LIGHT: Float = 0.35f
 
     /**
-     * The hover step on paper: a deeper shade of the same steel than [CONTROL_ALPHA_LIGHT].
+     * The shade on a band's **canvas-facing edge**: 10 % of the ink, fading inward over [BAND_EDGE_SHADOW_DP].
      *
-     * The dark answer is [HOVER_SLOT_ALPHA]; on a white band the resting fill is already a shade, so the
-     * hover has to go further to be a step rather than the same tone again.
+     * On black nothing a band could cast would show. On paper a white header over a white page has no line
+     * at all, and a halo on all four sides was what made the light chrome read as separate white
+     * rectangles. This is one line down the edge that looks at the canvas — the header's bottom and the
+     * sidebar's right — and the two meet at the corner, so the bands read as one frame.
      */
-    const val HOVER_SLOT_ALPHA_LIGHT: Float = 0.55f
+    const val BAND_EDGE_ALPHA_LIGHT: Float = 0.10f
+
+    /** How far the canvas-facing edge shade reaches into a band, in dp. */
+    const val BAND_EDGE_SHADOW_DP: Int = 14
 
     /** The light theme's hairline: black, so an edge is an edge on paper as it is on black. */
     const val HAIRLINE_LIGHT_RGB: Int = 0x000000
