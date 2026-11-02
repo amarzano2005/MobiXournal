@@ -24,8 +24,8 @@ the phone's Editor, Gestures and Storage pages: they configure a default tool, a
 shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
 **rows**, the name and the control at the right edge (`SettingsRows.kt`).
 
-A row lights **the whole width of its card**: the group clips its rows and pads them vertically only, and
-the 12 dp that reads as the card's padding sits inside the row (`DesktopSettingsStyleTest` measures it).
+A group's card is the **tablet's settings card** (`docs/chrome.md`): the near-solid panel glass, the 20 dp panel
+corner and the family's rim as its whole edge — and a row lights **all** of it (`DesktopSettingsStyleTest`).
 
 The list is **names only** — a glyph and a word per section — because two-line summaries are a page to skip.
 

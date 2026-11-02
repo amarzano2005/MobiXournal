@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.number
@@ -110,8 +111,10 @@ internal object SettingsMetrics {
 /**
  * **One group of settings**, under its own name.
  *
- * The card is the lane's recipe (`DesktopTheme.card`, the 10 dp slot corner, no rim — a band takes none),
- * and the heading is sentence case in the heading role: the inspector's uppercase eyebrow belongs to a
+ * The card is the **tablet's settings card** (`docs/chrome.md`): the near-solid panel fill
+ * (`DesktopTheme.settingsPanel`, the window's 0.97 glass), the 20 dp panel corner and the family's rim as
+ * its whole edge — a pane cut out of the panel rather than a steel tone painted on it. The heading is
+ * sentence case in the heading role: the inspector's uppercase eyebrow belongs to a
  * panel read while drawing, where a short shout helps; a settings page is read, not glanced at.
  *
  * It **clips** its rows and pads them vertically only: a row's own fill has to reach the card's edges, or
@@ -126,8 +129,7 @@ internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(DesktopTheme.railSlotShape)
-            .background(DesktopTheme.card)
+            .glassSurface(fill = DesktopTheme.settingsPanel, cornerRadius = DesktopTheme.panelRadius)
             .padding(vertical = 4.dp),
     ) {
         content()
