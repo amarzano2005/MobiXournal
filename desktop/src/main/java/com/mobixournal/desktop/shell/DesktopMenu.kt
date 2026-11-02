@@ -92,11 +92,6 @@ internal fun HeaderMenu(
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
-    /**
-     * **Search**: the field `Ctrl+F` opens, from the menu as well — a command with a mouse has to be a button
-     * somewhere, and the band's magnifier is the other door ([Header]).
-     */
-    onSearch: () -> Unit = {},
     /** The window's settings, for the Pen block's pressure controls; null in a test with no window. */
     penPolicy: DesktopSettingsState? = null,
 ) {
@@ -136,7 +131,6 @@ internal fun HeaderMenu(
                     onToggleSidebar = { open = false; onToggleSidebar() },
                     onSettings = { open = false; onSettings() },
                     onPenParameters = { open = false; onPenParameters() },
-                    onSearch = { open = false; onSearch() },
                     onDismiss = { open = false },
                     penPolicy = penPolicy,
                 )
@@ -167,8 +161,6 @@ internal fun MenuPanel(
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
-    /** **Search** the document — `Ctrl+F`'s command, from the menu. */
-    onSearch: () -> Unit = {},
     /** Put the panel away — the preset chips close it, because they were reached mid-drawing. */
     onDismiss: () -> Unit = {},
     /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
@@ -222,8 +214,6 @@ internal fun MenuPanel(
         MenuDivider()
         MenuWindowRows(
             sidebarVisible = sidebarVisible,
-            canSearch = canExport,
-            onSearch = onSearch,
             onToggleSidebar = onToggleSidebar,
             onSettings = onSettings,
         )
@@ -231,27 +221,20 @@ internal fun MenuPanel(
 }
 
 /**
- * The rows under the menu's second rule: the document's **search**, the page list, and Settings.
+ * The rows under the menu's second rule: the page list and Settings.
  *
- * Search comes first because it reads the document, and it is greyed out until one is open — the same
- * condition the export chips take. Settings is the tablet's own row, its own page rather than a card over
- * the sheet, so it belongs here with the commands and not in the chrome it changes.
+ * **Search is not one of them.** It had a row carrying `Ctrl+F`, but the band carries the field itself,
+ * always in view and one click from the text: a menu row for a command whose own field is already on
+ * screen is a second door to the same room, and it pushed the two commands that live only here down the
+ * panel. Settings is the tablet's own row — its own page rather than a card over the sheet — so it belongs
+ * here with the commands and not in the chrome it changes.
  */
 @Composable
 private fun MenuWindowRows(
     sidebarVisible: Boolean,
-    canSearch: Boolean,
-    onSearch: () -> Unit,
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
 ) {
-    MenuRow(
-        label = "Search",
-        glyph = ChromeGlyph.SEARCH,
-        shortcut = "Ctrl+F",
-        enabled = canSearch,
-        onClick = onSearch,
-    )
     MenuRow(
         label = if (sidebarVisible) "Hide page list" else "Show page list",
         glyph = ChromeGlyph.DESCRIPTION,

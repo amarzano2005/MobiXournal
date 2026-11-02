@@ -35,7 +35,7 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * The overflow menu as the mobile bar draws it: four tiles, two rows of chips (the PDF pair in the
- * document red, the page pair in the accent), then the search and the page list under a rule.
+ * document red, the page pair in the accent), then the page list and Settings under a rule.
  *
  * A `Popup` cannot be rendered in a headless scene, which is why the panel is its own composable
  * (`MenuPanel`) and this draws it directly. The clicks use [MenuMetrics] — the very numbers the layout
@@ -55,7 +55,7 @@ class DesktopMenuTest {
     private val height: Float = with(MenuMetrics) {
         (
             padding * 2 + tileHeight + sectionGap + chipsHeight + sectionGap + dividerHeight +
-                rowHeight + sectionGap + dividerHeight + rowHeight * 3
+                rowHeight + sectionGap + dividerHeight + rowHeight * 2
             ).value + 4f
     }
 
@@ -82,7 +82,6 @@ class DesktopMenuTest {
             assertEquals("Export PDF", 1, counters[PDF])
             assertEquals("Export PNG", 1, counters[PNG])
             assertEquals("Export SVG", 1, counters[SVG])
-            assertEquals("the search row", 1, counters[SEARCH])
             assertEquals("the page list's row", 1, counters[SIDEBAR])
         } finally {
             scene.close()
@@ -262,7 +261,6 @@ class DesktopMenuTest {
                     onExportPng = { counters[PNG]++ },
                     onImportPdf = { counters[IMPORT]++ },
                     onToggleSidebar = { counters[SIDEBAR]++ },
-                    onSearch = { counters[SEARCH]++ },
                     onSettings = {},
                 )
             }
@@ -286,7 +284,7 @@ class DesktopMenuTest {
     /**
      * A plain row under the second rule, by the panel's own arithmetic: the tiles, the two chip rows, the
      * rule, the **Pen heading** (its block is the shell's settings, absent in this test), the second rule,
-     * then the rows — **Search** first, the page list under it, Settings last.
+     * then the two rows — the page list first, Settings under it.
      */
     private fun rowCentreY(row: Int): Float = with(MenuMetrics) {
         (

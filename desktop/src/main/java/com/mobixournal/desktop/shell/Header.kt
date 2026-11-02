@@ -101,11 +101,6 @@ internal fun Header(
      * last tool.
      */
     pages: PageMenuActions = PageMenuActions(),
-    /**
-     * The menu's **Search** row: `Ctrl+F`'s command, which asks the always-on field for the keyboard and
-     * sends the reader to it. **Unavailable with no tab** — a search over nothing has nothing to search.
-     */
-    onSearchOpen: () -> Unit = {},
 ) {
     val tab = tabs.active
     Row(
@@ -132,7 +127,6 @@ internal fun Header(
             onSettings = onSettings,
             onPenParameters = onPenParameters,
             penPolicy = penPolicy,
-            onSearch = onSearchOpen,
         )
         Spacer(Modifier.width(10.dp))
         TabStrip(

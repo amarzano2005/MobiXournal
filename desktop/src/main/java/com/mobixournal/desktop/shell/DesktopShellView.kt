@@ -119,7 +119,6 @@ internal fun DesktopShell(
             // The pages' menu on the band: the one set of page commands, left of the search field.
             pages = state.stripState.pages,
             // The menu's Search row still runs `Ctrl+F`'s command; the field itself is always on the band.
-            onSearchOpen = { state.apply(ShellCommand.FIND) },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             // The page is always drawn: Settings is a **floating surface** over it, not a second window
