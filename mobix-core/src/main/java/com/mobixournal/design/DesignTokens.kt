@@ -222,6 +222,28 @@ object DesignTokens {
     /** The desk both shells lie the page on: true OLED black. */
     const val DESK_RGB: Int = 0x000000
 
+    /**
+     * The window's **light** desk: the app's warm paper neutral, which is also the surround of a sheet in
+     * the light theme. The dark theme's desk is [DESK_RGB]; the two are one token pair, not two palettes.
+     */
+    const val DESK_LIGHT_RGB: Int = 0xF8F9FA
+
+    /** The light theme's ink roles: near-black on paper, and the two greys under it. */
+    const val INK_LIGHT_RGB: Int = 0x171C26
+    const val INK_SECONDARY_LIGHT_RGB: Int = 0x464C55
+    const val INK_MUTED_LIGHT_RGB: Int = 0x6B7178
+
+    /** The light theme's picked steel, and the ink a glyph on the light glass wears. */
+    const val ACTIVE_SLOT_LIGHT_RGB: Int = 0xDEE3E7
+    const val CHROME_INK_LIGHT_RGB: Int = 0x171C26
+
+    /** The light theme's hairline: black, so an edge is an edge on paper as it is on black. */
+    const val HAIRLINE_LIGHT_RGB: Int = 0x000000
+
+    /** The light theme's refusal red, and the halo a sheet casts on a paper desk. */
+    const val DANGER_LIGHT_RGB: Int = 0xB3261E
+    const val PAGE_SHADOW_LIGHT_RGB: Int = 0xD3D9DF
+
     /** The luminescent accent, dark theme (`BlueDark`). */
     const val ACCENT_DARK_RGB: Int = 0x60A5FA
 

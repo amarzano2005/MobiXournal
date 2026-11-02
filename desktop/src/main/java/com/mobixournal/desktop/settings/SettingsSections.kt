@@ -424,10 +424,13 @@ private fun NavigationSettings(policy: DesktopSettingsState) {
 @Composable
 private fun AppearanceSettings(policy: DesktopSettingsState) {
     SettingsGroup("Theme") {
-        SettingsUnavailable(
-            "Light / dark",
-            "The window is dark only in this build — the light tokens the tablet uses are the task " +
-                "that follows (desktop-light-theme-and-header-extras).",
+        SettingsSelect(
+            label = "Theme",
+            note = "System follows Windows; a document looks the same either way.",
+            options = DesktopThemeMode.entries,
+            picked = policy.appearance.theme,
+            optionLabel = { it.label },
+            onPick = policy.appearance::chooseTheme,
         )
     }
     SettingsGroup("Status bar") {
@@ -569,7 +572,7 @@ private fun AudioSettings(policy: DesktopSettingsState) {
             note = audio.exportFolder.ifBlank {
                 "No folder chosen yet — a copy needs one, and nothing is copied until it is set."
             },
-            onClick = { policy.pickAudioFolder?.invoke() },
+            onClick = { policy.audio.pickAudioFolder?.invoke() },
         ) {
             Text(
                 if (audio.exportFolder.isBlank()) "Choose…" else "Change…",

@@ -83,14 +83,16 @@ Every stored answer lives in `DesktopSettings` (`%APPDATA%\MobiXournal\desktop.p
 the moment the row is clicked, and is read back by the next window — a setting that only reached Compose
 state would look right until the next launch.
 
-## Display — the status bar's own section
+## Appearance — the tone, and the status bar
 
-Under **Appearance → Status bar**, because every row here is about the screen the window paints on:
+**Theme** (`interface.theme`) is the window's tone — **System**, **Dark** or **Light**, System when the file says nothing: the window asks Windows' own *Choose your mode* once, and a host that cannot be asked is dark.
+One flag decides every colour in `DesktopTheme`, so desk, bands, ink and rims turn over together.
+Under **Appearance → Status bar**, because every row there is about the screen it paints on:
 
 - **Full screen** (`F11`, or the row's switch). The window takes the whole screen through its own
   placement (`FullScreenMode`), and gives it back to the placement it had. Deliberately **not stored**: a
-  window opens as a window, and a file that remembered "full screen" would take the desk from a reader who
-  double-clicked a notebook.
+  window opens as a window, and a file that remembered "full screen" would take the desk from a
+  double-click.
 - **Target rate** — 60, 90, 120 or 144 Hz (`display.targetHz`, default 120), and the row **exists only
   while the window is full screen**. A refresh rate is the panel's mode, not something a window can apply
   to itself, so offering it windowed would be exactly the dead setting this section exists to avoid. While
@@ -103,8 +105,7 @@ has no 144 Hz mode and a remote session refuses every mode change, so `requestRe
 changes nothing, and the status bar keeps reporting the true rate — a target that read back as applied
 would make the readout the one line in the window that lies. The mode is matched on the display's **own
 resolution and bit depth** and on the **exact** rate: a 90 Hz target answered with 60 Hz is a setting that
-did nothing while looking applied. A refused or unsupported mode is not an error dialog, it is one row
-that did not happen.
+did nothing while looking applied — one row that did not happen, not an error dialog.
 
 Nothing in the window writes the display's mode except a full-screen request, and leaving full screen (or
 closing the window) puts the panel's previous mode back.
@@ -233,9 +234,8 @@ two different questions:
 - **Tool strips → Placement** (`stripPlacement`): **Left**, **Right** or **Top**, and nothing else. Left and
   Right are the tablet's **rail**, on the edge opposite the writing hand; Top is the **ribbon** under the
   header. The side is part of the placement rather than a second row, so there is no "a ribbon on the left".
-  Both strips are re-laid live, and each **takes a lane** (decision 2026-10-28,
-  `docs/interface-contract.md`): the canvas is handed what is left, so the choice moves the page's room and
-  no bar ever stands on the sheet.
+  Both strips are re-laid live, and each **takes a lane** (decision 2026-10-28, `docs/interface-contract.md`):
+  the canvas is handed what is left.
 - **Buttons**: one row per **slot**, its members listed underneath (the eraser holds partial and
   whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down. The
   arrangement is `DesktopSettingsState.toolGroups` and both strips read it, so a button moved here moves in

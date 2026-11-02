@@ -108,6 +108,9 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var inspectorPolicy by mutableStateOf(store.inspectorPolicy)
         private set
 
+    /** The window's theme: the file's answer and the live one, in one place (`DesktopThemeStore`). */
+    internal val appearance = DesktopAppearanceState(store)
+
     /** Whether the status bar reports the paint time per frame. */
     var frameTime by mutableStateOf(store.frameTime)
         private set
@@ -179,13 +182,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
      * answer a sentence instead of opening a dialog nothing can answer.
      */
     var pickBackupFile: ((save: Boolean, onPicked: (File?) -> Unit) -> Unit)? = null
-
-    /**
-     * The window's folder picker, lent for as long as the window is up — the Audio page's *Folder*
-     * row. A settings screen has no `Frame` to hang a dialog on, so the shell does the asking and the
-     * page records the answer.
-     */
-    var pickAudioFolder: (() -> Unit)? = null
 
     /**
      * What the last export or import said, shown under the two rows of the Backup section.

@@ -58,6 +58,13 @@ class DesktopAudioSettings(
     var exportFolder by mutableStateOf("")
         private set
 
+    /**
+     * The window's folder picker, lent for as long as the window is up — the Audio page's *Folder* row. A
+     * settings screen has no `Frame` to hang a dialog on, so the shell does the asking and the page records
+     * the answer.
+     */
+    var pickAudioFolder: (() -> Unit)? = null
+
     init {
         // After the fields above: an `init` block runs where it stands, and settling the rows before their
         // state exists is a write to nothing.

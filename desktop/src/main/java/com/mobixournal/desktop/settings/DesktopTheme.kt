@@ -7,7 +7,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -33,8 +37,26 @@ import com.mobixournal.design.DesignTokens
  */
 object DesktopTheme {
 
+    /**
+     * Which palette is live: `false` is the window's own dark glass on a true-black desk, `true` is the
+     * light one — the app's paper desk with near-black ink.
+     *
+     * A Compose **state**, and every colour below a **getter** over it: a surface that read
+     * `DesktopTheme.glass` during composition is invalidated when the answer changes, so the window
+     * repaints from one call and no second theme object exists to drift from this one.
+     */
+    private var light by mutableStateOf(false)
+
+    /** Whether the light theme is live — the question the native title bar and the tests ask. */
+    val isLight: Boolean get() = light
+
+    /** Switch the window's theme; every colour in this file follows it. */
+    fun use(lightTheme: Boolean) {
+        light = lightTheme
+    }
+
     /** The desk the sheet lies on: true OLED black, never a charcoal. */
-    val desk: Color = tokenColour(DesignTokens.DESK_RGB)
+    val desk: Color get() = tokenColour(if (light) DesignTokens.DESK_LIGHT_RGB else DesignTokens.DESK_RGB)
 
     /**
      * The bands' fill — the header, the sidebar, the status bar, the rail and every capsule — over the
@@ -46,13 +68,16 @@ object DesktopTheme {
      * a lift) and still the same colour family. The decision and its reasoning are
      * `docs/ui-modernization.md`'s; `DesktopThemeTest` pins the composite.
      */
-    val glass: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA)
+    val glass: Color get() = tokenColour(
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
+        DesignTokens.DESKTOP_BAND_ALPHA,
+    )
 
     /**
      * What floats over the page: the bands' own RGB with the see-through turned down to
      * `floatingPanelAlpha`, so a message or a menu is the same material as the bar it belongs to.
      */
-    val floating: Color = glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
+    val floating: Color get() = glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
 
     /**
      * The failed-open card's fill: [glass] at **full** opacity.
@@ -62,7 +87,7 @@ object DesktopTheme {
      * meets the sheet, so a translucent fill came out a tone lighter over the paper than over the black
      * and the panel read as two materials split down its middle. A message to be read once is solid.
      */
-    val panel: Color = tokenColour(DesignTokens.GLASS_DARK_RGB)
+    val panel: Color get() = tokenColour(if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB)
 
     /**
      * The **Settings** surface's fill: [panel] with a hair of the page showing through.
@@ -73,7 +98,10 @@ object DesktopTheme {
      * page that is read rather than looked through. Not fully [panel], because the panel still lies over
      * the document it is changing and a completely flat card reads as a second window.
      */
-    val settingsPanel: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, 0.97f)
+    val settingsPanel: Color get() = tokenColour(
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
+        0.97f,
+    )
 
     /**
      * The **tool strips'** fill: the same glass, at `STRIP_GLASS_ALPHA`.
@@ -82,17 +110,25 @@ object DesktopTheme {
      * the tools were read against its own ink, and the bar stopped reading as chrome at all. Nearly solid
      * is what makes it a bar on a desk: the page shows at its rim and nowhere else.
      */
-    val stripGlass: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.STRIP_GLASS_ALPHA)
+    val stripGlass: Color get() = tokenColour(
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
+        DesignTokens.STRIP_GLASS_ALPHA,
+    )
 
     /**
      * One edge, one pixel, 12 % white — the hairline a *control* wears (a swatch's ring), never a second
      * rule on a band. A floating surface takes [glassRim] instead: a flat border was what made the
      * window's panels look like boxes while the tablet's looked like glass.
      */
-    val hairline: Color = tokenColour(DesignTokens.HAIRLINE_RGB, DesignTokens.HAIRLINE_ALPHA)
+    val hairline: Color get() = tokenColour(
+        if (light) DesignTokens.HAIRLINE_LIGHT_RGB else DesignTokens.HAIRLINE_RGB,
+        DesignTokens.HAIRLINE_ALPHA,
+    )
 
     /** The luminescent accent: what is active, never a wash. */
-    val accent: Color = tokenColour(DesignTokens.ACCENT_DARK_RGB)
+    val accent: Color get() = tokenColour(
+        if (light) DesignTokens.ACCENT_LIGHT_RGB else DesignTokens.ACCENT_DARK_RGB,
+    )
 
     /**
      * The pixel-document red: the colour of a command that is about a **PDF**.
@@ -114,25 +150,31 @@ object DesktopTheme {
     val guide: Color = tokenColour(DesignTokens.GUIDE_RGB)
 
     /** The faint wash inside the setsquare's body: [guide] at the shared `GUIDE_FILL_ALPHA`. */
-    val guideFill: Color = guide.copy(alpha = DesignTokens.GUIDE_FILL_ALPHA / 255f)
+    val guideFill: Color get() = guide.copy(alpha = DesignTokens.GUIDE_FILL_ALPHA / 255f)
 
     /** The steel a *picked* slot wears — a selected tab, a held toggle. */
-    val activeSlot: Color = tokenColour(DesignTokens.ACTIVE_SLOT_DARK_RGB)
+    val activeSlot: Color get() = tokenColour(
+        if (light) DesignTokens.ACTIVE_SLOT_LIGHT_RGB else DesignTokens.ACTIVE_SLOT_DARK_RGB,
+    )
 
     /** The same steel at the hover step: what a slot under the pointer wears, short of picked. */
-    val hoverSlot: Color = activeSlot.copy(alpha = DesignTokens.HOVER_SLOT_ALPHA)
+    val hoverSlot: Color get() = activeSlot.copy(alpha = DesignTokens.HOVER_SLOT_ALPHA)
 
     /** The chrome's ink on the glass. */
-    val ink: Color = tokenColour(DesignTokens.INK_DARK_RGB)
+    val ink: Color get() = tokenColour(if (light) DesignTokens.INK_LIGHT_RGB else DesignTokens.INK_DARK_RGB)
 
     /** Secondary ink: status figures, layer names. */
-    val inkSecondary: Color = tokenColour(DesignTokens.INK_SECONDARY_DARK_RGB)
+    val inkSecondary: Color get() = tokenColour(
+        if (light) DesignTokens.INK_SECONDARY_LIGHT_RGB else DesignTokens.INK_SECONDARY_DARK_RGB,
+    )
 
     /** Muted ink: labels that explain and never invite. */
-    val inkMuted: Color = tokenColour(DesignTokens.INK_MUTED_DARK_RGB)
+    val inkMuted: Color get() = tokenColour(
+        if (light) DesignTokens.INK_MUTED_LIGHT_RGB else DesignTokens.INK_MUTED_DARK_RGB,
+    )
 
     /** The ink a refusal is written in (a page that cannot be read). */
-    val danger: Color = tokenColour(DesignTokens.DANGER_DARK_RGB)
+    val danger: Color get() = tokenColour(if (light) DesignTokens.DANGER_LIGHT_RGB else DesignTokens.DANGER_DARK_RGB)
 
     /** The corner every panel turns at (`panelCornerRadiusDp`), as a value the glass edge can take. */
     val panelRadius = DesignTokens.PANEL_CORNER_RADIUS_DP.dp
@@ -164,7 +206,9 @@ object DesktopTheme {
      * draws them white. Two toolbars of different brightness are two different materials, whatever the
      * fill underneath is the same, so the icons take the chrome's own ink on both shells.
      */
-    val chromeInk: Color = tokenColour(DesignTokens.CHROME_INK_DARK_RGB)
+    val chromeInk: Color get() = tokenColour(
+        if (light) DesignTokens.CHROME_INK_LIGHT_RGB else DesignTokens.CHROME_INK_DARK_RGB,
+    )
 
     /** The rail's floating capsule: 52 dp, inside a [railLaneWidth] lane. */
     val railCapsuleWidth = DesignTokens.RAIL_CAPSULE_WIDTH_DP.dp
@@ -219,7 +263,9 @@ object DesktopTheme {
     val pageShadow = DesignTokens.PAGE_SHADOW_DP.dp
 
     /** The halo's colour — above black, because a shadow cannot be darker than a true-black desk. */
-    val pageShadowColor: Color = tokenColour(DesignTokens.PAGE_SHADOW_RGB)
+    val pageShadowColor: Color get() = tokenColour(
+        if (light) DesignTokens.PAGE_SHADOW_LIGHT_RGB else DesignTokens.PAGE_SHADOW_RGB,
+    )
 
     /** Inter, the app's own geometric neutral face (the three weights the Android module ships). */
     val inter: FontFamily = FontFamily(
@@ -288,16 +334,24 @@ object DesktopTheme {
      * for the band: the Windows title bar, which the system paints and cannot be given a fill with an
      * alpha.
      */
-    val bandRgb: Int = blendRgb(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA, DesignTokens.DESK_RGB)
+    val bandRgb: Int get() = blendRgb(
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
+        DesignTokens.DESKTOP_BAND_ALPHA,
+        if (light) DesignTokens.DESK_LIGHT_RGB else DesignTokens.DESK_RGB,
+    )
 
     /** [bandRgb] in Win32's `COLORREF` order (`0x00BBGGRR`), which is what DWM attributes take. */
-    val bandColourRef: Int = colourRef(bandRgb)
+    val bandColourRef: Int get() = colourRef(bandRgb)
 
     /** The desk in `COLORREF` — the title bar's border, so the window has no light outline round it. */
-    val deskColourRef: Int = colourRef(DesignTokens.DESK_RGB)
+    val deskColourRef: Int get() = colourRef(
+        if (light) DesignTokens.DESK_LIGHT_RGB else DesignTokens.DESK_RGB,
+    )
 
     /** The chrome ink in `COLORREF`: the title text and its glyphs are the band's own ink. */
-    val inkColourRef: Int = colourRef(DesignTokens.INK_DARK_RGB)
+    val inkColourRef: Int get() = colourRef(
+        if (light) DesignTokens.INK_LIGHT_RGB else DesignTokens.INK_DARK_RGB,
+    )
 
     /** [rgb] (`0xRRGGBB`) painted at [alpha] over [over] (`0xRRGGBB`), as one opaque RGB. */
     fun blendRgb(rgb: Int, alpha: Float, over: Int): Int {
@@ -316,7 +370,7 @@ object DesktopTheme {
      * The lane is a band, and a band takes no rim (`docs/chrome.md`) — so this is a *tone*, the way the
      * hover step is, not a second surface with an edge of its own.
      */
-    val card: Color = activeSlot.copy(alpha = CARD_ALPHA)
+    val card: Color get() = activeSlot.copy(alpha = CARD_ALPHA)
 
     /** How much of the picked slot's steel a card wears: enough to separate, never a second grey block. */
     const val CARD_ALPHA: Float = 0.22f
@@ -347,6 +401,25 @@ object DesktopTheme {
         ((rgb and 0xFF) shl 16) or (rgb and 0xFF00) or ((rgb shr 16) and 0xFF)
 
     /** The one Material scheme the window uses: the same black desk and charcoal ramp as the tablet. */
+    /** The Material scheme the light theme hands `MaterialTheme`: the same roles, on the light ramp. */
+    private val lightScheme = lightColorScheme(
+        primary = tokenColour(DesignTokens.ACCENT_LIGHT_RGB),
+        onPrimary = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        secondary = tokenColour(DesignTokens.ACCENT_LIGHT_RGB),
+        onSecondary = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        background = tokenColour(DesignTokens.DESK_LIGHT_RGB),
+        onBackground = tokenColour(DesignTokens.INK_LIGHT_RGB),
+        surface = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        onSurface = tokenColour(DesignTokens.INK_LIGHT_RGB),
+        surfaceVariant = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        onSurfaceVariant = tokenColour(DesignTokens.INK_SECONDARY_LIGHT_RGB),
+        surfaceContainer = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        surfaceContainerHigh = tokenColour(DesignTokens.ACTIVE_SLOT_LIGHT_RGB),
+        surfaceContainerHighest = tokenColour(DesignTokens.ACTIVE_SLOT_LIGHT_RGB),
+        outline = tokenColour(DesignTokens.ACTIVE_SLOT_LIGHT_RGB),
+        outlineVariant = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+    )
+
     val chromeScheme = darkColorScheme(
         primary = accent,
         onPrimary = desk,
@@ -372,8 +445,11 @@ object DesktopTheme {
      * or its tracking — which is what made the PC read as a different product.
      */
     @Composable
-    fun Apply(content: @Composable () -> Unit) =
-        MaterialTheme(colorScheme = chromeScheme, typography = typography, content = content)
+    fun Apply(content: @Composable () -> Unit) = MaterialTheme(
+        colorScheme = if (light) lightScheme else chromeScheme,
+        typography = typography,
+        content = content,
+    )
 
     /** A token's RGB (`0xRRGGBB`) and alpha as a Compose [Color]. */
     fun tokenColour(rgb: Int, alpha: Float = 1f): Color = Color(

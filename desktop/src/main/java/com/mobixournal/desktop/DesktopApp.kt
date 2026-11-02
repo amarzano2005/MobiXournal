@@ -88,7 +88,10 @@ fun FrameWindowScope.DesktopApp(
     LaunchedEffect(keyboardHeld) { if (!keyboardHeld) runCatching { focus.requestFocus() } }
     // The system's title bar cannot be translucent, so it is painted the band's composited colour:
     // one surface from the top of the window down (`DesktopTitleBar`).
-    LaunchedEffect(Unit) { applyDarkTitleBar(window) }
+    LaunchedEffect(state.prefs.appearance.theme) {
+        DesktopTheme.use(state.prefs.appearance.theme.light)
+        applyDarkTitleBar(window)
+    }
     // `F11` and the Display row only set a flag: taking the whole screen, and asking the panel for the
     // target rate, is the window's own business (`DesktopDisplay`). Keyed on the rate as well, so picking
     // another target while full screen asks the display again without leaving and re-entering the mode.
@@ -127,8 +130,8 @@ fun FrameWindowScope.DesktopApp(
     }
     // The Audio page's folder row needs the same loan: a settings screen has no `Frame`.
     DisposableEffect(Unit) {
-        state.prefs.pickAudioFolder = dialogs::chooseAudioFolder
-        onDispose { state.prefs.pickAudioFolder = null }
+        state.prefs.audio.pickAudioFolder = dialogs::chooseAudioFolder
+        onDispose { state.prefs.audio.pickAudioFolder = null }
     }
     DisposableEffect(window) {
         val dropTarget = DesktopDropTarget.install(window, state)

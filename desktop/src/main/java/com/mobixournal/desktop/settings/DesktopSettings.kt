@@ -568,6 +568,9 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** Whether the status bar reports the paint time per frame. */
         const val KEY_FRAME_TIME = "display.frameTime"
 
+        /** The window's theme: `system`, `dark` or `light` (see [DesktopThemeMode]). */
+        const val KEY_THEME = "interface.theme"
+
         /** The microphone and the output the window records and plays through; absent means system default. */
         const val KEY_AUDIO_INPUT = "audio.inputDevice"
         const val KEY_AUDIO_OUTPUT = "audio.outputDevice"

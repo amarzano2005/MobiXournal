@@ -92,8 +92,11 @@ internal fun applyDarkTitleBar(window: Window): Boolean {
     if (!os.contains("windows")) return false
     val library = runCatching { Native.load("dwmapi", Dwmapi::class.java) as Dwmapi }.getOrNull() ?: return false
     val hwnd = runCatching { Native.getWindowPointer(window) }.getOrNull() ?: return false
-    val dark = setAttribute(library, hwnd, USE_IMMERSIVE_DARK_MODE, 1) ||
-        setAttribute(library, hwnd, USE_IMMERSIVE_DARK_MODE_LEGACY, 1)
+    // The caption's own light/dark answer is the theme's, not this file's: a light window whose title bar
+    // still asked for dark glyphs is the seam this call exists to remove.
+    val wantDark = if (DesktopTheme.isLight) 0 else 1
+    val dark = setAttribute(library, hwnd, USE_IMMERSIVE_DARK_MODE, wantDark) ||
+        setAttribute(library, hwnd, USE_IMMERSIVE_DARK_MODE_LEGACY, wantDark)
     val caption = setAttribute(library, hwnd, CAPTION_COLOR, DesktopTheme.bandColourRef)
     // The border and the text are the finishing touches: a build that refuses them keeps its caption.
     setAttribute(library, hwnd, BORDER_COLOR, DesktopTheme.deskColourRef)
