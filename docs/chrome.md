@@ -119,7 +119,7 @@ hairline drawn after the panel in a vertical gradient of the surface's own ink (
 edge, faint along the bottom), so a pop-up reads as a panel lying above the bar it hangs from rather
 than dissolving into the same grey. A raised shadow is deliberately not the cue — the pop-up's window
 is no larger than the panel, so an elevated menu paints its blur *inside* its own top edge and clips
-away at the sides (both measured on the emulator). `ToolbarMenuGuardTest` fails the build if any other
+away at the sides (both measured on the emulator). The panel therefore carries **no** cast elevation at all — the rim is its entire edge, which is the window's own recipe. A **settings card** is the same material one step less see-through (`ModernTheme.settingsPanel`, 0.97): a settings surface is read rather than glanced at, so the sheet's ink must not come up through its rows, and there too the rim is the edge. `ToolbarMenuGuardTest` fails the build if any other
 source file calls `DropdownMenu(`, which is what keeps a new pop-up from quietly bringing the paler,
 squarer panel back. The
 rail's head is **one slot per tool group** (`ToolGroups.kt`): `TOOL_GROUPS` partitions every

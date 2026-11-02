@@ -194,8 +194,9 @@ class ColorContractGuardTest {
      *
      * The pop-up painted `rememberToolbarColor` (`surfaceContainer`) while the rail, the header slab
      * and the dock painted the frosted glass — so in the light theme a menu hung from a near-white bar
-     * as a lavender panel. Both now read one function, and this pins that: the fill is
-     * `rememberGlassSurfaceColor()`, and the `surfaceContainer` import is gone. A colour assertion
+     * as a lavender panel. Both now read one function, and this pins that: the panel's fill is
+     * `rememberFloatingSurfaceColor()` drawn on the panel itself, and the `surfaceContainer` import is
+     * gone. A colour assertion
      * cannot see a call site, so the source tree is read instead, exactly as `ToolbarMenuGuardTest`
      * reads it for the `DropdownMenu` call.
      */
@@ -206,8 +207,15 @@ class ColorContractGuardTest {
         val text = file.readText()
         assertTrue(
             "the pop-up's fill must be the bars' own glass at the floating alpha: " +
-                "`color = rememberFloatingSurfaceColor()`",
-            text.contains("color = rememberFloatingSurfaceColor()"),
+                "`background(rememberFloatingSurfaceColor())` on the panel itself",
+            text.contains("background(rememberFloatingSurfaceColor())"),
+        )
+        // The shading, pinned the same way: the panel wears the rim and **no** elevation. A pop-up's
+        // window is only as large as the panel, so a cast shadow has nowhere to fall and paints its blur
+        // inside the panel's own top rows — the grey wash the window never had (`docs/chrome.md`).
+        assertFalse(
+            "the pop-up must cast no elevation: the rim is its whole edge",
+            text.contains("shadowElevation"),
         )
         assertFalse(
             "…and must not fall back to the surfaceContainer role it used to read",

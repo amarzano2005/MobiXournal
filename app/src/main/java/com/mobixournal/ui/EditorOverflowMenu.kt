@@ -56,11 +56,8 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
-import com.mobixournal.ui.theme.menuSheenBottom
-import com.mobixournal.ui.theme.menuSheenTop
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
-import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
@@ -68,11 +65,12 @@ import com.mobixournal.ui.theme.rememberGlassSurfaceColor
  *
  * The menu's actions used to be plain `OutlinedButton`s and `FilterChip`s, which on a frosted menu read
  * as flat Material controls lying on the glass rather than as panes cut from it. A pane borrows the
- * recipe the dock and the rail are built from: the dock's glass fill (`rememberGlassSurfaceColor`), a
- * small cast shadow (the bar itself carries 6 dp), a sheen along the lit top edge — strong enough to
- * lift the pane a shade **above** the menu's own glass, the way the dock sits above the desk, instead
- * of letting the equal-alpha fill read as a recess — and the family's hairline rim ([floatingRim]). So a
- * menu row looks like chrome the app already has, only smaller.
+ * recipe the dock and the rail are built from — and the *window's* own menu chips: the band's glass
+ * fill (`rememberGlassSurfaceColor`, white on paper), a small cast shadow it has room to throw inside
+ * the panel (the bar itself carries 6 dp), and the family's hairline rim ([floatingRim]). No gradient
+ * of its own: the desktop's chips are separated from the panel by their edge and their lift, and a
+ * sheen invented here was a second material inside one menu. So a menu row looks like chrome the app
+ * already has, only smaller.
  *
  * [wash] is an optional tint laid over the glass (a selected preset), [padding] the inner breathing
  * room; everything else about the pane is fixed, so no row of the menu can invent its own glass.
@@ -86,16 +84,15 @@ private fun GlassPane(
     wash: Color? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val dark = chromeIsDark()
     val shape = RoundedCornerShape(corner)
-    val sheenTop = menuSheenTop(dark)
-    val sheenBottom = menuSheenBottom(dark)
     Box(
         modifier = modifier
             .shadow(shadowElevation, shape)
             .clip(shape)
-            .background(rememberFloatingSurfaceColor())
-            .background(Brush.verticalGradient(listOf(sheenTop, sheenBottom)))
+            // The window's chip fill — the band's own glass, white on paper — not the panel's floating
+            // fill under a gradient invented here: on both shells a pane is separated from the panel it
+            // sits in by its rim and its small lift, exactly as `hoverCapsule` does on the desktop.
+            .background(rememberGlassSurfaceColor())
             .then(if (wash != null) Modifier.background(wash) else Modifier)
             .floatingRim(corner)
             .padding(padding),

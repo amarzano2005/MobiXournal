@@ -219,6 +219,21 @@ object ModernTheme {
      */
     fun floatingSurface(isDark: Boolean): Color = glassSurface(isDark).copy(alpha = floatingPanelAlpha)
 
+    /**
+     * The alpha a **settings surface** keeps: [floatingSurface]'s glass with almost none of the page
+     * showing through (0.97).
+     *
+     * A settings surface is *read*, not glanced at — its rows are small text over a document that is
+     * still being changed behind it — so at [floatingPanelAlpha] the sheet's own ink came up through the
+     * labels. 0.97 leaves the material legible as glass at the rim, where the edge is, and makes the
+     * inside a page rather than a window. The window's Settings panel keeps the same number
+     * (`DesktopTheme.settingsPanel`), which is what makes a settings card on either shell one material.
+     */
+    const val SETTINGS_PANEL_ALPHA: Float = 0.97f
+
+    /** The fill of a **settings surface**: the glass at [SETTINGS_PANEL_ALPHA]. */
+    fun settingsPanel(isDark: Boolean): Color = glassSurface(isDark).copy(alpha = SETTINGS_PANEL_ALPHA)
+
     /** The rail slot's shape (10 dp squircle), the one piece of rail geometry Compose wants as a type. */
     val railSlotShape: RoundedCornerShape = RoundedCornerShape(railSlotCornerRadiusDp)
 }

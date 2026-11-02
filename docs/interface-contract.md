@@ -19,7 +19,7 @@ Every surface is one of three objects. Pick the class from what the element *doe
 |---|---|---|---|
 | **Band** | chrome that borders the canvas — header, status bar, sidebar, a lane's dividing rule | the glass fill + **one 4 dp edge**, no rim; on the tablet the edge is drawn *inside* the band, on the window a strip's is cast outward | never lies over the page, never a shadow on the band beside it |
 | **Capsule** | an object lying *in* a band's space — the tablet's rail and ribbon, a header control | the glass fill + its own 6 dp lift + the family's rim, inside a lane of **air** | never a second sheet of glass behind it |
-| **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | the glass fill at `floatingPanelAlpha` + the rim, at the 20 dp panel corner | never an opaque Material card or a system `Toast` |
+| **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | the glass fill at `floatingPanelAlpha` + the rim as its whole edge (no cast elevation), at the 20 dp panel corner | never an opaque Material card or a system `Toast` |
 | **None** | the page's own content being authored — a stroke being drawn, a text box being typed | the document's own ink and face, in the document's own place | no fill, no rim, no padding |
 
 - **One style, two shells.** A look is decided **once**, in `DesignTokens` (`mobix-core`), and lands on the

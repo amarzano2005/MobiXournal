@@ -45,7 +45,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -161,11 +160,14 @@ internal fun ToolbarMenu(
         popupPositionProvider = positionProvider,
         properties = PopupProperties(focusable = true),
     ) {
-        Surface(
-            shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
-            color = rememberFloatingSurfaceColor(),
-            shadowElevation = 8.dp,
+        // The panel **is** the window's `glassSurface`, drawn here instead of delegated to a Material
+        // `Surface`: the fill, the 20 dp corner and the rim, and no cast elevation. A pop-up's window is
+        // no larger than the panel, so Material's 8 dp shadow had nowhere to fall and painted its blur
+        // *inside* the panel's top rows — the grey wash the desktop deliberately does not have.
+        Box(
             modifier = modifier
+                .clip(RoundedCornerShape(TOP_BAR_DOCK_CORNER))
+                .background(rememberFloatingSurfaceColor())
                 .floatingRim()
                 .liquidGlassSpringAnimation(expanded = true, origin = transformOrigin),
         ) {

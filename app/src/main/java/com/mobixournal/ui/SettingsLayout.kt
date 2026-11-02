@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -29,8 +28,12 @@ import androidx.compose.ui.unit.dp
  * Grouping is the page's *order*: related controls sit in one card, and a reader can scan the
  * headers to find the one they want instead of reading every subtitle top to bottom.
  */
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
-import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 @Composable
 fun SettingsGroup(
@@ -83,12 +86,15 @@ internal fun SettingsCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface(
-        shape = SettingsCardShape,
-        color = rememberFloatingSurfaceColor(),
-        tonalElevation = 0.dp,
-        shadowElevation = 2.dp,
-        modifier = modifier.fillMaxWidth().floatingRim(20.dp),
+    // A card is a **settings surface**, not a pop-up: the near-solid panel fill (the window's own
+    // settings material), the 20 dp panel corner and the rim as its whole edge — no Material
+    // elevation, whose blur would land inside the card rather than beside it.
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(SettingsCardShape)
+            .background(ModernTheme.settingsPanel(chromeIsDark()))
+            .floatingRim(20.dp),
     ) {
         CompositionLocalProvider(LocalSettingsCardInset provides SettingsRowInset) {
             Column(
