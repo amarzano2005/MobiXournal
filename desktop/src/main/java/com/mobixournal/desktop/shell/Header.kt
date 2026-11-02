@@ -31,12 +31,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import com.mobixournal.desktop.tools.DismissGuard
-import com.mobixournal.desktop.tools.FloatingSurface
 import com.mobixournal.design.ChromeGlyph
 
 /**
@@ -93,11 +88,6 @@ internal fun Header(
     onSearchPrevious: () -> Unit = {},
     onSearchClose: () -> Unit = {},
     /**
-     * The pages' menu on the band, immediately left of the search field: the tablet's page section, with
-     * the same rows the strip's own slot opens ([PageMenuPanel]).
-     */
-    pages: PageMenuActions = PageMenuActions(),
-    /**
      * The menu's **Search** row: `Ctrl+F`'s command, which asks the always-on field for the keyboard and
      * sends the reader to it. **Unavailable with no tab** — a search over nothing has nothing to search.
      */
@@ -139,7 +129,7 @@ internal fun Header(
             onNew = onNew,
             modifier = Modifier.weight(1f),
         )
-        HeaderSearchSlot(tab, pages, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+        HeaderSearchSlot(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
         // Two groups, not one row of four: the history step and the file command are answered by
         // different questions ("what did I just do" and "where does this go"), and the wider gap is the
         // whole of the difference this band has room to draw.
@@ -174,19 +164,16 @@ private fun HeaderFileCommands(tab: DesktopTab?, onSave: () -> Unit, onExportPdf
 }
 
 /**
- * The band's document controls, left to right: the **pages' menu** and the **search field**, which
- * stands there always.
+ * The band's **search field**, which stands there always, right of the tabs.
  *
- * The field used to be a magnifier that opened it, and a magnifier is a second thing to learn for a door
- * `Ctrl+F` already names; a field that is simply on the band takes the band's spare width beside the tabs
- * and moves neither the tabs nor the file commands when it is used (`docs/desktop-ui-layout.md`). The
- * pages' menu stands on its left, because the page is what the reader is looking at: adding, removing or
- * stepping one is a command of the frame, and the strip keeps the tools.
+ * The field used to be a magnifier that opened it, and a magnifier is a second thing to learn for a
+ * door `Ctrl+F` already names; a field that is simply on the band takes the band's spare width beside the
+ * tabs and moves neither the tabs nor the file commands when it is used (`docs/desktop-ui-layout.md`).
+ * The pages are reached from the strip's own slot and the sidebar, so the band stays the file's row.
  */
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
     tab: DesktopTab?,
-    pages: PageMenuActions,
     onSearch: (String) -> Unit,
     onSearchNext: () -> Unit,
     onSearchPrevious: () -> Unit,
@@ -194,45 +181,7 @@ private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
 ) {
     if (tab != null) {
         Spacer(Modifier.width(10.dp))
-        HeaderPagesSlot(pages)
-        Spacer(Modifier.width(6.dp))
         HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
-    }
-    Spacer(Modifier.width(12.dp))
-}
-
-/**
- * The **Pages** door: the tablet's page section button on the band, opening the six rows of
- * [PageMenuPanel] under it — the same menu the strip's own slot carries, from the place the reader looks
- * for the document rather than the tools.
- */
-@Composable
-private fun HeaderPagesSlot(pages: PageMenuActions) {
-    var open by remember { mutableStateOf(false) }
-    // The click that closes the menu must not open it again (see [DismissGuard]).
-    val guard = remember { DismissGuard() }
-    val density = LocalDensity.current
-    val drop = with(density) { (DesktopTheme.headerControlSize + 4.dp).roundToPx() }
-    Box {
-        HeaderGlyph(
-            active = open,
-            enabled = pages.canManage,
-            onClick = {
-                if (open) open = false else if (guard.mayOpen(Unit)) open = true
-            },
-        ) { color -> drawChromeGlyph(ChromeGlyph.DESCRIPTION, color) }
-        if (open) {
-            Popup(
-                offset = IntOffset(0, drop),
-                onDismissRequest = {
-                    guard.closed(Unit)
-                    open = false
-                },
-                properties = FloatingSurface,
-            ) {
-                PageMenuPanel(pages) { open = false }
-            }
-        }
     }
 }
 

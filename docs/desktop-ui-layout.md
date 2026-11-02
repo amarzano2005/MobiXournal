@@ -26,10 +26,9 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 
 ### 1. Window layout & workspace panes
 - **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one tab per open
-  document (each keeps its page, zoom and fit), the `+` for another, and right **Pages, search, undo, redo,
-  Save, PDF**. The search field stands there always, 240 dp beside the tabs, so using it never moves them or
-  the file commands; **Pages**, on its left, is the tablet's page section — add, remove, step, format,
-  paper — see [search.md](search.md).
+  document (each keeps its page, zoom and fit), the `+` for another, and right **search, undo, redo, Save,
+  PDF**. The search field stands there always beside the tabs, so using it never moves them or the file
+  commands — see [search.md](search.md). Pages are the strip's own slot and the sidebar's business.
 - **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
   per layer that hides it without writing to the document; it opens itself only when the document has
   **more than one page**.

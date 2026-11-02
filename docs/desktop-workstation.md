@@ -29,8 +29,8 @@ What it does today:
   true-black desk, and a 24 dp status bar with the page counter, the zoom, the fit mode, the pen stream, the
   display's refresh rate with its frame budget (`120 Hz · 8.3 ms frame`) and the container. The chrome is
   the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 48 dp header carrying the
-  **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is), a search field beside
-  them on `Ctrl + F` ([search.md](search.md) owns it), the strip's own **`+`** and, on the right,
+  **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is), the search field always
+  beside them, which `Ctrl + F` only hands the keyboard ([search.md](search.md) owns it), the strip's own **`+`** and, on the right,
   **undo, redo, Save and Export PDF** — the mobile bar's four commands, on 36 dp
   capsules with 20 dp glyphs; the band is 8 dp taller than the tablet's token because it carries that row of
   controls as well as the tabs (`DesktopTheme.headerHeight`), under a **native caption painted in the
