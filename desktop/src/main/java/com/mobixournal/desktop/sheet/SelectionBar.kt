@@ -170,7 +170,9 @@ internal fun SelectionBar(
     Box(modifier.offset { placement() }) {
         Row(
             Modifier
-                .glassCapsule(cornerRadius = DesktopTheme.panelRadius, shadow = DesktopTheme.bandShadow)
+                // A bar that floats over the sheet is a capsule, not a band: it takes the capsule's
+                // own lift, so on paper it reads as an object above the page instead of an outline.
+                .glassCapsule(cornerRadius = DesktopTheme.panelRadius, shadow = DesktopTheme.capsuleShadow)
                 .padding(horizontal = 4.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),

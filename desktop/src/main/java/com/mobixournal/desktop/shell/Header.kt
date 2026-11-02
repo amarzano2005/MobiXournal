@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -289,14 +291,23 @@ internal fun HeaderGlyph(
         hovered && enabled -> DesktopTheme.hoverSlot
         else -> DesktopTheme.control
     }
+    // On paper an unavailable command is **its glyph alone**: a capsule that cannot be pressed is a
+    // shape on the band rather than an object, and a pair of them read as the grey patch the owner
+    // saw where the history arrows are (2026-11-02). On black the capsule stays — there its drawn rim
+    // is the only thing that marks a disabled control at all, and the fill is the band's own tone.
+    val surface = if (!enabled && DesktopTheme.isLight) {
+        Modifier.clip(RoundedCornerShape(DesktopTheme.headerControlSize / 2))
+    } else {
+        Modifier.glassCapsule(
+            cornerRadius = DesktopTheme.headerControlSize / 2,
+            fill = fill,
+            shadow = DesktopTheme.bandShadow,
+        )
+    }
     Box(
         Modifier
             .size(DesktopTheme.headerControlSize)
-            .glassCapsule(
-                cornerRadius = DesktopTheme.headerControlSize / 2,
-                fill = fill,
-                shadow = DesktopTheme.bandShadow,
-            )
+            .then(surface)
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }
             .pointerInput(enabled, active) { if (enabled) detectTapGestures { onClick() } },

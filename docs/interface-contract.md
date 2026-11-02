@@ -33,7 +33,7 @@ Every surface is one of three objects. Pick the class from what the element *doe
   as two grey rules across the window. The edge is a band's whole boundary.
 - **On paper a band and its control swap places.** A capsule takes `DesktopTheme.control` — the glass on
   the black desk, **white** in the light theme — while the band under it keeps the tinted glass, and the
-  drawn edge becomes more of the same ink (`RIM_ALPHA_TOP_LIGHT`, 0.26) in place of the white hairline's
+  drawn edge becomes more of the same ink (`RIM_ALPHA_TOP_LIGHT`, 0.20) in place of the white hairline's
   0.12. Lifting the dark recipe onto paper made a header button a white disc on a white band and a menu
   chip invisible: on paper "raised" is a shade *around* the object, not a highlight on it.
   `LightMaterialTest` fails if the pair stops being inverted.

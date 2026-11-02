@@ -135,7 +135,7 @@ object DesignTokens {
      * edge — and the window's buttons went back to being invisible discs on a pale band. On paper the
      * edge is a *shade*, so the light pair carries more of it; the dark pair is unchanged.
      */
-    const val RIM_ALPHA_TOP_LIGHT: Float = 0.26f
+    const val RIM_ALPHA_TOP_LIGHT: Float = 0.20f
 
     /** The light rim's bottom: fainter, but still a line a reader can follow round a capsule. */
     const val RIM_ALPHA_BOTTOM_LIGHT: Float = 0.09f
