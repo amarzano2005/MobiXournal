@@ -75,6 +75,10 @@ Rather than relying on vulnerable loose sidecars in user folders:
   session or the reverse. The mini capsule's own resume button reads as a **record dot**, not the play triangle of
   the playback button beside it: resuming a recording and starting playback are two different acts. A paused recording keeps the microphone open — the capture is muted, not closed — so
   resuming costs no new file and no gap.
+  **The service outlives nobody**: it answers `START_STICKY` so a recording survives the app leaving the
+  screen, but a sticky restart after the process was killed arrives with a null intent, and the take it
+  belonged to died with that process — the service therefore stops itself (`START_NOT_STICKY`) instead of
+  lingering as a background service with no notification.
   Prevents OS microphone muting or capture termination when switching apps or locking the screen. All three
   recorders ask for `MediaRecorder.AudioSource.VOICE_RECOGNITION` first — the source Android tunes for
   speech (automatic gain, noise suppression) — and fall back to `MIC`/`DEFAULT` when a device does not offer it.

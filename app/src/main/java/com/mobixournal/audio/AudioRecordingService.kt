@@ -57,6 +57,15 @@ class AudioRecordingService : Service() {
                 paused = false
                 startForegroundRecording(startedAtMs)
             }
+            else -> {
+                // A START_STICKY restart arrives with no intent, and there is no recording to resume:
+                // the session that held the microphone died with the process that owned it. Staying up
+                // would leave a background service with no notification for the system to chase, so the
+                // restart ends here — and the null-intent path is the only way to reach this branch.
+                stopForegroundRecording()
+                stopSelf()
+                return START_NOT_STICKY
+            }
         }
         return START_STICKY
     }

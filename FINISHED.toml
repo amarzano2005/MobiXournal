@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "audio-service-a-sticky-restart-with-no-intent-must-stop-itself"
+title = "Audio service: a sticky restart with no intent must stop itself"
+description = "onStartCommand now has an else branch: a sticky restart, which is the only way to get a null intent, releases the wake lock and the foreground state and calls stopSelf with START_NOT_STICKY, instead of leaving a notification-less background service behind after the process died mid-recording. The ACTION_START/PAUSE/STOP paths are untouched. docs/audio-inking-sync.md (Background capture) states the rule. Not compiled in this container: no JDK and no Android SDK are installed, so the APK build and :desktop:createDistributable still need a run on the owner's host."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-02
+completed = 2026-11-02
+tags = ["audio"]
+
+[[task]]
 id = "desktop-light-materials-on-paper"
 title = "Desktop: the light theme's materials read on paper"
 description = "Gave the light theme a real desk (0xE9EDF1), inverted the band and its control on paper (control white, band tinted, panelField for fields inside a panel), made a card visible (CARD_ALPHA_LIGHT) and the drawn edge a shade of ink (RIM_ALPHA_TOP_LIGHT); the black desk is unchanged, and LightMaterialTest plus the rule in docs/interface-contract.md keep it that way. Checked with headless renders of the shell, the overflow menu and the settings surface."
