@@ -95,22 +95,17 @@ fun NotebookEntryScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 if (wide) {
-                    // The row is fitted to the **window**, not to a desk: what is left after the commands and
-                    // the sheet is the recents' own width, so a card is whole rather than cut at the edge. The
-                    // sheet stands a breath from the commands (40 dp, not 72) — it used to float in the middle
-                    // of the row while the grid paid for that air with a clipped card.
-                    val content = minOf(windowWidth.value - 64f, WIDE_MAX_WIDTH_DP - 64f)
-                    val gridWidth = (content - WIDE_START_COLUMN_DP - WIDE_HERO_GAP_DP - WIDE_HERO_WIDTH_DP - WIDE_GAP_DP)
-                        .coerceAtLeast(MIN_RECENT_DP * 3)
                     Row(
-                        modifier = Modifier.width((content + 64f).dp).padding(horizontal = 32.dp),
+                        modifier = Modifier.widthIn(max = WIDE_MAX_WIDTH_DP.dp).padding(horizontal = 32.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         StartColumn(WIDE_START_COLUMN_DP, onNew, onOpen, ink)
+                        // A step closer than the gap the grid gets: the sheet sits a little further left, and
+                        // the recents gain that width at the window's edge.
                         Spacer(Modifier.width(WIDE_HERO_GAP_DP.dp))
                         NewSheetCard(WIDE_HERO_WIDTH_DP, ink, onNew)
                         Spacer(Modifier.width(WIDE_GAP_DP.dp))
-                        RecentColumn(recents, gridWidth, WIDE_RECENT_WIDTH_DP, WIDE_RECENT_COLUMNS, ink, onOpenRecent)
+                        RecentColumn(recents, WIDE_GRID_DP, WIDE_RECENT_WIDTH_DP, WIDE_RECENT_COLUMNS, ink, onOpenRecent)
                     }
                 } else {
                     // The narrow block is **as wide as the window allows**, and every part of it shares that
@@ -411,13 +406,8 @@ private const val RECENT_COLUMNS = 3
 
 private const val RECENT_GAP_DP = 12f
 
-/**
- * Above this the block steps up a size: a tablet on its side, not a phone.
- *
- * A thousand, not 840: the row needs the commands, the sheet, three recents and the gaps between them, and
- * a window under that is one the stacked column serves better than a row of clipped cards.
- */
-private const val WIDE_DESK_DP = 1000f
+/** Above this the block steps up a size: a tablet on its side, not a phone. */
+private const val WIDE_DESK_DP = 840f
 
 private const val WIDE_GAP_DP = 72f
 
@@ -430,9 +420,10 @@ private const val WIDE_RECENT_WIDTH_DP = 148f
 private const val WIDE_RECENT_COLUMNS = 5
 
 /**
- * The air between the commands and the sheet — a breath, not a column.
- *
- * The sheet used to stand 72 dp away, floating in the middle of the row while the recents' grid paid for
- * the gap with a card cut at the window's edge.
+ * The gap between the commands and the sheet: a step closer than the grid's own, so the sheet sits a little
+ * further left and the recents end inside the window's edge.
  */
-private const val WIDE_HERO_GAP_DP = 40f
+private const val WIDE_HERO_GAP_DP = 56f
+
+/** The wide grid's own width: its cards and their gaps, which the grid then fits itself into. */
+private const val WIDE_GRID_DP = WIDE_RECENT_WIDTH_DP * WIDE_RECENT_COLUMNS + RECENT_GAP_DP * (WIDE_RECENT_COLUMNS - 1)
