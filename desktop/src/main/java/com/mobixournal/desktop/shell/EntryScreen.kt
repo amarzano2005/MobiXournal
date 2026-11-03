@@ -227,7 +227,10 @@ private fun SheetCard(
                 val spread = DesktopTheme.pageShadow.toPx()
                 val sheet = Rect(spread, spread, size.width - spread, size.height - spread)
                 if (sheet.width > 1f && sheet.height > 1f) {
-                    drawPageShadow(sheet)
+                    // Laid three times: the halo is the page's own recipe, tuned for a sheet that fills the
+                    // canvas, and on a card one pass measured as a breath of grey on black. Stacking it is
+                    // the same falloff three times as strong — no second recipe to drift from the page's.
+                    repeat(HALO_PASSES) { drawPageShadow(sheet) }
                     if (preview == null) {
                         // Before the paint lands the card shows the **empty sheet it will become**, not a
                         // glass slab that would be the band again.
@@ -258,7 +261,9 @@ private fun SheetCard(
             style = DesktopTheme.label,
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier.width(widthDp.dp),
+            // Left-aligned, but starting **where the paper starts**: the card keeps the halo's spread on
+            // every side, so a label flush with the card began a halo's width before the sheet it names.
+            modifier = Modifier.width(widthDp.dp).padding(start = DesktopTheme.pageShadow),
         )
     }
 }
@@ -320,6 +325,16 @@ private val PREVIEWS = java.util.concurrent.ConcurrentHashMap<String, ImageBitma
  * that keeps the rim from looking cut with a knife, and it is a rectangle at any size.
  */
 private const val SHEET_CORNER_DP = 3f
+
+/**
+ * How many times the page's halo is laid under a card.
+ *
+ * Three, because the recipe is the page's — eight steps at 4.5 % — tuned for a sheet that fills the canvas. On
+ * a card the same falloff measured `#0E0E0F` two pixels outside the paper, against a `#0D0D0E` desk: a shadow
+ * that was not there. Stacking the same rings is the same shape, three times as strong, with no second recipe
+ * to drift from the page's.
+ */
+private const val HALO_PASSES = 3
 
 /** The block's own bound: three columns that stay one block on a laptop and do not stretch on a 3440 px desk. */
 private const val ENTRY_MAX_WIDTH_DP = 1000f
