@@ -206,15 +206,20 @@ private fun SheetCard(
             modifier = Modifier
                 .width(widthDp.dp)
                 .aspectRatio(SHEET_ASPECT)
+                // The glass is the card's **placeholder**, not its frame: once the page is painted it
+                // covers the card edge to edge, so the outline is the sheet's own edge and no dark band
+                // surrounds it. Before the paint lands, the same box holds the empty glass.
                 .background(DesktopTheme.tabFillResting, SHEET_SHAPE)
                 .hoverFill(SHEET_SHAPE)
-                .border(1.dp, DesktopTheme.hairline, SHEET_SHAPE),
+                // A rim that reads on **paper**: the hairline is a light line for the dark band, and on the
+                // white sheet it would be the one thing about the card you could not see.
+                .border(1.dp, DesktopTheme.inkMuted.copy(alpha = SHEET_RIM_ALPHA), SHEET_SHAPE),
             contentAlignment = Alignment.Center,
         ) {
             // Drawn at the box's own size rather than through `Image`'s `ContentScale`: the preview is a
             // bitmap of exactly the sheet's proportions, and fitting it let the picture arrive as a strip in
             // a box twice its width instead of filling the card.
-            Canvas(Modifier.fillMaxSize().padding(SHEET_PADDING_DP.dp)) {
+            Canvas(Modifier.fillMaxSize()) {
                 preview?.let { bitmap ->
                     drawImage(
                         image = bitmap,
@@ -340,8 +345,8 @@ private const val WIDE_RECENT_COLUMNS = 4
 /** Paper's proportions, so a card is the shape of the page it previews. */
 private const val SHEET_ASPECT = 0.707f
 
-/** The air between a card's rim and the sheet inside it: a mat, not a frame. */
-private const val SHEET_PADDING_DP = 6
+/** The card's rim over its own paper: enough to close the edge, not enough to draw a box. */
+private const val SHEET_RIM_ALPHA = 0.35f
 
 /** The primary door's tint: the accent as a fill, not as a block of colour. */
 private const val BUTTON_TINT = 0.16f
