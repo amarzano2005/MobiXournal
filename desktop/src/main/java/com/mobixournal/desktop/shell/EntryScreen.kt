@@ -158,7 +158,7 @@ private fun RecentColumn(
         Text(
             "Recents",
             color = DesktopTheme.ink,
-            style = DesktopTheme.heading,
+            style = DesktopTheme.subtitle,
             modifier = Modifier.padding(start = DesktopTheme.pageShadow),
         )
         Spacer(Modifier.height(10.dp))

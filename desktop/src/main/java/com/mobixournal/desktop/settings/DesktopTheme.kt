@@ -476,6 +476,12 @@ object DesktopTheme {
     /** A panel's title — a message, a card's own name: the tablet's small title, in Medium. */
     val heading = typography.titleSmall.copy(fontWeight = FontWeight.Medium)
 
+    /**
+     * A block's subtitle: the heading one size up. For a label that introduces a group of objects rather than
+     * titling a section — the entry screen's "Recents", which stands over the grid and reads as its caption.
+     */
+    val subtitle = typography.titleMedium.copy(fontWeight = FontWeight.Medium)
+
     /** An `0xRRGGBB` colour in Win32's `COLORREF` order (`0x00BBGGRR`). */
     fun colourRef(rgb: Int): Int =
         ((rgb and 0xFF) shl 16) or (rgb and 0xFF00) or ((rgb shr 16) and 0xFF)
