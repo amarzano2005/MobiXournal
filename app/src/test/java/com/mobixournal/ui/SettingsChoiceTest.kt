@@ -32,6 +32,14 @@ class SettingsChoiceTest {
             "and the list is placed against its own row, not by the toolbar's own placement",
             group.contains("positionProvider = placement"),
         )
+        assertTrue(
+            "the list takes the row's width instead of measuring itself into a squeezed column",
+            group.contains("contentWidthPx = rowWidthPx"),
+        )
+        assertTrue(
+            "and it wears the settings panel's fill: floating glass over a card let the rows show through",
+            group.contains("settingsPanel("),
+        )
         val row = body("private fun OptionTriggerRow(")
         assertTrue("OptionTriggerRow is where the test expects it", row.isNotEmpty())
         assertTrue("the whole row opens the list, not just the answer", row.contains("clickable("))

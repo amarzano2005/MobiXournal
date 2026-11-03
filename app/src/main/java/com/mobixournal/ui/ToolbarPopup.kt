@@ -154,6 +154,8 @@ internal fun ToolbarMenu(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     positionProvider: PopupPositionProvider? = null,
+    contentWidthPx: Int? = null,
+    fill: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // The window is **held** for the departure. A pop-up's window is torn down between two frames the
@@ -165,6 +167,8 @@ internal fun ToolbarMenu(
             onDismissRequest = onDismissRequest,
             modifier = modifier,
             placement = positionProvider,
+            contentWidthPx = contentWidthPx,
+            fill = fill,
             content = content,
         )
     }
@@ -181,9 +185,14 @@ private fun ToolbarMenuWindow(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     placement: PopupPositionProvider? = null,
+    contentWidthPx: Int? = null,
+    fill: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
+    // A menu's own fill unless the caller owns one: a settings list wears the settings panel, because
+    // floating glass over a settings card let the row behind it read through the answers.
+    val panelFill = fill ?: rememberFloatingSurfaceColor()
     val density = LocalDensity.current
     val toolbarPlacement = remember(density) {
         ToolbarPopupPositionProvider(density = density) { origin ->
@@ -207,13 +216,22 @@ private fun ToolbarMenuWindow(
                 // the things inside it do". Out here it scales and fades the whole panel.
                 .liquidGlassSpringAnimation(origin = transformOrigin)
                 .clip(RoundedCornerShape(TOP_BAR_DOCK_CORNER))
-                .background(rememberFloatingSurfaceColor())
+                .background(panelFill)
                 .floatingRim(),
         ) {
             Column(
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .width(IntrinsicSize.Max)
+                    .then(
+                        // A menu of answers measures its own width from its rows (intrinsics). A list given
+                        // one — the width of the settings row it belongs to — takes it instead, because its
+                        // own rows fill that width.
+                        if (contentWidthPx != null) {
+                            Modifier.width(with(density) { contentWidthPx.toDp() })
+                        } else {
+                            Modifier.width(IntrinsicSize.Max)
+                        },
+                    )
                     .verticalScroll(rememberScrollState()),
                 content = content,
             )

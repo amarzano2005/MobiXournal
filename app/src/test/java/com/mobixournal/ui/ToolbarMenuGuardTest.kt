@@ -68,10 +68,13 @@ class ToolbarMenuGuardTest {
         )
         // And the spring must be the outer layer: composed after the fill it holds only the panel's
         // children, so the glass lands opaque and full-size and only the rows inside it move.
+        // The words of the fill call are not pinned — a settings list brings the settings panel's fill
+        // instead of the floating glass, and `ColorContractGuardTest` pins that default. The order is.
+        val spring = owner.indexOf(".liquidGlassSpringAnimation(")
+        val fill = owner.indexOf(".background(", startIndex = spring)
         assertTrue(
             "the spring must wrap the fill, not sit inside it (animation before clip/background)",
-            owner.indexOf(".liquidGlassSpringAnimation(") in
-                0..<owner.indexOf(".background(rememberFloatingSurfaceColor())"),
+            spring >= 0 && fill > spring,
         )
     }
 

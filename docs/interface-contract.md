@@ -69,6 +69,11 @@ Every surface is one of three objects. Pick the class from what the element *doe
 - **The pen-tip ring is a floating surface that happens to be round** ([`ui-modernization.md`](ui-modernization.md)):
   the floating fill and the rim at its own radius instead of the 20 dp panel corner, the picked slot on the steel
   with the accent ring around it — a menu's tokens, arranged round because the choice is made with a flick.
+- **A list inside Settings is a floating surface on the settings panel's fill**: every other menu keeps the
+  floating glass, but a select's list lands over a settings card, where that glass let the row behind it read
+  through the answers it was showing. It takes the near-solid panel the cards themselves wear, and keeps the
+  rim, the panel corner and the spring; the window's own select opens on that fill for the same reason
+  ([`desktop-settings.md`](desktop-settings.md)).
 - **The window's tool strips take a lane, as the tablet's do** (decision 2026-10-28). The rail stands in a
   band down an edge and the ribbon in a band under the header — the header's own material and its one 4 dp
   lift — with the tablet's capsule standing *in* that band: the rail 52 dp in a 64 dp lane, the ribbon

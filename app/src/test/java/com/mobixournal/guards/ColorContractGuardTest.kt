@@ -205,10 +205,12 @@ class ColorContractGuardTest {
         val file = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/ToolbarPopup.kt")
         assertTrue("File must exist: ${file.path}", file.isFile)
         val text = file.readText()
+        // The **default** is the bars' glass. A settings select is the one caller that brings a fill of its
+        // own — the settings panel, as the window's select does — so the pin sits on the fallback.
         assertTrue(
-            "the pop-up's fill must be the bars' own glass at the floating alpha: " +
-                "`background(rememberFloatingSurfaceColor())` on the panel itself",
-            text.contains("background(rememberFloatingSurfaceColor())"),
+            "the pop-up's fill must default to the bars' own glass at the floating alpha: " +
+                "`fill ?: rememberFloatingSurfaceColor()` on the panel itself",
+            text.contains("fill ?: rememberFloatingSurfaceColor()"),
         )
         // The shading, pinned the same way: the panel wears the rim and **no** elevation. A pop-up's
         // window is only as large as the panel, so a cast shadow has nowhere to fall and paints its blur

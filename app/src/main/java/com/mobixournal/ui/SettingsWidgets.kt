@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
@@ -49,6 +48,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.mobixournal.render.Momentum
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.render.PanSensitivity
 import com.mobixournal.render.PressureCurve
 
@@ -111,13 +112,14 @@ fun <T> OptionGroup(
     onSelect: (T) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
+    var rowWidthPx by remember { mutableStateOf(0) }
     val density = LocalDensity.current
     val placement = remember(density) { SettingsSelectPositionProvider(density) }
     // The screen less the list's air at each end — the same margin the placement keeps from the window's
     // edges, so a capped panel always has room where it is put.
     val maxMenuHeight = (LocalConfiguration.current.screenHeightDp.dp - SettingsSelectMargin * 2)
         .coerceAtLeast(160.dp)
-    Box {
+    Box(Modifier.onSizeChanged { rowWidthPx = it.width }) {
         OptionTriggerRow(
             title = title,
             subtitle = subtitle,
@@ -130,6 +132,12 @@ fun <T> OptionGroup(
             onDismissRequest = { open = false },
             modifier = Modifier.heightIn(max = maxMenuHeight),
             positionProvider = placement,
+            // The list is the row's own width and wears the settings panel's fill: a panel squeezed to its
+            // intrinsic width wrapped every answer onto a second line, and floating glass over a card let
+            // the rows behind it read through — a stain, not a menu. The window's select opens on the same
+            // fill for the same reason (`docs/desktop-settings.md`).
+            contentWidthPx = rowWidthPx.takeIf { it > 0 },
+            fill = ModernTheme.settingsPanel(chromeIsDark()),
         ) {
             options.forEach { option ->
                 OptionMenuItem(
@@ -196,42 +204,49 @@ private fun OptionTriggerRow(
     }
 }
 
-/** One answer in a select's list: in the accent with a check when it is the one in hand. */
+/**
+ * One answer in a select's list: in the accent with a check when it is the one in hand.
+ *
+ * A row of our own rather than a `DropdownMenuItem`, whose label carries a weight — with a weight its
+ * intrinsic width is nothing, so a list measured on intrinsics collapsed onto its padding and the answers
+ * wrapped out of the panel. These rows fill the width the list is given instead.
+ */
 @Composable
 private fun OptionMenuItem(label: String, icon: ImageVector?, chosen: Boolean, onClick: () -> Unit) {
-    DropdownMenuItem(
-        text = {
-            Text(
-                label,
-                color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
             )
-        },
-        onClick = onClick,
-        leadingIcon = if (icon == null) {
-            null
-        } else {
-            {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        },
-        trailingIcon = if (chosen) {
-            {
-                Icon(
-                    Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        } else {
-            null
-        },
-    )
+            Spacer(Modifier.width(10.dp))
+        }
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (chosen) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
 }
 
 /**
