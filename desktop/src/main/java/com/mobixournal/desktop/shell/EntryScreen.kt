@@ -233,7 +233,11 @@ private fun SheetCard(
                 // then covered — it vanished exactly when the page arrived, which is the opposite of a
                 // frame. Here it lands on the sheet's own edge, 1 dp of muted ink, touching the paper.
                 drawRoundRect(
-                    color = DesktopTheme.inkMuted.copy(alpha = SHEET_RIM_ALPHA),
+                    // A **dark** line, because the sheet is white: the muted ink is a light grey made for
+                    // the dark band, and at any alpha over paper it was the one edge that could not be
+                    // seen. The desk is the darkest tone the window owns, so its own colour at 45 % is the
+                    // frame — on the light theme the desk is a pale grey and the same line still reads.
+                    color = DesktopTheme.desk.copy(alpha = SHEET_RIM_ALPHA),
                     cornerRadius = CornerRadius(SHEET_CORNER_DP.dp.toPx()),
                     style = Stroke(width = 1.dp.toPx()),
                 )
@@ -356,7 +360,7 @@ private const val WIDE_RECENT_COLUMNS = 4
 private const val SHEET_ASPECT = 0.707f
 
 /** The card's rim over its own paper: enough to close the edge, not enough to draw a box. */
-private const val SHEET_RIM_ALPHA = 0.55f
+private const val SHEET_RIM_ALPHA = 0.45f
 
 /** The primary door's tint: the accent as a fill, not as a block of colour. */
 private const val BUTTON_TINT = 0.16f
