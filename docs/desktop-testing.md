@@ -55,7 +55,7 @@ never one per sample, a replay an order of magnitude cheaper than a record, and 
 selection and not the page — the numbers that decided against a second preview machine for that gesture
 (measured: ~0.2 ms per sample, ~1 ms per drag frame on the written sheet). `PenPresetTest` is the pen's **presets**, as state and as a file: saving the live
 numbers under a name, the next launch opening on that preset, applying one feeding the shared pressure
-filter, a slider rewriting the live entry, and the list keeping one preset and repairing a broken line.
+filter, a slider rewriting the live entry, and the list keeping one preset and repairing a broken line. `DesktopPagePaintCostTest` and `DesktopTabSwitchCostTest` are the sheet's **price** rather than its behaviour: a page must cost what it holds (a blank page 0.4 ms, a written one 0.8, a dense one 3 — printed, and held under a budget), and the frame after a tab switch must stay under 200 ms, with the canvas part of it under 50. That is the budget the halo broke: eight filled translucent rectangles over the whole page cost their *area* per paint, so a blank page cost 195 ms and a switch a third of a second.
 
 
 ## Where the rest lives
