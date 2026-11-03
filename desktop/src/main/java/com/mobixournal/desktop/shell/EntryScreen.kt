@@ -100,6 +100,7 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
                 RecentColumn(
                     recents,
                     cardWidthDp = recent,
+                    columns = if (wide) WIDE_RECENT_COLUMNS else RECENT_COLUMNS,
                     onOpenRecent = { file -> state.openInBackground(file, scope) },
                 )
             }
@@ -134,8 +135,16 @@ private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit) {
  * that failed to load, and the reader's next move is the Open button either way.
  */
 @Composable
-private fun RecentColumn(recents: List<File>, cardWidthDp: Float, onOpenRecent: (File) -> Unit) {
-    Column(Modifier.width((cardWidthDp * RECENT_COLUMNS + RECENT_GAP_DP * (RECENT_COLUMNS - 1)).dp)) {
+private fun RecentColumn(
+    recents: List<File>,
+    cardWidthDp: Float,
+    columns: Int,
+    onOpenRecent: (File) -> Unit,
+) {
+    // The grid is as wide as the cards it actually has: reserving four columns for two notebooks left the
+    // block off-centre by the width of the two empty ones, which read as a mistake rather than as a grid.
+    val perLine = minOf(columns, recents.size).coerceAtLeast(1)
+    Column(Modifier.width((cardWidthDp * perLine + RECENT_GAP_DP * (perLine - 1)).dp)) {
         Text("Recent", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         Spacer(Modifier.height(10.dp))
         if (recents.isEmpty()) {
@@ -146,7 +155,7 @@ private fun RecentColumn(recents: List<File>, cardWidthDp: Float, onOpenRecent: 
             )
             return@Column
         }
-        recents.chunked(RECENT_COLUMNS).forEach { line ->
+        recents.chunked(perLine).forEach { line ->
             Row(horizontalArrangement = Arrangement.spacedBy(RECENT_GAP_DP.dp)) {
                 line.forEach { file ->
                     SheetCard(
@@ -306,18 +315,27 @@ private const val RECENT_COLUMNS = 3
 
 private const val RECENT_GAP_DP = 12f
 
-/** Above this the block steps up a size: the 21:9 desk, not the laptop. */
-private const val WIDE_DESK_DP = 1800f
+/**
+ * Above this the block steps up a size: the 21:9 desk, not the laptop.
+ *
+ * In **dp**, not pixels — a 3440 px monitor at Windows' 175 % is ~1965 dp, and a threshold written in pixels
+ * would have stepped up on a scaled laptop and not on the monitor it was chosen for.
+ */
+private const val WIDE_DESK_DP = 1400f
 
-private const val WIDE_MAX_WIDTH_DP = 1280f
+/** The wide block's bound: wide enough to fill a 21:9 desk, narrow enough not to read as a stretched row. */
+private const val WIDE_MAX_WIDTH_DP = 1600f
 
-private const val WIDE_GAP_DP = 64f
+private const val WIDE_GAP_DP = 72f
 
-private const val WIDE_START_COLUMN_DP = 320f
+private const val WIDE_START_COLUMN_DP = 340f
 
-private const val WIDE_HERO_WIDTH_DP = 320f
+private const val WIDE_HERO_WIDTH_DP = 340f
 
-private const val WIDE_RECENT_WIDTH_DP = 132f
+private const val WIDE_RECENT_WIDTH_DP = 148f
+
+/** One more card to the line when the desk has the room. */
+private const val WIDE_RECENT_COLUMNS = 4
 
 /** Paper's proportions, so a card is the shape of the page it previews. */
 private const val SHEET_ASPECT = 0.707f
