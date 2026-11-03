@@ -50,9 +50,13 @@ page list uses), the **Open** command beside it, and the six notebooks opened la
 their document's first page — one click reopens one (`EntryScreen.kt`). A notebook whose file has gone leaves
 no card, opening the same one twice leaves one entry, and the list is `recent.files` in the settings file, so
 a restart keeps it. The cards are the **sheet's own rectangle**, not a capsule — a rounded chip around
-rectangular paper misreads the shape of the thing it shows — with the family's rim and hover step, and the
-block is **three columns** (the commands, the sheet to start, the recent grid) so that a 3440 px desk is not
-three small objects in the middle of a hole. The same screen is what closing the last tab returns to.
+rectangular paper misreads the shape of the thing it shows — and carry **no rim and no fill**: only a lift,
+drawn in the theme's ink rather than the page's near-black shadow, because a shadow cannot be darker than the
+near-black floor under it and a thumbnail has no white edge of its own to lift itself. Each caption is inset
+by the lift's spread, so its first letter stands on the **paper's** edge and not on the card's, which begins
+a halo's width earlier. The block is **three columns** (the commands, the sheet to start, the recent grid) so
+that a 3440 px desk is not three small objects in the middle of a hole. The same screen is what closing the
+last tab returns to.
 
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the
