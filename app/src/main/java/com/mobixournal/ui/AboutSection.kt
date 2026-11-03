@@ -48,33 +48,24 @@ fun AboutSection() {
 
     SettingsGroup("Credits") {
         SettingsNote(
-            "MobiXournal continues NeXopp — the Android .xopp editor written by Brian Monroe " +
-                "(bamonroe). The document layer, the editor, the build tooling and the documentation " +
-                "structure all come from that project, which is licensed under the GNU General Public " +
-                "License, version 2 or later; this build renames, rebrands and extends it. NeXopp's " +
-                "author holds the copyright in the portions inherited from there.",
+            "MobiXournal continues NeXopp, Brian Monroe's (bamonroe) Android .xopp editor, licensed " +
+                "under the GNU GPL v2 or later. Its author holds the copyright in the parts inherited.",
         )
         LinkRow("NeXopp (GitHub)", AboutLinks.NEXOPP, open)
         SettingsDivider()
         SettingsNote(
-            "This app is built on and for Xournal++, the open-source handwriting app for Linux and " +
-                "the .xopp format it defines. The format handling, colour palette, shape recogniser " +
-                "and highlighter behaviour are derived from or matched to the Xournal++ project, whose " +
-                "authors hold the copyright in that work.",
+            "Built on and for Xournal++, which defines the .xopp format; the format handling, palette, " +
+                "shape recogniser and highlighter follow that project, whose authors hold the copyright.",
         )
-        SettingsNote(
-            "This is an independent, unofficial project: it is not affiliated with, endorsed by, or " +
-                "maintained by the Xournal++ authors.",
-        )
+        SettingsNote("Unofficial: not affiliated with or endorsed by the Xournal++ authors.")
         LinkRow("Xournal++ desktop app", AboutLinks.XOURNALPP, open)
     }
 
     SettingsGroup("Licence") {
         SettingsNote(
-            "MobiXournal is free software under the GNU General Public License, " +
-                "version 2 or later — the same licence as the work it derives from. You may use, study, " +
-                "share and modify it; if you distribute a modified version, it must stay free under the " +
-                "same terms and ship its source. It comes with no warranty.",
+            "Free software under the GNU GPL, version 2 or later. Use, study, share and modify it; a " +
+                "modified version you distribute stays free under the same terms and ships its source. " +
+                "No warranty.",
         )
         LinkRow("Read the GPL v2 Licence", AboutLinks.LICENSE, open)
     }

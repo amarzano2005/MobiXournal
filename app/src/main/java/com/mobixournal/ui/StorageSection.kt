@@ -9,8 +9,7 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Import") {
         OptionGroup(
             title = "Text import limit",
-            subtitle = "Opening a text file typesets all of it into a PDF, so a huge log takes minutes " +
-                "and thousands of pages. Files over this size are refused with a message instead.",
+            subtitle = "A text file is typeset into a PDF whole, so a huge log takes minutes. Larger files are refused.",
             options = AppSettings.TEXT_IMPORT_LIMIT_CHOICES,
             selected = settings.textImportLimitMb,
             label = { "$it MB" },
@@ -20,8 +19,7 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Cache") {
         OptionGroup(
             title = "PDF cache limit",
-            subtitle = "Generated and imported backgrounds are kept so reopening a file is instant. " +
-                "Past this, the oldest unused ones are dropped; they regenerate on the next open.",
+            subtitle = "Backgrounds are cached so a file reopens instantly. Past this, the least recently used are dropped.",
             options = AppSettings.PDF_CACHE_LIMIT_CHOICES,
             selected = settings.pdfCacheLimitMb,
             label = { "$it MB" },
@@ -31,9 +29,7 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Audio") {
         SwitchRow(
             title = "Save standalone audio recordings",
-            subtitle = "Automatically export an audio copy to the device's public media folder (Music / Recordings) " +
-                "upon completing a recording, in addition to binding it into the notebook. The copy is written " +
-                "as .m4a (AAC), which phones, browsers and AI assistants all accept.",
+            subtitle = "Also saves a copy of each recording to Music/Recordings as .m4a.",
             checked = settings.saveStandaloneAudio,
             onCheckedChange = { onChange(settings.copy(saveStandaloneAudio = it)) },
         )

@@ -19,18 +19,15 @@ fun DocumentsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("New documents") {
         OptionGroup(
             title = "Default format",
-            subtitle = "What a document you create from scratch is written in. A document you open " +
-                "keeps its own format, and Save As converts between them at any time.",
+            subtitle = "Used for new documents. Opened files keep their format; Save As converts.",
             options = NewDocumentFormat.values().toList(),
             selected = settings.newDocumentFormat,
             label = { it.label },
             onSelect = { onChange(settings.copy(newDocumentFormat = it)) },
         )
         SettingsNote(
-            "A MobiXournal document keeps its graphs, tables, shapes and circuits as the things they " +
-                "were authored as, so they can be reopened and corrected — and desktop Xournal++ needs " +
-                "the companion plugin to open one. A Xournal++ document opens on the desktop as it is, " +
-                "with those entities drawn as ink: portable, but no longer editable as a formula.",
+            "A MobiXournal file keeps graphs, tables, shapes and circuits editable. A Xournal++ file " +
+                "opens anywhere, with them drawn as plain ink. Save As converts either way.",
         )
     }
 }

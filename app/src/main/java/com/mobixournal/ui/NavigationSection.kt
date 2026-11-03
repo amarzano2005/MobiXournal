@@ -14,8 +14,7 @@ fun NavigationSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         SettingsDivider()
         OptionGroup(
             title = "Momentum curve",
-            subtitle = "How sharply a faster flick coasts farther: Linear is even, " +
-                "Exponential rewards fast swipes the most.",
+            subtitle = "Linear is even; Exponential rewards faster flicks.",
             options = MomentumCurve.values().toList(),
             selected = settings.momentumCurve,
             label = { it.label },

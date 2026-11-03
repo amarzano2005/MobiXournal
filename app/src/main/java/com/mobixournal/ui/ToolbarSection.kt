@@ -23,8 +23,7 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Main Toolbar") {
         OptionGroup(
             title = "Position",
-            subtitle = "The edge the Main Toolbar docks to: the one opposite your writing hand — " +
-                "Left for a right hand (the default), Right for a left hand.",
+            subtitle = "Keep it opposite your writing hand: Left for a right hand, Right for a left one.",
             options = listOf(ToolbarPosition.LEFT, ToolbarPosition.RIGHT),
             selected = if (settings.toolbarPosition == ToolbarPosition.RIGHT) ToolbarPosition.RIGHT else ToolbarPosition.LEFT,
             label = { it.label },
@@ -42,10 +41,7 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 /** The Main Toolbar's reorderable button list. */
 @Composable
 private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsNote(
-        "Switch a button off to hide it, or press and hold a row and drag it to reorder. " +
-            "The Main Toolbar draws them top-to-bottom.",
-    )
+    SettingsNote("Switch a button off to hide it; hold a row to reorder.")
     ReorderableRowList(
         items = orderedRailItems(settings.railOrder),
         hidden = settings.railHidden,
@@ -60,10 +56,7 @@ private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) ->
  */
 @Composable
 private fun SecondaryToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsNote(
-        "The geometric figures and tools shown in the top bar. Switch a button off to hide it, or " +
-            "press and hold a row and drag it to reorder.",
-    )
+    SettingsNote("The figures and tools in the top bar. Switch one off to hide it; hold a row to reorder.")
     ReorderableRowList(
         items = orderedTopBarItems(settings.topBarOrder),
         hidden = settings.topBarHidden,

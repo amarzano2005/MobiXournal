@@ -91,10 +91,7 @@ fun BackupSection(
     }
 
     SettingsGroup("Export") {
-        SettingsNote(
-            "Save your preferences, colors, shortcuts, toolbars, and stylus settings to a JSON file. " +
-                "The exported backup can be restored on another device or a different version of MobiXournal.",
-        )
+        SettingsNote("Writes every preference to a JSON file you can restore on another device.")
         Button(
             onClick = { exportLauncher.launch("mobixournal-settings.json") },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -106,11 +103,7 @@ fun BackupSection(
     }
 
     SettingsGroup("Import") {
-        SettingsNote(
-            "Load preferences from a previously exported JSON file. Missing settings will default to factory " +
-                "values; a file that isn't a MobiXournal backup — or one written by a newer version of the app — " +
-                "is refused with an error.",
-        )
+        SettingsNote("Reads a backup back. A file that is not one, or one from a newer build, is refused.")
         OutlinedButton(
             onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -122,7 +115,7 @@ fun BackupSection(
     }
 
     SettingsGroup("Reset") {
-        SettingsNote("Restore all preferences back to factory defaults.")
+        SettingsNote("Back to factory values.")
         OutlinedButton(
             onClick = { showResetDialog = true },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -138,7 +131,7 @@ fun BackupSection(
         FloatingDialog(
             onDismissRequest = { showResetDialog = false },
             title = { Text("Reset all settings?") },
-            text = { Text("This will restore all preferences, colors, shortcuts, and toolbars to factory defaults.") },
+            text = { Text("Every preference goes back to its factory value.") },
             confirmButton = {
                 TextButton(onClick = {
                     showResetDialog = false

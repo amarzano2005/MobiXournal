@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.PageSizeStep
-import com.mobixournal.render.PageSizeUnit
 
 /**
  * Editor preferences, in the order a user meets them: what a new document starts as (tool, page
@@ -54,9 +53,7 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         SettingsDivider()
         SwitchRow(
             title = "Shape recognition",
-            subtitle = "Snap a finished freehand stroke to the shape it resembles — line, triangle, " +
-                "rectangle or circle — using desktop Xournal++'s own recognizer. Anything " +
-                "unrecognised stays as drawn.",
+            subtitle = "Snap a finished stroke to the shape it resembles. Anything unrecognised stays as drawn.",
             checked = settings.recognizeShapes,
             onCheckedChange = { onChange(settings.copy(recognizeShapes = it)) },
         )
@@ -85,11 +82,8 @@ private fun PageSizeStepControl(settings: AppSettings, onChange: (AppSettings) -
         label = { Text("Step (mm)") },
         supportingText = {
             Text(
-                "The − and + beside Width and Height in the Pages menu change the sheet by this much. " +
-                    "Millimetres are the page format's own unit, so the factory step of " +
-                    "${PageSizeStep.label(PageSizeStep.DEFAULT_MM)} reads as " +
-                    "${PageSizeStep.label(PageSizeStep.DEFAULT_MM, PageSizeUnit.IN)} or " +
-                    "${PageSizeStep.label(PageSizeStep.DEFAULT_MM, PageSizeUnit.PT)} there.",
+                "The − and + beside Width and Height in the Pages menu change the sheet by this much " +
+                    "(${PageSizeStep.label(PageSizeStep.DEFAULT_MM)} by default).",
             )
         },
         singleLine = true,

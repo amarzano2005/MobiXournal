@@ -8,8 +8,7 @@ fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Theme") {
         OptionGroup(
             title = "Mode",
-            subtitle = "Colours the top bar, tab strip, tool rail, canvas surround and both system bars. " +
-                "System follows the device's light/dark setting.",
+            subtitle = "Colours the app's chrome and both system bars. System follows the device setting.",
             options = ThemeMode.values().toList(),
             selected = settings.themeMode,
             label = { it.label },
@@ -18,7 +17,7 @@ fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         SettingsDivider()
         SwitchRow(
             title = "Use system colours",
-            subtitle = "On Android 12+ takes colours from your wallpaper. Off uses the app's fixed blue.",
+            subtitle = "Android 12+: tint the app with the wallpaper. Off keeps the app's blue.",
             checked = settings.dynamicColor,
             onCheckedChange = { onChange(settings.copy(dynamicColor = it)) },
         )

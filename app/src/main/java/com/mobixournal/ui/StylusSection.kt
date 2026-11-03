@@ -39,8 +39,7 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Ink") {
         OptionGroup(
             title = "Stroke precision",
-            subtitle = "How much pen detail a stroke keeps. Higher draws rounder curves on a big, " +
-                "high-density screen; lower keeps files smaller.",
+            "How much detail a stroke keeps. Higher is rounder on a dense screen; lower makes smaller files.",
             options = StrokePrecision.values().toList(),
             selected = settings.strokePrecision,
             label = { it.label },
@@ -63,9 +62,8 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
     SettingsDivider()
     OptionGroup(
         title = "Double-click",
-        subtitle = "Action for a rapid double-click of the side-button, with the tip off the glass. " +
-            "A pen whose own firmware reports that double-click as a single click (the Honor Choice " +
-            "Pencil does) runs this on each click instead.",
+        "Action for a double-click of the side-button, tip off the glass. A pen that reports it as " +
+            "a single click runs this on each click.",
         options = QuickAction.values().toList(),
         selected = settings.barrelDoubleAction,
         label = { quickActionLabel(it) },
@@ -83,21 +81,18 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
 private fun PressureControls(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SwitchRow(
         title = "Pressure sensitivity",
-        subtitle = "On: pressing harder thickens the line. Off: every stroke draws at its set size, " +
-            "so a pen stroke and a shape match exactly.",
+        "On: pressing harder thickens the line. Off: every stroke keeps its set width.",
         checked = settings.pressureEnabled,
         onCheckedChange = { onChange(settings.copy(pressureEnabled = it)) },
     )
     SettingsNote(
-        "With pressure on, a figure is drawn at its full set width while a pen stroke thins with " +
-            "pressure, so a figure can look thicker than the pen. Set the figures' default size to " +
-            "compensate in Settings → Figures.",
+        "A figure always draws at its full width, so with pressure on it can look thicker than the " +
+            "pen. Match it under Figures.",
     )
     SettingsDivider()
     ControlHeader(
         "Pressure filter",
-        "How your raw pressure is turned into line width: multiplied, then floored. Applies to the " +
-            "pen; the highlighter and the figure tools always draw at their set width.",
+        "Multiplied, then floored. The highlighter and figures always draw at their set width.",
         Modifier.padding(top = 4.dp, bottom = 8.dp),
     )
     PenPresetsRow(

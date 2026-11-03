@@ -279,8 +279,7 @@ private fun OptionMenuItem(label: String, icon: ImageVector?, chosen: Boolean, o
 fun MomentumSlider(value: Float, onChange: (Float) -> Unit) {
     ControlHeader(
         "Momentum scrolling",
-        "How far a one-finger pan keeps gliding after you flick it — the faster you flick, the much " +
-            "farther it coasts. 0 turns momentum off; 1 is normal. (Two-finger pans never glide.)",
+        "How far a one-finger pan glides after a flick. 0 is off; 1 is normal.",
         Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
     val label = if (value <= Momentum.OFF) "Off" else "%.1f×".format(value)
@@ -306,7 +305,7 @@ fun MomentumSlider(value: Float, onChange: (Float) -> Unit) {
 fun PanSensitivitySlider(value: Float, onChange: (Float) -> Unit) {
     ControlHeader(
         "Panning sensitivity",
-        "How far the canvas moves as you pan. 1 matches your finger; lower is slower, higher is faster; 0 turns panning off.",
+        "How far the canvas moves as you pan. 1 matches your finger; 0 turns panning off.",
         Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
     val label = if (value <= PanSensitivity.OFF) "Off" else "%.1f×".format(value)
@@ -343,8 +342,7 @@ fun MinimumPressureSlider(
     ControlHeader(
         "Minimum pressure",
         if (enabled) {
-            "The lightest a stroke can get, as a fraction of the pen's width. 0.05 is desktop " +
-                "Xournal++'s default; raise it if a very light touch should still draw a visible line."
+            "The lightest a stroke can get, as a fraction of the pen's width."
         } else {
             PRESSURE_FILTER_OFF_HINT
         },
@@ -383,9 +381,7 @@ fun PressureMultiplierSlider(
     ControlHeader(
         "Pressure multiplier",
         if (enabled) {
-            "Scales the pen's pressure before it thickens the line. Raise it if you write lightly and " +
-                "want thicker strokes (up to %.1f×); 1 leaves your pressure as the tablet reports it, and " +
-                "above 1 a stroke can exceed its set width — as on the desktop.".format(PressureCurve.MULTIPLIER_MAX)
+            "Scales pressure before it thickens the line. Above 1 a stroke can exceed its set width."
         } else {
             PRESSURE_FILTER_OFF_HINT
         },
@@ -404,13 +400,8 @@ fun PressureMultiplierSlider(
     }
 }
 
-/**
- * Why a pressure-filter control is inert while **Pressure sensitivity** is off — desktop Xournal++'s
- * own wording for the same disabled state ("Enable pressure sensitivity … to change this setting!").
- */
-const val PRESSURE_FILTER_OFF_HINT: String =
-    "Inactive: turn on Pressure sensitivity (above) to change the pen's pressure filter — with it off " +
-        "every stroke is drawn at its set width."
+ /** Why a pressure-filter control is inert while **Pressure sensitivity** is off: it says what to do. */
+     const val PRESSURE_FILTER_OFF_HINT: String = "Inactive: turn on Pressure sensitivity to change this."
 
 /**
  * A reorderable, toggleable list of rail-style rows — the shared body of the Toolbar section's rail

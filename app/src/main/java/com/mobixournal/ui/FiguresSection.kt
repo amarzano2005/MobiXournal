@@ -57,13 +57,12 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 @Composable
 private fun DefaultFigureSize(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsNote(
-        "A figure is drawn at this width with no pressure, so with the pen's pressure sensitivity on " +
-            "it can look thicker than a light pen stroke — pick a smaller slot here to close that gap, " +
-            "or turn pressure sensitivity off under Stylus and the pen and the figures match exactly.",
+        "A figure draws at this width with no pressure, so with pressure on it can look thicker than " +
+            "a light stroke.",
     )
     OptionGroup(
         title = "Slot",
-        subtitle = "Reuses the pen's S/M/L width slots — edit them from any tool's Colour & size popup.",
+        subtitle = "Reuses the pen's S/M/L slots; edit them from any tool's Colour & size popup.",
         options = settings.penWidths.indices.toList(),
         selected = settings.defaultShapeSlot,
         label = { i ->
@@ -93,7 +92,7 @@ private fun TableDefaults(settings: AppSettings, onChange: (AppSettings) -> Unit
     SettingsDivider()
     SwitchRow(
         title = "Header row (relational)",
-        subtitle = "Draw a double separator line under the first row for relational schema attributes.",
+        subtitle = "Draws a double line under the first row.",
         checked = settings.tableHeader,
         onCheckedChange = { onChange(settings.copy(tableHeader = it)) },
     )
@@ -130,8 +129,7 @@ private fun Stepper(
 private fun PolygonGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     ControlHeader(
         "Sides",
-        "How many sides the Polygon tool draws, from a triangle up to a dodecagon. The Polygons slot's " +
-            "own menu sets the same value without leaving the page.",
+        "Sides the Polygon tool draws. Its slot's own menu sets the same value.",
         Modifier.padding(top = 8.dp),
     )
     Row(
@@ -173,7 +171,7 @@ private fun TriangleGeometry(settings: AppSettings, onChange: (AppSettings) -> U
     }
     OptionGroup(
         title = "Type",
-        subtitle = "Default variant for the triangle tool: equilateral (default), right-angled, isosceles, or scalene.",
+        subtitle = "Default variant for the triangle tool.",
         options = TriangleKind.values().toList(),
         selected = settings.triangleKind,
         label = { it.label },
@@ -211,7 +209,7 @@ private fun TrapezoidGeometry(settings: AppSettings, onChange: (AppSettings) -> 
     }
     OptionGroup(
         title = "Type",
-        subtitle = "Default variant for the trapezoid tool: isosceles (default), right-angled, or scalene.",
+        subtitle = "Default variant for the trapezoid tool.",
         options = TrapezoidKind.values().toList(),
         selected = settings.trapezoidKind,
         label = { it.label },

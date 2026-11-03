@@ -40,19 +40,14 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 
     SettingsGroup("Favourite colours") {
         SettingsNote(
-            "The three colours that sit down the left of the rail's Colour & size slot, one tap away. " +
-                "The pen and the highlighter keep their own three; the slot shows the ones belonging to " +
-                "the tool in use. Tap a colour to redefine it.",
+            "The three colours down the rail's Colour & size slot, one tap away. Pen and highlighter " +
+                "keep their own. Tap one to redefine it.",
         )
         FavoritesEditor(settings, onEdit = { tool, index -> favoriteEditing = tool to index })
     }
 
     SettingsGroup("Pen palette") {
-        SettingsNote(
-            "The swatches every colour picker offers — Colour & size on the toolbar, the text dialog and " +
-                "the selection recolour menu. Tap a swatch to redefine it, or remove it; add one with " +
-                "the button below. The default set is Black, Red, Green, Blue, Orange, Magenta, Yellow and White.",
-        )
+        SettingsNote("The swatches every colour picker offers. Tap one to redefine or remove it; add more below.")
         settings.penColors.forEachIndexed { i, color ->
             PaletteRow(
                 color = color,
