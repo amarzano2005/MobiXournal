@@ -117,9 +117,12 @@ internal object SettingsMetrics {
  * sentence case in the heading role: the inspector's uppercase eyebrow belongs to a
  * panel read while drawing, where a short shout helps; a settings page is read, not glanced at.
  *
- * It **clips** its rows and pads them vertically only: a row's own fill has to reach the card's edges, or
- * a lit row is a rounded band floating inside the card — a card inside a card, which is what a highlight
- * with its own margins reads as. The corner a row cannot have, the card has for it.
+ * It **clips** its rows and pads them neither horizontally nor vertically: a row's own fill has to reach
+ * the card's edges, or a lit row is a rounded band floating inside the card — a card inside a card, which
+ * is what a highlight with its own margins reads as. Reaching the **top and bottom** edges is what lets
+ * the card's rounded clip shape the ends of a lit row; a vertical inset turned the first and last rows'
+ * highlight into a rectangle that stopped short of the corner, so a selected row lit a bar instead of the
+ * row. The corner a row cannot have, the card has for it.
  */
 @Composable
 internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
@@ -129,8 +132,7 @@ internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .glassSurface(fill = DesktopTheme.settingsPanel, cornerRadius = DesktopTheme.panelRadius)
-            .padding(vertical = 4.dp),
+            .glassSurface(fill = DesktopTheme.settingsPanel, cornerRadius = DesktopTheme.panelRadius),
     ) {
         content()
     }

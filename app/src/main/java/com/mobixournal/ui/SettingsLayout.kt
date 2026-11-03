@@ -79,10 +79,13 @@ internal val LocalSettingsCardInset = compositionLocalOf { 0.dp }
  * The content is padded by [SettingsRowInset] and the same number is published to the rows through
  * [LocalSettingsCardInset], so a row can lay itself out into that padding and light the whole card
  * (see [fullBleedRow]).
+ *
+ * It pads **horizontally only**: a row reaches the card's top and bottom edges too, so a press or a
+ * selection is shaped by the card's rounded clip instead of lighting a rectangle that stops short of the
+ * corner — a vertical inset is what made a selected first or last row read as a bar inside the card.
  */
 @Composable
 internal fun SettingsCard(
-    verticalInset: Dp = 8.dp,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -98,7 +101,7 @@ internal fun SettingsCard(
     ) {
         CompositionLocalProvider(LocalSettingsCardInset provides SettingsRowInset) {
             Column(
-                Modifier.padding(horizontal = SettingsRowInset, vertical = verticalInset),
+                Modifier.padding(horizontal = SettingsRowInset),
                 content = content,
             )
         }

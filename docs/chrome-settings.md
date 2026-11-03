@@ -28,9 +28,12 @@ only paint inside its own node, so a row laid out in that padded content lit a s
 shape: a box inside a box. `SettingsCard` (`SettingsLayout.kt`) pads by that inset *and* publishes it as
 `LocalSettingsCardInset`; a row (`SwitchRow`, `<T> OptionGroup`, `SectionRow`, `RailItemRow`, `LinkRow`)
 opens with `fullBleedRow(reach)`, which lays it out into the padding while keeping its content inset, and
-carries no `clip` of its own — the card's rounded clip is the row's shape. Outside a card the local is
-zero, so the same rows inside dialogs (the shape editor's switches) do not move. `SettingsRowFullBleedTest`
-pins the arithmetic and the wiring, so a row added later cannot go back to a half-lit box.
+carries no `clip` of its own — the card's rounded clip is the row's shape. The card pads **horizontally
+only**: a vertical inset left the first and last rows' highlight a rectangle that stopped short of the
+card's rounded ends, so every row now reaches the top and bottom edges and the clip supplies the corners.
+Outside a card the local is zero, so the same rows inside dialogs (the shape editor's switches) do not
+move. `SettingsRowFullBleedTest` pins the arithmetic and the wiring, so a row added later cannot go back to
+a half-lit box.
 
 ## Settings search
 

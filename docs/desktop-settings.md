@@ -25,7 +25,7 @@ shell has no row for, and a page of "tablet only" rows is a page the reader lear
 **rows**, the name and the control at the right edge (`SettingsRows.kt`).
 
 A group's card is the **tablet's settings card** (`docs/chrome.md`): the near-solid panel glass, the 20 dp panel
-corner and the family's rim as its whole edge — and a row lights **all** of it (`DesktopSettingsStyleTest`).
+corner and the rim as its whole edge — and a lit row wears that shape, ends included (`DesktopSettingsStyleTest`).
 
 The list is **names only** — a glyph and a word per section — because two-line summaries are a page to skip.
 

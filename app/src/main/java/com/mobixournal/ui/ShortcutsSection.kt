@@ -71,7 +71,7 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 
     when (val active = subpage) {
         null -> {
-            SettingsCard(verticalInset = 4.dp) {
+            SettingsCard {
                 val pages = ShortcutSubpage.values()
                 pages.forEachIndexed { index, page ->
                     SectionRow(title = page.title, summary = page.summary) {

@@ -230,9 +230,11 @@ class DesktopSettingsStyleTest {
                     )
                     Snapshot.sendApplyNotifications()
                 }
-                val image = javax.imageio.ImageIO.read(
-                    java.io.ByteArrayInputStream(scene.render().encodeToData()!!.bytes),
-                )
+                val png = scene.render().encodeToData()!!.bytes
+                // The frame is kept, so a reader can see what the assertion below measured.
+                File("build/desktop-render/settings-row-${if (hovered) "hover" else "rest"}.png")
+                    .apply { parentFile?.mkdirs() }.writeBytes(png)
+                val image = javax.imageio.ImageIO.read(java.io.ByteArrayInputStream(png))
                 IntArray(image.width * image.height).also {
                     image.getRGB(0, 0, image.width, image.height, it, 0, image.width)
                 }
@@ -262,6 +264,20 @@ class DesktopSettingsStyleTest {
         assertTrue(
             "and stops at its right edge ($cardRight): ${changed.last()}",
             changed.last() in (cardRight - 1)..cardRight,
+        )
+
+        // And it **follows the card's shape at the ends**: a row reaches the card's top and bottom edges,
+        // so the card's own rounded clip is what a selected first or last row wears. The card's edges are
+        // measured in the resting frame through the middle column, where no corner rounds them away.
+        val middleX = width / 2
+        val desk = rest[middleX]
+        val cardTop = (0 until height).first { y -> rest[y * width + middleX] != desk }
+        val cardBottom = (0 until height).last { y -> rest[y * width + middleX] != desk }
+        val litColumn = (0 until height).filter { y -> rest[y * width + middleX] != lit[y * width + middleX] }
+        assertTrue("the lit row starts at the card's top edge ($cardTop): ${litColumn.first()}", litColumn.first() in (cardTop - 2)..(cardTop + 2))
+        assertTrue(
+            "and reaches its bottom edge ($cardBottom), not a bar inside it: ${litColumn.last()}",
+            litColumn.last() in (cardBottom - 2)..cardBottom,
         )
     }
 

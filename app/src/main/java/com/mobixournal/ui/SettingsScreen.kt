@@ -383,7 +383,7 @@ private fun StackedSettings(
                     if (query.isNotEmpty()) {
                         SearchResultRows(query, results, onSection)
                     } else {
-                        SettingsCard(verticalInset = 4.dp) {
+                        SettingsCard {
                             val areas = SettingsArea.values()
                             areas.forEachIndexed { index, entry ->
                                 SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
@@ -434,7 +434,7 @@ private fun SectionBody(
 @Composable
 private fun SectionRows(area: SettingsArea, onOpen: (SettingsSection) -> Unit) {
     SettingsNote(area.summary, Modifier.padding(start = 4.dp, bottom = 12.dp))
-    SettingsCard(verticalInset = 4.dp) {
+    SettingsCard {
         area.sections.forEachIndexed { index, entry ->
             SectionRow(entry.title, entry.summary, entry.icon) { onOpen(entry) }
             if (index < area.sections.size - 1) {
@@ -464,7 +464,7 @@ private fun SearchResultRows(
         }
         return
     }
-    SettingsCard(verticalInset = 4.dp) {
+    SettingsCard {
         results.forEachIndexed { index, entry ->
             val where = areaOf(entry)?.title
             SectionRow(
