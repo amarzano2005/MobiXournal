@@ -49,8 +49,10 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 page list uses), the **Open** command beside it, and the six notebooks opened lately as cards whose face is
 their document's first page — one click reopens one (`EntryScreen.kt`). A notebook whose file has gone leaves
 no card, opening the same one twice leaves one entry, and the list is `recent.files` in the settings file, so
-a restart keeps it. The cards are capsules on the desk, and the same screen is what closing the last tab
-returns to.
+a restart keeps it. The cards are the **sheet's own rectangle**, not a capsule — a rounded chip around
+rectangular paper misreads the shape of the thing it shows — with the family's rim and hover step, and the
+block is **three columns** (the commands, the sheet to start, the recent grid) so that a 3440 px desk is not
+three small objects in the middle of a hole. The same screen is what closing the last tab returns to.
 
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the

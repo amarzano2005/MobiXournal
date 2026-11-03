@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,14 +45,15 @@ import kotlinx.coroutines.withContext
 /**
  * What the window shows with **nothing open** — at startup, and after the last tab is closed.
  *
- * Three doors, in the order a reader wants them: the sheet they are about to write on, drawn as the page it
- * will be (`DesktopDocuments.blankPage`, at their own page size, through the same painter the sidebar uses);
- * the Open command; and the notebooks they had open lately, each with its first page for a face. It replaces
- * a two-line notice that named a file extension and left the reader to find the command themselves.
+ * Three doors in **three columns**: the commands (start a sheet, open one), the sheet itself drawn as the
+ * page it will be — the reader's own size and ruling, through the painter the page list uses — and the
+ * notebooks opened lately as a grid of cards whose face is their first page. A single centred stack left a
+ * 3440 px desk as three small objects in the middle of a hole; the columns are what spreads them across the
+ * width while staying one block on a laptop's 1100.
  *
- * The cards are **capsules** — glass with the family's rim, lying on the desk the way the tablet's chips do
- * (`docs/interface-contract.md` §1) — and every colour, glyph and face is a token, so the screen cannot
- * disagree with the header above it.
+ * The cards are the **sheet's own rectangle**, not a capsule: a rounded chip around rectangular paper
+ * misreads the shape of the thing it shows. They keep the family's rim and hover step, so they are still
+ * objects of this window and not a second language.
  */
 @Composable
 internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
@@ -60,57 +62,61 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
     // what tells this screen that the list it remembers has changed.
     val revision = DesktopOpens.recentsRevision
     val recents = remember(revision, state) { state.settings.recents.files }
+    val sheet = remember(state) {
+        DesktopDocuments.blankPage(state.settings.pageWidthPt, state.settings.pageHeightPt)
+    }
     // The screen wears the **band's own fill**: with nothing open there is no page and no desk to show, so
     // the window is one surface from the header to the status bar, and only the cards sit on it. A black
     // floor there read as a hole between two bands.
     Box(Modifier.fillMaxSize().background(DesktopTheme.glass), contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier.widthIn(max = 720.dp).padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            modifier = Modifier.widthIn(max = ENTRY_MAX_WIDTH_DP.dp).padding(horizontal = 32.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val sheet = remember(state) {
-                    DesktopDocuments.blankPage(state.settings.pageWidthPt, state.settings.pageHeightPt)
-                }
-                SheetCard(
-                    key = "new-sheet:${sheet.width}x${sheet.height}",
-                    widthDp = NEW_SHEET_WIDTH_DP,
-                    caption = "New sheet",
-                    load = { renderPageBitmap(sheet, NEW_SHEET_WIDTH_DP / sheet.width.toFloat()) },
-                    onClick = { state.newDocument() },
-                )
-                Spacer(Modifier.width(28.dp))
-                Column(Modifier.width(300.dp)) {
-                    Text("Nothing open yet", color = DesktopTheme.ink, style = DesktopTheme.title)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Start a sheet, or pick up a notebook where you left it.",
-                        color = DesktopTheme.inkSecondary,
-                        style = DesktopTheme.body,
-                    )
-                    Spacer(Modifier.height(18.dp))
-                    EntryButton("New sheet", ChromeGlyph.NEW, primary = true) { state.newDocument() }
-                    Spacer(Modifier.height(10.dp))
-                    EntryButton("Open…", ChromeGlyph.OPEN, primary = false, onClick = onOpen)
-                    Spacer(Modifier.height(10.dp))
-                    Text("Ctrl+N · Ctrl+T", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-                }
-            }
-            Spacer(Modifier.height(30.dp))
-            RecentList(recents, onOpenRecent = { file -> state.openInBackground(file, scope) })
+            StartColumn(onNew = { state.newDocument() }, onOpen = onOpen)
+            Spacer(Modifier.width(COLUMN_GAP_DP.dp))
+            SheetCard(
+                key = "new-sheet:${sheet.width}x${sheet.height}",
+                widthDp = HERO_WIDTH_DP,
+                caption = "New sheet",
+                load = { renderPageBitmap(sheet, HERO_WIDTH_DP / sheet.width.toFloat()) },
+                onClick = { state.newDocument() },
+            )
+            Spacer(Modifier.width(COLUMN_GAP_DP.dp))
+            RecentColumn(recents, onOpenRecent = { file -> state.openInBackground(file, scope) })
         }
     }
 }
 
+/** The first column: what the reader can do, above the keys that do it. */
+@Composable
+private fun StartColumn(onNew: () -> Unit, onOpen: () -> Unit) {
+    Column(Modifier.width(START_COLUMN_WIDTH_DP.dp)) {
+        Text("Nothing open yet", color = DesktopTheme.ink, style = DesktopTheme.title)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Start a sheet, or pick up a notebook where you left it.",
+            color = DesktopTheme.inkSecondary,
+            style = DesktopTheme.body,
+        )
+        Spacer(Modifier.height(18.dp))
+        EntryButton("New sheet", ChromeGlyph.NEW, primary = true, onClick = onNew)
+        Spacer(Modifier.height(10.dp))
+        EntryButton("Open…", ChromeGlyph.OPEN, primary = false, onClick = onOpen)
+        Spacer(Modifier.height(10.dp))
+        Text("Ctrl+N · Ctrl+T", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+    }
+}
+
 /**
- * The notebooks opened lately, as one row of cards.
+ * The third column: the notebooks opened lately, three to a line.
  *
- * With none, the row is one sentence rather than an empty strip: a heading over nothing reads as a list that
- * failed to load, and the reader's next move is the Open button either way.
+ * With none, the column is one sentence rather than an empty grid: a heading over nothing reads as a list
+ * that failed to load, and the reader's next move is the Open button either way.
  */
 @Composable
-private fun RecentList(recents: List<File>, onOpenRecent: (File) -> Unit) {
-    Column(Modifier.widthIn(max = 700.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+private fun RecentColumn(recents: List<File>, onOpenRecent: (File) -> Unit) {
+    Column(Modifier.width(RECENT_COLUMN_WIDTH_DP.dp)) {
         Text("Recent", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         Spacer(Modifier.height(10.dp))
         if (recents.isEmpty()) {
@@ -121,16 +127,19 @@ private fun RecentList(recents: List<File>, onOpenRecent: (File) -> Unit) {
             )
             return@Column
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            recents.forEach { file ->
-                SheetCard(
-                    key = "recent:${file.absolutePath}:${file.lastModified()}",
-                    widthDp = RECENT_WIDTH_DP,
-                    caption = file.nameWithoutExtension,
-                    load = { firstPageOf(file, RECENT_WIDTH_DP) },
-                    onClick = { onOpenRecent(file) },
-                )
+        recents.chunked(RECENT_COLUMNS).forEach { line ->
+            Row(horizontalArrangement = Arrangement.spacedBy(RECENT_GAP_DP.dp)) {
+                line.forEach { file ->
+                    SheetCard(
+                        key = "recent:${file.absolutePath}:${file.lastModified()}",
+                        widthDp = RECENT_WIDTH_DP,
+                        caption = file.nameWithoutExtension,
+                        load = { firstPageOf(file, RECENT_WIDTH_DP) },
+                        onClick = { onOpenRecent(file) },
+                    )
+                }
             }
+            Spacer(Modifier.height(14.dp))
         }
     }
 }
@@ -169,9 +178,9 @@ private fun SheetCard(
             modifier = Modifier
                 .width(widthDp.dp)
                 .aspectRatio(SHEET_ASPECT)
-                .background(DesktopTheme.tabFillResting, DesktopTheme.capsuleShape)
-                .hoverFill(DesktopTheme.capsuleShape)
-                .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape),
+                .background(DesktopTheme.tabFillResting, SHEET_SHAPE)
+                .hoverFill(SHEET_SHAPE)
+                .border(1.dp, DesktopTheme.hairline, SHEET_SHAPE),
             contentAlignment = Alignment.Center,
         ) {
             // Drawn at the box's own size rather than through `Image`'s `ContentScale`: the preview is a
@@ -251,11 +260,35 @@ private val PREVIEW_PAINT = Dispatchers.Default.limitedParallelism(1)
 /** Cards already painted, by file and modification time: a screen that comes back does not re-render them. */
 private val PREVIEWS = java.util.concurrent.ConcurrentHashMap<String, ImageBitmap>()
 
-/** The new sheet's card: wide enough to read the ruling, small enough to sit beside its own buttons. */
-private const val NEW_SHEET_WIDTH_DP = 208f
+/**
+ * A card's outline: the sheet's rectangle with a 3 dp corner, not the capsule the controls wear.
+ *
+ * A rounded chip around rectangular paper misreads the shape of the thing it shows; three dp is the least
+ * that keeps the rim from looking cut with a knife, and it is a rectangle at any size.
+ */
+private val SHEET_SHAPE = RoundedCornerShape(3.dp)
 
-/** A recent notebook's card. */
-private const val RECENT_WIDTH_DP = 104f
+/** The block's own bound: three columns that stay one block on a laptop and do not stretch on a 3440 px desk. */
+private const val ENTRY_MAX_WIDTH_DP = 1000f
+
+/** Between the commands and the sheet, and between the sheet and the grid. */
+private const val COLUMN_GAP_DP = 44f
+
+/** The commands' column: a title, one sentence and two buttons, so it is read as one paragraph. */
+private const val START_COLUMN_WIDTH_DP = 264f
+
+/** The sheet to start: the widest card on the screen, because it is the thing to click first. */
+private const val HERO_WIDTH_DP = 236f
+
+/** A recent notebook's card, and how many fit on a line of the third column. */
+private const val RECENT_WIDTH_DP = 100f
+
+private const val RECENT_COLUMNS = 3
+
+private const val RECENT_GAP_DP = 12f
+
+/** Three cards and their two gaps: the third column's width, so the grid cannot disagree with its bound. */
+private const val RECENT_COLUMN_WIDTH_DP = RECENT_WIDTH_DP * RECENT_COLUMNS + RECENT_GAP_DP * (RECENT_COLUMNS - 1)
 
 /** Paper's proportions, so a card is the shape of the page it previews. */
 private const val SHEET_ASPECT = 0.707f
