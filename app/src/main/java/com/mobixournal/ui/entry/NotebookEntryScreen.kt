@@ -392,8 +392,13 @@ private const val HERO_WIDTH_DP = 236f
 /** The narrowest a recent card may get before the grid shows fewer of them on a line. */
 private const val MIN_RECENT_DP = 88f
 
-/** The sheet to start takes this share of a narrow block at most, so it never crowds the button it repeats. */
-private const val HERO_SHARE = 0.8f
+/**
+ * The sheet to start takes this share of a narrow block at most.
+ *
+ * Under half, not most of it: the card repeats a button that is right above it, while the recents
+ * below are the only way back into work already started — so the space a phone has goes to them.
+ */
+private const val HERO_SHARE = 0.55f
 
 private const val RECENT_COLUMNS = 3
 
@@ -404,13 +409,13 @@ private const val WIDE_DESK_DP = 840f
 
 private const val WIDE_GAP_DP = 72f
 
-private const val WIDE_START_COLUMN_DP = 340f
+private const val WIDE_START_COLUMN_DP = 264f
 
-private const val WIDE_HERO_WIDTH_DP = 340f
+private const val WIDE_HERO_WIDTH_DP = 236f
 
 private const val WIDE_RECENT_WIDTH_DP = 148f
 
-private const val WIDE_RECENT_COLUMNS = 4
+private const val WIDE_RECENT_COLUMNS = 5
 
 /** The wide grid's own width: four cards and their gaps, which the grid then fits itself into. */
 private const val WIDE_GRID_DP = WIDE_RECENT_WIDTH_DP * WIDE_RECENT_COLUMNS + RECENT_GAP_DP * (WIDE_RECENT_COLUMNS - 1)
