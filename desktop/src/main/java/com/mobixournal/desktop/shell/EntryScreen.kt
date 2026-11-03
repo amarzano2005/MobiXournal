@@ -152,7 +152,15 @@ private fun RecentColumn(
     // block off-centre by the width of the two empty ones, which read as a mistake rather than as a grid.
     val perLine = minOf(columns, recents.size).coerceAtLeast(1)
     Column(Modifier.width((cardWidthDp * perLine + RECENT_GAP_DP * (perLine - 1)).dp)) {
-        Text("Recent", color = DesktopTheme.ink, style = DesktopTheme.label)
+        // The block's subtitle, not a caption: the section heading's face, one step up from the labels under
+        // the cards, and its first letter on the first card's **paper** — the card's box begins a halo's
+        // spread earlier, which is why the heading and the captions share the inset.
+        Text(
+            "Recents",
+            color = DesktopTheme.ink,
+            style = DesktopTheme.heading,
+            modifier = Modifier.padding(start = DesktopTheme.pageShadow),
+        )
         Spacer(Modifier.height(10.dp))
         if (recents.isEmpty()) {
             Text(
@@ -254,7 +262,9 @@ private fun SheetCard(
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
+        // Two, not eight: the caption belongs to the sheet it names, and the card's box already carries the
+        // halo's spread under the paper — eight made the gap read as a line of its own.
+        Spacer(Modifier.height(2.dp))
         Text(
             text = caption,
             color = DesktopTheme.inkSecondary,
