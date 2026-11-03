@@ -121,6 +121,21 @@ object DesktopTheme {
     val floating: Color get() = glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
 
     /**
+     * A **document tab's** fill: the tablet's own chip glass, at full strength while it is the document in
+     * front.
+     *
+     * The window's tab used to wear [activeSlot] — the steel that says *this tool slot is in hand* — so one
+     * state drew as a solid grey capsule on the PC and as a pane of glass ringed by the accent on the
+     * tablet. A tab is a document, not a slot: it takes the glass, and the accent edge says which one is
+     * open.
+     */
+    val tabFill: Color get() = floating
+
+    /** The same chip, untouched: the tablet thins its glass to 45 % on black and 60 % on paper. */
+    val tabFillResting: Color get() =
+        floating.copy(alpha = if (light) TAB_RESTING_ALPHA_LIGHT else TAB_RESTING_ALPHA)
+
+    /**
      * The failed-open card's fill: [glass] at **full** opacity.
      *
      * It is the one deliberate departure from the floating material, and it is about geometry rather
@@ -524,3 +539,7 @@ object DesktopTheme {
         alpha = alpha,
     )
 }
+
+/** The tablet's resting chip: its glass thinned to 45 % on black, 60 % on paper. */
+private const val TAB_RESTING_ALPHA = 0.45f
+private const val TAB_RESTING_ALPHA_LIGHT = 0.6f

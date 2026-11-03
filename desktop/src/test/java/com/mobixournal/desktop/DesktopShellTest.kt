@@ -105,7 +105,10 @@ class DesktopShellTest {
             for (y in 0 until image.height step 3) shades += image.getRGB(x, y) and 0xFFFFFF
         }
         assertTrue("the strip has more than one surface (${shades.size} shades)", shades.size >= 2)
-        assertTrue("the active tab is drawn in the active slot", shades.any { it == activeSlotArgb })
+        // A tab wears the **tablet's chip glass**, not the picked steel a tool slot wears, and the two
+        // chips still read as two: the active one full-strength, the resting one thinned (`DesktopTheme.tabFill`).
+        assertFalse("a tab is a document, not a picked slot", shades.contains(activeSlotArgb))
+        assertTrue("the active chip is its own surface (${shades.size} shades)", shades.size >= 3)
     }
 
     @Test
@@ -213,7 +216,11 @@ class DesktopShellTest {
             val filled = frame(scene, "shell-tabs-late-open")
 
             assertFalse("opening a document repaints the strip", empty.contentEquals(filled))
-            assertTrue("and draws the new active tab", shades(filled).contains(activeSlotArgb))
+            assertTrue(
+                "and draws the new active tab as its own surface",
+                shades(filled).size > shades(empty).size,
+            )
+            assertFalse("the tab is glass, not the picked steel slot", shades(filled).contains(activeSlotArgb))
 
             tabs.close(0)
             assertFalse("closing it repaints the strip too", filled.contentEquals(frame(scene, "shell-tabs-closed")))

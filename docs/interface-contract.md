@@ -174,7 +174,10 @@ steel slot; hover is the same steel at `hoverSlotAlpha` (**0.45**), never a colo
 never the picked fill; disabled keeps its ink but loses its hit area; focus is visible without relying on
 the pointer. A new element with only a default state is unfinished. A **document tab** is the one picked
 surface that also wears the **accent edge** — 1 dp of the accent at 60 %, the tablet's own ring on a
-selected chip — because a strip of capsules says which document is open by outline as well as by fill.
+selected chip — because a strip of capsules says which document is open by outline as well as by fill. A
+tab is the tablet's **chip** on both shells: the floating glass at full strength while it is the document
+in front and thinned behind a hairline while it is not, never the picked steel — that is a tool slot's
+state, and a tab is a document.
 
 On the desktop every surface wears `Modifier.hoverFill()` (`GlassEdge.kt`), and `ToolStripsTest` reads
 the hovered pixel against the unhovered one, so a control that answers only its tooltip — as the rail did

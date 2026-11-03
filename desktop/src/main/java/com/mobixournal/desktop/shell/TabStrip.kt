@@ -49,10 +49,11 @@ import kotlin.math.roundToInt
 /**
  * The open documents, as a strip under the header.
  *
- * Each tab shows its document's label and a monoline close glyph; the active one is the only one that
- * wears both the steel fill and the **accent edge** — the tablet's own pair for a selected chip, a 1 dp
- * ring of the primary colour at 60 % — so "which document am I in" is one bluish outline on a raised
- * capsule. A tab whose edits are not in the file yet carries a small accent dot after
+ * Each tab shows its document's label and a monoline close glyph, and every one wears the **tablet's chip**:
+ * the floating glass, at full strength for the document in front and thinned behind a hairline for the
+ * rest, with the picked one also carrying the **accent edge** — 1 dp of the primary colour at 60 % — so
+ * "which document am I in" is one bluish outline on a pane of glass rather than the steel a tool slot
+ * wears. A tab whose edits are not in the file yet carries a small accent dot after
  * the label — the strip's only status readout, and the reason closing it asks before it goes. A **double-click edits the label in place** — a tab label is a label,
  * not the file's name — and **dragging sideways reorders** the strip. The `+` at the end is the same
  * open action the header button and `Ctrl+T` invoke.
@@ -89,8 +90,14 @@ fun TabStrip(
                     .padding(end = 6.dp)
                     .height(30.dp)
                     .widthIn(min = 120.dp, max = 240.dp)
-                    .background(if (active) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.capsuleShape)
-                    .hoverFill(DesktopTheme.capsuleShape, active = active)
+                    // The chip's fill and its hover step are **one** background, so the light cannot
+                    // disagree with the capsule it fills: the tablet's glass at full strength while this is
+                    // the document in front, the same glass thinned while it is not.
+                    .hoverFill(
+                        DesktopTheme.capsuleShape,
+                        active = active,
+                        base = if (active) DesktopTheme.tabFill else DesktopTheme.tabFillResting,
+                    )
                     .tabEdge(active)
                     .pointerInput(tab.key) {
                         detectTapGestures(
@@ -226,18 +233,19 @@ private fun AddTabButton(onNew: () -> Unit) {
 }
 
 /**
- * **The edge a tab wears**: the accent ring when it is the document in front, and nothing when it is not.
+ * **The edge a tab wears**: the tablet's two rims, one per state — the accent at 60 % while it is the
+ * document in front, the chrome's hairline while it is not.
  *
- * The tablet answers "which one is open" with a 1 dp ring of the primary colour at 60 % on a raised chip, and
- * the window's tabs had only a whites-only rim on the steel fill — two materials for one state. Its own
- * helper because the strip's row is a row: a style that reads as five lines inside it is a style that
- * pushed the function past `SourceStructureTest`'s ceiling.
+ * The tablet's resting chip keeps a hairline so it still reads as an object on the band; the picked one
+ * swaps it for the accent ring, which is how the tablet answers "which one is open". Its own helper because
+ * the strip's row is a row: a style that reads as five lines inside it is a style that pushed the function
+ * past `SourceStructureTest`'s ceiling.
  */
-private fun Modifier.tabEdge(active: Boolean): Modifier = if (active) {
-    border(1.dp, DesktopTheme.accent.copy(alpha = TAB_ACCENT_ALPHA), DesktopTheme.capsuleShape)
-} else {
-    this
-}
+private fun Modifier.tabEdge(active: Boolean): Modifier = border(
+    1.dp,
+    if (active) DesktopTheme.accent.copy(alpha = TAB_ACCENT_ALPHA) else DesktopTheme.hairline,
+    DesktopTheme.capsuleShape,
+)
 
 /** The picked tab's edge: the tablet's 60 % accent ring, the one mark a selected chip wears. */
 private const val TAB_ACCENT_ALPHA = 0.6f
