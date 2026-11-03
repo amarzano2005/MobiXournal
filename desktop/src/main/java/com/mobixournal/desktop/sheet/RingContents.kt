@@ -36,7 +36,7 @@ internal sealed interface RingContents {
                     is HudSlot.Colour -> RingFace.Colour(slot.argb)
                     is HudSlot.Width -> RingFace.Width(slot.pt)
                     is HudSlot.ToolFace -> DesktopTool.entries
-                        .firstOrNull { it.name == slot.tool.name }
+                        .firstOrNull { it.name == slot.tool }
                         ?.let { tool -> RingFace.Tool(tool) }
                 }
             }
@@ -54,19 +54,20 @@ internal sealed interface RingContents {
          * `RadialHud.FACTORY_TOOLS`, each name read as the window's own tool of that name.
          */
         val TOOLS: List<DesktopTool> = RadialHud.FACTORY_TOOLS.mapNotNull { name ->
-            DesktopTool.entries.firstOrNull { it.name == name.name }
+            DesktopTool.entries.firstOrNull { it.name == name }
         }
 
         /**
          * [faces] as the one line `ring.slots` stores: `c:` a colour (ARGB, hex), `w:` a width in points,
          * `t:` a tool by its own name — joined by commas.
          */
-        fun encode(faces: List<RingFace>): String = faces.joinToString(",") { face ->
-            when (face) {
-                is RingFace.Colour -> "c:" + Integer.toHexString(face.argb)
-                is RingFace.Width -> "w:" + face.pt
-                is RingFace.Tool -> "t:" + face.tool.name
-            }
+        fun encode(faces: List<RingFace>): String = RadialHud.encodeSlots(faces.map(::slotOf))
+
+        /** A face in the shared ring's vocabulary, which is what the stored line is made of. */
+        private fun slotOf(face: RingFace): HudSlot = when (face) {
+            is RingFace.Colour -> HudSlot.Colour(face.argb)
+            is RingFace.Width -> HudSlot.Width(face.pt)
+            is RingFace.Tool -> HudSlot.ToolFace(face.tool.name)
         }
 
         /**
@@ -76,27 +77,20 @@ internal sealed interface RingContents {
          * the window with the ring it ships rather than with a dead one. A face this build does not know is
          * dropped and the rest are kept.
          */
-        fun decode(raw: String?): List<RingFace>? {
-            if (raw.isNullOrBlank()) return null
-            val faces = raw.split(',')
-                .mapNotNull { token -> faceOf(token.trim()) }
-                .take(RadialHud.MAX_SLOTS)
-            return faces.ifEmpty { null }
-        }
+        fun decode(raw: String?): List<RingFace>? = RadialHud.decodeSlots(raw)
+            ?.mapNotNull { slot -> faceOf(slot) }
+            ?.takeIf { it.isNotEmpty() }
 
-        /** One stored token as a face, or null when it is not one. */
-        private fun faceOf(token: String): RingFace? = when {
-            token.startsWith("c:") ->
-                token.removePrefix("c:").toLongOrNull(16)?.toInt()?.let(RingFace::Colour)
-            token.startsWith("w:") ->
-                token.removePrefix("w:").toFloatOrNull()?.takeIf { it.isFinite() && it > 0f }
-                    ?.let(RingFace::Width)
-            token.startsWith("t:") -> {
-                val name = token.removePrefix("t:")
-                DesktopTool.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
-                    ?.let(RingFace::Tool)
-            }
-            else -> null
+        /**
+         * A shared face as one the window can draw, or null when this build has no such tool — a name written
+         * by another version is dropped rather than shown as a face that does nothing.
+         */
+        private fun faceOf(slot: HudSlot): RingFace? = when (slot) {
+            is HudSlot.Colour -> RingFace.Colour(slot.argb)
+            is HudSlot.Width -> RingFace.Width(slot.pt)
+            is HudSlot.ToolFace -> DesktopTool.entries
+                .firstOrNull { it.name.equals(slot.tool, ignoreCase = true) }
+                ?.let { tool -> RingFace.Tool(tool) }
         }
     }
 }

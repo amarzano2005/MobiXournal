@@ -191,7 +191,6 @@ internal fun PageCanvas(
             chrome = chrome,
             hud = hud,
         )
-        DesktopHudLayer(hud, state.canvas.memory, state.density)
     }
 }
 /**
@@ -335,9 +334,6 @@ internal fun SheetCanvas(
                 pointer = pointer,
                 draft = draft,
                 ringVisible = mark.ringPx != null,
-                // The ring's faces are buttons, so the arrow comes back while it is up: a pointer with no
-                // picture cannot be aimed at one (`toolPointerIcon`).
-                ringOpen = hud.open() != null,
                 followMouse = mark.followMouse,
                 dialWheel = dialWheel,
                 targets = sheetTargets(
@@ -357,6 +353,9 @@ internal fun SheetCanvas(
             )
             drawSheetChrome(tab, sheet, density, mark, pointer)
         }
+        // The ring floats over the sheet, and the tool's own ring is painted on **top** of its glass, so
+        // the pointer stays visible where the faces are (`DesktopHudLayer`).
+        DesktopHudLayer(hud, pointer, mark.ringPx, density)
         GuideAimLayer(tab, pointer, sheet, density)
     }
 }
@@ -416,9 +415,9 @@ private fun sheetTargets(
  *
  * The pointer over the page is the *tool's*: a ring is the pointer while a pen, a highlighter or an eraser is
  * in hand (an arrow beside it pointed at nothing), a hand for the hand, and the desktop's arrow for every
- * other slot (`DesktopCursor.toolPointerIcon`) — and the arrow always comes back while the **pen-tip ring**
- * is up, because its faces are buttons and the reader has to see what they are pointing at. Split out of the
- * composable so the surface that owns a page stays layout and wiring (`SourceStructureTest`).
+ * other slot (`DesktopCursor.toolPointerIcon`). The pen-tip ring does not change it: its faces are aimed at
+ * with that same ring, which its layer paints above the glass. Split out of the composable so the surface that
+ * owns a page stays layout and wiring (`SourceStructureTest`).
  */
 @OptIn(ExperimentalComposeUiApi::class)
 private fun Modifier.sheetInput(
@@ -433,8 +432,6 @@ private fun Modifier.sheetInput(
     draft: SnapshotStateList<InkSample>,
     /** Whether the tool draws a ring: the pointer is blank behind it, the arrow otherwise. */
     ringVisible: Boolean,
-    /** Whether the pen-tip ring is up — a surface of buttons, which keeps a visible pointer over it. */
-    ringOpen: Boolean,
     /** A mouse move that is a copy of the contact must not drag the ring back (`PenPacketStroke`). */
     followMouse: () -> Boolean,
     dialWheel: () -> Boolean,
@@ -445,9 +442,7 @@ private fun Modifier.sheetInput(
     onEdited: (Int) -> Unit,
     hud: HudUi = HudUi(),
 ): Modifier = this
-    .pointerHoverIcon(
-        toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode, ringOpen = ringOpen),
-    )
+    .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode))
     .hoverTracking(pointer, followMouse)
     .onPointerEvent(PointerEventType.Scroll) { event ->
         wheelViewport(

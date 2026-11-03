@@ -22,27 +22,12 @@ sealed interface HudSlot {
     data class Width(val pt: Float) : HudSlot
 
     /**
-     * A tool face, named in the vocabulary **both** shells share ([RingTool]): the tablet maps it to its
-     * `EditorTool`, the window to its `DesktopTool`, so one ring can hold the same six tools on either.
+     * A tool face, named by its **tool** — `PEN`, `LINE`, `LASSO` — in a vocabulary each shell reads as its
+     * own (`EditorTool` on the tablet, `DesktopTool` in the window). A name is a string rather than an enum
+     * because the two shells' tool sets are not the same size: the window can put any of its tools on the
+     * ring, and the tablet can put any of its own, so the name is the only thing they *must* agree on.
      */
-    data class ToolFace(val tool: RingTool) : HudSlot
-}
-
-/**
- * The tools a ring face can hold, in a vocabulary the two shells can both name.
- *
- * It is a *ring's* list rather than a toolbar's: the six faces the factory ring carries — a figure, the
- * two selections and the three writing tools. Each shell maps a name to its own enum (the tablet's
- * `EditorTool.LASSO_SELECT` and `SELECT`, the window's `DesktopTool.LASSO` and `MARQUEE` are the same two
- * selections under different names), so the ring's order is one fact and the tools are each shell's.
- */
-enum class RingTool {
-    PEN,
-    HIGHLIGHTER,
-    ERASER,
-    LINE,
-    LASSO,
-    MARQUEE,
+    data class ToolFace(val tool: String) : HudSlot
 }
 
 /**
@@ -97,14 +82,7 @@ object RadialHud {
      * A figure, the two selections and the three writing tools, ending on the **pen** so the tool a
      * writer returns to most often sits beside the colours at the top of the ring.
      */
-    val FACTORY_TOOLS: List<RingTool> = listOf(
-        RingTool.LINE,
-        RingTool.LASSO,
-        RingTool.MARQUEE,
-        RingTool.HIGHLIGHTER,
-        RingTool.ERASER,
-        RingTool.PEN,
-    )
+    val FACTORY_TOOLS: List<String> = listOf("LINE", "LASSO", "MARQUEE", "HIGHLIGHTER", "ERASER", "PEN")
 
     /** The palette as the factory ring draws it: distinct, and no more than [FACTORY_COLOUR_SLOTS]. */
     fun factoryColours(colours: List<Int>): List<Int> = colours.distinct().take(FACTORY_COLOUR_SLOTS)
@@ -126,6 +104,44 @@ object RadialHud {
     }
 
     /**
+     * The ring as **one stored line**: `c:` a colour (ARGB, hex), `w:` a width in points and `t:` a tool by
+     * name, joined by commas. One format for both shells, so a ring read back is the ring that was written.
+     */
+    fun encodeSlots(slots: List<HudSlot>): String = slots.joinToString(",") { slot ->
+        when (slot) {
+            is HudSlot.Colour -> "c:" + Integer.toHexString(slot.argb)
+            is HudSlot.Width -> "w:" + slot.pt
+            is HudSlot.ToolFace -> "t:" + slot.tool
+        }
+    }
+
+    /**
+     * The faces [encodeSlots] wrote, or **null** when the line names none this build can read.
+     *
+     * Null is the factory ring, so a line written by another version or hand-edited into nonsense leaves the
+     * reader with the ring the app ships rather than a dead one. A colour or a width that will not parse is
+     * dropped and the rest are kept; a tool name is kept as written, because only the shell knows which tools
+     * it has — it is the shell that drops the ones it cannot act on.
+     */
+    fun decodeSlots(raw: String?): List<HudSlot>? {
+        if (raw.isNullOrBlank()) return null
+        val slots = raw.split(',').mapNotNull { token -> slotOf(token.trim()) }.take(MAX_SLOTS)
+        return slots.ifEmpty { null }
+    }
+
+    /** One stored token as a face, or null when it is not one. */
+    private fun slotOf(token: String): HudSlot? = when {
+        token.startsWith("c:") ->
+            token.removePrefix("c:").toLongOrNull(16)?.toInt()?.let(HudSlot::Colour)
+        token.startsWith("w:") ->
+            token.removePrefix("w:").toFloatOrNull()?.takeIf { it.isFinite() && it > 0f }
+                ?.let(HudSlot::Width)
+        token.startsWith("t:") ->
+            token.removePrefix("t:").trim().takeIf { it.isNotEmpty() }?.let(HudSlot::ToolFace)
+        else -> null
+    }
+
+    /**
      * Build the ring: the palette first (in the user's own order, with the editable custom colour
      * last), then the widths, then the tools. The custom slot is the ring's whole excuse for being
      * one flick — a HEX colour that previously had no one-tap home — so it is kept even when the
@@ -135,7 +151,7 @@ object RadialHud {
         colors: List<Int>,
         customColor: Int?,
         widths: List<Float>,
-        tools: List<RingTool>,
+        tools: List<String>,
     ): List<HudSlot> {
         val ring = ArrayList<HudSlot>(MAX_SLOTS)
         val paletteCap = (MAX_SLOTS - widths.size - tools.size).coerceIn(0, MAX_PALETTE_SLOTS)

@@ -70,7 +70,12 @@ enum class SettingsArea(
     DRAWING(
         "Drawing",
         "Default tool, snapping, figure sizes and shapes, and the pen palette.",
-        listOf(SettingsSection.EDITOR, SettingsSection.FIGURES, SettingsSection.COLORS),
+        listOf(
+            SettingsSection.EDITOR,
+            SettingsSection.FIGURES,
+            SettingsSection.COLORS,
+            SettingsSection.RING,
+        ),
         SettingsGlyph.FIGURES.imageVector(),
     ),
     /** How the app looks and how the canvas is navigated: toolbars, theme, panning. */
@@ -151,6 +156,14 @@ enum class SettingsSection(
         "colour color palette swatch favourite favorite custom hex pen highlighter add remove " +
             "restore default theme",
         SettingsGlyph.COLORS.imageVector(),
+    ),
+    /** Ring: the pen-tip HUD — the faces it carries and what each position holds. */
+    RING(
+        "Ring",
+        "Arrange the faces of the ring at the pen tip.",
+        "ring radial hud pen tip barrel button swatches colours color widths tools slot face position " +
+            "favourite flick automatic reset",
+        SettingsGlyph.RING.imageVector(),
     ),
     /** Finger gestures: what a still two- and three-finger tap on the canvas does. */
     GESTURES(
@@ -420,6 +433,7 @@ private fun SectionBody(
         SettingsSection.TOOLBAR -> ToolbarSection(settings, onChange)
         SettingsSection.FIGURES -> FiguresSection(settings, onChange)
         SettingsSection.COLORS -> ColorsSection(settings, onChange)
+        SettingsSection.RING -> RingSection(settings, onChange)
         SettingsSection.SHORTCUTS -> ShortcutsSection(settings, onChange)
         SettingsSection.NAVIGATION -> NavigationSection(settings, onChange)
         SettingsSection.APPEARANCE -> AppearanceSection(settings, onChange)

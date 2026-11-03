@@ -23,7 +23,7 @@ import org.junit.Test
 class RadialHudTest {
 
     private val widths = listOf(0.85f, 1.5f, 2.6f)
-    private val tools = listOf(RingTool.PEN, RingTool.HIGHLIGHTER, RingTool.ERASER)
+    private val tools = listOf("PEN", "HIGHLIGHTER", "ERASER")
     private val ringRadius = RadialHud.RING_RADIUS_DP
     private val slotRadius = RadialHud.SLOT_DIAMETER_DP / 2f
 
@@ -43,9 +43,9 @@ class RadialHudTest {
                 HudSlot.Width(0.85f),
                 HudSlot.Width(1.5f),
                 HudSlot.Width(2.6f),
-                HudSlot.ToolFace(RingTool.PEN),
-                HudSlot.ToolFace(RingTool.HIGHLIGHTER),
-                HudSlot.ToolFace(RingTool.ERASER),
+                HudSlot.ToolFace("PEN"),
+                HudSlot.ToolFace("HIGHLIGHTER"),
+                HudSlot.ToolFace("ERASER"),
             ),
             slots,
         )
@@ -68,7 +68,7 @@ class RadialHudTest {
         // The last stored swatch made room; the eight before it are untouched.
         assertEquals(HudSlot.Colour(colors[8]), slots[8])
         assertEquals(HudSlot.Width(0.85f), slots[10])
-        assertEquals(HudSlot.ToolFace(RingTool.ERASER), slots[15])
+        assertEquals(HudSlot.ToolFace("ERASER"), slots[15])
     }
 
     @Test
@@ -77,13 +77,13 @@ class RadialHudTest {
             colors = (0..23).map { 0xFF000000.toInt() or it },
             customColor = 0xFFABCDEF.toInt(),
             widths = listOf(0.5f, 1f, 2f),
-            tools = listOf(RingTool.PEN, RingTool.HIGHLIGHTER, RingTool.ERASER),
+            tools = listOf("PEN", "HIGHLIGHTER", "ERASER"),
         )
         assertEquals(RadialHud.MAX_SLOTS, slots.size)
         assertEquals(HudSlot.Width(0.5f), slots[10])
         assertEquals(HudSlot.Width(2f), slots[12])
-        assertEquals(HudSlot.ToolFace(RingTool.PEN), slots[13])
-        assertEquals(HudSlot.ToolFace(RingTool.ERASER), slots[15])
+        assertEquals(HudSlot.ToolFace("PEN"), slots[13])
+        assertEquals(HudSlot.ToolFace("ERASER"), slots[15])
     }
 
     /**
@@ -107,7 +107,7 @@ class RadialHudTest {
             slots.size,
         )
         assertEquals("the first swatch is the factory black", HudSlot.Colour(PenPalette.COLORS.first()), slots.first())
-        assertEquals("and the ring closes on the pen", HudSlot.ToolFace(RingTool.PEN), slots.last())
+        assertEquals("and the ring closes on the pen", HudSlot.ToolFace("PEN"), slots.last())
     }
 
     /**
@@ -133,10 +133,10 @@ class RadialHudTest {
         assertEquals(HudSlot.Width(PenPalette.DEFAULT_WIDTHS.first()), slots[RadialHud.FACTORY_COLOUR_SLOTS])
         assertEquals(
             "the figure comes first among the tools",
-            HudSlot.ToolFace(RingTool.LINE),
+            HudSlot.ToolFace("LINE"),
             slots[RadialHud.FACTORY_COLOUR_SLOTS + PenPalette.DEFAULT_WIDTHS.size],
         )
-        assertEquals("and the pen closes the ring", HudSlot.ToolFace(RingTool.PEN), slots.last())
+        assertEquals("and the pen closes the ring", HudSlot.ToolFace("PEN"), slots.last())
     }
 
     @Test
@@ -232,5 +232,31 @@ class RadialHudTest {
         assertNull(RadialHud.slotIndexAt(0f, 0f, 0f, -(ringRadius - slotRadius - 1f), 8, ringRadius, slotRadius))
         // Past the band's outer edge.
         assertNull(RadialHud.slotIndexAt(0f, 0f, 0f, -(ringRadius + slotRadius + 1f), 8, ringRadius, slotRadius))
+    }
+
+    /**
+     * The stored line is **one format for both shells**: what a ring is written as is what it is read back as,
+     * and a line this build cannot read leaves the factory ring rather than an empty one.
+     */
+    @Test
+    fun theRingSurvivesItsStoredLine() {
+        val ring = listOf(
+            HudSlot.Colour(PenPalette.BLACK),
+            HudSlot.Width(1.5f),
+            HudSlot.ToolFace("LASSO"),
+        )
+        assertEquals(ring, RadialHud.decodeSlots(RadialHud.encodeSlots(ring)))
+        assertEquals("a blank line is the factory ring", null, RadialHud.decodeSlots(null))
+        assertEquals("and so is an empty one", null, RadialHud.decodeSlots("nonsense,,"))
+        assertEquals(
+            "an unreadable face is dropped and the rest are kept",
+            listOf(HudSlot.Colour(PenPalette.RED)),
+            RadialHud.decodeSlots("c:ffff0000,w:not-a-width"),
+        )
+        // A tool name is kept as written: only the shell knows which tools it has, and it drops the rest.
+        assertEquals(
+            listOf(HudSlot.ToolFace("something-beta")),
+            RadialHud.decodeSlots("t:something-beta"),
+        )
     }
 }

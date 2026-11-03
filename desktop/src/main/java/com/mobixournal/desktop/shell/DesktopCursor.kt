@@ -116,22 +116,19 @@ private val textCursor: Cursor by lazy {
  * its ring is the pointer ([drawToolCursor]). An arrow beside a ring points at nothing, and a ring alone
  * is the mark the tablet draws.
  *
- * The one exception is the **pen-tip ring** ([ringOpen]): that is a surface of buttons, and a pointer with
- * no picture cannot be aimed at a face — so the window's own arrow comes back for as long as the ring is
- * up. It is a state of the surface, not of the tool, which is why it is not derived from [ringVisible].
+ * The **pen-tip ring** does not change this answer: the ring's faces are aimed at with the same tool ring the
+ * rest of the sheet wears, so the pointer keeps its picture-free cursor and `DesktopHudLayer` paints the ring
+ * **above** the ring's glass — the surface must never hide the mark the reader points with.
  */
 internal fun toolPointerIcon(
     tool: DesktopTool,
     ringVisible: Boolean,
     panMode: Boolean = false,
-    ringOpen: Boolean = false,
 ): PointerIcon = when {
     panMode || tool == DesktopTool.HAND -> PointerIcon.Hand
     // The PDF text-select slot reads words too: an I-beam says "drag across this line", where a ring the
     // size of the nib would promise ink no selection lays.
     tool == DesktopTool.TEXT || tool == DesktopTool.PDF_TEXT_SELECT -> PointerIcon(textCursor)
-    // A ring of buttons needs a pointer over it, or the reader aims at a face blind.
-    ringOpen -> PointerIcon.Default
     ringVisible -> PointerIcon(blankCursor)
     else -> PointerIcon.Default
 }

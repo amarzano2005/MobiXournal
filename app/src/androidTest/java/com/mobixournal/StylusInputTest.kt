@@ -23,7 +23,6 @@ import com.mobixournal.render.HudSlot
 import com.mobixournal.render.InputSettings
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.RadialHud
-import com.mobixournal.render.RingTool
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.Snapping
 import com.mobixournal.render.deleteSelection
@@ -168,7 +167,7 @@ class StylusInputTest {
             colors = listOf(0xFF000000.toInt()),
             customColor = null,
             widths = listOf(width),
-            tools = listOf(RingTool.PEN),
+            tools = listOf("PEN"),
         )
         var picked: HudSlot? = null
         view.onHudPick = { picked = it }
@@ -795,7 +794,7 @@ class StylusInputTest {
             colors = listOf(0xFF000000.toInt()),
             customColor = null,
             widths = listOf(width),
-            tools = listOf(RingTool.PEN),
+            tools = listOf("PEN"),
         )
         var picked: HudSlot? = null
         view.onHudPick = { picked = it }
@@ -832,7 +831,7 @@ class StylusInputTest {
     @Test
     fun aBarrelKeyDownSummonsAndKeyUpDismisses() = onView { view ->
         view.inputSettings = InputSettings(barrelAction = BarrelAction.HUD)
-        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf(RingTool.PEN))
+        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf("PEN"))
         var picked: HudSlot? = null
         view.onHudPick = { picked = it }
 
@@ -848,7 +847,7 @@ class StylusInputTest {
     @Test
     fun aHudReleaseInTheDeadZoneCommitsNothing() = onView { view ->
         view.inputSettings = InputSettings(barrelAction = BarrelAction.HUD)
-        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf(RingTool.PEN))
+        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf("PEN"))
         var picked: HudSlot? = null
         view.onHudPick = { picked = it }
 
@@ -872,7 +871,7 @@ class StylusInputTest {
     fun aTipThatLandsOnTheOpenHudCancelsItAndWritesNothing() = onView { view ->
         view.tool = Tool.PEN
         view.inputSettings = InputSettings(barrelAction = BarrelAction.HUD)
-        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf(RingTool.PEN))
+        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf("PEN"))
         var picked: HudSlot? = null
         view.onHudPick = { picked = it }
 

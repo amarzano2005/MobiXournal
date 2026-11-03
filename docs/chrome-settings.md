@@ -67,7 +67,7 @@ result names the area it lives in (`areaOf`), so a hit found by an alias still s
 belongs; opening one goes straight to the section. `SettingsAreaTest` pins the structure the whole
 screen rests on: the areas cover every section exactly once (an unlisted section would be unreachable)
 and no area owns a single child (a one-child area is a tap that explains nothing). Section bodies live
-in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Shortcuts** section
+in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Ring** section (`RingSection.kt`, under Drawing) draws the pen-tip ring and edits its faces: a tap sets a colour, a width or **any tool the rail has**, and the ring is stored as one line under `ring.slots` (`RadialHud.encodeSlots`) — absent means the factory ring, which is what *Reset to defaults* writes. The **Shortcuts** section
 owns the whole keyboard-shortcut table: `AppSettings.penEraserToggleKey` / `handToggleKey` (the two
 toggles) plus two maps — `toolShortcutKeys` (one key per `EditorTool`) and `colorShortcutKeys` (one
 key per palette swatch). They are persisted by `encodeToolShortcuts` / `decodeToolShortcuts`

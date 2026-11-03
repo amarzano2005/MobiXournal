@@ -177,6 +177,8 @@ data class AppSettings(
     val penWidths: List<Float> = DEFAULT_PEN_WIDTHS,
     /** The user-defined colour behind the palette's editable custom slot; null until the user sets one. */
     val customColor: Int? = null,
+    /** The pen-tip ring's own faces, as one line (`RadialHud.encodeSlots`); null is the factory ring. */
+    val ringSlots: String? = null,
     /** Which tool is active when a document first opens. */
     val defaultTool: EditorTool = EditorTool.PEN,
     /** Key to toggle between pen and eraser (empty = disabled). */
@@ -560,6 +562,7 @@ class SettingsStore(context: Context) {
             } else {
                 d.customColor
             },
+            ringSlots = prefs.getString(KEY_RING_SLOTS, d.ringSlots),
             defaultTool = enumOr(prefs.getString(KEY_DEFAULT_TOOL, null), d.defaultTool),
             momentum = Momentum.coerce(prefs.getFloat(KEY_MOMENTUM, d.momentum)),
             momentumCurve = enumOr(prefs.getString(KEY_MOMENTUM_CURVE, null), d.momentumCurve),
@@ -709,6 +712,7 @@ class SettingsStore(context: Context) {
             .putString(KEY_GUIDE_POSE, GuidePoseCodec.toJson(s.guidePose))
         s.penWidths.forEachIndexed { i, w -> e.putFloat(keyPenWidth(i), w) }
         if (s.customColor == null) e.remove(KEY_CUSTOM_COLOR) else e.putInt(KEY_CUSTOM_COLOR, s.customColor)
+        if (s.ringSlots == null) e.remove(KEY_RING_SLOTS) else e.putString(KEY_RING_SLOTS, s.ringSlots)
         e.putString(KEY_DEFAULT_TOOL, s.defaultTool.name)
         e.putFloat(KEY_MOMENTUM, s.momentum)
         e.putString(KEY_MOMENTUM_CURVE, s.momentumCurve.name)
@@ -722,8 +726,7 @@ class SettingsStore(context: Context) {
         e.putString(KEY_PEN_COLORS, encodePenColors(s.penColors))
         e.putString(KEY_PEN_FAVORITES, encodeFavorites(s.penFavorites))
         e.putString(KEY_HIGHLIGHTER_FAVORITES, encodeFavorites(s.highlighterFavorites))
-        e.putInt(KEY_LAST_COLOR, s.lastColor)
-        e.putFloat(KEY_LAST_WIDTH, s.lastWidth)
+        e.putInt(KEY_LAST_COLOR, s.lastColor).putFloat(KEY_LAST_WIDTH, s.lastWidth)
         e.putInt(KEY_HIGHLIGHTER_COLOR, s.highlighterColor)
         e.putFloat(KEY_HIGHLIGHTER_WIDTH, s.highlighterWidth)
         e            .putFloat(KEY_SHAPE_WIDTH, s.shapeWidth)
@@ -824,6 +827,9 @@ class SettingsStore(context: Context) {
         const val KEY_GUIDE_KIND = "guide_kind"
         const val KEY_GUIDE_POSE = "guide_pose"
         const val KEY_CUSTOM_COLOR = "custom_color"
+
+        /** The ring's own faces; absent means the factory ring (the same key the window writes). */
+        const val KEY_RING_SLOTS = "ring.slots"
         const val KEY_DEFAULT_TOOL = "default_tool"
         // Float-typed since the parameterized control replaced the old discrete enum; a fresh key
         // avoids a ClassCastException on any pref still holding the old enum-name string.

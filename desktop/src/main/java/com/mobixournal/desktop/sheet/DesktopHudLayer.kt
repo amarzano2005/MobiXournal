@@ -12,9 +12,10 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.shell.drawToolCursor
 
 /**
- * The pen-tip ring over a page, and the two readings it needs from the canvas.
+ * The pen-tip ring over a page, and the pointer it keeps.
  *
  * The ring is drawn in a canvas of its own, laid over the sheet's: the page's paint (replayed from its
  * recorded picture) stays exactly what it was, and a surface that comes and goes costs it nothing. Both
@@ -24,13 +25,22 @@ import com.mobixournal.desktop.settings.DesktopTheme
  * A pen that hovers reports where it is before any button is pressed, which is what lets the ring open under
  * the nib rather than at a remembered corner — [PageCanvas]'s `nibReporting` publishes that place, and this
  * layer follows the hover so a flick lights the slot it is over.
+ *
+ * The **pointer** is the tool's own ring ([drawToolCursor]), painted *above* the glass rather than under it:
+ * on the sheet that ring is the pointer, so painting it below the ring's surface hid the very mark the reader
+ * aims with — the faces were then clicked at a place nothing was marking. The window's arrow stays away, as
+ * it does everywhere else a tool marks the page.
  */
 @Composable
-internal fun DesktopHudLayer(hud: HudUi, memory: CanvasMemory, density: Float) {
-    val hover = memory.pointer.hover.value
+internal fun DesktopHudLayer(hud: HudUi, pointer: PenPointer, ringPx: Float?, density: Float) {
+    val hover = pointer.hover.value
     LaunchedEffect(hover) { hover?.let { hud.onPointerAt(it, density) } }
     val open = hud.open() ?: return
-    Canvas(Modifier.fillMaxSize()) { drawDesktopRadialHud(open, hud.slots, density) }
+    Canvas(Modifier.fillMaxSize()) {
+        drawDesktopRadialHud(open, hud.slots, density)
+        // A tool that lays no band (the hand, Text, the guides) has no ring to show, and draws none.
+        ringPx?.let { ring -> pointer.hover.value?.let { at -> drawToolCursor(at, ring) } }
+    }
 }
 
 /**

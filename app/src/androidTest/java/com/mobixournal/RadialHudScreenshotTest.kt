@@ -18,7 +18,6 @@ import com.mobixournal.render.BarrelButtonState
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.InputSettings
 import com.mobixournal.render.RadialHud
-import com.mobixournal.render.RingTool
 import com.mobixournal.ui.AppSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

@@ -15,6 +15,8 @@ package com.mobixournal.render
 import android.graphics.Canvas
 import android.view.HapticFeedbackConstants
 import com.mobixournal.design.ToolGlyph
+import com.mobixournal.ui.catalogueGlyph
+import com.mobixournal.ui.ringToolFor
 import kotlin.math.sqrt
 
 /**
@@ -180,7 +182,7 @@ internal fun DrawingSurfaceView.drawRadialHud(canvas: Canvas) {
             is HudSlot.Width -> canvas.drawCircle(x, y, widthDotRadius(slot.pt, density), chrome.hudInk)
             is HudSlot.ToolFace -> drawToolGlyph(
                 canvas,
-                glyphFor(slot.tool),
+                glyphOf(slot.tool),
                 x,
                 y,
                 slotRadius,
@@ -202,12 +204,9 @@ private const val HUD_AIR_DP = 10f
 private fun widthDotRadius(pt: Float, density: Float): Float =
     (2.5f + 9.5f * sqrt((pt / 15f).coerceIn(0.1f, 1f))) * density
 
-/** The catalogue glyph for a ring face's tool — every tool the ring can hold has one. */
-private fun glyphFor(tool: RingTool): ToolGlyph = when (tool) {
-    RingTool.PEN -> ToolGlyph.PEN
-    RingTool.HIGHLIGHTER -> ToolGlyph.HIGHLIGHTER
-    RingTool.ERASER -> ToolGlyph.ERASER
-    RingTool.LINE -> ToolGlyph.LINE
-    RingTool.LASSO -> ToolGlyph.LASSO
-    RingTool.MARQUEE -> ToolGlyph.MARQUEE
-}
+/**
+ * The catalogue glyph for a ring face, read from the app's own table (`EditorTool.catalogueGlyph`): the ring
+ * can hold any tool the rail does, so its picture has to come from the one place that answers what a tool
+ * looks like — a second table here is how the ring and the rail would drift apart.
+ */
+private fun glyphOf(name: String): ToolGlyph = ringToolFor(name)?.catalogueGlyph() ?: ToolGlyph.PEN

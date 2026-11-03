@@ -211,9 +211,9 @@ ring is not held to those six: a logic gate or a flowchart arrow can sit at the 
   slot** commits it and closes the ring, a click inside the ring but off a slot does nothing (it was aimed at
   the ring, not through it), and a click well outside it, `Esc`, or a second `Alt + B` puts it away without
   changing anything. Every press while the ring is up is the ring's: nothing is inked, panned or selected under it.
-- **The pointer stays on it, and so does the pen.** While the ring is up the window's arrow comes back — a drawing
-  tool's ring replaces the arrow everywhere else on the sheet, but a surface of buttons has to be *seen* to be aimed
-  at — and the pen's own packets answer the ring as well: a tip that lands on a face commits it and lays no ink under
+- **The pointer stays on it, and so does the pen.** The pointer over the ring is the *tool's* ring, not the arrow:
+  `DesktopHudLayer` paints it **above** the glass, so the mark the reader aims with is never hidden by the surface it
+  aims at. The pen's own packets answer the ring as well — a tip that lands on a face commits it and lays no ink under
   it, because on this machine the packets are the stream and Windows' copy of the contact is not.
 - **What a commit is.** The entries the rail and the flyouts already use (`pickColour`, `pickWidth`,
   `selectTool`), so a ring choice cannot mean something you could not have set by hand; the picked tool's own

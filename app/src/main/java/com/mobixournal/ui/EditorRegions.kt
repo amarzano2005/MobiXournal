@@ -1497,7 +1497,10 @@ private fun DrawingSurfaceView.bindEditorActions(
         when (slot) {
             is HudSlot.Colour -> commitInk(slot.argb, ui.width)
             is HudSlot.Width -> commitInk(ui.color, slot.pt)
-            is HudSlot.ToolFace -> activateTool(editorToolFor(slot.tool, settings), ui, settings, onSettingsChange)
+            // A face this build has no tool for (a name from another version) commits nothing.
+            is HudSlot.ToolFace -> editorToolFor(slot.tool, settings)?.let { tool ->
+                activateTool(tool, ui, settings, onSettingsChange)
+            }
         }
     }
     onPlace = { kind, placement ->
