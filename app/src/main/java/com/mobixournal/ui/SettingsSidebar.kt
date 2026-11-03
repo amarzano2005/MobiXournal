@@ -99,7 +99,7 @@ private fun SidebarRow(area: SettingsArea, selected: Boolean, onClick: () -> Uni
         Text(
             text = area.title,
             style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
             else MaterialTheme.colorScheme.onSurface,
         )

@@ -46,7 +46,7 @@ fun SettingsGroup(
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 16.dp, bottom = SettingsHeaderGap),
         )

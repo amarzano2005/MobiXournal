@@ -268,7 +268,7 @@ private fun PaneBadge(number: Int, focused: Boolean, onClick: () -> Unit) {
         Text(
             text = "$number",
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             color = ink,
         )
     }
@@ -337,7 +337,7 @@ private fun TabChip(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             color = if (selected) colors.onSurface else colors.onSurfaceVariant,
             modifier = Modifier.widthIn(min = 64.dp, max = 180.dp),
         )

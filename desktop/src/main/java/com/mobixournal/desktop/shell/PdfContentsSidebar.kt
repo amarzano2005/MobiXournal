@@ -99,8 +99,7 @@ private fun OutlineRowView(row: OutlineRow, onSelectPage: (Int) -> Unit) {
             text = row.title,
             // An entry with no page is shown but not jumpable: dimmed, as the tablet draws it.
             color = if (target != null) DesktopTheme.ink else DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-            fontSize = 12.sp,
+            style = DesktopTheme.tab,
             maxLines = 1,
         )
         Spacer(Modifier.weight(1f))
@@ -109,7 +108,6 @@ private fun OutlineRowView(row: OutlineRow, onSelectPage: (Int) -> Unit) {
                 text = "${target + 1}",
                 color = DesktopTheme.inkMuted,
                 style = DesktopTheme.numeric,
-                fontSize = 11.sp,
             )
         }
     }

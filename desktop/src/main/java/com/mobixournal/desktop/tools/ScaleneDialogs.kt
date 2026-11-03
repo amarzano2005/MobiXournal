@@ -353,7 +353,7 @@ private fun StepButton(text: String, enabled: Boolean, onClick: () -> Unit) {
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted, fontSize = 14.sp)
+        Text(text, color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted, style = DesktopTheme.body)
     }
 }
 

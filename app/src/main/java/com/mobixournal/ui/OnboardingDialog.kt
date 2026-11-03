@@ -157,7 +157,7 @@ private fun OnboardingHeader(step: Int, totalSteps: Int) {
             Text(
                 text = "MobiXournal • Welcome",
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -404,7 +404,7 @@ private fun OnboardingFeatureRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(2.dp))

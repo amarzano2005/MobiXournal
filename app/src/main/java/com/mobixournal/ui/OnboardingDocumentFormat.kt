@@ -142,7 +142,7 @@ private fun DocumentFormatCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.width(8.dp))
@@ -186,7 +186,7 @@ private fun RecommendedBadge() {
         Text(
             text = "Recommended",
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
     }

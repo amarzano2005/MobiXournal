@@ -160,7 +160,7 @@ private fun TableCellEditorHeader(state: TableCellEditorState) {
             Text(
                 text = "Edit table",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
             )
             Text(
                 text = "${state.rowHeights.size}×${state.colWidths.size}",
@@ -240,7 +240,7 @@ private fun TableDimensionStepper(
         Text(
             text = "$count",
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
         )
         Box(
             modifier = Modifier
@@ -411,7 +411,7 @@ private fun TableCellEditorBottomBar(
             Text(
                 text = "R${state.currentRow + 1} · C${state.currentCol + 1}",
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
                 color = scheme.onSurfaceVariant,
             )
         }

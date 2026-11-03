@@ -472,9 +472,9 @@ private fun SearchIndexingDialog(
                     modifier = Modifier.weight(1f, fill = false),
                 ) {
                     Text(
-                        text = "Loading text...",
+                        text = "Loading text…",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (progress != null) {
@@ -625,7 +625,7 @@ private fun SearchControls(pane: PaneState) {
                     ) {
                         if (pane.searchQuery.isEmpty()) {
                             Text(
-                                if (pane.searchIndexing) "Loading text..." else "Search document...",
+                                if (pane.searchIndexing) "Loading text…" else "Search document…",
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             )
@@ -702,7 +702,7 @@ private fun SearchCounterBadge(current: Int, total: Int) {
             Text(
                 "$current/$total",
                 fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
             )

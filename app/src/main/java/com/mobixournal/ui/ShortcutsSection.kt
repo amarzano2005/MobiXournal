@@ -325,10 +325,10 @@ fun KeyDetectionDialog(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Listening... (press a key or ExpressKey)",
+                        text = "Listening… (press a key or ExpressKey)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
                 Spacer(Modifier.height(18.dp))

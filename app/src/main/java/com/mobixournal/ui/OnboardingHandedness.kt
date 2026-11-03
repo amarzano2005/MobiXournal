@@ -152,7 +152,7 @@ private fun HandednessCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(2.dp))

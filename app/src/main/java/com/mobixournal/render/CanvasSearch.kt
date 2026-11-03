@@ -269,15 +269,15 @@ internal class CanvasSearch(
 
     private fun notifyChanged(): SearchStatus = status().also(onChanged)
 
-    /** The progress line a multi-page build shows; one page is simply "Processing text...". */
+    /** The progress line a multi-page build shows; one page is simply "Processing text…". */
     private fun progressLine(page: Int, total: Int, totalPages: Int): String =
-        if (totalPages > 1) "Processing page $page of $total..." else PROCESSING
+        if (totalPages > 1) "Processing page $page of $total…" else PROCESSING
 
     private fun Int.floorMod(mod: Int): Int = ((this % mod) + mod) % mod
 
     private companion object {
-        const val STARTING = "Starting text recognition..."
-        const val PROCESSING = "Processing text..."
+        const val STARTING = "Starting text recognition…"
+        const val PROCESSING = "Processing text…"
     }
 }
 

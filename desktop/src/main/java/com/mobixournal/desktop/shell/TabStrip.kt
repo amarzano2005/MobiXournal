@@ -174,7 +174,10 @@ private fun RenamingField(tab: DesktopTab, onDone: () -> Unit) {
         value = text,
         onValueChange = { text = it },
         singleLine = true,
-        textStyle = TextStyle(color = DesktopTheme.ink, fontSize = 12.sp, fontFamily = DesktopTheme.inter),
+        // The field wears the **role it edits**: a tab's name is [DesktopTheme.tab], so a rename cannot
+        // change the face the label is read in (it was a 12 sp literal in the bare family, which is one
+        // weight and one tracking step away from the name it replaces).
+        textStyle = DesktopTheme.tab.copy(color = DesktopTheme.ink),
         modifier = Modifier
             .width(140.dp)
             .focusRequester(focus)

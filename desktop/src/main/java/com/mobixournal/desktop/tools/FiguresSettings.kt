@@ -73,7 +73,7 @@ private fun TriangleSettings(policy: DesktopSettingsState, onCustomize: () -> Un
                 label = "Angles dialog",
                 note = "Interactive visual editor with auto-balance and presets (sum = 180°).",
             ) {
-                PanelButton(label = "Customize...", primary = false, enabled = true, onClick = onCustomize)
+                PanelButton(label = "Customize…", primary = false, enabled = true, onClick = onCustomize)
             }
             FigureAngle("Angle A", policy.figures.shape.scaleneAngleA) {
                 policy.figures.chooseShape(policy.figures.shape.copy(scaleneAngleA = it))
@@ -104,7 +104,7 @@ private fun TrapezoidSettings(policy: DesktopSettingsState, onCustomize: () -> U
                 label = "Angles dialog",
                 note = "Interactive visual editor with live preview and angle presets.",
             ) {
-                PanelButton(label = "Customize...", primary = false, enabled = true, onClick = onCustomize)
+                PanelButton(label = "Customize…", primary = false, enabled = true, onClick = onCustomize)
             }
             FigureAngle("Left base angle", policy.figures.shape.trapezoidAngleA) {
                 policy.figures.chooseShape(policy.figures.shape.copy(trapezoidAngleA = it))
