@@ -143,12 +143,17 @@ internal fun BoxScope.MenuChevron(tint: Color = rememberChromeInk()) {
  * panel, so a shadow has nowhere to fall: built and measured on the emulator, an elevated menu
  * (14dp, both `clip` settings) painted a grey wash *inside* the panel's top 50px — the blur has no
  * room outside it — and clipped away entirely at the sides; a rim reads the same on all four edges.
+ *
+ * A surface that is not a toolbar button passes its own `positionProvider`: a settings row's select hangs
+ * its list under that row ([SettingsSelectPositionProvider]) instead of taking the placement a slot at the
+ * screen's edge wants.
  */
 @Composable
 internal fun ToolbarMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    positionProvider: PopupPositionProvider? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // The window is **held** for the departure. A pop-up's window is torn down between two frames the
@@ -156,7 +161,12 @@ internal fun ToolbarMenu(
     // that is gone cannot draw back. [DialogPresence] keeps it composed for `FLOATING_EXIT_MS` and tells
     // the panel inside that it is closing, which is the same half every dialog already plays.
     DialogPresence(expanded) {
-        ToolbarMenuWindow(onDismissRequest = onDismissRequest, modifier = modifier, content = content)
+        ToolbarMenuWindow(
+            onDismissRequest = onDismissRequest,
+            modifier = modifier,
+            placement = positionProvider,
+            content = content,
+        )
     }
 }
 
@@ -170,18 +180,19 @@ internal fun ToolbarMenu(
 private fun ToolbarMenuWindow(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    placement: PopupPositionProvider? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
     val density = LocalDensity.current
-    val positionProvider = remember(density) {
+    val toolbarPlacement = remember(density) {
         ToolbarPopupPositionProvider(density = density) { origin ->
             transformOrigin = origin
         }
     }
     Popup(
         onDismissRequest = onDismissRequest,
-        popupPositionProvider = positionProvider,
+        popupPositionProvider = placement ?: toolbarPlacement,
         properties = PopupProperties(focusable = true),
     ) {
         // The panel **is** the window's `glassSurface`, drawn here instead of delegated to a Material

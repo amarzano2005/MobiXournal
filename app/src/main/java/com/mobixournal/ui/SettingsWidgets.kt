@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,6 +41,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -91,10 +94,11 @@ fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange
  * grammar the window's Settings already keeps (`docs/desktop-settings.md`), and what stops a card
  * holding four choices from running off a phone's screen.
  *
- * The whole row is the hit area, subtitle included, as a switch row's is. The list is [ToolbarMenu] — the
- * app's one pop-up panel, its rim and its spring — of `DropdownMenuItem`s, the answer in hand in the
- * accent with a check. [icon] draws each answer's own glyph beside its word, and the answer in hand's
- * glyph beside it on the row.
+ * The whole row is the hit area, subtitle included, as a switch row's is ([OptionTriggerRow]). The list
+ * is [ToolbarMenu] — the app's one pop-up panel, its rim and its spring — of one [OptionMenuItem] per
+ * answer, placed under the row it belongs to ([SettingsSelectPositionProvider]) and capped so a long
+ * list scrolls inside the window. [icon] draws each answer's own glyph beside its word, and the answer
+ * in hand's glyph beside it on the row.
  */
 @Composable
 fun <T> OptionGroup(
@@ -106,90 +110,128 @@ fun <T> OptionGroup(
     icon: ((T) -> ImageVector)? = null,
     onSelect: (T) -> Unit,
 ) {
-    val reach = LocalSettingsCardInset.current
     var open by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val placement = remember(density) { SettingsSelectPositionProvider(density) }
+    // The screen less the list's air at each end — the same margin the placement keeps from the window's
+    // edges, so a capped panel always has room where it is put.
+    val maxMenuHeight = (LocalConfiguration.current.screenHeightDp.dp - SettingsSelectMargin * 2)
+        .coerceAtLeast(160.dp)
     Box {
-        Row(
-            modifier = Modifier
-                .fullBleedRow(reach)
-                .fillMaxWidth()
-                .clickable(role = Role.DropdownList) { open = !open }
-                .padding(horizontal = reach, vertical = 10.dp + settingsCellAir(reach)),
-            verticalAlignment = Alignment.CenterVertically,
+        OptionTriggerRow(
+            title = title,
+            subtitle = subtitle,
+            value = label(selected),
+            icon = icon?.invoke(selected),
+            onClick = { open = !open },
+        )
+        ToolbarMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.heightIn(max = maxMenuHeight),
+            positionProvider = placement,
         ) {
-            ControlHeader(title, subtitle, Modifier.weight(1f))
-            Spacer(Modifier.width(12.dp))
-            if (icon != null) {
-                Icon(
-                    icon(selected),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-            }
-            Text(
-                label(selected),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 160.dp),
-            )
-            Spacer(Modifier.width(4.dp))
-            Icon(
-                Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { option ->
-                val chosen = option == selected
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            label(option),
-                            color = if (chosen) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        )
-                    },
+                OptionMenuItem(
+                    label = label(option),
+                    icon = icon?.invoke(option),
+                    chosen = option == selected,
                     onClick = {
                         open = false
                         onSelect(option)
-                    },
-                    leadingIcon = if (icon != null) {
-                        {
-                            Icon(
-                                icon(option),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    } else {
-                        null
-                    },
-                    trailingIcon = if (chosen) {
-                        {
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    } else {
-                        null
                     },
                 )
             }
         }
     }
+}
+
+/**
+ * The row a select shows: the choice's name and why it matters at the start, the answer in hand and the
+ * chevron that says there are others at the end. The whole row opens the list, subtitle included.
+ */
+@Composable
+private fun OptionTriggerRow(
+    title: String,
+    subtitle: String,
+    value: String,
+    icon: ImageVector?,
+    onClick: () -> Unit,
+) {
+    val reach = LocalSettingsCardInset.current
+    Row(
+        modifier = Modifier
+            .fullBleedRow(reach)
+            .fillMaxWidth()
+            .clickable(role = Role.DropdownList, onClick = onClick)
+            .padding(horizontal = reach, vertical = 10.dp + settingsCellAir(reach)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ControlHeader(title, subtitle, Modifier.weight(1f))
+        Spacer(Modifier.width(12.dp))
+        if (icon != null) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 160.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Icon(
+            Icons.Outlined.KeyboardArrowDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+/** One answer in a select's list: in the accent with a check when it is the one in hand. */
+@Composable
+private fun OptionMenuItem(label: String, icon: ImageVector?, chosen: Boolean, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = {
+            Text(
+                label,
+                color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+        },
+        onClick = onClick,
+        leadingIcon = if (icon == null) {
+            null
+        } else {
+            {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        },
+        trailingIcon = if (chosen) {
+            {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        } else {
+            null
+        },
+    )
 }
 
 /**

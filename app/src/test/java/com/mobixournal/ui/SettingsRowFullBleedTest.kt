@@ -41,7 +41,7 @@ class SettingsRowFullBleedTest {
     fun `every settings card row is laid out full-bleed and leaves its corners to the card`() {
         val ui = File(repoRoot(), "app/src/main/java/com/mobixournal/ui")
         val rows = mapOf(
-            "SettingsWidgets.kt" to listOf("fun SwitchRow(", "fun <T> OptionGroup(", "fun RailItemRow("),
+            "SettingsWidgets.kt" to listOf("fun SwitchRow(", "private fun OptionTriggerRow(", "fun RailItemRow("),
             "SettingsScreen.kt" to listOf("fun SectionRow("),
             "AboutSection.kt" to listOf("fun LinkRow("),
         )

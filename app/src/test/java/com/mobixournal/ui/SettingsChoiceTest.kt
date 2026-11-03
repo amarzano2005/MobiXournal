@@ -13,28 +13,35 @@ import org.junit.Test
  * is now one row — its name, the answer, a chevron — with the rest of the list in the app's own pop-up
  * panel, which is also the grammar the window's Settings keeps (`docs/desktop-settings.md`).
  *
- * Read off the sources, like the full-bleed guard beside it: the mistake this prevents is the component
- * quietly growing a radio row back, which compiles and looks deliberate.
+ * Read off the sources, like the full-bleed guard beside it: the mistakes this prevents are a radio row
+ * quietly growing back and the list being placed by the toolbar's arithmetic instead of against its own
+ * row, and both compile perfectly.
  */
 class SettingsChoiceTest {
 
     @Test
     fun `a choice shows the answer in hand and opens the rest as a menu`() {
-        val body = optionGroupBody()
-        assertTrue("OptionGroup is where the test expects it", body.isNotEmpty())
-        assertTrue("the answer in hand must be on the row itself", body.contains("label(selected)"))
+        val group = body("fun <T> OptionGroup(")
+        assertTrue("OptionGroup is where the test expects it", group.isNotEmpty())
+        assertTrue("the answer in hand must be on the row itself", group.contains("label(selected)"))
         assertTrue(
             "the rest of the list opens in the app's own pop-up panel, not a Material menu",
-            body.contains("ToolbarMenu("),
+            group.contains("ToolbarMenu("),
         )
-        assertTrue("the row is the trigger, so the whole line is the hit area", body.contains("clickable("))
+        assertTrue(
+            "and the list is placed against its own row, not by the toolbar's own placement",
+            group.contains("positionProvider = placement"),
+        )
+        val row = body("private fun OptionTriggerRow(")
+        assertTrue("OptionTriggerRow is where the test expects it", row.isNotEmpty())
+        assertTrue("the whole row opens the list, not just the answer", row.contains("clickable("))
     }
 
     @Test
     fun `no radio row is left in the choices`() {
         assertFalse(
             "one dot per answer is the control this replaced",
-            optionGroupBody().contains("RadioButton("),
+            body("fun <T> OptionGroup(").contains("RadioButton("),
         )
         val widgets = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/SettingsWidgets.kt").readText()
         assertFalse(
@@ -43,10 +50,9 @@ class SettingsChoiceTest {
         )
     }
 
-    /** `OptionGroup`'s body: from its signature to the next `}` in the first column. */
-    private fun optionGroupBody(): String {
+    /** A top-level declaration's body: from its signature to the next `}` in the first column. */
+    private fun body(signature: String): String {
         val source = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/SettingsWidgets.kt").readText()
-        val signature = "fun <T> OptionGroup("
         val start = source.indexOf(signature)
         if (start < 0) return ""
         val end = source.indexOf("\n}", start)

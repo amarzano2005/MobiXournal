@@ -46,8 +46,10 @@ row's is. It used to be one radio row per answer, and that column was the wrong 
 answers nobody is using took a dot and a line each, the reader scanned four of them to find the one already
 set, and the answer in hand had no line of its own to be read on. One line per choice is also the grammar
 the window's Settings keeps (`desktop-settings.md`), so a subject both shells carry is asked the same way on
-both. `SettingsChoiceTest` holds the component to it — the row opens a menu, and no radio row is left in the
-file.
+both. The list opens **under its row**, its start edge on the row's, kept inside the window: it sits above the
+row only when the row is too near the bottom for the list to fit under it, and its height is capped so a long
+list scrolls rather than running off the screen — never a panel parked somewhere else (`SettingsSelectPositionTest`).
+`SettingsChoiceTest` holds the component to it — the row opens a menu, and no radio row is left in the file.
 
 ## Settings search
 
