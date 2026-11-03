@@ -33,6 +33,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
@@ -151,7 +152,7 @@ private fun RecentColumn(
     // block off-centre by the width of the two empty ones, which read as a mistake rather than as a grid.
     val perLine = minOf(columns, recents.size).coerceAtLeast(1)
     Column(Modifier.width((cardWidthDp * perLine + RECENT_GAP_DP * (perLine - 1)).dp)) {
-        Text("Recent", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+        Text("Recent", color = DesktopTheme.ink, style = DesktopTheme.label)
         Spacer(Modifier.height(10.dp))
         if (recents.isEmpty()) {
             Text(
@@ -337,24 +338,40 @@ private const val SHEET_CORNER_DP = 3f
  */
 private fun DrawScope.drawCardHalo(sheet: Rect) {
     val spread = DesktopTheme.pageShadow.toPx()
-    var inner = 0f
-    for (step in 1..HALO_STEPS) {
-        val outer = spread * step / HALO_STEPS
-        val thickness = outer - inner
-        val tone = DesktopTheme.ink.copy(alpha = CARD_HALO_ALPHA * (1f - (step - 1f) / HALO_STEPS))
-        drawRect(tone, topLeft = Offset(sheet.left - outer, sheet.top - outer), size = Size(sheet.width + outer * 2f, thickness))
-        drawRect(tone, topLeft = Offset(sheet.left - outer, sheet.bottom + inner), size = Size(sheet.width + outer * 2f, thickness))
-        drawRect(tone, topLeft = Offset(sheet.left - outer, sheet.top - inner), size = Size(thickness, sheet.height + inner * 2f))
-        drawRect(tone, topLeft = Offset(sheet.right + inner, sheet.top - inner), size = Size(thickness, sheet.height + inner * 2f))
-        inner = outer
+    val thickness = spread / HALO_STEPS
+    val corner = SHEET_CORNER_DP.dp.toPx()
+    for (step in 0 until HALO_STEPS) {
+        // Distance from the paper of this ring's centre; the falloff is read from it, so the halo is strongest
+        // where it meets the sheet and gone where the spread ends.
+        val distance = spread * (step + 0.5f) / HALO_STEPS
+        val left = 1f - distance / spread
+        drawRoundRect(
+            color = DesktopTheme.ink.copy(alpha = CARD_HALO_ALPHA * left * left),
+            topLeft = Offset(sheet.left - distance - thickness / 2f, sheet.top - distance - thickness / 2f),
+            size = Size(
+                sheet.width + (distance + thickness / 2f) * 2f,
+                sheet.height + (distance + thickness / 2f) * 2f,
+            ),
+            cornerRadius = CornerRadius(corner + distance * CORNER_BLOOM),
+            style = Stroke(width = thickness),
+        )
     }
 }
 
-/** The halo's strength at the paper's edge, before the falloff thins it: a lift, not a glow. */
-private const val CARD_HALO_ALPHA = 0.14f
+/**
+ * The halo's strength where it leaves the paper, before the falloff thins it: a lift, not a glow.
+ *
+ * Squared rather than linear. Rings of one alpha step each read as concentric outlines — a frame drawn four
+ * times over — and the square drops the outer ones away fast enough that the edge stays soft; it also puts
+ * the weight at the paper, where a lift belongs.
+ */
+private const val CARD_HALO_ALPHA = 0.18f
 
-/** Steps in the falloff — the page's own eight, so the two haloes fade at one rate. */
-private const val HALO_STEPS = 8
+/** Steps in the falloff: many and thin, because a visible step is a visible outline. */
+private const val HALO_STEPS = 26
+
+/** How much the corner radius grows per pixel of spread, so a corner blooms instead of mitering. */
+private const val CORNER_BLOOM = 0.4f
 
 /** The block's own bound: three columns that stay one block on a laptop and do not stretch on a 3440 px desk. */
 private const val ENTRY_MAX_WIDTH_DP = 1000f
