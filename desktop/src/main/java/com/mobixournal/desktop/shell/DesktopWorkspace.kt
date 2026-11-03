@@ -125,7 +125,7 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                         onLiveDrag = { cancel -> state.liveDrag = cancel },
                         // The bar under the outline: what the selection can be, and the one command it runs. The
                         // rules (what is available, and when) are the shell's, so the canvas only draws them.
-                        selectionBar = selectionBarUi(tab, state.clipboard) { action -> state.runSelection(action) },
+                        selectionBar = selectionBarFor(state, tab),
                         onViewport = { tab.viewport = it },
                         onFit = { tab.fit = it },
                         // An edit changes the page's picture, so the thumbnail cached for it is stale; the other

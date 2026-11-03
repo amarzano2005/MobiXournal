@@ -272,23 +272,50 @@ private fun SwatchRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
     ) {
-        for (colour in palette) {
-            Box(
-                Modifier
-                    .size(InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2)
-                    .background(
-                        if (colour == current) DesktopTheme.activeSlot else Color.Transparent,
-                        DesktopTheme.capsuleShape,
-                    )
-                    .padding(InkSlotMetrics.swatchRing)
-                    .background(Color(colour), DesktopTheme.capsuleShape)
-                    .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
-                    .pointerInput(colour) { detectTapGestures { onPick(colour) } },
-            )
-        }
+        for (colour in palette) ColourSwatch(colour = colour, current = current, onPick = onPick)
         CustomSwatch(custom = custom, onPick = onPick, onEdit = onEditCustom)
         AddSwatch(onAdd = onAddColour)
     }
+}
+
+/**
+ * The palette's stored colours as one scrolling row — what the selection bar's **Recolour** strip hangs
+ * under the bar, and the swatches the pen's flyout draws.
+ *
+ * Shared rather than re-cut: the window must not end up with two palettes that drift apart in size or
+ * mark, and a strip under a 32 dp bar is exactly the size the flyout already uses.
+ */
+@Composable
+internal fun PaletteStrip(
+    colours: List<Int>,
+    current: Int?,
+    onPick: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier.horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
+    ) {
+        for (colour in colours) ColourSwatch(colour = colour, current = current, onPick = onPick)
+    }
+}
+
+/** One colour: the capsule slot, its ring, and the ink itself. The picked one wears the active slot. */
+@Composable
+private fun ColourSwatch(colour: Int, current: Int?, onPick: (Int) -> Unit) {
+    Box(
+        Modifier
+            .size(InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2)
+            .background(
+                if (colour == current) DesktopTheme.activeSlot else Color.Transparent,
+                DesktopTheme.capsuleShape,
+            )
+            .padding(InkSlotMetrics.swatchRing)
+            .background(Color(colour), DesktopTheme.capsuleShape)
+            .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
+            .pointerInput(colour) { detectTapGestures { onPick(colour) } },
+    )
 }
 
 /**

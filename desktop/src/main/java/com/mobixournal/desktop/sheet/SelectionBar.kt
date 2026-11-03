@@ -8,6 +8,7 @@ import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DismissGuard
 import com.mobixournal.desktop.tools.FloatingSurface
+import com.mobixournal.desktop.tools.PaletteStrip
 import com.mobixournal.desktop.tools.StripPill
 import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.GlassPresence
@@ -76,6 +77,16 @@ data class SelectionBarUi(
     val canDistribute: Boolean = false,
     /** Exactly one caught element, and it is a living entity — the pencil's one condition. */
     val canEdit: Boolean = false,
+    /**
+     * The swatches **Recolour** offers: the user's palette, and nothing else.
+     *
+     * The tablet's recolour menu hangs the shared palette including its editable custom slot; the window's
+     * strip is the stored colours, because the slot's editor is a panel of its own (`ColourSettingsPage`)
+     * and a strip was not the place to open one.
+     */
+    val palette: List<Int> = emptyList(),
+    /** Recolour what is caught with one swatch of [palette] — one undoable edit. */
+    val onPickColour: (Int) -> Unit = {},
     /** The tool the pencil names, printed in its tooltip (`Table`, `Plot`, …). */
     val editLabel: String = "",
     val onAction: (SelectionAction) -> Unit = {},
@@ -168,6 +179,10 @@ internal fun SelectionBar(
     var alignOpen by remember { mutableStateOf(false) }
     // A second click on the align button puts its menu away (see [DismissGuard]).
     val alignGuard = remember { DismissGuard() }
+    // Recolour opens the palette **under the bar**, the tablet's own mechanism: the swatches are a
+    // decided-by-a-tap command, not eight more squares on a bar that is already eight wide.
+    var recolourOpen by remember { mutableStateOf(false) }
+    val recolourGuard = remember { DismissGuard() }
     if (!ui.hasSelection && !ui.hasClipboard) return
     Box(modifier.offset { placement() }) {
         Row(
@@ -186,9 +201,13 @@ internal fun SelectionBar(
                 ui.onAction(SelectionAction.DUPLICATE)
             }
             BarDivider()
-            BarButton(ChromeGlyph.RECOLOUR, ui.enabled(SelectionAction.RECOLOUR), "Recolour", "") {
-                ui.onAction(SelectionAction.RECOLOUR)
-            }
+            BarButton(
+                ChromeGlyph.RECOLOUR,
+                ui.enabled(SelectionAction.RECOLOUR),
+                "Recolour",
+                "",
+                active = recolourOpen,
+            ) { recolourOpen = !recolourOpen && recolourGuard.mayOpen(Unit) }
             BarButton(ChromeGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "") {
                 ui.onAction(SelectionAction.WIDTH)
             }
@@ -215,6 +234,24 @@ internal fun SelectionBar(
             }
             BarButton(ChromeGlyph.DELETE, ui.enabled(SelectionAction.DELETE), "Delete", "Del") {
                 ui.onAction(SelectionAction.DELETE)
+            }
+        }
+        // Nowhere near the button: the strip hangs from the **bar**, left edge on left edge, so it stands
+        // exactly as wide as the surface that opened it instead of running off to the right of the button
+        // in the middle of the row.
+        val dropPx = with(LocalDensity.current) { 44.dp.roundToPx() }
+        GlassPresence(recolourOpen) {
+            GlassPopup(
+                offset = IntOffset(0, dropPx),
+                onDismissRequest = { recolourGuard.closed(Unit); recolourOpen = false },
+            ) {
+                Column(Modifier.glassSurface().padding(4.dp)) {
+                    PaletteStrip(colours = ui.palette, current = null, onPick = { colour ->
+                        ui.onPickColour(colour)
+                        recolourGuard.closed(Unit)
+                        recolourOpen = false
+                    })
+                }
             }
         }
     }
@@ -343,6 +380,8 @@ internal const val BAR_DIVIDERS = 2
 internal fun selectionBarUi(
     tab: DesktopTab?,
     clipboard: DesktopClipboard,
+    palette: List<Int> = emptyList(),
+    onPickColour: (Int) -> Unit = {},
     onAction: (SelectionAction) -> Unit = {},
 ): SelectionBarUi {
     val selection = tab?.selection
@@ -359,6 +398,8 @@ internal fun selectionBarUi(
         canDistribute = refs.size >= 3,
         canEdit = element != null,
         editLabel = element?.let { labelOf(it) } ?: "",
+        palette = palette,
+        onPickColour = onPickColour,
         onAction = onAction,
     )
 }
