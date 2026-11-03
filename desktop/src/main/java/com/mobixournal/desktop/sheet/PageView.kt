@@ -188,7 +188,11 @@ internal fun DrawScope.drawPageShadow(sheet: Rect) {
     for (step in 1..steps) {
         val spread = radius * step / steps
         val thickness = spread - inner
-        val alpha = 0.045f * (1f - (step - 1f) / steps)
+        // 12 %, not 4.5: on a true-black desk the token is `0x15151A`, so a 4.5 % ring lands on
+        // 21 × 0.045 ≈ 0.9 of a channel and the outer rings of the ramp round to `#000000` — a halo that was
+        // in the recipe and not in the raster (`DesktopShellTest` read the desk beside the sheet as pure
+        // black). Twelve puts the ring nearest the paper at two or three units, which is the lift this is for.
+        val alpha = 0.12f * (1f - (step - 1f) / steps)
         val colour = DesktopTheme.pageShadowColor.copy(alpha = alpha)
         val across = sheet.width + spread * 2f
         // Above and below the sheet, then either side of it between those two bands: the four tile the ring
