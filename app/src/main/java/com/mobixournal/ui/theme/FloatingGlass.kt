@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LocalContentColor
@@ -242,7 +243,10 @@ fun FloatingSurface(
             .shadow(shadowElevation, shape, clip = false)
             .clip(shape)
             .background(rememberFloatingSurfaceColor())
-            .floatingRim(),
+            .floatingRim()
+            // The surface owns the air at its edge, not each caller: a bar that padded 2 dp itself put
+            // its first chip on the 20 dp curve, which reads as a clipped corner rather than a margin.
+            .padding(PanelEdgeAir),
     ) {
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
             content()

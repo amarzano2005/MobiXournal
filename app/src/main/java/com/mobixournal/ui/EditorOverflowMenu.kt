@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.PillTextInset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -80,7 +81,7 @@ private fun GlassPane(
     modifier: Modifier = Modifier,
     corner: Dp = 16.dp,
     shadowElevation: Dp = 3.dp,
-    padding: PaddingValues = PaddingValues(vertical = 9.dp, horizontal = 6.dp),
+    padding: PaddingValues = PaddingValues(vertical = 9.dp, horizontal = PillTextInset),
     wash: Color? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -157,7 +158,7 @@ private fun GlassPresetChip(
     GlassPane(
         corner = 10.dp,
         shadowElevation = 2.dp,
-        padding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+        padding = PaddingValues(horizontal = PillTextInset, vertical = 6.dp),
         wash = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else null,
         modifier = Modifier.clickable(onClick = onClick),
     ) {

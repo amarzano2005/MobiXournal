@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.PillTextInset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -431,7 +432,7 @@ private fun GlassToggleChip(selected: Boolean, label: String, onClick: () -> Uni
                 shape = CircleShape,
             )
             .selectable(selected = selected, role = Role.Checkbox, onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = PillTextInset),
         contentAlignment = Alignment.Center,
     ) {
         Text(

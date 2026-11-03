@@ -258,3 +258,13 @@ Before a UI change is called done, every line is true:
 - [ ] both shells agree, or the element is deliberately absent from one
 - [ ] the owning doc is updated and the guard suite is green
 - [ ] the test that would catch its removal exists
+
+## Air at a rounded edge
+
+A rounded container owns the gap between its own edge and anything inside it, and that gap is
+`PanelEdgeAir` (6 dp) — one token for settings cards, floating bars and pop-ups, so no surface guesses
+its own number. A corner cuts the outermost dp off a straight edge, so text or a border drawn at the
+container's own padding lands on the curve and reads as clipped; the container pads instead, which also
+means a caller's few dp cannot defeat it. A **pill** is a different case: its label sits *inside* the
+shape, so it keeps `PillTextInset` (12 dp), because a curve eats into a label's own line.
+

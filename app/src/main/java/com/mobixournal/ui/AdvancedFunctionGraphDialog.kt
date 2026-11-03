@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.PillTextInset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -369,7 +370,7 @@ private fun ModeSelectorPill(modeTab: Int, onModeTabChange: (Int) -> Unit) {
                         else Color.Transparent,
                     )
                     .clickable { onModeTabChange(0) }
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = PillTextInset, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -390,7 +391,7 @@ private fun ModeSelectorPill(modeTab: Int, onModeTabChange: (Int) -> Unit) {
                         else Color.Transparent,
                     )
                     .clickable { onModeTabChange(1) }
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = PillTextInset, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

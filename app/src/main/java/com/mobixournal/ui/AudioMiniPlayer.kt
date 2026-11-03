@@ -430,7 +430,7 @@ private fun SpeedSelectorPill(
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable { expanded = true }
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+                .padding(horizontal = 8.dp, vertical = 3.dp),
         )
 
         ToolbarMenu(

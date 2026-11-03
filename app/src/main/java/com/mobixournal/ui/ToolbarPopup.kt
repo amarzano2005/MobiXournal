@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.PanelEdgeAir
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -221,7 +222,7 @@ private fun ToolbarMenuWindow(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(vertical = 8.dp)
+                    .padding(horizontal = PanelEdgeAir, vertical = 8.dp)
                     .then(
                         // A menu of answers measures its own width from its rows (intrinsics). A list given
                         // one — the width of the settings row it belongs to — takes it instead, because its

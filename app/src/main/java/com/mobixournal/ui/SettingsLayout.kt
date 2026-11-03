@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.PanelEdgeAir
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -161,7 +162,8 @@ internal fun fullBleedBounds(maxWidth: Int, reach: Int): FullBleedBounds = FullB
  * card between the light and the hairline, which a reader sees as "the selection does not reach the
  * divider". The rows own the air; the divider is the boundary itself.
  */
-internal val SettingsCellAir: Dp = 6.dp
+/** The settings card's air is the app-wide one, so a card and a pop-up breathe alike. */
+internal val SettingsCellAir: Dp = PanelEdgeAir
 
 /**
  * A cell's own inset above and below its text, inside [SettingsCellAir]. One number for every kind of
