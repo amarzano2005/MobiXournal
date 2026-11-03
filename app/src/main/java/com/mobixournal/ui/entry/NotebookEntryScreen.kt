@@ -88,6 +88,8 @@ fun NotebookEntryScreen(
     ) {
         BoxWithConstraints(contentAlignment = Alignment.Center) {
             val wide = maxWidth >= WIDE_DESK_DP.dp
+            // Read here, where the constraint is implicit: the scrollable box inside is another scope.
+            val windowWidth = maxWidth
             Box(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                 contentAlignment = Alignment.Center,
@@ -101,18 +103,22 @@ fun NotebookEntryScreen(
                         Spacer(Modifier.width(WIDE_GAP_DP.dp))
                         NewSheetCard(WIDE_HERO_WIDTH_DP, ink, onNew)
                         Spacer(Modifier.width(WIDE_GAP_DP.dp))
-                        RecentColumn(recents, WIDE_RECENT_WIDTH_DP, WIDE_RECENT_COLUMNS, ink, onOpenRecent)
+                        RecentColumn(recents, WIDE_GRID_DP, WIDE_RECENT_WIDTH_DP, WIDE_RECENT_COLUMNS, ink, onOpenRecent)
                     }
                 } else {
+                    // The narrow block is **as wide as the window allows**, and every part of it shares that
+                    // width: a fixed-size grid put three cards in a 336 dp column a phone does not have, so
+                    // the third was clipped and only two recent notebooks were ever visible.
+                    val available = (windowWidth - 48.dp).value.coerceAtMost(ENTRY_MAX_WIDTH_DP)
                     Column(
-                        modifier = Modifier.widthIn(max = ENTRY_MAX_WIDTH_DP.dp).padding(horizontal = 24.dp),
+                        modifier = Modifier.width((available + 48f).dp).padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        StartColumn(START_COLUMN_WIDTH_DP, onNew, onOpen, ink)
+                        StartColumn(available, onNew, onOpen, ink)
                         Spacer(Modifier.height(24.dp))
-                        NewSheetCard(HERO_WIDTH_DP, ink, onNew)
+                        NewSheetCard(minOf(HERO_WIDTH_DP, available * HERO_SHARE), ink, onNew)
                         Spacer(Modifier.height(24.dp))
-                        RecentColumn(recents, RECENT_WIDTH_DP, RECENT_COLUMNS, ink, onOpenRecent)
+                        RecentColumn(recents, available, MIN_RECENT_DP, RECENT_COLUMNS, ink, onOpenRecent)
                     }
                 }
             }
@@ -151,14 +157,20 @@ private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit, i
 @Composable
 private fun RecentColumn(
     recents: List<RecentNotebook>,
-    cardWidthDp: Float,
+    maxWidthDp: Float,
+    minCardDp: Float,
     columns: Int,
     ink: Color,
     onOpenRecent: (RecentNotebook) -> Unit,
 ) {
-    // The grid is as wide as the cards it actually has: four columns of room for two notebooks leaves
-    // the block off-centre by the width of the empty ones, which reads as a mistake.
-    val perLine = minOf(columns, recents.size).coerceAtLeast(1)
+    // How many cards fit side by side at a readable size, and how wide each one is when they share the
+    // width they are given. The grid then holds **as many as the screen allows**, never a number chosen
+    // for a desk: three at 312 dp instead of a fourth cut off at the edge.
+    val capacity = ((maxWidthDp + RECENT_GAP_DP) / (minCardDp + RECENT_GAP_DP)).toInt().coerceIn(1, columns)
+    val cardWidthDp = ((maxWidthDp - RECENT_GAP_DP * (capacity - 1)) / capacity).coerceAtLeast(minCardDp)
+    // The grid is as wide as the cards it actually has: room for four with two notebooks leaves the block
+    // off-centre by the width of the empty ones, which reads as a mistake.
+    val perLine = minOf(capacity, recents.size).coerceAtLeast(1)
     val width = (cardWidthDp * perLine + RECENT_GAP_DP * (perLine - 1)).dp
     val context = LocalContext.current
     Column(Modifier.width(width)) {
@@ -377,7 +389,11 @@ private const val START_COLUMN_WIDTH_DP = 264f
 
 private const val HERO_WIDTH_DP = 236f
 
-private const val RECENT_WIDTH_DP = 100f
+/** The narrowest a recent card may get before the grid shows fewer of them on a line. */
+private const val MIN_RECENT_DP = 88f
+
+/** The sheet to start takes this share of a narrow block at most, so it never crowds the button it repeats. */
+private const val HERO_SHARE = 0.8f
 
 private const val RECENT_COLUMNS = 3
 
@@ -395,3 +411,6 @@ private const val WIDE_HERO_WIDTH_DP = 340f
 private const val WIDE_RECENT_WIDTH_DP = 148f
 
 private const val WIDE_RECENT_COLUMNS = 4
+
+/** The wide grid's own width: four cards and their gaps, which the grid then fits itself into. */
+private const val WIDE_GRID_DP = WIDE_RECENT_WIDTH_DP * WIDE_RECENT_COLUMNS + RECENT_GAP_DP * (WIDE_RECENT_COLUMNS - 1)

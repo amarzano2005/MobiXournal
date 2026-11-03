@@ -206,7 +206,9 @@ The Settings shell, its search and the prefs behind them are [chrome-settings.md
 ## Starting with nothing open
 
 The window **is** the entry screen whenever the pane has no tab — no header, no tab strip and no
-rail, so the block centres in the whole window instead of in what a bar left over: three doors — *New sheet*,
+rail, so the block centres in the whole window instead of in what a bar left over. The recents grid
+sizes its cards to the width it is given, so a phone shows three to a line where a fixed grid clipped
+the third: three doors — *New sheet*,
 *Open…*, and the notebooks opened lately as cards whose face is their first page — in three columns
 when the width is there and in one when it is not. It is the PC window's screen, whose design
 [`desktop-ui-layout.md`](desktop-ui-layout.md) owns, drawn with the tablet's own tokens: a card is the
