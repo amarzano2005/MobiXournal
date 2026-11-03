@@ -60,6 +60,9 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
     // what tells this screen that the list it remembers has changed.
     val revision = DesktopOpens.recentsRevision
     val recents = remember(revision, state) { state.settings.recents.files }
+    // It sits **on the desk**, not on a surface of its own: with no sheet open the desk is what the window
+    // is, and the cards are the only objects on it — a second sheet of glass behind them read as a panel
+    // that had been left open.
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier.widthIn(max = 720.dp).padding(horizontal = 24.dp),
