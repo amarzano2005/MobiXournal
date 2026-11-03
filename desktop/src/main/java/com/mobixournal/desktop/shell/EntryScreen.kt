@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -69,29 +70,47 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
     // the window is one surface from the header to the status bar, and only the cards sit on it. A black
     // floor there read as a hole between two bands.
     Box(Modifier.fillMaxSize().background(DesktopTheme.glass), contentAlignment = Alignment.Center) {
-        Row(
-            modifier = Modifier.widthIn(max = ENTRY_MAX_WIDTH_DP.dp).padding(horizontal = 32.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            StartColumn(onNew = { state.newDocument() }, onOpen = onOpen)
-            Spacer(Modifier.width(COLUMN_GAP_DP.dp))
-            SheetCard(
-                key = "new-sheet:${sheet.width}x${sheet.height}",
-                widthDp = HERO_WIDTH_DP,
-                caption = "New sheet",
-                load = { renderPageBitmap(sheet, HERO_WIDTH_DP / sheet.width.toFloat()) },
-                onClick = { state.newDocument() },
-            )
-            Spacer(Modifier.width(COLUMN_GAP_DP.dp))
-            RecentColumn(recents, onOpenRecent = { file -> state.openInBackground(file, scope) })
+        BoxWithConstraints(contentAlignment = Alignment.Center) {
+            // The block grows with the desk: a 3440 px monitor is not a reason to read laptop-sized cards
+            // in the middle of it, and a 1100 px window is not a reason to overflow.
+            val wide = maxWidth > WIDE_DESK_DP.dp
+            val gap = if (wide) WIDE_GAP_DP else COLUMN_GAP_DP
+            val hero = if (wide) WIDE_HERO_WIDTH_DP else HERO_WIDTH_DP
+            val recent = if (wide) WIDE_RECENT_WIDTH_DP else RECENT_WIDTH_DP
+            Row(
+                modifier = Modifier
+                    .widthIn(max = if (wide) WIDE_MAX_WIDTH_DP.dp else ENTRY_MAX_WIDTH_DP.dp)
+                    .padding(horizontal = 32.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StartColumn(
+                    widthDp = if (wide) WIDE_START_COLUMN_DP else START_COLUMN_WIDTH_DP,
+                    onNew = { state.newDocument() },
+                    onOpen = onOpen,
+                )
+                Spacer(Modifier.width(gap.dp))
+                SheetCard(
+                    key = "new-sheet:${sheet.width}x${sheet.height}",
+                    widthDp = hero,
+                    caption = "New sheet",
+                    load = { renderPageBitmap(sheet, hero / sheet.width.toFloat()) },
+                    onClick = { state.newDocument() },
+                )
+                Spacer(Modifier.width(gap.dp))
+                RecentColumn(
+                    recents,
+                    cardWidthDp = recent,
+                    onOpenRecent = { file -> state.openInBackground(file, scope) },
+                )
+            }
         }
     }
 }
 
 /** The first column: what the reader can do, above the keys that do it. */
 @Composable
-private fun StartColumn(onNew: () -> Unit, onOpen: () -> Unit) {
-    Column(Modifier.width(START_COLUMN_WIDTH_DP.dp)) {
+private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit) {
+    Column(Modifier.width(widthDp.dp)) {
         Text("Nothing open yet", color = DesktopTheme.ink, style = DesktopTheme.title)
         Spacer(Modifier.height(8.dp))
         Text(
@@ -115,8 +134,8 @@ private fun StartColumn(onNew: () -> Unit, onOpen: () -> Unit) {
  * that failed to load, and the reader's next move is the Open button either way.
  */
 @Composable
-private fun RecentColumn(recents: List<File>, onOpenRecent: (File) -> Unit) {
-    Column(Modifier.width(RECENT_COLUMN_WIDTH_DP.dp)) {
+private fun RecentColumn(recents: List<File>, cardWidthDp: Float, onOpenRecent: (File) -> Unit) {
+    Column(Modifier.width((cardWidthDp * RECENT_COLUMNS + RECENT_GAP_DP * (RECENT_COLUMNS - 1)).dp)) {
         Text("Recent", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         Spacer(Modifier.height(10.dp))
         if (recents.isEmpty()) {
@@ -131,10 +150,10 @@ private fun RecentColumn(recents: List<File>, onOpenRecent: (File) -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(RECENT_GAP_DP.dp)) {
                 line.forEach { file ->
                     SheetCard(
-                        key = "recent:${file.absolutePath}:${file.lastModified()}",
-                        widthDp = RECENT_WIDTH_DP,
+                        key = "recent:${file.absolutePath}:${file.lastModified()}:$cardWidthDp",
+                        widthDp = cardWidthDp,
                         caption = file.nameWithoutExtension,
-                        load = { firstPageOf(file, RECENT_WIDTH_DP) },
+                        load = { firstPageOf(file, cardWidthDp) },
                         onClick = { onOpenRecent(file) },
                     )
                 }
@@ -287,8 +306,18 @@ private const val RECENT_COLUMNS = 3
 
 private const val RECENT_GAP_DP = 12f
 
-/** Three cards and their two gaps: the third column's width, so the grid cannot disagree with its bound. */
-private const val RECENT_COLUMN_WIDTH_DP = RECENT_WIDTH_DP * RECENT_COLUMNS + RECENT_GAP_DP * (RECENT_COLUMNS - 1)
+/** Above this the block steps up a size: the 21:9 desk, not the laptop. */
+private const val WIDE_DESK_DP = 1800f
+
+private const val WIDE_MAX_WIDTH_DP = 1280f
+
+private const val WIDE_GAP_DP = 64f
+
+private const val WIDE_START_COLUMN_DP = 320f
+
+private const val WIDE_HERO_WIDTH_DP = 320f
+
+private const val WIDE_RECENT_WIDTH_DP = 132f
 
 /** Paper's proportions, so a card is the shape of the page it previews. */
 private const val SHEET_ASPECT = 0.707f
