@@ -5,7 +5,10 @@ param(
     # The strip's `+`, in window pixels: another DPI or font puts it elsewhere, and the screenshot the probe
     # saves shows where it is.
     [int]$PlusX = 322,
-    [int]$PlusY = 54
+    [int]$PlusY = 54,
+    # A second **real** document, opened through `Ctrl+T` and the picker's own file field: a blank tab hides
+    # half the cost of a switch, and a document the window never drew hides the other half.
+    [string]$SecondDoc = ""
 )
 
 # **Tab-switch latency, measured on the running window.**
@@ -129,10 +132,32 @@ function Fingerprint {
 $before = Fingerprint
 Shoot (Join-Path $root "build-logs\app-opened.png")
 
-# A second tab: one click on the strip's `+` — the window's new document, and a tab with no file dialog in
-# the way. Whether it appeared is read off the screen, never assumed.
-[TabWin]::Click(($left + $PlusX), ($top + $PlusY))
-Start-Sleep -Milliseconds 1800
+# A second tab: the picker's own field when a second document is given (`Ctrl+T`, type, Enter), otherwise the
+# strip's `+` — the window's new document, with no dialog in the way. Whether it appeared is read off the
+# screen, never assumed.
+if ([string]::IsNullOrWhiteSpace($SecondDoc)) {
+    [TabWin]::Click(($left + $PlusX), ($top + $PlusY))
+    Start-Sleep -Milliseconds 1800
+} else {
+    $secondPath = if (Test-Path $SecondDoc) { (Resolve-Path $SecondDoc).Path } else { $SecondDoc }
+    [TabWin]::SetForegroundWindow($window.MainWindowHandle) | Out-Null
+    Start-Sleep -Milliseconds 300
+    [TabWin]::CtrlKey(0x54)
+    Start-Sleep -Milliseconds 1600
+    [System.Windows.Forms.SendKeys]::SendWait($secondPath)
+    Start-Sleep -Milliseconds 400
+    # From the file being chosen to its page being on screen: the **open**, which is the wait a person calls
+    # "opening a tab" too, and the one a stopwatch on the frame loop cannot see because nothing is painting.
+    $openWatch = [System.Diagnostics.Stopwatch]::StartNew()
+    [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+    $openFirst = -1
+    while ($openWatch.ElapsedMilliseconds -lt 30000) {
+        if ((Fingerprint) -ne $before) { $openFirst = $openWatch.ElapsedMilliseconds; break }
+        Start-Sleep -Milliseconds 20
+    }
+    "opened document`t{0:N0} ms to its page" -f $openFirst | Write-Output
+    Start-Sleep -Seconds 2
+}
 Shoot (Join-Path $root "build-logs\app-second-tab.png")
 $after = Fingerprint
 $secondTab = $after -ne $before

@@ -8,6 +8,8 @@ import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.THUMB_WIDTH
+import com.mobixournal.desktop.shell.thumbnail
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
@@ -188,7 +190,54 @@ class DesktopTabSwitchCostTest {
                 reads += (System.nanoTime() - begin) / 1_000_000.0
             }
             report("document.page(0) read", reads)
+            // The page list a switch reveals, painted on the lane: this is the cost a blank tab hides.
+            val thumbnails = mutableListOf<Double>()
+            val firstTab = state.tabs.all[0]
+            val cache = mutableMapOf<Int, androidx.compose.ui.graphics.ImageBitmap>()
+            for (index in 0 until firstTab.pageCount) {
+                val begin = System.nanoTime()
+                thumbnail(firstTab, index, THUMB_WIDTH.value, cache)
+                thumbnails += (System.nanoTime() - begin) / 1_000_000.0
+            }
+            report("thumbnail of a real page", thumbnails)
             report("switch, real notebook", switching(state) { frame(scene) })
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
+    /**
+     * The case a blank tab hides: **two archive-backed notebooks** (`.mobix`), 40 pages each.
+     *
+     * A `.xopp` keeps every page in memory, so its switching is a repaint; a `.mobix` reads a page out of
+     * the archive when the window asks for it, and a tab's page may have been evicted since it was last
+     * looked at. That read happens on the frame — a switch to a document whose page is not resident pays it.
+     */
+    @Test
+    fun `the switch between two archive notebooks`() {
+        val settings = DesktopSettings(temp.newFile("settings.properties"))
+        val state = DesktopShellState(settings)
+        state.open(document("archive-a.mobix", pages = 40, strokes = 120))
+        state.open(document("archive-b.mobix", pages = 40, strokes = 120))
+        val scene = ImageComposeScene(1400, 900, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            for (index in listOf(0, 1, 0, 1)) {
+                state.tabs.activate(index)
+                repeat(3) { frame(scene) }
+            }
+            val tab = state.tabs.all[0]
+            val reads = mutableListOf<Double>()
+            // A page the window is not showing: the scroll that brings it in must not stall the frame.
+            for (page in intArrayOf(1, 5, 9, 17, 33).asIterable()) {
+                val begin = System.nanoTime()
+                tab.document.page(page)
+                reads += (System.nanoTime() - begin) / 1_000_000.0
+            }
+            report("page read, cold .mobix", reads)
+            report("switch, two .mobix", switching(state) { frame(scene) })
         } finally {
             scene.close()
             state.tabs.closeAll()
