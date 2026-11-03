@@ -33,6 +33,14 @@ internal object DesktopOpens {
      * read; it names what it is waiting for instead ([StatusBar]).
      */
     var opening: String? by mutableStateOf(null)
+
+    /**
+     * Bumped when a document lands, so the entry screen re-reads the recent list it is drawing.
+     *
+     * The list itself lives in the settings file, which is not Compose state; the screen keys its `remember`
+     * on this counter instead of re-reading a properties file on every frame.
+     */
+    var recentsRevision: Int by mutableStateOf(0)
 }
 
 /**
@@ -55,7 +63,7 @@ internal fun DesktopShellState.openInBackground(
     scope.launch {
         val loaded = withContext(Dispatchers.IO) { runCatching { load(file) } }
         DesktopOpens.opening = null
-        loaded.onSuccess(::adoptLoaded).onFailure { failure = describeOpenFailure(it) }
+        loaded.onSuccess { document -> opened(document, file) }.onFailure { failure = describeOpenFailure(it) }
     }
 }
 
@@ -64,4 +72,16 @@ internal fun DesktopShellState.adoptLoaded(document: DesktopDocument) {
     DesktopAudioSession.adopt(document)
     tabs.open(document, prefs.fitOnOpen)
     failure = null
+}
+
+/**
+ * A document that landed, from its own file: the tab, and the entry screen's memory of it.
+ *
+ * The recent list is written **here** rather than where the picker was answered, because a file that failed
+ * to open is not a notebook the reader can be offered again.
+ */
+internal fun DesktopShellState.opened(document: DesktopDocument, file: File) {
+    adoptLoaded(document)
+    settings.recents.record(file)
+    DesktopOpens.recentsRevision++
 }

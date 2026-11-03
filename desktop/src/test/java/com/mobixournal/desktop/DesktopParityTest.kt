@@ -53,12 +53,17 @@ class DesktopParityTest {
     )
 
     @Test
-    fun `a window with nothing to recover starts on a page to write on`() {
+    fun `a window with nothing to recover starts on the entry screen, and its sheet is paper`() {
         val state = state()
         state.start(initial = null)
 
+        // The default screen is the **entry screen** (`EntryScreen`): no tab, because a page nobody asked
+        // for is not an entry point. Its New sheet card is what makes the document.
+        assertTrue("the default screen is the entry screen", state.active == null)
+        state.newDocument()
+
         val tab = state.active
-        assertNotNull("the default screen is a document, not an empty notice", tab)
+        assertNotNull("the sheet the entry screen offers is a document", tab)
         assertEquals("with one sheet", 1, tab!!.pageCount)
         assertTrue("and it is a new document waiting for a name", tab.isDirty)
         val page = state.activePage()!!
@@ -72,6 +77,8 @@ class DesktopParityTest {
     fun `the plus starts another page beside the one that is open`() {
         val state = state()
         state.start(initial = null)
+        // The window opens on the entry screen, so the first page is the one its card makes.
+        state.newDocument()
         val first = state.active!!.key
 
         state.newDocument()
@@ -85,6 +92,7 @@ class DesktopParityTest {
     fun `the page setup restyles the sheet as one undoable edit each`() {
         val state = state()
         state.start(initial = null)
+        state.newDocument()
 
         state.setPageStyle("dotted")
         assertEquals("dotted", (state.activePage()!!.background as Background.Solid).style)

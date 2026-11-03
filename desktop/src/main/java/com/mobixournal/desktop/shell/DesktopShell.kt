@@ -111,7 +111,7 @@ import java.io.File
  */
 class DesktopShellState(
     /** The window's settings file: the tool placement today, the Interface section once it has a window. */
-    private val settings: DesktopSettings = DesktopSettings(),
+    internal val settings: DesktopSettings = DesktopSettings(),
     /**
      * The crash snapshots dirty tabs are written to, or null for a shell that must not touch the disk
      * (a render or command test). The window passes [DesktopRecovery] and nothing else does.
@@ -467,17 +467,13 @@ class DesktopShellState(
     }
 
     /**
-     * What the window shows at startup: recovered edits first, then the file named on the command line,
-     * and otherwise a **new page** rather than an empty notice — the default screen is something to write
-     * on.
+     * What the window shows at startup: recovered edits first, then the file named on the command line, and
+     * otherwise **the entry screen** ([EntryScreen]) — a new sheet with its preview, the Open command and the
+     * notebooks opened lately, rather than a blank page that pretends the reader has already decided.
      */
     fun start(initial: File?) {
         recover()
-        if (initial != null) {
-            open(initial)
-        } else if (tabs.isEmpty) {
-            newDocument()
-        }
+        if (initial != null) open(initial)
     }
 
     /**
@@ -488,7 +484,7 @@ class DesktopShellState(
     fun open(file: File) {
         if (DocumentLoader.isPdf(file)) { askImportPdf(file, chooseMode = false); return }
         runCatching { DocumentLoader.load(file) }
-            .onSuccess(::adoptLoaded)
+            .onSuccess { document -> opened(document, file) }
             .onFailure { failure = describeOpenFailure(it) }
     }
 

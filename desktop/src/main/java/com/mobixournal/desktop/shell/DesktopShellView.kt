@@ -128,7 +128,7 @@ internal fun DesktopShell(
             // and not a page of its own. The reader keeps the document in view while a preference is
             // changed — which is the point of changing it (`docs/interface-contract.md` — a surface that
             // comes and goes may lie over the page; only a band may not).
-            WorkspaceBody(state, tablet)
+            WorkspaceBody(state, tablet, onOpenPicker)
             if (state.prefs.open) SettingsSurface(state.prefs, state.paletteEditor)
             FigureDialogHost(state)
         }
@@ -151,17 +151,19 @@ internal fun DesktopShell(
  * through every card the page can raise (`SourceStructureTest` keeps both files inside the budget).
  */
 @Composable
-private fun BoxScope.WorkspaceBody(state: DesktopShellState, tablet: DesktopTablet?) {
+private fun BoxScope.WorkspaceBody(
+    state: DesktopShellState,
+    tablet: DesktopTablet?,
+    onOpen: () -> Unit,
+) {
     val tab = state.active
     when {
         // With nothing open the notice owns the window; with a document open the card floats over it
         // instead, so an unopenable file cannot hide the one you were reading.
         tab == null && state.failure != null -> Notice(state.failure!!.title, state.failure!!.detail)
-        tab == null -> Notice(
-            "Open a .xopp or .mobix file to start",
-            "Ctrl+T, or “Open…”. The preview shows paper, ink, living entities and PDF or " +
-                "image backgrounds, read-only.",
-        )
+        // Nothing open is the window's **entry screen**: a sheet to start, the Open command, and the
+        // notebooks opened lately ([EntryScreen]).
+        tab == null -> EntryScreen(state, onOpen)
         // The strips in their lanes, the sidebar and the page: `DesktopWorkspace.kt`.
         else -> PageWorkspace(state, tab, tablet)
     }

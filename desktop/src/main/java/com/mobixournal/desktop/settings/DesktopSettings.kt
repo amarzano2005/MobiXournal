@@ -48,6 +48,9 @@ class DesktopSettings(val file: File = defaultFile()) {
     /** The pen-tip ring's answers — what it holds (`ring.slots`). */
     internal val ring = RingSettingsStore(properties, ::save)
 
+    /** The notebooks opened lately, most recent first — the entry screen's cards (`recent.files`). */
+    internal val recents = RecentFilesStore(properties, ::save)
+
     /**
      * Where the tool strips stand — the rail down an edge, or the ribbon under the header.
      *

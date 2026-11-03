@@ -44,6 +44,14 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   document is being read it says `opening <name>…` instead of `no document`, because the read runs off the
   frame thread: the window keeps painting through an open instead of freezing until it lands.
 
+**Starting with nothing open.** The window opens on an entry screen, not on a blank page and not on a notice:
+**New sheet** drawn as the page it will be (the reader's own size and ruling, through the same painter the
+page list uses), the **Open** command beside it, and the six notebooks opened lately as cards whose face is
+their document's first page — one click reopens one (`EntryScreen.kt`). A notebook whose file has gone leaves
+no card, opening the same one twice leaves one entry, and the list is `recent.files` in the settings file, so
+a restart keeps it. The cards are capsules on the desk, and the same screen is what closing the last tab
+returns to.
+
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the
   sidebar and the tool strips are the same frosted glass the mobile chrome uses, and the desk behind the
