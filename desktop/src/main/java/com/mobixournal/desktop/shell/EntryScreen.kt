@@ -161,7 +161,9 @@ private fun RecentColumn(
             style = DesktopTheme.subtitle,
             modifier = Modifier.padding(start = DesktopTheme.pageShadow),
         )
-        Spacer(Modifier.height(10.dp))
+        // Four, not ten: at the subtitle's size the heading already stands apart from the cards, and ten left
+        // it floating over the grid instead of introducing it.
+        Spacer(Modifier.height(4.dp))
         if (recents.isEmpty()) {
             Text(
                 "No notebook yet — Open… finds a .xopp or .mobix file.",
