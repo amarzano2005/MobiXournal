@@ -29,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -232,14 +234,23 @@ private fun SheetCard(
                 // node's content, so on a card whose content is the white sheet the frame was painted and
                 // then covered — it vanished exactly when the page arrived, which is the opposite of a
                 // frame. Here it lands on the sheet's own edge, 1 dp of muted ink, touching the paper.
+                // The frame, laid **on the sheet's own edge**: half of its width inside the paper, half on
+                // the desk, so it is the sheet's border and not a band around it. It has to be **darker**
+                // than the paper to be seen at all — the muted ink measured `#B4B4B9` against `#FAFAFA`,
+                // which is a line nobody notices — so the dark theme draws the desk's own tone at 80 % and
+                // the light one its ink, because on paper the desk is nearly white.
+                val rim = SHEET_RIM_DP.dp.toPx()
+                val edge = if (DesktopTheme.isLight) {
+                    DesktopTheme.ink.copy(alpha = SHEET_RIM_LIGHT_ALPHA)
+                } else {
+                    DesktopTheme.desk.copy(alpha = SHEET_RIM_DARK_ALPHA)
+                }
                 drawRoundRect(
-                    // A **dark** line, because the sheet is white: the muted ink is a light grey made for
-                    // the dark band, and at any alpha over paper it was the one edge that could not be
-                    // seen. The desk is the darkest tone the window owns, so its own colour at 45 % is the
-                    // frame — on the light theme the desk is a pale grey and the same line still reads.
-                    color = DesktopTheme.desk.copy(alpha = SHEET_RIM_ALPHA),
+                    color = edge,
+                    topLeft = Offset(rim / 2f, rim / 2f),
+                    size = Size(size.width - rim, size.height - rim),
                     cornerRadius = CornerRadius(SHEET_CORNER_DP.dp.toPx()),
-                    style = Stroke(width = 1.dp.toPx()),
+                    style = Stroke(width = rim),
                 )
             }
         }
@@ -359,8 +370,14 @@ private const val WIDE_RECENT_COLUMNS = 4
 /** Paper's proportions, so a card is the shape of the page it previews. */
 private const val SHEET_ASPECT = 0.707f
 
-/** The card's rim over its own paper: enough to close the edge, not enough to draw a box. */
-private const val SHEET_RIM_ALPHA = 0.45f
+/** The card's rim: thick enough to be seen on paper at a glance, thin enough to stay an edge. */
+private const val SHEET_RIM_DP = 1.5f
+
+/** On the dark theme the frame is the desk's tone, at a strength that still reads as a line on paper. */
+private const val SHEET_RIM_DARK_ALPHA = 0.8f
+
+/** On paper the desk is nearly white, so the light theme draws the frame in its own ink instead. */
+private const val SHEET_RIM_LIGHT_ALPHA = 0.45f
 
 /** The primary door's tint: the accent as a fill, not as a block of colour. */
 private const val BUTTON_TINT = 0.16f
