@@ -337,7 +337,9 @@ private const val SHEET_CORNER_DP = 3f
  * thumbnail, not a sheet of paper.
  */
 private fun DrawScope.drawCardHalo(sheet: Rect) {
-    val spread = DesktopTheme.pageShadow.toPx()
+    // The spread is the card's, not the page's. Ten dp around a 212 dp sheet is a falloff; the same ten dp
+    // around a 78 dp thumbnail is an eighth of its width, which is how a lift turns back into a border.
+    val spread = minOf(DesktopTheme.pageShadow.toPx(), sheet.width * HALO_WIDTH_FRACTION)
     val thickness = spread / HALO_STEPS
     val corner = SHEET_CORNER_DP.dp.toPx()
     for (step in 0 until HALO_STEPS) {
@@ -372,6 +374,9 @@ private const val HALO_STEPS = 26
 
 /** How much the corner radius grows per pixel of spread, so a corner blooms instead of mitering. */
 private const val CORNER_BLOOM = 0.4f
+
+/** The halo's reach as a share of the card's own width, capped by the page's spread at page size. */
+private const val HALO_WIDTH_FRACTION = 0.06f
 
 /** The block's own bound: three columns that stay one block on a laptop and do not stretch on a 3440 px desk. */
 private const val ENTRY_MAX_WIDTH_DP = 1000f
