@@ -56,7 +56,11 @@ import com.mobixournal.design.ChromeGlyph
  * The *placement* chooser this band used to end with is gone (`docs/desktop-workstation.md`): moving the
  * strips is a setting, and a setting belongs in the Interface section rather than in the chrome it moves.
  */
-/** The gap **either side** of the history pair: the field's side and the capsule's, the same one. */
+/**
+ * The gap **either side** of a group on the band: the search field's (the document capsule on one side, the
+ * history pair on the other) and the history pair's own on the audio side — one number, so a group reads as
+ * its own object instead of as the tail of whatever stands beside it.
+ */
 private val HEADER_GROUP_GAP = 12.dp
 
 @Composable
@@ -204,7 +208,9 @@ private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
     if (tab != null) {
         Spacer(Modifier.width(10.dp))
         HeaderDocumentCapsule(pages, layers)
-        Spacer(Modifier.width(6.dp))
+        // The same gap the field keeps on its history side: the field is a group of its own, not the
+        // capsule's tail, so the two distances either side of it are one number.
+        Spacer(Modifier.width(HEADER_GROUP_GAP))
         HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
     }
 }
@@ -216,8 +222,10 @@ private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
  * It was Pages alone on a 36 dp capsule, and the layer commands had no door at all on the band (a layer
  * could be hidden from the sidebar and nothing else could be done to it). Widening the capsule is the
  * tablet's own arrangement read literally — its rail puts Layers beside Pages — without a second capsule
- * the reader has to learn: the two glyphs share the family's fill, lift and rim, and a hairline between
- * them says "two doors, one object" (`docs/interface-contract.md` §1, §3).
+ * the reader has to learn: both doors sit in **the header's own pill**, at the size every other command on
+ * the band is drawn at, and the shared surface and corner are what make one object of them. No hairline
+ * stands between the two slots: a seam inside a pill reads as two shrunken buttons in a box, which is what
+ * a divider between them looked like (`docs/interface-contract.md` §1, §3).
  *
  * The menu a half opens is anchored **under that half**, so Pages opens where Pages is and Layers opens
  * where Layers is, and each half keeps its own open state and its own dismissal — one control that opens
@@ -243,9 +251,6 @@ private fun HeaderDocumentCapsule(pages: PageMenuActions, layers: LayerMenuActio
             glyph = ChromeGlyph.DESCRIPTION,
             menu = { close -> PageMenuPanel(pages, close) },
         )
-        // The hairline that makes one object out of two doors: 18 dp inside a 36 dp capsule, so the fill
-        // still reads as one shape around both.
-        Box(Modifier.width(1.dp).height(18.dp).background(DesktopTheme.hairline))
         HeaderDoor(
             enabled = layers.canManage,
             glyph = ChromeGlyph.LAYERS,
@@ -257,10 +262,11 @@ private fun HeaderDocumentCapsule(pages: PageMenuActions, layers: LayerMenuActio
 /**
  * One **door** of that capsule: a glyph with its own hover step, its own picked fill and its own menu.
  *
- * The lit plate is a capsule inset 2 dp inside the shared one, so the state layer follows the shape the
- * pointer sees and the two halves cannot paint a rectangle inside a rounded object
- * (`docs/interface-contract.md` §6). A disabled door keeps its glyph, in the muted ink, and takes no
- * pointer at all — a click on it is not a command that did nothing.
+ * The lit plate is the header's own **control slot** — [DesktopTheme.headerControlSize], the size every
+ * other capsule on the band lights at — rather than a plate inset inside it: drawn 4 dp smaller than its
+ * neighbours a door read as a smaller button than the undo beside it, and with no hairline left in the
+ * pill there is nothing for the inset to avoid (`docs/interface-contract.md` §6). A disabled door keeps its
+ * glyph, in the muted ink, and takes no pointer at all — a click on it is not a command that did nothing.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -297,7 +303,7 @@ private fun HeaderDoor(
         ) {
             Box(
                 Modifier
-                    .size(DesktopTheme.headerControlSize - 4.dp)
+                    .size(DesktopTheme.headerControlSize)
                     .background(fill, DesktopTheme.capsuleShape),
             )
             Canvas(Modifier.size(DesktopTheme.headerGlyphSize)) {

@@ -163,7 +163,8 @@ class DesktopLayersTest {
         val image = ImageIO.read(ByteArrayInputStream(png))
         val right = capsuleRight(width)
         val half = DesktopTheme.headerControlSize.value / 2f
-        val pagesCentre = right - 2 * DesktopTheme.headerControlSize.value - 1f + half
+        // No hairline stands between the two slots, so the pages door is exactly the left half.
+        val pagesCentre = right - 2 * DesktopTheme.headerControlSize.value + half
         val layersCentre = right - half
         for ((name, centre) in listOf("pages" to pagesCentre, "layers" to layersCentre)) {
             val inked = ((centre - half + 2f).toInt()..<(centre + half - 2f).toInt()).sumOf { x ->
@@ -240,10 +241,11 @@ class DesktopLayersTest {
 
     /**
      * The capsule's right edge, counted from the window's right: the edge, the PDF and Save capsules, the two
-     * groups' gaps, the history pair, and the search field the capsule stands beside.
+     * groups' gaps, the history pair, the search field the capsule stands beside, and the **same gap** the
+     * field keeps on its other side — the two distances either side of the field are one number.
      */
     private fun capsuleRight(width: Int): Float = width.toFloat() - HEADER_EDGE_DP - 4 * CONTROL -
-        2 * GROUP_GAP - 2 * GAP - SEARCH_FIELD_WIDTH - GAP
+        2 * GROUP_GAP - 2 * GAP - SEARCH_FIELD_WIDTH - GROUP_GAP
 
     /** A tap, on a clock that only ever moves forward (Compose drops an event older than the last one). */
     private fun tap(scene: ImageComposeScene, x: Float, y: Float) {

@@ -28,10 +28,13 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 - **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one tab per open
   document (each keeps its page, zoom and fit), the `+` for another, and right **Pages and Layers** in one
   capsule, the search field, **undo, redo, Save, PDF**. The field stands there always beside the tabs, so
-  using it never moves them or the file commands; **Pages**, on its left, is the tablet's page section — add,
-  remove, step, format, paper — and **Layers**, to its right, the page's stack with the manager's edits (see
-  [search.md](search.md), [desktop-workstation.md](desktop-workstation.md)). The tool strip ends with its
-  last tool.
+  using it never moves them or the file commands, and it keeps the **same gap either side** (12 dp to the
+  capsule and to the history pair), so it reads as a group of its own rather than the capsule's tail;
+  **Pages**, on its left, is the tablet's page section — add, remove, step, format, paper — and **Layers**, to
+  its right, the page's stack with the manager's edits (see [search.md](search.md),
+  [desktop-workstation.md](desktop-workstation.md)). Both doors are the header's own 36 dp pill, each in a
+  slot of that size, with **no seam between them**: the divider that used to stand there made two shrunken
+  buttons out of one object. The tool strip ends with its last tool.
 - **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
   per layer that hides it without writing to the document; it opens itself only when the document has
   **more than one page**.
