@@ -28,7 +28,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -210,10 +212,7 @@ private fun SheetCard(
                 // covers the card edge to edge, so the outline is the sheet's own edge and no dark band
                 // surrounds it. Before the paint lands, the same box holds the empty glass.
                 .background(DesktopTheme.tabFillResting, SHEET_SHAPE)
-                .hoverFill(SHEET_SHAPE)
-                // A rim that reads on **paper**: the hairline is a light line for the dark band, and on the
-                // white sheet it would be the one thing about the card you could not see.
-                .border(1.dp, DesktopTheme.inkMuted.copy(alpha = SHEET_RIM_ALPHA), SHEET_SHAPE),
+                .hoverFill(SHEET_SHAPE),
             contentAlignment = Alignment.Center,
         ) {
             // Drawn at the box's own size rather than through `Image`'s `ContentScale`: the preview is a
@@ -229,6 +228,15 @@ private fun SheetCard(
                         ),
                     )
                 }
+                // The rim is drawn **with** the picture, never beside it: a `Modifier.border` sits behind a
+                // node's content, so on a card whose content is the white sheet the frame was painted and
+                // then covered — it vanished exactly when the page arrived, which is the opposite of a
+                // frame. Here it lands on the sheet's own edge, 1 dp of muted ink, touching the paper.
+                drawRoundRect(
+                    color = DesktopTheme.inkMuted.copy(alpha = SHEET_RIM_ALPHA),
+                    cornerRadius = CornerRadius(SHEET_CORNER_DP.dp.toPx()),
+                    style = Stroke(width = 1.dp.toPx()),
+                )
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -299,7 +307,9 @@ private val PREVIEWS = java.util.concurrent.ConcurrentHashMap<String, ImageBitma
  * A rounded chip around rectangular paper misreads the shape of the thing it shows; three dp is the least
  * that keeps the rim from looking cut with a knife, and it is a rectangle at any size.
  */
-private val SHEET_SHAPE = RoundedCornerShape(3.dp)
+private const val SHEET_CORNER_DP = 3f
+
+private val SHEET_SHAPE = RoundedCornerShape(SHEET_CORNER_DP.dp)
 
 /** The block's own bound: three columns that stay one block on a laptop and do not stretch on a 3440 px desk. */
 private const val ENTRY_MAX_WIDTH_DP = 1000f
@@ -346,7 +356,7 @@ private const val WIDE_RECENT_COLUMNS = 4
 private const val SHEET_ASPECT = 0.707f
 
 /** The card's rim over its own paper: enough to close the edge, not enough to draw a box. */
-private const val SHEET_RIM_ALPHA = 0.35f
+private const val SHEET_RIM_ALPHA = 0.55f
 
 /** The primary door's tint: the accent as a fill, not as a block of colour. */
 private const val BUTTON_TINT = 0.16f
