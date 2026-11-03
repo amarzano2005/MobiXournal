@@ -40,7 +40,9 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   **more than one page**.
 - **The sheet alone on the desk**: one page at a time, fitted by what the page is (a sheet whole, a long
   strip to its width), with the fit mode named in the status bar.
-- **Status bar**: page counter, effective zoom, fit mode and the container behind the document.
+- **Status bar**: page counter, effective zoom, fit mode and the container behind the document. While a
+  document is being read it says `opening <name>…` instead of `no document`, because the read runs off the
+  frame thread: the window keeps painting through an open instead of freezing until it lands.
 
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the

@@ -1,4 +1,7 @@
 package com.mobixournal.desktop
+
+import androidx.compose.runtime.rememberCoroutineScope
+import com.mobixournal.desktop.shell.openInBackground
 import com.mobixournal.desktop.ink.dialFit
 import com.mobixournal.desktop.ink.dialZoom
 import com.mobixournal.desktop.io.askImportPdf
@@ -70,7 +73,9 @@ fun FrameWindowScope.DesktopApp(
     onExit: () -> Unit,
 ) {
     val focus = remember { FocusRequester() }
-    val dialogs = remember { DocumentDialogs(window, state) }
+    // The scope an open reads on: the picker hands back a file, and the read must not run inside the frame.
+    val scope = rememberCoroutineScope()
+    val dialogs = remember { DocumentDialogs(window, state, scope) }
     // Whether anything in the window holds the keyboard. A panel that closes takes its text field with
     // it, and Compose is then left with **no** focused element — the shortcuts would be dead until the
     // page was clicked. The window hands the keyboard back to its root instead, so `Ctrl+Z` or `G` works
@@ -168,11 +173,17 @@ fun FrameWindowScope.DesktopApp(
  * [saveAs] asks both of a save's questions at once: the picker's type box chooses the container and its name
  * field the file (`SaveAsPicker`).
  */
-internal class DocumentDialogs(private val window: Frame, private val state: DesktopShellState) {
+internal class DocumentDialogs(
+    private val window: Frame,
+    private val state: DesktopShellState,
+    /** Where a document's read runs: off the window's thread, so the frame loop keeps painting. */
+    private val scope: kotlinx.coroutines.CoroutineScope,
+) {
 
     /** The system picker for a document to open. */
     fun openDocument() {
-        DesktopFilePicker.openFile(window, "Open a document", DOCUMENT_OPEN_TYPES)?.let(state::open)
+        DesktopFilePicker.openFile(window, "Open a document", DOCUMENT_OPEN_TYPES)
+            ?.let { state.openInBackground(it, scope) }
     }
 
     /**

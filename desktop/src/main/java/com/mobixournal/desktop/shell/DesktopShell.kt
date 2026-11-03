@@ -488,13 +488,10 @@ class DesktopShellState(
     fun open(file: File) {
         if (DocumentLoader.isPdf(file)) { askImportPdf(file, chooseMode = false); return }
         runCatching { DocumentLoader.load(file) }
-            .onSuccess { document ->
-                DesktopAudioSession.adopt(document)
-                tabs.open(document, prefs.fitOnOpen)
-                failure = null
-            }
+            .onSuccess(::adoptLoaded)
             .onFailure { failure = describeOpenFailure(it) }
     }
+
 
     /** Close the active tab, activating its neighbour. A dirty tab must go through [requestCloseActive]. */
     fun closeActive() = closeActiveTab()

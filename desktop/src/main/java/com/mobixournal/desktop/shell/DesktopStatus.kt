@@ -123,6 +123,21 @@ private fun SearchCount(tab: DesktopTab) {
     }
 }
 
+/**
+ * What the band says with nothing on screen: the file an open is waiting for, or that there is nothing.
+ *
+ * Its own composable rather than three lines inside the bar: the bar is at its function budget, and this is
+ * the one sentence on it that is about *waiting* instead of about the document.
+ */
+@Composable
+private fun WaitingSentence(opening: String?) {
+    Text(
+        text = opening?.let { "opening $it…" } ?: "no document",
+        color = if (opening != null) DesktopTheme.inkSecondary else DesktopTheme.inkMuted,
+        style = DesktopTheme.label,
+    )
+}
+
 /** The bottom bar: page, zoom, container and how far through the document the page is. */
 @Composable
 internal fun StatusBar(
@@ -133,6 +148,14 @@ internal fun StatusBar(
     audio: DesktopAudioSession? = null,
     /** A command that was refused, in one sentence — a page that belongs to another PDF, today. */
     refusal: String? = null,
+    /**
+     * The file an open is reading, by its name, or `null`.
+     *
+     * With nothing on screen the band says `no document`, which is true and useless while a read is in
+     * flight: a 40-page notebook stops the frame loop for long enough that the click looks ignored, so the
+     * band names what it is waiting for instead.
+     */
+    opening: String? = null,
 ) {
     Row(
         Modifier
@@ -144,7 +167,7 @@ internal fun StatusBar(
     ) {
         audio?.let { session -> AudioStatus(session) }
         if (tab == null) {
-            Text("no document", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+            WaitingSentence(opening)
             return@Row
         }
         val zoom = tab.viewport.zoom

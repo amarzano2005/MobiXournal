@@ -18,7 +18,9 @@ class FixtureWriterTest {
 
     @Test
     fun `write the probe's documents`() {
-        val out = File("build-logs").apply { mkdirs() }
+        // The repository's ignored folder, not one inside the module: `desktop/build-logs` would be a
+        // generated tree git has never been told to ignore.
+        val out = File("../build-logs").apply { mkdirs() }
         SyntheticNotebook.write(
             File(out, "heavy.mobix"),
             (0 until 40).map { index ->

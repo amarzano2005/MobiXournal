@@ -132,7 +132,14 @@ internal fun DesktopShell(
             if (state.prefs.open) SettingsSurface(state.prefs, state.paletteEditor)
             FigureDialogHost(state)
         }
-        StatusBar(state.active, tablet, state.prefs.frameTime, DesktopAudioSession, state.pageRefusal)
+        StatusBar(
+            state.active,
+            tablet,
+            state.prefs.frameTime,
+            DesktopAudioSession,
+            state.pageRefusal,
+            DesktopOpens.opening,
+        )
     }
 }
 
