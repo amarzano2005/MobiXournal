@@ -200,7 +200,8 @@ internal class PenPacketStroke(
         // The ring lies over the sheet, so while it is up it is the only surface the pen can act on: a
         // tip-down answers it (a face commits, the air between faces does nothing) and **never** inks the
         // page beneath. One press is one answer, held until the tip lifts.
-        if (hud.open() != null) {
+        val ringUp = hud.open() != null
+        if (ringUp || hud.pressHeld()) {
             if (drawing) {
                 drainPending()
                 finishStroke()
@@ -208,9 +209,14 @@ internal class PenPacketStroke(
             when {
                 packet.tip && !hudTipHeld -> {
                     hudTipHeld = true
-                    if (inside) hud.onPress(local.x, local.y, density)
+                    // Only a ring that is still up can be answered: the same contact may already have been
+                    // claimed by the other stream, and one press must commit one face.
+                    if (inside && ringUp) hud.onPress(local.x, local.y, density)
                 }
-                !packet.tip -> hudTipHeld = false
+                !packet.tip -> {
+                    hudTipHeld = false
+                    hud.onRelease()
+                }
             }
             return
         }

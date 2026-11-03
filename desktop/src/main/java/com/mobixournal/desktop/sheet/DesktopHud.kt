@@ -42,6 +42,17 @@ internal class HudUi(
     val slots: List<RingFace> = emptyList(),
     /** The nib's place, in canvas pixels, reported to the shell that anchors the ring there. */
     val onPointerAt: (at: Offset, density: Float) -> Unit = { _, _ -> },
+    /**
+     * True from the press the ring answered until that contact is over — its lift in either stream, or the
+     * copy of it that the page swallows.
+     *
+     * One contact reaches this window **twice** — the driver's packets and Windows' copy of them as a mouse —
+     * and the ring closes the moment it commits. The copy then arrives with nothing on screen, so without this
+     * latch it reads as a page press: a click on a face inked the sheet under the ring it had just dismissed.
+     */
+    val pressHeld: () -> Boolean = { false },
+    /** That contact is over, whichever stream saw its lift first. */
+    val onRelease: () -> Unit = {},
 )
 
 /** The ring's geometry and its two pointer rules. Its faces are [RingContents]'s. */

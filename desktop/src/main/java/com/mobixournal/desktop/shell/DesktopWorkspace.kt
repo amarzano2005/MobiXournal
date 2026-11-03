@@ -147,6 +147,10 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                             onPress = { x, y, density -> state.ring.press(x, y, density) },
                             slots = state.ring.slots,
                             onPointerAt = { at, density -> state.ring.notePointer(at, density) },
+                            // One contact reaches the window twice (packets, then Windows' copy of them as a
+                            // mouse): the ring's answer holds the page out until that contact lifts.
+                            pressHeld = { state.ring.pressHeld },
+                            onRelease = { state.ring.release() },
                         ),
                     )
                 }

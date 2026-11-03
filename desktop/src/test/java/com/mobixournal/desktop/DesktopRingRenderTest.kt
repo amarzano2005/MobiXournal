@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -87,6 +88,8 @@ class DesktopRingRenderTest {
                     onPress = { x, y, density -> state.ring.press(x, y, density) },
                     slots = state.ring.slots,
                     onPointerAt = { at, density -> state.ring.notePointer(at, density) },
+                    pressHeld = { state.ring.pressHeld },
+                    onRelease = { state.ring.release() },
                 ),
             )
         }
@@ -199,6 +202,47 @@ class DesktopRingRenderTest {
             assertEquals("the ink took the swatch", PenPalette.COLORS.first(), state.ink.colour)
             assertNull("and the ring went away", state.ring.open)
             assertEquals("the press never reached the sheet", before, strokes(state.tabs.active!!.document).size)
+        } finally {
+            scene.close()
+            state.tabs.active?.document?.close()
+        }
+    }
+
+    /**
+     * The **contact** the ring answered is the ring's until it lifts.
+     *
+     * The pen's own packets commit on the frame thread and close the surface, and Windows' mouse copy of that
+     * same press arrives a frame later with nothing on screen. Read as a page press it inked the sheet under the
+     * ring that had just gone — the complaint this test pins. The copy is swallowed instead, and the contact it
+     * belonged to is over, so the next press is the page's again.
+     */
+    @Test
+    fun `the mouse copy of a press the ring answered writes nothing`() {
+        val state = state()
+        val scene = scene(state)
+        try {
+            pixels(scene, "ring-race-before")
+            assertTrue(state.apply(ShellCommand.RADIAL_HUD))
+            val before = strokes(state.tabs.active!!.document).size
+            val ring = state.ring.open!!
+            val (sx, sy) = RadialHud.slotCenter(
+                ring.cx, ring.cy, 0, state.ring.slots.size, RadialHud.RING_RADIUS_DP,
+            )
+
+            // The pen's own path answers the face first: the ring commits and is gone. Then Windows' copy of
+            // the same press arrives, one frame later, on the same spot.
+            assertTrue("the face took the press", state.ring.press(sx, sy, 1f))
+            assertNull("the ring went away", state.ring.open)
+            assertTrue("but the contact is still the ring's", state.ring.pressHeld)
+            click(scene, sx, sy, time = 1_100L)
+
+            assertEquals(
+                "the copy inked nothing on the sheet beneath",
+                before,
+                strokes(state.tabs.active!!.document).size,
+            )
+            assertNull("and the next press has no ring to answer", state.ring.open)
+            assertFalse("swallowing the copy ended the contact", state.ring.pressHeld)
         } finally {
             scene.close()
             state.tabs.active?.document?.close()

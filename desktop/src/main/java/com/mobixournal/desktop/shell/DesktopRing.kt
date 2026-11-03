@@ -63,6 +63,17 @@ internal class DesktopRing(
     val slots: List<RingFace> get() = contents().slots(palette(), custom())
 
     /**
+     * True from the press the ring answered until that contact lifts ([HudUi.pressHeld]).
+     *
+     * A press closes the ring the moment it commits, and the same physical contact can still reach the window
+     * once more — the pen's packets first, Windows' mouse copy of them a frame later. The page reads this flag
+     * and stays out of the way until the contact that answered the ring is over, which is what keeps a click on
+     * a face from also marking the sheet the ring floated over.
+     */
+    var pressHeld by mutableStateOf(false)
+        private set
+
+    /**
      * The pointer's newest reading. Moves the pick while the ring is up, and remembers where the nib is so
      * the next summon opens there.
      */
@@ -115,6 +126,10 @@ internal class DesktopRing(
      */
     fun press(x: Float, y: Float, density: Float): Boolean {
         val state = open ?: return false
+        // The contact is the ring's from this press to its lift, whatever the press itself is taken to mean:
+        // a face commits, the air between faces does nothing, a press outside dismisses — and one contact is
+        // one answer, never a second one on the page below.
+        pressHeld = true
         val faces = slots
         val index = DesktopHud.indexAt(state, x, y, faces.size, density)
         if (index != null) {
@@ -124,6 +139,11 @@ internal class DesktopRing(
         }
         if (!DesktopHud.within(state, x, y, density)) open = null
         return true
+    }
+
+    /** The contact that answered the ring is over — the page may have the next one. */
+    fun release() {
+        pressHeld = false
     }
 
     /** The one commit path: a colour, a width or any tool, through the entries the strips already use. */

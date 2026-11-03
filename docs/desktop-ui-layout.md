@@ -214,7 +214,10 @@ ring is not held to those six: a logic gate or a flowchart arrow can sit at the 
 - **The pointer stays on it, and so does the pen.** The pointer over the ring is the *tool's* ring, not the arrow:
   `DesktopHudLayer` paints it **above** the glass, so the mark the reader aims with is never hidden by the surface it
   aims at. The pen's own packets answer the ring as well — a tip that lands on a face commits it and lays no ink under
-  it, because on this machine the packets are the stream and Windows' copy of the contact is not.
+  it, because on this machine the packets are the stream and Windows' copy of the contact is not. That contact stays
+  the ring's after the surface has gone: the packets close it on the frame thread, so the copy of the same press
+  arrives a frame later with nothing on screen and is **swallowed** there rather than becoming a stroke underneath —
+  one contact, one answer — and the next press belongs to the page again.
 - **What a commit is.** The entries the rail and the flyouts already use (`pickColour`, `pickWidth`,
   `selectTool`), so a ring choice cannot mean something you could not have set by hand; the picked tool's own
   ink is what changes, exactly as the colour capsule changes it.

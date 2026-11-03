@@ -195,6 +195,14 @@ private suspend fun PointerInputScope.pageGestureLoop(
             ringTakesThePress(hud, down.position, density)
             return@awaitEachGesture
         }
+        // A contact the ring has **already** answered is still its own after the surface has gone: the pen's
+        // packets commit on the frame thread, so Windows' copy of that same press arrives here a frame later
+        // with nothing on screen. One contact is one answer, so it is swallowed here rather than drawn — and
+        // the contact is over, which hands the page the next one.
+        if (hud.pressHeld()) {
+            hud.onRelease()
+            return@awaitEachGesture
+        }
         // The packets own the pen only for the slots they draw (`inksByPackets`), and never while Space
         // is held: that is the hand's pan (`PenPacketPan`), and a pen that inked through it would draw a
         // line across the page it is scrolling. Standing aside for every slot would leave a

@@ -143,6 +143,8 @@ class PenPacketSceneTest {
         onPress = { x, y, density -> ring.press(x, y, density) },
         slots = ring.slots,
         onPointerAt = { at, density -> ring.notePointer(at, density) },
+        pressHeld = { ring.pressHeld },
+        onRelease = { ring.release() },
     )
 
     /** Let the canvas's packet ticker run: a packet asks for a frame, and the batch is applied on it. */

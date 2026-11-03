@@ -222,6 +222,30 @@ class DesktopRingTest {
         assertFalse("nothing is open, so the press is not the ring's", ring.press(nib.x, nib.y, density))
     }
 
+    /**
+     * A press the ring answered is **held until its lift**: the pen's packets commit and close the surface on
+     * the frame thread, while the same contact still reaches the page as the mouse Windows emulates it as. After
+     * the lift the next press is the page's again.
+     */
+    @Test
+    fun `a press the ring answered is held until the contact lifts`() {
+        val sink = Sink()
+        val ring = ring(sink = sink)
+        ring.notePointer(nib, density)
+        ring.summon()
+        val count = ring.slots.size
+        assertFalse("nothing is held before a press is answered", ring.pressHeld)
+
+        val at = slotCentre(0, count)
+        assertTrue(ring.press(at.x, at.y, density))
+        assertTrue("the contact is still the ring's after the surface has gone", ring.pressHeld)
+        assertEquals(listOf(PenPalette.COLORS[0]), sink.colours)
+
+        ring.release()
+        assertFalse("its lift hands the page the next one", ring.pressHeld)
+        assertFalse("a press with no ring open is the page's", ring.press(nib.x, nib.y, density))
+    }
+
     @Test
     fun `the pick follows the pointer and a dismissal commits nothing`() {
         val sink = Sink()

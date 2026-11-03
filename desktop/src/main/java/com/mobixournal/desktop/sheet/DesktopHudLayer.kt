@@ -44,12 +44,12 @@ internal fun DesktopHudLayer(hud: HudUi, pointer: PenPointer, ringPx: Float?, de
 }
 
 /**
- * The ring's own press, while it is up: a slot under the point commits, a press inside the ring does nothing,
- * one well outside it puts the ring away — and the rest of the gesture is drained, so the lift cannot become
- * the start of a stroke under a surface that had just closed.
+ * The ring's own press: a slot under the point commits, a press inside the ring does nothing, one well outside
+ * it puts the ring away — and the rest of the gesture is drained, so the lift cannot become the start of a
+ * stroke under a surface that had just closed.
  *
- * It is asked **before** the page's other paths, because the ring is what the precise hand is using: a
- * contact aimed at a face must not also lay ink on the page the ring floats over.
+ * It is only for a ring that is **up**. A press the ring already answered through the other stream never gets
+ * here: the page swallows that copy ([HudUi.pressHeld]) instead of waiting on a gesture of its own.
  */
 internal suspend fun AwaitPointerEventScope.ringTakesThePress(hud: HudUi, at: Offset, density: Float) {
     hud.onPress(at.x, at.y, density)
@@ -58,6 +58,7 @@ internal suspend fun AwaitPointerEventScope.ringTakesThePress(hud: HudUi, at: Of
         change.consume()
         if (change.changedToUpIgnoreConsumed() || !change.pressed) break
     }
+    hud.onRelease()
 }
 
 /**
