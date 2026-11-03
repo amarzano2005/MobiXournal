@@ -14,7 +14,7 @@ fun quickActionLabel(action: QuickAction): String = when (action) {
     QuickAction.TOGGLE_ERASER -> "Toggle eraser"
     QuickAction.TOGGLE_SELECT -> "Toggle select"
     QuickAction.TOGGLE_FULL_PAGE -> "Toggle full page"
-    QuickAction.HUD -> "Radial HUD"
+    QuickAction.HUD -> "Ring"
 }
 
 /**

@@ -24,7 +24,7 @@ import kotlin.math.sqrt
  *
  * - [HOLD] — the barrel is **held** (Settings → Barrel button → *While held* = HUD): a hover gesture,
  *   so letting the button go commits the slot under the pen and a tip landing cancels.
- * - [TAP] — a **double-click** opened it (Settings → Barrel button → *Double-click* = Radial HUD).
+ * - [TAP] — a **double-click** opened it (Settings → Barrel button → *Double-click* = Ring).
  *   There is no held button to release, so the ring is a picker: it stays on screen until the user
  *   taps a slot, and only that tap (or a tap well outside the ring) takes it away. The press that
  *   completed the double-click used to be the release that committed it, which is why the ring

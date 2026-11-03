@@ -151,7 +151,7 @@ class StylusInputTest {
 
     /**
      * The ring has a second summon: with the barrel left on its default *erase*, binding the button's
-     * **double-click** to *Radial HUD* opens it on the second press — and it stays there as a picker.
+     * **double-click** to *Ring* opens it on the second press — and it stays there as a picker.
      * The release that follows that press is the release of the click that opened it, so it must not
      * double as the pick: a slot is chosen by tapping it.
      */
@@ -782,7 +782,7 @@ class StylusInputTest {
     }
 
     /**
-     * The pen-tip HUD: with the barrel bound to *Hud*, a hover press opens the ring at the nib, the
+     * The pen-tip HUD: with the barrel bound to *Ring*, a hover press opens the ring at the nib, the
      * hover over a slot lights it, and the release commits exactly that slot — here a pen width.
      * Nothing is written to the page: this is a hover gesture, not a stroke.
      */

@@ -188,7 +188,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Audio Tap / Replay | `Y` | The header audio pill's Play — no tool slot |
 | **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Tap on color swatch / Rail slot |
 | | Tool Group Picker | `Alt + Down` | Chevron, right-click or hold on a grouped slot |
-| | Pen-tip ring (HUD) | `Alt + B` | Its own row in **Settings → Ring** — a pen button mapped to a key too |
+| | Pen-tip ring | `Alt + B` | Its own row in **Settings → Ring** — a pen button mapped to a key too |
 | | Stroke Width Up / Down | `]`, `[` | Rail's stroke slot |
 | | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture |
 | | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap |
@@ -200,7 +200,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 
 ### 4. The pen-tip ring (`Alt + B`)
 
-The tablet's **pen-tip HUD** ([`ui-modernization.md`](ui-modernization.md), *The pen-tip HUD*) on the PC: `Alt + B`
+The tablet's **pen-tip ring** ([`ui-modernization.md`](ui-modernization.md), *The pen-tip ring*) on the PC: `Alt + B`
 opens a ring centred on the nib — the last place the pointer was over the page, and the canvas's centre until a
 pointer has been there at all — and nothing is on screen until it is summoned. What it carries is the reader's
 ([`desktop-settings.md`](desktop-settings.md)): an untouched ring is the tablet's own contents in the tablet's own

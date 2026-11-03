@@ -51,7 +51,7 @@ toolbar":
 
 1. **Eraser tip.** A `TOOL_TYPE_ERASER` pointer (the flipped-over tip) erases whatever the tool.
 2. **Barrel button.** The button held on a pen invokes a configurable action while
-   held — default **erase**, **select**, the pen-tip **HUD** or **none** (`BarrelAction`), whatever the
+   held — default **erase**, **select**, the pen-tip **Ring** or **none** (`BarrelAction`), whatever the
    on-screen tool.
    Which stream reports it depends on the pen and the platform, so detection is deliberately broad
    and latched (pure, JVM-tested **`BarrelButtonState`**, see `BarrelButtonStateTest`):
@@ -101,7 +101,7 @@ toolbar":
    (`CLICK -> toggle eraser`, `CLICK swallowed (same gesture)`), so the panel shows what the app did
    with the press and not only what arrived.
    **`HUD`** turns the same button into the pen-tip ring (`docs/ui-modernization.md`, *The pen-tip
-   HUD*): a press with the tip off the glass opens it at the nib, the hover moves the pick, and the
+   ring*): a press with the tip off the glass opens it at the nib, the hover moves the pick, and the
    key-up (or the motion-stream release) commits the slot under the pen or cancels. It is a hover
    gesture, so a tip that lands while the ring is open closes it and writes nothing
    (`DrawingSurfaceHud.kt`).

@@ -48,6 +48,17 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
 }
 
+/**
+ * The name a [BarrelAction] wears wherever the user picks one.
+ *
+ * **Ring**, not the "HUD" of the code: the ring is what the reader sees and what Settings → Drawing → Ring
+ * says, so the barrel button cannot name the same thing a second way.
+ */
+fun barrelActionLabel(action: BarrelAction): String = when (action) {
+    BarrelAction.HUD -> "Ring"
+    else -> action.name.lowercase().replaceFirstChar(Char::uppercase)
+}
+
 /** The side-button's held action and its double-click action. */
 @Composable
 private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) -> Unit) {
@@ -56,7 +67,7 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
         subtitle = "Action while the stylus side-button is held, whatever the tool.",
         options = BarrelAction.values().toList(),
         selected = settings.barrelAction,
-        label = { if (it == BarrelAction.HUD) "Radial HUD" else it.name.lowercase().replaceFirstChar(Char::uppercase) },
+        label = { barrelActionLabel(it) },
         onSelect = { onChange(settings.copy(barrelAction = it)) },
     )
     SettingsDivider()

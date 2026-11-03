@@ -1,6 +1,6 @@
 package com.mobixournal.ui
 
-import com.mobixournal.ui.theme.PanelEdgeAir
+import com.mobixournal.ui.theme.PillTextInset
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -222,7 +222,10 @@ private fun ToolbarMenuWindow(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(horizontal = PanelEdgeAir, vertical = 8.dp)
+                    // No horizontal inset: a row's highlight is the row's own, so padding the column
+                    // sideways would stop the lit part short of the panel's curve (`interface-contract.md`,
+                    // *Air at a rounded edge*). The rows keep their own label inset; the clip rounds the ends.
+                    .padding(vertical = 8.dp)
                     .then(
                         // A menu of answers measures its own width from its rows (intrinsics). A list given
                         // one — the width of the settings row it belongs to — takes it instead, because its

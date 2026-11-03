@@ -3,21 +3,15 @@ package com.mobixournal.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -32,24 +26,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.PenPalette
 import com.mobixournal.render.HudSlot
 import com.mobixournal.render.RadialHud
-import com.mobixournal.ui.theme.DialogPresence
-import com.mobixournal.ui.theme.rememberClosingArgument
 import java.util.Locale
 
 /**
  * **Ring**: the ring itself, drawn between its settings, and what each of its faces holds.
  *
  * The page shows the ring **as it is drawn at the pen** — one disc, the same faces, the same order — because a
- * list of rows cannot answer the question this page exists for: *what does my ring look like?* A tap on a face
- * opens its chooser, and the chooser is the three families the ring can hold, each with every answer the tablet
- * has: the palette's colours (the editable custom one included), the pen's three widths, and **any tool the
- * rail puts in hand** — so a face is never limited to the six the factory ring starts with.
+ * list of rows cannot answer the question this page exists for: *what does my ring look like?* A tap picks a
+ * face, and the row under the drawing says what that position holds.
+ *
+ * That row is a **select** ([OptionGroup]), the app's one grammar for a choice: the answer in hand at the end
+ * of one line, the rest in a list under it. The face used to open a dialog of three headed columns, which was
+ * the radio-column shape this screen has moved away from everywhere else — a page that answered its one
+ * question in the old language read as an older screen.
  *
  * The first change **pins** the ring: an untouched ring is the factory one (`RadialHud.factorySlots`, the same
  * ring the window draws) and a ring arranged here is the reader's until *Reset to defaults*. The stored shape is
@@ -60,14 +54,28 @@ import java.util.Locale
 @Composable
 fun RingSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     val faces = ringFaces(settings)
-    var picked by remember { mutableStateOf<Int?>(null) }
+    // The face in hand: the first one until a tap says otherwise, so the select always has a subject and the
+    // page has no state a reader can be stuck in.
+    var picked by remember { mutableStateOf(0) }
+    val index = picked.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
 
     SettingsGroup("The ring") {
         SettingsNote(
-            "The ring as it appears at the pen tip. Tap a face to give it a colour, a tool or a width — or " +
-                "to take it off. The barrel button opens it (Settings → Stylus).",
+            "The ring as it appears at the pen tip. Tap a face, then choose what it holds; the barrel " +
+                "button opens it (Settings → Stylus).",
         )
-        RingDrawing(faces, picked) { index -> picked = if (picked == index) null else index }
+        if (faces.isNotEmpty()) {
+            RingDrawing(faces, index) { tapped -> picked = tapped }
+            SettingsDivider()
+            OptionGroup<HudSlot?>(
+                title = "Face ${index + 1} of ${faces.size}",
+                subtitle = "What this position holds.",
+                options = ringAnswers(settings),
+                selected = faces[index],
+                label = ::ringAnswerLabel,
+                onSelect = { answer -> onChange(ringWithFace(settings, index, answer)) },
+            )
+        }
         if (faces.size < RadialHud.MAX_SLOTS) {
             OutlinedButton(
                 onClick = { onChange(ringWithPosition(settings)) },
@@ -87,33 +95,40 @@ fun RingSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             }
         }
     }
+}
 
-    // The **face** is what is held, not just its index: removing a position shortens the list, and an index
-    // kept past the end would read one place beyond it.
-    val shown = rememberClosingArgument(picked?.let { index -> faces.getOrNull(index)?.let { index to it } })
-    DialogPresence(picked != null) {
-        val (index, face) = shown ?: return@DialogPresence
-        RingFaceDialog(
-            face = face,
-            settings = settings,
-            onPick = { choice ->
-                onChange(ringWithFace(settings, index, choice))
-                picked = null
-            },
-            onDismiss = { picked = null },
-        )
-    }
+/**
+ * Every answer a face can hold, then the one that takes it off the ring.
+ *
+ * One list rather than three: a face *is* one of these things, so the select that answers it is one control —
+ * the same "one line per choice" the rest of Settings keeps. The tools are the rail's own ([RING_TOOL_CHOICES]),
+ * so a face can be anything the toolbar puts in hand, and `null` is the last entry.
+ */
+private fun ringAnswers(settings: AppSettings): List<HudSlot?> {
+    val colours = (settings.penColors + listOfNotNull(settings.customColor)).distinct()
+    return colours.map { HudSlot.Colour(it) } +
+        PenPalette.DEFAULT_WIDTHS.map { HudSlot.Width(it) } +
+        RING_TOOL_CHOICES.map { HudSlot.ToolFace(it.name) } +
+        listOf(null)
+}
+
+/** An answer's name: a swatch is its name and hex, a width its points, a tool its own label. */
+private fun ringAnswerLabel(answer: HudSlot?): String = when (answer) {
+    null -> "Remove this position"
+    is HudSlot.Colour -> faceLabel(answer.argb)
+    is HudSlot.Width -> widthLabel(answer.pt)
+    is HudSlot.ToolFace -> ringToolFor(answer.tool)?.label ?: answer.tool
 }
 
 /**
  * The ring at its own size: one face per slot, on the same angles the pen commits with (`RadialHud.slotCenter`),
  * which is what makes this a faithful drawing rather than an illustration of one.
  *
- * A face with no mark is a tool this build has not got, and it is drawn as an empty position — tapping it still
- * opens the chooser, which is how such a face is replaced.
+ * The face in hand is lit, and tapping another hands it the row below. A face with no mark is a tool this build
+ * has not got: it is drawn as an empty position, and choosing for it is how it is replaced.
  */
 @Composable
-private fun RingDrawing(faces: List<HudSlot>, picked: Int?, onPick: (Int) -> Unit) {
+private fun RingDrawing(faces: List<HudSlot>, picked: Int, onPick: (Int) -> Unit) {
     val board = BOARD
     val slot = RadialHud.SLOT_DIAMETER_DP.dp
     Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
@@ -170,77 +185,6 @@ private fun widthDot(pt: Float): Dp {
     val largest = PenPalette.DEFAULT_WIDTHS.max()
     val t = ((pt - smallest) / (largest - smallest)).coerceIn(0f, 1f)
     return (6f + 8f * t).dp
-}
-
-/**
- * **One face's chooser**: the three families the ring can hold, and *Remove* at the end.
- *
- * The families are headed rather than merged, because a face can be one of three kinds of thing and a flat list
- * of forty answers would make the reader hunt for where the tools start — the same shape the window's chooser has.
- */
-@Composable
-private fun RingFaceDialog(
-    face: HudSlot,
-    settings: AppSettings,
-    onPick: (HudSlot?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-        title = { Text("This face") },
-        text = {
-            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-                RingHead("Colours")
-                (settings.penColors + listOfNotNull(settings.customColor)).distinct().forEach { argb ->
-                    RingChoice(faceLabel(argb), chosen = face == HudSlot.Colour(argb)) {
-                        onPick(HudSlot.Colour(argb))
-                    }
-                }
-                RingHead("Widths")
-                PenPalette.DEFAULT_WIDTHS.forEach { pt ->
-                    RingChoice(widthLabel(pt), chosen = face == HudSlot.Width(pt)) {
-                        onPick(HudSlot.Width(pt))
-                    }
-                }
-                RingHead("Tools")
-                RING_TOOL_CHOICES.forEach { tool ->
-                    RingChoice(tool.label, chosen = face == HudSlot.ToolFace(tool.name)) {
-                        onPick(HudSlot.ToolFace(tool.name))
-                    }
-                }
-                RingHead("Leave it out")
-                RingChoice("Remove this position", chosen = false) { onPick(null) }
-            }
-        },
-    )
-}
-
-/** A heading inside the chooser: what family the answers under it belong to. */
-@Composable
-private fun RingHead(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
-    )
-}
-
-/** One answer: its name, and the accent when it is the face the ring already carries. */
-@Composable
-private fun RingChoice(label: String, chosen: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp, horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
-        )
-    }
 }
 
 /** The factory palette's own names, so a list of colours reads as colours and not as hex codes. */

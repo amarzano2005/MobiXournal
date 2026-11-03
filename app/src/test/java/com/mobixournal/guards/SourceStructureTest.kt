@@ -51,7 +51,10 @@ class SourceStructureTest {
         "render/DrawingSurfaceView.kt" to 1349,
         "render/CircuitShapes.kt" to 1180,
         // -1: the generic polygon's side count is one field, one clamp and one saved key.
-        "ui/AppSettings.kt" to 996,
+        // +8 deliberate: the ring's own faces — one field, one stored line, the load and the save beside
+        // the palette they draw from, because a settings file that stores everything but the ring would
+        // make the ring the one arrangement a reader loses on restart.
+        "ui/AppSettings.kt" to 1004,
         // -62: the PDF import card moved beside the value it asks about (`PdfImportDialog.kt`).
         "ui/EditorDialogs.kt" to 858,
         // The window's code moved into topic packages (`docs/code-structure.md`), and these three files had
@@ -60,6 +63,12 @@ class SourceStructureTest {
         // rather than the file growing a second topic — the next change here splits.
         // +3 deliberate: the pages menu's call names the size handler its quick sizes need.
         "desktop/shell/DesktopShell.kt" to 717,
+        // The two files that now carry the ring's own end of the work, each a few lines past the budget
+        // rather than a second topic: the catalogue's glyph table gained the ring's six-slots-round-a-nib
+        // mark (ToolGlyphs), and the canvas gained the one branch that swallows the copy Windows makes of a
+        // press the pen already answered (PageCanvasInput). The next change to either splits.
+        "design/ToolGlyphs.kt" to 715,
+        "desktop/sheet/PageCanvasInput.kt" to 705,
     )
 
     /** A function past this is the "~100 lines max" in `AGENTS.md`: extract a helper. */

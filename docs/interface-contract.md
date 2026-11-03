@@ -230,7 +230,7 @@ with hand-picked durations, and no animation on a band.
 ## 9. Parity: one product, two shells
 
 - The same element wears the same fill, ink, corner and glyph on both shells. If the desktop cannot draw
-  something yet (a submenu, a radial HUD), it is **absent**, not approximated in a second visual language.
+  something yet (a submenu, a ring), it is **absent**, not approximated in a second visual language.
 - The parity is measured, not asserted: a pixel test compares the fill and the ink against the shared
   tokens (`ChromeMaterialRenderTest`, `ToolStripsTest`), and a colour test compares the two themes.
 
@@ -269,4 +269,10 @@ means a caller's few dp cannot defeat it. A **pill** is a different case: its la
 shape, so it keeps `PillTextInset` (12 dp), because a curve eats into a label's own line.
 Both numbers are declared in `mobix-core`'s `PanelAir`; each shell only converts them to `dp`, so the
 tablet and the window cannot disagree about how tight an edge is.
+
+A **list** is the one case where the container keeps no horizontal air of its own. A row's highlight is
+painted by the row's own node, so padding the list sideways leaves every selected answer as a square
+band that stops short of the strip's curve — the lit part no longer wears the surface's shape. The list
+pads its rows **vertically** only, the panel's rounded clip supplies the ends, and each row carries the
+inset its own label needs (`OptionMenuItem`'s 16 dp).
 

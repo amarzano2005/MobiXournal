@@ -1490,7 +1490,7 @@ private fun DrawingSurfaceView.bindEditorActions(
         val settings = getSettings()
         val commitInk = { colour: Int, width: Float ->
             applyToolPreset(
-                ToolPreset("radial-hud", "Radial HUD", ui.tool, colour, width, ui.lineStyle),
+                ToolPreset("radial-hud", "Ring", ui.tool, colour, width, ui.lineStyle),
                 ui, this, settings, onSettingsChange,
             )
         }
