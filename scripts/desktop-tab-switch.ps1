@@ -159,13 +159,15 @@ for ($i = 0; $i -lt $Trials; $i++) {
         $now = Fingerprint
         if ($now -ne $from -and $first -lt 0) { $first = $sw.ElapsedMilliseconds }
         if ($now -ne $last) { $last = $now; $quietSince = $sw.ElapsedMilliseconds }
-        elseif ($first -ge 0 -and ($sw.ElapsedMilliseconds - $quietSince) -ge 250) { break }
+        elseif ($first -ge 0 -and ($sw.ElapsedMilliseconds - $quietSince) -ge 150) { break }
         Start-Sleep -Milliseconds 15
     }
     $sw.Stop()
     if ($first -ge 0) {
         $firsts.Add([double]$first)
-        $settles.Add($sw.Elapsed.TotalMilliseconds)
+        # The **last change**, not the moment the poller gave up: the quiet window is the probe's own
+        # patience, and reporting it as latency added 250 ms to every reading.
+        $settles.Add([double]$quietSince)
     }
     Start-Sleep -Milliseconds 700
 }

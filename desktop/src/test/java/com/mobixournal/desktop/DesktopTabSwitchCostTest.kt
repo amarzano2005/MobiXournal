@@ -140,6 +140,61 @@ class DesktopTabSwitchCostTest {
         )
     }
 
+    /**
+     * The same switch on the notebook the window is actually opened on (6 pages, thousands of strokes):
+     * synthetic pages made of two points say what a paint costs, not what a *written* page costs.
+     *
+     * Skipped when the fixture is not in the checkout — it is the repository's own sample, not a test asset.
+     */
+    @Test
+    fun `the switch costs on the real notebook`() {
+        var dir: java.io.File? = java.io.File("").absoluteFile
+        var notebook: java.io.File? = null
+        while (dir != null && notebook == null) {
+            val candidate = java.io.File(dir, "udiff.xopp")
+            if (candidate.isFile) notebook = candidate
+            dir = dir.parentFile
+        }
+        val source = notebook ?: run {
+            println("udiff.xopp not in this checkout; the real-notebook reading is skipped")
+            return
+        }
+        val settings = DesktopSettings(temp.newFile("settings.properties"))
+        val state = DesktopShellState(settings)
+        val copy = temp.newFile("udiff-copy.xopp")
+        source.copyTo(copy, overwrite = true)
+        val started = System.nanoTime()
+        state.open(source)
+        println("open, first document: %.0f ms".format((System.nanoTime() - started) / 1_000_000.0))
+        val second = System.nanoTime()
+        state.open(copy)
+        println("open, second document: %.0f ms".format((System.nanoTime() - second) / 1_000_000.0))
+        val scene = ImageComposeScene(1400, 900, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            val warm = System.nanoTime()
+            frame(scene)
+            println("first frame after open (composition + record): %.0f ms".format((System.nanoTime() - warm) / 1_000_000.0))
+            for (index in listOf(0, 1, 0, 1)) {
+                state.tabs.activate(index)
+                repeat(3) { frame(scene) }
+            }
+            val reads = mutableListOf<Double>()
+            val page = state.tabs.all[0]
+            repeat(5) {
+                val begin = System.nanoTime()
+                page.document.page(0)
+                reads += (System.nanoTime() - begin) / 1_000_000.0
+            }
+            report("document.page(0) read", reads)
+            report("switch, real notebook", switching(state) { frame(scene) })
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
     /** A frame with the snapshot notifications a real frame loop sends; nothing is written to disk here. */
     @OptIn(ExperimentalComposeUiApi::class)
     private fun frame(scene: ImageComposeScene) {
