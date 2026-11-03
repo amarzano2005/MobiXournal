@@ -357,7 +357,11 @@ fun EditorScreen(
             // the page, so no part of the page ever sits under it (see [EditorBody] for why that matters).
             Column(modifier = Modifier.fillMaxSize()) {
                 val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
-                if (!ui.fullPage) {
+                // With nothing open the window **is** the entry screen: no header, no tab strip, no rail.
+                // The bars have nothing to act on there, and they took the band of height the block needed
+                // to centre in — the same reason the PC window's screen is one surface between its bands.
+                val nothingOpen = activeTabs.titles.isEmpty()
+                if (!ui.fullPage && !nothingOpen) {
                     if (topBar != null) {
                         topBar(ui, pane, activeTabs)
                     } else {
@@ -384,7 +388,7 @@ fun EditorScreen(
                 }
                 // **Nothing open** is the entry screen, the tablet's copy of the window's: with no tab in
                 // the pane there is no page to paint, and a blank sheet nobody asked for is not a state.
-                if (activeTabs.titles.isEmpty()) {
+                if (nothingOpen) {
                     NotebookEntryScreen(
                         recents = recents,
                         onNew = onNewDocument,
