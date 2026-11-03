@@ -15,6 +15,7 @@ import com.mobixournal.render.RadialHud
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -279,6 +280,40 @@ class DesktopRingTest {
         assertEquals(faces, RingContents.decode(RingContents.encode(faces)))
         assertNull("a line naming nothing this build reads is the automatic ring", RingContents.decode("nonsense"))
         assertNull(RingContents.decode(null))
+    }
+
+    /**
+     * The Ring page's chooser is gated on **the pick**, not on the face it holds across its exit.
+     *
+     * `rememberClosingValue` keeps the last picked face so the closing spring has something to draw, and it
+     * never clears. Reading it as the chooser's presence kept the menu up after an answer had dismissed it,
+     * so every later answer landed on the face that had opened it — the ring appeared to replace the same
+     * position every time. The gate is the pick, which is null the moment the answer is taken.
+     */
+    @Test
+    fun `the ring page's chooser follows the pick, not the face it holds for the exit`() {
+        val source = File(
+            repoRoot(),
+            "desktop/src/main/java/com/mobixournal/desktop/settings/RingSettings.kt",
+        ).readText()
+        assertTrue(
+            "the chooser's presence must be the pick",
+            source.contains("GlassPresence(picked != null)"),
+        )
+        assertFalse(
+            "a held face outlives the dismissal, so it cannot be the presence flag",
+            source.contains("GlassPresence(shown != null)"),
+        )
+    }
+
+    /** The repository root, found the way the guard suites find it. */
+    private fun repoRoot(): File {
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
+            if (File(dir, "AGENTS.md").isFile && File(dir, "docs").isDirectory) return dir
+            dir = dir.parentFile
+        }
+        error("no repository root above ${File(".").absolutePath}: this test must run inside the repo")
     }
 
 }

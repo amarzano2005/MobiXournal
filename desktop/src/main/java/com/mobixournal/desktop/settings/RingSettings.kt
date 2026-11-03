@@ -145,7 +145,11 @@ private fun RingDrawing(policy: DesktopSettingsState) {
             // an index kept past the end read one place beyond it — the chooser threw `Index 13 out of
             // bounds for length 13` while it was drawing back. A face is a value; it cannot go stale.
             val shown = rememberClosingValue(picked?.let { at -> faces.getOrNull(at)?.let { at to it } })
-            GlassPresence(shown != null) {
+            // The **presence is the pick**, never the held face: [rememberClosingValue] keeps the last
+            // picked face for the exit spring and never clears it, so gating on it left the chooser up
+            // after an answer had already dismissed it — every later pick then landed on the face that
+            // had opened the menu, which read as "it always replaces the same position".
+            GlassPresence(picked != null) {
                 val (faceIndex, face) = shown ?: return@GlassPresence
                 GlassPopup(
                     offset = IntOffset(
