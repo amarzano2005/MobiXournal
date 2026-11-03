@@ -16,6 +16,7 @@ lives, how to invoke it, and the non-obvious gotchas.
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
 | Desktop shell | Run/test the Compose Multiplatform desktop preview (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [below](#cutting-a-release) |
+| UI/UX Pro Max | Design data and its search script, vendored in `skills/` | [below](#uiux-pro-max-design-skill) |
 
 ---
 
@@ -236,3 +237,22 @@ installer and its own release notes are `desktop-packaging-installers-and-ci-art
 why there is no second changelog to keep in step yet. Tags stay `vX.Y.Z` for an app release, and
 `verify-release` compares them against the app's `versionName` — a desktop tag needs that job extended,
 and that belongs to the same task.
+
+## UI/UX Pro Max (design skill)
+
+The agent-facing design skill vendored under `skills/`: UI styles, product palettes, font pairings, UX
+guidelines, chart types and per-stack implementation notes — including **Jetpack Compose** and **WPF**,
+the two stacks this product ships on. It is committed like `skills/todo` because it is text and scripts
+only (no binaries), so a clone needs no per-machine install.
+
+```sh
+# `python` on this box is the Microsoft Store stub (AGENTS.md, Profile D): call the real interpreter.
+PY='C:\Users\amarz\AppData\Local\Python\bin\python.exe'
+"$PY" skills/ui-ux-pro-max/scripts/search.py "dark glass capsules" --domain style --max-results 3
+"$PY" skills/ui-ux-pro-max/scripts/search.py "layer panel" --stack jetpack-compose
+```
+
+`skills/ui-ux-pro-max/SKILL.md` is the orchestrator; its six sibling skills (`banner-design`, `brand`,
+`design`, `design-system`, `slides`, `ui-styling`) sit beside it. **No Node toolchain is installed on
+this box**, so the upstream installers (`npx skills add`, `uipro init`) cannot run here: the folders are
+taken from the upstream repo's `.claude/skills/` and refreshed the same way.
