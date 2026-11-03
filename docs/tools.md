@@ -238,6 +238,17 @@ why there is no second changelog to keep in step yet. Tags stay `vX.Y.Z` for an 
 `verify-release` compares them against the app's `versionName` — a desktop tag needs that job extended,
 and that belongs to the same task.
 
+## Tab-switch probe (the running window)
+
+`scripts/desktop-tab-switch.ps1` measures what a reader waits for when they click a tab, on the **packaged**
+window rather than headless: it opens a document, makes a second tab through the strip's `+`, sends
+`Ctrl+Tab` and polls the screen. It reports two numbers, because they are two different waits — the **first
+pixel** (the sheet appears) and the **settled** page (the ink has stopped arriving). On this host, against
+`udiff.xopp`: 59 ms and 325 ms. Run it with `--diagnose` output beside it (`mobix-diagnose.log`, one line a
+second: `paints/s`, the worst gap between paints, and the paint's own cost) — a large `worst` with a
+one-millisecond `paint` is a blocked UI thread, not a slow painter, which is the distinction a headless
+render cannot make.
+
 ## UI/UX Pro Max (design skill)
 
 The agent-facing design skill vendored under `skills/`: UI styles, product palettes, font pairings, UX

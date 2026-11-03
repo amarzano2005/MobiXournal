@@ -27,7 +27,7 @@ class DesktopShapeFeedbackTest {
     fun `a hover step is always drawn with a shape`() {
         val shapeless = sources()
             .filter { it.readText().contains("hoverFill()") }
-            .map { it.relativeTo(root()).path }
+            .map { it.relativeTo(root()).invariantSeparatorsPath }
         assertTrue(
             "hoverFill without a shape lights the bounds, not the control: $shapeless",
             shapeless.isEmpty(),
@@ -38,7 +38,7 @@ class DesktopShapeFeedbackTest {
     fun `a rectangular hover belongs to the settings card alone, and that card clips`() {
         val rect = sources()
             .filter { Regex("""hoverFill\(\s*RectangleShape""").containsMatchIn(it.readText()) }
-            .map { it.relativeTo(root()).path }
+            .map { it.relativeTo(root()).invariantSeparatorsPath }
         assertEquals(
             "only the settings rows draw a rectangle, and only because their card supplies the corners",
             listOf("settings/SettingsRows.kt"),
