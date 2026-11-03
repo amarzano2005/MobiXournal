@@ -102,6 +102,12 @@ fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange
  * answer, placed under the row it belongs to ([SettingsSelectPositionProvider]) and capped so a long
  * list scrolls inside the window. [icon] draws each answer's own glyph beside its word, and the answer
  * in hand's glyph beside it on the row.
+ *
+ * [section] heads a list that answers one question in **several families** — the ring's colours, tools
+ * and widths, which the window's `RingFaceMenu` already separates: each answer is given the name of the
+ * family it belongs to, and the list prints that name once, over the first answer that carries it. A
+ * head names a family and is never a choice; a flat list of forty answers makes the reader hunt for
+ * where the tools start.
  */
 @Composable
 fun <T> OptionGroup(
@@ -111,6 +117,7 @@ fun <T> OptionGroup(
     selected: T,
     label: (T) -> String,
     icon: ((T) -> ImageVector)? = null,
+    section: ((T) -> String?)? = null,
     onSelect: (T) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -159,19 +166,62 @@ fun <T> OptionGroup(
             fill = ModernTheme.settingsPanel(chromeIsDark())
                 .compositeOver(MaterialTheme.colorScheme.background),
         ) {
-            options.forEach { option ->
-                OptionMenuItem(
-                    label = label(option),
-                    icon = icon?.invoke(option),
-                    chosen = option == selected,
-                    onClick = {
-                        open = false
-                        onSelect(option)
-                    },
-                )
-            }
+            OptionMenuRows(
+                options = options,
+                selected = selected,
+                label = label,
+                icon = icon,
+                section = section,
+                onPick = { option ->
+                    open = false
+                    onSelect(option)
+                },
+            )
         }
     }
+}
+
+/**
+ * A select's answers in the order they were given, each family under its own head when the caller names
+ * them ([OptionGroup]'s `section`).
+ *
+ * The heads come from the answers themselves, never from a second list of ranges: the first answer whose
+ * family differs from the one before it prints that family's name, so a caller cannot put an answer under
+ * a head that does not own it. The order is the caller's, which is what lets the ring keep the window's
+ * (colours, tools, widths, *Leave it out*).
+ */
+@Composable
+private fun <T> OptionMenuRows(
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    icon: ((T) -> ImageVector)?,
+    section: ((T) -> String?)?,
+    onPick: (T) -> Unit,
+) {
+    var previous: String? = null
+    options.forEach { option ->
+        val head = section?.invoke(option)
+        if (head != null && head != previous) OptionMenuHead(head)
+        previous = head
+        OptionMenuItem(
+            label = label(option),
+            icon = icon?.invoke(option),
+            chosen = option == selected,
+            onClick = { onPick(option) },
+        )
+    }
+}
+
+/** A family's name inside a select's list: a heading, in the list's own inset column. */
+@Composable
+private fun OptionMenuHead(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp),
+    )
 }
 
 /**

@@ -45,6 +45,9 @@ import java.util.Locale
  * the radio-column shape this screen has moved away from everywhere else — a page that answered its one
  * question in the old language read as an older screen.
  *
+ * Its answers keep the window's **three families** — *Colours*, *Tools* and *Widths* — under their own heads,
+ * with *Remove* under *Leave it out* (`RingFaceMenu`), so the list that opens here is the list the PC opens.
+ *
  * The first change **pins** the ring: an untouched ring is the factory one (`RadialHud.factorySlots`, the same
  * ring the window draws) and a ring arranged here is the reader's until *Reset to defaults*. The stored shape is
  * one line (`AppSettings.ringSlots`, `RadialHud.encodeSlots`), which is the line the window writes too.
@@ -73,6 +76,7 @@ fun RingSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 options = ringAnswers(settings),
                 selected = faces[index],
                 label = ::ringAnswerLabel,
+                section = ::ringAnswerSection,
                 onSelect = { answer -> onChange(ringWithFace(settings, index, answer)) },
             )
         }
@@ -98,18 +102,33 @@ fun RingSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 }
 
 /**
- * Every answer a face can hold, then the one that takes it off the ring.
+ * Every answer a face can hold, then the one that takes it off the ring — in the **window's order**
+ * (`RingFaceMenu`): the palette's colours, the tools the rail puts in hand ([RING_TOOL_CHOICES]), the pen's
+ * widths, and `null` for *Remove*.
  *
- * One list rather than three: a face *is* one of these things, so the select that answers it is one control —
- * the same "one line per choice" the rest of Settings keeps. The tools are the rail's own ([RING_TOOL_CHOICES]),
- * so a face can be anything the toolbar puts in hand, and `null` is the last entry.
+ * One control, three families: a face *is* one of these things, so the select that answers it stays one
+ * "one line per choice" row, and the families are its [ringAnswerSection] heads.
  */
-private fun ringAnswers(settings: AppSettings): List<HudSlot?> {
+internal fun ringAnswers(settings: AppSettings): List<HudSlot?> {
     val colours = (settings.penColors + listOfNotNull(settings.customColor)).distinct()
     return colours.map { HudSlot.Colour(it) } +
-        PenPalette.DEFAULT_WIDTHS.map { HudSlot.Width(it) } +
         RING_TOOL_CHOICES.map { HudSlot.ToolFace(it.name) } +
+        PenPalette.DEFAULT_WIDTHS.map { HudSlot.Width(it) } +
         listOf(null)
+}
+
+/**
+ * The head an answer sits under in the select: one of the three families a face can hold, or *Leave it out*
+ * for the entry that takes the position off the ring.
+ *
+ * The names are the window's (`RingFaceMenu`'s own heads), because a list that reads the same on both shells
+ * is the point of the section's grammar — and they are English like every other string the app shows.
+ */
+internal fun ringAnswerSection(answer: HudSlot?): String? = when (answer) {
+    null -> "Leave it out"
+    is HudSlot.Colour -> "Colours"
+    is HudSlot.ToolFace -> "Tools"
+    is HudSlot.Width -> "Widths"
 }
 
 /** An answer's name: a swatch is its name and hex, a width its points, a tool its own label. */

@@ -79,6 +79,29 @@ class RingToolsTest {
         assertEquals("the factory ring is what it means", ringFaces(AppSettings()), ringFaces(emptied))
     }
 
+    /**
+     * The chooser's own order and heads, which the tablet now shares with the window: the same three
+     * families, in the same order, with *Remove* under *Leave it out* — a list that answers one question
+     * has one arrangement, not one per shell.
+     */
+    @Test
+    fun `the answers keep the window's three families and their order`() {
+        val answers = ringAnswers(AppSettings())
+        assertEquals(
+            "the heads are the ring's three families, then the way off the ring",
+            listOf("Colours", "Tools", "Widths", "Leave it out"),
+            answers.map { ringAnswerSection(it) }.distinct(),
+        )
+        assertTrue("the palette opens the list", answers.first() is HudSlot.Colour)
+        assertNull("and Remove closes it", answers.last())
+        val firstTool = answers.indexOfFirst { it is HudSlot.ToolFace }
+        val firstWidth = answers.indexOfFirst { it is HudSlot.Width }
+        assertTrue(
+            "the tools come before the widths, as the window's chooser lists them",
+            firstTool in 0 until firstWidth,
+        )
+    }
+
     @Test
     fun `an edit out of range changes nothing`() {
         val fresh = AppSettings()
