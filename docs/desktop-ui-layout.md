@@ -81,7 +81,7 @@ the glass fill and **one 4 dp cast shadow**, no rim. The rail is a **52 dp capsu
 of side air, 8 above and below), the ribbon a 48 dp capsule in a 56 dp band; each takes its **own 6 dp
 lift** and the family's rim, and a header control is that capsule at 36 dp. Without the lifts the bands were flat,
 because over a true-black desk the glass' alpha is invisible: the shadow is the only depth the window has
-(`Modifier.bandSurface()` / `glassCapsule()`). The fill and the ink are the shared tokens' — a sheen of the
+(`Modifier.bandSurface()` / `glassCapsule()`). A shadow on a true-black desk is a **lift**, not a shade, and it has to survive eight-bit rounding: the sheet's halo is the shadow token at 12 %, because at the 4.5 % it carried the token's 21 units came out as `#000000` — the falloff existed in the recipe and not on the screen (`DesktopShellTest`). The fill and the ink are the shared tokens' — a sheen of the
 window's own made the same material lighter (`interface-contract.md` §2 owns the colours).
 - **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`. Neither

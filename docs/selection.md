@@ -115,7 +115,7 @@ intended *move* into a resize. A third is the largest cap that leaves the middle
 edge handles sit half a side out from the middle, so a cap of *half* put the middle itself inside a
 handle's reach (below ~60 px of side, an element could not be dragged at all — the failing cross-page
 move test was reporting exactly that). The handles stay grabbable in their own corners and edges.
-`SelectionHandleRadiusTest` pins the rule. The outline also carries
+`SelectionHandleRadiusTest` pins the rule. A box with **no extent on an axis** offers no edge handles along it: a selection around a part drawn as a line carries no height, its top and bottom handles land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands the press back to the body (`SelectionMovePaintTest`). The outline also carries
 — for an all-stroke selection only — a **right-edge rotate knob**
 (`SelectionOps.rotate`, which bakes the angle into stroke vertices). A **lasso** marquee
 (`lassoMode`) selects everything wholly inside a traced polygon (`SelectionTester.inPolygon`),
