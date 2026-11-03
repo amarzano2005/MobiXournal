@@ -106,7 +106,7 @@ private fun DefaultDimensionsControl(settings: AppSettings, onChange: (AppSettin
     ControlHeader(
         "Default page dimensions",
         "Dimensions for new documents and newly created pages.",
-        Modifier.padding(top = 8.dp, bottom = 4.dp),
+        Modifier.settingsBlockInset(),
     )
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
         PaperSection(

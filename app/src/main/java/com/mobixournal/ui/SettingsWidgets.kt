@@ -74,7 +74,7 @@ fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange
             .fullBleedRow(reach)
             .fillMaxWidth()
             .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(horizontal = reach, vertical = 10.dp + settingsCellAir(reach)),
+            .padding(horizontal = reach, vertical = settingsCellInset(reach)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -192,7 +192,7 @@ private fun OptionTriggerRow(
             .fullBleedRow(reach)
             .fillMaxWidth()
             .clickable(role = Role.DropdownList, onClick = onClick)
-            .padding(horizontal = reach, vertical = 10.dp + settingsCellAir(reach)),
+            .padding(horizontal = reach, vertical = settingsCellInset(reach)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ControlHeader(title, subtitle, Modifier.weight(1f))
@@ -280,7 +280,7 @@ fun MomentumSlider(value: Float, onChange: (Float) -> Unit) {
     ControlHeader(
         "Momentum scrolling",
         "How far a one-finger pan glides after a flick. 0 is off; 1 is normal.",
-        Modifier.padding(top = 8.dp, bottom = 4.dp),
+        Modifier.settingsBlockInset(),
     )
     val label = if (value <= Momentum.OFF) "Off" else "%.1f×".format(value)
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -306,7 +306,7 @@ fun PanSensitivitySlider(value: Float, onChange: (Float) -> Unit) {
     ControlHeader(
         "Panning sensitivity",
         "How far the canvas moves as you pan. 1 matches your finger; 0 turns panning off.",
-        Modifier.padding(top = 8.dp, bottom = 4.dp),
+        Modifier.settingsBlockInset(),
     )
     val label = if (value <= PanSensitivity.OFF) "Off" else "%.1f×".format(value)
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -346,7 +346,7 @@ fun MinimumPressureSlider(
         } else {
             PRESSURE_FILTER_OFF_HINT
         },
-        Modifier.padding(top = 8.dp, bottom = 4.dp),
+        Modifier.settingsBlockInset(),
     )
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Slider(
@@ -385,7 +385,7 @@ fun PressureMultiplierSlider(
         } else {
             PRESSURE_FILTER_OFF_HINT
         },
-        Modifier.padding(top = 8.dp, bottom = 4.dp),
+        Modifier.settingsBlockInset(),
     )
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Slider(
@@ -497,7 +497,7 @@ fun RailItemRow(
             },
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = reach, vertical = 8.dp + settingsCellAir(reach)),
+            modifier = Modifier.padding(horizontal = reach, vertical = settingsCellInset(reach)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

@@ -93,7 +93,7 @@ private fun PressureControls(settings: AppSettings, onChange: (AppSettings) -> U
     ControlHeader(
         "Pressure filter",
         "Multiplied, then floored. The highlighter and figures always draw at their set width.",
-        Modifier.padding(top = 4.dp, bottom = 8.dp),
+        Modifier.settingsBlockInset(),
     )
     PenPresetsRow(
         presets = settings.penPresets,

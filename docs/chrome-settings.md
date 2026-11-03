@@ -95,3 +95,20 @@ left off with — `lastColor`/`lastWidth`, re-pushed onto a freshly created surf
 `withColorUsed(color)` is now just that write, since the recently-used list was removed along with
 its pref key. The **Select** tool adds a rail entry and a floating action bar; its
 mechanics are in [`selection.md`](selection.md#selecting-objects-render).
+
+## The vertical rhythm
+
+Four numbers carry the screen's spacing, and their order is the rule:
+
+- a **cell** pads above and below its text by `SettingsCellPad` plus `SettingsCellAir` — the air exists
+  because a row's press has to reach the divider, and it is invisible until you count it twice;
+- two **cards** stand `SettingsGroupGap` apart, which must stay *larger* than two cells together, or the
+  groups run into each other while their own rows drift apart (the rhythm guard fails the build if it does);
+- a **group header** sits `SettingsHeaderGap` above its card: it names the card, so it belongs to it;
+- a block that is not a row — a slider's header, a note — takes `settingsBlockInset()` instead of its own
+  guess, so its text lands on the rows' column.
+
+The side menu has its own step: pills are `SettingsSidebarRowHeight` tall, `SettingsSidebarRowGap` apart,
+with `SettingsSidebarGapAfterField` between the search field and the first of them — a field is not a pill,
+and the list must not read as a continuation of it.
+

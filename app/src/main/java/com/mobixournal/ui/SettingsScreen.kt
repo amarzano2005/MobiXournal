@@ -523,7 +523,7 @@ internal fun SectionRow(
             .fullBleedRow(reach)
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = reach, vertical = 12.dp + settingsCellAir(reach)),
+            .padding(horizontal = reach, vertical = settingsCellInset(reach)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {

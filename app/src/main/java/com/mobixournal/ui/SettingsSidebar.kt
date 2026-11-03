@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -49,9 +51,9 @@ internal fun SettingsSidebar(
     onArea: (SettingsArea) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+    Column(modifier = modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
         SettingsSearchField(query, onQuery)
-        Spacer(Modifier.size(12.dp))
+        Spacer(Modifier.size(SettingsSidebarGapAfterField))
         for (area in SettingsArea.values()) {
             SidebarRow(
                 area = area,
@@ -62,21 +64,28 @@ internal fun SettingsSidebar(
     }
 }
 
-/** One area in the side menu: its icon, its name, and a tonal pill while it is the selected one. */
+/**
+ * One area in the side menu: its icon, its name, and a tonal pill while it is the selected one.
+ *
+ * The pills are **one size and one step apart** ([SettingsSidebarRowHeight], [SettingsSidebarRowGap]).
+ * They used to be spaced by 2 dp a side, so four rows read as one stacked block with seams in it rather
+ * than as four separate targets — "the pills and the rest" out of proportion.
+ */
 @Composable
 private fun SidebarRow(area: SettingsArea, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
+            .padding(vertical = SettingsSidebarRowGap)
+            .height(SettingsSidebarRowHeight)
             .clip(shape)
             .background(
                 if (selected) MaterialTheme.colorScheme.secondaryContainer
                 else MaterialTheme.colorScheme.surface,
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -134,6 +143,13 @@ private val SettingsArea.icon: ImageVector
         SettingsArea.INTERFACE -> Icons.Filled.Tune
         SettingsArea.APP -> Icons.Filled.Info
     }
+
+/** One pill's height and the air around it: the list's step is the two added together. */
+internal val SettingsSidebarRowHeight: Dp = 48.dp
+internal val SettingsSidebarRowGap: Dp = 4.dp
+
+/** The air under the search field — larger than the pills' step, so the field is not part of their list. */
+internal val SettingsSidebarGapAfterField: Dp = 16.dp
 
 /** Below this width the side menu is dropped for the pushed index (a phone, or a tablet in portrait). */
 internal val SETTINGS_TWO_PANE_MIN_WIDTH = 600.dp

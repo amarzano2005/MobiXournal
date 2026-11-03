@@ -41,13 +41,13 @@ fun SettingsGroup(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier.fillMaxWidth().padding(bottom = 20.dp)) {
+    Column(modifier.fillMaxWidth().padding(bottom = SettingsGroupGap)) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 16.dp, bottom = SettingsHeaderGap),
         )
         SettingsCard(content = content)
     }
@@ -158,10 +158,40 @@ internal fun fullBleedBounds(maxWidth: Int, reach: Int): FullBleedBounds = FullB
  * card between the light and the hairline, which a reader sees as "the selection does not reach the
  * divider". The rows own the air; the divider is the boundary itself.
  */
-internal val SettingsCellAir: Dp = 8.dp
+internal val SettingsCellAir: Dp = 6.dp
+
+/**
+ * A cell's own inset above and below its text, inside [SettingsCellAir]. One number for every kind of
+ * row, so a switch row, a select row, an index row and a link all put their text on the same lines.
+ */
+internal val SettingsCellPad: Dp = 8.dp
+
+/**
+ * The air between two cards — the largest step in the settings screen, and deliberately so: a reader has
+ * to be able to tell "another control in this group" from "another group" at a glance. It used to be
+ * *smaller* than the air inside a card (20 dp against 36), which made groups run together while the
+ * rows that belonged to them drifted apart.
+ */
+internal val SettingsGroupGap: Dp = 32.dp
+
+/** The air between a group's header and its card — a header names the card, so it sits close to it. */
+internal val SettingsHeaderGap: Dp = 10.dp
 
 /** The air a row adds vertically inside a card — zero outside one, where there are no dividers. */
 internal fun settingsCellAir(reach: Dp): Dp = if (reach > 0.dp) SettingsCellAir else 0.dp
+
+/** What a cell pads by above and below its text: the shared inset plus the lit air that carries the ripple. */
+internal fun settingsCellInset(reach: Dp): Dp = SettingsCellPad + settingsCellAir(reach)
+
+/**
+ * A block that is **not** a row — a slider's header, a note — takes the same inset as a cell, so its text
+ * sits on the rows' column instead of a few dp above it.
+ */
+@Composable
+internal fun Modifier.settingsBlockInset(): Modifier {
+    val reach = LocalSettingsCardInset.current
+    return padding(top = settingsCellInset(reach), bottom = 4.dp)
+}
 
 /**
  * The hairline between two controls inside one [SettingsGroup] card, **at the boundary** of the two
