@@ -414,7 +414,9 @@ private fun TabCloseButton(
 ) {
     val colors = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier.size(TAB_TOUCH_TARGET).clickable(onClick = onClose),
+        // Clip before the click: the close mark is a glyph in clear space, so its feedback is a circle of
+        // the touch target rather than the square the target happens to be.
+        modifier = Modifier.size(TAB_TOUCH_TARGET).clip(CircleShape).clickable(onClick = onClose),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

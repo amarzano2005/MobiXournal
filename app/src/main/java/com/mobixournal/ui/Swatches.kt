@@ -116,6 +116,9 @@ fun ColorSwatch(
     Box(
         modifier = Modifier
             .size(34.dp)
+            // Before the click, so the ripple is the swatch's own circle: on a bare cell a tap lit a grey
+            // square around a round dot ([DotCellShape] centres the circle in whatever box the cell is).
+            .clip(DotCellShape)
             .semantics { contentDescription = label }
             .then(clickModifier),
         contentAlignment = Alignment.Center,

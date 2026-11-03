@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.mobixournal.ui.theme.PillTextInset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -192,6 +193,9 @@ private fun BarIconButton(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(SelectionBarButton)
+            // Clip before the click, so the feedback is the button's own rounded slot and not the square
+            // tap target it is measured by.
+            .clip(RoundedCornerShape(8.dp))
             .semantics { this.contentDescription = contentDescription }
             .clickable(onClick = onClick),
     ) {

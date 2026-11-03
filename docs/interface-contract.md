@@ -177,7 +177,15 @@ Every surface is one of three objects. Pick the class from what the element *doe
 Every interactive element defines **default, hover, picked, disabled, focus**. The picked state is the
 steel slot; hover is the same steel at `hoverSlotAlpha` (**0.45**), never a colour change of the glyph and
 never the picked fill; disabled keeps its ink but loses its hit area; focus is visible without relying on
-the pointer. A new element with only a default state is unfinished. A **document tab** is the one picked
+the pointer. A new element with only a default state is unfinished.
+
+The state layer **follows the shape**. An indication is drawn by the node that owns it, so a click applied
+to a bare box lights the box: a 32 dp square around an 18 dp glyph, a 34 dp cell around a 28 dp swatch, a
+rectangle around a menu pane's 10 dp corner. A rounded control clips to its own shape **before** the click
+(`FavoriteSwatch`'s `DotCellShape`, `ZoomBadge`, and the menu's panes, whose click `GlassPane` takes inside
+its clip), so a tap or a hover lights the capsule, circle or squircle the reader sees and not the rectangle
+around it. `ShapeFeedbackTest` holds the shared controls to that order, because a clip one modifier too
+late compiles and reads correctly. A **document tab** is the one picked
 surface that also wears the **accent edge** — 1 dp of the accent at 60 %, the tablet's own ring on a
 selected chip — because a strip of capsules says which document is open by outline as well as by fill. A
 tab is the tablet's **chip** on both shells: the floating glass at full strength while it is the document

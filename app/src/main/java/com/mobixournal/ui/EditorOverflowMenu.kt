@@ -83,6 +83,13 @@ private fun GlassPane(
     shadowElevation: Dp = 3.dp,
     padding: PaddingValues = PaddingValues(vertical = 9.dp, horizontal = PillTextInset),
     wash: Color? = null,
+    /**
+     * The pane's own click, applied **after** the clip — a ripple is drawn by the node that owns it, so a
+     * `clickable` hung on the caller's modifier lit a rectangle around a 10-16 dp corner instead of the
+     * pane. [enabled] is passed with it so a disabled pane keeps its glass and loses only the hit area.
+     */
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(corner)
@@ -90,6 +97,11 @@ private fun GlassPane(
         modifier = modifier
             .shadow(shadowElevation, shape)
             .clip(shape)
+            // Inside the clip, so a tap or a hover lights the pane and not the box around it.
+            .then(
+                if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick)
+                else Modifier,
+            )
             // The window's chip fill — the band's own glass, white on paper — not the panel's floating
             // fill under a gradient invented here: on both shells a pane is separated from the panel it
             // sits in by its rim and its small lift, exactly as `hoverCapsule` does on the desktop.
@@ -120,7 +132,7 @@ private fun GlassActionButton(
     // A disabled action keeps its **ink role**, not a Material alpha: the window's menu greys the mark
     // rather than fading the pane, so a row that cannot act keeps the shape of the rows around it.
     val ink = if (enabled) tint else MaterialTheme.colorScheme.onSurfaceVariant
-    GlassPane(modifier = modifier.clickable(enabled = enabled, onClick = onClick)) {
+    GlassPane(modifier = modifier, onClick = onClick, enabled = enabled) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -160,7 +172,7 @@ private fun GlassPresetChip(
         shadowElevation = 2.dp,
         padding = PaddingValues(horizontal = PillTextInset, vertical = 6.dp),
         wash = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else null,
-        modifier = Modifier.clickable(onClick = onClick),
+        onClick = onClick,
     ) {
         Text(
             name,
