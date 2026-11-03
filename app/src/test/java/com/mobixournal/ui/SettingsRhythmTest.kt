@@ -1,6 +1,9 @@
 package com.mobixournal.ui
 
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.PanelAir
+import com.mobixournal.ui.theme.PanelEdgeAir
+import com.mobixournal.ui.theme.PillTextInset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -53,5 +56,11 @@ class SettingsRhythmTest {
             "the search field stands further off the list than the pills do from each other",
             SettingsSidebarGapAfterField > SettingsSidebarRowGap * 2,
         )
+    }
+
+    @Test
+    fun `the edge air is the shared number, not a local one`() {
+        assertEquals("the card's air is the app-wide token", PanelAir.EDGE_DP.dp, PanelEdgeAir)
+        assertEquals("a pill's inset is the app-wide token", PanelAir.PILL_TEXT_DP.dp, PillTextInset)
     }
 }

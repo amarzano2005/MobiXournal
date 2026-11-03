@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.PillTextInset
 import com.mobixournal.desktop.ink.of
 
 import androidx.compose.foundation.background
@@ -195,7 +196,7 @@ internal fun ShortcutKeyChip(key: String) {
     Box(
         Modifier
             .background(DesktopTheme.activeSlot, DesktopTheme.capsuleShape)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = PillTextInset, vertical = 4.dp),
     ) {
         Text(key, color = DesktopTheme.ink, style = DesktopTheme.numeric)
     }

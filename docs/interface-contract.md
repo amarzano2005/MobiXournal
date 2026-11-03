@@ -267,4 +267,6 @@ its own number. A corner cuts the outermost dp off a straight edge, so text or a
 container's own padding lands on the curve and reads as clipped; the container pads instead, which also
 means a caller's few dp cannot defeat it. A **pill** is a different case: its label sits *inside* the
 shape, so it keeps `PillTextInset` (12 dp), because a curve eats into a label's own line.
+Both numbers are declared in `mobix-core`'s `PanelAir`; each shell only converts them to `dp`, so the
+tablet and the window cannot disagree about how tight an edge is.
 

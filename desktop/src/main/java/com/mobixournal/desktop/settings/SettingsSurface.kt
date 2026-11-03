@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.PanelEdgeAir
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.LaneClose
@@ -90,7 +91,7 @@ internal fun SettingsSurface(
                         Modifier
                             .fillMaxHeight()
                             .verticalScroll(rememberScrollState())
-                            .padding(start = 16.dp, end = 22.dp, top = 2.dp, bottom = 18.dp),
+                            .padding(start = 16.dp, end = 22.dp, top = PanelEdgeAir, bottom = 18.dp),
                     ) {
                         DesktopSettingPage(policy, palette, policy.shownSection)
                     }
@@ -162,7 +163,7 @@ private fun SettingsIndex(policy: DesktopSettingsState) {
             .width(SettingsMetrics.INDEX_WIDTH)
             .fillMaxHeight()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 10.dp, vertical = PanelEdgeAir),
     ) {
         for (area in DesktopSettingArea.entries) {
             val rows = policy.sections.filter { it.area == area }

@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.PillTextInset
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.glassSpring
 import com.mobixournal.desktop.tools.hoverFill
@@ -246,7 +247,7 @@ internal fun SetupChip(label: String, picked: Boolean, onClick: () -> Unit) {
             )
             .hoverFill(DesktopTheme.capsuleShape, active = picked)
             .pointerInput(label, picked) { detectTapGestures { onClick() } }
-            .padding(horizontal = 9.dp, vertical = 6.dp),
+            .padding(horizontal = PillTextInset, vertical = 6.dp),
     ) {
         Text(
             label,

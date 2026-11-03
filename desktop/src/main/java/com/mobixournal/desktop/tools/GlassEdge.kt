@@ -201,6 +201,13 @@ internal fun Modifier.bandSurface(
 ): Modifier = shadow(shadow, RectangleShape, clip = false)
     .background(fill)
 
+/**
+ * The air a panel keeps at its rounded edge and a pill keeps inside its own outline — the same two
+ * numbers the tablet reads ([com.mobixournal.design.PanelAir]), so both shells' panels sit equally tight.
+ */
+internal val PanelEdgeAir: Dp = com.mobixournal.design.PanelAir.EDGE_DP.dp
+internal val PillTextInset: Dp = com.mobixournal.design.PanelAir.PILL_TEXT_DP.dp
+
 /** Which side of a surface a band's shade falls on. */
 internal enum class BandEdge { TOP, BOTTOM, START, END }
 
