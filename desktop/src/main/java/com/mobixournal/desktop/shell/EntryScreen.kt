@@ -29,7 +29,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
@@ -40,7 +43,6 @@ import com.mobixournal.desktop.io.DesktopDocuments
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
-import com.mobixournal.desktop.sheet.drawPageShadow
 import com.mobixournal.desktop.tools.hoverFill
 import java.io.File
 import kotlin.math.roundToInt
@@ -227,10 +229,7 @@ private fun SheetCard(
                 val spread = DesktopTheme.pageShadow.toPx()
                 val sheet = Rect(spread, spread, size.width - spread, size.height - spread)
                 if (sheet.width > 1f && sheet.height > 1f) {
-                    // Laid three times: the halo is the page's own recipe, tuned for a sheet that fills the
-                    // canvas, and on a card one pass measured as a breath of grey on black. Stacking it is
-                    // the same falloff three times as strong — no second recipe to drift from the page's.
-                    repeat(HALO_PASSES) { drawPageShadow(sheet) }
+                    drawCardHalo(sheet)
                     if (preview == null) {
                         // Before the paint lands the card shows the **empty sheet it will become**, not a
                         // glass slab that would be the band again.
@@ -327,14 +326,35 @@ private val PREVIEWS = java.util.concurrent.ConcurrentHashMap<String, ImageBitma
 private const val SHEET_CORNER_DP = 3f
 
 /**
- * How many times the page's halo is laid under a card.
+ * The lift under a card: a ring of four rectangles per step, falling off outward — the shape of the page's own
+ * halo, in a tone that is **the theme's ink** instead of the page shadow's near-black.
  *
- * Three, because the recipe is the page's — eight steps at 4.5 % — tuned for a sheet that fills the canvas. On
- * a card the same falloff measured `#0E0E0F` two pixels outside the paper, against a `#0D0D0E` desk: a shadow
- * that was not there. Stacking the same rings is the same shape, three times as strong, with no second recipe
- * to drift from the page's.
+ * The page's halo can be the desk's own colour because a page is huge and its white edge does the lifting; a
+ * card is a thumbnail on a near-black floor, and there a near-black shadow is no shadow at all — three passes
+ * of it measured `#101011` against a `#0D0D0E` desk. The ink is light on the dark theme and dark on the light
+ * one, so the same call lifts a card on both, and the strength is a card's own because the object is a
+ * thumbnail, not a sheet of paper.
  */
-private const val HALO_PASSES = 3
+private fun DrawScope.drawCardHalo(sheet: Rect) {
+    val spread = DesktopTheme.pageShadow.toPx()
+    var inner = 0f
+    for (step in 1..HALO_STEPS) {
+        val outer = spread * step / HALO_STEPS
+        val thickness = outer - inner
+        val tone = DesktopTheme.ink.copy(alpha = CARD_HALO_ALPHA * (1f - (step - 1f) / HALO_STEPS))
+        drawRect(tone, topLeft = Offset(sheet.left - outer, sheet.top - outer), size = Size(sheet.width + outer * 2f, thickness))
+        drawRect(tone, topLeft = Offset(sheet.left - outer, sheet.bottom + inner), size = Size(sheet.width + outer * 2f, thickness))
+        drawRect(tone, topLeft = Offset(sheet.left - outer, sheet.top - inner), size = Size(thickness, sheet.height + inner * 2f))
+        drawRect(tone, topLeft = Offset(sheet.right + inner, sheet.top - inner), size = Size(thickness, sheet.height + inner * 2f))
+        inner = outer
+    }
+}
+
+/** The halo's strength at the paper's edge, before the falloff thins it: a lift, not a glow. */
+private const val CARD_HALO_ALPHA = 0.14f
+
+/** Steps in the falloff — the page's own eight, so the two haloes fade at one rate. */
+private const val HALO_STEPS = 8
 
 /** The block's own bound: three columns that stay one block on a laptop and do not stretch on a 3440 px desk. */
 private const val ENTRY_MAX_WIDTH_DP = 1000f
