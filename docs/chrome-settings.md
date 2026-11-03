@@ -37,6 +37,18 @@ light and the hairline. Outside a card the local is zero, so the same rows insid
 editor's switches) do not move. `SettingsRowFullBleedTest` pins the arithmetic and the wiring, so a row
 added later cannot go back to a half-lit box.
 
+## A choice is a select
+
+A **choice** — one answer out of a short list — is drawn as a **select** (`<T> OptionGroup`): the answer in
+hand at the row's end in the accent, a chevron after it, and the rest of the list in a `ToolbarMenu` under
+the row with the answer in hand checked. The whole row is the hit area, subtitle included, as a switch
+row's is. It used to be one radio row per answer, and that column was the wrong instrument on a card: the
+answers nobody is using took a dot and a line each, the reader scanned four of them to find the one already
+set, and the answer in hand had no line of its own to be read on. One line per choice is also the grammar
+the window's Settings keeps (`desktop-settings.md`), so a subject both shells carry is asked the same way on
+both. `SettingsChoiceTest` holds the component to it — the row opens a menu, and no radio row is left in the
+file.
+
 ## Settings search
 
 **Search** runs over the sections from both shapes (`SettingsSearch.kt`, pure): a query matches a

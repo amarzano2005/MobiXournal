@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,15 +10,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -38,6 +42,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.mobixournal.render.Momentum
@@ -75,7 +80,22 @@ fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange
     }
 }
 
-/** A titled radio group over an enum's values. */
+/**
+ * A titled choice over a list of answers, drawn as a **select**: the answer in hand at the end of one
+ * row with a chevron, and the rest of the list in a menu under it.
+ *
+ * It used to draw one radio row per answer, and that was the wrong instrument for a settings card: the
+ * answers nobody is using took a column of dots and lines, every page asked the reader to scan four
+ * rows to find the one already set, and the answer *in hand* had no line of its own to be read on. A
+ * choice is one line — the name, the answer, the chevron that says there are others — which is the
+ * grammar the window's Settings already keeps (`docs/desktop-settings.md`), and what stops a card
+ * holding four choices from running off a phone's screen.
+ *
+ * The whole row is the hit area, subtitle included, as a switch row's is. The list is [ToolbarMenu] — the
+ * app's one pop-up panel, its rim and its spring — of `DropdownMenuItem`s, the answer in hand in the
+ * accent with a check. [icon] draws each answer's own glyph beside its word, and the answer in hand's
+ * glyph beside it on the row.
+ */
 @Composable
 fun <T> OptionGroup(
     title: String,
@@ -86,37 +106,90 @@ fun <T> OptionGroup(
     icon: ((T) -> ImageVector)? = null,
     onSelect: (T) -> Unit,
 ) {
-    ControlHeader(title, subtitle, Modifier.padding(top = 8.dp, bottom = 4.dp))
     val reach = LocalSettingsCardInset.current
-    options.forEach { option ->
+    var open by remember { mutableStateOf(false) }
+    Box {
         Row(
-            modifier = Modifier.fullBleedRow(reach)
+            modifier = Modifier
+                .fullBleedRow(reach)
                 .fillMaxWidth()
-                .selectable(selected = option == selected, role = Role.RadioButton, onClick = { onSelect(option) })
-                .padding(horizontal = reach, vertical = 2.dp),
+                .clickable(role = Role.DropdownList) { open = !open }
+                .padding(horizontal = reach, vertical = 10.dp + settingsCellAir(reach)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RadioButton(selected = option == selected, onClick = null, modifier = Modifier.padding(12.dp))
+            ControlHeader(title, subtitle, Modifier.weight(1f))
+            Spacer(Modifier.width(12.dp))
             if (icon != null) {
                 Icon(
-                    icon(option),
+                    icon(selected),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))
             }
             Text(
-                label(option),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Start,
+                label(selected),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 160.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
             )
         }
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+            options.forEach { option ->
+                val chosen = option == selected
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            label(option),
+                            color = if (chosen) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    },
+                    onClick = {
+                        open = false
+                        onSelect(option)
+                    },
+                    leadingIcon = if (icon != null) {
+                        {
+                            Icon(
+                                icon(option),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    trailingIcon = if (chosen) {
+                        {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
     }
-    // The air a following divider no longer holds belongs to the last cell, so a press here reaches
-    // the hairline instead of stopping short of it.
-    Spacer(Modifier.height(settingsCellAir(reach)))
 }
 
 /**
