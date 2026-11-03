@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.ink
+import com.mobixournal.desktop.sheet.HudUi
 import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.sheet.PageInkGesture
 import com.mobixournal.desktop.sheet.Viewport
@@ -69,6 +70,8 @@ internal fun PenPacketStrokes(
     penAtNanos: MutableState<Long>,
     /** The magnetic highlighter's live bands, painted in place of the freehand preview. */
     bands: MutableState<List<MagneticHighlighter.Band>>? = null,
+    /** The pen-tip ring: while it is up the packets answer it and lay no ink under it. */
+    hud: HudUi = HudUi(),
     packets: PenPacketSource?,
 ) {
     // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
@@ -103,6 +106,8 @@ internal fun PenPacketStrokes(
             size = extent,
             onOwnership = { owns.value = it },
             onHover = showAt,
+            hud = hud,
+            density = density,
         )
     }
     DisposableEffect(packets, stroke) {

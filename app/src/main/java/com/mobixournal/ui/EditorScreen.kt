@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Tool
+import com.mobixournal.render.RingTool
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.EraserMode
 import com.mobixournal.render.GuideKind
@@ -168,10 +169,14 @@ fun DrawingSurfaceView.activateTool(
  * rail's own slot is showing ([preferredEraser]), so a ring pick and a rail pick are the same tool —
  * never a second eraser the slot's menu cannot reach.
  */
-fun editorToolFor(tool: Tool, settings: AppSettings): EditorTool = when (tool) {
-    Tool.HIGHLIGHTER -> EditorTool.HIGHLIGHTER
-    Tool.ERASER -> preferredEraser(settings.toolGroupSelections)
-    else -> EditorTool.PEN
+fun editorToolFor(tool: RingTool, settings: AppSettings): EditorTool = when (tool) {
+    RingTool.HIGHLIGHTER -> EditorTool.HIGHLIGHTER
+    RingTool.ERASER -> preferredEraser(settings.toolGroupSelections)
+    // The ring's figure and its two selections are the rail's own slots, not a second meaning.
+    RingTool.LINE -> EditorTool.LINE
+    RingTool.LASSO -> EditorTool.LASSO_SELECT
+    RingTool.MARQUEE -> EditorTool.SELECT
+    RingTool.PEN -> EditorTool.PEN
 }
 
 /** Push the stylus/input [AppSettings] onto the surface (classifier settings, hover, pressure feel). */
@@ -189,14 +194,13 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     penPressure.minimum = s.minimumPressure
     strokePrecision = s.strokePrecision
     recognizeShapes = s.recognizeShapes
-    // The pen-tip ring's slots: the user's own palette (the editable custom colour last), then the
-    // three widths, then the three writing tools. Rebuilt with the settings, so a palette edited in
-    // Settings is on the ring at the next summon.
-    hudSlots = RadialHud.slots(
-        colors = s.penColors,
-        customColor = s.customColor,
+    // The pen-tip ring's slots: the factory ring both shells carry — the palette's first five colours (the
+    // editable custom colour last), the three widths, then the six tools, ending on the pen. Rebuilt with
+    // the settings, so a palette edited in Settings is on the ring at the next summon.
+    hudSlots = RadialHud.factorySlots(
+        colours = s.penColors,
+        custom = s.customColor,
         widths = s.penWidths,
-        tools = listOf(Tool.PEN, Tool.HIGHLIGHTER, Tool.ERASER),
     )
     snapToGrid = s.snapToGrid
     snapRotation = s.snapRotation

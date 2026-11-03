@@ -18,6 +18,7 @@ import com.mobixournal.render.BarrelButtonState
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.InputSettings
 import com.mobixournal.render.RadialHud
+import com.mobixournal.render.RingTool
 import com.mobixournal.ui.AppSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -76,7 +77,7 @@ class RadialHudScreenshotTest {
                 colors = settings.penColors,
                 customColor = settings.customColor,
                 widths = settings.penWidths,
-                tools = listOf(Tool.PEN, Tool.HIGHLIGHTER, Tool.ERASER),
+                tools = RadialHud.FACTORY_TOOLS,
             )
             drawStroke(view)
             view.dispatchKeyEvent(

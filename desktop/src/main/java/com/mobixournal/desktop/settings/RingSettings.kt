@@ -66,7 +66,7 @@ import kotlin.math.roundToInt
  * - **Widths** — the pen's three slots, S / M / L.
  *
  * A face answered with **Remove** leaves the ring. The first pick **pins** the ring: an untouched ring is
- * automatic (the palette, the three widths and the three writing tools, following the palette) and a ring
+ * automatic (the palette's first five, the three widths and the six tools, following the palette) and a ring
  * the reader arranged is theirs until **Reset to defaults**.
  *
  * Nothing here is a side-button setting: on a PC a pen's buttons arrive as keyboard keys, so the key row is
@@ -84,7 +84,7 @@ internal fun RingSettings(policy: DesktopSettingsState) {
         )
         SettingsCommand(
             label = "Reset to defaults",
-            note = "The automatic ring: the palette, the three widths and the three writing tools.",
+            note = "The automatic ring: the palette's first five, the three widths and the six tools.",
             onClick = ring::reset,
         )
     }

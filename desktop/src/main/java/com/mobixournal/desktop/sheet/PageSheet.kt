@@ -86,6 +86,7 @@ internal fun PageSheet(
         onViewport = onViewport,
         onEdited = onEdited,
         packets = packets,
+        hud = hud,
     )
     SheetCanvas(
         tab = tab,
@@ -177,6 +178,8 @@ private fun PenPaths(
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
     packets: PenPacketSource?,
+    /** The pen-tip ring: while it is up the packets answer it and never the page. */
+    hud: HudUi = HudUi(),
 ) {
     // A held **Space** is the hand's pan with any slot picked, so it takes the packets away from the
     // stroke path: a pen that inked while Space was down would draw a line across the page it is
@@ -198,6 +201,9 @@ private fun PenPaths(
             hover = pointer.hover,
             penAtNanos = pointer.atNanos,
             bands = pointer.pdfBands,
+            // The stroke path is told about the ring so a tip that lands on a face commits it and lays no
+            // ink on the sheet beneath — the pen's own packets are the one path the ring cannot see.
+            hud = hud,
             packets = packets,
         )
     }

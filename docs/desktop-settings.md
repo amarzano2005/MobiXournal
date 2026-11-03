@@ -220,8 +220,8 @@ the same order — not a list of rows, so the page answers *what does my ring lo
 opens its chooser, the three families the ring can hold, each with every answer it has: **Colours** (the
 palette's swatches, the custom HEX one included), **Tools** (every tool the window puts in hand, from the pen
 to a logic gate) and **Widths** (the pen's three slots, each marked by a dot as thick as its stroke). *Remove this position* leaves the ring. The first pick
-**pins** it — an untouched ring is *automatic*: the palette, the widths and the three writing tools, following
-the palette — and **Reset to defaults** brings that back. Sixteen faces at most, stored as one line
+**pins** it — an untouched ring is *automatic*: the palette's first five colours, the widths and the six tools
+(Line, Lasso, Marquee, Highlighter, Eraser, Pen), following the palette — and **Reset to defaults** brings that back. Sixteen faces at most, stored as one line
 (`ring.slots`: `c:` a colour, `w:` a width, `t:` a tool); a ring with no faces does not open. **Key** is the
 Shortcuts table's *Ring at the pen* row, armed from here. There is no *side button* row: on a PC a pen's
 buttons arrive as keyboard keys, so the key is the whole door.

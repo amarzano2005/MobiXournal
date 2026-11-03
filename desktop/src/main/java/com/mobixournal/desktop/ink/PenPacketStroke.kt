@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.ink
+import com.mobixournal.desktop.sheet.HudUi
 import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.sheet.PageInkGesture
 import com.mobixournal.desktop.sheet.number
@@ -67,10 +68,20 @@ internal class PenPacketStroke(
      * moved from the driver's 400 readings instead of from the mouse's copy of them.
      */
     private val onHover: (Offset?) -> Unit = {},
-    /** The pen's side button, when the window gives it to the ring, and null when it keeps erasing. */
+    /**
+     * The pen-tip ring, when the window has one: while it is up the pen answers it and never the page.
+     *
+     * A tip-down on a face commits that face and lays **no** ink under it — the ring is a surface of
+     * buttons over the sheet, so a click aimed at it must not also mark the paper beneath (`docs/desktop`
+     * ring section). The default draws nothing, which is what a canvas without a shell behind it wants.
+     */
+    private val hud: HudUi = HudUi(),
+    /** The canvas's density, for the ring's dp geometry — the packets themselves carry no density. */
+    private val density: Float = 1f,
 ) {
 
-    /** True while the ring the button opened owns the pen — the bit, as an edge, never a packet. */
+    /** True while a tip-down is answering the ring, so one press is one answer and not a stream of them. */
+    private var hudTipHeld = false
 
     /** True between the tip's first packet and its lift. Written only by [flush]'s thread. */
     var drawing: Boolean = false
@@ -186,6 +197,24 @@ internal class PenPacketStroke(
         // on it, and the stroke's own smoothing must not be disturbed by a pass of hovering.
         newestAtNanos = packet.atNanos
         newestAt = if (inside && packet.near) raw else null
+        // The ring lies over the sheet, so while it is up it is the only surface the pen can act on: a
+        // tip-down answers it (a face commits, the air between faces does nothing) and **never** inks the
+        // page beneath. One press is one answer, held until the tip lifts.
+        if (hud.open() != null) {
+            if (drawing) {
+                drainPending()
+                finishStroke()
+            }
+            when {
+                packet.tip && !hudTipHeld -> {
+                    hudTipHeld = true
+                    if (inside) hud.onPress(local.x, local.y, density)
+                }
+                !packet.tip -> hudTipHeld = false
+            }
+            return
+        }
+        hudTipHeld = false
         if (!packet.tip) {
             if (drawing) {
                 // The lift ends the stroke, so the samples still waiting for a frame are part of it.

@@ -15,7 +15,6 @@ package com.mobixournal.render
 import android.graphics.Canvas
 import android.view.HapticFeedbackConstants
 import com.mobixournal.design.ToolGlyph
-import com.mobixournal.format.model.Tool
 import kotlin.math.sqrt
 
 /**
@@ -203,9 +202,12 @@ private const val HUD_AIR_DP = 10f
 private fun widthDotRadius(pt: Float, density: Float): Float =
     (2.5f + 9.5f * sqrt((pt / 15f).coerceIn(0.1f, 1f))) * density
 
-/** The catalogue glyph for a writing tool; anything else shows the pen, the ring's default. */
-private fun glyphFor(tool: Tool): ToolGlyph = when (tool) {
-    Tool.HIGHLIGHTER -> ToolGlyph.HIGHLIGHTER
-    Tool.ERASER -> ToolGlyph.ERASER
-    else -> ToolGlyph.PEN
+/** The catalogue glyph for a ring face's tool — every tool the ring can hold has one. */
+private fun glyphFor(tool: RingTool): ToolGlyph = when (tool) {
+    RingTool.PEN -> ToolGlyph.PEN
+    RingTool.HIGHLIGHTER -> ToolGlyph.HIGHLIGHTER
+    RingTool.ERASER -> ToolGlyph.ERASER
+    RingTool.LINE -> ToolGlyph.LINE
+    RingTool.LASSO -> ToolGlyph.LASSO
+    RingTool.MARQUEE -> ToolGlyph.MARQUEE
 }

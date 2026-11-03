@@ -1,7 +1,6 @@
 package com.mobixournal.render
 
 import com.mobixournal.design.PenPalette
-import com.mobixournal.format.model.Tool
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -24,7 +23,7 @@ import org.junit.Test
 class RadialHudTest {
 
     private val widths = listOf(0.85f, 1.5f, 2.6f)
-    private val tools = listOf(Tool.PEN, Tool.HIGHLIGHTER, Tool.ERASER)
+    private val tools = listOf(RingTool.PEN, RingTool.HIGHLIGHTER, RingTool.ERASER)
     private val ringRadius = RadialHud.RING_RADIUS_DP
     private val slotRadius = RadialHud.SLOT_DIAMETER_DP / 2f
 
@@ -44,9 +43,9 @@ class RadialHudTest {
                 HudSlot.Width(0.85f),
                 HudSlot.Width(1.5f),
                 HudSlot.Width(2.6f),
-                HudSlot.ToolFace(Tool.PEN),
-                HudSlot.ToolFace(Tool.HIGHLIGHTER),
-                HudSlot.ToolFace(Tool.ERASER),
+                HudSlot.ToolFace(RingTool.PEN),
+                HudSlot.ToolFace(RingTool.HIGHLIGHTER),
+                HudSlot.ToolFace(RingTool.ERASER),
             ),
             slots,
         )
@@ -69,7 +68,7 @@ class RadialHudTest {
         // The last stored swatch made room; the eight before it are untouched.
         assertEquals(HudSlot.Colour(colors[8]), slots[8])
         assertEquals(HudSlot.Width(0.85f), slots[10])
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), slots[15])
+        assertEquals(HudSlot.ToolFace(RingTool.ERASER), slots[15])
     }
 
     @Test
@@ -78,33 +77,37 @@ class RadialHudTest {
             colors = (0..23).map { 0xFF000000.toInt() or it },
             customColor = 0xFFABCDEF.toInt(),
             widths = listOf(0.5f, 1f, 2f),
-            tools = listOf(Tool.PEN, Tool.HIGHLIGHTER, Tool.ERASER),
+            tools = listOf(RingTool.PEN, RingTool.HIGHLIGHTER, RingTool.ERASER),
         )
         assertEquals(RadialHud.MAX_SLOTS, slots.size)
         assertEquals(HudSlot.Width(0.5f), slots[10])
         assertEquals(HudSlot.Width(2f), slots[12])
-        assertEquals(HudSlot.ToolFace(Tool.PEN), slots[13])
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), slots[15])
+        assertEquals(HudSlot.ToolFace(RingTool.PEN), slots[13])
+        assertEquals(HudSlot.ToolFace(RingTool.ERASER), slots[15])
     }
 
     /**
-     * The call the editor makes when it pushes Settings onto the canvas: the factory values alone fill
-     * the ring (eight swatches, three widths, three tools), so a first launch has a working HUD even
-     * before anything is customised. The app's `AppSettings` is seeded from these very values
-     * (`penColors = PenPalette.COLORS`, `penWidths = PenPalette.DEFAULT_WIDTHS`), which is why the
-     * suite can state the same fact without reaching into the app.
+     * The call the editor makes when it pushes Settings onto the canvas: the **factory ring** alone fills
+     * it (the palette's first five, three widths, six tools), so a first launch has a working HUD and —
+     * because the window asks for the same call — the same ring as the desktop's Settings preview. The
+     * app's `AppSettings` is seeded from these very values (`penColors = PenPalette.COLORS`,
+     * `penWidths = PenPalette.DEFAULT_WIDTHS`), which is why the suite can state the same fact without
+     * reaching into the app.
      */
     @Test
     fun theEditorsDefaultSettingsFillTheRing() {
         val slots = RadialHud.slots(
-            colors = PenPalette.COLORS,
+            colors = RadialHud.factoryColours(PenPalette.COLORS),
             customColor = null,
             widths = PenPalette.DEFAULT_WIDTHS,
-            tools = tools,
+            tools = RadialHud.FACTORY_TOOLS,
         )
-        assertEquals(PenPalette.COLORS.distinct().size + PenPalette.DEFAULT_WIDTHS.size + 3, slots.size)
-        assertEquals(HudSlot.Colour(PenPalette.COLORS.first()), slots.first())
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), slots.last())
+        assertEquals(
+            RadialHud.FACTORY_COLOUR_SLOTS + PenPalette.DEFAULT_WIDTHS.size + RadialHud.FACTORY_TOOLS.size,
+            slots.size,
+        )
+        assertEquals("the first swatch is the factory black", HudSlot.Colour(PenPalette.COLORS.first()), slots.first())
+        assertEquals("and the ring closes on the pen", HudSlot.ToolFace(RingTool.PEN), slots.last())
     }
 
     /**
@@ -117,32 +120,23 @@ class RadialHudTest {
     @Test
     fun theWindowsContentsFitTheSameRing() {
         val custom = 0xFF123456.toInt()
-        val slots = RadialHud.slots(
-            colors = PenPalette.COLORS,
-            customColor = custom,
-            widths = PenPalette.DEFAULT_WIDTHS,
-            tools = tools,
+        val slots = RadialHud.factorySlots(PenPalette.COLORS, custom, PenPalette.DEFAULT_WIDTHS)
+        assertEquals(
+            RadialHud.FACTORY_COLOUR_SLOTS + PenPalette.DEFAULT_WIDTHS.size + RadialHud.FACTORY_TOOLS.size,
+            slots.size,
         )
-        assertEquals(PenPalette.COLORS.size + 1 + PenPalette.DEFAULT_WIDTHS.size + tools.size, slots.size)
         assertTrue("the ring has room for the window's contents", slots.size <= RadialHud.MAX_SLOTS)
-        // Swatches first, in the palette's order, with the custom slot last of them.
+        // Five swatches — the palette's own order — with the custom slot kept among them, last of the five.
         assertEquals(HudSlot.Colour(PenPalette.COLORS.first()), slots.first())
-        assertEquals(HudSlot.Colour(custom), slots[PenPalette.COLORS.size])
-        // Then the widths, then the three tools — the two halves the ring exists to keep one flick away.
-        assertEquals(HudSlot.Width(PenPalette.DEFAULT_WIDTHS.first()), slots[PenPalette.COLORS.size + 1])
-        assertEquals(HudSlot.ToolFace(Tool.PEN), slots[slots.size - 3])
-        assertEquals(HudSlot.ToolFace(Tool.HIGHLIGHTER), slots[slots.size - 2])
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), slots.last())
-        // A palette at the app's own ceiling (24) still cannot crowd the widths and the tools out.
-        val long = RadialHud.slots(
-            colors = (1..PenPalette.MAX_COLORS).map { 0xFF000000.toInt() or it },
-            customColor = custom,
-            widths = PenPalette.DEFAULT_WIDTHS,
-            tools = tools,
+        assertEquals(HudSlot.Colour(custom), slots[RadialHud.FACTORY_COLOUR_SLOTS - 1])
+        // Then the widths, then the six tools: the two halves the ring exists to keep one flick away.
+        assertEquals(HudSlot.Width(PenPalette.DEFAULT_WIDTHS.first()), slots[RadialHud.FACTORY_COLOUR_SLOTS])
+        assertEquals(
+            "the figure comes first among the tools",
+            HudSlot.ToolFace(RingTool.LINE),
+            slots[RadialHud.FACTORY_COLOUR_SLOTS + PenPalette.DEFAULT_WIDTHS.size],
         )
-        assertEquals(RadialHud.MAX_SLOTS, long.size)
-        assertEquals(HudSlot.Colour(custom), long[RadialHud.MAX_PALETTE_SLOTS - 1])
-        assertEquals(HudSlot.ToolFace(Tool.ERASER), long.last())
+        assertEquals("and the pen closes the ring", HudSlot.ToolFace(RingTool.PEN), slots.last())
     }
 
     @Test

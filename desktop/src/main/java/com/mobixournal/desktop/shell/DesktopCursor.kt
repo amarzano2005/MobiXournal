@@ -115,12 +115,23 @@ private val textCursor: Cursor by lazy {
  * ink, and an I-beam is the one pointer that says so; every other tool gets **no arrow at all**, because
  * its ring is the pointer ([drawToolCursor]). An arrow beside a ring points at nothing, and a ring alone
  * is the mark the tablet draws.
+ *
+ * The one exception is the **pen-tip ring** ([ringOpen]): that is a surface of buttons, and a pointer with
+ * no picture cannot be aimed at a face — so the window's own arrow comes back for as long as the ring is
+ * up. It is a state of the surface, not of the tool, which is why it is not derived from [ringVisible].
  */
-internal fun toolPointerIcon(tool: DesktopTool, ringVisible: Boolean, panMode: Boolean = false): PointerIcon = when {
+internal fun toolPointerIcon(
+    tool: DesktopTool,
+    ringVisible: Boolean,
+    panMode: Boolean = false,
+    ringOpen: Boolean = false,
+): PointerIcon = when {
     panMode || tool == DesktopTool.HAND -> PointerIcon.Hand
     // The PDF text-select slot reads words too: an I-beam says "drag across this line", where a ring the
     // size of the nib would promise ink no selection lays.
     tool == DesktopTool.TEXT || tool == DesktopTool.PDF_TEXT_SELECT -> PointerIcon(textCursor)
+    // A ring of buttons needs a pointer over it, or the reader aims at a face blind.
+    ringOpen -> PointerIcon.Default
     ringVisible -> PointerIcon(blankCursor)
     else -> PointerIcon.Default
 }

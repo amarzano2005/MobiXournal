@@ -7,9 +7,11 @@ import com.mobixournal.desktop.ink.PenPacketStroke
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.HudUi
 import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.sheet.PageInkGesture
 import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.DesktopRing
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.tools.DesktopTool
@@ -17,12 +19,16 @@ import com.mobixournal.desktop.tools.DesktopTool
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import com.mobixournal.design.PenPalette
 import com.mobixournal.format.mobix.SyntheticNotebook
+import com.mobixournal.render.RadialHud
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.Tool
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -71,6 +77,8 @@ class PenPacketStrokeTest {
         hovered: MutableList<Offset?> = mutableListOf(),
         tool: DesktopTool = DesktopTool.PEN,
         ink: DesktopInk = DesktopInk(width = 4f),
+        /** The window's ring, when the test has one: it takes the pen while it is open. */
+        hud: HudUi = HudUi(),
     ): PenPacketStroke {
         val gesture = PageInkGesture(
             tab = tab,
@@ -91,6 +99,7 @@ class PenPacketStrokeTest {
             size = { size },
             onOwnership = { owned.add(it) },
             onHover = { hovered.add(it) },
+            hud = hud,
         )
     }
 
@@ -299,6 +308,58 @@ class PenPacketStrokeTest {
                 full.points.last().width,
                 1e-2,
             )
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The **pen-tip ring** is a surface over the sheet: while it is up the pen answers it and lays no ink
+     * under it. This is the half of the ring's press the Compose path cannot prove — on this machine the
+     * pen's own packets are the stream, and they used to ink straight through the open ring.
+     */
+    @Test
+    fun `while the ring is up the pen commits a face and lays no ink`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook("ring.mobix")))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        try {
+            val before = strokes(tab).size
+            val colours = mutableListOf<Int>()
+            val ring = DesktopRing(
+                palette = { listOf(PenPalette.BLACK, PenPalette.RED) },
+                custom = { null },
+                onColour = { colours += it },
+                onWidth = {},
+                onTool = {},
+            )
+            val hud = HudUi(
+                open = { ring.open },
+                onPress = { x, y, density -> ring.press(x, y, density) },
+                slots = ring.slots,
+            )
+            val nib = Offset(200f, 300f)
+            ring.notePointer(nib, 1f)
+            assertTrue("the ring opens at the nib", ring.summon())
+
+            val path = path(tab, hud = hud)
+            // A tip-down in the ring's dead zone: it is the ring's press, and the page gets nothing.
+            path.send(packet(nib.x, nib.y, pressure = 0.5f, atNanos = 1_000_000_000L))
+            assertFalse("no stroke is opened under the ring", path.drawing)
+            assertEquals("and nothing was written", before, strokes(tab).size)
+            assertNotNull("the ring stays up, a press in its centre commits nothing", ring.open)
+
+            // The lift, then a press on the first swatch: the ring commits that colour and puts itself away.
+            path.send(packet(nib.x, nib.y, pressure = 0f, tip = false, atNanos = 1_002_000_000L))
+            val (slotX, slotY) = RadialHud.slotCenter(
+                nib.x, nib.y, 0, ring.slots.size, RadialHud.RING_RADIUS_DP,
+            )
+            path.send(packet(slotX, slotY, pressure = 0.4f, atNanos = 1_004_000_000L))
+            assertEquals("the face under the pen committed", listOf(PenPalette.BLACK), colours)
+            assertNull("and the ring is put away", ring.open)
+            assertFalse("still no stroke", path.drawing)
+            assertEquals("the page is untouched", before, strokes(tab).size)
+            assertFalse("and it took no undo step", tab.canUndo)
         } finally {
             tab.document.close()
         }

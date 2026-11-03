@@ -66,44 +66,62 @@ class DesktopRingTest {
     }
 
     @Test
-    fun `the ring holds the palette, then the widths, then the three writing tools`() {
+    fun `the ring holds five colours, then the widths, then the six tools`() {
         val slots = RingContents.Auto.slots(PenPalette.COLORS, null)
-        assertEquals(PenPalette.COLORS.size + PenPalette.DEFAULT_WIDTHS.size + 3, slots.size)
-        assertEquals(RingFace.Colour(PenPalette.COLORS.first()), slots.first())
+        assertEquals(
+            RadialHud.FACTORY_COLOUR_SLOTS + PenPalette.DEFAULT_WIDTHS.size + RingContents.TOOLS.size,
+            slots.size,
+        )
+        assertEquals("black is at the top", RingFace.Colour(PenPalette.COLORS.first()), slots.first())
         assertEquals(
             RingFace.Width(PenPalette.DEFAULT_WIDTHS.first()),
-            slots[PenPalette.COLORS.size],
+            slots[RadialHud.FACTORY_COLOUR_SLOTS],
         )
-        assertEquals(RingFace.Tool(DesktopTool.PEN), slots[slots.size - 3])
-        assertEquals(RingFace.Tool(DesktopTool.ERASER), slots.last())
+        assertEquals(
+            "the figure is the first tool",
+            RingFace.Tool(DesktopTool.LINE),
+            slots[RadialHud.FACTORY_COLOUR_SLOTS + PenPalette.DEFAULT_WIDTHS.size],
+        )
+        assertEquals("and the pen closes the ring", RingFace.Tool(DesktopTool.PEN), slots.last())
     }
 
     @Test
-    fun `the editable custom slot is the last swatch, and a long palette still keeps the widths and tools`() {
+    fun `the editable custom slot is the last of the five, and a long palette changes nothing`() {
         val custom = 0xFF123456.toInt()
         val short = RingContents.Auto.slots(PenPalette.COLORS, custom)
-        assertEquals(RingFace.Colour(custom), short[PenPalette.COLORS.size])
+        assertEquals(
+            "the custom colour takes the fifth place",
+            RingFace.Colour(custom),
+            short[RadialHud.FACTORY_COLOUR_SLOTS - 1],
+        )
 
         val long = RingContents.Auto.slots((1..PenPalette.MAX_COLORS).map { 0xFF000000.toInt() or it }, custom)
-        assertEquals(RadialHud.MAX_SLOTS, long.size)
-        assertEquals("the custom slot keeps its place at the palette's cap", RingFace.Colour(custom), long[9])
-        assertEquals(RingFace.Tool(DesktopTool.ERASER), long.last())
+        assertEquals("the factory ring whatever the palette holds", short.size, long.size)
+        assertEquals(RingFace.Tool(DesktopTool.PEN), long.last())
     }
 
     /**
      * The strips' own rule, held for the ring: **a slot that does nothing is worse than an absent one**.
-     * The three faces the ring offers are three tools the canvas acts on, so no member can be a promise.
+     * The six faces the factory ring offers are six tools the canvas acts on, so no member can be a promise.
      */
     @Test
     fun `every tool the ring offers is one the canvas acts on`() {
-        assertEquals(3, RingContents.TOOLS.size)
+        assertEquals("the factory six", 6, RingContents.TOOLS.size)
         for (tool in RingContents.TOOLS) {
             assertTrue("$tool is offered by the ring but does not act", tool in DESKTOP_TOOLS_THAT_ACT)
         }
         assertEquals(
-            setOf(DesktopTool.PEN, DesktopTool.HIGHLIGHTER, DesktopTool.ERASER),
+            setOf(
+                DesktopTool.LINE,
+                DesktopTool.LASSO,
+                DesktopTool.MARQUEE,
+                DesktopTool.HIGHLIGHTER,
+                DesktopTool.ERASER,
+                DesktopTool.PEN,
+            ),
             RingContents.TOOLS.toSet(),
         )
+        assertEquals("the tablet's order, ending on the pen", DesktopTool.PEN, RingContents.TOOLS.last())
     }
 
     @Test
@@ -160,12 +178,13 @@ class DesktopRingTest {
         val count = ring.slots.size
 
         ring.summon()
-        val widthAt = slotCentre(PenPalette.COLORS.size + 1, count)
+        val widthAt = slotCentre(RadialHud.FACTORY_COLOUR_SLOTS + 1, count)
         assertTrue(ring.press(widthAt.x, widthAt.y, density))
         assertEquals(listOf(PenPalette.DEFAULT_WIDTHS[1]), sink.widths)
 
         ring.summon()
-        val toolAt = slotCentre(count - 1, count)
+        // The ring closes on the pen, so the eraser is the face before it.
+        val toolAt = slotCentre(count - 2, count)
         assertTrue(ring.press(toolAt.x, toolAt.y, density))
         assertEquals(listOf(DesktopTool.ERASER), sink.tools)
         assertTrue(sink.colours.isEmpty())

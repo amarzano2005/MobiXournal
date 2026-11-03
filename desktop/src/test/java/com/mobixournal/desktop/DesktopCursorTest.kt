@@ -81,6 +81,34 @@ class DesktopCursorTest {
     }
 
     /**
+     * The **pen-tip ring** is a surface of buttons, so the arrow comes back while it is up: a pointer with no
+     * picture cannot be aimed at a face, and the reader would be clicking blind at their own ring.
+     */
+    @Test
+    fun `the open ring keeps a visible pointer over it`() {
+        assertEquals(
+            "the arrow, over the ring's faces",
+            PointerIcon.Default,
+            toolPointerIcon(DesktopTool.PEN, ringVisible = true, ringOpen = true),
+        )
+        assertEquals(
+            "with any marking tool in hand",
+            PointerIcon.Default,
+            toolPointerIcon(DesktopTool.HIGHLIGHTER, ringVisible = true, ringOpen = true),
+        )
+        assertEquals(
+            "a closed ring leaves the tool's own pointer",
+            toolPointerIcon(DesktopTool.PEN, ringVisible = true, ringOpen = false),
+            toolPointerIcon(DesktopTool.ERASER, ringVisible = true),
+        )
+        assertEquals(
+            "and the hand still pans over it",
+            PointerIcon.Hand,
+            toolPointerIcon(DesktopTool.HAND, ringVisible = false, panMode = true, ringOpen = true),
+        )
+    }
+
+    /**
      * The hand's pointer is the hand **even when a shape's ring is offered** — Space held with the pen
      * picked is the hand's pan, and a ring over it would promise ink that is not going to land.
      */

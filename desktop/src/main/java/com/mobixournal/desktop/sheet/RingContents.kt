@@ -2,6 +2,7 @@ package com.mobixournal.desktop.sheet
 
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.design.PenPalette
+import com.mobixournal.render.HudSlot
 import com.mobixournal.render.RadialHud
 
 /**
@@ -9,9 +10,9 @@ import com.mobixournal.render.RadialHud
  *
  * Two rings, and the file holds which one the window draws:
  *
- * - [Auto] — a ring nobody has edited: the palette's swatches (the custom colour last), then the pen's three
- *   widths, then pen / highlighter / eraser, in the tablet's order. It follows the palette, which is what a
- *   fresh install and **Reset to defaults** want.
+ * - [Auto] — a ring nobody has edited: the palette's **first five** colours (the custom colour last), then
+ *   the pen's three widths, then the six tools of `RadialHud.FACTORY_TOOLS`, in the tablet's order. It
+ *   follows the palette, which is what a fresh install and **Reset to defaults** want.
  * - [Fixed] — the reader's own ring: faces chosen one position at a time, each a colour, a width or **any**
  *   tool of the window. The palette no longer moves it, which is the point of having chosen it.
  *
@@ -22,21 +23,23 @@ internal sealed interface RingContents {
     /** The faces this ring draws, given the palette `Auto` builds its swatches from. */
     fun slots(palette: List<Int>, custom: Int?): List<RingFace>
 
-    /** The ring nobody edited: the palette, the three widths and the three writing tools. */
+    /**
+     * The ring nobody edited: the palette's first five, the three widths and the six tools.
+     *
+     * The contents come from `RadialHud.factorySlots` — the same call the tablet makes — so this class only
+     * reads the shared ring in its own vocabulary.
+     */
     data object Auto : RingContents {
-        override fun slots(palette: List<Int>, custom: Int?): List<RingFace> {
-            val ring = ArrayList<RingFace>(RadialHud.MAX_SLOTS)
-            val paletteCap = (RadialHud.MAX_SLOTS - PenPalette.DEFAULT_WIDTHS.size - RingContents.TOOLS.size)
-                .coerceIn(0, RadialHud.MAX_PALETTE_SLOTS)
-            val distinct = palette.distinct()
-            val customIsNew = custom != null && custom !in distinct
-            val room = if (customIsNew) (paletteCap - 1).coerceAtLeast(0) else paletteCap
-            for (colour in distinct.take(room)) ring += RingFace.Colour(colour)
-            if (customIsNew && custom != null) ring += RingFace.Colour(custom)
-            for (width in PenPalette.DEFAULT_WIDTHS) ring += RingFace.Width(width)
-            for (tool in RingContents.TOOLS) ring += RingFace.Tool(tool)
-            return ring.take(RadialHud.MAX_SLOTS)
-        }
+        override fun slots(palette: List<Int>, custom: Int?): List<RingFace> =
+            RadialHud.factorySlots(palette, custom, PenPalette.DEFAULT_WIDTHS).mapNotNull { slot ->
+                when (slot) {
+                    is HudSlot.Colour -> RingFace.Colour(slot.argb)
+                    is HudSlot.Width -> RingFace.Width(slot.pt)
+                    is HudSlot.ToolFace -> DesktopTool.entries
+                        .firstOrNull { it.name == slot.tool.name }
+                        ?.let { tool -> RingFace.Tool(tool) }
+                }
+            }
     }
 
     /** The reader's own ring, in the order they set it. */
@@ -46,12 +49,13 @@ internal sealed interface RingContents {
 
     companion object {
 
-        /** The three writing tools an **automatic** ring offers, in the tablet's order. */
-        val TOOLS: List<DesktopTool> = listOf(
-            DesktopTool.PEN,
-            DesktopTool.HIGHLIGHTER,
-            DesktopTool.ERASER,
-        )
+        /**
+         * The six tools an **automatic** ring offers, in the tablet's order: the factory list of
+         * `RadialHud.FACTORY_TOOLS`, each name read as the window's own tool of that name.
+         */
+        val TOOLS: List<DesktopTool> = RadialHud.FACTORY_TOOLS.mapNotNull { name ->
+            DesktopTool.entries.firstOrNull { it.name == name.name }
+        }
 
         /**
          * [faces] as the one line `ring.slots` stores: `c:` a colour (ARGB, hex), `w:` a width in points,
