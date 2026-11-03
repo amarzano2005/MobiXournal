@@ -157,6 +157,12 @@ internal fun ToolbarMenu(
     positionProvider: PopupPositionProvider? = null,
     contentWidthPx: Int? = null,
     fill: Color? = null,
+    /**
+     * Drop the panel's 8 dp of vertical air for a menu that is **one row** — the selection's recolour
+     * strip, whose row is already a 28 dp swatch with its own margin above and below. Left at the
+     * default it stood twice as tall as the 32 dp bar it hangs from.
+     */
+    tight: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // The window is **held** for the departure. A pop-up's window is torn down between two frames the
@@ -170,6 +176,7 @@ internal fun ToolbarMenu(
             placement = positionProvider,
             contentWidthPx = contentWidthPx,
             fill = fill,
+            tight = tight,
             content = content,
         )
     }
@@ -188,6 +195,7 @@ private fun ToolbarMenuWindow(
     placement: PopupPositionProvider? = null,
     contentWidthPx: Int? = null,
     fill: Color? = null,
+    tight: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
@@ -225,7 +233,7 @@ private fun ToolbarMenuWindow(
                     // No horizontal inset: a row's highlight is the row's own, so padding the column
                     // sideways would stop the lit part short of the panel's curve (`interface-contract.md`,
                     // *Air at a rounded edge*). The rows keep their own label inset; the clip rounds the ends.
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = if (tight) 2.dp else 8.dp)
                     .then(
                         // A menu of answers measures its own width from its rows (intrinsics). A list given
                         // one — the width of the settings row it belongs to — takes it instead, because its

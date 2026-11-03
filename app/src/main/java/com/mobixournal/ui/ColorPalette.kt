@@ -1,11 +1,14 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.PenPalette
@@ -69,11 +73,11 @@ fun rememberColorPaletteState(
  * closes whatever menu it is in and shows the [CustomColorEditor], which must sit *outside* that menu
  * so dismissing the menu doesn't take the dialog with it.
  *
- * [compact] switches the swatches to a **fixed-width grid** (no hint line, tighter spacing) — the shape
- * the toolbar's Colour & size pop-up and the selection's recolour menu use. Every swatch is on screen at
- * once, so reaching the last colour never means scrolling a row: the grid wraps onto a second line
- * instead of growing sideways, and the menu keeps one width however many colours the palette holds. The
- * dialogs keep the wrapping grid and the hint.
+ * [compact] switches the swatches to a **slim scrolling strip** (smaller dots, no hint line, tighter
+ * spacing) — the shape the toolbar's Colour & size pop-up and the selection's recolour menu use. One
+ * line is the whole point: those two hang off a 32 dp bar on the canvas, so a palette that wrapped onto
+ * a second line would make the strip taller than the control it belongs to. The dialogs keep the
+ * wrapping grid and the hint.
  *
  * [onAdd] appends a trailing **add colour** swatch, so a new palette colour can be made from the
  * picker itself rather than only from Settings → Colors.
@@ -92,7 +96,7 @@ fun ColorPaletteRows(
         if (!compact) PaletteHint("Tap to pick · long-press ✎ to edit")
         SwatchRow(compact) {
             for (c in palette.colors) {
-                ColorSwatch(color = c, selected = c == selected, onClick = { onPick(c) })
+                ColorSwatch(color = c, selected = c == selected, onClick = { onPick(c) }, compact = compact)
             }
             ColorSwatch(
                 color = palette.custom,
@@ -101,9 +105,17 @@ fun ColorPaletteRows(
                 onClick = { palette.custom?.let(onPick) ?: onEditCustom() },
                 onLongClick = onEditCustom,
                 editable = true,
+                compact = compact,
             )
             if (onAdd != null) {
-                ColorSwatch(color = null, selected = false, onClick = onAdd, editable = false, add = true)
+                ColorSwatch(
+                    color = null,
+                    selected = false,
+                    onClick = onAdd,
+                    editable = false,
+                    add = true,
+                    compact = compact,
+                )
             }
         }
     }
@@ -133,26 +145,29 @@ fun CustomColorEditor(
 /**
  * The swatches, wrapping onto further lines when the host is narrow. A dialog is much tighter than
  * the toolbar's drop-down, and a single fixed row silently clipped the custom slot off its end.
- * [compact] pulls the padding and gaps in for the toolbar's drop-down.
+ * [compact] pulls the padding and gaps in for the toolbar's drop-down, and keeps the row to **one
+ * line** (it scrolls sideways instead) so the strip's height is the swatch's own.
  */
 /**
- * How wide the compact grid stands: about six swatches a line, the same width the selection's recolour
- * menu takes, so a phone-sized pop-up does not reach past the rail that opened it.
+ * The width a compact strip stands before it scrolls: the same about-seven-swatches cap in both places
+ * it is used (the toolbar's pop-up and the selection's recolour menu), so neither grows past the bar
+ * that opened it however long the palette gets.
  */
-private val COMPACT_PALETTE_WIDTH = 264.dp
+private val COMPACT_STRIP_WIDTH = 232.dp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SwatchRow(compact: Boolean = false, content: @Composable () -> Unit) {
     if (compact) {
-        // A fixed-width grid: every colour is on screen without scrolling, and the menu keeps one width
-        // however many swatches the palette holds — the extra line is what a new colour costs.
-        FlowRow(
+        // One slim line: the host caps the width, and the palette scrolls inside it. A second line
+        // would make the strip taller than the 32 dp bar it hangs from — the strip is the bar's height.
+        Row(
             modifier = Modifier
-                .width(COMPACT_PALETTE_WIDTH)
-                .padding(horizontal = 8.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+                .width(COMPACT_STRIP_WIDTH)
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) { content() }
         return
     }

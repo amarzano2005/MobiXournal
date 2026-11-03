@@ -92,15 +92,22 @@ fun DrawingSurfaceView.distributeSelection(horizontal: Boolean) {
 
 // --- the element clipboard: copy, cut, paste, duplicate ----------------------------------------
 
-/** Copy the selected elements to the clipboard (leaves the document and selection unchanged). */
+/**
+ * Copy the selected elements to the app's clipboard (leaves the document and selection unchanged).
+ *
+ * It deliberately does **not** write Android's system clipboard. A picture copied to duplicate it is not
+ * text, but the platform cannot know that: from Android 13 on, every `setPrimaryClip` raises the system's
+ * copy banner over the page — the floating word-and-preview chip that says a *text* string was copied —
+ * for a gesture that only ever meant "hold this for the next paste". The clip is the app's own
+ * ([SelectionClipboard]), so a copy still pastes into the other pane, and what genuinely leaves the app
+ * (a drag out of the canvas) still hands other applications all four flavours.
+ */
 fun DrawingSurfaceView.copySelection() {
     val sel = selection ?: return
     val page = pageAt(sel.pageIndex) ?: return
-    clipboard = SelectionOps.elementsAt(page, sel.refs)
-    onClipboardChanged?.invoke(clipboard.isNotEmpty())
-    // The selection leaves in all four flavours, so pasting into another view — or another app —
-    // carries the geometry and the formula source rather than a picture of them.
-    publishSelectionToSystemClipboard(clipboard)
+    val copied = SelectionOps.elementsAt(page, sel.refs)
+    SelectionClipboard.elements = copied
+    onClipboardChanged?.invoke(copied.isNotEmpty())
 }
 
 /** Copy then delete the selection (one undoable edit via [deleteSelection]). */
@@ -111,7 +118,7 @@ fun DrawingSurfaceView.cutSelection() {
 }
 
 /** Whether the clipboard currently holds anything to paste. */
-fun DrawingSurfaceView.hasClipboard(): Boolean = clipboard.isNotEmpty()
+fun DrawingSurfaceView.hasClipboard(): Boolean = SelectionClipboard.elements.isNotEmpty()
 
 /**
  * Paste the clipboard onto the visible page, selecting the pasted copies. The copy lands centred on
@@ -120,7 +127,8 @@ fun DrawingSurfaceView.hasClipboard(): Boolean = clipboard.isNotEmpty()
  * out (or the clipboard has no measurable geometry).
  */
 fun DrawingSurfaceView.pasteClipboard() {
-    // A copy made in another view (or window) arrives through the system clipboard; the in-app
+    val clipboard = SelectionClipboard.elements
+    // A copy made in another view (or window) arrives through the system clipboard; the app's own
     // element clipboard is used when it is the source, so the ordinary paste path is unchanged.
     val external = if (clipboard.isEmpty()) systemClipboardElements(context) else emptyList()
     if (external.isNotEmpty()) {

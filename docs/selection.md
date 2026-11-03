@@ -76,10 +76,11 @@ position (`SelectionGestureController.moveSelectTo`), so the element rides the s
 under a held finger; a floating **Cut / Copy / Duplicate / Recolour / Width / Delete** bar
 (`SelectionActionBar` in `ui/EditorActionBars.kt`, placed by `ui/SelectionActionAnchor.kt`) acts on the
 selection (all undoable). **Recolour** opens the shared palette as the *compact* form — one horizontally
-scrolling row of swatches with no hint line, width-capped at about seven swatches — not the wrapping grid
-the dialogs use: this menu hangs off a 32 dp bar on the selection, so it has to read as part of that bar
-instead of opening a page-sized sheet of colours over the ink. The same compact row is what the toolbar's
-**Colour & size** pop-up shows, so a colour is picked in one shape everywhere on the canvas. That bar **rides with the
+scrolling row of smaller swatches, no hint line, **no heading**, width-capped at about seven swatches — not
+the wrapping grid the dialogs use: this menu hangs off a 32 dp bar on the selection, so it has to read as
+that bar again, one line of colour at the bar's own height, instead of a titled sheet over the ink. The
+title was the tallest part of a menu whose whole job is the row under it. The same compact row is what the
+toolbar's **Colour & size** pop-up shows, so a colour is picked in one shape everywhere on the canvas. That bar **rides with the
 selection** rather than sitting at the bottom edge: the view publishes the selection's box in its own
 view px (`DrawingSurfaceView.selectionScreenRect` / `onSelectionRectChanged`, reported from the render
 pass next to `reportScroll`) through `PaneState.selectionRect`, and `EditorPaneView` — whose canvas
@@ -198,8 +199,11 @@ A selection is not only something to drag: the window draws the tablet's **actio
 Cut, Copy, Paste, Duplicate, Recolour, Line width, Align & distribute, Edit, Delete — and each is the shared
 command, not a second implementation. The clipboard holds model elements, so a copied plot pastes as a live
 plot, a paste lands **beside** what it copied and stays selected, `Cut` is the copy and the deletion in one
-step, and `Ctrl+D` duplicates. Recolour and width take the value the **strip's own ink** would write, because
-that is where those two are chosen. The bar rides below the outline (above it when the page ends below),
+step, and `Ctrl+D` duplicates. Copy **never writes the system clipboard**: a drawing is not a string, and
+from Android 13 the platform's copy banner announced one over the page, so the app keeps its own clipboard
+(shared by both panes) while content pasted in from elsewhere still arrives through the system one.
+**Recolour** opens the same slim swatch strip the tablet shows — one line under the bar, no title — and a
+picked swatch restyles what is caught; **Line width** still takes the value the strip's own ink would write. The bar rides below the outline (above it when the page ends below),
 clamped inside the canvas, and stands at the page's bottom centre carrying **Paste** when nothing is
 selected. A control the selection cannot support is dimmed and does nothing (`docs/interface-contract.md`
 §5); the rules live in `SelectionBarUi`, so a JVM test reads them rather than a screen.

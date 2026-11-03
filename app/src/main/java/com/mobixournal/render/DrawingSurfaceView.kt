@@ -516,8 +516,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         get() = gestures.selection
         set(value) { gestures.selection = value }
 
-    /** Copied/cut elements, ready to paste onto the visible page. */
-    internal var clipboard: List<Element> = emptyList()
 
     /** The pending long-press that lifts the selection as a drag (`SelectionDragOut.kt`). */
     internal val selectionDragOut = SelectionDragOut()

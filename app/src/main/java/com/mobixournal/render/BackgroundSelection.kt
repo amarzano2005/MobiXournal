@@ -102,7 +102,7 @@ fun DrawingSurfaceView.captureBackgroundRegion(): Boolean {
     val bytes = bitmap.toPngBytes()
     bitmap.recycle()
     if (bytes == null) return false
-    clipboard = listOf(ImageElement(region.left, region.top, region.right, region.bottom, bytes))
+    SelectionClipboard.elements = listOf(ImageElement(region.left, region.top, region.right, region.bottom, bytes))
     onClipboardChanged?.invoke(true)
     return true
 }

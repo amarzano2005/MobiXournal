@@ -90,6 +90,11 @@ internal fun WidthDot(
  *
  * [add] draws the trailing **add colour** affordance instead: an outlined ring with a plus, the one
  * swatch in the row that makes a new colour rather than picking an existing one.
+ *
+ * [compact] draws the swatch on a smaller box with a smaller dot — the strip that hangs off the
+ * selection's 32 dp action bar. The tap square stays comfortable (28 dp) while the dot gives up the
+ * air the dialogs' grid needs, so a whole palette fits one slim row instead of a second line that
+ * would make the strip taller than the bar it hangs from.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -100,6 +105,7 @@ fun ColorSwatch(
     onLongClick: (() -> Unit)? = null,
     editable: Boolean = false,
     add: Boolean = false,
+    compact: Boolean = false,
 ) {
     val clickModifier = if (onLongClick != null)
         Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -115,7 +121,7 @@ fun ColorSwatch(
 
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(if (compact) 28.dp else 34.dp)
             // Before the click, so the ripple is the swatch's own circle: on a bare cell a tap lit a grey
             // square around a round dot ([DotCellShape] centres the circle in whatever box the cell is).
             .clip(DotCellShape)
@@ -132,7 +138,14 @@ fun ColorSwatch(
         }
         Box(
             modifier = Modifier
-                .size(if (selected) 24.dp else 28.dp)
+                .size(
+                    when {
+                        compact && selected -> 20.dp
+                        compact -> 24.dp
+                        selected -> 24.dp
+                        else -> 28.dp
+                    },
+                )
                 .clip(CircleShape)
                 .background(if (color == null) Color.Transparent else Color(color))
                 .border(
@@ -147,7 +160,7 @@ fun ColorSwatch(
                     ChromeGlyph.ADD.imageVector(),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(if (compact) 13.dp else 16.dp),
                 )
                 editable -> Icon(
                     Icons.Filled.Edit,
@@ -157,7 +170,7 @@ fun ColorSwatch(
                         Color(color).luminance() < 0.5f -> Color.White
                         else -> Color.Black
                     },
-                    modifier = Modifier.size(14.dp),
+                    modifier = Modifier.size(if (compact) 11.dp else 14.dp),
                 )
             }
         }

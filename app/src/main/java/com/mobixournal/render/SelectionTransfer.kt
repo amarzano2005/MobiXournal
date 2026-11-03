@@ -18,12 +18,28 @@ import java.io.File
 import kotlin.math.ceil
 
 /**
- * A selection leaves this canvas in **four flavours at once**, and content dropped on the page comes
- * back as a living element:
+ * **The app's own element clipboard** — what Copy and Cut fill and what Paste reads.
  *
- * - `application/vnd.mobixournal.element` — the elements themselves ([ElementTransfer]), which is how
- *   a copy pasted into another MobiXournal view arrives with its geometry, living entity and formula
- *   source intact;
+ * It is deliberately *not* Android's system clipboard. Copying a picture to duplicate it is not copying
+ * text, but the platform cannot tell: from Android 13 on, every `setPrimaryClip` raises the system's
+ * clipboard banner over the page — the chip with a preview that says a **string** was copied — for a
+ * gesture that only ever meant "keep this for the next paste". Keeping the clip here leaves the page
+ * alone and still works across panes, because there is one clipboard for the whole process. Content
+ * pasted *in* from another application continues to arrive through the system clipboard
+ * ([systemClipboardElements]), and a drag out of the canvas still carries all four flavours.
+ */
+internal object SelectionClipboard {
+    /** The elements the next paste lands; empty when nothing has been copied. */
+    var elements: List<Element> = emptyList()
+}
+
+/**
+ * A selection leaves this canvas for **another application** in four flavours at once — by the drag out
+ * of the page ([SelectionDragOut]), and that is the only way it leaves:
+ *
+ * - `application/vnd.mobixournal.element` — the elements themselves ([ElementTransfer]), which is how a
+ *   drop into another MobiXournal view arrives with its geometry, living entity and formula source
+ *   intact;
  * - `image/svg+xml` — a vector picture of the selection, so a design tool receives editable paths;
  * - `image/png` — a rendered bitmap in the cache, handed out through the app's `FileProvider`;
  * - `text/plain` — a readable summary/LaTeX source, the fallback every application understands.
@@ -33,19 +49,14 @@ import kotlin.math.ceil
  * ([ExternalIngest]); an image lands as an [com.mobixournal.format.model.ImageElement]; a PDF is handed
  * to the host, which knows where to append its pages.
  *
- * Android's clipboard has one type per clip in practice, so the four are declared in the
- * [ClipDescription] and carried as items; a receiver reads the one it understands. The PNG is only
- * published when a bitmap could be rendered (a real device), and its absence never fails a copy.
+ * Android carries one type per clip in practice, so the four are declared in the [ClipDescription] and
+ * carried as items; a receiver reads the one it understands. The PNG is only added when a bitmap could
+ * be rendered (a real device), and its absence never fails a drag.
  */
-internal fun DrawingSurfaceView.publishSelectionToSystemClipboard(elements: List<Element>) {
-    val clip = selectionClipData(elements) ?: return
-    val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-    manager.setPrimaryClip(clip)
-}
 
 /**
- * The selection as one [ClipData] carrying every flavour it can. Shared by Copy and by the
- * long-press drag, so what leaves the canvas is the same whichever way it leaves.
+ * The selection as one [ClipData] carrying every flavour it can — what the long-press drag hands the
+ * platform, so a drop outside the canvas arrives as living elements, a vector, a bitmap and text.
  */
 internal fun DrawingSurfaceView.selectionClipData(elements: List<Element>): ClipData? {
     if (elements.isEmpty()) return null

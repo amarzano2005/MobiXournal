@@ -107,7 +107,10 @@ fun SelectionActionBar(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+                // The surface already owns 6 dp of edge air ([FloatingSurface]); the bar adds almost none
+                // of its own, so it reads as one strip of 32 dp controls against the ink rather than as a
+                // panel with a band of empty glass above and below them.
+                .padding(horizontal = 2.dp, vertical = 0.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (hasSelection) {
@@ -213,9 +216,10 @@ private val SelectionBarIcon = 18.dp
  * A drop-down that recolours the selection, offering the shared [ColorPaletteRows] — the same
  * swatches and the custom slot as the pen's palette. The colour picked is applied to the selection.
  *
- * It is the **compact** palette (one scrolling row, no hint line, a width cap), not the wrapping grid
- * the dialogs use: this menu hangs off the selection bar, so it has to read as part of that small
- * floating bar instead of opening a screen-sized sheet of swatches over the page.
+ * It is the **compact** palette (one scrolling row of small swatches, no hint line, a width cap) and it
+ * carries **no heading**: this menu hangs off the selection bar, so it has to be that small floating bar
+ * again — one line of colour — instead of a titled sheet of swatches over the page. The word "Recolour"
+ * lived above the swatches and was the tallest part of a menu whose whole job is the row under it.
  */
 @Composable
 private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
@@ -223,8 +227,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
     var editing by remember { mutableStateOf(false) }
     Box {
         BarIconButton("Recolour", ChromeGlyph.RECOLOUR.imageVector()) { open = true }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
-            MenuHeading("Recolour")
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, tight = true) {
             ColorPaletteRows(
                 selected = null,
                 palette = palette,
@@ -239,10 +242,10 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
 }
 
 /**
- * How wide the recolour palette stands before it scrolls: about seven swatches, so a reader sees the
- * palette at a glance without the menu growing to the page's width.
+ * How wide the recolour strip stands before it scrolls: about seven small swatches — the selection bar's
+ * own width — so the menu reads as the bar's twin instead of growing into a sheet of colour.
  */
-private val RECOLOUR_MENU_WIDTH = 264.dp
+private val RECOLOUR_MENU_WIDTH = 216.dp
 
 /** A width drop-down that re-widths the selected strokes, using the same configurable slots as the pen. */
 @Composable
