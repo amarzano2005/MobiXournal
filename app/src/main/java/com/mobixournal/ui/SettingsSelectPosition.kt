@@ -80,3 +80,25 @@ internal class SettingsSelectPositionProvider(private val density: Density) : Po
 internal fun settingsSelectMaxHeight(windowHeightPx: Int, density: Density): Dp = with(density) {
     (windowHeightPx - SettingsSelectMargin.roundToPx() * 2).coerceAtLeast(0).toDp()
 }
+
+/** The air each answer keeps from the list's edge — the settings card's own inset, so text lines up. */
+private val SettingsSelectRowInset: Dp = 16.dp
+
+/** The room the check takes on the answer in hand, held on every row so the width never jumps. */
+private val SettingsSelectCheckRoom: Dp = 26.dp
+
+/** A list of one short word still opens wider than the word. */
+private val SettingsSelectMinWidth: Dp = 180.dp
+
+/**
+ * How wide a settings select's list opens: its longest answer, plus the rows' insets and the check's room,
+ * inside a floor and the width of the row it hangs under.
+ *
+ * Measured from the answers rather than taken from the row: a list stretched to the card's width is a sheet
+ * across four words, and a list measured by its own layout instead of its answers collapses onto its padding
+ * — the two shapes this menu was reported in.
+ */
+internal fun settingsSelectWidthFor(widest: Dp, rowWidth: Dp): Dp {
+    val wanted = widest + SettingsSelectRowInset * 2 + SettingsSelectCheckRoom
+    return wanted.coerceIn(minOf(SettingsSelectMinWidth, rowWidth), rowWidth)
+}

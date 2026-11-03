@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -119,6 +121,21 @@ fun <T> OptionGroup(
     // edges, so a capped panel always has room where it is put.
     val maxMenuHeight = (LocalConfiguration.current.screenHeightDp.dp - SettingsSelectMargin * 2)
         .coerceAtLeast(160.dp)
+    // As wide as its longest answer and never wider than the row: a list stretched to the card is a sheet
+    // across four words, and one squeezed to its padding wraps every answer out of the panel.
+    val measurer = rememberTextMeasurer()
+    val answerStyle = MaterialTheme.typography.bodyLarge
+    val menuWidth = if (rowWidthPx > 0) {
+        remember(options, rowWidthPx, answerStyle, label) {
+            val widest = options.maxOfOrNull { measurer.measure(label(it), answerStyle).size.width } ?: 0
+            settingsSelectWidthFor(
+                widest = with(density) { widest.toDp() },
+                rowWidth = with(density) { rowWidthPx.toDp() },
+            )
+        }
+    } else {
+        null
+    }
     Box(Modifier.onSizeChanged { rowWidthPx = it.width }) {
         OptionTriggerRow(
             title = title,
@@ -136,8 +153,11 @@ fun <T> OptionGroup(
             // intrinsic width wrapped every answer onto a second line, and floating glass over a card let
             // the rows behind it read through — a stain, not a menu. The window's select opens on the same
             // fill for the same reason (`docs/desktop-settings.md`).
-            contentWidthPx = rowWidthPx.takeIf { it > 0 },
-            fill = ModernTheme.settingsPanel(chromeIsDark()),
+            contentWidthPx = menuWidth?.let { with(density) { it.roundToPx() } },
+            // Opaque: the list lands over a settings card, and the floating glass there let the row behind
+            // it read through its own answers.
+            fill = ModernTheme.settingsPanel(chromeIsDark())
+                .compositeOver(MaterialTheme.colorScheme.background),
         ) {
             options.forEach { option ->
                 OptionMenuItem(

@@ -49,8 +49,9 @@ the window's Settings keeps (`desktop-settings.md`), so a subject both shells ca
 both. The list opens **under its row**, its start edge on the row's, kept inside the window: it sits above the
 row only when the row is too near the bottom for the list to fit under it, and its height is capped so a long
 list scrolls rather than running off the screen — never a panel parked somewhere else (`SettingsSelectPositionTest`).
-The list is **the row's own width** and wears the settings panel's fill, not the floating glass: over a card
-the glass let the rows behind it read through, which is a stain rather than a menu. `SettingsChoiceTest` holds
+The list is **as wide as its longest answer** — never wider than the row — and wears the settings panel's fill
+made opaque: over a card the floating glass let the rows behind it read through, which is a stain rather than a
+menu, and a list stretched to the card's width was a sheet across four words. `SettingsChoiceTest` holds
 the component to it — the row opens a menu, the list takes the row's width, and no radio row is left in the
 file.
 

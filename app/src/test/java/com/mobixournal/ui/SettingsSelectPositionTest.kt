@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -72,5 +73,27 @@ class SettingsSelectPositionTest {
         val cap = settingsSelectMaxHeight(windowHeightPx = 2000, density = density)
 
         assertEquals("the window less one margin at each end", 984f, cap.value, 0.001f)
+    }
+
+    @Test
+    fun `the list is as wide as its longest answer, and the row is its ceiling`() {
+        assertEquals(
+            "a short answer still opens a readable list",
+            180f,
+            settingsSelectWidthFor(widest = 60.dp, rowWidth = 500.dp).value,
+            0.001f,
+        )
+        assertEquals(
+            "a long one widens it by its own insets and the check's room",
+            258f,
+            settingsSelectWidthFor(widest = 200.dp, rowWidth = 500.dp).value,
+            0.001f,
+        )
+        assertEquals(
+            "and it never grows past the row it hangs under",
+            300f,
+            settingsSelectWidthFor(widest = 600.dp, rowWidth = 300.dp).value,
+            0.001f,
+        )
     }
 }

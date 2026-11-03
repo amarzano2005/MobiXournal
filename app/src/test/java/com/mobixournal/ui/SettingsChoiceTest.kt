@@ -34,7 +34,7 @@ class SettingsChoiceTest {
         )
         assertTrue(
             "the list takes the row's width instead of measuring itself into a squeezed column",
-            group.contains("contentWidthPx = rowWidthPx"),
+            group.contains("contentWidthPx = menuWidth"),
         )
         assertTrue(
             "and it wears the settings panel's fill: floating glass over a card let the rows show through",
