@@ -37,7 +37,7 @@ What it does today:
   band's own composite colour** (`DesktopTitleBar.kt`: immersive dark mode, the caption, border and text
   colours through DWM). It carries **no app name and no icon** (`captionIcon` keeps the art for the taskbar
   only), with the tablet's own glyphs — monoline tools and the chrome's filled marks, one catalogue each — Inter
-  with tabular figures, one cast shadow under each band and one under the sheet. The art is the
+  with tabular figures, one cast shadow under each band and one under the sheet (its halo is drawn in **screen space**, around the page's on-screen rectangle: a shadow is chrome, so the zoom must not scale it and the thumbnail raster, whose surface *is* the page, must not pay for it). The art is the
   tablet's launcher icon **without its navy field**, enlarged inside its tile so the mark reads at taskbar
   size (`desktop/icon/`).
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a

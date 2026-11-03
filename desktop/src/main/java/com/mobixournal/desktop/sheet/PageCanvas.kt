@@ -585,6 +585,16 @@ private fun DrawScope.paintRecordedSheet(
     karaoke: DesktopKaraoke?,
     liveShift: LiveShift?,
 ) {
+    // The window's one shadow, around the sheet's **on-screen** rectangle: a halo is chrome, so a zoom must
+    // not scale it and a thumbnail (whose surface is the page itself) must not pay for it.
+    drawPageShadow(
+        androidx.compose.ui.geometry.Rect(
+            left = viewport.offsetX * density,
+            top = viewport.offsetY * density,
+            right = viewport.offsetX * density + (page.width * density).toFloat() * zoom,
+            bottom = viewport.offsetY * density + (page.height * density).toFloat() * zoom,
+        ),
+    )
     val karaokeState = karaoke?.state
     // A vertical-space drag replays the sheet in two halves at an offset; the page it was recorded from is
     // untouched, so nothing is re-recorded while the hand is down (`ShiftPictures`). It comes **before** the

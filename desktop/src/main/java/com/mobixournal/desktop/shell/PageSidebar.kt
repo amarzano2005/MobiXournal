@@ -479,7 +479,11 @@ private fun rememberThumbnail(
     revision: Int,
     cache: MutableMap<Int, ImageBitmap>,
 ): ImageBitmap? {
-    val slot = remember(tab, index) { mutableStateOf<ImageBitmap?>(null) }
+    // A page already painted is **drawn in this frame**: the row used to start empty and wait for the
+    // paint lane to hand back a bitmap it already had, so switching to a document whose thumbnails were
+    // warm showed an empty list until the lane had gone round every row.
+    val painted = if (hidden.isEmpty()) cache[index] else null
+    val slot = remember(tab, index) { mutableStateOf(painted) }
     LaunchedEffect(tab, index, hidden, revision) {
         val painted = withContext(THUMBNAIL_PAINT) { thumbnail(tab, index, THUMB_WIDTH.value, cache) }
         if (painted != null) slot.value = painted
