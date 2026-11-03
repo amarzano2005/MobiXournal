@@ -16,8 +16,8 @@ internal val SettingsSelectGap: Dp = 4.dp
 internal val SettingsSelectMargin: Dp = 8.dp
 
 /**
- * Where a settings **select**'s list opens: **under the row**, its start edge on the row's start edge, and
- * kept inside the window.
+ * Where a settings **select**'s list opens: **under the row**, its **end** edge on the row's end edge — where the
+ * answer and its chevron are, the thing the list belongs to — and kept inside the window.
  *
  * A list that opens somewhere else is a list the reader has to find. `ToolbarMenu`'s own placement picks
  * whichever side of a toolbar slot has room and otherwise parks the panel against the window — right for a
@@ -26,7 +26,7 @@ internal val SettingsSelectMargin: Dp = 8.dp
  *
  * Two moves are allowed, and only these: a row too near the bottom for the list to fit under it gets the
  * list **above** instead (still against the row, never floating elsewhere), and a row near the right edge
- * pulls the list leftwards so its last letter stays on screen. [settingsSelectOffset] is that arithmetic as
+ * pulls the list back so its last letter stays on screen. [settingsSelectOffset] is that arithmetic as
  * plain integers, so `SettingsSelectPositionTest` can pin it without a device.
  */
 internal fun settingsSelectOffset(
@@ -37,8 +37,10 @@ internal fun settingsSelectOffset(
     margin: Int,
     leftToRight: Boolean,
 ): IntOffset {
-    val start = if (leftToRight) anchor.left else anchor.right - menu.width
-    val x = clamp(start, margin, window.width - menu.width - margin)
+    // The answer sits at the row's end, so the list's end lines up with it: a list hung off the card's far side
+    // reads as somebody else's. The window's select keeps the same edge (`SettingsChoiceChip`).
+    val end = if (leftToRight) anchor.right - menu.width else anchor.left
+    val x = clamp(end, margin, window.width - menu.width - margin)
     val below = anchor.bottom + gap
     val above = anchor.top - gap - menu.height
     val fitsBelow = below + menu.height + margin <= window.height

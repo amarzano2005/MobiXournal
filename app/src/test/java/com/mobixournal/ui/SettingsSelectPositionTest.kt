@@ -28,12 +28,12 @@ class SettingsSelectPositionTest {
         settingsSelectOffset(anchor, menu, window, gap, margin, leftToRight = true)
 
     @Test
-    fun `the list hangs under the row, starting on its start edge`() {
+    fun `the list hangs under the row, ending on its end edge`() {
         val anchor = IntRect(left = 40, top = 100, right = 1040, bottom = 160)
 
         val offset = place(anchor)
 
-        assertEquals("its start edge is the row's", 40, offset.x)
+        assertEquals("its end edge is the row's, under the answer", 1040 - menu.width, offset.x)
         assertEquals("and it begins one gap under the row", 160 + gap, offset.y)
     }
 
@@ -49,13 +49,13 @@ class SettingsSelectPositionTest {
     }
 
     @Test
-    fun `a row near the right edge pulls the list back inside`() {
-        val anchor = IntRect(left = 900, top = 300, right = 1040, bottom = 360)
+    fun `a row hard against the window's edge pulls the list back inside`() {
+        val anchor = IntRect(left = 900, top = 300, right = 1075, bottom = 360)
 
         val offset = place(anchor)
 
-        assertEquals("the list's right edge keeps the window's margin", window.width - margin, offset.x + menu.width)
-        assertTrue("and it still starts left of the row's end", offset.x < anchor.right)
+        assertEquals("the list's own edge keeps the window's margin", window.width - margin, offset.x + menu.width)
+        assertTrue("and it still ends under the row's answer", offset.x + menu.width <= anchor.right)
     }
 
     @Test
