@@ -31,9 +31,11 @@ opens with `fullBleedRow(reach)`, which lays it out into the padding while keepi
 carries no `clip` of its own — the card's rounded clip is the row's shape. The card pads **horizontally
 only**: a vertical inset left the first and last rows' highlight a rectangle that stopped short of the
 card's rounded ends, so every row now reaches the top and bottom edges and the clip supplies the corners.
-Outside a card the local is zero, so the same rows inside dialogs (the shape editor's switches) do not
-move. `SettingsRowFullBleedTest` pins the arithmetic and the wiring, so a row added later cannot go back to
-a half-lit box.
+The air **between two cells** is the rows' own (`SettingsCellAir`): a divider carries no margin, because a
+ripple paints inside its own node, and a divider that kept its spacing left an unlit strip between the
+light and the hairline. Outside a card the local is zero, so the same rows inside dialogs (the shape
+editor's switches) do not move. `SettingsRowFullBleedTest` pins the arithmetic and the wiring, so a row
+added later cannot go back to a half-lit box.
 
 ## Settings search
 

@@ -150,13 +150,26 @@ internal fun fullBleedBounds(maxWidth: Int, reach: Int): FullBleedBounds = FullB
     contentX = -reach,
 )
 
-/** The hairline between two controls inside one [SettingsGroup] card — inset with the content it separates. */
+/**
+ * The air a settings card gives **between two cells** — held by the rows, never by the divider.
+ *
+ * A row's press or selection is painted by the row's own node (a ripple cannot draw outside it), so
+ * anything the divider keeps for itself stays unlit: a divider carrying its own margins left a strip of
+ * card between the light and the hairline, which a reader sees as "the selection does not reach the
+ * divider". The rows own the air; the divider is the boundary itself.
+ */
+internal val SettingsCellAir: Dp = 8.dp
+
+/** The air a row adds vertically inside a card — zero outside one, where there are no dividers. */
+internal fun settingsCellAir(reach: Dp): Dp = if (reach > 0.dp) SettingsCellAir else 0.dp
+
+/**
+ * The hairline between two controls inside one [SettingsGroup] card, **at the boundary** of the two
+ * cells: its air belongs to the rows ([SettingsCellAir]), so a lit row reaches it.
+ */
 @Composable
 fun SettingsDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(vertical = 8.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-    )
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
 }
 
 /** A muted paragraph explaining a group or a control — secondary to the controls around it. */

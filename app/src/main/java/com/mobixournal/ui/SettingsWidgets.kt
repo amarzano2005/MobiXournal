@@ -63,7 +63,7 @@ fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange
             .fullBleedRow(reach)
             .fillMaxWidth()
             .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(horizontal = reach, vertical = 10.dp),
+            .padding(horizontal = reach, vertical = 10.dp + settingsCellAir(reach)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -114,6 +114,9 @@ fun <T> OptionGroup(
             )
         }
     }
+    // The air a following divider no longer holds belongs to the last cell, so a press here reaches
+    // the hairline instead of stopping short of it.
+    Spacer(Modifier.height(settingsCellAir(reach)))
 }
 
 /**
@@ -353,7 +356,7 @@ fun RailItemRow(
             },
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = reach, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = reach, vertical = 8.dp + settingsCellAir(reach)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

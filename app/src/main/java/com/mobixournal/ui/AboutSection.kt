@@ -104,7 +104,7 @@ private fun LinkRow(label: String, url: String, open: (String) -> Unit) {
             .fullBleedRow(reach)
             .fillMaxWidth()
             .clickable { open(url) }
-            .padding(horizontal = reach, vertical = 8.dp),
+            .padding(horizontal = reach, vertical = 8.dp + settingsCellAir(reach)),
     ) {
         Text(
             label,
