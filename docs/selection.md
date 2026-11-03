@@ -244,7 +244,10 @@ The **header** is the lane's identity, not just its title: the family's own cata
 name, and one line of the element's content (`sin(x) · −6…6`, `4 × 6 · header`, `BJT NPN · 10 kΩ`, a text
 box's first line and its size) from `livingSummary`, because three plots on a page are all `Plot` and the
 fields below write into exactly one of them. The **body** groups the fields into cards — Graph, Function, Display, Look; Grid, Rules, Cells; Component,
-Placement, Stroke — so a plot's switches no longer read as one wall of 11 sp labels, and a plot's card leads
+Placement, Stroke — so a plot's switches no longer read as one wall of 11 sp labels. Each card is the Settings
+page's own group (`SettingsGroup` in `SettingsRows.kt`): the near-solid panel glass, the 20 dp corner, the
+family's rim and a sentence-case heading, so the lane and the settings page read as one material rather than
+a smaller card inside the window's. A plot's card leads
 with the **graph itself**, compiled by `LivingInk` from the element as it stands, so an equation is no longer
 committed blind: the same picture the placement promised follows every edit. A graph carries several
 curves, so the editor offers **Add equation**, a remove glyph and a **colour swatch per row**

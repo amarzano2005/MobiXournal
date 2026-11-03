@@ -386,19 +386,21 @@ class DesktopInspectorLaneTest {
             Snapshot.sendApplyNotifications()
             scene.render()
 
-            click(scene, 750, 181)
+            // The rows sit under the card's new settings heading (`SectionCard`), so the clicks are read
+            // off the lane as the window draws it rather than carried over from the older card.
+            click(scene, 750, 197)
             assertEquals("Bold is set", "Sans Bold", textBox(tab).font)
-            click(scene, 750, 181)
+            click(scene, 750, 197)
             assertEquals("and the same switch takes it away again", "Sans", textBox(tab).font)
 
-            click(scene, 750, 181)
-            click(scene, 750, 213)
+            click(scene, 750, 197)
+            click(scene, 750, 230)
             assertEquals("the italic switch adds to the bold, not over it", "Sans Bold Italic", textBox(tab).font)
 
-            click(scene, 850, 141)
+            click(scene, 870, 163)
             assertEquals("the family chip keeps the two styles", "Serif Bold Italic", textBox(tab).font)
 
-            click(scene, 764, 399)
+            click(scene, 776, 442)
             assertEquals("the ink keeps the face", "Serif Bold Italic", textBox(tab).font)
             assertEquals("and is the swatch that was clicked", 0xFFFF0000.toInt(), textBox(tab).color)
             assertEquals("the size was never touched", 18.0, textBox(tab).size, 1e-9)

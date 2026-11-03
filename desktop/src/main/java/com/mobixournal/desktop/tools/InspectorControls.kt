@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.ROW_INSET
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.drawToolGlyph
 import com.mobixournal.desktop.settings.glyph
@@ -152,29 +153,28 @@ internal fun LaneFooter(content: @Composable () -> Unit) {
 }
 
 /**
- * A **card**: one group of fields on the lane.
+ * A **card**: one group of fields on the lane, in the settings page's own format.
  *
  * The lane's fields used to be one flat run of 11 sp labels, so a plot's five switches, its domain and its
- * stroke read as a single wall. A card is the group — a steel tone at [DesktopTheme.CARD_ALPHA] with the
- * lane's own 10 dp corner, no rim (a band takes none) — and its heading is the one step of hierarchy.
+ * stroke read as a single wall. A card is the group, and it is **the Settings page's group** — the
+ * near-solid panel glass, the 20 dp panel corner, the family's rim as its whole edge and a sentence-case
+ * heading ([DesktopTheme.heading]) over it. The lane holds the same kind of fields a settings page does, so
+ * a second, smaller card language inside it read as a different material: a steel box with an upper-case
+ * eyebrow inside the window's own card. One format, both columns.
  */
 @Composable
 internal fun SectionCard(title: String? = null, content: @Composable () -> Unit) {
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(12.dp))
+    if (title != null) {
+        Text(title, color = DesktopTheme.ink, style = DesktopTheme.heading)
+        Spacer(Modifier.height(5.dp))
+    }
     Column(
         Modifier
             .fillMaxWidth()
-            .background(DesktopTheme.card, DesktopTheme.railSlotShape)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .glassSurface(fill = DesktopTheme.settingsPanel, cornerRadius = DesktopTheme.panelRadius)
+            .padding(horizontal = ROW_INSET, vertical = 8.dp),
     ) {
-        if (title != null) {
-            Text(
-                title.uppercase(),
-                color = DesktopTheme.inkMuted,
-                style = DesktopTheme.eyebrow,
-                modifier = Modifier.padding(bottom = 2.dp),
-            )
-        }
         content()
     }
 }
