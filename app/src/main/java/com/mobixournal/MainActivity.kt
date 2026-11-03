@@ -458,14 +458,26 @@ class MainActivity : ComponentActivity() {
         showEditor(initialSettings)
     }
 
+    /** The notebooks opened lately — the entry screen's cards — and the store they live in. */
+    internal val recentNotebooks by lazy { com.mobixournal.ui.entry.RecentNotebookStore(this) }
+
+    /** What the entry screen draws, as state: a landed open re-orders it without a restart. */
+    internal val recentList =
+        mutableStateOf<List<com.mobixournal.ui.entry.RecentNotebook>>(emptyList())
+
     /** The one window: the editor over the settings store, wired to every launcher this activity owns. */
     private fun showEditor(initialSettings: AppSettings) {
+        recentList.value = recentNotebooks.list()
         settingsState.value = initialSettings.also(::applySettingsToLayers)
         setContent {
             val settings by settingsState
             XoppTheme(darkTheme = settings.themeMode.isDark(), dynamicColor = settings.dynamicColor) {
                     EditorScreen(
                     onOpen = { openLauncher.launch(arrayOf("*/*")) },
+                    // The entry screen's own three doors: a blank sheet, the picker, and a card's notebook.
+                    onNewDocument = { newTab() },
+                    recents = recentList.value,
+                    onOpenRecent = { uri -> openDocument(Uri.parse(uri)) },
                     onSave = { saveActiveTab() },
                     busy = busy.value,
                     onExit = { finish() },

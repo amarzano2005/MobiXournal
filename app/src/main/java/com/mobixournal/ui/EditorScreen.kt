@@ -44,6 +44,8 @@ import com.mobixournal.ui.theme.bandSideEdge
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberClosingArgument
+import com.mobixournal.ui.entry.NotebookEntryScreen
+import com.mobixournal.ui.entry.RecentNotebook
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
@@ -246,6 +248,15 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
 @Composable
 fun EditorScreen(
     onOpen: () -> Unit,
+    /**
+     * Start a blank sheet. The entry screen's *New sheet*: the activity opens it as a new tab, in the
+     * format new documents are born in, exactly as the header's "+" does.
+     */
+    onNewDocument: () -> Unit = {},
+    /** The notebooks opened lately, drawn as the entry screen's cards. */
+    recents: List<RecentNotebook> = emptyList(),
+    /** Reopen one of them, by its URI string — the grant was kept when it was first opened. */
+    onOpenRecent: (String) -> Unit = {},
     onSave: () -> Unit,
     onSaveAs: (filename: String, format: SaveFormat) -> Unit,
     currentSaveFormat: () -> SaveFormat,
@@ -345,8 +356,8 @@ fun EditorScreen(
             // Header band first, canvas in what is left: the bar is a row of the layout, not a layer over
             // the page, so no part of the page ever sits under it (see [EditorBody] for why that matters).
             Column(modifier = Modifier.fillMaxSize()) {
+                val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
                 if (!ui.fullPage) {
-                    val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
                     if (topBar != null) {
                         topBar(ui, pane, activeTabs)
                     } else {
@@ -371,19 +382,31 @@ fun EditorScreen(
                         )
                     }
                 }
-                EditorBody(
-                    ui = ui,
-                    pane = pane,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                    audio = audio,
-                    splitView = splitView,
-                    onActivePane = onActivePane,
-                    onSurfaceCreated = onSurfaceCreated,
-                    onPickImage = onPickImage,
-                    paneChrome = paneChrome,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                )
+                // **Nothing open** is the entry screen, the tablet's copy of the window's: with no tab in
+                // the pane there is no page to paint, and a blank sheet nobody asked for is not a state.
+                if (activeTabs.titles.isEmpty()) {
+                    NotebookEntryScreen(
+                        recents = recents,
+                        onNew = onNewDocument,
+                        onOpen = onOpen,
+                        onOpenRecent = { notebook -> onOpenRecent(notebook.uri) },
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                } else {
+                    EditorBody(
+                        ui = ui,
+                        pane = pane,
+                        settings = settings,
+                        onSettingsChange = onSettingsChange,
+                        audio = audio,
+                        splitView = splitView,
+                        onActivePane = onActivePane,
+                        onSurfaceCreated = onSurfaceCreated,
+                        onPickImage = onPickImage,
+                        paneChrome = paneChrome,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                }
             }
         }
 

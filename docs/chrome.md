@@ -202,3 +202,17 @@ control lying on the page, and it never covers a line of the ruling; it is pure 
 The frame's bands and divider, the saved toolbar order and the page-less canvas are [chrome-frame.md](chrome-frame.md)'s.
 
 The Settings shell, its search and the prefs behind them are [chrome-settings.md](chrome-settings.md)'s.
+
+## Starting with nothing open
+
+The editor's body is the **entry screen** whenever the pane has no tab: three doors — *New sheet*,
+*Open…*, and the notebooks opened lately as cards whose face is their first page — in three columns
+when the width is there and in one when it is not. It is the PC window's screen, whose design
+[`desktop-ui-layout.md`](desktop-ui-layout.md) owns, drawn with the tablet's own tokens: a card is the
+sheet's rectangle, carries no rim and no fill, is lifted in the theme's ink, and its caption starts on
+the paper rather than a halo's width before it.
+
+Closing the last tab, and a cold start with nothing to restore, leave the pane **empty** rather than
+opening a blank document — that is what makes "nothing open" a state at all. A card's face is written
+when the document is opened (`EntryPreviews`), so the screen reads a PNG instead of parsing a document
+to draw itself, and the list is `entry_recents`, six at most and de-duplicated by URI.

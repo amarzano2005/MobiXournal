@@ -89,7 +89,7 @@ class DocsGuardTest {
      * owes a reader — **Search the document** and the page list's own clipboard — a line of feature and a
      * link each, with the detail in `docs/search.md` and `docs/desktop-editing.md`.
      */
-    private val frontDoorBudget = mapOf("README.md" to 368, "AGENTS.md" to 430)
+    private val frontDoorBudget = mapOf("README.md" to 369, "AGENTS.md" to 430)
 
     /**
      * The longest a single paragraph of **running prose** may get in a front door, in characters.

@@ -249,8 +249,9 @@ internal fun MainActivity.reorderTab(from: Int, to: Int, p: EditorPane = pane) {
 }
 
 /**
- * Close [p]'s tab at [index]. Closing the last one leaves a fresh blank document rather than an
- * empty pane, and the canvas is only reloaded when the *showing* tab actually changed.
+ * Close [p]'s tab at [index]. Closing the **last** one leaves the pane empty, and the window shows the
+ * entry screen: a fresh blank document here is what made "nothing open" a state the app could never be
+ * in. The canvas is only reloaded when the *showing* tab actually changed.
  */
 internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     // Closing a tab in a lane focuses that pane: what takes its place (or the fallback blank page)
@@ -269,7 +270,6 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     if (p.tabs.tabs.getOrNull(index)?.id == recordingTabId) stopRecordingTake()
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
-    if (p.tabs.isEmpty) p.tabs.open(blankTab(p))
     p.tabs.active?.takeIf { it.id != showing }?.let { show(it, p) }
     tabsTick.value++
     p.persist()
@@ -325,9 +325,9 @@ internal fun MainActivity.restoreTabs(p: EditorPane, then: () -> Unit = {}) {
         val session = p.store.load()
         runOnUiThread {
             if (p.tabs.isEmpty) {
-                if (session == null) {
-                    p.tabs.open(blankTab(p))
-                } else {
+                // Nothing was open when the app was last closed — no session at all, or one with no tabs —
+                // so the pane stays **empty** and the window opens on the entry screen.
+                if (session != null && session.tabs.isNotEmpty()) {
                     session.tabs.forEach(p.tabs::open)
                     p.tabs.select(session.activeIndex)
                 }

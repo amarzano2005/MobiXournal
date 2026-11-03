@@ -56,6 +56,8 @@ internal fun MainActivity.openDocument(uri: Uri) {
     tabsTick.value++
     // Keep the grant so plain Save can write back here later, even after a restart.
     io.persist(uri)
+    // The entry screen's card for this notebook; its face follows once the bytes have landed (below).
+    rememberRecentNotebook(uri, displayName(uri))
     // The bytes may be coming off a network share, so fetch them on a worker and only touch the
     // canvas once they have landed. A failure takes the half-built tab back down with it.
     inBackground("Opening ${displayName(uri)}…", { io.stageIn(uri, "open") }) { result ->
@@ -68,6 +70,9 @@ internal fun MainActivity.openDocument(uri: Uri) {
                 if (pendingNewerAppConsent.value == null) {
                     tabs.updateActive { if (it.id == placeholder.id) it.copy(opening = false) else it }
                     snapshotActiveTab()
+                    // The card's face, from the pages already in hand: the entry screen reads a PNG
+                    // instead of parsing this document again.
+                    tabs.active?.let { tab -> runCatching { rememberFaceOf(uri, tab.document.pages.first()) } }
                 }
             }
             .onFailure {
