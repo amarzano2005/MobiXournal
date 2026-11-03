@@ -108,6 +108,8 @@ Four numbers carry the screen's spacing, and their order is the rule:
 - a block that is not a row — a slider's header, a note — takes `settingsBlockInset()` instead of its own
   guess, so its text lands on the rows' column.
 
+- a **card** keeps `SettingsCellAir` off its own rounded edges, and a full-width **pill** keeps
+  `SettingsActionPillAir` on each side — a border drawn on the text column reads as clipped by the card.
 The side menu has its own step: pills are `SettingsSidebarRowHeight` tall, `SettingsSidebarRowGap` apart,
 with `SettingsSidebarGapAfterField` between the search field and the first of them — a field is not a pill,
 and the list must not read as a continuation of it.

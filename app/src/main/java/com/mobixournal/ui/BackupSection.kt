@@ -94,7 +94,7 @@ fun BackupSection(
         SettingsNote("Writes every preference to a JSON file you can restore on another device.")
         Button(
             onClick = { exportLauncher.launch("mobixournal-settings.json") },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.settingsActionPill(),
         ) {
             Icon(Icons.Outlined.FileDownload, contentDescription = null)
             Spacer(Modifier.width(8.dp))
@@ -106,7 +106,7 @@ fun BackupSection(
         SettingsNote("Reads a backup back. A file that is not one, or one from a newer build, is refused.")
         OutlinedButton(
             onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.settingsActionPill(),
         ) {
             Icon(Icons.Outlined.FileUpload, contentDescription = null)
             Spacer(Modifier.width(8.dp))
@@ -118,7 +118,7 @@ fun BackupSection(
         SettingsNote("Back to factory values.")
         OutlinedButton(
             onClick = { showResetDialog = true },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.settingsActionPill(),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
         ) {
             Icon(Icons.Outlined.RestartAlt, contentDescription = null)

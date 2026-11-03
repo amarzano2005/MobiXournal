@@ -101,7 +101,10 @@ internal fun SettingsCard(
     ) {
         CompositionLocalProvider(LocalSettingsCardInset provides SettingsRowInset) {
             Column(
-                Modifier.padding(horizontal = SettingsRowInset),
+                // The vertical air is the card's, not a row's: without it the first thing in a card —
+                // a note, a slider's header, the top of a full-width pill — sat on the rounded edge, so
+                // its text or its border looked pasted onto the corner.
+                Modifier.padding(horizontal = SettingsRowInset, vertical = SettingsCellAir),
                 content = content,
             )
         }
@@ -180,6 +183,9 @@ internal val SettingsHeaderGap: Dp = 10.dp
 /** The air a row adds vertically inside a card — zero outside one, where there are no dividers. */
 internal fun settingsCellAir(reach: Dp): Dp = if (reach > 0.dp) SettingsCellAir else 0.dp
 
+/** The air a full-width pill keeps from the card's rounded edge — a shape needs more than a line of text. */
+internal val SettingsActionPillAir: Dp = SettingsCellAir
+
 /** What a cell pads by above and below its text: the shared inset plus the lit air that carries the ripple. */
 internal fun settingsCellInset(reach: Dp): Dp = SettingsCellPad + settingsCellAir(reach)
 
@@ -229,6 +235,21 @@ fun ControlHeader(title: String, subtitle: String?, modifier: Modifier = Modifie
             )
         }
     }
+}
+
+/**
+ * A full-width action pill under a note — "Export to JSON", "Reset to Defaults", "Add swatch".
+ *
+ * A filled or outlined shape is read by its **border**, and a border sitting on the card's text column
+ * looks like it was cut off by the card: it keeps [SettingsActionPillAir] on each side instead, so the
+ * pill floats inside the card while the note above it stays on the text column. Outside a card the air
+ * collapses, because there is no rounded edge to clear.
+ */
+@Composable
+internal fun Modifier.settingsActionPill(top: Dp = 8.dp, bottom: Dp = 8.dp): Modifier {
+    val reach = LocalSettingsCardInset.current
+    val side = if (reach > 0.dp) SettingsActionPillAir else 0.dp
+    return fillMaxWidth().padding(start = side, end = side, top = top, bottom = bottom)
 }
 
 /** The corner radius of every settings card (groups and the index lists). */
