@@ -423,7 +423,7 @@ private const val WIDE_RECENT_COLUMNS = 5
  * The gap between the commands and the sheet: a step closer than the grid's own, so the sheet sits a little
  * further left and the recents end inside the window's edge.
  */
-private const val WIDE_HERO_GAP_DP = 40f
+private const val WIDE_HERO_GAP_DP = 28f
 
 /** The wide grid's own width: its cards and their gaps, which the grid then fits itself into. */
 private const val WIDE_GRID_DP = WIDE_RECENT_WIDTH_DP * WIDE_RECENT_COLUMNS + RECENT_GAP_DP * (WIDE_RECENT_COLUMNS - 1)
