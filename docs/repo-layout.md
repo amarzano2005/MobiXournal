@@ -91,6 +91,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/PdfText.kt, PdfOutline.kt, MagneticHighlighter.kt # a PDF's positioned words and its
                              # Contents tree, plus the highlighter's snap to them (pure, shared: the app's
                              # and the window's PDFBox glue both feed these, so a word box is one box)
+    render/LayerOps.kt       # add/delete/rename/reorder/merge-down/move-selection layer edits (pure, both shells)
     render/DocumentSearch.kt, SearchableHandwriting.kt # the search both shells call: text boxes, a math
                              #   block's source, a PDF page's words, and handwritten ink behind an interface (pure)
     render/HandwritingRecognizer.kt, HandwritingIndex.kt, FallbackInkEngine.kt, HandwritingTemplate.kt # ink ->
@@ -219,7 +220,6 @@ app/
       CircleRecognizer.kt    # inertia roundness + radial-residual score -> a rebuilt circle (pure)
       MlKitInkEngine.kt      # on-device neural digital ink recognition via Google ML Kit with automatic model download
       AndroidInkEngine.kt    # the InkWordEngine the tablet plugs in at startup: ML Kit when available, else no answer
-      LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
       SelectionOps.kt        # scale / rotate / restyle / align / distribute selected elements (pure; translate delegates to mobix-core's ElementShift); ElementTransfer.kt and SelectionTransfer.kt carry a selection out in four flavours and accept drops
       MultiFingerTapDetector.kt # a still 2/3-finger tap's finger count; FingerTapSettings.kt: the action each tap was given (pure)
