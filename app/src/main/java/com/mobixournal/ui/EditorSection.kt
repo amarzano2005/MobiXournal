@@ -87,7 +87,9 @@ private fun PageSizeStepControl(settings: AppSettings, onChange: (AppSettings) -
             )
         },
         singleLine = true,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        // A bordered field is a block: the card keeps no vertical air, so the field brings its own and
+        // its outline clears the card's top edge.
+        modifier = Modifier.fillMaxWidth().settingsBlockInset(),
     )
 }
 

@@ -79,7 +79,9 @@ fun AboutSection() {
 /** A read-only "label … value" line, for facts about the build. */
 @Composable
 private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    // A **block**, not a row: the card keeps no vertical air of its own (so its rows can wear its
+    // corners), so a line that opens a group carries the air that keeps it off the top edge.
+    Row(modifier = Modifier.fillMaxWidth().settingsBlockInset()) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
         Text(value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End)

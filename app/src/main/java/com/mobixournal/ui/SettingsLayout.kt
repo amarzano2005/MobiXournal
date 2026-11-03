@@ -102,10 +102,12 @@ internal fun SettingsCard(
     ) {
         CompositionLocalProvider(LocalSettingsCardInset provides SettingsRowInset) {
             Column(
-                // The vertical air is the card's, not a row's: without it the first thing in a card —
-                // a note, a slider's header, the top of a full-width pill — sat on the rounded edge, so
-                // its text or its border looked pasted onto the corner.
-                Modifier.padding(horizontal = SettingsRowInset, vertical = SettingsCellAir),
+                // Air on the sides only. A row reaches the card's top and bottom edges as well as its
+                // sides, so a press, a hover or a selection on the first (or last) row is cut by the
+                // card's own 20 dp clip and wears the corner; any air the card kept vertically left
+                // that row a square band floating inside the curve. Every block that is not a row
+                // carries its own air (`settingsBlockInset`, `SettingsNote`).
+                Modifier.padding(horizontal = SettingsRowInset),
                 content = content,
             )
         }
@@ -217,7 +219,9 @@ fun SettingsNote(text: String, modifier: Modifier = Modifier) {
         text = text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(vertical = 4.dp),
+        // A note is a **block**, not a row ([settingsBlockInset]): the card keeps no air of its own, so a
+        // note opening a card has to clear the rounded edge itself or its first line lands on the curve.
+        modifier = modifier.settingsBlockInset(),
     )
 }
 

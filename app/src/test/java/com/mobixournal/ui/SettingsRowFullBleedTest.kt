@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -76,6 +77,22 @@ class SettingsRowFullBleedTest {
         assertTrue(
             "and pad its own content by that same number",
             card.contains("padding(horizontal = SettingsRowInset"),
+        )
+    }
+
+    /**
+     * The card keeps **no vertical air of its own**: the first and last row have to reach its top and bottom
+     * edges for the card's 20 dp clip to shape their corners. An inset here left the lit row a square band
+     * floating inside the curve — the reader's "a normal rectangle" — however correct the row's own bounds were.
+     */
+    @Test
+    fun `the card keeps no vertical air, so the first row wears its corner`() {
+        val source = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/SettingsLayout.kt").readText()
+        val card = body(source, "internal fun SettingsCard(")
+        assertTrue("SettingsCard is where the test expects it", card.isNotEmpty())
+        assertFalse(
+            "a vertical inset leaves the first row's highlight a square band inside the card's curve",
+            card.contains("SettingsCellAir"),
         )
     }
 

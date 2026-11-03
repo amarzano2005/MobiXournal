@@ -276,3 +276,15 @@ band that stops short of the strip's curve — the lit part no longer wears the 
 pads its rows **vertically** only, the panel's rounded clip supplies the ends, and each row carries the
 inset its own label needs (`OptionMenuItem`'s 16 dp).
 
+A **settings card** is that same case on the other axis: it pads its content **horizontally** only, and
+every row reaches the card's top and bottom edges, so a press, a hover or a selection on the first or
+last row is cut by the card's 20 dp clip and wears the corner instead of sitting as a square band
+floating inside it. The vertical air belongs to the blocks — a row's `SettingsCellPad`, a note's or a
+header's block inset — never to the card, because a card-level inset lifts the highlight off the edge
+whose clip would have rounded it. `SettingsRowFullBleedTest` fails if the card takes that inset back.
+
+A select whose answers belong to **several families** prints a **head** over each one — the ring's
+*Colours*, *Tools* and *Widths*, with *Remove* under *Leave it out*, the heads the window's chooser
+already prints. A head names a family: it is never a choice, and the two shells name the same families
+in the same order.
+
