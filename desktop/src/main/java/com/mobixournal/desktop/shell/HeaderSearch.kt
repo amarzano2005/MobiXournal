@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
@@ -193,6 +194,11 @@ private fun SearchStepButton(glyph: ChromeGlyph, label: String, enabled: Boolean
     Box(
         Modifier
             .size(16.dp)
+            // The window's own hover step, drawn **with** the shape (`docs/interface-contract.md` §6): a
+            // 16 dp capsule, so the answer to the pointer is the round step the chevron sits in and not the
+            // square it happens to be measured by. It had no answer at all, which is the one gap the
+            // shape rule found in this window.
+            .hoverFill(DesktopTheme.capsuleShape)
             .clickable(enabled = enabled) { onClick() }
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,

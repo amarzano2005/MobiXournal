@@ -185,7 +185,12 @@ rectangle around a menu pane's 10 dp corner. A rounded control clips to its own 
 (`FavoriteSwatch`'s `DotCellShape`, `ZoomBadge`, and the menu's panes, whose click `GlassPane` takes inside
 its clip), so a tap or a hover lights the capsule, circle or squircle the reader sees and not the rectangle
 around it. `ShapeFeedbackTest` holds the shared controls to that order, because a clip one modifier too
-late compiles and reads correctly. A **document tab** is the one picked
+late compiles and reads correctly.
+
+The window keeps the rule the other way round: `hoverFill(shape)` and `hoverCapsule` draw the light **with**
+the shape, so one background cannot disagree with its control. A rectangular hover belongs to the settings
+rows alone, whose card clips them (`SettingsGroup` → `glassSurface`); `DesktopShapeFeedbackTest` pins both
+halves, and that no control is left with no answer to the pointer at all. A **document tab** is the one picked
 surface that also wears the **accent edge** — 1 dp of the accent at 60 %, the tablet's own ring on a
 selected chip — because a strip of capsules says which document is open by outline as well as by fill. A
 tab is the tablet's **chip** on both shells: the floating glass at full strength while it is the document
@@ -284,15 +289,12 @@ band that stops short of the strip's curve — the lit part no longer wears the 
 pads its rows **vertically** only, the panel's rounded clip supplies the ends, and each row carries the
 inset its own label needs (`OptionMenuItem`'s 16 dp).
 
-A **settings card** is that same case on the other axis: it pads its content **horizontally** only, and
-every row reaches the card's top and bottom edges, so a press, a hover or a selection on the first or
-last row is cut by the card's 20 dp clip and wears the corner instead of sitting as a square band
-floating inside it. The vertical air belongs to the blocks — a row's `SettingsCellPad`, a note's or a
-header's block inset — never to the card, because a card-level inset lifts the highlight off the edge
-whose clip would have rounded it. `SettingsRowFullBleedTest` fails if the card takes that inset back.
+A **settings card** is that case on the other axis: it pads **horizontally** only, the rows reach its top
+and bottom edges, and its 20 dp clip therefore rounds the first and last row's highlight instead of
+leaving a square band inside the curve. The vertical air belongs to the blocks (`SettingsCellPad`, a
+note's or a header's block inset), never to the card; `SettingsRowFullBleedTest` fails if it comes back.
 
 A select whose answers belong to **several families** prints a **head** over each one — the ring's
-*Colours*, *Tools* and *Widths*, with *Remove* under *Leave it out*, the heads the window's chooser
-already prints. A head names a family: it is never a choice, and the two shells name the same families
-in the same order.
+*Colours*, *Tools* and *Widths*, with *Remove* under *Leave it out*. A head names a family, never a choice,
+and both shells name the same families in the same order.
 
