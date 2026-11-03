@@ -99,9 +99,12 @@ fun TabStrip(
                         base = if (active) DesktopTheme.tabFill else DesktopTheme.tabFillResting,
                     )
                     .tabEdge(active)
-                    .pointerInput(tab.key) {
+                    // Answered on the **press**: a tab that also offers a double-click (the rename) makes
+                    // `detectTapGestures` hold every single tap for the double-tap timeout, which read as a
+                    // ~300 ms slow switch — `Ctrl+Tab` never paid it.
+                    .pointerInput(tab.key, index) {
                         detectTapGestures(
-                            onTap = { onActivate(index) },
+                            onPress = { onActivate(index) },
                             onDoubleTap = { renamingKey = tab.key },
                         )
                     }

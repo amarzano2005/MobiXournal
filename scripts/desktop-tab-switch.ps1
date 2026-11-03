@@ -8,7 +8,13 @@ param(
     [int]$PlusY = 54,
     # A second **real** document, opened through `Ctrl+T` and the picker's own file field: a blank tab hides
     # half the cost of a switch, and a document the window never drew hides the other half.
-    [string]$SecondDoc = ""
+    [string]$SecondDoc = "",
+    # Switch by **clicking** a tab, which is the gesture a person makes and one no key can stand in for: a tab
+    # that also offers a double-click holds its single tap for the double-tap timeout, a cost `Ctrl+Tab`
+    # never pays. The two x positions alternate, so every trial is a real switch of direction.
+    [switch]$Click,
+    [int]$TabY = 54,
+    [int[]]$TabClickX = @(160, 380)
 )
 
 # **Tab-switch latency, measured on the running window.**
@@ -176,7 +182,14 @@ $settles = New-Object System.Collections.Generic.List[double]
 for ($i = 0; $i -lt $Trials; $i++) {
     $from = Fingerprint
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    [TabWin]::CtrlTab()
+    if ($Click) {
+        # `Click` holds the button 120 ms and waits 60 more before it returns, so **every** reading below
+        # carries that 180 ms of probe in it — the same 180 ms in both arms of a comparison, which is what
+        # the reading is for (a press-and-release split made the click miss and the trials empty).
+        [TabWin]::Click(($left + $TabClickX[$i % $TabClickX.Count]), ($top + $TabY))
+    } else {
+        [TabWin]::CtrlTab()
+    }
     $first = -1
     $last = $from
     $quietSince = -1
