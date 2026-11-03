@@ -59,7 +59,9 @@ internal fun SheetOverlays(
             canvas = if (canvas == Size.Zero) Size(viewW * density, viewH * density) else canvas,
         )
     }
-    if (selectionBounds == null && !selectionBar.hasClipboard) return
+    // The bar exists for a selection, and — with nothing caught — as a bare **paste button** for the tools
+    // that pick elements (see `SelectionBarUi.selectTool`).
+    if (selectionBounds == null && !(selectionBar.hasClipboard && selectionBar.selectTool)) return
     SelectionBarHost(
         bar = selectionBar,
         selectionBounds = selectionBounds,

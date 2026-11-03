@@ -13,6 +13,7 @@ import com.mobixournal.desktop.tools.StripPill
 import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.GlassPresence
 
+import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -71,6 +72,14 @@ import kotlin.math.roundToInt
 data class SelectionBarUi(
     val hasSelection: Boolean = false,
     val hasClipboard: Boolean = false,
+    /**
+     * Whether the **pick tools** are in hand (marquee or lasso).
+     *
+     * The bar's paste stand-in belongs to them and only them: with a pen in hand a full clipboard is not
+     * something the hand is doing on this page, so nothing stands on the sheet for it. The commands are
+     * unaffected — `Ctrl+V` still pastes whatever the tool.
+     */
+    val selectTool: Boolean = true,
     /** Two or more caught elements: something to align against. */
     val canAlign: Boolean = false,
     /** Three or more: the two ends already define a distribution. */
@@ -147,9 +156,17 @@ internal fun SelectionBarHost(
     canvas: Size,
 ) {
     if (canvas.width <= 0f || canvas.height <= 0f) return
-    val box = Size(barWidth(BAR_BUTTONS, BAR_DIVIDERS, density), barHeight(density))
-    when {
-        selectionBounds != null -> SelectionBar(bar) {
+    // **One** bar, whichever state the canvas is in: the same composable shrinks to the paste button when
+    // nothing is caught and grows back under the outline, so no frame is left with the old surface torn
+    // down and the new one not yet placed — which is what read as a flicker.
+    val pillOnly = selectionBounds == null
+    val box = if (pillOnly) {
+        Size(barWidth(PASTE_ONLY_BUTTONS, 0, density), barHeight(density))
+    } else {
+        Size(barWidth(BAR_BUTTONS, BAR_DIVIDERS, density), barHeight(density))
+    }
+    SelectionBar(bar) {
+        if (selectionBounds != null) {
             selectionBarOffset(
                 bounds = selectionBounds,
                 pxPerPt = zoom * density,
@@ -158,8 +175,10 @@ internal fun SelectionBarHost(
                 bar = box,
                 gapPx = 8f * density,
             )
-        }
-        bar.hasClipboard -> SelectionBar(bar) {
+        } else {
+            // The stand-in keeps the page's bottom-centre and is measured as the one square it draws, so
+            // it sits centred: a full bar of dimmed buttons under the sheet claimed eight commands while
+            // seven of them could not act.
             IntOffset(
                 ((canvas.width - box.width) / 2f).roundToInt().coerceAtLeast(0),
                 (canvas.height - box.height - 12f * density).roundToInt().coerceAtLeast(0),
@@ -184,7 +203,11 @@ internal fun SelectionBar(
     var recolourOpen by remember { mutableStateOf(false) }
     val recolourGuard = remember { DismissGuard() }
     if (!ui.hasSelection && !ui.hasClipboard) return
-    Box(modifier.offset { placement() }) {
+    // The placement **glides**: the bar's own width changes when a selection appears (a paste square ↔
+    // eight), and the correction lands a frame late, so a hard switch flashed it at the paste spot before
+    // snapping it under the outline.
+    val at by animateIntOffsetAsState(placement(), label = "selectionBarPlace")
+    Box(modifier.offset { at }) {
         Row(
             Modifier
                 // A bar that floats over the sheet is a capsule, not a band: it takes the capsule's
@@ -194,53 +217,60 @@ internal fun SelectionBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            BarButton(ChromeGlyph.CUT, ui.enabled(SelectionAction.CUT), "Cut", "Ctrl+X") { ui.onAction(SelectionAction.CUT) }
-            BarButton(ChromeGlyph.COPY, ui.enabled(SelectionAction.COPY), "Copy", "Ctrl+C") { ui.onAction(SelectionAction.COPY) }
+            // Paste is the bar's one command that needs **no** selection, so it is the only square the
+            // stand-in draws: with nothing caught the bar *is* the paste button, not a bar of dimmed
+            // squares that say nothing.
+            if (ui.hasSelection) {
+                BarButton(ChromeGlyph.CUT, ui.enabled(SelectionAction.CUT), "Cut", "Ctrl+X") { ui.onAction(SelectionAction.CUT) }
+                BarButton(ChromeGlyph.COPY, ui.enabled(SelectionAction.COPY), "Copy", "Ctrl+C") { ui.onAction(SelectionAction.COPY) }
+            }
             BarButton(ChromeGlyph.PASTE, ui.enabled(SelectionAction.PASTE), "Paste", "Ctrl+V") { ui.onAction(SelectionAction.PASTE) }
-            BarButton(ChromeGlyph.DUPLICATE, ui.enabled(SelectionAction.DUPLICATE), "Duplicate", "Ctrl+D") {
-                ui.onAction(SelectionAction.DUPLICATE)
-            }
-            BarDivider()
-            BarButton(
-                ChromeGlyph.RECOLOUR,
-                ui.enabled(SelectionAction.RECOLOUR),
-                "Recolour",
-                "",
-                active = recolourOpen,
-            ) { recolourOpen = !recolourOpen && recolourGuard.mayOpen(Unit) }
-            BarButton(ChromeGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "") {
-                ui.onAction(SelectionAction.WIDTH)
-            }
-            Box {
+            if (ui.hasSelection) {
+                BarButton(ChromeGlyph.DUPLICATE, ui.enabled(SelectionAction.DUPLICATE), "Duplicate", "Ctrl+D") {
+                    ui.onAction(SelectionAction.DUPLICATE)
+                }
+                BarDivider()
                 BarButton(
-                    // The tablet's own align button wears FormatAlignLeft; the catalogue's left-aligned
-                    // lines are that picture, so the menu opens from the same mark on both shells.
-                    ChromeGlyph.ALIGN_LEFT,
-                    ui.enabled(SelectionAction.ALIGN_LEFT),
-                    "Align & distribute",
+                    ChromeGlyph.RECOLOUR,
+                    ui.enabled(SelectionAction.RECOLOUR),
+                    "Recolour",
                     "",
-                    active = alignOpen,
-                ) { alignOpen = !alignOpen && alignGuard.mayOpen(Unit) }
-                GlassPresence(alignOpen) {
-                    AlignMenu(ui) {
-                        alignGuard.closed(Unit)
-                        alignOpen = false
+                    active = recolourOpen,
+                ) { recolourOpen = !recolourOpen && recolourGuard.mayOpen(Unit) }
+                BarButton(ChromeGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "") {
+                    ui.onAction(SelectionAction.WIDTH)
+                }
+                Box {
+                    BarButton(
+                        // The tablet's own align button wears FormatAlignLeft; the catalogue's left-aligned
+                        // lines are that picture, so the menu opens from the same mark on both shells.
+                        ChromeGlyph.ALIGN_LEFT,
+                        ui.enabled(SelectionAction.ALIGN_LEFT),
+                        "Align & distribute",
+                        "",
+                        active = alignOpen,
+                    ) { alignOpen = !alignOpen && alignGuard.mayOpen(Unit) }
+                    GlassPresence(alignOpen) {
+                        AlignMenu(ui) {
+                            alignGuard.closed(Unit)
+                            alignOpen = false
+                        }
                     }
                 }
-            }
-            BarDivider()
-            BarButton(ChromeGlyph.EDIT, ui.enabled(SelectionAction.EDIT), ui.editLabel.ifEmpty { "Edit" }, "") {
-                ui.onAction(SelectionAction.EDIT)
-            }
-            BarButton(ChromeGlyph.DELETE, ui.enabled(SelectionAction.DELETE), "Delete", "Del") {
-                ui.onAction(SelectionAction.DELETE)
+                BarDivider()
+                BarButton(ChromeGlyph.EDIT, ui.enabled(SelectionAction.EDIT), ui.editLabel.ifEmpty { "Edit" }, "") {
+                    ui.onAction(SelectionAction.EDIT)
+                }
+                BarButton(ChromeGlyph.DELETE, ui.enabled(SelectionAction.DELETE), "Delete", "Del") {
+                    ui.onAction(SelectionAction.DELETE)
+                }
             }
         }
         // Nowhere near the button: the strip hangs from the **bar**, left edge on left edge, so it stands
         // exactly as wide as the surface that opened it instead of running off to the right of the button
         // in the middle of the row.
         val dropPx = with(LocalDensity.current) { 44.dp.roundToPx() }
-        GlassPresence(recolourOpen) {
+        GlassPresence(recolourOpen && ui.hasSelection) {
             GlassPopup(
                 offset = IntOffset(0, dropPx),
                 onDismissRequest = { recolourGuard.closed(Unit); recolourOpen = false },
@@ -373,6 +403,9 @@ private val BAR_GLYPH = 18.dp
 internal const val BAR_BUTTONS = 8
 internal const val BAR_DIVIDERS = 2
 
+/** The stand-in draws **Paste** and nothing else, so its width is one square with no divider. */
+internal const val PASTE_ONLY_BUTTONS = 1
+
 /**
  * The availability a document gives the bar, in one place: what the shell hands [SelectionBar] so the UI
  * holds no rule of its own. A test can call this on a real tab.
@@ -380,6 +413,7 @@ internal const val BAR_DIVIDERS = 2
 internal fun selectionBarUi(
     tab: DesktopTab?,
     clipboard: DesktopClipboard,
+    selectTool: Boolean = true,
     palette: List<Int> = emptyList(),
     onPickColour: (Int) -> Unit = {},
     onAction: (SelectionAction) -> Unit = {},
@@ -394,6 +428,7 @@ internal fun selectionBarUi(
     return SelectionBarUi(
         hasSelection = !refs.isEmpty(),
         hasClipboard = !clipboard.isEmpty || clipboard.hasSystemImage(),
+        selectTool = selectTool,
         canAlign = refs.size >= 2,
         canDistribute = refs.size >= 3,
         canEdit = element != null,

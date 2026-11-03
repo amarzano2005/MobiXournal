@@ -204,8 +204,11 @@ from Android 13 the platform's copy banner announced one over the page, so the a
 (shared by both panes) while content pasted in from elsewhere still arrives through the system one.
 **Recolour** opens the same slim swatch strip the tablet shows — one line under the bar, no title — and a
 picked swatch restyles what is caught; **Line width** still takes the value the strip's own ink would write. The bar rides below the outline (above it when the page ends below),
-clamped inside the canvas, and stands at the page's bottom centre carrying **Paste** when nothing is
-selected. A control the selection cannot support is dimmed and does nothing (`docs/interface-contract.md`
+clamped inside the canvas; with nothing caught it shrinks to the **Paste button alone** at the page's
+bottom centre, and only while a pick tool (marquee or lasso) is in hand — the commands keep working
+whatever the tool, so `Ctrl+V` still pastes with the pen picked. Both states are **one** surface placed
+on an animated offset (`animateIntOffsetAsState`), so a new selection grows the pill into the bar while
+it glides under the ink; a hard switch flicked one surface out and the other in on the same frame. A control the selection cannot support is dimmed and does nothing (`docs/interface-contract.md`
 §5); the rules live in `SelectionBarUi`, so a JVM test reads them rather than a screen.
 
 **A living element's own grips** are the on-page half of its editor (`LivingGrips.kt`): a parametric figure

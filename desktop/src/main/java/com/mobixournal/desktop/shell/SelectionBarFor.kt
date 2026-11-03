@@ -3,6 +3,15 @@ package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.sheet.SelectionBarUi
 import com.mobixournal.desktop.sheet.restyleSelection
 import com.mobixournal.desktop.sheet.selectionBarUi
+import com.mobixournal.desktop.tools.DesktopTool
+
+/**
+ * The tools that **pick** elements: the window's marquee and lasso, which are the tablet's select tools.
+ *
+ * They alone own the bar's paste stand-in — the one command the bar can offer with nothing caught — so a
+ * hand holding the pen never finds a surface standing on the sheet it is writing on.
+ */
+private val SELECTION_TOOLS = setOf(DesktopTool.MARQUEE, DesktopTool.LASSO)
 
 /**
  * The bar under the selection's outline: what it can do, and the commands it runs.
@@ -19,6 +28,7 @@ internal fun selectionBarFor(state: DesktopShellState, tab: DesktopTab): Selecti
     selectionBarUi(
         tab = tab,
         clipboard = state.clipboard,
+        selectTool = state.tools.current in SELECTION_TOOLS,
         palette = state.palette,
         onPickColour = { colour ->
             restyleSelection(tab, colour = colour) { index -> state.edited(tab, index) }

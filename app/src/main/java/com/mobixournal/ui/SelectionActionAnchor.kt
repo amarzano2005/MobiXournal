@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
@@ -103,6 +104,11 @@ fun SelectionActionAnchor(
         gapPx = gapPx,
         marginPx = marginPx,
     )
+    // The placement **glides** instead of jumping. The bar changes shape the instant a selection appears
+    // (Paste alone ↔ the whole set), and its own size only lands a frame after the content does — so the
+    // first frame is placed with yesterday's width. A hard switch flashed the bar at the paste spot before
+    // snapping it under the selection; animating the offset turns that flash into one move.
+    val placed by animateIntOffsetAsState(offset, label = "selectionBarPlace")
     SelectionActionBar(
         hasSelection = rect != null,
         canPaste = canPaste,
@@ -142,7 +148,7 @@ fun SelectionActionAnchor(
             }
         },
         modifier = modifier
-            .offset { IntOffset(offset.x, offset.y) }
+            .offset { placed }
             .alpha(appear)
             .onSizeChanged { barSize = it },
     )
