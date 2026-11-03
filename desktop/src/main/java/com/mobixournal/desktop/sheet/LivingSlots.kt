@@ -95,7 +95,9 @@ internal fun placeLivingElement(
 ): Boolean {
     val index = tab.page
     val page = runCatching { tab.document.page(index) }.getOrNull() ?: return false
-    val (appended, refs) = SelectionOps.addToTopLayerOn(page, listOf(element))
+    // The tab's **active layer**, as the tablet writes a fresh placement: the reader's pick, not always the
+    // top sheet.
+    val (appended, refs) = SelectionOps.addToLayerOn(page, listOf(element), tab.inkLayer(page))
     if (refs.isEmpty()) return false
     val before = tab.document.snapshot()
     if (tab.document.editPage(index) { appended } == null) return false

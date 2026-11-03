@@ -391,17 +391,28 @@ object SelectionOps {
      *
      * @return the edited page and the [ElementRef]s of the appended elements on it.
      */
-    fun addToTopLayerOn(page: Page, elements: List<Element>): Pair<Page, Set<ElementRef>> {
+    fun addToTopLayerOn(page: Page, elements: List<Element>): Pair<Page, Set<ElementRef>> =
+        addToLayerOn(page, elements, (page.layers.size - 1).coerceAtLeast(0))
+
+    /**
+     * [addToTopLayerOn] on a **named** layer: the append lands on [layer] instead of the top one, which
+     * is what an editor with an *active* layer means — new ink goes where the reader pointed, not always
+     * to the stack's last sheet. An index the page does not have falls back to the top layer, the rule the
+     * tablet's own `resolvedActiveLayer` keeps.
+     *
+     * @return the edited page and the [ElementRef]s of the appended elements on it.
+     */
+    fun addToLayerOn(page: Page, elements: List<Element>, layer: Int): Pair<Page, Set<ElementRef>> {
         if (elements.isEmpty()) return page to emptySet()
         val layers = page.layers
-        val topIndex = (layers.size - 1).coerceAtLeast(0)
-        val base = layers.lastOrNull()?.elements?.size ?: 0
-        val newLayers = if (layers.isEmpty()) {
-            listOf(Layer(elements.toList()))
-        } else {
-            layers.toMutableList().also { it[topIndex] = Layer(it[topIndex].elements + elements, it[topIndex].name) }
+        if (layers.isEmpty()) return page.copy(layers = listOf(Layer(elements.toList()))) to
+            elements.indices.map { ElementRef(0, it) }.toSet()
+        val target = if (layer in layers.indices) layer else layers.lastIndex
+        val base = layers[target].elements.size
+        val newLayers = layers.toMutableList().also {
+            it[target] = Layer(it[target].elements + elements, it[target].name)
         }
-        val refs = elements.indices.map { ElementRef(topIndex, base + it) }.toSet()
+        val refs = elements.indices.map { ElementRef(target, base + it) }.toSet()
         return page.copy(layers = newLayers) to refs
     }
 

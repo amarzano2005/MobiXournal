@@ -562,7 +562,7 @@ private fun commitShape(
     val stroke = shapeStroke(points, ink.colour, ink.width, ink.lineStyle) ?: return
     val index = tab.page
     val before = tab.document.snapshot()
-    tab.document.editPage(index) { page -> page.withElement(stroke) }
+    tab.document.editPage(index) { page -> page.withElement(stroke, tab.inkLayer(page)) }
     tab.record(before)
     onEdited(index)
 }

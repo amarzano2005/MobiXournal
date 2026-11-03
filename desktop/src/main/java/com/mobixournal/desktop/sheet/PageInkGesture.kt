@@ -384,7 +384,9 @@ internal class PageInkGesture(
         val before = tab.document.snapshot()
         val shape = figure?.let { ParametricShapes.elementFor(it, ink.colour, sampleWidth(samples)) }
         val wrote = if (shape != null) {
-            tab.document.editPage(index) { page -> page.withElement(shape) } != null
+            // New ink lands on the tab's **active layer**, the tablet's rule: a layer picked in the Layers
+            // menu is the one being written on, not always the stack's last sheet.
+            tab.document.editPage(index) { page -> page.withElement(shape, tab.inkLayer(page)) } != null
         } else {
             val stroke = strokeOf(drawnTool, ink.colour, ink.width, samples, ink.lineStyle)
                 ?: return
@@ -393,7 +395,7 @@ internal class PageInkGesture(
             // differently. A paused take stamps nothing, and neither does a take running in **another
             // tab** (`DesktopAudioSession.stamp`, which asks the shared `ownsRecording` rule).
             val stamped = DesktopAudioSession.stamp(tab)?.let { stroke.withAudio(it) } ?: stroke
-            tab.document.editPage(index) { page -> page.withElement(stamped) } != null
+            tab.document.editPage(index) { page -> page.withElement(stamped, tab.inkLayer(page)) } != null
         }
         if (!wrote) return
         tab.record(before)
@@ -411,7 +413,7 @@ internal class PageInkGesture(
             if (stamp != null && element is com.mobixournal.format.model.Stroke) element.withAudio(stamp) else element
         }
         val edited = tab.document.editPage(index) { page ->
-            written.fold(page) { grown, element -> grown.withElement(element) }
+            written.fold(page) { grown, element -> grown.withElement(element, tab.inkLayer(grown)) }
         }
         if (edited == null) return false
         tab.record(before)

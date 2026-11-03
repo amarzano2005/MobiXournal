@@ -276,7 +276,8 @@ deletes/renames/reorders/merges-down layers and moves a selection between them (
 lower layer's name, and drops the emptied upper layer), while the *active*
 layer (where new ink lands) and per-layer *visibility* are view-only editor state on the surface —
 visibility just skips a layer in `PageRenderer.drawElements`, so it never touches the file. The UI for
-all four lives in the rail's **Tool** (shapes, eraser mode) and **Layers** pop-ups
+all four lives in the rail's **Tool** (shapes, eraser mode) and **Layers** pop-ups, and on the window in the
+**Layers** door beside Pages ([desktop-workstation.md](desktop-workstation.md))
 (`SideToolbar`); line style sits in the **Colour & size** pop-up. Fill has no control at all any
 more: nothing sets it, so a stroke drawn in this app is never flooded — while the *format* keeps
 `<stroke fill>`, so a document that already carries it still reads, renders and re-saves untouched

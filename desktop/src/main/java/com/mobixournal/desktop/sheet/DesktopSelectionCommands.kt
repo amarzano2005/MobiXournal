@@ -197,7 +197,10 @@ private fun appendSelected(
     val dx = if (box == null || origin == null) 0.0 else origin.first - box.left
     val dy = if (box == null || origin == null) 0.0 else origin.second - box.top
     val moved = if (dx == 0.0 && dy == 0.0) elements else elements.map { SelectionOps.translate(it, dx, dy) }
-    val (appended: Page, refs: Set<ElementRef>) = SelectionOps.addToTopLayerOn(page, moved)
+    // Pasted ink lands on the tab's **active layer**, like a stroke: the tablet's own rule, so a paste
+    // into a document with a picked layer does not jump to the top of the stack.
+    val (appended: Page, refs: Set<ElementRef>) =
+        SelectionOps.addToLayerOn(page, moved, tab.inkLayer(page))
     if (refs.isEmpty()) return false
     val before = tab.document.snapshot()
     if (tab.document.editPage(index) { appended } == null) return false

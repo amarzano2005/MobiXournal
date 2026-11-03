@@ -13,6 +13,7 @@ import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.GlassPresence
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -105,6 +106,12 @@ internal fun Header(
      * last tool.
      */
     pages: PageMenuActions = PageMenuActions(),
+    /**
+     * The **Layers** door, inside the same capsule as Pages and to its right: the tablet's layer manager
+     * ([LayersPanel]), so a page's stack is one click from the band on a desk as it is from the rail on a
+     * tablet.
+     */
+    layers: LayerMenuActions = LayerMenuActions(),
 ) {
     val tab = tabs.active
     Row(
@@ -141,7 +148,7 @@ internal fun Header(
             onNew = onNew,
             modifier = Modifier.weight(1f),
         )
-        HeaderSearchSlot(tab, pages, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+        HeaderSearchSlot(tab, pages, layers, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
         // The history pair sits **halfway** between the field and the audio capsule: one gap on each
         // side, the same one, so the two steps read as their own group rather than as the field's tail.
         Spacer(Modifier.width(HEADER_GROUP_GAP))
@@ -175,19 +182,20 @@ private fun HeaderFileCommands(tab: DesktopTab?, onSave: () -> Unit, onExportPdf
 }
 
 /**
- * The band's two document controls: the **pages' menu**, then the **search field**, which stands there
- * always.
+ * The band's two document controls: the **document capsule** — Pages and, to its right, Layers — and the
+ * **search field**, which stands there always.
  *
  * The field used to be a magnifier that opened it, and a magnifier is a second thing to learn for a door
  * `Ctrl+F` already names; a field that is simply on the band takes the band's spare width beside the tabs
  * and moves neither the tabs nor the file commands when it is used (`docs/desktop-ui-layout.md`). The
- * pages' menu stands on its left, because the page is what the reader is looking at: adding, removing or
+ * capsule stands on its left, because the page is what the reader is looking at: adding, removing or
  * stepping one is a command of the frame, and the strip keeps the tools.
  */
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
     tab: DesktopTab?,
     pages: PageMenuActions,
+    layers: LayerMenuActions,
     onSearch: (String) -> Unit,
     onSearchNext: () -> Unit,
     onSearchPrevious: () -> Unit,
@@ -195,32 +203,107 @@ private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
 ) {
     if (tab != null) {
         Spacer(Modifier.width(10.dp))
-        HeaderPagesSlot(pages)
+        HeaderDocumentCapsule(pages, layers)
         Spacer(Modifier.width(6.dp))
         HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
     }
 }
 
 /**
- * The **Pages** door: the tablet's page section button on the band, opening the six rows of
- * [PageMenuPanel] under it — the page's commands from the place the reader looks for the document rather
- * than for the tools.
+ * The **document capsule**: one capsule with the two doors that act on the page's frame — **Pages** on the
+ * left, its **Layers** manager on the right.
+ *
+ * It was Pages alone on a 36 dp capsule, and the layer commands had no door at all on the band (a layer
+ * could be hidden from the sidebar and nothing else could be done to it). Widening the capsule is the
+ * tablet's own arrangement read literally — its rail puts Layers beside Pages — without a second capsule
+ * the reader has to learn: the two glyphs share the family's fill, lift and rim, and a hairline between
+ * them says "two doors, one object" (`docs/interface-contract.md` §1, §3).
+ *
+ * The menu a half opens is anchored **under that half**, so Pages opens where Pages is and Layers opens
+ * where Layers is, and each half keeps its own open state and its own dismissal — one control that opens
+ * a surface is also the control that closes it.
  */
 @Composable
-private fun HeaderPagesSlot(pages: PageMenuActions) {
+private fun HeaderDocumentCapsule(pages: PageMenuActions, layers: LayerMenuActions) {
+    val anyEnabled = pages.canManage || layers.canManage
+    // An unavailable pair on paper is **its two muted glyphs alone**, the rule one disabled header control
+    // already follows: a capsule that cannot be pressed would be the grey patch the owner saw on the band.
+    val surface = if (!anyEnabled && DesktopTheme.isLight) {
+        Modifier.clip(RoundedCornerShape(DesktopTheme.headerControlSize / 2))
+    } else {
+        Modifier.glassCapsule(
+            cornerRadius = DesktopTheme.headerControlSize / 2,
+            fill = DesktopTheme.control,
+            shadow = DesktopTheme.bandShadow,
+        )
+    }
+    Row(Modifier.height(DesktopTheme.headerControlSize).then(surface)) {
+        HeaderDoor(
+            enabled = pages.canManage,
+            glyph = ChromeGlyph.DESCRIPTION,
+            menu = { close -> PageMenuPanel(pages, close) },
+        )
+        // The hairline that makes one object out of two doors: 18 dp inside a 36 dp capsule, so the fill
+        // still reads as one shape around both.
+        Box(Modifier.width(1.dp).height(18.dp).background(DesktopTheme.hairline))
+        HeaderDoor(
+            enabled = layers.canManage,
+            glyph = ChromeGlyph.LAYERS,
+            menu = { close -> LayersPanel(layers, close) },
+        )
+    }
+}
+
+/**
+ * One **door** of that capsule: a glyph with its own hover step, its own picked fill and its own menu.
+ *
+ * The lit plate is a capsule inset 2 dp inside the shared one, so the state layer follows the shape the
+ * pointer sees and the two halves cannot paint a rectangle inside a rounded object
+ * (`docs/interface-contract.md` §6). A disabled door keeps its glyph, in the muted ink, and takes no
+ * pointer at all — a click on it is not a command that did nothing.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun HeaderDoor(
+    enabled: Boolean,
+    glyph: ChromeGlyph,
+    menu: @Composable (close: () -> Unit) -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
+    var hovered by remember { mutableStateOf(false) }
     // The click that closes the menu must not open it again (see [DismissGuard]).
     val guard = remember { DismissGuard() }
     val density = LocalDensity.current
     val drop = with(density) { (DesktopTheme.headerControlSize + 4.dp).roundToPx() }
+    val fill = when {
+        open && enabled -> DesktopTheme.activeSlot
+        hovered && enabled -> DesktopTheme.hoverSlot
+        else -> Color.Transparent
+    }
     Box {
-        HeaderGlyph(
-            active = open,
-            enabled = pages.canManage,
-            onClick = {
-                if (open) open = false else if (guard.mayOpen(Unit)) open = true
-            },
-        ) { color -> drawChromeGlyph(ChromeGlyph.DESCRIPTION, color) }
+        Box(
+            Modifier
+                .size(DesktopTheme.headerControlSize)
+                .onPointerEvent(PointerEventType.Enter) { hovered = true }
+                .onPointerEvent(PointerEventType.Exit) { hovered = false }
+                .pointerInput(enabled, open) {
+                    if (enabled) {
+                        detectTapGestures {
+                            if (open) open = false else if (guard.mayOpen(Unit)) open = true
+                        }
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                Modifier
+                    .size(DesktopTheme.headerControlSize - 4.dp)
+                    .background(fill, DesktopTheme.capsuleShape),
+            )
+            Canvas(Modifier.size(DesktopTheme.headerGlyphSize)) {
+                drawChromeGlyph(glyph, if (enabled) DesktopTheme.chromeInk else DesktopTheme.inkMuted)
+            }
+        }
         GlassPresence(open) {
             GlassPopup(
                 offset = IntOffset(0, drop),
@@ -230,7 +313,7 @@ private fun HeaderPagesSlot(pages: PageMenuActions) {
                 },
                 properties = FloatingSurface,
             ) {
-                PageMenuPanel(pages) { open = false }
+                menu { open = false }
             }
         }
     }

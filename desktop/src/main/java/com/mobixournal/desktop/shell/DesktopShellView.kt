@@ -118,6 +118,9 @@ internal fun DesktopShell(
             onSearchClose = { state.closeSearch() },
             // The pages' menu on the band: the one set of page commands, left of the search field.
             pages = state.stripState.pages,
+            // The Layers door, inside that same capsule and to the right of Pages: the page's stack, and
+            // every edit the tablet's own manager offers (`DesktopLayers`).
+            layers = state.layerActions,
             // The menu's Search row still runs `Ctrl+F`'s command; the field itself is always on the band.
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -168,6 +171,8 @@ private fun BoxScope.WorkspaceBody(state: DesktopShellState, tablet: DesktopTabl
     PageSetupHost(state)
     ImportPdfHost(state)
     PageRangeHost(state)
+    // The rename card: the layer menu's one question that needs the keyboard.
+    LayerRenameHost(state)
     CloseDialogHost(state)
     DragHoverOverlay(state.isDragHovering)
 }

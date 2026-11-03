@@ -87,6 +87,14 @@ enum class ChromeGlyph {
     /** A sheet of ruled text: the tablet's **Pages** section, the menu of what a page can be. */
     DESCRIPTION,
 
+    /**
+     * Stacked sheets: the **Layers** door, which stands to the right of Pages on both shells.
+     *
+     * The tablet's `Icons.Outlined.Layers` transcribed, so the window draws the phone's own picture of
+     * the page's stack rather than a second stack of its own.
+     */
+    LAYERS,
+
     /** The layer eye, open. */
     VISIBILITY,
 
@@ -207,6 +215,9 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.DESCRIPTION ->
             "M8 16h8v2L8 18ZM8 12h8v2L8 14ZM14 2L6 2c-1.1 0 -2 0.9 -2 2v16c0 1.1 0.89 2 1.99 2L18 " +
                 "22c1.1 0 2 -0.9 2 -2L20 8l-6 -6ZM18 20L6 20L6 4h7v5h5v11Z"
+        ChromeGlyph.LAYERS ->
+            "M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 " +
+                "7 1.63 1.27L12 16z"
         ChromeGlyph.VISIBILITY ->
             "M12 6c3.79 0 7.17 2.13 8.82 5.5C19.17 14.87 15.79 17 12 17s-7.17 -2.13 -8.82 -5.5C4.83 " +
                 "8.13 8.21 6 12 6m0 -2C7 4 2.73 7.11 1 11.5C2.73 15.89 7 19 12 19s9.27 -3.11 11 " +

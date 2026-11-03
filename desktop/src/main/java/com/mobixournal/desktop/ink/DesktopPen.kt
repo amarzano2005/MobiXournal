@@ -251,10 +251,20 @@ fun pagePointOf(xPx: Float, yPx: Float, density: Float, viewport: Viewport): Pai
     ((xPx / density - viewport.offsetX) / viewport.zoom).toDouble() to
         ((yPx / density - viewport.offsetY) / viewport.zoom).toDouble()
 
-/** [page] with [element] added on top of its **top layer** — where a new stroke lands. */
-fun Page.withElement(element: Element): Page {
+/** [page] with [element] added on top of its **top layer** — where a new stroke lands by default. */
+fun Page.withElement(element: Element): Page = withElement(element, layers.lastIndex.coerceAtLeast(0))
+
+/**
+ * [page] with [element] added on [layer] — the tab's **active layer**, where new ink lands.
+ *
+ * An index the page does not have falls back to the top layer, so a layer deleted in another window (or
+ * by an undo) cannot cost the stroke that was being drawn.
+ */
+fun Page.withElement(element: Element, layer: Int): Page {
     val layers = layers.ifEmpty { listOf(Layer(emptyList())) }
-    val top = layers.lastIndex
-    val grown = layers.toMutableList().also { it[top] = Layer(it[top].elements + element, it[top].name) }
+    val target = if (layer in layers.indices) layer else layers.lastIndex
+    val grown = layers.toMutableList().also {
+        it[target] = Layer(it[target].elements + element, it[target].name)
+    }
     return copy(layers = grown)
 }

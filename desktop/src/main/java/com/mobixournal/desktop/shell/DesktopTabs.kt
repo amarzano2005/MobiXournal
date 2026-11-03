@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mobixournal.format.model.Page
 import com.mobixournal.render.EditHistory
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.Uncompilable
@@ -229,6 +230,31 @@ class DesktopTab(
     fun toggleLayer(page: Int, layer: Int) {
         val current = hidden[page].orEmpty()
         hidden[page] = if (layer in current) current - layer else current + layer
+    }
+
+    /**
+     * The layer the reader **picked** as the one new ink lands on, or -1 while none has been picked.
+     *
+     * View state like a hidden layer: which layer is being written on is what the reader is looking at, not
+     * a fact about the file — nothing about it is saved, and one undo does not have to restore it. -1 is the
+     * tablet's "no layer chosen": [inkLayer] resolves it to the page's top layer, which is where ink went
+     * before there was a manager.
+     */
+    var activeLayer: Int by mutableStateOf(-1)
+        private set
+
+    /**
+     * Where new ink lands on [page]: [activeLayer] when the page has it, else the top layer — the same
+     * fallback the tablet's `resolvedActiveLayer` keeps, so a layer deleted by an undo cannot cost a stroke.
+     */
+    fun inkLayer(page: Page): Int {
+        if (page.layers.isEmpty()) return 0
+        return if (activeLayer in page.layers.indices) activeLayer else page.layers.lastIndex
+    }
+
+    /** Write new ink on [index] from now on; -1 goes back to the page's top layer. */
+    fun pickActiveLayer(index: Int) {
+        activeLayer = if (index < 0) -1 else index
     }
 
     val file: File get() = document.file

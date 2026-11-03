@@ -49,10 +49,11 @@ What it does today:
   bar names the fit in use, `Ctrl + 0` still means the whole sheet, and a width-fitted page stays fitted
   while you read down it. Thumbnails come from the
   same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
-  once per page per tab.  The sidebar's layer list carries an **eye per layer** (`LayerEye`): switching one off skips it in the
-  painter *and* in the thumbnail, and the layer stays listed in the muted ink — switched off, not gone.
-  That is **view** state, per tab and page (`DesktopTab.hiddenOn`), nothing written to the file; a hidden
-  layer's thumbnail is painted fresh, so a preview never shows a layer the sheet is missing.
+  once per page per tab.  The sidebar's layer list carries an **eye per layer** (`LayerEye`): switching one off
+  skips it in the painter *and* in the thumbnail, and it stays listed in the muted ink — switched off, not gone;
+  that is **view** state, per tab and page (`DesktopTab.hiddenOn`), nothing written to the file. The same stack
+  has a door on the band — **Layers**, in the capsule beside Pages — where the picked layer wears the steel and
+  receives new ink, and the rows add, rename, reorder, merge, delete and carry a selection onto it, one step each.
   A thumbnail is painted **once the hand stops**, on the sidebar's own lane: an edit drops the page's
   bitmap and `thumbnailRevision` re-renders it 600 ms later — **29–39 ms** a page, where painting it in
   composition dropped a frame at every pause between two words. It goes onto a **raster Skia surface**
@@ -267,7 +268,6 @@ the numbers).
 
 ### What the window does not do
 
-- No layer editing (hiding one is view state, above).
 - No search inside a **picture** (no text layer); typed text, PDF words and ink are ([search.md](search.md)).
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
   the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.

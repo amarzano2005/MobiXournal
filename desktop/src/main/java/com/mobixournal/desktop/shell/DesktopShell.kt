@@ -425,6 +425,9 @@ class DesktopShellState(
     /** The page **list**'s commands — add, remove, step (`DesktopPages.kt`). */
     internal val pagesSection = DesktopPages(tabs, ::edited, { defaultPageSize }) { pagesChanged(it) }
 
+    /** The **layers** of the page in view — add, rename, reorder, merge, pick (`DesktopLayers.kt`). */
+    internal val layersSection = DesktopLayers(tabs, ::edited)
+
     /** The section of the page-setup surface that is up, or null while it is closed. */
     val pageSetup: PageSetupSection? get() = pageSetupState.section
 
