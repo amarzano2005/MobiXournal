@@ -245,12 +245,24 @@ guidelines, chart types and per-stack implementation notes — including **Jetpa
 the two stacks this product ships on. It is committed like `skills/todo` because it is text and scripts
 only (no binaries), so a clone needs no per-machine install.
 
+**When it is consulted.** Before a UI change lands, as the *checklist*: it names the markers a page can
+carry without anyone deciding to (a weight the family does not ship, body text under 12 sp, one ellipsis
+spelled two ways, an icon control with no accessible name, a press state that shifts layout, a gradient
+used as decoration). It supplies rules to check against and never the verdict —
+`docs/interface-contract.md` decides, and where the two disagree the contract wins, because its 36/40 dp
+controls and its one-glyph catalogue are recorded decisions rather than drift.
+
 ```sh
-# `python` on this box is the Microsoft Store stub (AGENTS.md, Profile D): call the real interpreter.
-PY='C:\Users\amarz\AppData\Local\Python\bin\python.exe'
-"$PY" skills/ui-ux-pro-max/scripts/search.py "dark glass capsules" --domain style --max-results 3
-"$PY" skills/ui-ux-pro-max/scripts/search.py "layer panel" --stack jetpack-compose
+scripts/design.sh --domain ux "modal keyboard focus"
+scripts/design.sh --domain style "tool app chrome"
+scripts/design.sh --domain typography "dense toolbar type scale"
+scripts/design.sh --design-system "tablet note-taking editor"
 ```
+
+`scripts/design.sh` finds a real Python 3.8+ and **refuses the Store stub** (AGENTS.md, Profile D), so
+no interpreter path is pasted into a session, and `DESIGN_PYTHON` overrides the search. `--domain`
+answers well; `--stack jetpack-compose` is thin in the shipped CSV, so an empty result there is the
+corpus rather than the install.
 
 `skills/ui-ux-pro-max/SKILL.md` is the orchestrator; its six sibling skills (`banner-design`, `brand`,
 `design`, `design-system`, `slides`, `ui-styling`) sit beside it. **No Node toolchain is installed on
