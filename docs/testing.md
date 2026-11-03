@@ -118,6 +118,13 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   edge the guard reads out of the tree — with the container role it used to paint banned by name in the
   same file, so a second surface cannot slip in with an ad-hoc fill; and `AppShapes.extraLarge` — the
   role Material's `AlertDialog` reads — must be the menus' own corner.
+- **`TypeContractGuardTest`** (`guards/`) — the tablet asks only for weights the family ships. `Type.kt`
+  builds Inter from three faces (400, 500, 700), so a `SemiBold` (600) request is answered by the nearest
+  neighbour the renderer has: a label meant to sit one step quieter than a title came out at 700, and the
+  window — whose rule this already was (`DesktopTheme.tab`, `DesktopThemeTest`) — drew the same label in
+  another weight than the tablet did. The sweep reads every `.kt` under the tablet's `ui` package for a
+  weight outside those three (a numeric `FontWeight(600)` included), and a second check proves the sweep
+  read the chrome instead of an empty path.
 - **`SystemBarsGuardTest`** (`guards/`) — mechanical guard asserting that all Kotlin assignments and
   XML theme declarations for `statusBarColor` and `navigationBarColor` use transparent values, ensuring
   the full-bleed canvas reaches the device edges without opaque system bar bands.
