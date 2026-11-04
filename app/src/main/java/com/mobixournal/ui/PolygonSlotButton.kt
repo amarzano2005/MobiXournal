@@ -76,12 +76,14 @@ internal fun PolygonSlotButton(
                 modifier = Modifier.size(ToolIconSize * 0.9f),
             )
             // The figure itself is drawn from this number, so the slot says which one it is. It rides
-            // the button's top-left edge at the **window's own inset and size** (four in, two down,
-            // 9 sp), a hair inside the rim so the slot's rounded corner cannot crop the digits and a
-            // clear step off the drawing in the middle — at 3 dp/1 dp/10 sp it sat on the glyph.
+            // the button's top-left corner **exactly as the window's slot prints it**: the label role
+            // with tabular figures, nine sp, four in and two down. Inheriting the body role here put a
+            // 24 sp line box around a 9 sp numeral, and the number settled down over the glyph — the
+            // inset alone was never the whole of the desktop's position.
             Text(
                 text = "$sides",
                 color = tint,
+                style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
                 fontSize = 9.sp,
                 modifier = Modifier
                     .align(Alignment.TopStart)
