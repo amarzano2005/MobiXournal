@@ -97,7 +97,7 @@ left off with — `lastColor`/`lastWidth`, re-pushed onto a freshly created surf
 its pref key. The **Select** tool adds a rail entry and a floating action bar; its
 mechanics are in [`selection.md`](selection.md#selecting-objects-render).
 
-**The theme is a select.** **Appearance → Mode** is one row with the answer in hand and a chevron that opens *System*, *Light* and *Dark* (`AppearanceSection.kt`, `OptionGroup`) — the grammar every other choice on these pages keeps, rather than three chips printed on the page for a decision nobody makes twice.
+**The theme is a select, on the Interface page itself.** *Appearance* is not a door: a page holding one answer and one switch is a level of indirection the reader pays for twice, so `SettingsSection.inline` draws its two rows **where the section used to be listed** — the entry keeps its place in the area's card. The row *is* the mode: the answer in hand and a chevron onto *System*, *Light* and *Dark* (`OptionGroup`), with the **Use system colours** switch under it. A search hit for "dark" or "wallpaper" still opens the same two rows as a page of their own.
 
 **A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About** ends in a door rather than a cross-reference: the tablet's page links to the project's repository (`ProjectLinks`, `mobix-core`), and the window's About row opens the same page in the machine's browser, so a reader looking for the other shell reaches its releases instead of reading a version number.
 

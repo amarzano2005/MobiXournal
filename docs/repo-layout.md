@@ -271,7 +271,7 @@ app/
       SettingsSearch.kt      # which sections answer a query, by title/summary/alias keywords (pure)
       SettingsWidgets.kt     # the shared settings controls (switches, option groups, key fields)
       ShortcutsSection.kt    # the Shortcuts page: the two toggles + one key per tool and per pen colour; FingerGesturesSection.kt: the Finger gestures page (what a still two- and three-finger tap runs)
-      AppearanceSection.kt   # the Appearance page: theme mode and wallpaper (dynamic) colours
+      AppearanceSection.kt   # the theme select and the wallpaper (dynamic) colours: two rows drawn on the Interface page, not a page of their own
       BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework; an import is refused unless it is a compatible backup
       AboutSection.kt        # the About page and the links it sends people to
       AppSettings.kt         # AppSettings model + SettingsStore (SharedPreferences persistence)

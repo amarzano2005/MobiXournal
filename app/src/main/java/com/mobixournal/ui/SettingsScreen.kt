@@ -116,6 +116,12 @@ enum class SettingsSection(
     val keywords: String,
     /** The glyph the section's row carries, so a list of sections is read at a glance. */
     val icon: ImageVector,
+    /**
+     * The section's controls are drawn **on its area's page**, in place of the row that would open them: a
+     * page holding one answer and one switch is a level of indirection the reader pays for twice, and they
+     * still reach it by search — this flag only decides how the area list draws the entry (`SectionRows`).
+     */
+    val inline: Boolean = false,
 ) {
     /** Stylus and finger input settings: pressure curve, barrel buttons, hover, finger drawing. */
     STYLUS(
@@ -194,6 +200,7 @@ enum class SettingsSection(
         "appearance interface theme dark light system dynamic color colour " +
             "material you wallpaper",
         SettingsGlyph.APPEARANCE.imageVector(),
+        inline = true,
     ),
     /**
      * Documents: the format a new document is written in — the standing answer to the question the
@@ -344,7 +351,7 @@ private fun TwoPaneSettings(
                 when {
                     section != null -> SectionBody(section, settings, onChange)
                     query.isNotEmpty() -> SearchResultRows(query, results, onSection)
-                    else -> SectionRows(shownArea, onSection)
+                    else -> SectionRows(shownArea, settings, onChange, onSection)
                 }
             }
         }
@@ -388,7 +395,7 @@ private fun StackedSettings(
         ) {
             when {
                 openSection != null -> SectionBody(openSection, settings, onChange)
-                openArea != null -> SectionRows(openArea, onSection)
+                openArea != null -> SectionRows(openArea, settings, onChange, onSection)
                 else -> {
                     // The search lives on the index: it is the one page both shapes share, and the
                     // answer to "where is this setting" is a section, not an area.
@@ -444,13 +451,26 @@ private fun SectionBody(
     }
 }
 
-/** An area's own list: what it covers, then one card holding its sections. */
+/**
+ * An area's own list: what it covers, then one card holding its sections. A section marked
+ * [SettingsSection.inline] draws its controls here rather than a door to a page of its own — the entry keeps
+ * its place in the card, so the list reads as the one it always was.
+ */
 @Composable
-private fun SectionRows(area: SettingsArea, onOpen: (SettingsSection) -> Unit) {
+private fun SectionRows(
+    area: SettingsArea,
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    onOpen: (SettingsSection) -> Unit,
+) {
     SettingsNote(area.summary, Modifier.padding(start = 4.dp, bottom = 12.dp))
     SettingsCard {
         area.sections.forEachIndexed { index, entry ->
-            SectionRow(entry.title, entry.summary, entry.icon) { onOpen(entry) }
+            if (entry.inline) {
+                SectionBody(entry, settings, onChange)
+            } else {
+                SectionRow(entry.title, entry.summary, entry.icon) { onOpen(entry) }
+            }
             if (index < area.sections.size - 1) {
                 SettingsDivider()
             }
