@@ -43,6 +43,18 @@ internal class PageListDrag(private val rowHeightPx: Float) {
     /** The shift that keeps the lifted page under a finger the list is scrolling beneath. */
     fun shift(scrollPx: Float): Float = scrollPx - startScroll
 
+    /**
+     * The lifted row's top in **viewport** pixels, lift included — where the eye sees the page.
+     *
+     * It is the layout position the row would have (`index * rowHeight - scroll`) plus the lift, which is
+     * why it settles to `index * rowHeight + travel - startScroll`: **pinned to the finger**, and therefore
+     * unchanged however far the list walks underneath. That is what lets [PageListAutoScroll] keep its strip
+     * test true while the finger rests — reading the un-compensated layout position instead put the row back
+     * into the middle of the list after one row of travel, so the scroll began and straight away stopped.
+     */
+    fun liftedTop(index: Int, scrollPx: Float): Float =
+        index * rowHeightPx - scrollPx + offset + shift(scrollPx)
+
     /** The row the page would land on right now, clamped to the document. */
     fun landing(scrollPx: Float, pageCount: Int): Int? {
         val start = from ?: return null
@@ -94,15 +106,13 @@ internal fun PageListAutoScroll(
             val seconds = ((now - last) / 1e9f).coerceIn(0f, 0.05f)
             last = now
             val from = drag.from ?: break
-            if (viewportPx <= 0) continue
-            val top = from * rowHeightPx - scrollPxOf(listState, rowHeightPx) + drag.offset
-            val bottom = top + rowHeightPx
-            val step = when {
-                top < edgePx -> -speedPx * ((edgePx - top) / edgePx).coerceIn(0f, 1f)
-                bottom > viewportPx - edgePx ->
-                    speedPx * ((bottom - viewportPx + edgePx) / edgePx).coerceIn(0f, 1f)
-                else -> 0f
-            }
+            val step = autoScrollStep(
+                liftedTopPx = drag.liftedTop(from, scrollPxOf(listState, rowHeightPx)),
+                rowHeightPx = rowHeightPx,
+                viewportPx = viewportPx,
+                edgePx = edgePx,
+                speedPx = speedPx,
+            )
             if (step != 0f) listState.scrollBy(step * seconds)
         }
     }
@@ -111,3 +121,27 @@ internal fun PageListAutoScroll(
 /** The list's scroll offset in content px: every row is the same height, so this is exact. */
 internal fun scrollPxOf(state: LazyListState, rowHeightPx: Float): Float =
     state.firstVisibleItemIndex * rowHeightPx + state.firstVisibleItemScrollOffset
+
+/**
+ * How fast the list should walk, in px **per second**, given where the lifted row sits on screen: negative
+ * near the top edge, positive near the bottom, zero anywhere else in the middle.
+ *
+ * Pure, and the reason this can be tested at all: how the row's position answers the list's scrolling is
+ * [PageListDrag.liftedTop]'s business, and this is only the strip's arithmetic.
+ */
+internal fun autoScrollStep(
+    liftedTopPx: Float,
+    rowHeightPx: Float,
+    viewportPx: Int,
+    edgePx: Float,
+    speedPx: Float,
+): Float {
+    if (viewportPx <= 0) return 0f
+    val bottom = liftedTopPx + rowHeightPx
+    return when {
+        liftedTopPx < edgePx -> -speedPx * ((edgePx - liftedTopPx) / edgePx).coerceIn(0f, 1f)
+        bottom > viewportPx - edgePx ->
+            speedPx * ((bottom - viewportPx + edgePx) / edgePx).coerceIn(0f, 1f)
+        else -> 0f
+    }
+}

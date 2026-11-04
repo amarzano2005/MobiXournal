@@ -78,6 +78,31 @@ class PageListMoveTest {
     }
 
     @Test
+    fun aLiftedPageStaysUnderTheFingerWhileTheListWalks() {
+        val drag = PageListDrag(rowHeightPx = 64f)
+        drag.start(0, scrollPx = 0f)
+        drag.by(600f)
+        // Seven rows scroll under the page while the finger rests: the strip test must read the same, or
+        // the auto-scroll stops as soon as it starts (the bug this test exists for).
+        assertEquals(
+            "the page's screen position does not follow the list",
+            drag.liftedTop(0, scrollPx = 0f),
+            drag.liftedTop(0, scrollPx = 448f),
+        )
+    }
+
+    @Test
+    fun theStripKeepsAskingForAStepWhileThePageRestsInIt() {
+        // A page held 40 px above the bottom of a 500 px list.
+        val top = 500f - 64f - 40f
+        val step = autoScrollStep(top, rowHeightPx = 64f, viewportPx = 500, edgePx = 56f, speedPx = 600f)
+        assertEquals(true, step > 0f)
+        // The same place asks for the same step every frame, which is what keeps the list walking.
+        assertEquals(step, autoScrollStep(top, 64f, 500, 56f, 600f))
+        assertEquals("and the middle of the list asks for nothing", 0f, autoScrollStep(200f, 64f, 500, 56f, 600f))
+    }
+
+    @Test
     fun aDragStopsAtTheDocumentEdges() {
         val drag = PageListDrag(rowHeightPx = 64f)
         drag.start(1, scrollPx = 0f)
