@@ -173,7 +173,7 @@ only in the Colour & size pop-up — the separate **Style** rail slot was
 removed — so a dashed pen is one tap away as in the desktop's pen options. The
 pop-up itself is deliberately compact: one **horizontally scrolling** row of swatches
 (`ColorPaletteRows(compact = true)`, ending in the add-colour swatch that appends to `penColors` and
-selects the new colour — the row scrolls so the menu's height never changes with the palette's size),
+selects the new colour — the row is measured from the swatches it holds, so the pop-up opens wide enough to show every colour instead of cutting the last one off its edge, and only a palette past the cap scrolls, so the menu's height never changes with its size),
 the three tip sizes as one bar of small boxes (`WidthSlotBar`) and line style as one row of chips
 (`LineStyleChips`). **Which positions the rail shows, and in what order**, is data too
 (`RailItems.kt`):
