@@ -47,6 +47,7 @@ array of `[[task]]` tables. A task carries **more** metadata rather than less:
 | `tags`        | TODO             | freeform string list                                |
 | `rebuild`     | TODO             | rebuild the Android app for this task? (default `true`) |
 | `emulator_debug` | TODO          | run the full emulator verify loop for this task? (default `false`) |
+| `design`      | both             | the declaration a closed task made against `docs/interface-contract.md` — written by `done`, required there (`none: why` when the task has no interface surface) |
 
 `release` is the one field that separates *shipped* work from work still on its way out, and it is
 what makes a changelog correct: the archive holds **every** finished task forever, so without the
@@ -126,6 +127,11 @@ newest-`completed`-first.
   a long one): the archive is history, so a finished entry that still says "will move the save point"
   is a plan wearing a completion date. Omitting it  is refused and moves nothing. Implementation: `todo.py` (`_shipped_text`); regression check:
   `python3 scripts/todo/test_done.py`.
+  **A design declaration is required as well** — `--design "material: …; states: …"` (or
+  `--design-file`), or `--design "none: why this task has no interface surface"` — because a UI change
+  is closed by saying what it verified, not by having meant to. Format and enforcement:
+  `docs/tools.md` (*Closing a UI change*); implementation `scripts/todo/design.py`; regression check
+  `python3 scripts/todo/test_design.py`.
 - **`release`** `--version X.Y.Z` `[--date D] [--through D] [--no-changelog]
   [--bump-gradle] [--force] [--dry-run]` — **freeze a release**: stamp every pending archive task
   with the version, record `latest_release` in the archive meta, and write the draft

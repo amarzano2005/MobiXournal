@@ -26,6 +26,7 @@ import os
 import re
 import sys
 
+import design
 import release
 import store
 
@@ -232,6 +233,39 @@ def _shipped_text(args):
     return text
 
 
+def _design_text(args, root=None):
+    """What the closed task declared about the interface checklist (see `design.py`).
+
+    `docs/interface-contract.md` says what a new interface element must satisfy, and until this
+    existed nothing asked anyone to answer it: a change closed without opening the checklist left
+    the same trace as one that had been through every line. The declaration is that answer, written
+    in the contract's own words, and it is **required** - a caller who cannot say which lines they
+    verified has not finished a UI change - because the archive is the only place the answer outlives
+    the session that made it. `none: why` is the escape for a task with no interface surface.
+    """
+    if args.design and args.design_file:
+        sys.exit("pass --design or --design-file, not both")
+    text = args.design
+    if args.design_file:
+        try:
+            with io.open(args.design_file, encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError as exc:
+            sys.exit(f"cannot read --design-file: {exc}")
+    if text is None:
+        sys.exit(
+            'done needs the DESIGN declaration: --design "material: ...; states: ..." '
+            '(or --design-file PATH), or --design "none: why this task has no interface surface". '
+            'docs/interface-contract.md is checked before a UI change lands - name the axes you '
+            'verified, and cite the rule you checked when you can. Format: docs/tools.md, '
+            '*Closing a UI change*.'
+        )
+    problems = design.problems(text, root=root)
+    if problems:
+        sys.exit("\n".join(problems))
+    return design.normalise(text)
+
+
 def cmd_done(args, root=None):
     """Archive a finished task with the summary of what it delivered.
 
@@ -244,6 +278,7 @@ def cmd_done(args, root=None):
     if not task:
         sys.exit(f"no active task with id {args.id!r}")
     shipped = _shipped_text(args)
+    declaration = _design_text(args, root)
     todo["tasks"] = [t for t in todo["tasks"] if t.get("id") != args.id]
     task["status"] = store.STATUS_FINISHED
     task["completed"] = (
@@ -253,6 +288,7 @@ def cmd_done(args, root=None):
         task.pop(stray, None)
     # The archive says what the task **delivered**; the plan it came from is not the record.
     task["description"] = shipped
+    task["design"] = declaration
     done["tasks"].insert(0, task)  # newest first
     store.save_todo(todo, todo_path)
     store.save_finished(done, fin_path)
@@ -385,12 +421,13 @@ def cmd_versions(args):
         sys.exit("these versions are not releasable")
 
 
-def cmd_validate(args):
+def cmd_validate(args, root=None):
+    """Lint both files; ``root`` lets ``test_design.py`` drive a temp checkout (the CLI never passes it)."""
     problems = []
     seen = {}
     for label, (_, doc), finished in (
-        ("TODO", _load_todo(), False),
-        ("FINISHED", _load_finished(), True),
+        ("TODO", _load_todo(root), False),
+        ("FINISHED", _load_finished(root), True),
     ):
         for task in doc["tasks"]:
             problems += _validate_task(label, task, finished, seen)
@@ -407,6 +444,8 @@ def _validate_task(label, task, finished, seen):
     for field in ("id", "title", "description", "status"):
         if not task.get(field):
             out.append(f"{where}: missing {field}")
+    if task.get("design"):
+        out += [f"{where}: {problem}" for problem in design.problems(task["design"])]
     if tid in seen:
         out.append(f"{where}: duplicate id (also in {seen[tid]})")
     elif tid:
@@ -632,6 +671,12 @@ def build_parser():
                     help="what the task delivered (required): files, behaviour, tests, docs")
     dn.add_argument("--shipped-file", metavar="PATH",
                     help="read that summary from a file instead of the command line")
+    dn.add_argument("--design", metavar="TEXT",
+                    help="what the change verified against docs/interface-contract.md "
+                         "(required): `axis: answer` clauses, or `none: why` for a task with no "
+                         "interface surface")
+    dn.add_argument("--design-file", metavar="PATH",
+                    help="read that declaration from a file instead of the command line")
     dn.add_argument("--date", help="completion date YYYY-MM-DD (default: today)")
     dn.set_defaults(func=cmd_done)
 

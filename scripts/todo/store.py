@@ -41,6 +41,9 @@ DEFAULT_LEVEL = "task"
 # `release` is archive-only too, and it is what separates shipped work from work
 # pending the next version: absent means "pending", a version string means it
 # shipped there. `todo.py release --version X.Y.Z` writes it (see release.py).
+#
+# `design` is the declaration `done` requires of every task: what the change
+# verified against `docs/interface-contract.md` (`design.py` owns the format).
 _TASK_FIELDS = (
     "id",
     "title",
@@ -56,6 +59,7 @@ _TASK_FIELDS = (
     "tags",
     "rebuild",
     "emulator_debug",
+    "design",
 )
 
 _TODO_HEADER = """\

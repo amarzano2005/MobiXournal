@@ -33,6 +33,8 @@ _FAILURES = []
 PLAN = ("Will give each tab a save point in its history, add a dot to the strip and ask "
         "before closing; the snapshot will live beside the settings file.")
 
+DESIGN = "material: unchanged; states: unchanged"
+
 
 def check(condition, label):
     status = "ok  " if condition else "FAIL"
@@ -69,9 +71,11 @@ def active(task_id="t", **extra):
     return task
 
 
-def args(task_id="t", shipped=None, shipped_file=None):
+def args(task_id="t", shipped=None, shipped_file=None, design_text=DESIGN):
+    # `done` also requires the design declaration; these checks are about the summary, so they hand
+    # in the smallest valid one (its own edges are covered by `test_design.py`).
     return argparse.Namespace(id=task_id, shipped=shipped, shipped_file=shipped_file,
-                              date=None)
+                              design=design_text, design_file=None, date=None)
 
 
 def shipped_read(tmp):

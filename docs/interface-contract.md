@@ -260,7 +260,7 @@ with hand-picked durations, and no animation on a band.
 
 ## Checklist
 
-Before a UI change is called done, every line is true:
+Before a UI change is called done, every line is true — and `todo.py done` will not close the task until the answers are declared ([`tools.md`](tools.md), *Closing a UI change*):
 
 - [ ] the surface is a band, a capsule or a floating surface — and it takes that class's full recipe
 - [ ] every colour, radius and size is a token; no literals were added

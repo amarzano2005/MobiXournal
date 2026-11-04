@@ -17,7 +17,7 @@ you pull in a spoke only when the task touches it, instead of reading everything
 | **What's already done** (completed-work archive) | `FINISHED.toml` (via the `todo` skill) |
 | **How to work here** (conventions, decisions, host profile) | `AGENTS.md` (this file) |
 | **How the system works internally** (data flow, layout, all spokes) | `docs/architecture.md` — the **index** of the architecture spokes |
-| **What every new UI element must satisfy** (material, colour, states, glyphs, tests; the checklist is `scripts/design.sh`) | `docs/interface-contract.md` |
+| **What every new UI element must satisfy** (material, colour, states, glyphs, tests; the checklist is `scripts/design.sh` and `done` needs its declaration) | `docs/interface-contract.md` |
 | **Native `.mobix` format & `.xopp` bridge policy** | `docs/mobix-format.md`, `docs/mobix-schema-spec.md`, `docs/mobix-elements.md` |
 | **How a user runs/uses it** (setup, build & run) | `README.md`               |
 | **External tools & build pipelines** (Android, deploy, device harnesses) | `docs/tools.md` |

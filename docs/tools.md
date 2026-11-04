@@ -16,7 +16,7 @@ lives, how to invoke it, and the non-obvious gotchas.
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
 | Desktop shell | Run/test the Compose Multiplatform desktop preview (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [below](#cutting-a-release) |
-| UI/UX Pro Max | Design data and its search script, vendored in `skills/` | [below](#uiux-pro-max-design-skill) |
+| UI/UX Pro Max | Design data, its search script, and the declaration that closes a UI change | [below](#uiux-pro-max-design-skill) |
 
 ---
 
@@ -279,3 +279,22 @@ corpus rather than the install.
 `design`, `design-system`, `slides`, `ui-styling`) sit beside it. **No Node toolchain is installed on
 this box**, so the upstream installers (`npx skills add`, `uipro init`) cannot run here: the folders are
 taken from the upstream repo's `.claude/skills/` and refreshed the same way.
+
+## Closing a UI change
+
+`docs/interface-contract.md` owns what a change must satisfy; this is the half a machine holds. **`done`
+refuses to archive a task without a design declaration**, so a change that touched the interface records
+which lines it verified instead of leaving the question to memory.
+
+```sh
+scripts/todo.sh done <id> --shipped "what shipped" \
+    --design "material: capsule in the ribbon's lane; states: hover and focus added"
+scripts/todo.sh done <id> --shipped "..." --design "none: docs only, no interface surface"
+```
+
+A declaration is `axis: answer` clauses split by `;` (or one per line, in `--design-file`), in the contract's own checklist words: `material`,
+`tokens`, `glyph`, `states`, `copy`, `keyboard`, `parity`, `docs`, `tests`. Two answers are the minimum, an
+empty one is refused, and an unknown axis is refused with the vocabulary. A `rule: <Category>/<Issue>`
+clause cites the corpus and every id must exist in `ux-guidelines.csv` — checked there, skipped where the
+skill is not vendored. It cannot read a screenshot, only that the question was asked and answered.
+Implementation `scripts/todo/design.py`; regression check `python3 scripts/todo/test_design.py`, run by CI.
