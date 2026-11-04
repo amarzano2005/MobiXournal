@@ -233,6 +233,12 @@ opening a blank document — that is what makes "nothing open" a state at all. A
 when the document is opened (`EntryPreviews`), so the screen reads a PNG instead of parsing a document
 to draw itself, and the list is `entry_recents`, six at most and de-duplicated by URI.
 
+The two states **hand the window over** rather than swap in place: whichever surface arrives grows in from
+94 % on the app's spring and fades over 160 ms, so opening a notebook reads as a page landing on the desk
+and closing the last tab lands back on the entry screen instead of cutting to it (`DocumentArea`). Only the
+arriving surface is animated — the one leaving is drawn from live state, and a closed document has nothing
+left to paint.
+
 **A live slot wears its plate.** The tool in play is marked twice: its slot fills with `primaryContainer`
 and its glyph turns `primary` — in the Secondary Toolbar's compact slots and on the rail alike. The rail's
 panel slots (Pages, Layers) take the rail's slot shape rather than a circle, so a pressed panel has the

@@ -392,17 +392,18 @@ fun EditorScreen(
                         )
                     }
                 }
-                // **Nothing open** is the entry screen, the tablet's copy of the window's: with no tab in
-                // the pane there is no page to paint, and a blank sheet nobody asked for is not a state.
-                if (nothingOpen) {
-                    NotebookEntryScreen(
-                        recents = recents,
-                        onNew = onNewDocument,
-                        onOpen = onOpen,
-                        onOpenRecent = { notebook -> onOpenRecent(notebook.uri) },
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                    )
-                } else {
+                DocumentArea(
+                    empty = nothingOpen,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    entry = {
+                        NotebookEntryScreen(
+                            recents = recents,
+                            onNew = onNewDocument,
+                            onOpen = onOpen,
+                            onOpenRecent = { notebook -> onOpenRecent(notebook.uri) },
+                        )
+                    },
+                ) {
                     EditorBody(
                         ui = ui,
                         pane = pane,
@@ -414,7 +415,7 @@ fun EditorScreen(
                         onSurfaceCreated = onSurfaceCreated,
                         onPickImage = onPickImage,
                         paneChrome = paneChrome,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }
