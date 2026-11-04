@@ -65,6 +65,39 @@ class PageListMoveTest {
         assertEquals(0, calls)
     }
 
+    // --- the drag: the finger, the list scrolling under it, and where the page lands ---
+
+    @Test
+    fun aDragMeasuresItsLandingInContentPixels() {
+        val drag = PageListDrag(rowHeightPx = 64f)
+        drag.start(2, scrollPx = 0f)
+        drag.by(128f) // two rows down
+        assertEquals(4, drag.landing(scrollPx = 0f, pageCount = 10))
+        // The list walked two rows under the finger, so the same page now claims two rows further.
+        assertEquals(6, drag.landing(scrollPx = 128f, pageCount = 10))
+    }
+
+    @Test
+    fun aDragStopsAtTheDocumentEdges() {
+        val drag = PageListDrag(rowHeightPx = 64f)
+        drag.start(1, scrollPx = 0f)
+        drag.by(-1000f)
+        assertEquals(0, drag.landing(scrollPx = 0f, pageCount = 5))
+        drag.by(10_000f)
+        assertEquals(4, drag.landing(scrollPx = 0f, pageCount = 5))
+    }
+
+    @Test
+    fun aFinishedDragClaimsNoRowAndNoShift() {
+        val drag = PageListDrag(rowHeightPx = 64f)
+        assertNull("nothing is being dragged yet", drag.landing(scrollPx = 0f, pageCount = 5))
+        drag.start(1, scrollPx = 640f)
+        drag.by(32f)
+        assertEquals("a scroll back to where the drag began shifts nothing", 0f, drag.shift(640f))
+        drag.cancel()
+        assertNull(drag.landing(scrollPx = 0f, pageCount = 5))
+    }
+
     @Test
     fun aSinglePageStepsOnePlaceDown() {
         assertEquals(3, pickedMoveTarget(setOf(2), 1, 5))

@@ -121,7 +121,12 @@ preview is the text the annotations sit on rather than a bare card. The number a
 the page; the box **picks** it, because a tap that navigates is not a tap that selects; the handle
 **carries** it, and while it travels the page is **lifted** and the row it would land on wears the accent
 line along its top edge (`PageOps.moveAll` on drop, the block rule the window's drag uses) — the drag
-lives on the handle, since a row that started a drag on any touch would be a row that cannot be scrolled. The two
+lives on the handle, since a row that started a drag on any touch would be a row that cannot be scrolled.
+Near either end of the list the drag **scrolls it** too (`PageListDrag`, `PageListAutoScroll`): the strip is
+56 dp deep, the walking speed grows with how far into it the page is, and both the lift and the landing
+line are measured in content pixels — the finger's travel plus the list's — so neither falls behind a list
+that moves under the hand. A drag that starts on a **picked** row lifts the whole pick: every picked row
+travels with the finger, because the block is what moves (`PageOps.moveAll` moves it on drop). The two
 arrows under the list step the pick by one place and the bin takes it out (`PageOps.removeAll`, which
 refuses a pick covering the whole document), each as **one** undo step — and with **nothing picked** they
 act on the page in view, which is the plain case and needs no ceremony. Either command **carries** the

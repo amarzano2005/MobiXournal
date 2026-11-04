@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -53,6 +55,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -286,35 +289,46 @@ private fun ColumnScope.PageListRows(
     onGoToPage: (Int) -> Unit,
 ) {
     val rowHeightPx = with(LocalDensity.current) { PAGE_ROW_HEIGHT.toPx() }
-    var dragFrom by remember { mutableStateOf<Int?>(null) }
-    var dragOffset by remember { mutableFloatStateOf(0f) }
-    val landing = dragFrom?.let {
-        (it + (dragOffset / rowHeightPx).roundToInt()).coerceIn(0, pageCount - 1)
-    }
-    LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
+    val drag = remember(rowHeightPx) { PageListDrag(rowHeightPx) }
+    val listState = rememberLazyListState()
+    var viewportPx by remember { mutableIntStateOf(0) }
+    // The list walks under the page while it sits in either end strip, so a page can be carried across a
+    // long document without lifting the finger.
+    PageListAutoScroll(drag = drag, listState = listState, rowHeightPx = rowHeightPx, viewportPx = viewportPx)
+    // Read here so the lift and the landing line follow the list as it scrolls, not only the finger.
+    val scroll = scrollPxOf(listState, rowHeightPx)
+    val landing = drag.landing(scroll, pageCount)
+    // A drag that starts on a picked row carries the **whole pick**: every picked row lifts and travels
+    // together, because the block is what moves (`PageOps.moveAll` moves it on drop) and the finger is
+    // only holding one end of it.
+    val blockLift = picked.size > 1 && drag.from != null && drag.from in picked
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .onSizeChanged { viewportPx = it.height },
+    ) {
         items(pageCount) { index ->
+            val lifted = if (blockLift) index in picked else drag.from == index
             PageListRow(
                 index = index,
                 page = pages.getOrNull(index),
                 surface = surface,
                 inView = index == currentPage,
                 picked = index in picked,
-                lifted = dragFrom == index,
-                lift = if (dragFrom == index) dragOffset else 0f,
+                lifted = lifted,
+                lift = if (lifted) drag.offset + drag.shift(scroll) else 0f,
                 // The page would land on this row — and it is not already there.
-                landing = landing == index && landing != dragFrom,
+                landing = landing == index && landing != drag.from,
                 onGoTo = { onGoToPage(index) },
                 onToggle = { onSelection(if (index in picked) picked - index else picked + index) },
-                onDragStart = {
-                    dragFrom = index
-                    dragOffset = 0f
-                },
-                onDragBy = { dragOffset = it },
+                onDragStart = { drag.start(index, scrollPxOf(listState, rowHeightPx)) },
+                onDragBy = { drag.by(it) },
                 onDragEnd = {
-                    val from = dragFrom
-                    if (from != null) {
-                        val to = (from + (dragOffset / rowHeightPx).roundToInt())
-                            .coerceIn(0, pageCount - 1)
+                    val from = drag.from
+                    val to = drag.landing(scrollPxOf(listState, rowHeightPx), pageCount)
+                    if (from != null && to != null) {
                         // A handle on a picked row carries the whole pick; on any other row it carries
                         // that page alone. Either way the view stays on it.
                         if (from in picked && picked.size > 1) {
@@ -325,13 +339,9 @@ private fun ColumnScope.PageListRows(
                             onGoToPage(to)
                         }
                     }
-                    dragFrom = null
-                    dragOffset = 0f
+                    drag.cancel()
                 },
-                onDragCancel = {
-                    dragFrom = null
-                    dragOffset = 0f
-                },
+                onDragCancel = { drag.cancel() },
             )
         }
     }
@@ -556,18 +566,15 @@ private fun PageDragHandle(
             .size(DRAG_HANDLE_SIZE)
             .semantics { contentDescription = "Drag page ${index + 1}" }
             .pointerInput(index) {
-                var travelled = 0f
                 detectDragGestures(
-                    onDragStart = {
-                        travelled = 0f
-                        start.value()
-                    },
+                    onDragStart = { start.value() },
                     onDragEnd = { end.value() },
                     onDragCancel = { cancel.value() },
                     onDrag = { change, amount ->
                         change.consume()
-                        travelled += amount.y
-                        by.value(travelled)
+                        // A **delta**, not a total: the list adds them up itself, because it is the list
+                        // that knows how far it has scrolled underneath.
+                        by.value(amount.y)
                     },
                 )
             },
