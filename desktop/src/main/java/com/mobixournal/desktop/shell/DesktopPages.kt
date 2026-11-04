@@ -98,6 +98,14 @@ data class PageMenuActions(
     val pageSize: Pair<Double, Double>? = null,
     /** The unit the page format was set to — what the quick size prints its measure and step in. */
     val sizeUnit: PageSizeUnit = PageSizeUnit.MM,
+    /**
+     * The document's edit counter, read while this value was built.
+     *
+     * It is what makes the caller's composition depend on the page's **content**: `DesktopDocument.page`
+     * reads the model, which is not snapshot state, so a menu built without this kept printing the size the
+     * sheet had when it opened — the quick size's `+`/`−` resized the page while its numbers stood still.
+     */
+    val pageEdits: Int = 0,
     /** Resize the page in view, which is what the quick-size buttons hand back. */
     val onSize: (Double, Double) -> Unit = { _, _ -> },
     /** The paper's two live answers, printed at the end of the page's own two rows. */
@@ -496,6 +504,9 @@ internal class DesktopPages(
         val tab = active()
         val count = tab?.document?.pageCount ?: 0
         val at = tab?.page ?: 0
+        // Read here, in the value's own construction: `document.page` below reads the model, which is not
+        // snapshot state, so this counter is the one thing that subscribes the composing caller to an edit.
+        val edits = tab?.document?.edits ?: 0
         val page = tab?.let { runCatching { it.document.page(it.page) }.getOrNull() }
         return PageMenuActions(
             addPage = { addPage() },
@@ -512,6 +523,7 @@ internal class DesktopPages(
             pageSize = page?.let { it.width to it.height },
             onSize = onSize,
             sizeUnit = sizeUnit(),
+            pageEdits = edits,
             formatLabel = page?.let { pageFormatLabel(it.width, it.height, sizeUnit()) },
             backgroundLabel = page?.let { pageBackgroundLabel(it.background) },
             canStep = count > 1,

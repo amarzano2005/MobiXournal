@@ -17,6 +17,7 @@ import com.mobixournal.desktop.tools.FigureChoices
 import com.mobixournal.desktop.tools.ToolGroup
 import com.mobixournal.desktop.tools.orderedToolGroups
 import com.mobixournal.desktop.tools.toolNamed
+import com.mobixournal.render.PageSizeUnit
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,14 +70,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var query by mutableStateOf("")
         private set
 
-    /**
-     * True while the search field holds the keyboard.
-     *
-     * The page's own shortcuts are the window's, not the settings': with the field focused every letter is
-     * an answer to the search, and with nothing focused in the surface no page command may fire behind it
-     * either. It is also what arms the filter: [sections] narrows the index only while this is true, so a
-     * word left in a bar the reader has clicked away from hides nothing.
-     */
+    /** True while the search field holds the keyboard: the page's shortcuts stand down, and [sections] filters. */
     var typing by mutableStateOf(false)
 
     /** Where the tool strips stand — read by `PageWorkspace`, so a change re-lays them at once. */
@@ -115,12 +109,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var frameTime by mutableStateOf(store.frameTime)
         private set
 
-    /**
-     * Whether the window is on the whole screen (`F11`).
-     *
-     * Deliberately **not** stored: a window opens as a window, and a file that remembered "full screen"
-     * would take the desk from a reader who double-clicked a notebook. The rate it asks for is stored.
-     */
+    /** Whether the window is on the whole screen (`F11`) — deliberately not stored, so a file cannot take the desk. */
     var fullScreen by mutableStateOf(false)
         private set
 
@@ -161,6 +150,16 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** What a new tab is written as. */
     var newDocumentFormat by mutableStateOf(store.newDocumentFormat)
         private set
+
+    /** The unit the page format and the quick size are read in ([PageSizeUnit]), as both compose it. */
+    var pageSizeUnit by mutableStateOf(store.pageSizeUnit)
+        private set
+
+    /** Pick that unit and store it — the format section and the Pages menu read this one value. */
+    fun pickPageSizeUnit(unit: PageSizeUnit) {
+        store.pageSizeUnit = unit
+        pageSizeUnit = unit
+    }
 
     /** The strip's slot order, as the reader arranged it; the factory order when it is empty. */
     var toolOrder by mutableStateOf(store.toolOrder)
@@ -592,6 +591,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         aspectLock = store.aspectLock
         figures.reload()
         newDocumentFormat = store.newDocumentFormat
+        pageSizeUnit = store.pageSizeUnit
         toolOrder = store.toolOrder
         toggleEraserTool = toolNamed(store.toggleEraser, DesktopTool.ERASER)
         toggleSelectionTool = toolNamed(store.toggleSelection, DesktopTool.MARQUEE)

@@ -424,7 +424,7 @@ class DesktopShellState(
     private val pageSetupState = DesktopPageSetupState(tabs) { tab, index -> edited(tab, index) }
     /** The page **list**'s commands — add, remove, step (`DesktopPages.kt`). */
     internal val pagesSection = DesktopPages(
-        tabs, ::edited, { defaultPageSize }, sizeUnit = { settings.pageSizeUnit },
+        tabs, ::edited, { defaultPageSize }, sizeUnit = { prefs.pageSizeUnit },
     ) { pagesChanged(it) }
 
     /** The **layers** of the page in view — add, rename, reorder, merge, pick (`DesktopLayers.kt`). */

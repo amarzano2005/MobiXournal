@@ -116,8 +116,10 @@ internal fun BoxScope.PageSetupHost(state: DesktopShellState) {
                 onSpacing = state::setPageSpacingMm,
                 onSize = state::setPageSize,
                 defaultSize = state.defaultPageSize,
-                unit = state.settings.pageSizeUnit,
-                onUnit = { unit -> state.settings.pageSizeUnit = unit },
+                // The settings **state**, not the file: this is the value the menu and this section both
+                // compose from, so picking a unit re-reads every measure at once (`DesktopSettingsState`).
+                unit = state.prefs.pageSizeUnit,
+                onUnit = state.prefs::pickPageSizeUnit,
                 onSetDefault = state::setDefaultPageSize,
                 onDone = { state.closePageSetup() },
             )
