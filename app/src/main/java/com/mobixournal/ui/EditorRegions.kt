@@ -196,11 +196,8 @@ fun EditorTopBar(
                 TopAppBar(
                     navigationIcon = {
                     // The leading slot is exactly the rail's lane wide ([SideToolbarModernTotalWidth]), so the
-                    // figures' dock starts on the line the canvas starts on — one vertical edge down the window
-                    // from the bar's content to the page. In the current style the active tool indicator is the
-                    // dock's own cap (its face riding at the dock's leading end); in the standalone style
-                    // ([INDICATOR_AS_DOCK_CAP] off) it is this slot's own pill, and its width is fixed
-                    // ([TOP_BAR_INDICATOR_WIDTH]) so the dock cannot drift with the size letter in play.
+                    // dock starts on the line the canvas starts on; in the standalone style the active tool
+                    // indicator is this slot's own pill, at a fixed width so the dock cannot drift.
                         if (settings != null && railOnLeft && !ui.fullPage) {
                             if (!INDICATOR_AS_DOCK_CAP &&
                                 onSettingsChange != null &&
@@ -245,10 +242,9 @@ fun EditorTopBar(
                 val glassColor = rememberGlassSurfaceColor()
                 val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
-                // Order is deliberate: split view sits directly right of the search button, then the
-                // paired undo/redo. The two glyph-shaped file actions follow — a compact quick Export PDF
-                // and then Save, which lands the most-used of the two under the thumb at the far right —
-                // so neither costs a trip into the overflow menu.
+                // Order is deliberate: the page list and the search, then split view, then the paired
+                // undo/redo, then a compact Export PDF and Save — the most-used of them under the thumb.
+                PageListCapsuleFor(ui)
                 SearchControls(pane)
                 Surface(
                     shape = CircleShape,
@@ -900,8 +896,7 @@ fun TopBarToolsRow(
     val toolsRow = @Composable {
         Row(
             // In the backup style the cap is flush with the dock's edge, so the air at that end belongs to
-            // the tools row rather than to a padding wrapped around both of them; with the indicator out of
-            // the dock (the current style) this same padding is what gives both ends their air.
+            // the tools row; with the indicator outside the dock this same padding is what gives air.
             modifier = Modifier
                 .padding(horizontal = 6.dp)
                 .horizontalScroll(rememberScrollState()),
@@ -1041,18 +1036,27 @@ fun TopBarToolsRow(
                 .floatingRim(ModernTheme.capsuleCornerRadiusDp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // The rule stands between the preview and the figures, at whichever end the preview is.
                 if (INDICATOR_AS_DOCK_CAP) {
                     if (railOnLeft) {
                         indicator()
-                        if (items.isNotEmpty()) toolsRow()
+                        if (items.isNotEmpty()) {
+                            TopBarToolDivider()
+                            toolsRow()
+                        }
                     } else {
-                        if (items.isNotEmpty()) toolsRow()
+                        if (items.isNotEmpty()) {
+                            toolsRow()
+                            TopBarToolDivider()
+                        }
                         indicator()
                     }
                 } else if (items.isNotEmpty()) {
                     // The figures alone, so the tools row's own 6dp carries both ends where the cap used
-                    // to own one of them.
+                    // to own one of them — and the rule stands at the preview's end of them.
+                    if (railOnLeft) TopBarToolDivider()
                     toolsRow()
+                    if (!railOnLeft) TopBarToolDivider()
                 }
             }
         }
@@ -1351,8 +1355,7 @@ private fun toolbarPagesCallbacks(
     return ToolbarPagesCallbacks(
         pageCount = pane.pageCount,
         currentPage = pane.currentPage,
-        // A page added or removed moves every bookmark at or after it, so the flags stay on the pages
-        // they were put on (a page added goes *after* the one in view, a removal takes the one in view).
+        // A page added or removed moves every bookmark at or after it, so the flags stay on their pages.
         onAddPage = {
             surface?.addPage()
             pane.onBookmarksChange?.invoke(PageBookmarks.insertedAt(pane.bookmarks, pane.currentPage + 1))
@@ -1388,8 +1391,7 @@ private fun toolbarPagesCallbacks(
         onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
         onStationery = { surface?.applyStationery(it) },
         onMovePage = { delta ->
-            // The page in view travels one place and the view stays on it, so a move reads as the
-            // page moving rather than as the reader being sent somewhere else.
+            // The page travels one place and the view stays on it, so a move reads as the page moving.
             val from = pane.currentPage
             val to = (from + delta).coerceIn(0, (pane.pageCount - 1).coerceAtLeast(0))
             surface?.pageCommands?.movePages(setOf(from), to)
@@ -1398,8 +1400,6 @@ private fun toolbarPagesCallbacks(
         onOpenPageRange = {
             ui.pageRange = com.mobixournal.render.PageRanges.opening(pane.pageCount, pane.currentPage)
         },
-        pageListOpen = ui.pageListOpen,
-        onTogglePageList = { ui.pageListOpen = !ui.pageListOpen },
     )
 }
 

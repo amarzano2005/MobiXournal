@@ -227,6 +227,12 @@ internal class PageCommands(
     fun moveLayer(from: Int, to: Int) =
         editVisiblePage(resetViewState = true, op = { LayerOps.move(it, from, to) })
 
+    /**
+     * The pages as they are right now — a **read**, for the chrome's page list, whose previews are drawn
+     * from the live document rather than from a copy the list would have to keep in step with every edit.
+     */
+    fun pages(): List<Page> = document().pages
+
     // --- the two commit pipelines ----------------------------------------------------------------
 
     /**

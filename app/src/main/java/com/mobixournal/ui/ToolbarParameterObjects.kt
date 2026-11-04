@@ -56,10 +56,6 @@ data class ToolbarPagesCallbacks(
     val onMovePage: (delta: Int) -> Unit = {},
     /** Open the **Manage pages** card: a range of pages moved or removed in one undoable step. */
     val onOpenPageRange: () -> Unit = {},
-    /** Whether the lateral **page list** is showing down the rail's edge. */
-    val pageListOpen: Boolean = false,
-    /** Show or hide that list — the pages' multi-select and its move/delete commands live in it. */
-    val onTogglePageList: () -> Unit = {},
     /** The app's default page size (Settings ▸ Editor); backs the page-size dialog's **Default** tab. */
     val defaultPageSize: Pair<Double, Double>,
     val onSaveAsDefault: (Double, Double) -> Unit,

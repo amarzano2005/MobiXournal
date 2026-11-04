@@ -629,6 +629,8 @@ private fun PageListLane(ui: EditorUiState, pane: PaneState) {
         pageCount = pane.pageCount,
         currentPage = pane.currentPage,
         selection = ui.pageSelection,
+        // The live pages, so a row's preview is the page's own ink and paper.
+        pages = pane.surface?.pageCommands?.pages().orEmpty(),
         onSelection = { ui.pageSelection = it },
         onGoToPage = { pane.surface?.goToPage(it) },
         // One step, keeping the run together: the block starts `delta` places later, and `moveAll`
@@ -637,6 +639,8 @@ private fun PageListLane(ui: EditorUiState, pane: PaneState) {
             val target = pickedMoveTarget(ui.pageSelection, delta, pane.pageCount)
             if (target != null) pane.surface?.pageCommands?.movePages(ui.pageSelection, target)
         },
+        // A dropped row lands where the drag put it — one page, one step, one undo.
+        onReorder = { from, to -> pane.surface?.pageCommands?.movePages(setOf(from), to) },
         onDelete = {
             pane.surface?.pageCommands?.removePages(ui.pageSelection)
             ui.pageSelection = emptySet()

@@ -100,19 +100,21 @@ in view between the arrows that step it), two **quick sizes** that nudge the mea
 background* with their live answers printed at the end of the row and every row wearing its **glyph** in a
 leading slot, as the phone's menu items do. **Manage pages** is a section of its own at the foot on
 **both** shells — *Move page up*, *Move page down*, *Manage pages…* — so the rows the two shells share
-(quick size, add/remove, the page's two questions) stay adjacent, and the tablet adds one row the window
-does not need: *Page list*.
+(quick size, add/remove, the page's two questions) stay adjacent.
 
-**The tablet's page list.** The window keeps a page strip down its edge; the tablet opens one from that
-row (`PageListPanel`) and it docks **on the rail's side** — `EditorBody` places the lane between the
-rail's own lane and the canvas, so turning the toolbar to the right-hand edge takes the list with it, the
-way the window's strip follows its tools. Each row **goes to** its page when tapped and is **picked** by
-the box at its end: a tap that navigates is not a tap that selects, which is what makes the multi-select
-readable. The commands under the list move the picked run one step up or down (`PageOps.moveAll`, the
-block rule the window's drag uses) or delete it (`PageOps.removeAll`, which refuses a pick covering the
-whole document), each as **one** undo step; the typed range is the tablet's own *Manage pages…* card
-(`PageRangeDialog`), which reads the same `PageRanges` as the window's panel, so a number the tablet
-refuses is a number the window's commands cannot act on either.
+**The tablet's page list.** The window keeps a page strip down its edge; the tablet opens one from the
+**capsule beside the search** in the top bar (`PageListCapsule`), and it docks **on the rail's side** —
+`EditorBody` places the lane between the rail's lane and the canvas, so turning the toolbar to the
+right-hand edge takes the list with it, the way the window's strip follows its tools. Like the rail it is
+a lane of the layout and never a sheet over the page. A row is a **preview** of its page
+(`PageThumbnail`), its number and its pick box: the row **goes to** that page when tapped, the box
+**picks** it — a tap that navigates is not a tap that selects, which is what makes the multi-select
+readable — and a **long-press drag** carries the page to the row it is dropped on (`PageOps.moveAll`, the
+block rule the window's drag uses). The two arrows under the list step the picked run by one place and
+the bin takes it out (`PageOps.removeAll`, which refuses a pick covering the whole document), each as
+**one** undo step. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
+reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the
+window's commands cannot act on either.
 
 **Add/remove page** edit the page list through the pure, tested `PageOps` (`mobix-core`, the one the
 window's Pages menu also calls, so neither shell can invent its own rules for a new sheet; a new page is born at the

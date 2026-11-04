@@ -107,7 +107,7 @@ fun ColorSizeRailSlot(
                         )
                     }
                 }
-                SlotRule(slot)
+                Spacer(Modifier.width(slot * STRIP_GAP_FRACTION))
                 ColorSizePopup(style) { open -> SlotChevron(open, slot) }
             }
         }
@@ -129,38 +129,14 @@ fun ColorSizeRailSlot(
 }
 
 /**
- * The three parts of the slot's width: the dots, the rule beside them, and the chevron. They add up to
+ * The three parts of the slot's width: the dots, the gap beside them, and the chevron. They add up to
  * less than one slot on purpose, so the row reads as one control with air at its edges rather than as
  * three things touching. The dots get the larger share — the colour is the errand, the chevron the
- * doorway — and the rule's column is the air around the line as much as the line itself.
+ * doorway.
  */
-private const val DOT_STRIP_FRACTION = 0.48f
-private const val RULE_STRIP_FRACTION = 0.10f
-private const val CHEVRON_STRIP_FRACTION = 0.38f
-
-/**
- * The line between the dots (the tool in play's own colours) and the chevron (the stroke's other two
- * settings): the rail's **own** rule, turned a quarter turn.
- *
- * It is [RailHairline] in the family's hairline ([ModernTheme.hairlineBorder]) and **half a slot long**,
- * exactly as the line above the rail's pinned Pages/Layers slots is — one separator in the rail, two
- * orientations. Full height it would read as a wall splitting the slot in two; half a slot with the rest
- * left as air reads as the breath between two controls that still belong together.
- */
-@Composable
-private fun SlotRule(slot: Dp) {
-    Box(
-        modifier = Modifier.width(slot * RULE_STRIP_FRACTION).height(slot / 2),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            Modifier
-                .width(RailHairline)
-                .height(slot / 2)
-                .background(ModernTheme.hairlineBorder(chromeIsDark())),
-        )
-    }
-}
+private const val DOT_STRIP_FRACTION = 0.52f
+private const val STRIP_GAP_FRACTION = 0.04f
+private const val CHEVRON_STRIP_FRACTION = 0.40f
 
 /** How much smaller a dot is than the cell around it, and the floor that keeps a tiny slot visible. */
 private val DOT_INSET = 2.dp

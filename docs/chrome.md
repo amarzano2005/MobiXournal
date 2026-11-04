@@ -54,16 +54,13 @@ terna the dots draw — the highlighter's while the highlighter
 is live, the pen's otherwise (a non-inking tool such as the eraser offers the pen's rather than an empty
 strip) — so the pen and the highlighter keep **separate** favourite colours, exactly as they already keep
 separate colour fields, while the slot never holds two ternas. The slot measures exactly **one slot**
-(`LocalRailSlotSize`), so it cannot cost the rail the tools it shows at a glance: the dots take 48% of
+(`LocalRailSlotSize`), so it cannot cost the rail the tools it shows at a glance: the dots take 52% of
 its width as a column of three cells, each `slot / 3` tall with the dot inset 2dp inside it — the cell
 is the *touch target* while the feedback drawn on it is clipped to `DotCellShape`, a **true circle
 centred in the cell** (not `CircleShape`, which would inscribe an oval in a cell wider than it is tall),
 so a tap's ripple and a hovering stylus' state layer light up the dot rather than a grey box around it —
 and a
-centred **square** chevron button of 38% of the slot sits beside them across the rail's own **hairline**
-(`RailHairline`, half a slot long, in the same `ModernTheme.hairlineBorder` the line above the pinned
-Pages/Layers slots wears — one separator, drawn either way round, so the dot stack and the chevron read
-as two controls of one slot) — a square
+centred **square** chevron button of 40% of the slot sits beside them across a 4dp gap — a square
 button rather than a full-height strip, because a strip as tall as the slot and only as wide as a
 glyph reads as empty space with an arrow in it and puts a target where the hand expects none. A tap goes through `pickFavoriteColor`, which writes the colour into
 the **owning tool's** slot (`AppSettings.lastColor` for the pen, `highlighterColor` for the highlighter —
@@ -76,6 +73,16 @@ preference — and `AppSettingsBackup` carries both lists verbatim. The factory 
 blue**. Both ternas are edited side by side under **Settings → Drawing → Colors**
 (`ColorsSection.FavoritesEditor`), where seeing them together *is* the point; the rail draws one at a
 time.
+
+## The secondary toolbar's rule
+
+The top bar's dock carries the **tool preview** at the end nearest the rail and the figures after it, and a
+**hairline** divides the two (`TopBarToolDivider`, `ui/TopBarRule.kt`): the preview says what the pen *is*,
+the figures say what it can be asked to draw, and at the dock's plain slot gap the preview stopped reading
+as a read-out among choices. It is the rail's separator turned upright — `ModernTheme.hairlineBorder`, one
+dp, half a slot tall, with the dock's 6 dp of air on each side — so both toolbars divide an errand with the
+same line, and it stands at whichever end the preview takes (leading on a left-docked rail, trailing on a
+right-docked one).
 
 ## The rail never cuts a slot — and never shrinks one
 

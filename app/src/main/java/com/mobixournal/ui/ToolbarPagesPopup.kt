@@ -23,7 +23,6 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -181,16 +180,16 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
 }
 
 /**
- * The **Manage pages** section, under its own heading: the two one-step moves of the page in view, the
- * typed range card (*pages 3 to 7, start them on page 1*) and the page list's own switch.
+ * The **Manage pages** section, under its own heading: the two one-step moves of the page in view, and
+ * the typed range card (*pages 3 to 7, start them on page 1*).
  *
- * The three rows above the last are the window's, in the window's order (`PageMenuPanel`), so the same
- * errand is the same third row on both shells. The two moves leave the menu open, exactly as the quick
- * sizes do: three taps are three steps, not three visits to the menu.
+ * The three rows are the window's, in the window's order (`PageMenuPanel`), so the same errand is the
+ * same third row on both shells. The two moves leave the menu open, exactly as the quick sizes do:
+ * three taps are three steps, not three visits to the menu.
  *
- * **Page list** is the tablet's own extra row: the window keeps a page strip down its left edge by
- * default, while the tablet has no strip until this row opens one — the lateral lane the multi-select
- * and its commands live in ([PageListPanel]).
+ * The tablet's own page list is **not** here: it is the capsule beside the search in the top bar
+ * ([PageListCapsule]), because the list is a way of looking *through* the document rather than one of
+ * the page's commands.
  */
 @Composable
 private fun ManagePageRows(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {
@@ -212,12 +211,6 @@ private fun ManagePageRows(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit
         leadingIcon = { Icon(ChromeGlyph.DESCRIPTION.imageVector(), contentDescription = null) },
         enabled = callbacks.pageCount > 1,
         onClick = { callbacks.onOpenPageRange(); dismiss() },
-    )
-    DropdownMenuItem(
-        text = { Text("Page list") },
-        leadingIcon = { Icon(Icons.Outlined.ViewList, contentDescription = null) },
-        trailingIcon = { Text(if (callbacks.pageListOpen) "Shown" else "Hidden") },
-        onClick = { callbacks.onTogglePageList(); dismiss() },
     )
 }
 
