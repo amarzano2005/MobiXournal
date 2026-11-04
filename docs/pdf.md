@@ -218,11 +218,10 @@ are cached by file (`PdfOutlineCache` mirrors `PdfTextIndexCache`), so mirroring
 second pane reuses them instead of walking the PDF twice. A destination-less entry inherits the page
 of its nearest descendant that has one, so a chapter header still leads to the chapter's first page;
 an entry that points nowhere at all is shown but not tappable. `setPdfOutline` publishes the outline
-to the chrome through `onPdfOutlineChanged` (pane state), and the Pages menu grows a **Contents…**
-entry that opens `PdfContentsDialog` — an indented, page-numbered list. Tapping a row calls
-`goToPdfPage`, which finds the document page whose `Background.Pdf.pageNo` matches rather than
-assuming the PDF index and the `.xopp` page index agree (merging a second PDF in renumbers every
-appended page, and a desktop-authored file may order its pages freely).
+to the chrome through `onPdfOutlineChanged` (pane state), and the page list lane's foot grows a
+**Contents** glyph (`PdfContentsButton`) that opens `PdfContentsDialog` — an indented, page-numbered
+list. A tap calls `goToPdfPage`, which picks the page by `Background.Pdf.pageNo` rather than by index
+(a merged PDF renumbers every appended page, and a desktop-authored file may order them freely).
 
 This is deliberately **navigation only, never document content**: the `.xopp` format has nowhere to
 keep a bookmark tree, so the outline is read from the PDF and the file is untouched by it — the same

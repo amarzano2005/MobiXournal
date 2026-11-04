@@ -648,14 +648,15 @@ private fun PageListLane(ui: EditorUiState, pane: PaneState, expandFromStart: Bo
         // The live pages, so a row's preview is the page's own ink and paper.
         pages = pane.surface?.pageCommands?.pages().orEmpty(),
         surface = pane.surface,
+        contentsAction = {
+            PdfContentsButton(pane.outline, onGoToPdfPage = { pane.surface?.goToPdfPage(it) })
+        },
         onSelection = { ui.pageSelection = it },
         onGoToPage = { pane.surface?.goToPage(it) },
-        // One step, keeping the run together (`moveAll` refuses a target already under the block).
         onMove = { picked, delta ->
-            val target = pickedMoveTarget(picked, delta, pane.pageCount)
-            if (target != null) pane.surface?.pageCommands?.movePages(picked, target)
+            pickedMoveTarget(picked, delta, pane.pageCount)
+                ?.let { pane.surface?.pageCommands?.movePages(picked, it) }
         },
-        // A dropped row lands where the drag put it — one page, one step, one undo.
         onReorder = { from, to -> pane.surface?.pageCommands?.movePages(setOf(from), to) },
         onDelete = { picked -> pane.surface?.pageCommands?.removePages(picked); ui.pageSelection = emptySet() },
         onClose = { ui.pageListOpen = false; ui.pageSelection = emptySet() },

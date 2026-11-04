@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -208,6 +209,11 @@ internal fun PageListPanel(
      * is a canvas, and a PDF page then falls back to its bare paper.
      */
     surface: DrawingSurfaceView? = null,
+    /**
+     * The lane's foot carries a door of its own when the document has one — the PDF's Contents — so a
+     * jump between pages stands with the pages rather than in the menu of page commands.
+     */
+    contentsAction: (@Composable () -> Unit)? = null,
     onSelection: (Set<Int>) -> Unit,
     onGoToPage: (Int) -> Unit,
     /** Move [picked] by [delta] positions, as one step. */
@@ -220,13 +226,13 @@ internal fun PageListPanel(
 ) {
     val picked = selection.filter { it in 0 until pageCount }.toSet()
     val acting = actedPages(picked, currentPage, pageCount)
-    // The drag lives here rather than in the row: the landing line is drawn by a **different** row than
-    // the lifted one, so one place has to know both where the page came from and where it would land.
-    val rowHeightPx = with(LocalDensity.current) { PAGE_ROW_HEIGHT.toPx() }
-    var dragFrom by remember { mutableStateOf<Int?>(null) }
-    var dragOffset by remember { mutableFloatStateOf(0f) }
-    val landing = dragFrom?.let {
-        (it + (dragOffset / rowHeightPx).roundToInt()).coerceIn(0, pageCount - 1)
+    // Both commands **carry** what they act on: the viewport and the pick follow the pages to their new
+    // place, so the sheet in front of you is the page you just stepped — and the page the next tap acts on.
+    val carry: (Set<Int>, Int) -> Unit = { pages, delta ->
+        carryPages(pages, delta, pageCount, onMove, onSelection, onGoToPage)
+    }
+    val removeRun: (Set<Int>) -> Unit = { pages ->
+        removePages(pages, pageCount, onDelete, onSelection, onGoToPage)
     }
     Surface(
         modifier = modifier.width(PAGE_LIST_WIDTH).fillMaxHeight(),
@@ -235,54 +241,143 @@ internal fun PageListPanel(
     ) {
         Column(Modifier.fillMaxHeight()) {
             PageListHeader(pageCount = pageCount, onClose = onClose)
-            LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
-                items(pageCount) { index ->
-                    PageListRow(
-                        index = index,
-                        page = pages.getOrNull(index),
-                        surface = surface,
-                        inView = index == currentPage,
-                        picked = index in picked,
-                        lifted = dragFrom == index,
-                        lift = if (dragFrom == index) dragOffset else 0f,
-                        // The page would land on this row — and it is not already there.
-                        landing = landing == index && landing != dragFrom,
-                        onGoTo = { onGoToPage(index) },
-                        onToggle = {
-                            onSelection(if (index in picked) picked - index else picked + index)
-                        },
-                        onDragStart = {
-                            dragFrom = index
-                            dragOffset = 0f
-                        },
-                        onDragBy = { dragOffset = it },
-                        onDragEnd = {
-                            val from = dragFrom
-                            if (from != null) {
-                                val to = (from + (dragOffset / rowHeightPx).roundToInt())
-                                    .coerceIn(0, pageCount - 1)
-                                if (to != from) onReorder(from, to)
-                            }
-                            dragFrom = null
-                            dragOffset = 0f
-                        },
-                        onDragCancel = {
-                            dragFrom = null
-                            dragOffset = 0f
-                        },
-                    )
-                }
-            }
+            PageListRows(
+                pages = pages,
+                surface = surface,
+                pageCount = pageCount,
+                currentPage = currentPage,
+                picked = picked,
+                carry = carry,
+                onReorder = onReorder,
+                onSelection = onSelection,
+                onGoToPage = onGoToPage,
+            )
             PageListCommands(
                 picked = picked,
                 acting = acting,
                 currentPage = currentPage,
                 pageCount = pageCount,
-                onMove = onMove,
-                onDelete = onDelete,
+                onMove = carry,
+                onDelete = removeRun,
+                contentsAction = contentsAction,
             )
         }
     }
+}
+
+/**
+ * The lane's rows — the only part that knows about a drag, because the row that wears the landing line is
+ * a **different** row from the lifted one, so one place has to hold both the origin and the target.
+ *
+ * The pitch is the row's own fixed [PAGE_ROW_HEIGHT], so a drop lands on the row the eye saw the page over
+ * rather than on a pixel the finger happened to stop at.
+ */
+@Composable
+private fun ColumnScope.PageListRows(
+    pages: List<Page>,
+    surface: DrawingSurfaceView?,
+    pageCount: Int,
+    currentPage: Int,
+    picked: Set<Int>,
+    carry: (Set<Int>, Int) -> Unit,
+    onReorder: (from: Int, to: Int) -> Unit,
+    onSelection: (Set<Int>) -> Unit,
+    onGoToPage: (Int) -> Unit,
+) {
+    val rowHeightPx = with(LocalDensity.current) { PAGE_ROW_HEIGHT.toPx() }
+    var dragFrom by remember { mutableStateOf<Int?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val landing = dragFrom?.let {
+        (it + (dragOffset / rowHeightPx).roundToInt()).coerceIn(0, pageCount - 1)
+    }
+    LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
+        items(pageCount) { index ->
+            PageListRow(
+                index = index,
+                page = pages.getOrNull(index),
+                surface = surface,
+                inView = index == currentPage,
+                picked = index in picked,
+                lifted = dragFrom == index,
+                lift = if (dragFrom == index) dragOffset else 0f,
+                // The page would land on this row — and it is not already there.
+                landing = landing == index && landing != dragFrom,
+                onGoTo = { onGoToPage(index) },
+                onToggle = { onSelection(if (index in picked) picked - index else picked + index) },
+                onDragStart = {
+                    dragFrom = index
+                    dragOffset = 0f
+                },
+                onDragBy = { dragOffset = it },
+                onDragEnd = {
+                    val from = dragFrom
+                    if (from != null) {
+                        val to = (from + (dragOffset / rowHeightPx).roundToInt())
+                            .coerceIn(0, pageCount - 1)
+                        // A handle on a picked row carries the whole pick; on any other row it carries
+                        // that page alone. Either way the view stays on it.
+                        if (from in picked && picked.size > 1) {
+                            carry(picked, to - from)
+                        } else if (to != from) {
+                            onReorder(from, to)
+                            onSelection(setOf(to))
+                            onGoToPage(to)
+                        }
+                    }
+                    dragFrom = null
+                    dragOffset = 0f
+                },
+                onDragCancel = {
+                    dragFrom = null
+                    dragOffset = 0f
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Carry [pages] by [delta] places, then leave the viewport and the pick on them at their new place.
+ *
+ * `PageOps.moveAll` drops the run's first page at the target, so the run's members land at `target + i`
+ * — one arithmetic in one place, because the arrows and the drag both come through here. Without the
+ * follow-up the arrows acted on whatever page had slid under the same index, which read as buttons that
+ * worked now and then.
+ */
+internal fun carryPages(
+    pages: Set<Int>,
+    delta: Int,
+    pageCount: Int,
+    onMove: (pages: Set<Int>, delta: Int) -> Unit,
+    onSelection: (Set<Int>) -> Unit,
+    onGoToPage: (Int) -> Unit,
+) {
+    if (delta == 0) return
+    val run = pages.filter { it in 0 until pageCount }.sorted()
+    val target = pickedMoveTarget(pages, delta, pageCount) ?: return
+    onMove(pages, delta)
+    onSelection(run.mapIndexed { i, _ -> target + i }.toSet())
+    onGoToPage(target)
+}
+
+/**
+ * Delete [pages], then land on the page that took the first removed place, so the sheet in front of you is
+ * never one that no longer exists. A pick covering the whole document is refused — `PageOps.removeAll`'s
+ * own rule, refused here rather than after the fact so the viewport is never asked to follow nothing.
+ */
+internal fun removePages(
+    pages: Set<Int>,
+    pageCount: Int,
+    onDelete: (Set<Int>) -> Unit,
+    onSelection: (Set<Int>) -> Unit,
+    onGoToPage: (Int) -> Unit,
+) {
+    val run = pages.filter { it in 0 until pageCount }.sorted()
+    if (run.isEmpty() || run.size >= pageCount) return
+    val landingPage = run.first().coerceAtMost(pageCount - run.size - 1).coerceAtLeast(0)
+    onDelete(pages)
+    onSelection(emptySet())
+    onGoToPage(landingPage)
 }
 
 /** The lane's name, the document's size, and the door back out. */
@@ -540,6 +635,7 @@ private fun PageListCommands(
     pageCount: Int,
     onMove: (picked: Set<Int>, delta: Int) -> Unit,
     onDelete: (picked: Set<Int>) -> Unit,
+    contentsAction: (@Composable () -> Unit)?,
 ) {
     val canMoveUp = acting.isNotEmpty() && acting.min() > 0
     val canMoveDown = acting.isNotEmpty() && acting.max() < pageCount - 1
@@ -550,12 +646,16 @@ private fun PageListCommands(
         else -> "\u2014"
     }
     Column(Modifier.fillMaxWidth().padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            subject,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 6.dp),
-        )
+        // The subject on the left, the lane's own door on the right: the foot's bottom-right corner.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                subject,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+            )
+            contentsAction?.invoke()
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onMove(acting, -1) }, enabled = canMoveUp, modifier = Modifier.size(36.dp)) {
                 Icon(

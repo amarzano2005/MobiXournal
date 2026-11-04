@@ -194,8 +194,11 @@ drops ids that no longer exist. The tools are UI-level
 so `EditorScreen.applyTool` maps them to the surface's `handMode` / `placeKind` and maps the three
 drawing tools to the document `Tool`). The **Pages** pop-up is a page navigator: `Page N / M` with
 ◀ / ▶ to jump to the previous/next page (`goToPage` scrolls the stack; the surface reports the page
-under the viewport centre via `onCurrentPageChanged`), plus Add / Remove page, a **Contents…** row (the
-backing PDF's outline — see _PDF Contents_ above) and a **Bookmarks** section (see _Page bookmarks_). A **right-edge scroll
+under the viewport centre via `onCurrentPageChanged`), plus Add / Remove page and the sheet's own two
+questions. It carries **no** bookmark section and no Contents row: the outline's door is the page list
+lane's foot (`PdfContentsButton`, bottom right — see _PDF Contents_), because a jump between pages belongs
+with the pages, and the bookmarks are a store the chrome keeps rather than menu rows (_Page bookmarks_).
+A **right-edge scroll
 thumb** (`ScrollThumb.kt`, overlaid on the canvas in a `Box` sibling of the `AndroidView`) gives
 PDF-style fast paging: the surface reports its vertical scroll geometry via
 `onScrollChanged(scrollY, totalHeightPx, viewportPx)` (all content px, already zoom-scaled), the thumb

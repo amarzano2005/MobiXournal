@@ -1,18 +1,11 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Toc
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
@@ -36,62 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.render.PageSizeStep
 import com.mobixournal.render.PageSizeUnit
-import com.mobixournal.ui.theme.DialogPresence
-import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.abs
 import kotlin.math.roundToInt
-
-/**
- * The bookmark section of the Pages menu: bookmark (or edit the bookmark on) the page in view, then
- * jump to any bookmark the document has. Each row carries the bookmark's own colour, so the list
- * reads as the same flags the pages do.
- *
- * Bookmarks are app-side navigation state — the `.xopp` format has no page label — so this list lives
- * in the store beside the document, never in the file (see [PageBookmarks]).
- */
-@Composable
-private fun BookmarkItems(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {
-    val current = callbacks.bookmarks.firstOrNull { it.page == callbacks.currentPage }
-    MenuHeading("Bookmarks")
-    DropdownMenuItem(
-        text = { Text(if (current == null) "Bookmark this page" else "Edit bookmark") },
-        leadingIcon = {
-            Icon(
-                if (current == null) Icons.Outlined.BookmarkBorder else Icons.Outlined.Bookmark,
-                contentDescription = null,
-                tint = current?.let { Color(it.color) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        onClick = {
-            callbacks.onBookmarkPage(callbacks.currentPage)
-            dismiss()
-        },
-    )
-    for (bookmark in callbacks.bookmarks) {
-        DropdownMenuItem(
-            text = { Text(bookmark.displayLabel()) },
-            leadingIcon = {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(Color(bookmark.color)),
-                ) {}
-            },
-            trailingIcon = { Text("Page ${bookmark.page + 1}", style = MaterialTheme.typography.labelSmall) },
-            onClick = {
-                callbacks.onGoToPage(bookmark.page)
-                dismiss()
-            },
-        )
-    }
-}
 
 /**
  * The page navigator: shows the current page, jumps to the previous/next page, and adds or removes
@@ -101,25 +45,17 @@ private fun BookmarkItems(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit)
 internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var open by remember { mutableStateOf(false) }
     var sizing by remember { mutableStateOf(false) }
-    var contents by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
     ToolbarPopupButton(
         icon = ChromeGlyph.DESCRIPTION.imageVector(),
         contentDescription = "Pages",
     ) { dismiss ->
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
-        // The two indexes the document itself carries — the PDF's own contents, then the app-side
-        // bookmarks — sit directly under the navigator: all three are "jump to a page". Everything
-        // under them is the window's order, so the rows both shells share are the same rows in the
-        // same places (see `desktop/shell/PageMenuPanel.kt`).
-        if (callbacks.outline?.isEmpty == false) {
-            DropdownMenuItem(
-                text = { Text("Contents…") },
-                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Toc, contentDescription = null) },
-                onClick = { contents = true; dismiss() },
-            )
-        }
-        BookmarkItems(callbacks) { dismiss() }
+        // Everything under the navigator is the window's order, so the rows both shells share are the
+        // same rows in the same places (see `desktop/shell/PageMenuPanel.kt`). Two things are
+        // deliberately absent: the PDF's **Contents**, which is a door of the page list's own foot
+        // (`PdfContentsButton`), and the app-side **bookmarks** — this menu is what can be done to the
+        // page in front of you, and neither of those is.
         QuickSizeRows(callbacks)
         DropdownMenuItem(
             text = { Text("Add page") },
@@ -139,18 +75,6 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         PageBackgroundRow(callbacks, open = { sheet = true }, dismiss = dismiss)
         HorizontalDivider()
         ManagePageRows(callbacks, dismiss)
-    }
-    val outline = callbacks.outline
-    DialogPresence(contents && outline != null) {
-        // The tree survives the flag: closing clears `contents`, and the dialog is still on its way out.
-        val tree = rememberClosingArgument(outline)
-        if (tree != null) {
-            PdfContentsDialog(
-                outline = tree,
-                onGoToPdfPage = callbacks.onGoToPdfPage,
-                onDismiss = { contents = false },
-            )
-        }
     }
     PageBackgroundDialog(
         open = sheet,

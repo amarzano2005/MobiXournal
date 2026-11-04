@@ -15,9 +15,11 @@ unbookmarked one. `PageBookmarks` is the model's pure half — label/colour rule
 `page⇥colour⇥label` codec, and the page shifts that keep a flag on its page when one is inserted or
 deleted — all unit-tested; `BookmarkStore` is the thin Android-backed persistence. The chrome reaches
 it through `PaneState` (the pane *drives* the list, `EditorScreen` owns the store and the document
-key, so nothing else has to know where bookmarks are kept), the Pages menu edits and jumps, and the
-canvas paints each flag on the sheet's top-right corner from `DrawingSurfaceView.bookmarkedPages` —
-view-only chrome, so it is not an undo step and never reaches the file.
+key, so nothing else has to know where bookmarks are kept), and the canvas paints each flag on the
+sheet's top-right corner from `DrawingSurfaceView.bookmarkedPages` — view-only chrome, so it is not an
+undo step and never reaches the file. The **Pages menu does not carry them**: it answers what can be done
+to the page in front of you, and a bookmark is a way of finding one again, so the list is a store the
+chrome keeps rather than a section of that menu.
 
 ## Ruling parameters and stationery (`BackgroundRuling`, `PageTemplates`)
 
@@ -122,7 +124,12 @@ line along its top edge (`PageOps.moveAll` on drop, the block rule the window's 
 lives on the handle, since a row that started a drag on any touch would be a row that cannot be scrolled. The two
 arrows under the list step the pick by one place and the bin takes it out (`PageOps.removeAll`, which
 refuses a pick covering the whole document), each as **one** undo step — and with **nothing picked** they
-act on the page in view, which is the plain case and needs no ceremony. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
+act on the page in view, which is the plain case and needs no ceremony. Either command **carries** the
+page: the viewport and the pick follow it to its new place, so the sheet in front of you is the page you
+just moved — and the page the next tap acts on, which is why the arrows step a page the way the eye reads
+them. The lane's foot carries one door of its own: the PDF's **Contents** outline as a bare glyph at the
+bottom right (`PdfContentsButton`), because a jump between pages belongs with the pages rather than in the
+menu of page commands. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
 reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the
 window's commands cannot act on either.
 
