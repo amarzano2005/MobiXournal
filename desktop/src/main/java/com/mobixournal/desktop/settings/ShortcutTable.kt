@@ -5,6 +5,9 @@ import com.mobixournal.desktop.shell.shellCommand
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.TOGGLE_COMMANDS
 import com.mobixournal.desktop.tools.toggledTool
+import com.mobixournal.desktop.sheet.circuitKindLabel
+import com.mobixournal.render.CircuitFamily
+import com.mobixournal.render.ShapeKind
 
 import androidx.compose.ui.input.key.Key
 import com.mobixournal.design.ShortcutKeys
@@ -22,6 +25,14 @@ data class ShortcutEntry(
     val defaultKey: String,
     val tool: DesktopTool? = null,
     val command: ShellCommand? = null,
+    /**
+     * The **specific circuit part** the row arms, when it is one — *Resistor*, *LED*, *XOR gate* …
+     *
+     * A part's row carries its family's slot as [tool] and the part as [kind], so its key answers *both*
+     * questions a press has to answer: which slot is in hand, and which of its parts it will place.
+     * [tool] and [command] stay the exclusive pair they were; [kind] only refines a tool row.
+     */
+    val kind: ShapeKind? = null,
 )
 
 /**
@@ -38,7 +49,7 @@ data class ShortcutEntry(
 internal object ShortcutTable {
 
     /** The commands a key can run, in the order the Settings section lists them. */
-    val entries: List<ShortcutEntry> = tools() + commands()
+    val entries: List<ShortcutEntry> = tools() + components() + commands()
 
     private fun tools(): List<ShortcutEntry> = DesktopTool.entries.map { tool ->
         ShortcutEntry(id = tool.name, label = tool.label, defaultKey = tool.shortcut, tool = tool)
@@ -49,6 +60,33 @@ internal object ShortcutTable {
      * second press, puts back the tool that was in hand ([toggledTool]).
      */
     val toggleEntries: List<ShortcutEntry> get() = entries.filter { it.command in TOGGLE_COMMANDS }
+
+    /**
+     * **One row per specific circuit component** — the tablet's per-tool table, as a window table: *Resistor*,
+     * *LED*, *XOR gate* … A part's row carries its family's slot as [ShortcutEntry.tool] and the part as
+     * [ShortcutEntry.kind], so its key picks the slot **and** arms the part, the palette stop a reader would
+     * otherwise make by hand. Every one of them ships **unbound** ([ShortcutKeys.UNBOUND]), which is how the
+     * tablet's own fields start: two dozen invented chords would collide with the keys this table already uses.
+     */
+    private fun components(): List<ShortcutEntry> = CircuitFamily.entries.flatMap { family ->
+        val slot = slotOf(family)
+        family.members.map { kind ->
+            ShortcutEntry(
+                id = "${family.name}_${kind.name}",
+                label = circuitKindLabel(kind),
+                defaultKey = ShortcutKeys.UNBOUND,
+                tool = slot,
+                kind = kind,
+            )
+        }
+    }
+
+    /** The strip slot that places [family]'s parts — the three family buttons of the STEM dock. */
+    private fun slotOf(family: CircuitFamily): DesktopTool = when (family) {
+        CircuitFamily.PASSIVE -> DesktopTool.CIRCUIT
+        CircuitFamily.ACTIVE -> DesktopTool.CIRCUIT_ACTIVE
+        CircuitFamily.LOGIC -> DesktopTool.CIRCUIT_LOGIC
+    }
 
     private fun commands(): List<ShortcutEntry> = listOf(
         // The toggles lead the list: they are the switches a stylus button presses, so the page shows them
@@ -112,6 +150,10 @@ internal object ShortcutTable {
 
     /** The row an id names, or null for an id a newer build wrote. */
     fun entry(id: String): ShortcutEntry? = entries.firstOrNull { it.id == id }
+
+    /** The specific part a key arms in [table], or null when the key is not a component's own row. */
+    fun component(table: Map<String, String>, name: String): ShapeKind? =
+        entries.firstOrNull { it.kind != null && key(table, it.id).equals(name, ignoreCase = true) }?.kind
 
     /**
      * The **canonical name** of a key press — `"Ctrl+Shift+S"`, `"PageDown"`, `"Space"` — or null for a key

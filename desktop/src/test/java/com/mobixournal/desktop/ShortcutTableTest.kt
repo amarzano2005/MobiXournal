@@ -4,9 +4,13 @@ import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.ShortcutTable
 import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.componentForKey
 import com.mobixournal.desktop.shell.shellCommand
 import com.mobixournal.desktop.shell.toolForKey
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.design.ShortcutKeys
+import com.mobixournal.render.CircuitFamily
+import com.mobixournal.render.ShapeKind
 
 import androidx.compose.ui.input.key.Key
 import java.io.File
@@ -46,6 +50,37 @@ class ShortcutTableTest {
         assertEquals("Ctrl+,", table[ShellCommand.OPEN_SETTINGS.name])
         // Every row the page draws is a row the window resolves: the two lists are the same list.
         assertTrue(ShortcutTable.entries.all { it.id in table })
+    }
+
+    @Test
+    fun `every specific circuit part is a row of its own`() {
+        val parts = CircuitFamily.entries.flatMap { it.members }
+        val rows = ShortcutTable.entries.filter { it.kind != null }
+        assertEquals("one row per part of the three palettes, in the palettes' order", parts, rows.map { it.kind })
+        val resistor = ShortcutTable.entries.first { it.kind == ShapeKind.RESISTOR }
+        assertEquals("a part's row picks its family's slot", DesktopTool.CIRCUIT, resistor.tool)
+        assertEquals(
+            "unbound at first, as the tablet's own fields start",
+            ShortcutKeys.UNBOUND,
+            rows.first().defaultKey,
+        )
+    }
+
+    @Test
+    fun `a key bound to a part arms it in the slot the press picks`() {
+        val state = state()
+        val resistor = ShortcutTable.entries.first { it.kind == ShapeKind.RESISTOR }
+        state.rebind(resistor.id, "Alt+1")
+        assertEquals(ShapeKind.RESISTOR, ShortcutTable.component(state.shortcutTable, "Alt+1"))
+        assertEquals(
+            "the same press picks the passive slot",
+            DesktopTool.CIRCUIT,
+            toolForKey(state.shortcutTable, Key.One, shift = false, ctrl = false, alt = true),
+        )
+        assertNull(
+            "a key that is no part's arms nothing",
+            componentForKey(state.shortcutTable, Key.One, shift = false, ctrl = false),
+        )
     }
 
     @Test

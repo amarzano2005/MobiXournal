@@ -4,6 +4,8 @@ import com.mobixournal.desktop.settings.ShortcutFamilies
 import com.mobixournal.desktop.settings.ShortcutTable
 import com.mobixournal.desktop.shell.ShellCommand
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.render.CircuitFamily
+import com.mobixournal.render.ShapeKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -50,6 +52,17 @@ class ShortcutFamiliesTest {
         assertEquals(
             listOf(DesktopTool.PEN, DesktopTool.HIGHLIGHTER, DesktopTool.ERASER, DesktopTool.ERASER_WHOLE),
             families[1].entries.mapNotNull { it.tool },
+        )
+    }
+
+    @Test
+    fun `a circuit part sits under its own palette's slot`() {
+        val stem = families.first { it.title == "STEM" }.entries
+        val at = stem.indexOfFirst { it.tool == DesktopTool.CIRCUIT && it.kind == null }
+        assertEquals(
+            "the passive parts follow the passive slot, in the palette's order",
+            listOf<ShapeKind?>(null) + CircuitFamily.PASSIVE.members,
+            stem.drop(at).take(CircuitFamily.PASSIVE.members.size + 1).map { it.kind },
         )
     }
 

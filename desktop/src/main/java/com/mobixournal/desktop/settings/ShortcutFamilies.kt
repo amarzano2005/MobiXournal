@@ -111,13 +111,15 @@ internal object ShortcutFamilies {
         val commands = { wanted: List<ShellCommand> -> entries.filter { it.command in wanted } }
         val placedTools = INK + SELECTION_AND_TEXT + SHAPES + STEM + GUIDES
         val placedCommands = TOGGLES + DOCUMENT + EDITING + VIEW + PEN
+        // A circuit slot's parts follow their own slot: the palette is the slot's, so its rows sit under it.
+        val stem = STEM.flatMap { slot -> entries.filter { it.tool == slot } }
         val rest = entries.filter { it.tool !in placedTools && it.command !in placedCommands }
         return listOf(
             Family("Toggle", commands(TOGGLES)),
             Family("Ink", tools(INK)),
             Family("Selection and text", tools(SELECTION_AND_TEXT)),
             Family("Shapes", tools(SHAPES)),
-            Family("STEM", tools(STEM)),
+            Family("STEM", stem),
             Family("Guides", tools(GUIDES)),
             Family("Document", commands(DOCUMENT)),
             Family("Editing", commands(EDITING)),

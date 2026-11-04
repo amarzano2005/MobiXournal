@@ -564,6 +564,7 @@ class DesktopShellState(
             alt = event.isAltPressed,
         )?.let { tool ->
             selectTool(tool)
+            armPressedPart(keys, event)
             return true
         }
         return false

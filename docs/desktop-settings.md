@@ -22,7 +22,9 @@ flat column is a list read top to bottom while four short groups is one scanned 
 who uses both shells finds the same subjects under the same headings. What the window does **not** carry is
 the phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this
 shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
-**rows**, the name and the control at the right edge (`SettingsRows.kt`).
+**rows**, the name and the control at the right edge (`SettingsRows.kt`), and a group's heading starts on the
+**labels' column** rather than on the card's edge — the rows inside are inset 12 dp, so a group's name and the
+names under it begin at the same x.
 
 A group's card is the **tablet's settings card** (`docs/chrome.md`): the near-solid panel glass, the 20 dp panel
 corner and the rim as its whole edge — and a lit row wears that shape, ends included (`DesktopSettingsStyleTest`).
@@ -56,10 +58,8 @@ One rule per kind of thing, so a reader can tell an answer from an action at a g
 
 - a **value** ends in a slider with its number beside the track (`Minimum pressure`, `Multiplier`);
 - a **choice** ends in a **select**, and in nothing else: the answer in hand on a capsule with a chevron,
-  the rest of the list in a menu under it (`Stream`, `Placement`, `New document`). Three lozenges of phrase
-  length read as three big buttons, wrapped onto two lines to say one thing, and shouted louder than every
-  real control on the page — and a row of short pills for *Left · Right · Top* was the same control in a
-  louder costume, two shapes for one kind of thing. The capsule takes the pointer, `Enter`/`Space`, and
+  the rest of the list in a menu under it (`Stream`, `Placement`, `New document`) — a row of lozenges was the
+  same control in a louder costume. The capsule takes the pointer, `Enter`/`Space`, and
   Left/Right to step through the answers; the menu is the panel's fill with its rows **inset as capsules**,
   because a full-bleed row is cut by the popup's rounded edge — a line of selection with its end sliced off
   (`SettingsSelect`);
@@ -118,11 +118,13 @@ order (`ShortcutFamilies`: the switches first, then ink, selection and text, sha
 **searchable** by name, by the chord the window holds or by the tool a key picks. Each group is a **heading over
 its rows** and nothing else: no separate *Detect* row, and no group that repeats its own name as a row.
 
+**Specific parts have rows.** The three circuit slots pick their part from a palette; every part of the three
+families has a row under its own slot (*Resistor*, *LED*, *XOR gate*), **unbound** until a key is pressed into
+it, as the tablet's per-tool fields start — and such a key picks the family's slot **and** arms the part.
+
 Renaming is **click the row, then press the key**: the row lights with *Press a key…*, and the next press this
-table has a name for is bound to it. The press is the **window's**, not the page's — the arm is
-`DesktopSettingsState.armedShortcut`, read by `DesktopShellState.onKey` before anything else, because the
-window sees a press before any focusable row can. (Keeping the arm and the focus inside the page is what used
-to fail: the row was drawn waiting, the surface captured the key, and nothing was ever bound.) `Esc` puts the
+table has a name for is bound to it. The press is the **window's** — the arm is `DesktopSettingsState.armedShortcut`,
+read by `DesktopShellState.onKey` before any focusable row sees it, which is what used to fail. `Esc` puts the
 waiting row away, clicking into the search field does too, and neither touches the table.
 
 The rule is **one key, one command** and it is `ShortcutKeys.bind`'s (in `mobix-core`): the key's previous
@@ -133,12 +135,10 @@ same statement: the factory table is every row that is not in the file. A confli
 card above the groups, and only while it is the last thing that happened — it is an answer, not a section.
 
 `interface.shortcuts` holds only the rows that **differ** from the factory ones, as `id:key` pairs, so a build
-that adds a command ships it with its own key instead of with none. The key a press makes is
-`ShortcutTable.name`'s (`Ctrl+Shift+S`, `PageDown`, `Space`) — the same string the pill prints, the file
-stores and the row shows — and `ShortcutTable.entries` is the one list the page draws and the keyboard
-resolves through. The codec, the conflict rule and the reset are shared with the tablet's Shortcuts section,
-which is why a key means the same tool on both shells; the defaults are not shared, because a phone's commands
-are not a window's.
+that adds a command ships it with its own key instead of with none. The key a press makes is `ShortcutTable.name`'s
+(`Ctrl+Shift+S`, `PageDown`, `Space`) — the same string the pill prints, the file stores and the row shows — and
+`ShortcutTable.entries` is the one list the page draws and the keyboard resolves through. The codec, the conflict
+rule and the reset are the tablet's too; the defaults are not, because a phone's commands are not a window's.
 
 ### Toggle — the switch keys
 

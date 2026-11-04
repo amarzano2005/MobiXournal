@@ -127,7 +127,15 @@ internal object SettingsMetrics {
 @Composable
 internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
     Spacer(Modifier.height(12.dp))
-    Text(title, color = DesktopTheme.ink, style = DesktopTheme.heading)
+    // The heading sits on the **labels' column**, not on the card's edge: the rows inside are inset by
+    // `ROW_INSET`, and a heading 12 dp left of the names under it read as the panel's title beside the card
+    // rather than as the name of the group the card is.
+    Text(
+        title,
+        color = DesktopTheme.ink,
+        style = DesktopTheme.heading,
+        modifier = Modifier.padding(start = ROW_INSET),
+    )
     Spacer(Modifier.height(5.dp))
     Column(
         Modifier
@@ -267,7 +275,14 @@ internal fun SettingsUnavailable(label: String, note: String) {
 @Composable
 internal fun SettingsNote(text: String) {
     Spacer(Modifier.height(6.dp))
-    Text(text, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+    // The same column as a group's heading and the rows' names: a sentence about a card is read as part of
+    // it, so it starts where the card's labels start.
+    Text(
+        text,
+        color = DesktopTheme.inkMuted,
+        style = DesktopTheme.label,
+        modifier = Modifier.padding(horizontal = ROW_INSET),
+    )
 }
 
 /** A row's own horizontal inset inside its card, shared by its readouts too. */

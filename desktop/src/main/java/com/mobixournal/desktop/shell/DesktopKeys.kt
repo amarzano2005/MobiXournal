@@ -5,8 +5,15 @@ import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.render.CircuitFamily
+import com.mobixournal.render.ShapeKind
 
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
 import java.io.File
 
 /**
@@ -172,6 +179,34 @@ internal fun toolForKey(
 /** The same lookup against the factory table — what the window does before anything is remapped. */
 internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean, alt: Boolean = false): DesktopTool? =
     toolForKey(ShortcutTable.defaults(), key, shift, ctrl, alt)
+
+/**
+ * The **specific circuit part** a press arms, or null when the key is not a component's own row.
+ *
+ * The part's row is the slot's row too — [ShortcutTable.tool] answers its family's slot — so a press picks
+ * the family's button and arms the part in one go, which is the palette stop a reader would otherwise make
+ * by hand. Like a tool, a part may not take a `Ctrl` key: that column belongs to the shell's commands.
+ */
+internal fun componentForKey(
+    table: Map<String, String>,
+    key: Key,
+    shift: Boolean,
+    ctrl: Boolean,
+    alt: Boolean = false,
+): ShapeKind? {
+    if (ctrl) return null
+    val name = ShortcutTable.name(key, ctrl, shift, alt) ?: return null
+    return ShortcutTable.component(table, name)
+}
+
+/**
+ * Arm the part a press names, if it names one: [toolForKey] has already picked the family's slot, and this
+ * answers the palette's question — which part that slot places — from the key itself.
+ */
+internal fun DesktopShellState.armPressedPart(table: Map<String, String>, event: KeyEvent) {
+    componentForKey(table, event.key, event.isShiftPressed, event.isCtrlPressed, event.isAltPressed)
+        ?.let { kind -> CircuitFamily.of(kind)?.let { family -> pickCircuitKind(family, kind) } }
+}
 
 /**
  * The shortcut table of `docs/ui-modernization.md`, as a decision.
