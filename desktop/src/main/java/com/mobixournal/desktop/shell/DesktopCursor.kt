@@ -38,6 +38,16 @@ import kotlin.math.max
 internal const val CURSOR_MIN_PX = 7f
 
 /**
+ * The narrowest the **eraser's** ring draws — wider than the pen's floor, because this ring wears a picture.
+ *
+ * The disc says how much rubber touches the page, so a thin eraser is a small disc; but below roughly this
+ * size the mark inside it stops being an eraser and becomes a shape nobody can name, which is worse than a
+ * ring a couple of pixels too wide. It is the **pointer's** floor, not the erase radius: what the gesture
+ * cuts is still `eraserRadiusPt` (`docs/desktop-tablet.md`).
+ */
+internal const val ERASER_MIN_PX = 20f
+
+/**
  * The ring's diameter in the canvas's own pixels, for a tool of [widthPt] at [zoom].
  *
  * It is the stroke's width as the page will store it, so what the ring encloses is what the lift writes,
@@ -72,7 +82,8 @@ internal fun toolCursorDiameterPx(tool: DesktopTool, widthPt: Float, zoom: Float
         DesktopTool.SETSQUARE, DesktopTool.COMPASS -> null
         // Both erasers show the tip they cut with: the whole-stroke eraser is a disc like the partial one,
         // it simply takes everything the disc touches.
-        DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density)
+        DesktopTool.ERASER, DesktopTool.ERASER_WHOLE ->
+            max(ERASER_MIN_PX, cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density))
         // Everything else — a figure, a circuit, vertical space, the marquee and the lasso — writes at the
         // pen's width, so its ring is the pen's ring at that point.
         else -> cursorDiameterPx(widthPt / 2f, zoom, density)
@@ -176,10 +187,10 @@ internal fun DrawScope.drawToolCursor(
     drawCircle(DesktopTheme.desk, radius = radius, center = at, style = Stroke(band.width + edge * 2f))
     drawCircle(colour, radius = radius, center = at, style = band)
     if (eraser) {
-        // The mark is drawn **bolder** than a slot's face and never below a legible box: the ring can be a
-        // 7 px dot (a thin eraser at 100 %), where the catalogue's hairline vanishes and the eraser is left
-        // as a nameless circle — the one thing the mark exists to prevent.
-        val side = max(diameter * ERASER_MARK_FRACTION, ERASER_MARK_MIN_DP.dp.toPx())
+        // The mark keeps a margin inside the disc and is stroked a little bolder than a slot's face: at the
+        // ring's own floor (a thin eraser at 100 %) the catalogue's hairline would thin away against the
+        // band, and the eraser would read as a nameless circle — the one thing the mark exists to prevent.
+        val side = diameter * ERASER_MARK_FRACTION
         drawToolGlyph(
             glyph = ToolGlyph.ERASER,
             color = colour,
@@ -196,11 +207,8 @@ private const val RING_BAND_DP = 1.6f
 /** The desk-coloured hairline on each side of the band, which keeps it visible over ink of either colour. */
 private const val RING_EDGE_DP = 0.8f
 
-/** How much of the ring's diameter the eraser's mark takes — small enough to stay inside the disc. */
-private const val ERASER_MARK_FRACTION = 0.7f
+/** How much of the ring's diameter the eraser's mark takes — a margin inside the disc on every side. */
+private const val ERASER_MARK_FRACTION = 0.66f
 
-/** The smallest box the mark is drawn in: below this the catalogue's own art stops being recognisable. */
-private const val ERASER_MARK_MIN_DP = 12f
-
-/** How much bolder than a slot's face the mark is stroked, for the same reason. */
-private const val ERASER_MARK_WEIGHT = 1.9f
+/** How much bolder than a slot's face the mark is stroked, so it survives the smallest ring. */
+private const val ERASER_MARK_WEIGHT = 1.35f

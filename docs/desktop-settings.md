@@ -237,9 +237,9 @@ two different questions:
   Both strips are re-laid live, and each **takes a lane** (decision 2026-10-28, `docs/interface-contract.md`):
   the canvas is handed what is left.
 - **Buttons**: one row per **slot**, its members listed underneath (the eraser holds partial and
-  whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down — and one
-  more row for **Insert image** (`interface.imageAfter`), the strip's only non-ink command, which stands under
-  the slot the row moves it to. The arrangement is `DesktopSettingsState.toolGroups` and both strips read it,
+  whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down — and, in
+  the same list and at its own place in it, the row for **Insert image** (`interface.imageAfter`), the strip's only
+  non-ink command: the rows are the strip's contents (`stripItems`), so that row sits where the rail draws it. The arrangement is `DesktopSettingsState.toolGroups` and both strips read it,
   so a button moved here moves in the rail and in the ribbon. **Reset to defaults** puts every slot back;
   the factory order is every slot not in `toolbar.order`, so it writes nothing.
 

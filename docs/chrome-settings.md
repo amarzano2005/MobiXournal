@@ -98,7 +98,7 @@ mechanics are in [`selection.md`](selection.md#selecting-objects-render).
 
 **The theme is three chips.** **Appearance → Mode** draws *System*, *Light* and *Dark* side by side on the page (`AppearanceSection.kt`) rather than behind a list: every answer is a word a reader already knows, so two taps for one decision was a step too many.
 
-**A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About** names the other shell: the tablet's page prints the desktop build's version from `BuildVersions`, the one home the two numbers live in.
+**A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About** ends in a door rather than a cross-reference: the tablet's page links to the project's repository (`ProjectLinks`, `mobix-core`), and the window's About row opens the same page in the machine's browser, so a reader looking for the other shell reaches its releases instead of reading a version number.
 
 ## The rail's two fixed slots
 

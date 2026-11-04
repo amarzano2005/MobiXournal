@@ -11,7 +11,9 @@ import com.mobixournal.desktop.shell.displayRefreshHz
 import com.mobixournal.desktop.shell.frameLabel
 import com.mobixournal.desktop.shell.refreshLabel
 import com.mobixournal.desktop.tools.FiguresSettings
+import com.mobixournal.desktop.tools.StripItem
 import com.mobixournal.desktop.tools.formatNumber
+import com.mobixournal.desktop.tools.stripItems
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -368,37 +370,35 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
     }
     val groups = policy.toolGroups
     SettingsGroup("Buttons") {
-        for ((index, group) in groups.withIndex()) {
-            SettingsRow(
-                label = group.face.label,
-                // Only a slot that holds more than one tool says what it holds: "Pen — Pen" is a line
-                // that teaches nothing and makes the list twice as tall as it needs to be.
-                note = group.members
-                    .takeIf { it.size > 1 }
-                    ?.joinToString(" · ") { it.label }
-                    .orEmpty(),
+        // The rows are the strip's own contents in the strip's own order ([stripItems]): the list said
+        // "bottom of the strip" while the strip drew Insert image under Text.
+        for (item in stripItems(groups, policy.imageAfter)) when (item) {
+            // The stroke's settings travel with the highlighter; they are not a button, so they get no row.
+            StripItem.Stroke -> Unit
+            is StripItem.Tools -> SettingsRow(
+                label = item.group.face.label,
+                // Only a slot holding more than one tool says what it holds: "Pen — Pen" teaches nothing.
+                note = item.group.members.takeIf { it.size > 1 }?.joinToString(" · ") { it.label }.orEmpty(),
             ) {
                 SettingsStepButtons(
-                    upEnabled = index > 0,
-                    downEnabled = index < groups.lastIndex,
-                    onUp = { policy.moveToolSlot(index, -1) },
-                    onDown = { policy.moveToolSlot(index, 1) },
+                    upEnabled = item.index > 0,
+                    downEnabled = item.index < groups.lastIndex,
+                    onUp = { policy.moveToolSlot(item.index, -1) },
+                    onDown = { policy.moveToolSlot(item.index, 1) },
                 )
             }
-        }
-        // Insert image is not a tool: it is the strip's one non-ink command, so it has no slot of its own
-        // and instead follows one. Its two chevrons say that in the same grammar every button row uses.
-        SettingsRow(
-            label = "Insert image",
-            note = "Follows the slot it stands under.",
-        ) {
-            val anchor = groups.indexOfFirst { it.face.name == policy.imageAfter }
-            SettingsStepButtons(
-                upEnabled = anchor > 0,
-                downEnabled = anchor in 0 until groups.lastIndex,
-                onUp = { policy.moveImageSlot(-1) },
-                onDown = { policy.moveImageSlot(1) },
-            )
+            StripItem.Image -> SettingsRow(
+                label = "Insert image",
+                note = "Follows the slot it stands under.",
+            ) {
+                val anchor = groups.indexOfFirst { it.face.name == policy.imageAfter }
+                SettingsStepButtons(
+                    upEnabled = anchor > 0,
+                    downEnabled = anchor in 0 until groups.lastIndex,
+                    onUp = { policy.moveImageSlot(-1) },
+                    onDown = { policy.moveImageSlot(1) },
+                )
+            }
         }
         if (policy.toolOrder.isNotEmpty()) {
             SettingsCommand(
@@ -661,19 +661,25 @@ private fun BackupSettings(policy: DesktopSettingsState) {
 }
 
 /**
- * **About**: what the window is, the credits it owes, and which Android build it speaks to.
+ * **About**: what the window is, the credits it owes, and the door out to the project's own page.
  *
  * The credits are the tablet's, in the window's words: MobiXournal continues NeXopp, and it is built on and
- * for Xournal++, which owns the `.xopp` format. The last line of the first group is the **other shell**: the two
- * apps share the format and the settings file's vocabulary, so each About page names the build it is the
- * twin of — the tablet's prints this window's version number, this one says where to read the tablet's.
+ * for Xournal++, which owns the `.xopp` format. The first group ends with the **door out** — the project's own
+ * repository, opened in the machine's browser — because a version number is not what a reader wants when they
+ * look for the other shell: its releases are.
  */
 @Composable
 private fun AboutSettings() {
     SettingsGroup("MobiXournal Desktop") {
         SettingsReadout("Version", DESKTOP_VERSION)
         SettingsReadout("Reads and writes", ".xopp · .mobix")
-        SettingsReadout("Android app", "Same formats and settings; it carries its own version.")
+        // The door **out**, in place of a row that reported the other shell's version: a reader who wants the
+        // Android build wants its releases, and the project's page is where both shells' work lives.
+        SettingsCommand(
+            label = "Open the project on GitHub",
+            note = "Source, releases and the issue tracker (`ProjectLinks`).",
+            onClick = ::openProjectPage,
+        )
     }
     SettingsGroup("Credits") {
         SettingsNote(

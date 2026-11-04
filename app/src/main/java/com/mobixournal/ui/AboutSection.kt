@@ -17,12 +17,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mobixournal.BuildConfig
-import com.mobixournal.design.BuildVersions
+import com.mobixournal.design.ProjectLinks
 
-/** Where the About page sends people; kept in one place so a link is never spelled out twice. */
+/** Where the About page sends people; the repository's address has one home, `ProjectLinks` (mobix-core). */
 object AboutLinks {
-    /** This app's own source repository (the owner's). */
-    const val SOURCE = "https://github.com/amarzano2005/MobiXournal"
+    /** This app's own source repository (the owner's) — read from the shared home both shells use. */
+    const val SOURCE = ProjectLinks.GITHUB
     /** The licence this app ships under — GPL-2.0-or-later, inherited from Xournal++. */
     const val LICENSE = "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
     /** The desktop project this app is built for and based on. */
@@ -45,16 +45,10 @@ fun AboutSection() {
 
     SettingsGroup("MobiXournal") {
         InfoRow("Version", BuildConfig.VERSION_NAME)
-        // The **other shell**: the window reads and writes the same documents and the same settings, so
-        // each About page names the build it is the twin of (`BuildVersions` holds the one number both read).
-        InfoRow("Desktop version", BuildVersions.DESKTOP)
-    }
-
-    SettingsGroup("Desktop window") {
-        SettingsNote(
-            "MobiXournal for Windows opens the same .mobix and .xopp documents with the same tools, and its " +
-                "settings backup carries the same choices. It is versioned on its own About page, above.",
-        )
+        // The **door out**, where a row naming the *other* shell's version used to stand: a reader who wants
+        // the Windows build wants its releases, and the repository is where both shells' work lives.
+        LinkRow("MobiXournal on GitHub", AboutLinks.SOURCE, open)
+        SettingsNote("Developed in the open; bug reports and patches are welcome.")
     }
 
     SettingsGroup("Credits") {
@@ -81,10 +75,6 @@ fun AboutSection() {
         LinkRow("Read the GPL v2 Licence", AboutLinks.LICENSE, open)
     }
 
-    SettingsGroup("Source code") {
-        SettingsNote("Developed in the open. Bug reports and patches are welcome.")
-        LinkRow("github.com/amarzano2005/MobiXournal", AboutLinks.SOURCE, open)
-    }
 }
 
 /** A read-only "label … value" line, for facts about the build. */
