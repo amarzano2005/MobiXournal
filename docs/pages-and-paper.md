@@ -82,8 +82,11 @@ both the sheet's own measure and its step through one notation (`PageSizeUnit.me
 `PageSizeStep.label` prints). A sheet kept in inches therefore reads `8.3 in` and steps by `3.9 in` — the
 same 100 mm of paper re-expressed, never a second, unrelated number — and a sheet kept in points steps by
 283.5 pt. Both shells read that one stored unit, and the window's Pages menu steps by
-`PageSizeStep.DEFAULT_MM` in it. The resize goes through the same `onPageSize` path as the Page format
-dialog, so the sheet and the stored format cannot disagree.
+`PageSizeStep.DEFAULT_MM` in it. A tap is a **step, not a size**: it is summed onto the sheet as it is now
+(`DesktopPageSetupState.nudge`), where handing the panel's own numbers back made a second tap step the sheet
+the menu opened on — so whether the third tap grew the page depended on when a frame happened to land. The
+result goes through the same `onPageSize` path as the Page format dialog, so the sheet and the stored format
+cannot disagree.
 
 ## Add/remove page
 

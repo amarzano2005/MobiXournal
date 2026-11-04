@@ -175,7 +175,8 @@ private fun PageNavRow(actions: PageMenuActions, onClose: () -> Unit) {
  * The step is [PageSizeStep.DEFAULT_MM] — the tablet's own factory step, a length of paper — turned into
  * points by the shared rule, because a page is kept in points while a step is read in paper. Both numbers
  * are printed in the unit the page format was set to ([PageMenuActions.sizeUnit]), so a sheet kept in
- * inches says `8.3 in` and steps by `3.9 in`. Each tap
+ * inches says `8.3 in` and steps by `3.9 in`; the *printed* measure is this panel's, the *step* is the
+ * page's own, which is what keeps the two in agreement when a tap arrives faster than a frame. Each tap
  * applies at once and the menu stays open, so three taps are three steps rather than three visits to the
  * menu.
  */
@@ -186,16 +187,10 @@ private fun QuickSizeRow(actions: PageMenuActions, axis: PageMenuMetrics.Item) {
     val measure = if (isWidth) size.first else size.second
     val label = if (isWidth) "Width" else "Height"
     val unit = actions.sizeUnit
-    val stepPt = PageSizeStep.pt(PageSizeStep.DEFAULT_MM)
     val stepLabel = PageSizeStep.label(PageSizeStep.DEFAULT_MM, unit)
-    fun nudge(steps: Int) {
-        val (width, height) = if (isWidth) {
-            PageSizeStep.step(size.first, size.second, steps, 0, stepPt)
-        } else {
-            PageSizeStep.step(size.first, size.second, 0, steps, stepPt)
-        }
-        actions.onSize(width, height)
-    }
+    // The step is a **count of steps**, not a new size: the page is stepped where it is now
+    // (`DesktopPageSetupState.nudge`), so a second tap before this panel recomposes still moves the sheet.
+    fun nudge(steps: Int) = actions.onNudge(if (isWidth) steps else 0, if (isWidth) 0 else steps)
     Row(
         Modifier
             .fillMaxWidth()

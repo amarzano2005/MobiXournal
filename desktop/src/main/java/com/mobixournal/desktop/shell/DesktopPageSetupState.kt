@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.BackgroundRuling
+import com.mobixournal.render.PageSizeStep
 
 /**
  * The window's **page setup**, as a piece of the shell's state: which section of the surface is up, and
@@ -73,6 +74,24 @@ internal class DesktopPageSetupState(
             if (page.width == widthPt && page.height == heightPt) page
             else page.copy(width = widthPt, height = heightPt)
         }
+    }
+
+    /**
+     * Step the active page's size by [widthSteps] and [heightSteps] of the quick-size step, read from the
+     * page **as it is now**.
+     *
+     * The Pages menu's four arrows used to hand back an *absolute* pair computed from the size the panel was
+     * composed with. A tap resized the page, but the panel's own value only caught up with the next
+     * recomposition, so a second tap sooner than that stepped the **old** size again and moved nothing (or
+     * moved by two steps, when the frame happened to land between the two). Reading the page here makes one
+     * tap one step, whatever the panel still prints — the numbers follow, the command does not wait for them.
+     */
+    fun nudge(widthSteps: Int, heightSteps: Int) {
+        if (widthSteps == 0 && heightSteps == 0) return
+        val page = activePage() ?: return
+        val stepPt = PageSizeStep.pt(PageSizeStep.DEFAULT_MM)
+        val (width, height) = PageSizeStep.step(page.width, page.height, widthSteps, heightSteps, stepPt)
+        setSize(width, height)
     }
 
     /** Apply one change to the active page, as one undo step, and drop its stale thumbnail. */

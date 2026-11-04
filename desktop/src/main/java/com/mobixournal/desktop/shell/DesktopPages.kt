@@ -106,8 +106,16 @@ data class PageMenuActions(
      * sheet had when it opened — the quick size's `+`/`−` resized the page while its numbers stood still.
      */
     val pageEdits: Int = 0,
-    /** Resize the page in view, which is what the quick-size buttons hand back. */
+    /** Resize the page in view to an absolute pair — the page format dialog's own answer. */
     val onSize: (Double, Double) -> Unit = { _, _ -> },
+    /**
+     * Step the page in view by whole quick-size steps, width then height — what the panel's four arrows hand
+     * back.
+     *
+     * A **count**, not a size: the panel prints the measure it composed with, so an absolute pair built
+     * there stepped the size the menu opened on whenever a second tap arrived before the next recomposition.
+     */
+    val onNudge: (Int, Int) -> Unit = { _, _ -> },
     /** The paper's two live answers, printed at the end of the page's own two rows. */
     val formatLabel: String? = null,
     val backgroundLabel: String? = null,
@@ -500,6 +508,8 @@ internal class DesktopPages(
         format: () -> Unit,
         /** Resize the page in view — the panel's quick-size buttons. */
         onSize: (Double, Double) -> Unit = { _, _ -> },
+        /** Step the page in view by quick-size steps — the same rows' `+` and `−` (`nudge`). */
+        onNudge: (Int, Int) -> Unit = { _, _ -> },
     ): PageMenuActions {
         val tab = active()
         val count = tab?.document?.pageCount ?: 0
@@ -522,6 +532,7 @@ internal class DesktopPages(
             pageCount = count,
             pageSize = page?.let { it.width to it.height },
             onSize = onSize,
+            onNudge = onNudge,
             sizeUnit = sizeUnit(),
             pageEdits = edits,
             formatLabel = page?.let { pageFormatLabel(it.width, it.height, sizeUnit()) },

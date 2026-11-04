@@ -1,4 +1,5 @@
 package com.mobixournal.desktop
+import com.mobixournal.render.PageSizeStep
 
 import com.mobixournal.desktop.tools.selectTool
 import com.mobixournal.desktop.ink.DesktopInk
@@ -116,6 +117,37 @@ class DesktopParityTest {
         val restored = state.activePage()!!
         assertEquals(DesktopDocuments.PAGE_WIDTH_PT, restored.width, 0.01)
         assertEquals("graph", (restored.background as Background.Solid).style)
+    }
+
+    /**
+     * Three taps of one arrow are three steps, even with no frame in between.
+     *
+     * The panel hands back a count of steps and `DesktopPageSetupState.nudge` sums it onto the page as it is
+     * now; a size computed in the panel stepped the sheet the menu had opened on, which is why a second tap
+     * could move nothing (or move twice, when a recomposition landed between two taps).
+     */
+    @Test
+    fun `the quick size steps the sheet every time, without waiting for a frame`() {
+        val state = state()
+        state.start(initial = null)
+        state.newDocument()
+        val startWidth = state.activePage()!!.width
+        val step = PageSizeStep.pt(PageSizeStep.DEFAULT_MM)
+
+        repeat(3) { state.nudgePageSize(1, 0) }
+        assertEquals("all three steps landed", startWidth + 3 * step, state.activePage()!!.width, 0.01)
+
+        repeat(2) { state.nudgePageSize(0, -1) }
+        assertEquals(
+            "and the height steps down from where the last tap left it",
+            DesktopDocuments.PAGE_HEIGHT_PT - 2 * step,
+            state.activePage()!!.height,
+            0.01,
+        )
+
+        // One edit each: the arrows can be taken back one tap at a time.
+        repeat(5) { assertTrue("each tap is its own undo step", state.apply(ShellCommand.UNDO)) }
+        assertEquals(startWidth, state.activePage()!!.width, 0.01)
     }
 
     @Test

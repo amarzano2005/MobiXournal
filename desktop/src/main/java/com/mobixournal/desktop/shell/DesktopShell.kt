@@ -386,6 +386,7 @@ class DesktopShellState(
                 { openPageSetup(PageSetupSection.PAPER) },
                 { openPageSetup(PageSetupSection.FORMAT) },
                 ::setPageSize,
+                ::nudgePageSize,
             ),
             onInsertImage = { onInsertImagePicker?.invoke() },
         )
@@ -450,6 +451,9 @@ class DesktopShellState(
 
     /** Resize the active page, keeping its ink and its paper. */
     fun setPageSize(widthPt: Double, heightPt: Double) = pageSetupState.setSize(widthPt, heightPt)
+
+    /** Step the active page by quick-size steps — the Pages menu's four arrows, summed onto the live page. */
+    fun nudgePageSize(widthSteps: Int, heightSteps: Int) = pageSetupState.nudge(widthSteps, heightSteps)
 
     /** The default sheet: the format section's **Default** entry, and what a new page is born on. */
     private val defaultSheet = DefaultSheet(settings)

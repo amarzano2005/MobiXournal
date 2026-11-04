@@ -257,7 +257,8 @@ class DesktopPagesTest {
         page = 1,
         pageCount = 4,
         pageSize = DEFAULT_WIDTH to DEFAULT_HEIGHT,
-        onSize = { _, _ -> sized++ },
+        // The arrows hand back a **count of steps**, so a counting lambda here is the whole panel's contract.
+        onNudge = { _, _ -> sized++ },
     )
 
     private fun panelScene(canStep: Boolean, canRemove: Boolean): ImageComposeScene {
