@@ -185,6 +185,17 @@ internal fun DrawingSurfaceView.pageBitmapFor(box: PageBox): Bitmap? {
 }
 
 /**
+ * The rasterised sheet of a `pdf`-backed page at [targetWidthPx], for a picture that stands for the
+ * page — the lateral page list's preview.
+ *
+ * The same cache the canvas draws from answers, so a preview is the sheet the editor shows rather than
+ * a blank card. A thumbnail asks for a width nothing else has yet, which is the one case [PdfPageCache.request]
+ * rasterises inline; that is a single small page, and it is what makes the preview immediate.
+ */
+internal fun DrawingSurfaceView.pdfSheetFor(background: Background.Pdf, targetWidthPx: Int): Bitmap? =
+    pdfSourceFor(background)?.request(background.pageNo, targetWidthPx)
+
+/**
  * The rasteriser for [background]'s PDF page: the one the document handed over, or the one its own
  * resolved local copy makes the first time a page needs it.
  *

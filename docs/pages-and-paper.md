@@ -108,12 +108,18 @@ the lane docks **on the rail's side** — `EditorBody` places it between the rai
 turning the toolbar to the right-hand edge takes the list with it, the way the window's strip follows its
 tools. Like the rail it is a lane of the layout and never a sheet over the page, and it **expands** into
 place rather than appearing at full width: it takes a slice of the page's own width, and a slice that
-arrives in one frame reads as a glitch. A row is its **number**, its **preview** beside it
-(`PageThumbnail`: the sheet's own paper and ink, on a white card so a blank page still reads as a page),
-a box that picks it and a handle that drags it. The number and the preview **go to** the page; the box
-**picks** it, because a tap that navigates is not a tap that selects; the handle **carries** it to the row
-it is dropped on (`PageOps.moveAll`, the block rule the window's drag uses) — the drag lives on the
-handle, since a row that started a drag on any touch would be a row that cannot be scrolled. The two
+arrives in one frame reads as a glitch. A row is its **number** and its **preview** and the controls, with
+no words beside them. The card **is the sheet's shape**: its width follows the page's own proportions at a
+fixed height, so a portrait page is a tall sliver, a landscape one a wide strip, and never one vertical
+block with the page floating inside. The preview is drawn from the live page (`PageThumbnail`: the sheet's
+paper and its ink, on a white card so a blank page still reads as a page), and a **`pdf` page is its real
+sheet** — the raster comes from the canvas's own `PdfPageCache` through
+`DrawingSurfacePaint.pdfSheetFor`, the same reference rule the window's strip follows, so a PDF page's
+preview is the text the annotations sit on rather than a bare card. The number and the preview **go to**
+the page; the box **picks** it, because a tap that navigates is not a tap that selects; the handle
+**carries** it, and while it travels the page is **lifted** and the row it would land on wears the accent
+line along its top edge (`PageOps.moveAll` on drop, the block rule the window's drag uses) — the drag
+lives on the handle, since a row that started a drag on any touch would be a row that cannot be scrolled. The two
 arrows under the list step the pick by one place and the bin takes it out (`PageOps.removeAll`, which
 refuses a pick covering the whole document), each as **one** undo step — and with **nothing picked** they
 act on the page in view, which is the plain case and needs no ceremony. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which

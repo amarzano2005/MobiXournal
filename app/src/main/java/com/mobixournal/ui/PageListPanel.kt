@@ -38,10 +38,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
@@ -52,8 +55,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.PageThumbnail
+import com.mobixournal.render.pdfSheetFor
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeColor
@@ -67,13 +73,25 @@ private val PAGE_LIST_WIDTH = 196.dp
 /** One row: tall enough for the preview it carries, short enough that a dozen pages still fit. */
 private val PAGE_ROW_HEIGHT = 64.dp
 
-/** The number's column, so every preview starts on the same line down the lane. */
-private val PAGE_NUMBER_WIDTH = 54.dp
+/** The number's column: a page's place in the document, and nothing else beside it. */
+private val PAGE_NUMBER_WIDTH = 30.dp
 
-/** The preview: a sheet a thumb wide, as tall as its page's own proportions allow. */
-private val THUMB_WIDTH = 36.dp
-private val THUMB_HEIGHT = 50.dp
-private const val THUMB_WIDTH_PX = 120
+/** The preview's height; its width follows the page's own proportions, so no sheet is forced upright. */
+private val THUMB_HEIGHT = 48.dp
+
+/** How narrow and how wide a preview may get, so a panorama page cannot eat the whole row. */
+private val THUMB_MIN_WIDTH = 22.dp
+private val THUMB_MAX_WIDTH = 68.dp
+
+/** The shape a malformed page (no usable proportions) is given: A4's own. */
+private const val PORTRAIT_RATIO = 0.707f
+
+/** The preview is rasterised at twice its display width, within these bounds. */
+private const val MIN_RASTER_PX = 64
+private const val MAX_RASTER_PX = 320
+
+/** The landing line's thickness: the accent that says where a dragged page will go. */
+private val LANDING_LINE_HEIGHT = 2.dp
 
 /** The handle's target: small enough to leave the row's air, wide enough for a stylus. */
 private val DRAG_HANDLE_SIZE = 32.dp
@@ -167,9 +185,10 @@ internal fun PageListCapsule(open: Boolean, onClick: () -> Unit) {
  * window's strip follows its tools. Like the rail it is a lane of the layout and not a sheet over the
  * page: every pixel of the visible page stays writable.
  *
- * Each row is its **number** with its **preview** beside it, a box that picks it and a handle that
- * drags it. The number and the preview **go to** the page (the list is a navigator first), the box
- * **picks** it for a multi-page command, and the handle **carries** the page to the row it is dropped on.
+ * Each row is its **number** and its **preview** — the two things that identify a page, and no words
+ * beside them — with a box that picks it and a handle that drags it. The number and the preview **go
+ * to** the page (the list is a navigator first), the box **picks** it for a multi-page command, and the
+ * handle **carries** the page to the row it is dropped on, which wears the accent line while it travels.
  *
  * The previews are drawn from the live pages ([PageThumbnail]), so a row shows its own ink and its own
  * paper rather than a placeholder that has to catch up later.
@@ -183,6 +202,12 @@ internal fun PageListPanel(
     selection: Set<Int>,
     /** The document's pages, in order — the previews' source. */
     pages: List<Page>,
+    /**
+     * The live canvas, so a `pdf`-backed page's preview is its real sheet and not a blank card: the
+     * rasteriser that already draws that page is the one that answers the thumbnail. Null before there
+     * is a canvas, and a PDF page then falls back to its bare paper.
+     */
+    surface: DrawingSurfaceView? = null,
     onSelection: (Set<Int>) -> Unit,
     onGoToPage: (Int) -> Unit,
     /** Move [picked] by [delta] positions, as one step. */
@@ -195,6 +220,14 @@ internal fun PageListPanel(
 ) {
     val picked = selection.filter { it in 0 until pageCount }.toSet()
     val acting = actedPages(picked, currentPage, pageCount)
+    // The drag lives here rather than in the row: the landing line is drawn by a **different** row than
+    // the lifted one, so one place has to know both where the page came from and where it would land.
+    val rowHeightPx = with(LocalDensity.current) { PAGE_ROW_HEIGHT.toPx() }
+    var dragFrom by remember { mutableStateOf<Int?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val landing = dragFrom?.let {
+        (it + (dragOffset / rowHeightPx).roundToInt()).coerceIn(0, pageCount - 1)
+    }
     Surface(
         modifier = modifier.width(PAGE_LIST_WIDTH).fillMaxHeight(),
         color = rememberGlassSurfaceColor().compositeOver(rememberChromeColor()),
@@ -207,14 +240,36 @@ internal fun PageListPanel(
                     PageListRow(
                         index = index,
                         page = pages.getOrNull(index),
+                        surface = surface,
                         inView = index == currentPage,
                         picked = index in picked,
-                        pageCount = pageCount,
+                        lifted = dragFrom == index,
+                        lift = if (dragFrom == index) dragOffset else 0f,
+                        // The page would land on this row — and it is not already there.
+                        landing = landing == index && landing != dragFrom,
                         onGoTo = { onGoToPage(index) },
                         onToggle = {
                             onSelection(if (index in picked) picked - index else picked + index)
                         },
-                        onReorder = onReorder,
+                        onDragStart = {
+                            dragFrom = index
+                            dragOffset = 0f
+                        },
+                        onDragBy = { dragOffset = it },
+                        onDragEnd = {
+                            val from = dragFrom
+                            if (from != null) {
+                                val to = (from + (dragOffset / rowHeightPx).roundToInt())
+                                    .coerceIn(0, pageCount - 1)
+                                if (to != from) onReorder(from, to)
+                            }
+                            dragFrom = null
+                            dragOffset = 0f
+                        },
+                        onDragCancel = {
+                            dragFrom = null
+                            dragOffset = 0f
+                        },
                     )
                 }
             }
@@ -260,24 +315,30 @@ private fun PageListHeader(pageCount: Int, onClose: () -> Unit) {
  * the finger travels. A handle is one explicit target, its drag is immediate, and the row keeps its
  * plain tap.
  *
- * The drop is `places = dragged / rowHeight` rounded, on the list's fixed row pitch, so the page lands
- * on the row the eye saw it over.
+ * While it travels the page is **lifted** — raised, a touch transparent — and the row it would land on
+ * wears the accent along its top edge, the same pair of marks the window's strip makes (`PageSidebar`), so
+ * a drag reads as a move in progress rather than as a page that changes places after the fact. The drop is
+ * `places = dragged / rowHeight` rounded, on the list's fixed row pitch, so the page lands on the row the
+ * eye saw it over.
  */
 @Composable
 private fun PageListRow(
     index: Int,
     page: Page?,
+    surface: DrawingSurfaceView?,
     inView: Boolean,
     picked: Boolean,
-    pageCount: Int,
+    lifted: Boolean,
+    lift: Float,
+    landing: Boolean,
     onGoTo: () -> Unit,
     onToggle: () -> Unit,
-    onReorder: (from: Int, to: Int) -> Unit,
+    onDragStart: () -> Unit,
+    onDragBy: (Float) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
 ) {
-    val rowHeightPx = with(LocalDensity.current) { PAGE_ROW_HEIGHT.toPx() }
-    var dragOffset by remember(index) { mutableFloatStateOf(0f) }
-    var dragging by remember(index) { mutableStateOf(false) }
-    val lift = dragOffset
+    val accent = MaterialTheme.colorScheme.primary
     val rowFill = when {
         inView -> MaterialTheme.colorScheme.primaryContainer
         picked -> MaterialTheme.colorScheme.secondaryContainer
@@ -290,44 +351,37 @@ private fun PageListRow(
             .height(PAGE_ROW_HEIGHT)
             .graphicsLayer {
                 translationY = lift
-                alpha = if (dragging) 0.92f else 1f
-                shadowElevation = if (dragging) 10.dp.toPx() else 0f
+                alpha = if (lifted) 0.92f else 1f
+                shadowElevation = if (lifted) 10.dp.toPx() else 0f
             }
-            .background(if (dragging) dragFill else rowFill),
+            .background(if (lifted) dragFill else rowFill)
+            // The row the page would land on wears the accent along its **top edge**: one line in the
+            // chrome's accent, so where the page will go is readable while the finger travels.
+            .drawBehind {
+                if (landing) drawRect(accent, size = Size(size.width, LANDING_LINE_HEIGHT.toPx()))
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // The number, first, on its own column: a list of pages is read by its numbers.
+        // The number, alone on its column: a list of pages is read by its numbers.
         Box(
             modifier = Modifier.width(PAGE_NUMBER_WIDTH).fillMaxHeight().clickable(onClick = onGoTo),
-            contentAlignment = Alignment.CenterStart,
+            contentAlignment = Alignment.Center,
         ) {
-            Column(Modifier.padding(start = 12.dp)) {
-                Text(
-                    "Page ${index + 1}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = rememberChromeInk(),
-                )
-                if (inView) {
-                    Text(
-                        "In view",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
+            Text(
+                "${index + 1}",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (inView || picked) accent else rememberChromeInk(),
+            )
         }
-        PageListPreview(page, onGoTo)
+        PageListPreview(page = page, surface = surface, onGoTo = onGoTo)
         Spacer(Modifier.weight(1f))
         PickBox(index = index, picked = picked, onToggle = onToggle)
         PageDragHandle(
             index = index,
-            pageCount = pageCount,
-            rowHeightPx = rowHeightPx,
-            onDragOffset = { dragOffset = it },
-            onDragging = { dragging = it },
-            onDrop = { places ->
-                if (places != 0) onReorder(index, (index + places).coerceIn(0, pageCount - 1))
-            },
+            onStart = onDragStart,
+            onBy = onDragBy,
+            onEnd = onDragEnd,
+            onCancel = onDragCancel,
         )
     }
 }
@@ -335,15 +389,31 @@ private fun PageListRow(
 /**
  * A page's own preview, beside its number — the sheet's paper and its ink, on a white card so that even
  * a blank page reads as a page rather than as an empty frame.
+ *
+ * **The card is the sheet's shape.** Its width follows the page's own proportions at [THUMB_HEIGHT] tall,
+ * so a portrait page is a tall sliver, a landscape one a wide strip and a PDF page looks like the sheet the
+ * canvas is showing — never one fixed vertical block with the page floating inside it. The raster is twice
+ * the display width, so text on a PDF page stays legible instead of turning to grey.
+ *
+ * A `pdf` page asks the canvas for its raster ([pdfSheetFor]) rather than drawing its bare paper: the
+ * sheet *is* that page, and a white card with the ink on it would preview the annotations and not the text
+ * the reader is annotating.
  */
 @Composable
-private fun PageListPreview(page: Page?, onGoTo: () -> Unit) {
-    val preview = remember(page) {
-        page?.let { runCatching { PageThumbnail.render(it, THUMB_WIDTH_PX) }.getOrNull() }
+private fun PageListPreview(page: Page?, surface: DrawingSurfaceView?, onGoTo: () -> Unit) {
+    val ratio = page?.let { if (it.height > 0.0) (it.width / it.height).toFloat() else null }
+    val width = (THUMB_HEIGHT * (ratio ?: PORTRAIT_RATIO)).coerceIn(THUMB_MIN_WIDTH, THUMB_MAX_WIDTH)
+    val widthPx = with(LocalDensity.current) { width.roundToPx() }
+    val rasterPx = (widthPx * 2).coerceIn(MIN_RASTER_PX, MAX_RASTER_PX)
+    val preview = remember(page, rasterPx) {
+        page?.let { p ->
+            val sheet = (p.background as? Background.Pdf)?.let { bg -> surface?.pdfSheetFor(bg, rasterPx) }
+            runCatching { PageThumbnail.render(p, rasterPx, sheet) }.getOrNull()
+        }
     }
     Box(
         modifier = Modifier
-            .width(THUMB_WIDTH)
+            .width(width)
             .height(THUMB_HEIGHT)
             .clip(RoundedCornerShape(3.dp))
             .background(Color.White)
@@ -368,40 +438,40 @@ private fun PageListPreview(page: Page?, onGoTo: () -> Unit) {
  * `detectDragGestures` (immediate, not after a long press) on a target this small is what makes the
  * gesture reliable inside a scrolling list: the handle claims the touch before the list's scroll does,
  * so pulling a page down moves the page rather than the list.
+ *
+ * It reports a **travelled distance**, not a decision: the list owns the row pitch and the landing row, so
+ * the handle only has to say how far the finger went. Both callbacks are read through holders, because the
+ * pointer handlers outlive the composition that built them.
  */
 @Composable
 private fun PageDragHandle(
     index: Int,
-    pageCount: Int,
-    rowHeightPx: Float,
-    onDragOffset: (Float) -> Unit,
-    onDragging: (Boolean) -> Unit,
-    onDrop: (places: Int) -> Unit,
+    onStart: () -> Unit,
+    onBy: (Float) -> Unit,
+    onEnd: () -> Unit,
+    onCancel: () -> Unit,
 ) {
+    val start = rememberUpdatedState(onStart)
+    val by = rememberUpdatedState(onBy)
+    val end = rememberUpdatedState(onEnd)
+    val cancel = rememberUpdatedState(onCancel)
     Box(
         modifier = Modifier
             .size(DRAG_HANDLE_SIZE)
             .semantics { contentDescription = "Drag page ${index + 1}" }
-            .pointerInput(index, pageCount) {
+            .pointerInput(index) {
                 var travelled = 0f
                 detectDragGestures(
                     onDragStart = {
                         travelled = 0f
-                        onDragging(true)
+                        start.value()
                     },
-                    onDragEnd = {
-                        onDragging(false)
-                        onDragOffset(0f)
-                        onDrop((travelled / rowHeightPx).roundToInt())
-                    },
-                    onDragCancel = {
-                        onDragging(false)
-                        onDragOffset(0f)
-                    },
+                    onDragEnd = { end.value() },
+                    onDragCancel = { cancel.value() },
                     onDrag = { change, amount ->
                         change.consume()
                         travelled += amount.y
-                        onDragOffset(travelled)
+                        by.value(travelled)
                     },
                 )
             },
@@ -454,8 +524,9 @@ private fun PickBox(index: Int, picked: Boolean, onToggle: () -> Unit) {
  * The list's three commands and what they will act on.
  *
  * The commands take the **pick**, or the page in view when nothing is picked: a reader who has scrolled
- * to a page and wants it gone should not have to tick a box first, and the line above the buttons says
- * which of the two is in force.
+ * to a page and wants it gone should not have to tick a box first, and the figure above the buttons is
+ * the subject — a count for a pick, the page's own number for the page in view, in the same ink as the
+ * rows carry it.
  *
  * A move is refused at the ends of the document rather than wrapping the run round to the other end —
  * a page that quietly teleports reads as a bug — and a delete is refused when the pick is the whole
@@ -475,8 +546,8 @@ private fun PageListCommands(
     val canDelete = acting.isNotEmpty() && acting.size < pageCount
     val subject = when {
         picked.isNotEmpty() -> "${picked.size} picked"
-        acting.isNotEmpty() -> "Page ${currentPage + 1}"
-        else -> "No page"
+        acting.isNotEmpty() -> "${currentPage + 1}"
+        else -> "\u2014"
     }
     Column(Modifier.fillMaxWidth().padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(

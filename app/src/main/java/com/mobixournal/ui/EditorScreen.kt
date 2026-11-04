@@ -647,6 +647,7 @@ private fun PageListLane(ui: EditorUiState, pane: PaneState, expandFromStart: Bo
         selection = ui.pageSelection,
         // The live pages, so a row's preview is the page's own ink and paper.
         pages = pane.surface?.pageCommands?.pages().orEmpty(),
+        surface = pane.surface,
         onSelection = { ui.pageSelection = it },
         onGoToPage = { pane.surface?.goToPage(it) },
         // One step, keeping the run together (`moveAll` refuses a target already under the block).

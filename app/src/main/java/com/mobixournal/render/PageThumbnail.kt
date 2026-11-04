@@ -10,10 +10,11 @@ import com.mobixournal.format.model.Page
  * element, drawn through the same [BackgroundRenderer] / [PageRenderer] the editor and the PDF
  * export use, so a preview looks like the page it stands for.
  *
- * A `pdf` or `pixmap` background is drawn as its plain sheet colour only: the preview is deliberately
- * cheap and synchronous (it runs inside a tap that opens the tab overview), and the caches those
- * backgrounds come from are asynchronous and owned by a live canvas. Ink still lands on top, which is
- * what tells two tabs apart at thumbnail size.
+ * A `pixmap` background is drawn as its plain sheet colour only: the preview is deliberately cheap and
+ * synchronous, and the picture cache is asynchronous and owned by a live canvas. A `pdf` page is the
+ * exception — its sheet is what the page *is* — so the caller hands in the raster the editor already
+ * made for it ([sheet]), and the preview looks like the page the canvas is showing. Ink still lands on
+ * top, which is what tells two pages apart at thumbnail size.
  */
 object PageThumbnail {
 
@@ -23,8 +24,11 @@ object PageThumbnail {
     /**
      * Draw [page] scaled to [widthPx] wide (height follows the page's aspect ratio). Returns null for
      * a degenerate page rather than throwing, so a malformed document can't take the overview down.
+     *
+     * [sheet] is a `pdf` background's rasterised page when the caller has one: with it the preview is
+     * the sheet itself; without it such a page draws as its bare paper.
      */
-    fun render(page: Page, widthPx: Int): Bitmap? {
+    fun render(page: Page, widthPx: Int, sheet: Bitmap? = null): Bitmap? {
         val width = widthPx.coerceIn(1, MAX_WIDTH_PX)
         if (page.width <= 0.0 || page.height <= 0.0) return null
         val scale = (width / page.width).toFloat()
@@ -36,7 +40,7 @@ object PageThumbnail {
             widthPx = width.toFloat(), heightPx = height.toFloat(), scale = scale,
             source = PageSource.of(listOf(page)),
         )
-        BackgroundRenderer.draw(canvas, box, scrollX = 0f, scrollY = 0f)
+        BackgroundRenderer.draw(canvas, box, scrollX = 0f, scrollY = 0f, pageImage = sheet)
         // One-shot renderer: close it so its decoded images don't sit in the shared bitmap budget
         // for the life of the process — the thumbnail itself is the only thing worth keeping.
         val elements = ElementRenderer()
