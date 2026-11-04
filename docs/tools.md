@@ -275,10 +275,10 @@ no interpreter path is pasted into a session, and `DESIGN_PYTHON` overrides the 
 answers well; `--stack jetpack-compose` is thin in the shipped CSV, so an empty result there is the
 corpus rather than the install.
 
-`skills/ui-ux-pro-max/SKILL.md` is the orchestrator; its six sibling skills (`banner-design`, `brand`,
-`design`, `design-system`, `slides`, `ui-styling`) sit beside it. **No Node toolchain is installed on
-this box**, so the upstream installers (`npx skills add`, `uipro init`) cannot run here: the folders are
-taken from the upstream repo's `.claude/skills/` and refreshed the same way.
+`skills/ui-ux-pro-max/SKILL.md` carries the skill's own workflow; it and its data came from the upstream
+repository, whose **web-page** skills (shadcn/Tailwind styling, brand books, slide decks, banners) are
+not vendored — a Compose/WPF product has no website to style. The upstream installers (`npx skills add`,
+`uipro init`) need Node, absent here, so a refresh is a copy of the same folders.
 
 ## Closing a UI change
 
