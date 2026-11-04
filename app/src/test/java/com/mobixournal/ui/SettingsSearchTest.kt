@@ -33,7 +33,7 @@ class SettingsSearchTest {
         assertTrue(SettingsSection.STYLUS in settingsSearchResults("barrel button"))
         assertTrue(SettingsSection.NAVIGATION in settingsSearchResults("momentum"))
         assertTrue(SettingsSection.APPEARANCE in settingsSearchResults("dark"))
-        assertTrue(SettingsSection.APPEARANCE in settingsSearchResults("wallpaper"))
+        assertTrue(SettingsSection.APPEARANCE in settingsSearchResults("theme"))
         assertTrue(SettingsSection.STORAGE in settingsSearchResults("cache"))
         assertTrue(SettingsSection.SHORTCUTS in settingsSearchResults("expresskey"))
         assertTrue(SettingsSection.TOOLBAR in settingsSearchResults("left-handed"))

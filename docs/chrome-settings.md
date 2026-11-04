@@ -60,7 +60,7 @@ file.
 
 **Search** runs over the sections from both shapes (`SettingsSearch.kt`, pure): a query matches a
 section's title, its summary, or its `keywords` aliases — the everyday words for the controls a user
-might type instead of the app's label ("momentum", "wallpaper", "cache", "left-handed"). The aliases
+might type instead of the app's label ("momentum", "theme", "cache", "left-handed"). The aliases
 are what makes search *find* rather than filter titles, so `SettingsSearchTest` pins a handful of those
 queries to their sections and requires every section to carry aliases and answer to its own title. A
 result names the area it lives in (`areaOf`), so a hit found by an alias still says where the setting
@@ -97,7 +97,7 @@ left off with — `lastColor`/`lastWidth`, re-pushed onto a freshly created surf
 its pref key. The **Select** tool adds a rail entry and a floating action bar; its
 mechanics are in [`selection.md`](selection.md#selecting-objects-render).
 
-**The theme is a select, on the Interface page itself.** *Appearance* is not a door: a page holding one answer and one switch is a level of indirection the reader pays for twice, so `SettingsSection.inline` draws its two rows **where the section used to be listed** — the entry keeps its place in the area's card. The row *is* the mode: the answer in hand and a chevron onto *System*, *Light* and *Dark* (`OptionGroup`), with the **Use system colours** switch under it. A search hit for "dark" or "wallpaper" still opens the same two rows as a page of their own.
+**The theme is a select, on the Interface page itself.** *Appearance* is not a door: a page holding one answer is a level of indirection the reader pays for twice, so `SettingsSection.inline` draws the row **where the section used to be listed** — the entry keeps its place in the area's card, and it wears the entry's glyph so it still reads as that entry. The row *is* the mode: the answer in hand at its end and a chevron onto *System*, *Light* and *Dark* (`OptionGroup`). A search hit for "dark" still opens the row as a page of its own.
 
 **A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About** ends in a door rather than a cross-reference: the tablet's page links to the project's repository (`ProjectLinks`, `mobix-core`), and the window's About row opens the same page in the machine's browser, so a reader looking for the other shell reaches its releases instead of reading a version number.
 

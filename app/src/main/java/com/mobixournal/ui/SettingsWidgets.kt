@@ -118,6 +118,8 @@ fun <T> OptionGroup(
     label: (T) -> String,
     icon: ((T) -> ImageVector)? = null,
     section: ((T) -> String?)? = null,
+    /** The entry's own glyph at the row's start, for a choice drawn where a section's row used to stand. */
+    leadingIcon: ImageVector? = null,
     onSelect: (T) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -149,6 +151,7 @@ fun <T> OptionGroup(
             subtitle = subtitle,
             value = label(selected),
             icon = icon?.invoke(selected),
+            leadingIcon = leadingIcon,
             onClick = { open = !open },
         )
         ToolbarMenu(
@@ -234,6 +237,7 @@ private fun OptionTriggerRow(
     subtitle: String,
     value: String,
     icon: ImageVector?,
+    leadingIcon: ImageVector?,
     onClick: () -> Unit,
 ) {
     val reach = LocalSettingsCardInset.current
@@ -245,6 +249,7 @@ private fun OptionTriggerRow(
             .padding(horizontal = reach, vertical = settingsCellInset(reach)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (leadingIcon != null) SectionGlyph(leadingIcon)
         ControlHeader(title, subtitle, Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
         if (icon != null) {

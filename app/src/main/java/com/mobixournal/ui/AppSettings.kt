@@ -104,7 +104,7 @@ enum class ThemeMode(val label: String) {
  * @property railHidden The [RailItem.id]s the user has hidden from the rail. Empty means everything is shown.
  * @property audioFolderUri The persisted `OpenDocumentTree` URI of the folder audio sidecars are kept in (empty = none nominated).
  * @property themeMode Light, dark, or follow the system — applied to the whole app's Material 3 scheme.
- * @property dynamicColor Whether to use Android 12+ dynamic colours from the wallpaper (Material You).
+ * @property dynamicColor Whether to use Android 12+ dynamic colours from the wallpaper (Material You); it keeps its default, as Appearance asks for the mode only.
  * @property toolShortcutKeys Per-tool keyboard shortcut, keyed by [EditorTool]; empty/absent means disabled.
  * @property colorShortcutKeys Per-colour keyboard shortcut, keyed by the ARGB value of the swatch; empty/absent means disabled.
  * @property presets The user's saved tool snapshots, in display order.

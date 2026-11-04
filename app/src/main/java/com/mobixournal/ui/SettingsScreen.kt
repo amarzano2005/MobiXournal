@@ -193,12 +193,11 @@ enum class SettingsSection(
             "scrollbar",
         SettingsGlyph.NAVIGATION.imageVector(),
     ),
-    /** Appearance: theme mode and wallpaper colours. */
+    /** Appearance: which colour scheme the app's chrome is painted with. */
     APPEARANCE(
         "Appearance",
-        "Theme and wallpaper colours.",
-        "appearance interface theme dark light system dynamic color colour " +
-            "material you wallpaper",
+        "The app's theme: light, dark or the system setting.",
+        "appearance interface theme dark light system mode",
         SettingsGlyph.APPEARANCE.imageVector(),
         inline = true,
     ),
@@ -536,6 +535,31 @@ private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable 
 }
 
 /**
+ * The disc a settings row opens with: the entry's glyph, tinted, and the gap to its title.
+ *
+ * A **door** ([SectionRow]) and a **choice** drawn where that door used to stand ([OptionTriggerRow]) wear the
+ * same one, because the entry that stopped being a page is still the same entry in the same list.
+ */
+@Composable
+internal fun SectionGlyph(icon: ImageVector) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+    Spacer(Modifier.width(14.dp))
+}
+
+/**
  * One tappable row on a list page: the entry's glyph (when it has one), its name, what it covers, and
  * a chevron.
  *
@@ -560,23 +584,7 @@ internal fun SectionRow(
             .padding(horizontal = reach, vertical = settingsCellInset(reach)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (icon != null) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-        }
+        if (icon != null) SectionGlyph(icon)
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
