@@ -76,15 +76,16 @@ internal fun PolygonSlotButton(
                 modifier = Modifier.size(ToolIconSize * 0.9f),
             )
             // The figure itself is drawn from this number, so the slot says which one it is. It rides
-            // the button's top-left edge, a hair inside the rim so the slot's rounded corner cannot
-            // crop the digits, and clear of the drawing in the middle.
+            // the button's top-left edge at the **window's own inset and size** (four in, two down,
+            // 9 sp), a hair inside the rim so the slot's rounded corner cannot crop the digits and a
+            // clear step off the drawing in the middle — at 3 dp/1 dp/10 sp it sat on the glyph.
             Text(
                 text = "$sides",
                 color = tint,
-                fontSize = 10.sp,
+                fontSize = 9.sp,
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(start = 3.dp, top = 1.dp),
+                    .padding(start = 4.dp, top = 2.dp),
             )
             // The menu's caret takes the corner opposite the count, small and tight to the rim, so the
             // two marks frame the figure instead of competing with it for the middle.

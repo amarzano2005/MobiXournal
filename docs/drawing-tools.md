@@ -172,8 +172,9 @@ the same `regularPolygon` every other regular figure comes from, so the pentagon
 that one tool at five and six sides rather than figures of their own. The count is 3–12 (six at the
 factory) and is chosen where the figure is: **the Polygons slot's own menu** is the side-count picker
 (`PolygonSlotButton` — tap the slot to take the tool, tap it again or long-press for the picker, with
-the live count riding the button's top-left edge, the picker's caret in the bottom-right corner and the
-figure centred), and picking one also takes hold of the tool, because seven
+the live count riding the button's top-left edge at the **window's own inset and size** (4 dp in, 2 dp
+down, 9 sp — at 3 dp/1 dp/10 sp it sat on the glyph), the picker's caret in the bottom-right corner and
+the figure centred), and picking one also takes hold of the tool, because seven
 sides is always about drawing a heptagon next. A count in that menu is drawn as **the polygon it makes**
 rather than as a numeral alone — `ToolGlyphCatalogue.regularPolygon` builds the three-to-twelve-sided
 outline on the shared glyph grid, so the tablet's picker and the window's figure menu show the same
