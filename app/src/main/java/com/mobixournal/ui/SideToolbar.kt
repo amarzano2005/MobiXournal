@@ -74,7 +74,11 @@ fun SideToolbar(
     // The rule is a child of the column like any other, so the adaptive pitch has to be told about it:
     // otherwise the slots fill the height exactly and the rule pushes the last one past the bottom edge
     // the whole-slot rule exists to keep clean.
-    val ruleHeightDp = if (sections.size > 1) RailRuleHeight.value + RailSpacing.value else 0f
+    val ruleHeightDp = if (sections.size > 1) {
+        RailRuleHeight.value + RailRuleAir.value * 2f + RailSpacing.value
+    } else {
+        0f
+    }
     ToolbarShell(slotCount = items.size, extraHeightDp = ruleHeightDp, modifier = modifier) {
         for (section in sections) {
             // The rail's two lives: the tools the user orders, then the navigation panels — Pages and
@@ -115,6 +119,18 @@ fun SideToolbar(
 private val RailRuleHeight = 1.dp
 
 /**
+ * The air on each side of the rule, **on top of** the rail's own slot gap.
+ *
+ * The tools and the navigation panels are two different errands, and at the plain 4 dp gap the line
+ * read as one more slot separator rather than as the rail's one division: it is spaced like a break in
+ * the list, so the eye groups the pens above and the two panels below before it reads a label.
+ *
+ * 8 dp here plus the column's own 4 dp gap is a **12 dp** step on each side of the line — the rest of
+ * the rail is spaced at 4, so the break is three times a slot gap and cannot be read as one of them.
+ */
+private val RailRuleAir = 8.dp
+
+/**
  * The line between the rail's tools and its pinned panels (**Pages** and **Layers**).
  *
  * Without it the panels read as two more tools at the end of the list, and the tools above read as
@@ -127,6 +143,7 @@ private val RailRuleHeight = 1.dp
 private fun RailRule() {
     Box(
         Modifier
+            .padding(vertical = RailRuleAir)
             .width(SideToolbarModernSlot / 2)
             .height(RailRuleHeight)
             .background(ModernTheme.hairlineBorder(chromeIsDark())),
