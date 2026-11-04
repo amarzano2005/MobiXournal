@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.PillTextInset
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -611,7 +612,9 @@ internal fun ToolbarPopupButton(
         Box(
             modifier = Modifier
                 .size(slotSize)
-                .clip(CircleShape)
+                // The rail's own squircle ([ModernTheme.railSlotShape]), not a circle: a pressed panel
+                // has to be the shape a pressed pen is, or the rail reads as two families.
+                .clip(ModernTheme.railSlotShape)
                 .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                 .combinedClickable(
                     onClick = { open = !open },
