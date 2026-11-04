@@ -426,7 +426,12 @@ fun EditorScreen(
         // Settings is overlaid on top of the still-composed editor rather than replacing it, so the
         // AndroidView-hosted DrawingSurfaceView is never detached — the drawing (and undo history)
         // survives the round trip to Settings and back.
-        if (ui.showSettings) {
+        //
+        // It **leaves** on the same spring: `DialogPresence` holds the overlay composed while
+        // `liquidGlassSpringAnimation` draws it back, because a bare `if (ui.showSettings)` took the
+        // screen away on the frame the flag cleared — the arrival played in full and closing settings
+        // was a snap, which read as a surface that animates one way only.
+        DialogPresence(ui.showSettings) {
             SettingsScreen(
                 settings = settings,
                 onChange = onSettingsChange,

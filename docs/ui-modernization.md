@@ -212,8 +212,10 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
 - **The canvas takes the rectangle the chrome leaves** — the rail's lane down one edge and the header band
   above — so the page is never underneath the glass and the whole visible sheet stays writable. See
   [`chrome-frame.md`](chrome-frame.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
-- **Settings opens with the app's own spring**: the settings screen is an overlay on the still-composed
-  editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector.
+- **Settings opens *and* closes with the app's own spring**: the settings screen is an overlay on the
+  still-composed editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector —
+  overlaid by a `DialogPresence(ui.showSettings)` gate, so the departure is drawn too instead of the
+  screen vanishing on the frame the flag cleared (`SettingsPresenceTest` holds the gate and the spring).
 - **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own
   monoline icon in a tinted disc at the head of its row (`SectionRow`), and the same glyph follows the row
   into the search results. The glyph is part of the enum, so a new section cannot be added without one.

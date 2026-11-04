@@ -102,6 +102,12 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   grows an `androidTest` source set nobody compiles.
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
+- **`ShapeFeedbackTest`** and **`SettingsPresenceTest`** (`ui/`) — the two halves of the motion and state
+  contract that a compiling change can silently drop. The first reads each rounded control for a clip
+  *before* its click, so a press lights the capsule or squircle the reader sees and not the rectangle it
+  is measured in (the entry screen's doors are among them); the second reads `EditorScreen` for
+  `DialogPresence(ui.showSettings)` around the settings overlay and the glass spring inside it, so
+  leaving Settings is drawn instead of the screen vanishing mid-departure.
 - **`ToolGlyphWeightTest`** (`ui/`) — both toolbars draw the same `Icons.Outlined` tool set, so both
   must draw it at the one glyph size (`ToolIconSize`, half a rail slot): these vectors scale their
   stroke with the icon, and a smaller glyph in the Secondary Toolbar read as *thinner ink* than the rail
