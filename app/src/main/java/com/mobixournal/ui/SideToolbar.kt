@@ -75,7 +75,7 @@ fun SideToolbar(
     // otherwise the slots fill the height exactly and the rule pushes the last one past the bottom edge
     // the whole-slot rule exists to keep clean.
     val ruleHeightDp = if (sections.size > 1) {
-        RailRuleHeight.value + RailRuleAir.value * 2f + RailSpacing.value
+        RailHairline.value + RailRuleAir.value * 2f + RailSpacing.value
     } else {
         0f
     }
@@ -115,8 +115,11 @@ fun SideToolbar(
     }
 }
 
-/** The rule that opens the rail's pinned stretch: one hairline, half a slot wide. */
-private val RailRuleHeight = 1.dp
+/**
+ * The rail's hairline: one pixel-thin line, shared by the rule above the pinned slots and by the rule
+ * inside the Colour & size slot ([ColorSizeRailSlot]) — one separator, drawn either way round.
+ */
+internal val RailHairline = 1.dp
 
 /**
  * The air on each side of the rule, **on top of** the rail's own slot gap.
@@ -145,7 +148,7 @@ private fun RailRule() {
         Modifier
             .padding(vertical = RailRuleAir)
             .width(SideToolbarModernSlot / 2)
-            .height(RailRuleHeight)
+            .height(RailHairline)
             .background(ModernTheme.hairlineBorder(chromeIsDark())),
     )
 }
