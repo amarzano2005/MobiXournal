@@ -244,8 +244,8 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   the tool will write is painted at the pointer (`DesktopCursor.kt`, `drawToolCursor`), in the window's own
   ink of the tool in hand (`ringInk`): the colour is the **band**, edged in and out by a hairline of the desk,
   so it stays legible on paper, on the black desk and over ink of either kind. Its diameter is the stroke's
-  stored width × zoom × density with a 7 px floor, and the **eraser's** ring is its radius doubled
-  (`eraserRadiusPt`), not its width, with the catalogue's eraser mark inside it, worked a little bolder than a slot's face and never drawn below a 20 px disc — under that size the mark reads as no eraser at all. A tool that draws nothing
+  stored width × zoom × density with a 7 px floor. The **erasers** wear no ring at all — the pointer *is* the
+  catalogue's eraser mark, as wide as the rubber cuts (`eraserRadiusPt` doubled, never under 20 px) and drawn in the pointer's dark ink, because a pale ring on white paper is a mark nobody sees. A tool that draws nothing
   hand, a text box) simply gets no ring. The ring is an **extra width readout, never a replacement for the
   cursor**: the canvas keeps `PointerIcon.Default` for **every** tool, because a hidden system cursor left
   the window with no pointer at all whenever the ring had nothing to draw — over a figure, over the chrome,

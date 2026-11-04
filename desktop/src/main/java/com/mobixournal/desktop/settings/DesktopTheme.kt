@@ -462,6 +462,15 @@ object DesktopTheme {
      * shows what will land on the sheet has to show the sheet. It is the one surface in the window that is
      * deliberately light, and it exists only inside a card, never as chrome.
      */
+    /**
+     * The pointer's own ink — the **dark** one, in both themes.
+     *
+     * What sits under the pointer is the sheet, and a sheet is white whichever theme the chrome wears, so a mark
+     * that took [ink] would turn pale in the dark theme and disappear on paper. The eraser's pointer is drawn in
+     * this, which is why it is the light theme's ink rather than a themed pair (`docs/desktop-tablet.md`).
+     */
+    val pointerInk: Color = tokenColour(DesignTokens.INK_LIGHT_RGB)
+
     val previewPaper: Color = tokenColour(0xFFFFFF)
 
     /**

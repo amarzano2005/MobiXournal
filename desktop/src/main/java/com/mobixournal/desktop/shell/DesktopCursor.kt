@@ -153,23 +153,25 @@ internal fun toolPointerIcon(
  * A figure or a circuit slot drawn while the highlighter is in hand writes with the pen's ink
  * ([inksByPackets]), which is why the same rule that picks the ring's **width** picks its colour. Both
  * erasers are the exception: they lay no ink, so a ring in the pen's colour would promise a stroke that
- * never arrives — they wear the ring in the chrome's ink and their own mark inside it.
+ * never arrives — they wear the pointer's dark ink and no ring at all ([drawToolCursor]).
  */
 internal fun ringInk(tool: DesktopTool, ink: DesktopInk, shapeInk: DesktopInk): Color =
-    if (isEraserSlot(tool)) DesktopTheme.ink
+    if (isEraserSlot(tool)) DesktopTheme.pointerInk
     else Color(if (tool.inksByPackets()) ink.colour else shapeInk.colour)
 
-/** Whether [tool] rubs ink out rather than laying it — the slots whose ring carries the eraser's mark. */
+/** Whether [tool] rubs ink out rather than laying it — the slots whose pointer is the eraser's own mark. */
 internal fun isEraserSlot(tool: DesktopTool): Boolean =
     tool == DesktopTool.ERASER || tool == DesktopTool.ERASER_WHOLE
 
 /**
- * Draw the ring: a dark halo under a rim in the ink in hand, so it stays visible on paper, on the black desk
- * and over ink of either colour — and says, before the stroke lands, which colour that stroke will be. Both
- * are the window's own tokens (`DesktopTheme`, one material class, `docs/interface-contract.md`).
+ * Draw the pointer: a band in the ink in hand edged by a hairline of the desk, so the ring says, before the
+ * stroke lands, which colour that stroke will be — and stays visible on paper, on the black desk and over ink
+ * of either colour. Both are the window's own tokens (`DesktopTheme`, one material class, `docs/interface-contract.md`).
  *
- * An **eraser** has no colour to promise, so it wears the catalogue's own eraser mark inside the disc:
- * the ring's size already says how much it cuts, and the mark says what it is.
+ * An **eraser** is the exception, and it is not a ring at all: it lays no ink, so there is no colour for a
+ * ring to name, and what a reader looks for when rubbing out is the eraser itself. It is the catalogue's own
+ * mark, as wide as the rubber cuts, in the pointer's dark ink — a pale ring on white paper was a mark nobody
+ * could see.
  */
 internal fun DrawScope.drawToolCursor(
     at: androidx.compose.ui.geometry.Offset,
@@ -177,6 +179,17 @@ internal fun DrawScope.drawToolCursor(
     colour: Color,
     eraser: Boolean,
 ) {
+    // The eraser **is** the pointer: the catalogue's mark at the width the rubber cuts, and no ring drawn
+    // around it — the ring said "this much ink", and an eraser has none to promise.
+    if (eraser) {
+        drawToolGlyph(
+            glyph = ToolGlyph.ERASER,
+            color = DesktopTheme.pointerInk,
+            side = diameter,
+            at = at - androidx.compose.ui.geometry.Offset(diameter / 2f, diameter / 2f),
+        )
+        return
+    }
     // The ring **is** the ink: a band of the tool's colour with a hairline of the desk on either side of it.
     // The first version put the colour *inside* a dark ring, which made the dark one read as the ring and the
     // ink as an inner edge nobody means — so the colour has to be the band itself, and the dark only an edge.
@@ -186,19 +199,6 @@ internal fun DrawScope.drawToolCursor(
     val radius = diameter / 2f - band.width / 2f
     drawCircle(DesktopTheme.desk, radius = radius, center = at, style = Stroke(band.width + edge * 2f))
     drawCircle(colour, radius = radius, center = at, style = band)
-    if (eraser) {
-        // The mark keeps a margin inside the disc and is stroked a little bolder than a slot's face: at the
-        // ring's own floor (a thin eraser at 100 %) the catalogue's hairline would thin away against the
-        // band, and the eraser would read as a nameless circle — the one thing the mark exists to prevent.
-        val side = diameter * ERASER_MARK_FRACTION
-        drawToolGlyph(
-            glyph = ToolGlyph.ERASER,
-            color = colour,
-            side = side,
-            at = at - androidx.compose.ui.geometry.Offset(side / 2f, side / 2f),
-            strokeUnits = DesktopTheme.TOOL_GLYPH_STROKE_UNITS * ERASER_MARK_WEIGHT,
-        )
-    }
 }
 
 /** How thick the coloured band is: enough to read as a colour, thin enough not to hide the paper under it. */
@@ -207,8 +207,4 @@ private const val RING_BAND_DP = 1.6f
 /** The desk-coloured hairline on each side of the band, which keeps it visible over ink of either colour. */
 private const val RING_EDGE_DP = 0.8f
 
-/** How much of the ring's diameter the eraser's mark takes — a margin inside the disc on every side. */
-private const val ERASER_MARK_FRACTION = 0.66f
 
-/** How much bolder than a slot's face the mark is stroked, so it survives the smallest ring. */
-private const val ERASER_MARK_WEIGHT = 1.35f

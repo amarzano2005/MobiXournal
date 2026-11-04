@@ -49,15 +49,9 @@ internal fun DrawScope.drawToolGlyph(tool: DesktopTool, color: Color, side: Floa
 
 /** The same glyph in a box of its own at ([at]), addressed by its catalogue entry — a mark painted into a
  * larger surface, like the eraser's inside the pointer's ring (`DesktopCursor`). */
-internal fun DrawScope.drawToolGlyph(
-    glyph: ToolGlyph,
-    color: Color,
-    side: Float,
-    at: Offset,
-    strokeUnits: Float = DesktopTheme.TOOL_GLYPH_STROKE_UNITS,
-) {
+internal fun DrawScope.drawToolGlyph(glyph: ToolGlyph, color: Color, side: Float, at: Offset) {
     withTransform({ translate(at.x, at.y) }) {
-        drawGlyphParts(ToolGlyphCatalogue.parts(glyph), color, side = side, strokeUnits = strokeUnits)
+        drawGlyphParts(ToolGlyphCatalogue.parts(glyph), color, side = side)
     }
 }
 
@@ -66,19 +60,12 @@ internal fun DrawScope.drawToolGlyph(
  * window shares, so the chrome's own art ([ChromeGlyph]) weighs exactly what a tool slot does.
  *
  * [side] is the square the glyph is drawn in: the scope's own smaller dimension by default (the case of a
- * composable that *is* the slot), and an explicit size for a face painted into a larger canvas. [strokeUnits]
- * is the catalogue's weight unless a mark is drawn below its readable size and has to be bolder to exist at
- * all (the eraser inside the pointer's ring, `DesktopCursor`).
+ * composable that *is* the slot), and an explicit size for a face painted into a larger canvas.
  */
-internal fun DrawScope.drawGlyphParts(
-    parts: List<GlyphPart>,
-    color: Color,
-    side: Float = size.minDimension,
-    strokeUnits: Float = DesktopTheme.TOOL_GLYPH_STROKE_UNITS,
-) {
+internal fun DrawScope.drawGlyphParts(parts: List<GlyphPart>, color: Color, side: Float = size.minDimension) {
     val grid = DesktopTheme.TOOL_GLYPH_GRID
     val scale = side / grid
-    val stroke = strokeUnits * scale
+    val stroke = DesktopTheme.TOOL_GLYPH_STROKE_UNITS * scale
     for (part in parts) {
         when (part) {
             is GlyphPart.Line -> drawLine(
