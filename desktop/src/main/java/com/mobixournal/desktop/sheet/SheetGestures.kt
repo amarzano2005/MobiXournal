@@ -43,6 +43,8 @@ internal fun Modifier.sheetGestures(
     onEdited: (Int) -> Unit,
     /** The pen-tip ring: while it is up, every press on the page belongs to it. */
     hud: HudUi = HudUi(),
+    /** True while the tablet's packets are the pen's voice — they end the contact a ring answered. */
+    penVoice: () -> Boolean = { false },
 ): Modifier = pointerInput(
     tab, panMode, tool, ink, shapeInk, pen,
     sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH,
@@ -80,6 +82,7 @@ internal fun Modifier.sheetGestures(
         onViewport = onViewport,
         onEdited = onEdited,
         hud = hud,
+        penVoice = penVoice,
     )
 }
 

@@ -90,6 +90,7 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   `PenPacketSceneTest` prove it headless: a tip-down ramping to a full press produces one tapered stroke
   with no pointer press anywhere in the test, and with the emulated mouse pressing, moving past the tap
   slop and releasing *around* the same contact the page still gets exactly one stroke, the packets'.
+  The same rule owns the **ring**: a face a pen's press answers keeps that contact until the *pen's* own lift ends it, so the mouse copy may not end it a frame early — otherwise the packets' copy of that press finds a closed ring with nothing held and inks the sheet under the face (`PenPacketSceneTest`).
 - **One publish per frame, and the latency measured** (`--probe-ink`, `InkProbe.kt`, writing
   `ink-probe.csv`). The driver sends 400 packets a second while the window repaints at the screen's own
   rate; handing every packet to the gesture made 400 snapshot writes and 400 invalidations for one

@@ -137,6 +137,76 @@ class PenPacketSceneTest {
         }
     }
 
+    /**
+     * A **ring** answered by the mouse copy of a pen's press is not written through by the packets' copy.
+     *
+     * The pen's press reaches the window twice, and this is the order the owner hit: Windows' emulated mouse
+     * press lands first, while the ring is up, so it is that copy which commits the face and closes the
+     * surface; the packets' tip-down for the same contact arrives a frame later, at a ring that has gone — and
+     * read as a page press it inked the sheet under the face. The contact belongs to the ring until the
+     * **pen's own** lift ends it, which is what this pins.
+     */
+    @Test
+    fun `a face the mouse copy answers is not inked by the packets' copy`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        val packets = FakePackets()
+        val colours = mutableListOf<Int>()
+        val ring = DesktopRing(
+            palette = { listOf(PenPalette.BLACK, PenPalette.RED) },
+            custom = { null },
+            onColour = { colours += it },
+            onWidth = {},
+            onTool = {},
+        )
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            PageCanvas(
+                tab = tab,
+                panMode = false,
+                onViewport = {},
+                onFit = {},
+                ink = DesktopInk(width = 4f),
+                packets = packets,
+                hud = hudOf(ring),
+            )
+        }
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+            // The pen hovers first, as it does before a tip-down: the packets are the pen's voice now, so
+            // Windows' mouse copy is not the one that owns the contact it carries.
+            packets.send(220f, 220f, pressure = 0f, tip = false)
+            settle(scene)
+            val before = strokes(tab).size
+            assertTrue("the ring could open", ring.summon())
+            val open = ring.open!!
+            val (sx, sy) = RadialHud.slotCenter(
+                open.cx, open.cy, 0, ring.slots.size, RadialHud.RING_RADIUS_DP,
+            )
+
+            // The emulated mouse answers the face and lifts: on its own it believes that is the contact.
+            mouse(scene, PointerEventType.Press, sx, sy, pressed = true, time = 1_100L)
+            assertNull("the copy committed the face and closed the ring", ring.open)
+            assertEquals("one face, one commit", 1, colours.size)
+            assertTrue("and the contact is still the ring's", ring.pressHeld)
+            mouse(scene, PointerEventType.Release, sx, sy, pressed = false, time = 1_150L)
+
+            // The packets' copy of that same press, a frame later: a tip-down and its lift.
+            packets.send(sx, sy, pressure = 0.6f)
+            settle(scene)
+            packets.send(sx, sy, pressure = 0f, tip = false)
+            settle(scene)
+
+            assertEquals("the pen's copy inked nothing under the face", before, strokes(tab).size)
+            assertEquals("and committed no second face", 1, colours.size)
+            assertFalse("the pen's lift ended the contact", ring.pressHeld)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
     /** The canvas's door to [ring], as the workspace hands it over when the pen's button is the ring. */
     private fun hudOf(ring: DesktopRing) = HudUi(
         open = { ring.open },

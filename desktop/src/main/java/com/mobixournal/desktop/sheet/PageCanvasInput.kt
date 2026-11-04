@@ -122,6 +122,8 @@ internal suspend fun PointerInputScope.pageGestures(
     onEdited: (Int) -> Unit,
     /** The pen-tip ring: while it is up, every press on the page belongs to it. */
     hud: HudUi = HudUi(),
+    /** True while the tablet's packets are the pen's voice — they end a ring's contact, not the mouse copy. */
+    penVoice: () -> Boolean = { false },
 ) {
     // The drags' shared view: the live mapping, and the eased edge scroll each of them may ask for.
     val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
@@ -156,7 +158,8 @@ internal suspend fun PointerInputScope.pageGestures(
             draft = draft, grabLine = grabLine, liveShift = liveShift, previewRegion = previewRegion,
             guideAim = guideAim, onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
-            viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport, hud = hud,
+            viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
+            hud = hud, penVoice = penVoice,
         )
     }
 }
@@ -186,26 +189,23 @@ private suspend fun PointerInputScope.pageGestureLoop(
     onViewport: (Viewport) -> Unit,
     viewport: () -> Viewport,
     hud: HudUi = HudUi(),
+    penVoice: () -> Boolean = { false },
 ) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
-        // The ring lies over the page: while it is up **every** press belongs to it, and none of them inks,
-        // pans or selects.
+        // While the ring is up every press is its own and none inks or pans; only the pen's voice ends it.
         if (hud.open() != null) {
-            ringTakesThePress(hud, down.position, density)
+            ringTakesThePress(hud, down.position, density, releaseOnLift = !penVoice())
             return@awaitEachGesture
         }
-        // A contact the ring has **already** answered is still its own after the surface has gone: the pen's
-        // packets commit on the frame thread, so Windows' copy of that same press arrives here a frame later
-        // with nothing on screen. One contact is one answer, so it is swallowed here rather than drawn — and
-        // the contact is over, which hands the page the next one.
+        // A contact the ring **already** answered is still its own after the surface is gone: Windows' copy
+        // arrives a frame later with nothing on screen and is swallowed — one contact, one answer.
         if (hud.pressHeld()) {
             hud.onRelease()
             return@awaitEachGesture
         }
-        // The packets own the pen only for the slots they draw (`inksByPackets`), and never while Space
-        // is held: that is the hand's pan (`PenPacketPan`), and a pen that inked through it would draw a
-        // line across the page it is scrolling. Standing aside for every slot would leave a
+        // The packets own the pen only for the slots they draw (`inksByPackets`), never while Space is held:
+        // that is the hand's pan (`PenPacketPan`). Standing aside for every slot would leave a
         // vertical-space drag or a figure unanswered by the stylus.
         val packetsOwn = { penActive() && tool.inksByPackets() && !panMode }
         if (packetsOwn()) return@awaitEachGesture

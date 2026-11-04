@@ -454,6 +454,9 @@ private fun Modifier.sheetInput(
     .sheetGestures(
         tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft, targets, onViewport, onEdited,
         hud = hud,
+        // A pen's press arrives twice; while the driver's packets are the pen's voice, their own lift ends
+        // the contact a ring answered — the mouse copy must not hand the page that contact a frame early.
+        penVoice = { !followMouse() },
     )
 
 /**

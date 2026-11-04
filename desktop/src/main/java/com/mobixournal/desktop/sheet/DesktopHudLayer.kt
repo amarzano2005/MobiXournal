@@ -51,14 +51,27 @@ internal fun DesktopHudLayer(hud: HudUi, pointer: PenPointer, ringPx: Float?, de
  * It is only for a ring that is **up**. A press the ring already answered through the other stream never gets
  * here: the page swallows that copy ([HudUi.pressHeld]) instead of waiting on a gesture of its own.
  */
-internal suspend fun AwaitPointerEventScope.ringTakesThePress(hud: HudUi, at: Offset, density: Float) {
+internal suspend fun AwaitPointerEventScope.ringTakesThePress(
+    hud: HudUi,
+    at: Offset,
+    density: Float,
+    /**
+     * Whether this lift ends the contact.
+     *
+     * False while the tablet's **packets** are the pen's voice: the press being handled here is Windows'
+     * mouse copy of a tip the packets report a frame later, so ending the contact now would let that late
+     * copy find a closed ring with nothing held — and be read as a fresh stroke under it. The packets' own
+     * lift ends the contact instead ([com.mobixournal.desktop.shell.DesktopRing.pressHeld]).
+     */
+    releaseOnLift: Boolean = true,
+) {
     hud.onPress(at.x, at.y, density)
     while (true) {
         val change = awaitPointerEvent().changes.firstOrNull() ?: break
         change.consume()
         if (change.changedToUpIgnoreConsumed() || !change.pressed) break
     }
-    hud.onRelease()
+    if (releaseOnLift) hud.onRelease()
 }
 
 /**
