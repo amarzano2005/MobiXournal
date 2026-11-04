@@ -8,7 +8,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -359,11 +358,11 @@ private fun Modifier.tabChipInteractions(
     val shape = RoundedCornerShape(TAB_CHIP_CORNER)
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = com.mobixournal.ui.theme.ModernTheme.hairlineBorder(isDark)
-    // A tab is never lit: not because it is the one in front, and not because a finger is on it. The
-    // label already says which document the canvas is showing, and a brighter chip behind that label said
-    // it twice while the ripple said it a third time on every touch.
-    val background = glassColor.copy(alpha = if (isDark) 0.45f else 0.6f)
-    val interaction = remember { MutableInteractionSource() }
+    val background = if (selected) {
+        glassColor
+    } else {
+        glassColor.copy(alpha = if (isDark) 0.45f else 0.6f)
+    }
     val borderColor = if (selected) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
     } else {
@@ -373,13 +372,7 @@ private fun Modifier.tabChipInteractions(
         .border(BorderStroke(1.dp, borderColor), shape)
         .clip(shape)
         .background(background)
-        // No indication, so the press does not light the chip either.
-        .combinedClickable(
-            interactionSource = interaction,
-            indication = null,
-            onClick = onSelect,
-            onLongClick = onLongClick,
-        )
+        .combinedClickable(onClick = onSelect, onLongClick = onLongClick)
         .pointerInput(selected) {
             if (!selected) return@pointerInput
             detectHorizontalDragGestures(

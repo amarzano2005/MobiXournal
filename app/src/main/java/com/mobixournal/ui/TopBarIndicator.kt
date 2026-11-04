@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,6 +42,7 @@ import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -179,11 +181,13 @@ internal fun standaloneIndicatorSlot(railOnLeft: Boolean): IndicatorSlot =
  * - Selected colour (swatch circle)
  * - Selected stroke size ("S", "M", or "L")
  *
- * The grey behind it is the scheme's `surfaceContainerHighest` role, a surface step and never the
- * accent: the indicator *reports* the live stroke, it is not a tool that can be picked, so the blue a
- * lit-up tool button wears made it read as a second active button beside the figures. Nothing draws the
- * stroke's own thickness either — the size letter reports it through [sizeLetterFor], with room to read
- * it.
+ * The grey behind it is the surface it is drawn on — the dock's own fill when it is the cap, its pill when
+ * it stands alone — a surface step and never the accent: the indicator *reports* the live stroke, it is
+ * not a tool that can be picked, so the blue a lit-up tool button wears made it read as a second active
+ * button beside the figures. It does not flash one either: the tap carries **no indication**, so the face
+ * never lights up under a finger, because a readout that lights up reads as a button that was pressed and
+ * is now *on*. Nothing draws the stroke's own thickness either — the size letter reports it through
+ * [sizeLetterFor], with room to read it.
  *
  * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]). The caller supplies the chrome —
  * the modifier chain that paints the surface under the face — because that chain is exactly what
@@ -209,7 +213,13 @@ private fun ToolIndicatorFace(
     ColorSizePopup(styleCallbacks) { open ->
         Box(
             modifier = modifier
-                .clickable(onClick = open)
+                // No indication: the indicator reports the live stroke, and a report does not flash a
+                // plate under a finger either.
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = open,
+                )
                 .padding(horizontal = horizontalPadding)
                 .semantics {
                     contentDescription = if (hasColorAndSize) {

@@ -237,9 +237,3 @@ to draw itself, and the list is `entry_recents`, six at most and de-duplicated b
 and its glyph turns `primary` — in the Secondary Toolbar's compact slots and on the rail alike. The rail's
 panel slots (Pages, Layers) take the rail's slot shape rather than a circle, so a pressed panel has the
 shape a pressed pen does.
-
-**A tab carries no lit state.** A document's tab is not brighter because it is the one in front, and the
-press indicator is off, so a touch does not light it either: the chip's fill is the same glass at every
-moment and the label says which document is in front, by weight and by ink. A highlight behind a label
-that is already the answer is one mark too many — and on a strip of tabs it is the mark that draws the eye
-to where the eye already is.
