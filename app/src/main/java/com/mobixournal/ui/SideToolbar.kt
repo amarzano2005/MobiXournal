@@ -70,35 +70,67 @@ fun SideToolbar(
     modifier: Modifier = Modifier,
 ) {
     val items = visibleRailItems(railOrder, railHidden)
-    ToolbarShell(slotCount = items.size, modifier = modifier) {
-        for (item in items) {
-            val group = toolGroupForRailItem(item.id)
-            if (group != null) {
-                ToolGroupButton(
-                    group = group,
-                    selected = group.selected(toolGroupSelections),
-                    active = tool in group.tools,
-                    onTool = onTool,
-                    // One callback for the whole pick: the slot's new face and the tool activation
-                    // are a single settings write. Split in two they would both start from the same
-                    // composition snapshot, and the second write would drop the first — the slot's
-                    // face would revert and the picked member's tick would never appear.
-                    onPick = { picked -> onToolGroupPick(group, picked) },
-                )
-            } else when (item.id) {
-                // One slot, both errands: the three favourite colours for the tool in play, and the
-                // chevron beside them for the full pop-up (colour, tip size, line style). This is
-                // where the old "colour & size" slot went: two slots for one errand became one.
-                "favorites" -> ColorSizeRailSlot(
-                    tool = tool,
-                    favorites = favoritesCallbacks,
-                    style = styleCallbacks,
-                )
-                "layers" -> LayersPopupButton(layerCallbacks)
-                "pages" -> PagesPopupButton(pageCallbacks)
+    val sections = railSections(items)
+    // The rule is a child of the column like any other, so the adaptive pitch has to be told about it:
+    // otherwise the slots fill the height exactly and the rule pushes the last one past the bottom edge
+    // the whole-slot rule exists to keep clean.
+    val ruleHeightDp = if (sections.size > 1) RailRuleHeight.value + RailSpacing.value else 0f
+    ToolbarShell(slotCount = items.size, extraHeightDp = ruleHeightDp, modifier = modifier) {
+        for (section in sections) {
+            // The rail's two lives: the tools the user orders, then the navigation panels — Pages and
+            // Layers — that always stand at the foot, under one hairline (`railSections`).
+            if (section.ruled) RailRule()
+            for (item in section.items) {
+                val group = toolGroupForRailItem(item.id)
+                if (group != null) {
+                    ToolGroupButton(
+                        group = group,
+                        selected = group.selected(toolGroupSelections),
+                        active = tool in group.tools,
+                        onTool = onTool,
+                        // One callback for the whole pick: the slot's new face and the tool activation
+                        // are a single settings write. Split in two they would both start from the same
+                        // composition snapshot, and the second write would drop the first — the slot's
+                        // face would revert and the picked member's tick would never appear.
+                        onPick = { picked -> onToolGroupPick(group, picked) },
+                    )
+                } else when (item.id) {
+                    // One slot, both errands: the three favourite colours for the tool in play, and the
+                    // chevron beside them for the full pop-up (colour, tip size, line style). This is
+                    // where the old "colour & size" slot went: two slots for one errand became one.
+                    "favorites" -> ColorSizeRailSlot(
+                        tool = tool,
+                        favorites = favoritesCallbacks,
+                        style = styleCallbacks,
+                    )
+                    "layers" -> LayersPopupButton(layerCallbacks)
+                    "pages" -> PagesPopupButton(pageCallbacks)
+                }
             }
         }
     }
+}
+
+/** The rule that opens the rail's pinned stretch: one hairline, half a slot wide. */
+private val RailRuleHeight = 1.dp
+
+/**
+ * The line between the rail's tools and its pinned panels (**Pages** and **Layers**).
+ *
+ * Without it the panels read as two more tools at the end of the list, and the tools above read as
+ * something a reader may scroll past: they are the rail's navigation, and the rule is what says so
+ * without a label. It takes the family's hairline (`ModernTheme.hairlineBorder`) rather than a
+ * Material divider, which is darker than the glass and would read as a notch; its width is half a slot,
+ * because a line across the whole capsule meets both rims and turns the rail into two panels.
+ */
+@Composable
+private fun RailRule() {
+    Box(
+        Modifier
+            .width(SideToolbarModernSlot / 2)
+            .height(RailRuleHeight)
+            .background(ModernTheme.hairlineBorder(chromeIsDark())),
+    )
 }
 
 /** The floating rail's width: 40dp buttons + 6dp padding each side = 52dp (the shared token). */
@@ -135,6 +167,8 @@ internal val ToolIconSize: Dp = SideToolbarModernSlot / 2
 private fun ToolbarShell(
     /** The visible slot count — the adaptive pitch's one input it cannot read off the layout. */
     slotCount: Int,
+    /** Height the column spends on children that are not slots (the rule and the gap above it). */
+    extraHeightDp: Float = 0f,
     modifier: Modifier,
     buttons: @Composable () -> Unit,
 ) {
@@ -158,6 +192,7 @@ private fun ToolbarShell(
             slotDp = baseSlot.value,
             spacingDp = RailSpacing.value,
             paddingDp = RailColumnPadding.value,
+            extraDp = extraHeightDp,
         )
         CompositionLocalProvider(
             LocalRailSlotSize provides baseSlot * scale,

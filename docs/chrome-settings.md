@@ -96,6 +96,16 @@ left off with — `lastColor`/`lastWidth`, re-pushed onto a freshly created surf
 its pref key. The **Select** tool adds a rail entry and a floating action bar; its
 mechanics are in [`selection.md`](selection.md#selecting-objects-render).
 
+## The rail's two fixed slots
+
+**Pages** and **Layers** are not in the Toolbar section's list at all: they are the rail's navigation, so
+they always stand at its foot under a hairline rule and the list offers neither a drag handle nor a
+switch for them (`PINNED_RAIL_IDS`, `railSections`). A position that could be hidden or shuffled into
+the pens lost the two doors a reader reaches for most, and the line is what tells the tools above from
+the panels below — the section says so in one note instead of listing two dead rows. `RailItemsTest`
+pins the cut, and the rail's adaptive pitch is told the rule's height, so the last slot still ends on
+the rail's bottom edge.
+
 ## The vertical rhythm
 
 Four numbers carry the screen's spacing, and their order is the rule:

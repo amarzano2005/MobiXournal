@@ -73,6 +73,17 @@ val RAIL_ITEMS: List<RailItem> = run {
     FACTORY_RAIL_ORDER.mapNotNull { byId[it] } + all.filterNot { it.id in FACTORY_RAIL_ORDER }
 }
 
+/**
+ * The positions the rail **always** keeps, in this order, under a hairline rule at its foot.
+ *
+ * Pages and Layers read the document rather than choose a tool, so they are navigation and not part of
+ * the tool order: they are the last two slots of the rail whether the user reordered anything or not,
+ * and the Toolbar settings section neither lists them for reordering nor offers a switch to hide them.
+ * A rail whose navigation could be scrolled away, hidden or shuffled into the pens lost the two doors a
+ * reader reaches for most.
+ */
+val PINNED_RAIL_IDS: List<String> = listOf("pages", "layers")
+
 /** The tool group behind a rail item, or null when the item is a popup panel. */
 fun toolGroupForRailItem(id: String): ToolGroup? = TOOL_GROUPS.firstOrNull { it.id == id }
 
@@ -83,24 +94,49 @@ fun toolGroupForRailItem(id: String): ToolGroup? = TOOL_GROUPS.firstOrNull { it.
  */
 fun orderedRailItems(order: List<String>): List<RailItem> {
     val byId = RAIL_ITEMS.associateBy { it.id }
-    val listed = order.distinct().mapNotNull { byId[it] }
-    return listed + RAIL_ITEMS.filterNot { it in listed }
+    val listed = order.distinct().mapNotNull { byId[it] }.filterNot { it.id in PINNED_RAIL_IDS }
+    val reorderable = listed + RAIL_ITEMS.filterNot { it in listed || it.id in PINNED_RAIL_IDS }
+    return reorderable + PINNED_RAIL_IDS.mapNotNull { byId[it] }
 }
 
-/** [orderedRailItems] minus the positions the user has hidden. */
+/**
+ * [orderedRailItems] minus the positions the user has hidden — except the [PINNED_RAIL_IDS], which a
+ * saved `railHidden` from an older build may still name and which the rail keeps regardless.
+ */
 fun visibleRailItems(order: List<String>, hidden: Set<String>): List<RailItem> =
-    orderedRailItems(order).filterNot { it.id in hidden }
+    orderedRailItems(order).filterNot { it.id in hidden && it.id !in PINNED_RAIL_IDS }
+
+/** One stretch of the rail and whether a rule opens it: the tools, then the pinned panels under a line. */
+data class RailSection(val items: List<RailItem>, val ruled: Boolean)
+
+/**
+ * The rail cut into the two stretches it draws: everything the user orders, then the pinned panels.
+ *
+ * A pure cut rather than a `when` inside the rail, so the rule is a value the tests can read: the
+ * separator belongs to the section, not to a slot, and a pinned position can never be drawn among the
+ * tools with no line between them.
+ */
+fun railSections(items: List<RailItem>): List<RailSection> {
+    val pinned = items.filter { it.id in PINNED_RAIL_IDS }
+    val tools = items.filterNot { it.id in PINNED_RAIL_IDS }
+    return listOfNotNull(
+        tools.takeIf { it.isNotEmpty() }?.let { RailSection(it, ruled = false) },
+        pinned.takeIf { it.isNotEmpty() }?.let { RailSection(it, ruled = true) },
+    )
+}
 
 /**
  * [order] with the item at [index] moved by [delta] positions. Out-of-range moves are no-ops, and
  * the result is always a full explicit order so the next move has something stable to permute.
  */
 fun moveRailItem(order: List<String>, index: Int, delta: Int): List<String> {
-    val ids = orderedRailItems(order).map { it.id }.toMutableList()
+    val all = orderedRailItems(order).map { it.id }
+    // The pinned tail is not part of the permutation: an index that lands on it is a no-op, and the
+    // result always puts Pages and Layers back at the foot of the rail.
+    val ids = all.filterNot { it in PINNED_RAIL_IDS }.toMutableList()
     val to = index + delta
-    if (index !in ids.indices || to !in ids.indices) return ids
-    ids.add(to, ids.removeAt(index))
-    return ids
+    if (index in ids.indices && to in ids.indices) ids.add(to, ids.removeAt(index))
+    return ids + all.filter { it in PINNED_RAIL_IDS }
 }
 
 /** Encode an id list for SharedPreferences: comma-separated. */

@@ -55,6 +55,9 @@ internal const val RAIL_MAX_SCALE = 1.08f
  * @param slotDp One slot's height at full size.
  * @param spacingDp The gap between two slots.
  * @param paddingDp The column's vertical padding, counted at both ends.
+ * @param extraDp Height the column spends on children that are not slots — today the hairline rule
+ *   that opens the pinned navigation stretch, plus the gap above it. Without it the slots would be
+ *   spread over the whole height and the rule would push the last one past the bottom edge.
  * @param maxScale The ceiling on the growth; see [RAIL_MAX_SCALE].
  *
  * Returns 1 when every slot fits — the rail is left exactly as it was designed. Otherwise it returns
@@ -68,10 +71,11 @@ internal fun railContentScale(
     slotDp: Float,
     spacingDp: Float,
     paddingDp: Float,
+    extraDp: Float = 0f,
     maxScale: Float = RAIL_MAX_SCALE,
 ): Float {
     if (slotCount <= 0 || availableHeightDp <= 0f || slotDp <= 0f) return 1f
-    val usable = availableHeightDp - paddingDp * 2f
+    val usable = availableHeightDp - paddingDp * 2f - extraDp
     if (usable <= 0f) return 1f
     val pitch = slotDp + spacingDp
     // The most slots that fit whole at full size: m slots take m·slot + (m−1)·spacing.

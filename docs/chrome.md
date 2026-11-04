@@ -177,7 +177,7 @@ eraser), then the rest of the tools and panels, with the page-level panels trail
 switched-off ids); a row is reordered by **long-press drag** (`detectDragGesturesAfterLongPress`),
 which steps `moveRailItem()` one place each time the finger crosses a row height, so the list
 reshuffles live. The in-flight order is held in the section's own `draggedOrder` state because
-several steps can land inside one frame, before `onChange` has recomposed `settings`. `orderedRailItems()` **appends** any id the saved order omits in factory order, so
+several steps can land inside one frame, before `onChange` has recomposed `settings`. **Pages** and **layers** are **pinned**: they are the rail's navigation rather than a tool, so they always stand at its foot, under one hairline rule, and neither the saved order nor `railHidden` can move, hide or list them — the **Toolbar** settings section no longer offers a handle or a switch for them (`PINNED_RAIL_IDS`, `railSections`). `orderedRailItems()` **appends** any id the saved order omits in factory order, so
 a position added in a later release still appears for an existing install, and `decodeRailIds()`
 drops ids that no longer exist. The tools are UI-level
 `EditorTool`s (Hand is view-only pan and Text/Image/LaTeX are placement modes, none a document tool,

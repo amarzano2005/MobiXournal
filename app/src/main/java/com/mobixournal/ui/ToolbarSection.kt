@@ -42,8 +42,11 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 @Composable
 private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsNote("Switch a button off to hide it; hold a row to reorder.")
+    // Pages and Layers are not in this list: they are the rail's navigation, so they always sit at its
+    // foot under a rule and cannot be reordered or switched off (`PINNED_RAIL_IDS`).
+    SettingsNote("Pages and Layers always stay at the bottom of the rail, under its rule.")
     ReorderableRowList(
-        items = orderedRailItems(settings.railOrder),
+        items = orderedRailItems(settings.railOrder).filterNot { it.id in PINNED_RAIL_IDS },
         hidden = settings.railHidden,
         onOrder = { onChange(settings.copy(railOrder = it)) },
         onHidden = { onChange(settings.copy(railHidden = it)) },

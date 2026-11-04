@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -25,24 +26,53 @@ class RailItemsTest {
 
     @Test
     fun `a partial order keeps its items first and appends the rest`() {
-        val ordered = orderedRailItems(listOf("pages", "pen"))
-        assertEquals(listOf("pages", "pen"), ordered.take(2).map { it.id })
+        val ordered = orderedRailItems(listOf("eraser", "pen"))
+        assertEquals(listOf("eraser", "pen"), ordered.take(2).map { it.id })
         assertEquals(RAIL_ITEMS.size, ordered.size)
         assertEquals(RAIL_ITEMS.toSet(), ordered.toSet())
     }
 
     @Test
     fun `unknown and duplicate ids are ignored`() {
-        val ordered = orderedRailItems(listOf("nope", "pages", "pages"))
-        assertEquals("pages", ordered.first().id)
+        val ordered = orderedRailItems(listOf("nope", "eraser", "eraser"))
+        assertEquals("eraser", ordered.first().id)
         assertEquals(RAIL_ITEMS.size, ordered.size)
     }
 
     @Test
     fun `hidden items are dropped from the visible rail`() {
-        val visible = visibleRailItems(emptyList(), setOf("pages", "layers"))
+        val visible = visibleRailItems(emptyList(), setOf("eraser", "pan"))
         assertEquals(RAIL_ITEMS.size - 2, visible.size)
-        assertTrue(visible.none { it.id == "pages" || it.id == "layers" })
+        assertTrue(visible.none { it.id == "eraser" || it.id == "pan" })
+    }
+
+    @Test
+    fun `pages and layers are pinned to the foot of the rail, under a rule`() {
+        // A saved order cannot lift them: whatever it names, the navigation panels stay last.
+        val ordered = orderedRailItems(listOf("pages", "layers", "pen"))
+        assertEquals("pen", ordered.first().id)
+        assertEquals(listOf("pages", "layers"), ordered.takeLast(2).map { it.id })
+
+        val sections = railSections(ordered)
+        assertEquals("the tools and the pinned panels are two stretches", 2, sections.size)
+        assertFalse("the tools open the rail without a line above them", sections.first().ruled)
+        assertTrue("the pinned panels are opened by the rail's rule", sections.last().ruled)
+        assertEquals(listOf("pages", "layers"), sections.last().items.map { it.id })
+    }
+
+    @Test
+    fun `the rail's navigation cannot be hidden or dragged out of its place`() {
+        // `railHidden` from an older build may still name them; the rail keeps them anyway.
+        val visible = visibleRailItems(listOf("eraser"), setOf("pages", "layers"))
+        assertEquals(listOf("pages", "layers"), visible.takeLast(2).map { it.id })
+
+        val ids = orderedRailItems(emptyList()).map { it.id }
+        assertEquals("a drag past the last row is a no-op", ids, moveRailItem(emptyList(), ids.lastIndex, 1))
+        assertEquals(
+            "moving a tool down by three leaves the pinned tail where it was",
+            listOf("pages", "layers"),
+            moveRailItem(emptyList(), 0, 3).takeLast(2),
+        )
     }
 
     @Test
