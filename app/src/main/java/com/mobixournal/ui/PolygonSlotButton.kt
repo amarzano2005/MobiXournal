@@ -59,6 +59,7 @@ internal fun PolygonSlotButton(
             modifier = Modifier
                 .size(32.dp)
                 .clip(shape)
+                .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                 .combinedClickable(
                     onClick = { if (active) open = true else onClick() },
                     onLongClick = { open = true },
