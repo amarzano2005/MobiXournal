@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.PenPalette
 import com.mobixournal.ui.theme.DialogPresence
@@ -92,9 +93,12 @@ fun ColorPaletteRows(
     compact: Boolean = false,
     onAdd: (() -> Unit)? = null,
 ) {
+    // Measured from the swatches it holds, so the pop-up opens wide enough to show the whole palette
+    // instead of clipping its last colour behind a strip with no scrollbar to say it scrolls.
+    val swatches = palette.colors.size + 1 + if (onAdd != null) 1 else 0
     Column(modifier = modifier) {
         if (!compact) PaletteHint("Tap to pick · long-press ✎ to edit")
-        SwatchRow(compact) {
+        SwatchRow(compact, swatches) {
             for (c in palette.colors) {
                 ColorSwatch(color = c, selected = c == selected, onClick = { onPick(c) }, compact = compact)
             }
@@ -148,25 +152,42 @@ fun CustomColorEditor(
  * [compact] pulls the padding and gaps in for the toolbar's drop-down, and keeps the row to **one
  * line** (it scrolls sideways instead) so the strip's height is the swatch's own.
  */
+/** A compact swatch's tap square, the gap between two of them, and the strip's own side air. */
+private val COMPACT_SWATCH = 28.dp
+private val COMPACT_SWATCH_GAP = 4.dp
+private val COMPACT_STRIP_AIR = 4.dp
+
 /**
- * The width a compact strip stands before it scrolls: the same about-seven-swatches cap in both places
- * it is used (the toolbar's pop-up and the selection's recolour menu), so neither grows past the bar
- * that opened it however long the palette gets.
+ * The longest a compact strip stands before it scrolls: a palette the user has grown very long scrolls
+ * again there, because a pop-up wider than the bar it hangs from stops reading as a pop-up.
  */
-private val COMPACT_STRIP_WIDTH = 232.dp
+private val COMPACT_STRIP_MAX = 340.dp
+
+/**
+ * The width a compact strip stands: **the swatches it holds**, so the pop-up opens wide enough to show
+ * every colour in the palette.
+ *
+ * A fixed width was the strip's own clipping bug — one swatch past the cap and the last colour sat
+ * half-cut behind the panel's edge, with nothing on screen saying the row could be scrolled. The strip
+ * is read at a glance, so it is measured to its content instead (the pop-up's own width follows it), and
+ * only a palette past [COMPACT_STRIP_MAX] scrolls.
+ */
+private fun compactStripWidth(swatches: Int): Dp =
+    (COMPACT_STRIP_AIR * 2 + COMPACT_SWATCH * swatches + COMPACT_SWATCH_GAP * (swatches - 1))
+        .coerceIn(COMPACT_SWATCH, COMPACT_STRIP_MAX)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SwatchRow(compact: Boolean = false, content: @Composable () -> Unit) {
+private fun SwatchRow(compact: Boolean = false, swatches: Int = 0, content: @Composable () -> Unit) {
     if (compact) {
-        // One slim line: the host caps the width, and the palette scrolls inside it. A second line
-        // would make the strip taller than the 32 dp bar it hangs from — the strip is the bar's height.
+        // One slim line, measured from its swatches; past the cap it scrolls. A second line would make
+        // the strip taller than the 32 dp bar it hangs from — the strip is the bar's height.
         Row(
             modifier = Modifier
-                .width(COMPACT_STRIP_WIDTH)
+                .width(compactStripWidth(swatches))
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = COMPACT_STRIP_AIR, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(COMPACT_SWATCH_GAP),
             verticalAlignment = Alignment.CenterVertically,
         ) { content() }
         return
