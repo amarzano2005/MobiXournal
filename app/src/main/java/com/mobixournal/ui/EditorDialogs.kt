@@ -81,19 +81,14 @@ private val TEXT_FAMILIES = listOf("Sans", "Serif", "Monospace")
 fun SaveAsDialog(
     initialName: String,
     initialFormat: SaveFormat,
-    /** The format **Documents** made the default for new work, offered as the chooser's first answer. */
-    defaultFormat: SaveFormat = SaveFormat.MOBIX,
-    /** That default's name, printed in the first row so the answer is not "whatever that is". */
-    defaultLabel: String = "MobiXournal (.mobix)",
     onConfirm: (filename: String, format: SaveFormat) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
-    // The chooser's answers are read in the **order a decision is made**: the default first, then the two
-    // plain documents this app writes, then the one portable bundle. The default is its own choice, not a
-    // fourth format, so it is never shown as the same answer as the format it currently names.
-    var choice by remember { mutableStateOf(SaveAsChoice.of(initialFormat, defaultFormat)) }
-    val format = choice.format ?: defaultFormat
+    // The chooser lists **each format once** and opens on the one the document already has: a row saying
+    // "Default (…)" beside the format it named was the same answer printed twice, and a reader who never
+    // touched Documents should not have to work out whether two of the four rows are one choice.
+    var picked by remember { mutableStateOf(initialFormat) }
     FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Save As") },
@@ -108,51 +103,29 @@ fun SaveAsDialog(
                 )
                 Text("Format", style = MaterialTheme.typography.labelMedium)
                 FormatOption(
-                    selected = choice == SaveAsChoice.DEFAULT,
-                    title = "Default ($defaultLabel)",
-                    subtitle = "Follows Settings → Documents, so a new file is the kind you usually keep.",
-                    onClick = { choice = SaveAsChoice.DEFAULT },
-                )
-                FormatOption(
-                    selected = choice == SaveAsChoice.ORIGINAL,
+                    selected = picked == SaveFormat.ORIGINAL,
                     title = "Xournal++ (.xopp)",
                     subtitle = "Standard gzip file; any PDF background stays linked by location.",
-                    onClick = { choice = SaveAsChoice.ORIGINAL },
+                    onClick = { picked = SaveFormat.ORIGINAL },
                 )
                 FormatOption(
-                    selected = choice == SaveAsChoice.MOBIX,
+                    selected = picked == SaveFormat.MOBIX,
                     title = "MobiXournal (.mobix)",
                     subtitle = "This app's own format: tables, plots and components stay editable. " +
                         "For desktop Xournal++, export it to .xopp.",
-                    onClick = { choice = SaveAsChoice.MOBIX },
+                    onClick = { picked = SaveFormat.MOBIX },
                 )
                 FormatOption(
-                    selected = choice == SaveAsChoice.ZIPPED,
+                    selected = picked == SaveFormat.ZIPPED,
                     title = "Zipped (single .xopp)",
                     subtitle = "One portable Xournal++ file with the PDF embedded inside.",
-                    onClick = { choice = SaveAsChoice.ZIPPED },
+                    onClick = { picked = SaveFormat.ZIPPED },
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(name, format) }) { Text("Save") } },
+        confirmButton = { TextButton(onClick = { onConfirm(name, picked) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
-}
-
-/** What [SaveAsDialog] picked: the **default format** as one answer, or one format explicitly. [DEFAULT] has
- * no format of its own — it resolves against the caller's default, so no row promises a kind the write denies. */
-private enum class SaveAsChoice(val format: SaveFormat?) {
-    DEFAULT(null),
-    ORIGINAL(SaveFormat.ORIGINAL),
-    MOBIX(SaveFormat.MOBIX),
-    ZIPPED(SaveFormat.ZIPPED),
-    ;
-
-    companion object {
-        /** The answer [picked] is, read against [default]: the default row when the two are the same format. */
-        fun of(picked: SaveFormat, default: SaveFormat): SaveAsChoice =
-            if (picked == default) DEFAULT else entries.first { it.format == picked }
-    }
 }
 
 /**

@@ -54,7 +54,8 @@ class SourceStructureTest {
         // +8 deliberate: the ring's own faces — one field, one stored line, the load and the save beside
         // the palette they draw from, because a settings file that stores everything but the ring would
         // make the ring the one arrangement a reader loses on restart.
-        "ui/AppSettings.kt" to 1004,
+        // -3: three KDoc paragraphs that restated their own field names, shortened to one line each.
+        "ui/AppSettings.kt" to 1001,
         // -62: the PDF import card moved beside the value it asks about (`PdfImportDialog.kt`).
         "ui/EditorDialogs.kt" to 858,
         // The window's code moved into topic packages (`docs/code-structure.md`), and these three files had

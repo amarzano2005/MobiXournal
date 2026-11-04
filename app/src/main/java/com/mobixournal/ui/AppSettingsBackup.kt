@@ -63,6 +63,7 @@ object AppSettingsBackup {
         b.append("  \"defaultTool\": \"").append(settings.defaultTool.name).append("\",\n")
         b.append("  \"penEraserToggleKey\": \"").append(escape(settings.penEraserToggleKey)).append("\",\n")
         b.append("  \"handToggleKey\": \"").append(escape(settings.handToggleKey)).append("\",\n")
+        b.append("  \"ringShortcutKey\": \"").append(escape(settings.ringShortcutKey)).append("\",\n")
         b.append("  \"momentum\": ").append(settings.momentum).append(",\n")
         b.append("  \"momentumCurve\": \"").append(settings.momentumCurve.name).append("\",\n")
         b.append("  \"panSensitivity\": ").append(settings.panSensitivity).append(",\n")
@@ -288,6 +289,7 @@ object AppSettingsBackup {
             defaultTool = readEnum("defaultTool", EditorTool.values(), fallback.defaultTool),
             penEraserToggleKey = root.getStr("penEraserToggleKey", fallback.penEraserToggleKey),
             handToggleKey = root.getStr("handToggleKey", fallback.handToggleKey),
+            ringShortcutKey = root.getStr("ringShortcutKey", fallback.ringShortcutKey),
             momentum = root.getFloat("momentum", fallback.momentum),
             momentumCurve = readEnum("momentumCurve", MomentumCurve.values(), fallback.momentumCurve),
             panSensitivity = root.getFloat("panSensitivity", fallback.panSensitivity),

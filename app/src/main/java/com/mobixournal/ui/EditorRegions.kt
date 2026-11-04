@@ -1567,12 +1567,12 @@ private fun DrawingSurfaceView.bindEditorActions(
             consumed = true
         }
 
-        // Toggle hand
         if (!consumed && hit(settings.handToggleKey)) {
             val newTool = if (ui.tool == EditorTool.HAND) EditorTool.PEN else EditorTool.HAND
             activateTool(newTool, ui, settings, onSettingsChange)
             consumed = true
         }
+        if (!consumed && hit(settings.ringShortcutKey)) { summonRingForShortcut(); consumed = true }
 
         // Colour shortcut: one key per palette colour, each switching to the pen.
         val color = settings.colorShortcutKeys.entries.firstOrNull { hit(it.value) }?.key

@@ -67,9 +67,10 @@ result names the area it lives in (`areaOf`), so a hit found by an alias still s
 belongs; opening one goes straight to the section. `SettingsAreaTest` pins the structure the whole
 screen rests on: the areas cover every section exactly once (an unlisted section would be unreachable)
 and no area owns a single child (a one-child area is a tap that explains nothing). Section bodies live
-in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Ring** section (`RingSection.kt`, under Drawing) draws the pen-tip ring and edits its faces: a tap picks a face and a select under the drawing says what it holds — a colour, a width or **any tool the rail has**, and the ring is stored as one line under `ring.slots` (`RadialHud.encodeSlots`) — absent means the factory ring, which is what *Reset to defaults* writes. The **Shortcuts** section lists its answers as **four subpages** — *Toggles*, *Tool shortcuts*, *Colour shortcuts* and *Ring*, the last opening the ring page above so the barrel button's answers sit where a reader looks for input — and each subpage draws its name **once**, in the header that walks back to the list. It
+in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Ring** section (`RingSection.kt`, under Drawing) draws the pen-tip ring and edits its faces: a tap picks a face and a select under the drawing says what it holds — a colour, a width or **any tool the rail has**, and the ring is stored as one line under `ring.slots` (`RadialHud.encodeSlots`) — absent means the factory ring, which is what *Reset to defaults* writes. The **Shortcuts** section lists its answers as **three subpages** — *Toggles*, *Tool shortcuts* and *Colour
+shortcuts* — and each draws its name **once**, in the header that walks back to the list. It
 owns the whole keyboard-shortcut table: `AppSettings.penEraserToggleKey` / `handToggleKey` (the two
-toggles) plus two maps — `toolShortcutKeys` (one key per `EditorTool`) and `colorShortcutKeys` (one
+toggles, with `ringShortcutKey` calling the pen-tip ring up at the pen as the barrel button does) plus two maps — `toolShortcutKeys` (one key per `EditorTool`) and `colorShortcutKeys` (one
 key per palette swatch). They are persisted by `encodeToolShortcuts` / `decodeToolShortcuts`
 and `encodeColorShortcuts` / `decodeColorShortcuts` (the same `key:value` comma-list style as the
 other codecs, dropping unknown tools/colours and blank keys), migrating the old per-colour keys
@@ -96,7 +97,7 @@ left off with — `lastColor`/`lastWidth`, re-pushed onto a freshly created surf
 its pref key. The **Select** tool adds a rail entry and a floating action bar; its
 mechanics are in [`selection.md`](selection.md#selecting-objects-render).
 
-**The theme is three chips.** **Appearance → Mode** draws *System*, *Light* and *Dark* side by side on the page (`AppearanceSection.kt`) rather than behind a list: every answer is a word a reader already knows, so two taps for one decision was a step too many.
+**The theme is a select.** **Appearance → Mode** is one row with the answer in hand and a chevron that opens *System*, *Light* and *Dark* (`AppearanceSection.kt`, `OptionGroup`) — the grammar every other choice on these pages keeps, rather than three chips printed on the page for a decision nobody makes twice.
 
 **A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About** ends in a door rather than a cross-reference: the tablet's page links to the project's repository (`ProjectLinks`, `mobix-core`), and the window's About row opens the same page in the machine's browser, so a reader looking for the other shell reaches its releases instead of reading a version number.
 

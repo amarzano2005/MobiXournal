@@ -120,16 +120,11 @@ data class AppSettings(
     val pageSizeStepMm: Double = PageSizeStep.DEFAULT_MM,
     /** The unit the page format — and so the quick size — is read in ([PageFormatPrefs]). */
     val pageSizeUnit: PageSizeUnit = PageSizeUnit.MM,
-    /**
-     * The format a **new** document is written in ([NewDocumentFormat]). Asked once at first launch
-     * and changeable under Settings → App & data; `.mobix` is the recommended default, because the
-     * living entities the app authors have no home in the `.xopp` half.
-     */
+    /** The format a **new** document is written in ([NewDocumentFormat]), asked once at first launch and
+     * changeable under Settings → App & data; `.mobix` is the default — what the app authors has no home in `.xopp`. */
     val newDocumentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
-    /**
-     * When false, fingers only pan/zoom — never draw (palm-safe for stylus users). Off by default
-     * on a first launch, so a hand resting on the glass never inks a page written on with a stylus.
-     */
+    /** When false, fingers only pan/zoom — never draw (palm-safe for stylus users); off at first launch, so a
+     * hand resting on the glass never inks a page written on with a stylus. */
     val fingerDraws: Boolean = false,
     /** What the stylus primary barrel-button does while held. */
     val barrelAction: BarrelAction = BarrelAction.ERASE,
@@ -143,11 +138,8 @@ data class AppSettings(
      * the same thickness; on restores the taper.
      */
     val pressureEnabled: Boolean = true,
-    /**
-     * Scales the raw pressure before the minimum floor — desktop Xournal++'s "pressure multiplier".
-     * Raise it if you write lightly and want thicker lines; 1 leaves the pressure as the digitiser
-     * reports it, and above 1 a stroke can exceed its nominal width (as on the desktop).
-     */
+    /** Scales the raw pressure before the minimum floor — Xournal++'s "pressure multiplier": raise it if you
+     * write lightly; 1 leaves it as the digitiser reports it, and above 1 a stroke can exceed its nominal width. */
     val pressureMultiplier: Float = 1f,
     /**
      * The floor under the filtered pressure — desktop Xournal++'s "minimum pressure". A zero-pressure
@@ -183,6 +175,8 @@ data class AppSettings(
     val penEraserToggleKey: String = "B",
     /** Key to toggle hand/pan tool (empty = disabled). */
     val handToggleKey: String = "H",
+    /** Key that calls the pen-tip ring up at the pen, as the barrel button does (empty = disabled). */
+    val ringShortcutKey: String = "",
     /** How far a released pan keeps gliding — the momentum-strength factor (0 = off, 1 = normal). */
     val momentum: Float = Momentum.NORMAL,
     /** The velocity→coast response shape for momentum (linear … exponential). */
@@ -541,6 +535,7 @@ class SettingsStore(context: Context) {
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
             penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
             handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
+            ringShortcutKey = prefs.getString(KEY_RING_SHORTCUT, d.ringShortcutKey) ?: d.ringShortcutKey,
             fingerDraws = prefs.getBoolean(KEY_FINGER_DRAWS, d.fingerDraws),
             barrelAction = enumOr(prefs.getString(KEY_BARREL, null), d.barrelAction),
             barrelDoubleAction = enumOr(prefs.getString(KEY_BARREL_DOUBLE, null), d.barrelDoubleAction),
@@ -692,11 +687,11 @@ class SettingsStore(context: Context) {
             .putFloat(KEY_DEFAULT_PAGE_HEIGHT, s.defaultPageHeightPt.toFloat())
             .putFloat(KEY_PAGE_SIZE_STEP, s.pageSizeStepMm.toFloat())
             .putString(KEY_NEW_DOCUMENT_FORMAT, s.newDocumentFormat.name)
-        // The canvas geometry is retired: every document is a page stack now, so a save clears the
-        // preference an older install still carries.
+        // Retired: every document is a page stack now, so a save clears the old canvas-geometry key.
         e.remove(KEY_NEW_DOCUMENT_CANVAS)
             .putString(KEY_PEN_ERASER_TOGGLE, s.penEraserToggleKey)
             .putString(KEY_HAND_TOGGLE, s.handToggleKey)
+            .putString(KEY_RING_SHORTCUT, s.ringShortcutKey)
             .putBoolean(KEY_FINGER_DRAWS, s.fingerDraws)
             .putString(KEY_BARREL, s.barrelAction.name)
             .putString(KEY_BARREL_DOUBLE, s.barrelDoubleAction.name)
@@ -813,6 +808,7 @@ class SettingsStore(context: Context) {
         const val KEY_PEN_ERASER_TOGGLE = "pen_eraser_toggle_key"
 
         const val KEY_HAND_TOGGLE = "hand_toggle_key"
+        const val KEY_RING_SHORTCUT = "ring_shortcut_key"
         const val KEY_FINGER_DRAWS = "finger_draws"
         const val KEY_BARREL = "barrel_action"
         const val KEY_BARREL_DOUBLE = "barrel_double_action"

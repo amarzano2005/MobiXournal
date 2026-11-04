@@ -1,53 +1,26 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 /**
  * Appearance: which Material 3 colour scheme the app's chrome is painted with.
  *
- * The mode is **three chips in a row**, not a row that opens a list of three: it is the one question on this
- * page, every answer is a word a reader already knows, and hiding two of them behind a tap made choosing a
- * theme a two-step errand for a one-step decision. The chips sit in the settings block inset like the note
- * under them, so a theme change is one tap away from the page the user opened.
+ * The mode is a **select** — the answer in hand at the end of one row, the other two in a menu under it
+ * ([OptionGroup]). Three chips in a row printed all three answers on the page for a question nobody changes
+ * twice, and a chip row is a filter's grammar, not a setting's: this page's other choices are all rows that
+ * open their list, and the theme is one of them (`docs/chrome-settings.md`).
  */
 @Composable
 fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Theme") {
-        Text(
-            text = "Mode",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.settingsBlockInset(),
+        OptionGroup(
+            title = "Mode",
+            subtitle = "Colours the app's chrome and both system bars. System follows the device setting.",
+            options = ThemeMode.values().toList(),
+            selected = settings.themeMode,
+            label = { it.label },
+            onSelect = { mode -> onChange(settings.copy(themeMode = mode)) },
         )
-        Text(
-            text = "Colours the app's chrome and both system bars. System follows the device setting.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.settingsBlockInset(),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            for (mode in ThemeMode.values()) {
-                FilterChip(
-                    selected = settings.themeMode == mode,
-                    onClick = { onChange(settings.copy(themeMode = mode)) },
-                    label = { Text(mode.label) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
         SettingsDivider()
         SwitchRow(
             title = "Use system colours",

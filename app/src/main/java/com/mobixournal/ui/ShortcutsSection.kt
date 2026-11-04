@@ -63,7 +63,6 @@ enum class ShortcutSubpage(val title: String, val summary: String) {
     TOGGLES("Toggles", "Flip between two tools with one key."),
     TOOLS("Tool shortcuts", "One key for each drawing and editing tool."),
     COLOURS("Colour shortcuts", "One key for each pen colour in your palette."),
-    RING("Ring", "Arrange the faces of the ring at the pen tip."),
 }
 
 @Composable
@@ -96,6 +95,11 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 KeySettingField("Hand/Pan", settings.handToggleKey) {
                     onChange(settings.copy(handToggleKey = it))
                 }
+                // The ring is the input's other door: one key that calls it up at the pen, exactly as the
+                // barrel button does, so a pen without a reachable button can still reach its faces.
+                KeySettingField("Ring at the pen", settings.ringShortcutKey) {
+                    onChange(settings.copy(ringShortcutKey = it))
+                }
             }
         }
         ShortcutSubpage.TOOLS -> {
@@ -122,12 +126,6 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                     }
                 }
             }
-        }
-        // The ring's faces are the input's other arrangement — the barrel button's answers — so the list of
-        // input shortcuts is where a reader looks for them; the page itself is Drawing → Ring.
-        ShortcutSubpage.RING -> {
-            SubpageHeader(active.title) { subpage = null }
-            RingSection(settings, onChange)
         }
     }
 }
