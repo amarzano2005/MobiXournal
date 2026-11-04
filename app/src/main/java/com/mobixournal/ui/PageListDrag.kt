@@ -106,14 +106,25 @@ internal fun PageListAutoScroll(
             val seconds = ((now - last) / 1e9f).coerceIn(0f, 0.05f)
             last = now
             val from = drag.from ?: break
+            val scroll = scrollPxOf(listState, rowHeightPx)
             val step = autoScrollStep(
-                liftedTopPx = drag.liftedTop(from, scrollPxOf(listState, rowHeightPx)),
+                liftedTopPx = drag.liftedTop(from, scroll),
                 rowHeightPx = rowHeightPx,
                 viewportPx = viewportPx,
                 edgePx = edgePx,
                 speedPx = speedPx,
             )
-            if (step != 0f) listState.scrollBy(step * seconds)
+            // Never walk past the point where the row itself would leave the list. The list lays out (and
+            // keeps the gesture of) only the rows it can see: once this one left, the drag would go on
+            // walking with nothing holding it, which is how a scroll turned into a runaway.
+            val room = if (step > 0f) {
+                from * rowHeightPx - scroll + rowHeightPx
+            } else {
+                viewportPx - (from * rowHeightPx - scroll)
+            }
+            if (step != 0f && room > 0f) {
+                listState.scrollBy((step * seconds).coerceIn(-room, room))
+            }
         }
     }
 }
