@@ -71,17 +71,37 @@ internal object DrawingSurfaceDefaults {
     const val ROTATE_ARM_PX = 40f      // gap from the right edge out to the rotate knob
 
     /**
-     * Grab radius (view px) for a selection's resize handles: [HANDLE_HIT_PX], never more than a
-     * **third** of the selection's smaller on-screen side.
-     *
-     * The four edge handles sit half a side out from the middle, so capping at *half* would leave the
-     * middle inside a handle's reach: the whole interior of a small selection reads as handle, and a
-     * drag that plainly meant "move this" resizes it instead (below ~60 px of side, where the cap
-     * binds, an element could not be dragged at all). A third keeps the middle a move at every size,
-     * while a selection big enough for the full radius is untouched. Pure, so a unit test pins it.
+     * An axis no thicker than this in **page points** is a line, not a box: it is the thickness a pen
+     * draws, so a stroke's box is exactly that thick on its short side. The window keeps the same number
+     * (`desktop.sheet.FLAT_PT`), so one rule holds in both shells (`docs/selection.md`).
      */
-    fun handleHitRadius(boxWpx: Float, boxHpx: Float): Float =
-        minOf(HANDLE_HIT_PX, minOf(boxWpx, boxHpx) / 3f).coerceAtLeast(1f)
+    const val FLAT_PT = 4.0
+
+    /**
+     * True when a box [extentPx] across on screen, at [scale] view px per page point, has **no extent worth
+     * stretching** on that axis — a line drawn at its pen's thickness.
+     *
+     * Measured in page points rather than pixels on purpose: a line is a line at 30 % as at 300 %, so a
+     * handle must not start answering at a zoom threshold.
+     */
+    fun isFlat(extentPx: Float, scale: Float): Boolean =
+        extentPx / scale.coerceAtLeast(1e-6f) <= FLAT_PT
+
+    /**
+     * Grab radius (view px) of a selection's handles **along one axis**: [HANDLE_HIT_PX], never more than a
+     * **third** of that axis's on-screen extent.
+     *
+     * The two edge handles of an axis sit half an extent out from the middle, so capping at *half* would leave
+     * the middle inside a handle's reach: the whole interior of a small selection reads as handle, and a drag
+     * that plainly meant "move this" resizes it instead. A third keeps the middle a move at every size. Each
+     * axis is capped on **its own** extent, not by the smaller side of the box: a line is only as thick as its
+     * pen, and capping both axes by that thickness left its end handles with a pixel of slack, so the same
+     * press on an end caught the handle, carried the line or dropped the selection. An axis with no extent to
+     * speak of ([isFlat]) has no middle to protect either, so it keeps the whole radius. Pure, so a unit test
+     * pins it.
+     */
+    fun handleReach(extentPx: Float, flat: Boolean): Float =
+        if (flat) HANDLE_HIT_PX else minOf(HANDLE_HIT_PX, extentPx / 3f).coerceAtLeast(1f)
 
     /**
      * Size (dp) of the edge bands (top, bottom, left, right) that auto-scroll the page while a selection

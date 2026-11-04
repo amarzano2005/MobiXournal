@@ -19,6 +19,10 @@ import com.mobixournal.render.CanvasChrome.Companion.HANDLE_DRAW_PX
  * (out-of-proportion resize), which is why they are drawn at all. The right-edge one sits under the
  * rotate arm's foot: the arm starts there and the knob it leads to is what the rotate hit-test
  * answers to, so the two never fight over the same touch.
+ *
+ * A **flat** box — a line, only as thick as its pen (`DrawingSurfaceDefaults.isFlat`) — shows its two
+ * end dots and nothing else: a corner would sit exactly on an end, and a dot along the thickness would
+ * answer a press with a factor of one. Drawn here and tested in `beginHandleResize`, so the two agree.
  */
 internal fun DrawingSurfaceView.drawSelectionHandleDots(
     canvas: Canvas,
@@ -29,17 +33,25 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
     r: Float,
     bottom: Float,
 ) {
+    val flatX = DrawingSurfaceDefaults.isFlat(r - l, box.scale)
+    val flatY = DrawingSurfaceDefaults.isFlat(bottom - t, box.scale)
     // Corner resize handles: proportional (both axes together).
-    for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
-        canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
+    if (!flatX && !flatY) {
+        for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
+            canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
+        }
     }
     // Edge-midpoint handles: one axis each, the out-of-proportion resize.
     val midX = (l + r) / 2f
     val midY = (t + bottom) / 2f
-    canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
-    canvas.drawCircle(midX, bottom, HANDLE_DRAW_PX, chrome.handle)
-    canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
-    canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
+    if (!flatY) {
+        canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
+        canvas.drawCircle(midX, bottom, HANDLE_DRAW_PX, chrome.handle)
+    }
+    if (!flatX) {
+        canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
+        canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
+    }
     // Rotate knob poking out midway from the right edge (strokes only).
     if (gestures.isAllStrokes(sel)) {
         val knobX = r + DrawingSurfaceDefaults.ROTATE_ARM_PX

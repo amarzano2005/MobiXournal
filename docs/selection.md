@@ -112,8 +112,9 @@ band above or below such a box carries it, which is where the dead edge handle u
 carried through untouched (a longer arrow is not a fatter one) and a recognised arrowhead stays at
 the size it was drawn, so only the shaft lengthens (`StrokeStretch`), while text sizes follow the
 scale because letters are the figure there. Their grab radius is capped at a **third** of the
-selection's on-screen size (`DrawingSurfaceDefaults.handleHitRadius`), because a fixed 30 px radius
-swallows a small selection whole — every touch inside it lands within 30 px of a handle, turning an
+selection's on-screen size **on each axis** (`DrawingSurfaceDefaults.handleReach`; the axis
+`DrawingSurfaceDefaults.isFlat` calls a line's own thickness keeps the whole radius), because a fixed 30 px
+radius swallows a small selection whole — every touch inside it lands within 30 px of a handle, turning an
 intended *move* into a resize. A third is the largest cap that leaves the middle a move: the four
 edge handles sit half a side out from the middle, so a cap of *half* put the middle itself inside a
 handle's reach (below ~60 px of side, an element could not be dragged at all — the failing cross-page

@@ -230,29 +230,56 @@ internal class SelectionGestureController(
                 return true
             }
         }
-        // Four corner resize handles; the anchor is the diagonally-opposite corner. The grab radius
-        // is scaled down with the selection (see [DrawingSurfaceDefaults.handleHitRadius]): a fixed
-        // 30 px radius swallows a small selection whole — every touch inside it lands within reach of
-        // some handle, so a *move* of a small element silently became a resize.
+        // Four corner resize handles and the four edge midpoints, asked by one helper: which of them a
+        // touch is on, and with what anchor and axis, is `beginHandleResize`.
+        if (beginHandleResize(event, box, b)) return true
+        // Inside the outline: move.
+        if (b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY))) {
+            beginMove(event, box)
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Start the resize a touch at ([event]) on one of [b]'s eight handles means; false when it is on none.
+     *
+     * Each axis is reached with **its own** radius, and an axis the box has no extent on keeps the whole
+     * radius: a line is only as thick as its pen (`DrawingSurfaceDefaults.isFlat`), so capping both axes by
+     * that thickness left its end handles with a pixel of slack — the same press on an end caught the
+     * handle, carried the whole line or dropped the selection, which is a tool that behaves unpredictably.
+     * A **flat** box wears its two end handles and nothing else: no corners, which would sit exactly on
+     * them, and no edge handles along the axis that could only multiply by one. The band between the ends
+     * is then the body the press falls through to, so a drag above or below the line carries it.
+     */
+    private fun beginHandleResize(event: MotionEvent, box: PageBox, b: Bounds): Boolean {
         val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
         val boxWpx = (b.width * box.scale).toFloat()
         val boxHpx = (b.height * box.scale).toFloat()
-        val handleHit = DrawingSurfaceDefaults.handleHitRadius(boxWpx, boxHpx)
-        val cornersPt = arrayOf(b.left to b.top, b.right to b.top, b.right to b.bottom, b.left to b.bottom)
-        for (i in 0..3) {
-            val padX = if (cornersPt[i].first == b.left) -pad else pad
-            val padY = if (cornersPt[i].second == b.top) -pad else pad
-            val hx = (cornersPt[i].first * box.scale + box.leftPx - viewport.scrollX).toFloat() + padX
-            val hy = (cornersPt[i].second * box.scale + box.topPx - viewport.scrollY).toFloat() + padY
-            if (hypot(event.x - hx, event.y - hy) <= handleHit) {
-                val anchor = cornersPt[(i + 2) % 4]
-                beginResize(event, box, anchor.first, anchor.second, ResizeAxis.BOTH)
-                return true
+        val flatX = DrawingSurfaceDefaults.isFlat(boxWpx, box.scale)
+        val flatY = DrawingSurfaceDefaults.isFlat(boxHpx, box.scale)
+        val reachX = DrawingSurfaceDefaults.handleReach(boxWpx, flatX)
+        val reachY = DrawingSurfaceDefaults.handleReach(boxHpx, flatY)
+        fun grabs(hx: Float, hy: Float): Boolean =
+            kotlin.math.abs(event.x - hx) <= reachX && kotlin.math.abs(event.y - hy) <= reachY
+        // Corners resize proportionally; their anchor is the diagonally-opposite corner.
+        if (!flatX && !flatY) {
+            val cornersPt = arrayOf(b.left to b.top, b.right to b.top, b.right to b.bottom, b.left to b.bottom)
+            for (i in 0..3) {
+                val padX = if (cornersPt[i].first == b.left) -pad else pad
+                val padY = if (cornersPt[i].second == b.top) -pad else pad
+                val hx = (cornersPt[i].first * box.scale + box.leftPx - viewport.scrollX).toFloat() + padX
+                val hy = (cornersPt[i].second * box.scale + box.topPx - viewport.scrollY).toFloat() + padY
+                if (grabs(hx, hy)) {
+                    val anchor = cornersPt[(i + 2) % 4]
+                    beginResize(event, box, anchor.first, anchor.second, ResizeAxis.BOTH)
+                    return true
+                }
             }
         }
-        // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is
-        // the opposite edge's midpoint, so the far edge stays pinned while this one follows the
-        // pointer: pull the right edge out and the element gets wider without getting taller.
+        // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is the
+        // opposite edge's midpoint, so the far edge stays pinned while this one follows the pointer: pull
+        // the right edge out and the element gets wider without getting taller.
         val midXpt = (b.left + b.right) / 2
         val midYpt = (b.top + b.bottom) / 2
         val edges = arrayOf(
@@ -262,19 +289,15 @@ internal class SelectionGestureController(
             Triple(midXpt to b.bottom, midXpt to b.top, ResizeAxis.Y),
         )
         for ((handle, anchor, axis) in edges) {
+            if ((axis == ResizeAxis.X && flatX) || (axis == ResizeAxis.Y && flatY)) continue
             val hx = (handle.first * box.scale + box.leftPx - viewport.scrollX).toFloat() +
                 if (handle.first == b.left) -pad else if (handle.first == b.right) pad else 0f
             val hy = (handle.second * box.scale + box.topPx - viewport.scrollY).toFloat() +
                 if (handle.second == b.top) -pad else if (handle.second == b.bottom) pad else 0f
-            if (hypot(event.x - hx, event.y - hy) <= handleHit) {
+            if (grabs(hx, hy)) {
                 beginResize(event, box, anchor.first, anchor.second, axis)
                 return true
             }
-        }
-        // Inside the outline: move.
-        if (b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY))) {
-            beginMove(event, box)
-            return true
         }
         return false
     }
