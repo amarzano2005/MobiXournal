@@ -98,7 +98,9 @@ buttons and the commands behind them cannot disagree.
 
 **The menu's shape** is the tablet's, and the window keeps it: a page **navigator** at the top (the sheet
 in view between the arrows that step it), two **quick sizes** that nudge the measure by the shared
-`PageSizeStep` without opening a dialog, *Add page* / *Remove page*, then *Page format* and *Page
+`PageSizeStep` without opening a dialog (each row gives its number a fixed, trailing-aligned slot in tabular
+figures — `TabularFiguresStyle` — so the two measures end on the same line and the arrows never touch the
+digits), *Add page* / *Remove page*, then *Page format* and *Page
 background* with their live answers printed at the end of the row and every row wearing its **glyph** in a
 leading slot, as the phone's menu items do. **Manage pages** is a section of its own at the foot on
 **both** shells — *Move page up*, *Move page down*, *Manage pages…* — so the rows the two shells share

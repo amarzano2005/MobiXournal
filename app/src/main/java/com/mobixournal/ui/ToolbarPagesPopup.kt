@@ -2,7 +2,9 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -29,11 +31,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
-import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.render.PageSizeStep
 import com.mobixournal.render.PageSizeUnit
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.TabularFiguresStyle
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -179,12 +183,22 @@ private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
     )
 }
 
+/** The measure's slot: one width for both rows, so the two numbers end on the same line. */
+private val QUICK_SIZE_MEASURE_WIDTH = 76.dp
+
+/** One arrow's target: enough for a fingertip, small enough that the measure keeps its air. */
+private val QUICK_SIZE_STEP_SIZE = 40.dp
+
 /**
  * One axis of [QuickSizeRows]: its name, the sheet's current measure, and the two arrows that step it.
  *
  * The measure and the step are printed in the unit the page format was last set to
  * ([ToolbarPagesCallbacks.sizeUnit]) — a sheet read in inches shows `8.3 in` and steps by `3.9 in` —
  * while the sheet itself is stored in points, as it always is.
+ *
+ * The number gets a **slot of its own**: fixed width, trailing-aligned, in tabular figures. Two rows of
+ * measurements then end on the same line, a wider unit does not shove the arrows aside, and the arrows
+ * stop pressing against the digits — which is what made the pair read as one crowded line of text.
  */
 @Composable
 private fun QuickSizeRow(
@@ -195,16 +209,35 @@ private fun QuickSizeRow(
     onStep: (Int) -> Unit,
 ) {
     Row(
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 6.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Text(unit.measure(sizePt), style = MaterialTheme.typography.labelSmall)
-        IconButton(onClick = { onStep(-1) }, enabled = sizePt > PageSizeStep.MIN_PAGE_PT) {
-            Icon(Icons.Outlined.Remove, contentDescription = "$label − $stepLabel")
+        Text(
+            unit.measure(sizePt),
+            style = MaterialTheme.typography.labelLarge.merge(TabularFiguresStyle),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            modifier = Modifier.width(QUICK_SIZE_MEASURE_WIDTH).padding(end = 10.dp),
+        )
+        IconButton(
+            onClick = { onStep(-1) },
+            enabled = sizePt > PageSizeStep.MIN_PAGE_PT,
+            modifier = Modifier.size(QUICK_SIZE_STEP_SIZE),
+        ) {
+            Icon(
+                Icons.Outlined.Remove,
+                contentDescription = "$label − $stepLabel",
+                modifier = Modifier.size(18.dp),
+            )
         }
-        IconButton(onClick = { onStep(1) }) {
-            Icon(Icons.Outlined.Add, contentDescription = "$label + $stepLabel")
+        IconButton(onClick = { onStep(1) }, modifier = Modifier.size(QUICK_SIZE_STEP_SIZE)) {
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = "$label + $stepLabel",
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
