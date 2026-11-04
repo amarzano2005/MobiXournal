@@ -76,10 +76,11 @@ internal fun PolygonSlotButton(
                 modifier = Modifier.size(ToolIconSize * 0.9f),
             )
             // The figure itself is drawn from this number, so the slot says which one it is. It rides
-            // the button's top-left corner **exactly as the window's slot prints it**: the label role
-            // with tabular figures, nine sp, four in and two down. Inheriting the body role here put a
-            // 24 sp line box around a 9 sp numeral, and the number settled down over the glyph — the
-            // inset alone was never the whole of the desktop's position.
+            // the button's top-left corner in **the window's own voice**: the label role with tabular
+            // figures at nine sp, pulled a shade tighter into the corner than the window's 4 dp/2 dp
+            // because this slot is 32 dp where the window's is 40 — at the window's inset the numeral
+            // sat on the glyph. Inheriting the body role here put a 24 sp line box around the 9 sp
+            // figure, which is what first dragged it down into the drawing.
             Text(
                 text = "$sides",
                 color = tint,
@@ -87,7 +88,7 @@ internal fun PolygonSlotButton(
                 fontSize = 9.sp,
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(start = 4.dp, top = 2.dp),
+                    .padding(start = 2.dp, top = 0.dp),
             )
             // The menu's caret takes the corner opposite the count, small and tight to the rim, so the
             // two marks frame the figure instead of competing with it for the middle.
