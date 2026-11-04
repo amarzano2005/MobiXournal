@@ -565,6 +565,7 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** Which edge the rail takes. */
         const val KEY_RAIL_SIDE = "interface.railSide"
 
+
         /** The zoom a document opens at. */
         const val KEY_FIT_ON_OPEN = "interface.fitOnOpen"
 

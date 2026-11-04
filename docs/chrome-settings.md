@@ -67,7 +67,7 @@ result names the area it lives in (`areaOf`), so a hit found by an alias still s
 belongs; opening one goes straight to the section. `SettingsAreaTest` pins the structure the whole
 screen rests on: the areas cover every section exactly once (an unlisted section would be unreachable)
 and no area owns a single child (a one-child area is a tap that explains nothing). Section bodies live
-in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Ring** section (`RingSection.kt`, under Drawing) draws the pen-tip ring and edits its faces: a tap picks a face and a select under the drawing says what it holds — a colour, a width or **any tool the rail has**, and the ring is stored as one line under `ring.slots` (`RadialHud.encodeSlots`) — absent means the factory ring, which is what *Reset to defaults* writes. The **Shortcuts** section
+in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Ring** section (`RingSection.kt`, under Drawing) draws the pen-tip ring and edits its faces: a tap picks a face and a select under the drawing says what it holds — a colour, a width or **any tool the rail has**, and the ring is stored as one line under `ring.slots` (`RadialHud.encodeSlots`) — absent means the factory ring, which is what *Reset to defaults* writes. The **Shortcuts** section lists its answers as **four subpages** — *Toggles*, *Tool shortcuts*, *Colour shortcuts* and *Ring*, the last opening the ring page above so the barrel button's answers sit where a reader looks for input — and each subpage draws its name **once**, in the header that walks back to the list. It
 owns the whole keyboard-shortcut table: `AppSettings.penEraserToggleKey` / `handToggleKey` (the two
 toggles) plus two maps — `toolShortcutKeys` (one key per `EditorTool`) and `colorShortcutKeys` (one
 key per palette swatch). They are persisted by `encodeToolShortcuts` / `decodeToolShortcuts`
@@ -95,6 +95,10 @@ left off with — `lastColor`/`lastWidth`, re-pushed onto a freshly created surf
 `withColorUsed(color)` is now just that write, since the recently-used list was removed along with
 its pref key. The **Select** tool adds a rail entry and a floating action bar; its
 mechanics are in [`selection.md`](selection.md#selecting-objects-render).
+
+**The theme is three chips.** **Appearance → Mode** draws *System*, *Light* and *Dark* side by side on the page (`AppearanceSection.kt`) rather than behind a list: every answer is a word a reader already knows, so two taps for one decision was a step too many.
+
+**A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About** names the other shell: the tablet's page prints the desktop build's version from `BuildVersions`, the one home the two numbers live in.
 
 ## The rail's two fixed slots
 

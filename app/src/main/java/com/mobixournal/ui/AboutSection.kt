@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mobixournal.BuildConfig
+import com.mobixournal.design.BuildVersions
 
 /** Where the About page sends people; kept in one place so a link is never spelled out twice. */
 object AboutLinks {
@@ -44,6 +45,16 @@ fun AboutSection() {
 
     SettingsGroup("MobiXournal") {
         InfoRow("Version", BuildConfig.VERSION_NAME)
+        // The **other shell**: the window reads and writes the same documents and the same settings, so
+        // each About page names the build it is the twin of (`BuildVersions` holds the one number both read).
+        InfoRow("Desktop version", BuildVersions.DESKTOP)
+    }
+
+    SettingsGroup("Desktop window") {
+        SettingsNote(
+            "MobiXournal for Windows opens the same .mobix and .xopp documents with the same tools, and its " +
+                "settings backup carries the same choices. It is versioned on its own About page, above.",
+        )
     }
 
     SettingsGroup("Credits") {

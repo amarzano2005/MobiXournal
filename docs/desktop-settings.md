@@ -65,7 +65,7 @@ One rule per kind of thing, so a reader can tell an answer from an action at a g
   (`SettingsSelect`);
 - a **toggle** ends in the switch, and the whole row is the hit area (`Pressure sensitivity`);
 - a **readout** ends in a word or a number with no control at all, at the row's own inset so its small type sits
-  on the labels' column (`Recovery snapshot` → *After every edit*);
+  on the labels' column (`Version` → *1.0.0*);
 - a **command** is a row with **nothing at its end**: the label is in the accent and the row is the button
   (`Reset to defaults`, `Export settings…`, `SettingsCommand`) — one label for every way back to the
   factory values, in whichever section it stands.
@@ -237,11 +237,11 @@ two different questions:
   Both strips are re-laid live, and each **takes a lane** (decision 2026-10-28, `docs/interface-contract.md`):
   the canvas is handed what is left.
 - **Buttons**: one row per **slot**, its members listed underneath (the eraser holds partial and
-  whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down. The
-  arrangement is `DesktopSettingsState.toolGroups` and both strips read it, so a button moved here moves in
-  the rail and in the ribbon — and a picker's chevron follows its slot. **Reset to defaults** puts every
-  slot back; like the key table's own reset, it writes nothing, because the factory order is every
-  slot that is not in the file (`toolbar.order`).
+  whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down — and one
+  more row for **Insert image** (`interface.imageAfter`), the strip's only non-ink command, which stands under
+  the slot the row moves it to. The arrangement is `DesktopSettingsState.toolGroups` and both strips read it,
+  so a button moved here moves in the rail and in the ribbon. **Reset to defaults** puts every slot back;
+  the factory order is every slot not in `toolbar.order`, so it writes nothing.
 
 ## Figures — a width of their own
 
@@ -297,4 +297,4 @@ import is **wholesale**: a backup is a configuration, so a key it does not carry
 when it was written. A file that is not a backup, or one written by a newer build, is **refused with its
 reason** and nothing changes — the sentence appears under the rows, not in a dialog. A successful import
 re-reads the inks and the palette, so the change is visible on the page behind the panel rather than only on
-the rows.
+the rows, and **Reset all settings…** empties the file — a missing key *is* its default (`resetAllSettings`).

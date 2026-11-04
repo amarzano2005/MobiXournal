@@ -34,7 +34,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Redo
-import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import com.mobixournal.design.ToolGlyph
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
@@ -1000,7 +1000,7 @@ fun TopBarToolsRow(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                Icons.AutoMirrored.Outlined.ShowChart,
+                                ToolGlyph.PLOT.imageVector(),
                                 contentDescription = "Insert graph",
                                 tint = tint,
                                 modifier = Modifier.size(ToolIconSize),

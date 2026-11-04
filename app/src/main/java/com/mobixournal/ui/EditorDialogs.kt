@@ -81,11 +81,19 @@ private val TEXT_FAMILIES = listOf("Sans", "Serif", "Monospace")
 fun SaveAsDialog(
     initialName: String,
     initialFormat: SaveFormat,
+    /** The format **Documents** made the default for new work, offered as the chooser's first answer. */
+    defaultFormat: SaveFormat = SaveFormat.MOBIX,
+    /** That default's name, printed in the first row so the answer is not "whatever that is". */
+    defaultLabel: String = "MobiXournal (.mobix)",
     onConfirm: (filename: String, format: SaveFormat) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
-    var format by remember { mutableStateOf(initialFormat) }
+    // The chooser's answers are read in the **order a decision is made**: the default first, then the two
+    // plain documents this app writes, then the one portable bundle. The default is its own choice, not a
+    // fourth format, so it is never shown as the same answer as the format it currently names.
+    var choice by remember { mutableStateOf(SaveAsChoice.of(initialFormat, defaultFormat)) }
+    val format = choice.format ?: defaultFormat
     FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Save As") },
@@ -100,23 +108,29 @@ fun SaveAsDialog(
                 )
                 Text("Format", style = MaterialTheme.typography.labelMedium)
                 FormatOption(
-                    selected = format == SaveFormat.ORIGINAL,
-                    title = "Original (gzip)",
-                    subtitle = "Standard Xournal++ file; any PDF background stays linked by location.",
-                    onClick = { format = SaveFormat.ORIGINAL },
+                    selected = choice == SaveAsChoice.DEFAULT,
+                    title = "Default ($defaultLabel)",
+                    subtitle = "Follows Settings → Documents, so a new file is the kind you usually keep.",
+                    onClick = { choice = SaveAsChoice.DEFAULT },
                 )
                 FormatOption(
-                    selected = format == SaveFormat.ZIPPED,
-                    title = "Zipped (single file)",
-                    subtitle = "One portable file with the PDF embedded inside.",
-                    onClick = { format = SaveFormat.ZIPPED },
+                    selected = choice == SaveAsChoice.ORIGINAL,
+                    title = "Xournal++ (.xopp)",
+                    subtitle = "Standard gzip file; any PDF background stays linked by location.",
+                    onClick = { choice = SaveAsChoice.ORIGINAL },
                 )
                 FormatOption(
-                    selected = format == SaveFormat.MOBIX,
+                    selected = choice == SaveAsChoice.MOBIX,
                     title = "MobiXournal (.mobix)",
                     subtitle = "This app's own format: tables, plots and components stay editable. " +
                         "For desktop Xournal++, export it to .xopp.",
-                    onClick = { format = SaveFormat.MOBIX },
+                    onClick = { choice = SaveAsChoice.MOBIX },
+                )
+                FormatOption(
+                    selected = choice == SaveAsChoice.ZIPPED,
+                    title = "Zipped (single .xopp)",
+                    subtitle = "One portable Xournal++ file with the PDF embedded inside.",
+                    onClick = { choice = SaveAsChoice.ZIPPED },
                 )
             }
         },
@@ -125,37 +139,19 @@ fun SaveAsDialog(
     )
 }
 
-/** One selectable option row in [SaveAsDialog]/[ImportPdfDialog]: a radio plus a title and explanation. */
-@Composable
-fun FormatOption(
-    selected: Boolean,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-) {
-    // The **whole row** is the target, not only the radio: a title and an explanation are what a user
-    // reads, and a choice that only answers to a 48dp circle beside them is a choice that gets missed
-    // ("Save As" never offers .mobix because the tap landed on the words). `selectable` also gives the
-    // row the radio's role in the semantics tree, so a screen reader announces it as the option it is.
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
-            // After the clickable, so the padding the row adds is part of what can be tapped.
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        // Inert on purpose: the row above owns the click (and reports the selection), so the button
-        // must not be a second, smaller target competing with it.
-        RadioButton(selected = selected, onClick = null, enabled = enabled)
-        // A disabled option stays visible (so the choice is explained) but reads as unavailable.
-        val alpha = if (enabled) 1f else 0.38f
-        Column(modifier = Modifier.alpha(alpha)) {
-            Text(title)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
-        }
+/** What [SaveAsDialog] picked: the **default format** as one answer, or one format explicitly. [DEFAULT] has
+ * no format of its own — it resolves against the caller's default, so no row promises a kind the write denies. */
+private enum class SaveAsChoice(val format: SaveFormat?) {
+    DEFAULT(null),
+    ORIGINAL(SaveFormat.ORIGINAL),
+    MOBIX(SaveFormat.MOBIX),
+    ZIPPED(SaveFormat.ZIPPED),
+    ;
+
+    companion object {
+        /** The answer [picked] is, read against [default]: the default row when the two are the same format. */
+        fun of(picked: SaveFormat, default: SaveFormat): SaveAsChoice =
+            if (picked == default) DEFAULT else entries.first { it.format == picked }
     }
 }
 

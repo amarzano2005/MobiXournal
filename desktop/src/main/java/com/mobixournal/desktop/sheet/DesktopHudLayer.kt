@@ -32,14 +32,16 @@ import com.mobixournal.desktop.shell.drawToolCursor
  * it does everywhere else a tool marks the page.
  */
 @Composable
-internal fun DesktopHudLayer(hud: HudUi, pointer: PenPointer, ringPx: Float?, density: Float) {
+internal fun DesktopHudLayer(hud: HudUi, pointer: PenPointer, mark: SheetMark, density: Float) {
     val hover = pointer.hover.value
     LaunchedEffect(hover) { hover?.let { hud.onPointerAt(it, density) } }
     val open = hud.open() ?: return
     Canvas(Modifier.fillMaxSize()) {
         drawDesktopRadialHud(open, hud.slots, density)
         // A tool that lays no band (the hand, Text, the guides) has no ring to show, and draws none.
-        ringPx?.let { ring -> pointer.hover.value?.let { at -> drawToolCursor(at, ring) } }
+        mark.ringPx?.let { ring ->
+            pointer.hover.value?.let { at -> drawToolCursor(at, ring, mark.ringColour, mark.eraser) }
+        }
     }
 }
 

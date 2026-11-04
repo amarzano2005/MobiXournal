@@ -355,7 +355,7 @@ internal fun SheetCanvas(
         }
         // The ring floats over the sheet, and the tool's own ring is painted on **top** of its glass, so
         // the pointer stays visible where the faces are (`DesktopHudLayer`).
-        DesktopHudLayer(hud, pointer, mark.ringPx, density)
+        DesktopHudLayer(hud, pointer, mark, density)
         GuideAimLayer(tab, pointer, sheet, density)
     }
 }
@@ -378,7 +378,7 @@ private fun DrawScope.drawSheetChrome(
     drawSelectedPdfText(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density)
     drawSearchHit(tab, sheet.viewport.offsetX, sheet.viewport.offsetY, sheet.zoom, density) // chrome, not ink
     val ring = mark.ringPx ?: return
-    pointer.hover.value?.let { at -> drawToolCursor(at, ring) }
+    pointer.hover.value?.let { at -> drawToolCursor(at, ring, mark.ringColour, mark.eraser) }
 }
 
 /**

@@ -117,6 +117,9 @@ fun BoxScope.EditorOverlays(
         SaveAsDialog(
             initialName = currentSaveName(),
             initialFormat = currentSaveFormat(),
+            // The default the chooser opens on when the document carries it: Documents' own answer.
+            defaultFormat = settings.newDocumentFormat.format,
+            defaultLabel = settings.newDocumentFormat.label,
             onConfirm = { filename, format -> ui.showSaveAs = false; onSaveAs(filename, format) },
             onDismiss = { ui.showSaveAs = false },
         )

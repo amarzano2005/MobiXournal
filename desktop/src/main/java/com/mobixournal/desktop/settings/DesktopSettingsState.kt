@@ -161,9 +161,11 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         pageSizeUnit = unit
     }
 
+    /** The strips' own arrangement — the slot order and the one command that follows a slot (`StripOrderState`). */
+    internal val strips = StripOrderState(store)
+
     /** The strip's slot order, as the reader arranged it; the factory order when it is empty. */
-    var toolOrder by mutableStateOf(store.toolOrder)
-        private set
+    val toolOrder: List<String> get() = strips.toolOrder
 
     /** The eraser the eraser **toggle key** switches to — partial, or whole-stroke. */
     var toggleEraserTool by mutableStateOf(toolNamed(store.toggleEraser, DesktopTool.ERASER))
@@ -223,6 +225,22 @@ class DesktopSettingsState(private val store: DesktopSettings) {
             }
             else -> backupNotice = check.message
         }
+    }
+
+    /**
+     * Put **every** choice back to its default — the Backup page's *Reset all settings…*.
+     *
+     * The store is emptied rather than rewritten with the defaults one by one: an empty properties file is
+     * exactly a fresh install (`DesktopSettings` answers a missing key with its documented default), so the
+     * reset cannot fall behind a value a later build adds. [reload] then re-reads the state the sections and
+     * the strips draw from, and [onRestored] refreshes what the shell keeps outside this surface — the two
+     * inks and the palette — so the window after a reset is the window a fresh install opens.
+     */
+    fun resetAllSettings() {
+        store.restore(emptyMap())
+        reload()
+        onRestored?.invoke()
+        backupNotice = "Every setting is back to its default."
     }
 
     /** Which part of the tablet's surface is mapped. */
@@ -407,31 +425,19 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     }
 
     /** The strip's slots in the reader's order — what both strips draw. */
-    val toolGroups: List<ToolGroup> get() = orderedToolGroups(toolOrder)
+    val toolGroups: List<ToolGroup> get() = strips.groups
 
-    /**
-     * Move slot [index] one place [direction] (‑1 up/left, +1 down/right) and remember the order.
-     *
-     * The edge is not wrapped: the first slot has nothing above it, and a move past the end is the same
-     * arrangement said again. The order is stored as the whole list, so the next launch draws exactly
-     * what this window shows.
-     */
-    fun moveToolSlot(index: Int, direction: Int) {
-        val groups = toolGroups
-        val target = index + direction
-        if (index !in groups.indices || target !in groups.indices) return
-        val moved = groups.toMutableList()
-        val slot = moved.removeAt(index)
-        moved.add(target, slot)
-        toolOrder = moved.map { it.face.name }
-        store.toolOrder = toolOrder
-    }
+    /** Move slot [index] one place [direction], and remember the order (`StripOrderState.moveSlot`). */
+    fun moveToolSlot(index: Int, direction: Int) = strips.moveSlot(index, direction)
 
     /** Put every slot back in the factory order, and forget the arrangement. */
-    fun resetToolOrder() {
-        toolOrder = emptyList()
-        store.toolOrder = emptyList()
-    }
+    fun resetToolOrder() = strips.reset()
+
+    /** The slot **Insert image** stands under; Text at the factory and on a reset. */
+    val imageAfter: String get() = strips.imageAfter
+
+    /** Move Insert image one slot [direction] (`StripOrderState.moveImage`). */
+    fun moveImageSlot(direction: Int) = strips.moveImage(direction)
 
     /** Open documents at [value] from now on and remember it — the tab already open keeps its zoom. */
     fun chooseFitOnOpen(value: FitOnOpen) {
@@ -592,7 +598,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         figures.reload()
         newDocumentFormat = store.newDocumentFormat
         pageSizeUnit = store.pageSizeUnit
-        toolOrder = store.toolOrder
+        strips.reload()
         toggleEraserTool = toolNamed(store.toggleEraser, DesktopTool.ERASER)
         toggleSelectionTool = toolNamed(store.toggleSelection, DesktopTool.MARQUEE)
         shortcuts = store.shortcuts

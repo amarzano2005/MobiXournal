@@ -141,6 +141,8 @@ data class ToolStripState(
      * layouts of one arrangement, so a reordered button has to move in both of them at once.
      */
     val groups: List<ToolGroup> = DESKTOP_TOOL_GROUPS,
+    /** The slot **Insert image** stands under — the strip's one movable command (`stripItems`). */
+    val imageAfter: String = DesktopTool.TEXT.name,
     /** Opening (an index) or closing (null) the picker — the slot's chevron and `Alt+Down` both go here. */
     val onOpenGroup: (Int?) -> Unit = {},
     /** The part each circuit slot is armed with — the palettes' answers, one per family. */
@@ -238,7 +240,7 @@ fun ToolRail(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for (item in stripItems(state.groups)) {
+                for (item in stripItems(state.groups, state.imageAfter)) {
                     when (item) {
                         is StripItem.Tools -> ToolSlot(
                             group = item.group, selection = state.selection,
@@ -296,7 +298,7 @@ fun ToolRibbon(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for (item in stripItems(state.groups)) {
+                for (item in stripItems(state.groups, state.imageAfter)) {
                     when (item) {
                         is StripItem.Tools -> ToolSlot(
                             group = item.group, selection = state.selection,

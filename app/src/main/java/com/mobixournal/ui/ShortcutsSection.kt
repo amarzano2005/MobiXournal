@@ -63,6 +63,7 @@ enum class ShortcutSubpage(val title: String, val summary: String) {
     TOGGLES("Toggles", "Flip between two tools with one key."),
     TOOLS("Tool shortcuts", "One key for each drawing and editing tool."),
     COLOURS("Colour shortcuts", "One key for each pen colour in your palette."),
+    RING("Ring", "Arrange the faces of the ring at the pen tip."),
 }
 
 @Composable
@@ -83,9 +84,11 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 }
             }
         }
+        // A subpage draws its **title once**: the header above is the name this list gave it, so the card
+        // under it is the card and not a second heading saying the same word.
         ShortcutSubpage.TOGGLES -> {
             SubpageHeader(active.title) { subpage = null }
-            SettingsGroup("Toggles") {
+            SettingsCard {
                 SettingsNote("Flip between two tools with one key. Leave a field empty to disable it.")
                 KeySettingField("Eraser / last tool", settings.penEraserToggleKey) {
                     onChange(settings.copy(penEraserToggleKey = it))
@@ -97,7 +100,7 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         }
         ShortcutSubpage.TOOLS -> {
             SubpageHeader(active.title) { subpage = null }
-            SettingsGroup("Tools") {
+            SettingsCard {
                 SettingsNote("One key for every tool — jumping straight to it, exactly as its rail slot would.")
                 for (tool in EditorTool.entries) {
                     KeySettingField(tool.label, settings.toolShortcutKeys[tool].orEmpty()) {
@@ -108,7 +111,7 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         }
         ShortcutSubpage.COLOURS -> {
             SubpageHeader(active.title) { subpage = null }
-            SettingsGroup("Colours") {
+            SettingsCard {
                 SettingsNote(
                     "One key for every pen colour in your palette (Settings → Colors) — selecting the pen in " +
                         "that swatch. The list is the palette itself, so a colour you add joins it here at once.",
@@ -119,6 +122,12 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                     }
                 }
             }
+        }
+        // The ring's faces are the input's other arrangement — the barrel button's answers — so the list of
+        // input shortcuts is where a reader looks for them; the page itself is Drawing → Ring.
+        ShortcutSubpage.RING -> {
+            SubpageHeader(active.title) { subpage = null }
+            RingSection(settings, onChange)
         }
     }
 }

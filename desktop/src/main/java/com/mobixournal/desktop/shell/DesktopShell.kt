@@ -368,7 +368,7 @@ class DesktopShellState(
             custom = paletteCustom, favourites = favourites, openGroup = openGroup,
             // The Toolbar section's arrangement, so a button moved on the settings page moves in both
             // strips — and the picker's index means the same slot in each of them.
-            groups = prefs.toolGroups,
+            groups = prefs.toolGroups, imageAfter = prefs.imageAfter,
             onOpenGroup = { group -> openGroup = group },
             circuitKinds = circuitKinds,
             circuitPickerOpen = circuitPickerOpen,

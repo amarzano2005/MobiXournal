@@ -5,8 +5,11 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.tools.DesktopTool
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.mobixournal.desktop.settings.drawToolGlyph
+import com.mobixournal.design.ToolGlyph
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.eraserRadiusPt
@@ -134,13 +137,49 @@ internal fun toolPointerIcon(
 }
 
 /**
- * Draw the ring: a dark outline under a light one, so it stays visible on paper, on the black desk and
- * over ink of either colour — the same reason the tablet's ring is drawn twice. Both are the window's own
- * tokens (`DesktopTheme`, one material class, `docs/interface-contract.md`), not a colour of its own.
+ * The colour the ring is drawn in: the ink the tool would lay, so the pointer already shows the stroke.
+ *
+ * A figure or a circuit slot drawn while the highlighter is in hand writes with the pen's ink
+ * ([inksByPackets]), which is why the same rule that picks the ring's **width** picks its colour. Both
+ * erasers are the exception: they lay no ink, so a ring in the pen's colour would promise a stroke that
+ * never arrives — they wear the ring in the chrome's ink and their own mark inside it.
  */
-internal fun DrawScope.drawToolCursor(at: androidx.compose.ui.geometry.Offset, diameter: Float) {
-    val dark = Stroke(width = 1.5.dp.toPx())
-    val light = Stroke(width = 1.0.dp.toPx())
-    drawCircle(DesktopTheme.desk, radius = diameter / 2f, center = at, style = dark)
-    drawCircle(DesktopTheme.ink, radius = diameter / 2f - dark.width, center = at, style = light)
+internal fun ringInk(tool: DesktopTool, ink: DesktopInk, shapeInk: DesktopInk): Color =
+    if (isEraserSlot(tool)) DesktopTheme.ink
+    else Color(if (tool.inksByPackets()) ink.colour else shapeInk.colour)
+
+/** Whether [tool] rubs ink out rather than laying it — the slots whose ring carries the eraser's mark. */
+internal fun isEraserSlot(tool: DesktopTool): Boolean =
+    tool == DesktopTool.ERASER || tool == DesktopTool.ERASER_WHOLE
+
+/**
+ * Draw the ring: a dark halo under a rim in the ink in hand, so it stays visible on paper, on the black desk
+ * and over ink of either colour — and says, before the stroke lands, which colour that stroke will be. Both
+ * are the window's own tokens (`DesktopTheme`, one material class, `docs/interface-contract.md`).
+ *
+ * An **eraser** has no colour to promise, so it wears the catalogue's own eraser mark inside the disc:
+ * the ring's size already says how much it cuts, and the mark says what it is.
+ */
+internal fun DrawScope.drawToolCursor(
+    at: androidx.compose.ui.geometry.Offset,
+    diameter: Float,
+    colour: Color,
+    eraser: Boolean,
+) {
+    val halo = Stroke(width = 1.5.dp.toPx())
+    val rim = Stroke(width = 1.0.dp.toPx())
+    drawCircle(DesktopTheme.desk, radius = diameter / 2f, center = at, style = halo)
+    drawCircle(colour, radius = diameter / 2f - halo.width, center = at, style = rim)
+    if (eraser) {
+        val side = diameter * ERASER_MARK_FRACTION
+        drawToolGlyph(
+            glyph = ToolGlyph.ERASER,
+            color = colour,
+            side = side,
+            at = at - androidx.compose.ui.geometry.Offset(side / 2f, side / 2f),
+        )
+    }
 }
+
+/** How much of the ring's diameter the eraser's mark takes — small enough to stay inside the disc. */
+private const val ERASER_MARK_FRACTION = 0.6f

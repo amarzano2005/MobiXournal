@@ -47,6 +47,14 @@ internal fun DrawScope.drawToolGlyph(tool: DesktopTool, color: Color, side: Floa
     }
 }
 
+/** The same glyph in a box of its own at ([at]), addressed by its catalogue entry — a mark painted into a
+ * larger surface, like the eraser's inside the pointer's ring (`DesktopCursor`). */
+internal fun DrawScope.drawToolGlyph(glyph: ToolGlyph, color: Color, side: Float, at: Offset) {
+    withTransform({ translate(at.x, at.y) }) {
+        drawGlyphParts(ToolGlyphCatalogue.parts(glyph), color, side = side)
+    }
+}
+
 /**
  * A glyph's parts, drawn on the 24-unit grid at the catalogue's stroke — the one adapter the whole
  * window shares, so the chrome's own art ([ChromeGlyph]) weighs exactly what a tool slot does.

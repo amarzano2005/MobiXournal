@@ -1,10 +1,14 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.shell.isEraserSlot
+import com.mobixournal.desktop.shell.ringInk
 import com.mobixournal.desktop.shell.ringWidthPt
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.PenPacketStroke
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.shell.toolCursorDiameterPx
 import com.mobixournal.desktop.tools.DesktopTool
+
+import androidx.compose.ui.graphics.Color
 
 /**
  * What the tool's pointer is on the sheet: the ring it promises, and whether a mouse move may follow it.
@@ -19,6 +23,10 @@ import com.mobixournal.desktop.tools.DesktopTool
  */
 internal class SheetMark(
     val ringPx: Float?,
+    /** The ink the ring wears — the colour the tool in hand will write (`ringInk`). */
+    val ringColour: Color,
+    /** True for the two erasers, whose ring carries the eraser's own mark instead of promising an ink. */
+    val eraser: Boolean,
     val followMouse: () -> Boolean,
 )
 
@@ -32,5 +40,7 @@ internal fun sheetMark(
     pointer: PenPointer,
 ): SheetMark = SheetMark(
     ringPx = toolCursorDiameterPx(tool, tool.ringWidthPt(ink, shapeInk), sheet.zoom, density),
+    ringColour = ringInk(tool, ink, shapeInk),
+    eraser = isEraserSlot(tool),
     followMouse = { System.nanoTime() - pointer.atNanos.value > PenPacketStroke.HOVER_STALE_NANOS },
 )

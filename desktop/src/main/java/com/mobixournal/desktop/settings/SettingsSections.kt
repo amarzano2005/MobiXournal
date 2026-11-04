@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.design.BuildVersions
 import com.mobixournal.desktop.ink.FrameMeter
 import com.mobixournal.desktop.ink.TabletArea
 import com.mobixournal.desktop.ink.of
@@ -385,6 +386,20 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
                 )
             }
         }
+        // Insert image is not a tool: it is the strip's one non-ink command, so it has no slot of its own
+        // and instead follows one. Its two chevrons say that in the same grammar every button row uses.
+        SettingsRow(
+            label = "Insert image",
+            note = "Follows the slot it stands under.",
+        ) {
+            val anchor = groups.indexOfFirst { it.face.name == policy.imageAfter }
+            SettingsStepButtons(
+                upEnabled = anchor > 0,
+                downEnabled = anchor in 0 until groups.lastIndex,
+                onUp = { policy.moveImageSlot(-1) },
+                onDown = { policy.moveImageSlot(1) },
+            )
+        }
         if (policy.toolOrder.isNotEmpty()) {
             SettingsCommand(
                 label = "Reset to defaults",
@@ -613,7 +628,7 @@ private fun PillLevelMeter(level: Float) {
 }
 
 /**
- * **Backup**: what keeps unsaved work, and a file that carries every setting to another machine.
+ * **Backup**: a file that carries every setting to another machine, and the door back to the defaults.
  *
  * The two settings rows are the tablet's Backup section on a desktop: export writes the whole
  * configuration (`DesktopSettingsBackup`) and import reads one back, refusing anything this build cannot
@@ -634,25 +649,46 @@ private fun BackupSettings(policy: DesktopSettingsState) {
         )
         policy.backupNotice?.let { SettingsNote(it) }
     }
-    SettingsGroup("Unsaved work") {
-        SettingsRow(
-            label = "Recovery snapshot",
-            note = "Written after each burst of edits, offered on reopen.",
-        ) {
-            Text("After every edit", color = DesktopTheme.ink, style = DesktopTheme.label)
-        }
+    // The one command that answers "start over": it is the backup page's own subject — a whole
+    // configuration, in or out — and it is drawn as a command, not as a row that reports a state.
+    SettingsGroup("Defaults") {
+        SettingsCommand(
+            label = "Reset all settings…",
+            note = "Every choice in this window back to its default. Documents are not touched.",
+            onClick = policy::resetAllSettings,
+        )
     }
 }
 
-/** **About**: what the window is, in the words the README uses. */
+/**
+ * **About**: what the window is, the credits it owes, and which Android build it speaks to.
+ *
+ * The credits are the tablet's, in the window's words: MobiXournal continues NeXopp, and it is built on and
+ * for Xournal++, which owns the `.xopp` format. The last line of the first group is the **other shell**: the two
+ * apps share the format and the settings file's vocabulary, so each About page names the build it is the
+ * twin of — the tablet's prints this window's version number, this one says where to read the tablet's.
+ */
 @Composable
 private fun AboutSettings() {
     SettingsGroup("MobiXournal Desktop") {
         SettingsReadout("Version", DESKTOP_VERSION)
         SettingsReadout("Reads and writes", ".xopp · .mobix")
+        SettingsReadout("Android app", "Same formats and settings; it carries its own version.")
+    }
+    SettingsGroup("Credits") {
+        SettingsNote(
+            "MobiXournal continues NeXopp, Brian Monroe's (bamonroe) Android .xopp editor, licensed " +
+                "under the GNU GPL v2 or later. Its author holds the copyright in the parts inherited.",
+        )
+        SettingsNote(
+            "Built on and for Xournal++, which defines the .xopp format; the format handling, palette, " +
+                "shape recogniser and highlighter follow that project, whose authors hold the copyright.",
+        )
+        SettingsNote("Unofficial: not affiliated with or endorsed by the Xournal++ authors.")
+        SettingsNote("Free software under the GNU GPL, version 2 or later. No warranty.")
     }
     SettingsNote("MobiXournal is an independent, unofficial note-taking and scientific drafting app.")
 }
 
-/** The version the packaged window shows — the one `compose.desktop`'s packageVersion carries. */
-internal const val DESKTOP_VERSION = "1.0.0"
+/** The version the packaged window shows — one home for both shells (`BuildVersions`). */
+internal const val DESKTOP_VERSION = BuildVersions.DESKTOP

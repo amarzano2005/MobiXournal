@@ -119,6 +119,7 @@ object AppSettingsBackup {
             .append(settings.topBarHidden.joinToString(", ") { "\"${escape(it)}\"" })
             .append("],\n")
         b.append("  \"audioFolderUri\": \"").append(escape(settings.audioFolderUri)).append("\",\n")
+        b.append("  \"saveStandaloneAudio\": ").append(settings.saveStandaloneAudio).append(",\n")
         b.append("  \"themeMode\": \"").append(settings.themeMode.name).append("\",\n")
         b.append("  \"dynamicColor\": ").append(settings.dynamicColor).append(",\n")
         b.append("  \"toolShortcutKeys\": {")
@@ -330,6 +331,7 @@ object AppSettingsBackup {
             topBarOrder = root.getStrList("topBarOrder") ?: fallback.topBarOrder,
             topBarHidden = root.getStrList("topBarHidden")?.toSet() ?: fallback.topBarHidden,
             audioFolderUri = root.getStr("audioFolderUri", fallback.audioFolderUri),
+            saveStandaloneAudio = root.getBool("saveStandaloneAudio", fallback.saveStandaloneAudio),
             themeMode = readEnum("themeMode", ThemeMode.values(), fallback.themeMode),
             dynamicColor = root.getBool("dynamicColor", fallback.dynamicColor),
             toolShortcutKeys = toolShortcutKeys,
