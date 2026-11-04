@@ -20,7 +20,10 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -106,9 +109,10 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         contentDescription = "Pages",
     ) { dismiss ->
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
-        QuickSizeRows(callbacks)
-        // The PDF's own table of contents sits right above the app-side bookmarks: both are "jump to a
-        // page", and the nearer one to the page navigator is the one that came with the document.
+        // The two indexes the document itself carries — the PDF's own contents, then the app-side
+        // bookmarks — sit directly under the navigator: all three are "jump to a page". Everything
+        // under them is the window's order, so the rows both shells share are the same rows in the
+        // same places (see `desktop/shell/PageMenuPanel.kt`).
         if (callbacks.outline?.isEmpty == false) {
             DropdownMenuItem(
                 text = { Text("Contents…") },
@@ -117,6 +121,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             )
         }
         BookmarkItems(callbacks) { dismiss() }
+        QuickSizeRows(callbacks)
         DropdownMenuItem(
             text = { Text("Add page") },
             leadingIcon = { Icon(ChromeGlyph.ADD.imageVector(), contentDescription = null) },
@@ -133,6 +138,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         // The sheet's graphics are the other question about the page — so they are the one row that
         // opens a dialog of their own, like Page format, instead of stacking three chip rows in here.
         PageBackgroundRow(callbacks, open = { sheet = true }, dismiss = dismiss)
+        HorizontalDivider()
+        ManagePageRows(callbacks, dismiss)
     }
     val outline = callbacks.outline
     DialogPresence(contents && outline != null) {
@@ -171,6 +178,47 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             onDismiss = { sizing = false },
         )
     }
+}
+
+/**
+ * The **Manage pages** section, under its own heading: the two one-step moves of the page in view, the
+ * typed range card (*pages 3 to 7, start them on page 1*) and the page list's own switch.
+ *
+ * The three rows above the last are the window's, in the window's order (`PageMenuPanel`), so the same
+ * errand is the same third row on both shells. The two moves leave the menu open, exactly as the quick
+ * sizes do: three taps are three steps, not three visits to the menu.
+ *
+ * **Page list** is the tablet's own extra row: the window keeps a page strip down its left edge by
+ * default, while the tablet has no strip until this row opens one — the lateral lane the multi-select
+ * and its commands live in ([PageListPanel]).
+ */
+@Composable
+private fun ManagePageRows(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {
+    MenuHeading("Manage pages")
+    DropdownMenuItem(
+        text = { Text("Move page up") },
+        leadingIcon = { Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = null) },
+        enabled = callbacks.currentPage > 0,
+        onClick = { callbacks.onMovePage(-1) },
+    )
+    DropdownMenuItem(
+        text = { Text("Move page down") },
+        leadingIcon = { Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null) },
+        enabled = callbacks.currentPage < callbacks.pageCount - 1,
+        onClick = { callbacks.onMovePage(1) },
+    )
+    DropdownMenuItem(
+        text = { Text("Manage pages…") },
+        leadingIcon = { Icon(ChromeGlyph.DESCRIPTION.imageVector(), contentDescription = null) },
+        enabled = callbacks.pageCount > 1,
+        onClick = { callbacks.onOpenPageRange(); dismiss() },
+    )
+    DropdownMenuItem(
+        text = { Text("Page list") },
+        leadingIcon = { Icon(Icons.Outlined.ViewList, contentDescription = null) },
+        trailingIcon = { Text(if (callbacks.pageListOpen) "Shown" else "Hidden") },
+        onClick = { callbacks.onTogglePageList(); dismiss() },
+    )
 }
 
 /**

@@ -98,6 +98,21 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
      */
     var bookmarkPage by mutableStateOf<Int?>(null)
 
+    /**
+     * The **Manage pages** card's typed answer, or null while it is closed. A range is a question about
+     * the page list rather than about one page, so it sits with the chrome that asked it.
+     */
+    var pageRange by mutableStateOf<com.mobixournal.render.PageRangeRequest?>(null)
+
+    /** Whether the lateral **page list** is showing, down the same edge the rail is docked on. */
+    var pageListOpen by mutableStateOf(false)
+
+    /**
+     * The pages picked in that list (0-based indices) — what its move and delete commands act on.
+     * Emptied when the list closes, so a stale pick cannot act on pages the user has forgotten about.
+     */
+    var pageSelection by mutableStateOf<Set<Int>>(emptySet())
+
     /** Full-page (immersive) view: a Hand-tool centre double-tap hides the top bar and side toolbar. */
     var fullPage by mutableStateOf(false)
 

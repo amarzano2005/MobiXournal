@@ -104,6 +104,20 @@ internal class PageCommands(
     fun removePage() = editPages(PageOps.removeAt(document().pages, currentPage()))
 
     /**
+     * Move the pages in [indices] so the first of them lands at [target], as one undoable edit — the
+     * page list's multi-select move and the Manage pages card's range move, through the same rule
+     * ([PageOps.moveAll]): one step, one undo.
+     */
+    fun movePages(indices: Set<Int>, target: Int) =
+        editPages(PageOps.moveAll(document().pages, indices, target))
+
+    /**
+     * Delete every page in [indices] as one undoable edit ([PageOps.removeAll]: a pick covering the whole
+     * document is refused rather than emptied, so the page list's delete can share the rule).
+     */
+    fun removePages(indices: Set<Int>) = editPages(PageOps.removeAll(document().pages, indices))
+
+    /**
      * Set the visible page's paper [style] (plain/lined/ruled/graph/dotted/isograph) as one undoable
      * edit. No-op on PDF/pixmap pages, whose background isn't a solid sheet.
      */

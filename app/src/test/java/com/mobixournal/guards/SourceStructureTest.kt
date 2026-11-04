@@ -36,7 +36,7 @@ class SourceStructureTest {
         // (`ShapeEditorHost`), so the canvas file pays one line for it, not twenty.
         // +14 deliberate: the split workspace's own window plumbing — the pane session bridge and the
         // shared document an editing pane hands its mirror, both passed straight through to the canvas.
-        "ui/EditorRegions.kt" to 1792,
+        "ui/EditorRegions.kt" to 1776,
         // +5 deliberate: the editable page window it owns (pageSource / pageWindow / resetPageWindow).
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
@@ -48,7 +48,7 @@ class SourceStructureTest {
         // itself lives in `panes/DocumentSessions.kt`.
         // +3: the armed selection lift, one field, beside the clipboard it ends up on.
         // -277: the infinite-canvas half of the view retired with the canvas itself.
-        "render/DrawingSurfaceView.kt" to 1346,
+        "render/DrawingSurfaceView.kt" to 1345,
         "render/CircuitShapes.kt" to 1180,
         // -1: the generic polygon's side count is one field, one clamp and one saved key.
         // +8 deliberate: the ring's own faces — one field, one stored line, the load and the save beside

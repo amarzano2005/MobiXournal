@@ -272,13 +272,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         currentPage = { currentPageIndex() },
         resetLayerVisibility = { hiddenLayers.clear() },
         clearActiveLayer = { activeLayerIndex = -1 },
-        refresh = {
-            relayout()
-            // A page's height (or the page count) may have changed, so keep the viewport in range —
-            // through the viewport, whose clamps are per mode (a strip's running axis has no range).
-            viewport.clamp()
-            render()
-        },
+        // A page's height (or the count) may have changed, so clamp through the viewport: its clamps
+        // are per mode, and a strip's running axis has no range.
+        refresh = { relayout(); viewport.clamp(); render() },
         onPageCountChanged = { onPageCountChanged?.invoke(it) },
         onLayersChanged = { onLayersChanged?.invoke() },
     )
@@ -926,6 +922,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Delete the page currently in view. No-op when only one page remains. */
     fun removePage() = pages.removePage()
+
+    /** The page commands, for the chrome's page list and its range card — one edit, one undo step. */
+    internal val pageCommands: PageCommands get() = pages
 
     /**
      * The visible page's background style (plain/lined/ruled/graph/dotted), or null when the page

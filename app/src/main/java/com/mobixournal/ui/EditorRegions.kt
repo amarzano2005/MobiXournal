@@ -1387,6 +1387,19 @@ private fun toolbarPagesCallbacks(
         backgroundConfig = pane.backgroundConfig,
         onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
         onStationery = { surface?.applyStationery(it) },
+        onMovePage = { delta ->
+            // The page in view travels one place and the view stays on it, so a move reads as the
+            // page moving rather than as the reader being sent somewhere else.
+            val from = pane.currentPage
+            val to = (from + delta).coerceIn(0, (pane.pageCount - 1).coerceAtLeast(0))
+            surface?.pageCommands?.movePages(setOf(from), to)
+            surface?.goToPage(to)
+        },
+        onOpenPageRange = {
+            ui.pageRange = com.mobixournal.render.PageRanges.opening(pane.pageCount, pane.currentPage)
+        },
+        pageListOpen = ui.pageListOpen,
+        onTogglePageList = { ui.pageListOpen = !ui.pageListOpen },
     )
 }
 
@@ -1735,6 +1748,8 @@ fun EditorPaneView(
                 )
             }
             ShapeEditorHost(ui, state.surface)
+            // The **Manage pages** card (its own file: the flag, the card and its two commands).
+            PageRangeHost(ui, state.surface, state.pageCount)
             if (ui.editingCircuit != null) {
                 // The inspector places itself inside the canvas and hosts its own keyboard along the
                 // bottom edge, so the overlay takes the whole box rather than an aligned corner of it.

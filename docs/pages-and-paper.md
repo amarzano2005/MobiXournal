@@ -98,8 +98,21 @@ buttons and the commands behind them cannot disagree.
 in view between the arrows that step it), two **quick sizes** that nudge the measure by the shared
 `PageSizeStep` without opening a dialog, *Add page* / *Remove page*, then *Page format* and *Page
 background* with their live answers printed at the end of the row and every row wearing its **glyph** in a
-leading slot, as the phone's menu items do. The window's own half is a **Manage pages** section at the foot — the two moves and the typed range — so the rows the two shells share stay
-adjacent.
+leading slot, as the phone's menu items do. **Manage pages** is a section of its own at the foot on
+**both** shells — *Move page up*, *Move page down*, *Manage pages…* — so the rows the two shells share
+(quick size, add/remove, the page's two questions) stay adjacent, and the tablet adds one row the window
+does not need: *Page list*.
+
+**The tablet's page list.** The window keeps a page strip down its edge; the tablet opens one from that
+row (`PageListPanel`) and it docks **on the rail's side** — `EditorBody` places the lane between the
+rail's own lane and the canvas, so turning the toolbar to the right-hand edge takes the list with it, the
+way the window's strip follows its tools. Each row **goes to** its page when tapped and is **picked** by
+the box at its end: a tap that navigates is not a tap that selects, which is what makes the multi-select
+readable. The commands under the list move the picked run one step up or down (`PageOps.moveAll`, the
+block rule the window's drag uses) or delete it (`PageOps.removeAll`, which refuses a pick covering the
+whole document), each as **one** undo step; the typed range is the tablet's own *Manage pages…* card
+(`PageRangeDialog`), which reads the same `PageRanges` as the window's panel, so a number the tablet
+refuses is a number the window's commands cannot act on either.
 
 **Add/remove page** edit the page list through the pure, tested `PageOps` (`mobix-core`, the one the
 window's Pages menu also calls, so neither shell can invent its own rules for a new sheet; a new page is born at the

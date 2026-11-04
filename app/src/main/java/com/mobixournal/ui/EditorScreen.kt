@@ -597,13 +597,55 @@ private fun EditorBody(
         // edge — the bar plus the row of document tabs inside it — so the rail hangs directly under the
         // whole header and nothing overlaps anything. That is what costs the rail's spacing budget the
         // tab row; see `RailSizing.kt`.
+        val pageList: @Composable () -> Unit = { PageListLane(ui, pane) }
         val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
         Row(modifier = modifier) {
-            if (railOnLeft) RailLane(toolbar, canvasOnRight = true)
+            if (railOnLeft) {
+                RailLane(toolbar, canvasOnRight = true)
+                pageList()
+            }
             canvas(Modifier.weight(1f).fillMaxHeight())
-            if (!railOnLeft) RailLane(toolbar, canvasOnRight = false)
+            if (!railOnLeft) {
+                pageList()
+                RailLane(toolbar, canvasOnRight = false)
+            }
         }
     }
+}
+
+/**
+ * The **page list** as a lane of the body, on the rail's side: between the rail's lane and the canvas,
+ * so turning the toolbar to the other edge takes the pages with it — the tools and the pages they act
+ * on are one edge. A lane of the layout rather than a sheet over the page, for the rail's own reason:
+ * every pixel of the visible page stays writable.
+ *
+ * The list's own two edits go through the canvas's `PageCommands`, so a picked run is one undo step
+ * (`PageOps.moveAll`, `PageOps.removeAll`) exactly as it is on the window.
+ */
+@Composable
+private fun PageListLane(ui: EditorUiState, pane: PaneState) {
+    if (!ui.pageListOpen || ui.fullPage) return
+    PageListPanel(
+        pageCount = pane.pageCount,
+        currentPage = pane.currentPage,
+        selection = ui.pageSelection,
+        onSelection = { ui.pageSelection = it },
+        onGoToPage = { pane.surface?.goToPage(it) },
+        // One step, keeping the run together: the block starts `delta` places later, and `moveAll`
+        // refuses a target that clamps back onto where it already is.
+        onMove = { delta ->
+            val target = pickedMoveTarget(ui.pageSelection, delta, pane.pageCount)
+            if (target != null) pane.surface?.pageCommands?.movePages(ui.pageSelection, target)
+        },
+        onDelete = {
+            pane.surface?.pageCommands?.removePages(ui.pageSelection)
+            ui.pageSelection = emptySet()
+        },
+        onClose = {
+            ui.pageListOpen = false
+            ui.pageSelection = emptySet()
+        },
+    )
 }
 
 /**
