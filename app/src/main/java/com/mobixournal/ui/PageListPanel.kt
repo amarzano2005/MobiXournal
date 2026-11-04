@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -645,7 +646,13 @@ private fun PageListCommands(
         acting.isNotEmpty() -> "${currentPage + 1}"
         else -> "\u2014"
     }
-    Column(Modifier.fillMaxWidth().padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    // The foot clears the system navigation bar. The app draws edge to edge, so the lane runs to the
+    // bottom of the screen: a control sitting under the gesture strip reads as one that needs two taps,
+    // because the first one belongs to the system.
+    Column(
+        Modifier.fillMaxWidth().navigationBarsPadding().padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         // The subject on the left, the lane's own door on the right: the foot's bottom-right corner.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -657,25 +664,26 @@ private fun PageListCommands(
             contentsAction?.invoke()
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onMove(acting, -1) }, enabled = canMoveUp, modifier = Modifier.size(36.dp)) {
+            // 48 dp each (Material's minimum target), which the 196 dp lane holds with room to spare.
+            IconButton(onClick = { onMove(acting, -1) }, enabled = canMoveUp, modifier = Modifier.size(48.dp)) {
                 Icon(
                     Icons.Outlined.ArrowUpward,
                     contentDescription = "Move pages up",
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
-            IconButton(onClick = { onMove(acting, 1) }, enabled = canMoveDown, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = { onMove(acting, 1) }, enabled = canMoveDown, modifier = Modifier.size(48.dp)) {
                 Icon(
                     Icons.Outlined.ArrowDownward,
                     contentDescription = "Move pages down",
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
-            IconButton(onClick = { onDelete(acting) }, enabled = canDelete, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = { onDelete(acting) }, enabled = canDelete, modifier = Modifier.size(48.dp)) {
                 Icon(
                     Icons.Outlined.Delete,
                     contentDescription = "Delete pages",
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                     tint = if (canDelete) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
