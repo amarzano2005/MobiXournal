@@ -157,15 +157,20 @@ private fun BoxScope.WorkspaceBody(
     onOpen: () -> Unit,
 ) {
     val tab = state.active
-    when {
-        // With nothing open the notice owns the window; with a document open the card floats over it
-        // instead, so an unopenable file cannot hide the one you were reading.
-        tab == null && state.failure != null -> Notice(state.failure!!.title, state.failure!!.detail)
-        // Nothing open is the window's **entry screen**: a sheet to start, the Open command, and the
-        // notebooks opened lately ([EntryScreen]).
-        tab == null -> EntryScreen(state, onOpen)
-        // The strips in their lanes, the sidebar and the page: `DesktopWorkspace.kt`.
-        else -> PageWorkspace(state, tab, tablet)
+    // Whichever of the two owns the window **arrives** rather than replaces: opening a document springs
+    // the page in, and closing the last one springs the entry screen back, because a cut between the two
+    // read as the window having been reloaded.
+    ScreenEntrance(key = tab == null) {
+        when {
+            // With nothing open the notice owns the window; with a document open the card floats over it
+            // instead, so an unopenable file cannot hide the one you were reading.
+            tab == null && state.failure != null -> Notice(state.failure!!.title, state.failure!!.detail)
+            // Nothing open is the window's **entry screen**: a sheet to start, the Open command, and the
+            // notebooks opened lately ([EntryScreen]).
+            tab == null -> EntryScreen(state, onOpen)
+            // The strips in their lanes, the sidebar and the page: `DesktopWorkspace.kt`.
+            else -> PageWorkspace(state, tab, tablet)
+        }
     }
     if (tab != null) {
         state.failure?.let { reported ->

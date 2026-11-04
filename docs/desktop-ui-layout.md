@@ -56,8 +56,10 @@ near-black floor under it and a thumbnail has no white edge of its own to lift i
 the card's own width, capped by the page's spread — ten dp of falloff is a lift around a 212 dp sheet and an
 eighth of the width around a 78 dp thumbnail, which is a border again. Each caption is inset by the paper's
 inset inside the card, so its first letter stands on the **paper's** edge and not on the card's. The block is **three columns** (the commands, the sheet to start, the recent grid) so
-that a 3440 px desk is not three small objects in the middle of a hole. The same screen is what closing the
-last tab returns to.
+that a 3440 px desk is not three small objects in the middle of a hole. The same screen is what closing the last
+tab returns to, and the swap is an **arrival** rather than a cut: whichever of the two owns the window
+springs in from 94 % and fades over 160 ms (`ScreenEntrance`), so opening a notebook and closing the last
+one both land instead of blink.
 
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the
