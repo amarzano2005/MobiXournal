@@ -88,6 +88,11 @@ internal class PageListDrag(private val rowHeightPx: Float) {
  * The step is per **second**, taken from the frame clock, so a 120 Hz tablet and a 60 Hz one move the list
  * at the same speed. The strip is measured from the lifted row's own edges, not from the finger: the row
  * is what the eye watches, and it is the row that must say when it wants the list to move.
+ *
+ * It walks for as long as the finger holds in the strip, however far that is — the window's own behaviour.
+ * An earlier version stopped where the lifted row would leave the list, which cost a third of a second of
+ * travel: it is not the row that holds the gesture ([PageListDragLayer] owns it, and the carried page is
+ * drawn above the list), and the list stops itself at the document's ends.
  */
 @Composable
 internal fun PageListAutoScroll(
@@ -114,17 +119,7 @@ internal fun PageListAutoScroll(
                 edgePx = edgePx,
                 speedPx = speedPx,
             )
-            // Never walk past the point where the row itself would leave the list. The list lays out (and
-            // keeps the gesture of) only the rows it can see: once this one left, the drag would go on
-            // walking with nothing holding it, which is how a scroll turned into a runaway.
-            val room = if (step > 0f) {
-                from * rowHeightPx - scroll + rowHeightPx
-            } else {
-                viewportPx - (from * rowHeightPx - scroll)
-            }
-            if (step != 0f && room > 0f) {
-                listState.scrollBy((step * seconds).coerceIn(-room, room))
-            }
+            if (step != 0f) listState.scrollBy(step * seconds)
         }
     }
 }

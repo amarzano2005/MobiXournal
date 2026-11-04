@@ -121,14 +121,17 @@ sheet** — the raster comes from the canvas's own `PdfPageCache` through
 `DrawingSurfacePaint.pdfSheetFor`, the same reference rule the window's strip follows, so a PDF page's
 preview is the text the annotations sit on rather than a bare card. The number and the preview **go to**
 the page; the box **picks** it, because a tap that navigates is not a tap that selects; the handle
-**carries** it, and while it travels the page is **lifted** and the row it would land on wears the accent
-line along its top edge (`PageOps.moveAll` on drop, the block rule the window's drag uses) — the drag
-lives on the handle, since a row that started a drag on any touch would be a row that cannot be scrolled.
-Near either end of the list the drag **scrolls it** too (`PageListDrag`, `PageListAutoScroll`): the strip is
-56 dp deep, the walking speed grows with how far into it the page is, and both the lift and the landing
-line are measured in content pixels — the finger's travel plus the list's — so neither falls behind a list
-that moves under the hand. A drag that starts on a **picked** row lifts the whole pick: every picked row
-travels with the finger, because the block is what moves (`PageOps.moveAll` moves it on drop). The two
+**carries** it, and while it travels the page is **lifted** above the list while the row it would land on
+wears the accent line along its top edge (`PageOps.moveAll` on drop, the block rule the window's drag
+uses). The gesture belongs to the **list**, not to the row's handle (`pageListDragGesture`): only the
+handle's band can start a move, so a row that began a drag on any touch would still be a row that cannot
+be scrolled, but a handler on the row itself would die the moment auto-scrolling recycled it — exactly
+when the list is meant to keep moving. Near either end of the list the drag **scrolls it** for as long as
+the finger holds in the strip (`PageListDrag`, `PageListAutoScroll`): the strip is 56 dp deep, the walking
+speed grows with how far into it the page is, and the carried page's place is measured in content pixels —
+the finger's travel plus the list's — so it stays under the hand however far the list walks. A drag that
+starts on a **picked** row lifts the whole pick, and its card counts the pages that travel, because the
+block is what moves (`PageOps.moveAll` moves it on drop). The two
 arrows under the list step the pick by one place and the bin takes it out (`PageOps.removeAll`, which
 refuses a pick covering the whole document), each as **one** undo step — and with **nothing picked** they
 act on the page in view, which is the plain case and needs no ceremony. Either command **carries** the

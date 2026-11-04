@@ -77,10 +77,10 @@ import kotlin.math.roundToInt
 private val PAGE_LIST_WIDTH = 196.dp
 
 /** One row: tall enough for the preview it carries, short enough that a dozen pages still fit. */
-private val PAGE_ROW_HEIGHT = 64.dp
+internal val PAGE_ROW_HEIGHT = 64.dp
 
 /** The number's column: a page's place in the document, and nothing else beside it. */
-private val PAGE_NUMBER_WIDTH = 30.dp
+internal val PAGE_NUMBER_WIDTH = 30.dp
 
 /** The preview's height; its width follows the page's own proportions, so no sheet is forced upright. */
 private val THUMB_HEIGHT = 48.dp
@@ -100,7 +100,7 @@ private const val MAX_RASTER_PX = 320
 private val LANDING_LINE_HEIGHT = 2.dp
 
 /** The handle's target: small enough to leave the row's air, wide enough for a stylus. */
-private val DRAG_HANDLE_SIZE = 32.dp
+internal val DRAG_HANDLE_SIZE = 32.dp
 
 /**
  * Where the picked pages should **start** after a move of [delta] places, or null when nothing is
@@ -296,66 +296,60 @@ private fun ColumnScope.PageListRows(
     // The list walks under the page while it sits in either end strip, so a page can be carried across a
     // long document without lifting the finger.
     PageListAutoScroll(drag = drag, listState = listState, rowHeightPx = rowHeightPx, viewportPx = viewportPx)
-    // Read here so the lift and the landing line follow the list as it scrolls, not only the finger.
     val scroll = scrollPxOf(listState, rowHeightPx)
     val landing = drag.landing(scroll, pageCount)
-    // A drag that starts on a picked row carries the **whole pick**: every picked row lifts and travels
-    // together, because the block is what moves (`PageOps.moveAll` moves it on drop) and the finger is
-    // only holding one end of it.
-    val blockLift = picked.size > 1 && drag.from != null && drag.from in picked
-    LazyColumn(
-        state = listState,
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()
-            .onSizeChanged { viewportPx = it.height }
-            // A finger-up anywhere ends the drag, even if the row that started it has been recycled out of
-            // the list by the very scrolling the drag asked for: a drag left standing keeps the list walking
-            // on its own, which reads as a scroll that never stops.
-            .pointerInput(listState) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Final)
-                        if (event.changes.none { it.pressed }) drag.cancel()
-                    }
-                }
-            },
-    ) {
-        items(pageCount) { index ->
-            val lifted = if (blockLift) index in picked else drag.from == index
-            PageListRow(
-                index = index,
-                page = pages.getOrNull(index),
-                surface = surface,
-                inView = index == currentPage,
-                picked = index in picked,
-                lifted = lifted,
-                lift = if (lifted) drag.offset + drag.shift(scroll) else 0f,
-                // The page would land on this row — and it is not already there.
-                landing = landing == index && landing != drag.from,
-                onGoTo = { onGoToPage(index) },
-                onToggle = { onSelection(if (index in picked) picked - index else picked + index) },
-                onDragStart = { drag.start(index, scrollPxOf(listState, rowHeightPx)) },
-                onDragBy = { drag.by(it) },
-                onDragEnd = {
-                    val from = drag.from
-                    val to = drag.landing(scrollPxOf(listState, rowHeightPx), pageCount)
-                    if (from != null && to != null) {
-                        // A handle on a picked row carries the whole pick; on any other row it carries
-                        // that page alone. Either way the view stays on it.
-                        if (from in picked && picked.size > 1) {
-                            carry(picked, to - from)
-                        } else if (to != from) {
-                            onReorder(from, to)
-                            onSelection(setOf(to))
-                            onGoToPage(to)
-                        }
-                    }
-                    drag.cancel()
+    // The rows sit in a box because the carried page is drawn **over** them ([PageDragGhost]), and the
+    // gesture lives on the list's own node ([pageListDragGesture]) rather than on a row's handle: the list
+    // recycles the row that begins a drag as soon as that row scrolls out, and a recycled row takes its
+    // pointer handler with it — which is why the auto-scroll used to stop a third of a second in.
+    Box(Modifier.weight(1f)) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { viewportPx = it.height }
+                .pointerInput(listState, rowHeightPx, pageCount, picked) {
+                    pageListDragGesture(
+                        drag = drag,
+                        listState = listState,
+                        rowHeightPx = rowHeightPx,
+                        pageCount = pageCount,
+                        onDrop = { from, to ->
+                            if (from in picked && picked.size > 1) {
+                                // A handle on a picked row carries the whole pick; on any other row it
+                                // carries that page alone. Either way the view stays on it.
+                                carry(picked, to - from)
+                            } else if (to != from) {
+                                onReorder(from, to)
+                                onSelection(setOf(to))
+                                onGoToPage(to)
+                            }
+                        },
+                    )
                 },
-                onDragCancel = { drag.cancel() },
-            )
+        ) {
+            items(pageCount) { index ->
+                PageListRow(
+                    index = index,
+                    page = pages.getOrNull(index),
+                    surface = surface,
+                    inView = index == currentPage,
+                    picked = index in picked,
+                    // The page would land on this row — and it is not already there.
+                    landing = landing == index && landing != drag.from,
+                    onGoTo = { onGoToPage(index) },
+                    onToggle = { onSelection(if (index in picked) picked - index else picked + index) },
+                )
+            }
         }
+        PageDragGhost(
+            drag = drag,
+            listState = listState,
+            rowHeightPx = rowHeightPx,
+            pages = pages,
+            surface = surface,
+            picked = picked,
+        )
     }
 }
 
@@ -446,15 +440,9 @@ private fun PageListRow(
     surface: DrawingSurfaceView?,
     inView: Boolean,
     picked: Boolean,
-    lifted: Boolean,
-    lift: Float,
     landing: Boolean,
     onGoTo: () -> Unit,
     onToggle: () -> Unit,
-    onDragStart: () -> Unit,
-    onDragBy: (Float) -> Unit,
-    onDragEnd: () -> Unit,
-    onDragCancel: () -> Unit,
 ) {
     val accent = MaterialTheme.colorScheme.primary
     val rowFill = when {
@@ -462,17 +450,11 @@ private fun PageListRow(
         picked -> MaterialTheme.colorScheme.secondaryContainer
         else -> Color.Transparent
     }
-    val dragFill = MaterialTheme.colorScheme.surfaceVariant
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(PAGE_ROW_HEIGHT)
-            .graphicsLayer {
-                translationY = lift
-                alpha = if (lifted) 0.92f else 1f
-                shadowElevation = if (lifted) 10.dp.toPx() else 0f
-            }
-            .background(if (lifted) dragFill else rowFill)
+            .background(rowFill)
             // The row the page would land on wears the accent along its **top edge**: one line in the
             // chrome's accent, so where the page will go is readable while the finger travels.
             .drawBehind {
@@ -494,13 +476,7 @@ private fun PageListRow(
         PageListPreview(page = page, surface = surface, onGoTo = onGoTo)
         Spacer(Modifier.weight(1f))
         PickBox(index = index, picked = picked, onToggle = onToggle)
-        PageDragHandle(
-            index = index,
-            onStart = onDragStart,
-            onBy = onDragBy,
-            onEnd = onDragEnd,
-            onCancel = onDragCancel,
-        )
+        PageDragHandle(index = index)
     }
 }
 
@@ -518,7 +494,7 @@ private fun PageListRow(
  * the reader is annotating.
  */
 @Composable
-private fun PageListPreview(page: Page?, surface: DrawingSurfaceView?, onGoTo: () -> Unit) {
+internal fun PageListPreview(page: Page?, surface: DrawingSurfaceView?, onGoTo: () -> Unit) {
     val ratio = page?.let { if (it.height > 0.0) (it.width / it.height).toFloat() else null }
     val width = (THUMB_HEIGHT * (ratio ?: PORTRAIT_RATIO)).coerceIn(THUMB_MIN_WIDTH, THUMB_MAX_WIDTH)
     val widthPx = with(LocalDensity.current) { width.roundToPx() }
@@ -551,45 +527,19 @@ private fun PageListPreview(page: Page?, surface: DrawingSurfaceView?, onGoTo: (
 }
 
 /**
- * The drag handle: a grabbable glyph at the row's end, and the only place a drag can start.
+ * The drag handle: the grabbable glyph at the row's end, and the band of the row where a drag may start.
  *
- * `detectDragGestures` (immediate, not after a long press) on a target this small is what makes the
- * gesture reliable inside a scrolling list: the handle claims the touch before the list's scroll does,
- * so pulling a page down moves the page rather than the list.
- *
- * It reports a **travelled distance**, not a decision: the list owns the row pitch and the landing row, so
- * the handle only has to say how far the finger went. Both callbacks are read through holders, because the
- * pointer handlers outlive the composition that built them.
+ * It draws the glyph and names it for a screen reader; the gesture itself belongs to the list
+ * ([pageListDragGesture]), because a handler on this glyph dies with the row the moment the auto-scroll
+ * recycles it. The band it marks is the row's last [DRAG_HANDLE_SIZE] of width, which is what the gesture
+ * tests a press against.
  */
 @Composable
-private fun PageDragHandle(
-    index: Int,
-    onStart: () -> Unit,
-    onBy: (Float) -> Unit,
-    onEnd: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    val start = rememberUpdatedState(onStart)
-    val by = rememberUpdatedState(onBy)
-    val end = rememberUpdatedState(onEnd)
-    val cancel = rememberUpdatedState(onCancel)
+private fun PageDragHandle(index: Int) {
     Box(
         modifier = Modifier
             .size(DRAG_HANDLE_SIZE)
-            .semantics { contentDescription = "Drag page ${index + 1}" }
-            .pointerInput(index) {
-                detectDragGestures(
-                    onDragStart = { start.value() },
-                    onDragEnd = { end.value() },
-                    onDragCancel = { cancel.value() },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        // A **delta**, not a total: the list adds them up itself, because it is the list
-                        // that knows how far it has scrolled underneath.
-                        by.value(amount.y)
-                    },
-                )
-            },
+            .semantics { contentDescription = "Drag page ${index + 1}" },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
