@@ -166,20 +166,41 @@ internal fun DrawScope.drawToolCursor(
     colour: Color,
     eraser: Boolean,
 ) {
-    val halo = Stroke(width = 1.5.dp.toPx())
-    val rim = Stroke(width = 1.0.dp.toPx())
-    drawCircle(DesktopTheme.desk, radius = diameter / 2f, center = at, style = halo)
-    drawCircle(colour, radius = diameter / 2f - halo.width, center = at, style = rim)
+    // The ring **is** the ink: a band of the tool's colour with a hairline of the desk on either side of it.
+    // The first version put the colour *inside* a dark ring, which made the dark one read as the ring and the
+    // ink as an inner edge nobody means — so the colour has to be the band itself, and the dark only an edge.
+    val band = Stroke(width = RING_BAND_DP.dp.toPx())
+    val edge = RING_EDGE_DP.dp.toPx()
+    // Centred so the ring's outer edge still sits on the diameter, the cut it reports.
+    val radius = diameter / 2f - band.width / 2f
+    drawCircle(DesktopTheme.desk, radius = radius, center = at, style = Stroke(band.width + edge * 2f))
+    drawCircle(colour, radius = radius, center = at, style = band)
     if (eraser) {
-        val side = diameter * ERASER_MARK_FRACTION
+        // The mark is drawn **bolder** than a slot's face and never below a legible box: the ring can be a
+        // 7 px dot (a thin eraser at 100 %), where the catalogue's hairline vanishes and the eraser is left
+        // as a nameless circle — the one thing the mark exists to prevent.
+        val side = max(diameter * ERASER_MARK_FRACTION, ERASER_MARK_MIN_DP.dp.toPx())
         drawToolGlyph(
             glyph = ToolGlyph.ERASER,
             color = colour,
             side = side,
             at = at - androidx.compose.ui.geometry.Offset(side / 2f, side / 2f),
+            strokeUnits = DesktopTheme.TOOL_GLYPH_STROKE_UNITS * ERASER_MARK_WEIGHT,
         )
     }
 }
 
+/** How thick the coloured band is: enough to read as a colour, thin enough not to hide the paper under it. */
+private const val RING_BAND_DP = 1.6f
+
+/** The desk-coloured hairline on each side of the band, which keeps it visible over ink of either colour. */
+private const val RING_EDGE_DP = 0.8f
+
 /** How much of the ring's diameter the eraser's mark takes — small enough to stay inside the disc. */
-private const val ERASER_MARK_FRACTION = 0.6f
+private const val ERASER_MARK_FRACTION = 0.7f
+
+/** The smallest box the mark is drawn in: below this the catalogue's own art stops being recognisable. */
+private const val ERASER_MARK_MIN_DP = 12f
+
+/** How much bolder than a slot's face the mark is stroked, for the same reason. */
+private const val ERASER_MARK_WEIGHT = 1.9f

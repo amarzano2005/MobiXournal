@@ -242,10 +242,10 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   nothing into the thumbnail cache; one quiet moment paints one page).
 - **The pen gets a pen's pointer, and the arrow always stays.** Over the page a ring the size of the line
   the tool will write is painted at the pointer (`DesktopCursor.kt`, `drawToolCursor`), in the window's own
-  ink of the tool in hand (`ringInk`), so the pointer names the colour the stroke will be; a dark halo
-  keeps it legible on paper, on the black desk and over ink of either kind. Its diameter is the stroke's
+  ink of the tool in hand (`ringInk`): the colour is the **band**, edged in and out by a hairline of the desk,
+  so it stays legible on paper, on the black desk and over ink of either kind. Its diameter is the stroke's
   stored width × zoom × density with a 7 px floor, and the **eraser's** ring is its radius doubled
-  (`eraserRadiusPt`), not its width, with the catalogue's eraser mark inside it. A tool that draws nothing
+  (`eraserRadiusPt`), not its width, with the catalogue's eraser mark inside it, stroked bolder than a slot's face so it survives the smallest ring. A tool that draws nothing
   hand, a text box) simply gets no ring. The ring is an **extra width readout, never a replacement for the
   cursor**: the canvas keeps `PointerIcon.Default` for **every** tool, because a hidden system cursor left
   the window with no pointer at all whenever the ring had nothing to draw — over a figure, over the chrome,
