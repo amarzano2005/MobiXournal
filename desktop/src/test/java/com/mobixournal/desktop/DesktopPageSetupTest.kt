@@ -9,7 +9,7 @@ import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.PageSetup
 import com.mobixournal.desktop.shell.PageSetupSection
-import com.mobixournal.desktop.shell.PageUnit
+import com.mobixournal.render.PageSizeUnit
 import com.mobixournal.desktop.shell.formatDimension
 import com.mobixournal.desktop.shell.matchesSize
 import com.mobixournal.desktop.shell.settle
@@ -41,11 +41,11 @@ class DesktopPageSetupTest {
     @Test
     fun `a size typed in any unit is the same page`() {
         // 100 mm in points, to the point the format section prints it with.
-        val points = PageUnit.MM.toPt(100.0)
+        val points = PageSizeUnit.MM.toPt(100.0)
         assertEquals(283.46, points, 0.01)
-        assertEquals(100.0, PageUnit.MM.fromPt(points), 1e-6)
-        assertEquals(PageUnit.PT.toPt(283.46), 283.46, 1e-9)
-        assertEquals("an inch is 72 points", 72.0, PageUnit.IN.toPt(1.0), 1e-9)
+        assertEquals(100.0, PageSizeUnit.MM.fromPt(points), 1e-6)
+        assertEquals(PageSizeUnit.PT.toPt(283.46), 283.46, 1e-9)
+        assertEquals("an inch is 72 points", 72.0, PageSizeUnit.IN.toPt(1.0), 1e-9)
         assertEquals("a whole number prints without a pointless .0", "100", formatDimension(100.0))
         assertEquals("and a fraction keeps one decimal", "283.5", formatDimension(283.46))
     }

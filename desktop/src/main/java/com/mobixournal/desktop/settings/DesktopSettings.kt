@@ -20,6 +20,7 @@ import com.mobixournal.desktop.tools.FigureSettings
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.design.ShortcutKeys
+import com.mobixournal.render.PageSizeUnit
 import com.mobixournal.render.PressureCurve
 import java.io.File
 import java.util.Properties
@@ -495,7 +496,7 @@ class DesktopSettings(val file: File = defaultFile()) {
 
     /**
      * The size a **new sheet** is born with, as the format section's **Set as default** stores it.
-     *
+
      * It is the window's half of the tablet's *Set as default*: a reader who writes on A5 has no business
      * resizing every new page by hand. Read back as A4 when the key is absent (the first run) or when the
      * stored pair is not a page at all, so a hand-edited file cannot open a sheet of no size.
@@ -510,6 +511,11 @@ class DesktopSettings(val file: File = defaultFile()) {
 
     /** Store a default sheet size in one write, so the two halves can never disagree. */
     fun setDefaultPageSize(widthPt: Double, heightPt: Double) = writePageSize(widthPt, heightPt)
+
+    /** The unit the page format and the quick size are read in — millimetres when absent ([PageSizeUnit]). */
+    var pageSizeUnit: PageSizeUnit
+        get() = PageSizeUnit.fromName(properties.getProperty(KEY_PAGE_UNIT))
+        set(value) { properties.setProperty(KEY_PAGE_UNIT, value.name); save() }
 
     private fun writePageSize(widthPt: Double, heightPt: Double) {
         if (!(widthPt > 0.0) || !(heightPt > 0.0)) return
@@ -656,6 +662,8 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** The default sheet a new page is born with, in points — the format section's Set as default. */
         const val KEY_PAGE_WIDTH = "page.width"
         const val KEY_PAGE_HEIGHT = "page.height"
+        /** The page format's unit, by name ([pageSizeUnit]). */
+        const val KEY_PAGE_UNIT = "page.unit"
 
         /** The pen's stroke pattern, as [LineStyle]'s name. */
         const val KEY_INK_LINE_STYLE = "ink.lineStyle"

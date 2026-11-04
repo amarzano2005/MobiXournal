@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.LayerInfo
+import com.mobixournal.render.PageSizeUnit
 import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.Stationery
 
@@ -41,6 +42,13 @@ data class ToolbarPagesCallbacks(
      * keeps the section off the menu (no page to resize, or a step nobody set).
      */
     val sizeStepPt: Double = 0.0,
+    /**
+     * The unit the page format was set to ([com.mobixournal.render.PageSizeUnit]). The quick size prints
+     * its step **and** the sheet's measure in it, so the menu speaks the unit the dialog was left on.
+     */
+    val sizeUnit: PageSizeUnit = PageSizeUnit.MM,
+    /** The unit picked in the page-format dialog — a setting, so the quick size keeps it next time. */
+    val onPageSizeUnit: (PageSizeUnit) -> Unit = {},
     /** The app's default page size (Settings ▸ Editor); backs the page-size dialog's **Default** tab. */
     val defaultPageSize: Pair<Double, Double>,
     val onSaveAsDefault: (Double, Double) -> Unit,

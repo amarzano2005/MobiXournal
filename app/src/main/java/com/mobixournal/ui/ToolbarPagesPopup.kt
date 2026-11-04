@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.render.PageSizeStep
+import com.mobixournal.render.PageSizeUnit
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.abs
@@ -160,6 +161,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             initialHeightPt = callbacks.pageSize?.second ?: callbacks.defaultPageSize.second,
             defaultWidthPt = callbacks.defaultPageSize.first,
             defaultHeightPt = callbacks.defaultPageSize.second,
+            unit = callbacks.sizeUnit,
+            onUnit = callbacks.onPageSizeUnit,
             onConfirm = { w, h ->
                 sizing = false
                 if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
@@ -184,12 +187,15 @@ private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
     val size = callbacks.pageSize ?: return
     val stepPt = callbacks.sizeStepPt
     if (stepPt <= 0.0) return
-    // The step is a length of paper, so it is announced in the unit it was written in (mm by default).
-    val stepLabel = PageSizeStep.label(PageSizeStep.mmOf(stepPt))
+    // The step is a length of paper, announced in the unit the page format was set to — the same
+    // conversion the dialog uses, so a sheet read in inches steps by 3.9 in rather than 100 mm.
+    val unit = callbacks.sizeUnit
+    val stepLabel = PageSizeStep.label(PageSizeStep.mmOf(stepPt), unit)
     MenuHeading("Quick size")
     QuickSizeRow(
         label = "Width",
         sizePt = size.first,
+        unit = unit,
         stepLabel = stepLabel,
         onStep = { steps ->
             val (w, h) = PageSizeStep.step(size.first, size.second, steps, 0, stepPt)
@@ -199,6 +205,7 @@ private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
     QuickSizeRow(
         label = "Height",
         sizePt = size.second,
+        unit = unit,
         stepLabel = stepLabel,
         onStep = { steps ->
             val (w, h) = PageSizeStep.step(size.first, size.second, 0, steps, stepPt)
@@ -210,17 +217,24 @@ private fun QuickSizeRows(callbacks: ToolbarPagesCallbacks) {
 /**
  * One axis of [QuickSizeRows]: its name, the sheet's current measure, and the two arrows that step it.
  *
- * The measure is shown in points because that is the page's own unit — the *step* is in millimetres
- * because that is how the setting is written, and the row says both (`−100 mm`).
+ * The measure and the step are printed in the unit the page format was last set to
+ * ([ToolbarPagesCallbacks.sizeUnit]) — a sheet read in inches shows `8.3 in` and steps by `3.9 in` —
+ * while the sheet itself is stored in points, as it always is.
  */
 @Composable
-private fun QuickSizeRow(label: String, sizePt: Double, stepLabel: String, onStep: (Int) -> Unit) {
+private fun QuickSizeRow(
+    label: String,
+    sizePt: Double,
+    unit: PageSizeUnit,
+    stepLabel: String,
+    onStep: (Int) -> Unit,
+) {
     Row(
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Text("${sizePt.roundToInt()} pt", style = MaterialTheme.typography.labelSmall)
+        Text(unit.measure(sizePt), style = MaterialTheme.typography.labelSmall)
         IconButton(onClick = { onStep(-1) }, enabled = sizePt > PageSizeStep.MIN_PAGE_PT) {
             Icon(Icons.Outlined.Remove, contentDescription = "$label − $stepLabel")
         }
@@ -244,7 +258,7 @@ private fun PageFormatRow(
         text = { Text("Page format") },
         leadingIcon = { Icon(ChromeGlyph.PAGE_FORMAT.imageVector(), contentDescription = null) },
         trailingIcon = {
-            callbacks.pageSize?.let { Text(pageSizeLabel(it.first, it.second)) }
+            callbacks.pageSize?.let { Text(pageSizeLabel(it.first, it.second, callbacks.sizeUnit)) }
         },
         onClick = { openSize(); dismiss() },
     )

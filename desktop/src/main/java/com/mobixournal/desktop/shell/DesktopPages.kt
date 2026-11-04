@@ -60,6 +60,7 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.render.PageOps
 import com.mobixournal.render.PageSizeStep
+import com.mobixournal.render.PageSizeUnit
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -95,6 +96,8 @@ data class PageMenuActions(
     val pageCount: Int = 0,
     /** The sheet's measure in points, or null when there is no page — the **Quick size** rows. */
     val pageSize: Pair<Double, Double>? = null,
+    /** The unit the page format was set to — what the quick size prints its measure and step in. */
+    val sizeUnit: PageSizeUnit = PageSizeUnit.MM,
     /** Resize the page in view, which is what the quick-size buttons hand back. */
     val onSize: (Double, Double) -> Unit = { _, _ -> },
     /** The paper's two live answers, printed at the end of the page's own two rows. */
@@ -116,6 +119,8 @@ internal class DesktopPages(
     private val tabs: DesktopTabs,
     private val edited: (DesktopTab, Int) -> Unit,
     private val defaultSize: () -> Pair<Double, Double>,
+    /** The unit the page format was set to (`DesktopSettings.pageSizeUnit`), read at menu time. */
+    private val sizeUnit: () -> PageSizeUnit = { PageSizeUnit.MM },
     /** What a change to the page **list** invalidates: every thumbnail after the one that moved. */
     private val onStructure: (DesktopTab) -> Unit = {},
 ) {
@@ -506,7 +511,8 @@ internal class DesktopPages(
             pageCount = count,
             pageSize = page?.let { it.width to it.height },
             onSize = onSize,
-            formatLabel = page?.let { pageFormatLabel(it.width, it.height) },
+            sizeUnit = sizeUnit(),
+            formatLabel = page?.let { pageFormatLabel(it.width, it.height, sizeUnit()) },
             backgroundLabel = page?.let { pageBackgroundLabel(it.background) },
             canStep = count > 1,
             canRemove = count > 1,

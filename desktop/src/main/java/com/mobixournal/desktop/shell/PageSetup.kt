@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.BackgroundRuling
+import com.mobixournal.render.PageSizeUnit
 import com.mobixournal.render.BackgroundRulings
 import kotlin.math.abs
 
@@ -115,6 +116,8 @@ internal fun BoxScope.PageSetupHost(state: DesktopShellState) {
                 onSpacing = state::setPageSpacingMm,
                 onSize = state::setPageSize,
                 defaultSize = state.defaultPageSize,
+                unit = state.settings.pageSizeUnit,
+                onUnit = { unit -> state.settings.pageSizeUnit = unit },
                 onSetDefault = state::setDefaultPageSize,
                 onDone = { state.closePageSetup() },
             )
@@ -132,6 +135,9 @@ private fun PageSetupPanel(
     onSize: (Double, Double) -> Unit,
     /** The size new sheets are born with — the format section's **Default** entry. */
     defaultSize: Pair<Double, Double>,
+    /** The unit the format is read in, and stored in when a chip picks another (`DesktopSettings`). */
+    unit: PageSizeUnit,
+    onUnit: (PageSizeUnit) -> Unit,
     onSetDefault: (Double, Double) -> Unit,
     onDone: () -> Unit,
 ) {
@@ -145,7 +151,7 @@ private fun PageSetupPanel(
         if (section == PageSetupSection.PAPER) {
             PaperSection(page, onStyle, onSpacing)
         } else {
-            FormatSection(page, onSize, defaultSize, onDefault = onSetDefault)
+            FormatSection(page, onSize, defaultSize, unit, onUnit, onDefault = onSetDefault)
         }
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

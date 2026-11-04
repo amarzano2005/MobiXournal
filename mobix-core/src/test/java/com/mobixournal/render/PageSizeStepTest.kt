@@ -32,14 +32,14 @@ class PageSizeStepTest {
 
     @Test fun `a step widens and heightens the sheet by that many points`() {
         val (w, h) = PageSizeStep.step(595.276, 841.89, 1, 0, PageSizeStep.pt(100.0))
-        assertEquals(878.74, w, 1e-9)
+        assertEquals("one step of paper wider", 595.276 + PageSizeStep.pt(100.0), w, 1e-9)
         assertEquals(841.89, h, 1e-9)
     }
 
     @Test fun `a step takes from the sheet as well as adding to it`() {
         val (w, h) = PageSizeStep.step(595.276, 841.89, 0, -1, PageSizeStep.pt(100.0))
         assertEquals(595.276, w, 1e-9)
-        assertEquals(558.43, h, 1e-9)
+        assertEquals("and one step of paper shorter", 841.89 - PageSizeStep.pt(100.0), h, 1e-9)
     }
 
     @Test fun `the sheet never shrinks below a sliver`() {
@@ -56,5 +56,25 @@ class PageSizeStepTest {
 
     @Test fun `a step in points reads back as the millimetres it was written in`() {
         assertEquals(100.0, PageSizeStep.mmOf(PageSizeStep.pt(100.0)), 1e-9)
+    }
+
+    @Test fun `a measure prints in its own unit, a whole number without a pointless decimal`() {
+        assertEquals("210", PageSizeUnit.MM.print(595.276))
+        assertEquals("210 mm", PageSizeUnit.MM.measure(595.276))
+        assertEquals("8.3 in", PageSizeUnit.IN.measure(595.276))
+        assertEquals("595.3 pt", PageSizeUnit.PT.measure(595.276))
+        // The quick size prints its step and the sheet's measure with one notation, so they cannot
+        // disagree about rounding and read as two different units.
+        assertEquals(
+            PageSizeStep.label(PageSizeStep.DEFAULT_MM, PageSizeUnit.IN),
+            PageSizeUnit.IN.measure(PageSizeStep.pt(PageSizeStep.DEFAULT_MM)),
+        )
+    }
+
+    @Test fun `a stored unit reads back, and anything it does not name is millimetres`() {
+        assertEquals(PageSizeUnit.IN, PageSizeUnit.fromName("in"))
+        assertEquals(PageSizeUnit.PT, PageSizeUnit.fromName(" PT "))
+        assertEquals("a file with no unit opens on the format's own", PageSizeUnit.MM, PageSizeUnit.fromName(null))
+        assertEquals("and so does one that names nothing real", PageSizeUnit.MM, PageSizeUnit.fromName("furlongs"))
     }
 }

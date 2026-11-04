@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.PageSizeUnit
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -42,23 +43,6 @@ import kotlin.math.roundToInt
  * Every write is [DesktopPageSetupState.setSize]'s: one edit on the page in view, one undo step, so a
  * format chosen here is a page the file will carry and `Ctrl+Z` takes back.
  */
-internal enum class PageUnit(val label: String, val perPt: Double) {
-    /** Millimetres — the unit the tablet's own dialog opens on. */
-    MM("mm", 25.4 / 72.0),
-
-    /** Inches. */
-    IN("in", 1.0 / 72.0),
-
-    /** Points, the document's own unit. */
-    PT("pt", 1.0);
-
-    /** A value in this unit as the page stores it, in points. */
-    fun toPt(value: Double): Double = value / perPt
-
-    /** A page's points as this unit prints them. */
-    fun fromPt(pt: Double): Double = pt * perPt
-}
-
 /** A dimension in the dialog's notation: at most one decimal, a whole number printed without `.0`. */
 internal fun formatDimension(value: Double): String {
     val rounded = (value * 10).roundToInt() / 10.0
@@ -78,10 +62,13 @@ internal fun FormatSection(
     onSize: (Double, Double) -> Unit,
     /** The size new sheets are born with — what the **Default** entry applies. */
     defaultSize: Pair<Double, Double>,
+    /** The stored unit the fields are written in ([PageSizeUnit]) — the quick size's too. */
+    unit: PageSizeUnit,
+    onUnit: (PageSizeUnit) -> Unit,
     /** A new default sheet, in points: the last line of the section (`DefaultLine`). */
     onDefault: (Double, Double) -> Unit,
 ) {
-    var unit by remember { mutableStateOf(PageUnit.MM) }
+    var picked by remember { mutableStateOf(unit) }
     val landscape = page.width > page.height
 
     SectionLabel("Paper size")
@@ -117,11 +104,11 @@ internal fun FormatSection(
 
     SectionLabel("Custom size")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (candidate in PageUnit.entries) {
+        for (candidate in PageSizeUnit.entries) {
             SetupChip(
                 label = candidate.label,
-                picked = candidate == unit,
-                onClick = { unit = candidate },
+                picked = candidate == picked,
+                onClick = { picked = candidate; onUnit(candidate) },
             )
         }
         Spacer(Modifier.weight(1f))
@@ -132,17 +119,17 @@ internal fun FormatSection(
         // each dimension gets half the row and the pair cannot overflow the surface.
         Box(Modifier.weight(1f)) {
             DimensionField(
-                label = "Width (${unit.label})",
-                initial = formatDimension(unit.fromPt(page.width)),
-                unit = unit,
+                label = "Width (${picked.label})",
+                initial = formatDimension(picked.fromPt(page.width)),
+                unit = picked,
                 onCommit = { pt -> pt.takeIf { it in MIN_PAGE_PT..MAX_PAGE_PT }?.let { onSize(it, page.height) } },
             )
         }
         Box(Modifier.weight(1f)) {
             DimensionField(
-                label = "Height (${unit.label})",
-                initial = formatDimension(unit.fromPt(page.height)),
-                unit = unit,
+                label = "Height (${picked.label})",
+                initial = formatDimension(picked.fromPt(page.height)),
+                unit = picked,
                 onCommit = { pt -> pt.takeIf { it in MIN_PAGE_PT..MAX_PAGE_PT }?.let { onSize(page.width, it) } },
             )
         }
@@ -226,7 +213,7 @@ internal fun DefaultLine(
 /**
  * One dimension of the sheet: a field that commits on `Enter` or when it loses focus, in **points**.
  *
- * The field prints and parses in the section's [PageUnit]; the answer is always the document's own unit,
+ * The field prints and parses in the section's [PageSizeUnit]; the answer is always the document's own unit,
  * so a size typed in millimetres and the same size typed in points land as the same page. A typo, a zero
  * or a value outside the printable range is simply not committed — the page keeps what it had, and the
  * field shows it again on the next frame.
@@ -235,7 +222,7 @@ internal fun DefaultLine(
 private fun DimensionField(
     label: String,
     initial: String,
-    unit: PageUnit,
+    unit: PageSizeUnit,
     onCommit: (Double) -> Unit,
 ) {
     Field(label) {

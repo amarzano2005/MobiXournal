@@ -11,6 +11,7 @@ import com.mobixournal.render.Momentum
 import com.mobixournal.render.MomentumCurve
 import com.mobixournal.render.PageStacker
 import com.mobixournal.render.PageSizeStep
+import com.mobixournal.render.PageSizeUnit
 import com.mobixournal.render.PanSensitivity
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.StrokePrecision
@@ -115,13 +116,10 @@ data class AppSettings(
     val defaultPageWidthPt: Double = DEFAULT_PAGE_WIDTH_PT,
     /** Default page height in points for new documents. */
     val defaultPageHeightPt: Double = DEFAULT_PAGE_HEIGHT_PT,
-    /**
-     * How much one tap of the Pages menu's quick size buttons adds to, or takes from, a sheet's width
-     * or height — in **millimetres**, the page format's own unit ([PageSizeStep]). 100 mm is the
-     * factory step; the app converts it to the page's points when the button is pressed, and the same
-     * 100 mm prints as 3.9 in or 283 pt when the format is read in those units.
-     */
+    /** The quick size step, in millimetres ([PageSizeStep]): 100 mm out of the box, settable 1–300 mm. */
     val pageSizeStepMm: Double = PageSizeStep.DEFAULT_MM,
+    /** The unit the page format — and so the quick size — is read in ([PageFormatPrefs]). */
+    val pageSizeUnit: PageSizeUnit = PageSizeUnit.MM,
     /**
      * The format a **new** document is written in ([NewDocumentFormat]). Asked once at first launch
      * and changeable under Settings → App & data; `.mobix` is the recommended default, because the
@@ -419,6 +417,7 @@ data class AppSettings(
         const val KEY_DEFAULT_PAGE_HEIGHT = "default_page_height_pt"
         /** The Pages menu's quick size step, in millimetres ([pageSizeStepMm]). */
         const val KEY_PAGE_SIZE_STEP = "page_size_step_mm"
+        /** The unit the page format and the quick size are read in ([pageSizeUnit]). */
         /** Factory defaults for the three width slots — [PenPalette]'s, shared with the desktop. */
         val DEFAULT_PEN_WIDTHS: List<Float> get() = PenPalette.DEFAULT_WIDTHS
 
@@ -538,6 +537,7 @@ class SettingsStore(context: Context) {
             pageSizeStepMm = PageSizeStep.clampMm(
                 prefs.getFloat(KEY_PAGE_SIZE_STEP, d.pageSizeStepMm.toFloat()).toDouble(),
             ),
+            pageSizeUnit = PageFormatPrefs.read(prefs),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
             penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
             handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
@@ -687,7 +687,7 @@ class SettingsStore(context: Context) {
     }
 
     fun save(s: AppSettings) {
-        val e = prefs.edit()
+        val e = PageFormatPrefs.write(prefs.edit(), s.pageSizeUnit)
             .putFloat(KEY_DEFAULT_PAGE_WIDTH, s.defaultPageWidthPt.toFloat())
             .putFloat(KEY_DEFAULT_PAGE_HEIGHT, s.defaultPageHeightPt.toFloat())
             .putFloat(KEY_PAGE_SIZE_STEP, s.pageSizeStepMm.toFloat())

@@ -423,7 +423,9 @@ class DesktopShellState(
     /** The page setup's own piece of the state: which section is up, and the edits it makes. */
     private val pageSetupState = DesktopPageSetupState(tabs) { tab, index -> edited(tab, index) }
     /** The page **list**'s commands — add, remove, step (`DesktopPages.kt`). */
-    internal val pagesSection = DesktopPages(tabs, ::edited, { defaultPageSize }) { pagesChanged(it) }
+    internal val pagesSection = DesktopPages(
+        tabs, ::edited, { defaultPageSize }, sizeUnit = { settings.pageSizeUnit },
+    ) { pagesChanged(it) }
 
     /** The **layers** of the page in view — add, rename, reorder, merge, pick (`DesktopLayers.kt`). */
     internal val layersSection = DesktopLayers(tabs, ::edited)

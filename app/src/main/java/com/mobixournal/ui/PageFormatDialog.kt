@@ -35,28 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.PageSizeUnit
 import kotlin.math.abs
 import kotlin.math.roundToInt
-
-/**
- * Unit of measurement for the page-size dialog.
- *
- * Each unit knows how to convert points (1/72 in) to and from its own scale.
- */
-internal enum class SizeUnit(val label: String, val perPt: Double) {
-    /** Millimetres: 1 pt = 25.4/72 mm. */
-    MM("mm", 25.4 / 72.0),
-    /** Inches: 1 pt = 1/72 in. */
-    IN("in", 1.0 / 72.0),
-    /** Points: 1 pt = 1 pt (identity). */
-    PT("pt", 1.0);
-
-    /** Convert points to this unit. */
-    fun fromPt(pt: Double): Double = pt * perPt
-    
-    /** Convert a value in this unit to points. */
-    fun toPt(value: Double): Double = value / perPt
-}
 
 /** Format a unit value for a field: at most one decimal, trailing `.0` dropped. */
 internal fun fmtDim(value: Double): String {
@@ -66,12 +47,17 @@ internal fun fmtDim(value: Double): String {
 
 /**
  * A short label for the current page size: the matching preset's name (either orientation), else the
- * dimensions in millimetres — used as the trailing hint on the "Page format" menu row.
+ * dimensions in [unit] — the unit the page format was set to — used as the trailing hint on the
+ * "Page format" menu row.
  */
-internal fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
+internal fun pageSizeLabel(
+    widthPt: Double,
+    heightPt: Double,
+    unit: PageSizeUnit = PageSizeUnit.MM,
+): String {
     PAGE_PRESETS.firstOrNull { matchesPageSize(widthPt, heightPt, it.widthPt, it.heightPt) }
         ?.let { return it.name }
-    return "${fmtDim(widthPt * SizeUnit.MM.perPt)}×${fmtDim(heightPt * SizeUnit.MM.perPt)} mm"
+    return "${unit.print(widthPt)}×${unit.print(heightPt)} ${unit.label}"
 }
 
 /**
@@ -79,8 +65,8 @@ internal fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
  * size the user has settled on, and the two field strings that carry what they typed (kept separate
  * from the parsed size so a half-typed "20" does not become 20 mm on its way to 200).
  */
-internal class PaperState(widthPt: Double, heightPt: Double) {
-    var unit by mutableStateOf(SizeUnit.MM)
+internal class PaperState(widthPt: Double, heightPt: Double, unit: PageSizeUnit = PageSizeUnit.MM) {
+    var unit by mutableStateOf(unit)
     var widthPt by mutableStateOf(widthPt)
     var heightPt by mutableStateOf(heightPt)
     var widthText by mutableStateOf(fmtDim(unit.fromPt(widthPt)))
@@ -114,12 +100,18 @@ internal fun PageFormatDialog(
     initialHeightPt: Double,
     defaultWidthPt: Double,
     defaultHeightPt: Double,
+    /**
+     * The unit the fields are written in — the app's own ([PageSizeUnit]), stored when it changes, so
+     * the Pages menu's quick size reads the sheet in the same unit this dialog was left on.
+     */
+    unit: PageSizeUnit = PageSizeUnit.MM,
+    onUnit: (PageSizeUnit) -> Unit = {},
     onConfirm: (Double, Double) -> Unit,
     onSaveAsDefault: (Double, Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val paper = remember(initialWidthPt, initialHeightPt) { PaperState(initialWidthPt, initialHeightPt) }
-    val defaultPaper = remember { PaperState(defaultWidthPt, defaultHeightPt) }
+    val paper = remember(initialWidthPt, initialHeightPt) { PaperState(initialWidthPt, initialHeightPt, unit) }
+    val defaultPaper = remember { PaperState(defaultWidthPt, defaultHeightPt, unit) }
     LaunchedEffect(defaultWidthPt, defaultHeightPt) {
         defaultPaper.updateFromExternal(defaultWidthPt, defaultHeightPt)
     }
@@ -148,9 +140,10 @@ internal fun PageFormatDialog(
                 DefaultFormatContent(
                     defaultPaper = defaultPaper,
                     onPaperChanged = { w, h -> onSaveAsDefault(w, h) },
+                    onUnit = onUnit,
                 )
             } else {
-                ActiveFormatContent(paper)
+                ActiveFormatContent(paper, onUnit)
             }
         },
         confirmButton = {
@@ -184,10 +177,10 @@ internal fun PageFormatDialog(
 }
 
 @Composable
-private fun ActiveFormatContent(paper: PaperState) {
+private fun ActiveFormatContent(paper: PaperState, onUnit: (PageSizeUnit) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Paper", style = MaterialTheme.typography.labelMedium)
-        PaperSection(paper)
+        PaperSection(paper, onUnit = onUnit)
     }
 }
 
@@ -196,10 +189,11 @@ private fun ActiveFormatContent(paper: PaperState) {
 private fun DefaultFormatContent(
     defaultPaper: PaperState,
     onPaperChanged: (Double, Double) -> Unit,
+    onUnit: (PageSizeUnit) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Default dimensions", style = MaterialTheme.typography.labelMedium)
-        PaperSection(defaultPaper, onChanged = onPaperChanged)
+        PaperSection(defaultPaper, onChanged = onPaperChanged, onUnit = onUnit)
     }
 }
 
@@ -266,6 +260,8 @@ private fun DefaultFormatActionButtons(
 internal fun PaperSection(
     paper: PaperState,
     onChanged: ((Double, Double) -> Unit)? = null,
+    /** The unit a chip picked here is stored as — the quick size reads the sheet in it afterwards. */
+    onUnit: ((PageSizeUnit) -> Unit)? = null,
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (preset in PAGE_PRESETS) {
@@ -283,8 +279,14 @@ internal fun PaperSection(
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("Units:", style = MaterialTheme.typography.labelMedium)
-        for (u in SizeUnit.entries) {
-            TextButton(onClick = { if (u != paper.unit) { paper.unit = u; paper.resync() } }) {
+        for (u in PageSizeUnit.entries) {
+            TextButton(onClick = {
+                if (u != paper.unit) {
+                    paper.unit = u
+                    paper.resync()
+                    onUnit?.invoke(u)
+                }
+            }) {
                 Text(
                     u.label,
                     fontWeight = if (u == paper.unit) FontWeight.Bold else FontWeight.Normal,
@@ -332,7 +334,7 @@ internal fun PaperSection(
 
 /** One editable dimension of the paper, in the dialog's current [unit]. */
 @Composable
-private fun SizeField(label: String, text: String, unit: SizeUnit, onText: (String) -> Unit) {
+private fun SizeField(label: String, text: String, unit: PageSizeUnit, onText: (String) -> Unit) {
     OutlinedTextField(
         value = text,
         onValueChange = onText,

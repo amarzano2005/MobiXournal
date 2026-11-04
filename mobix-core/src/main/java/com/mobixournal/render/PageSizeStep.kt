@@ -46,16 +46,7 @@ object PageSizeStep {
     fun clampMm(mm: Double): Double = mm.coerceIn(MIN_MM, MAX_MM)
 
     /** [mm] of paper printed in [unit], to one decimal, without a trailing `.0` — "100 mm", "3.9 in". */
-    fun label(mm: Double, unit: PageSizeUnit = PageSizeUnit.MM): String {
-        val value = unit.fromPt(pt(mm))
-        val rounded = (value * 10).roundToInt() / 10.0
-        val text = if (rounded == rounded.toLong().toDouble()) {
-            rounded.toLong().toString()
-        } else {
-            rounded.toString()
-        }
-        return "$text ${unit.label}"
-    }
+    fun label(mm: Double, unit: PageSizeUnit = PageSizeUnit.MM): String = unit.measure(pt(mm))
 
     /**
      * The sheet [widthPt] × [heightPt] widened by [widthSteps] and heightened by [heightSteps] steps of
@@ -76,8 +67,9 @@ object PageSizeStep {
 /**
  * The page format's three units of measure, shared by both shells and by the quick size step.
  *
- * The app's page-size dialog and the window's setup section each keep their own picker; this is the
- * conversion behind them, so a step and a paper size can never disagree about what an inch is.
+ * The app's page-size dialog and the window's setup section offer the same three units, and each shell
+ * **stores** the one the user settled on: the Pages menu's quick size then prints its step and the
+ * sheet's own measure in that unit ([measure]), so a sheet read in inches steps in inches.
  */
 enum class PageSizeUnit(val label: String, val perPt: Double) {
     /** Millimetres: 1 pt = 25.4/72 mm — the unit the format opens on, and the step's own. */
@@ -97,4 +89,25 @@ enum class PageSizeUnit(val label: String, val perPt: Double) {
 
     /** The factory quick-size step in this unit — the same 100 mm of paper, re-read. */
     val defaultStep: Double get() = fromPt(PageSizeStep.pt(PageSizeStep.DEFAULT_MM))
+
+    /**
+     * A page's points as this unit prints them: one decimal at most, a whole number without a pointless
+     * `.0` — "210" for an A4's width in millimetres, "8.3" for the same width in inches.
+     *
+     * One notation for the whole app: the quick size prints a *step* and a *measure* with this same rule
+     * ([measure]), because two numbers rounded differently would read as two different units.
+     */
+    fun print(pt: Double): String {
+        val rounded = (fromPt(pt) * 10).roundToInt() / 10.0
+        return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
+    }
+
+    /** [pt] of paper with this unit's symbol — "210 mm", "8.3 in" — what a page or a step is shown as. */
+    fun measure(pt: Double): String = "${print(pt)} $label"
+
+    companion object {
+        /** The unit [name] spells, or [MM] for an unknown or absent entry (a hand-edited file). */
+        fun fromName(name: String?): PageSizeUnit =
+            entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: MM
+    }
 }

@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.format.model.Background
 import com.mobixournal.render.PageSizeStep
+import com.mobixournal.render.PageSizeUnit
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /**
  * The **Pages** menu itself: the tablet's page navigator, its two quick sizes and the page's own two
@@ -51,14 +51,17 @@ import kotlin.math.roundToInt
  * commands are edits, and because the split is what keeps both files inside the module's structural
  * ratchet (`SourceStructureTest`). The order here is the one `docs/pages-and-paper.md` states.
  */
-/** The page's size as the menu prints it: a preset's name, or the sheet's own two measures. */
-internal fun pageFormatLabel(widthPt: Double, heightPt: Double): String {
+/**
+ * The page's size as the menu prints it: a preset's name, or the sheet's own two measures in [unit] —
+ * the unit the page format was set to.
+ */
+internal fun pageFormatLabel(widthPt: Double, heightPt: Double, unit: PageSizeUnit = PageSizeUnit.MM): String {
     fun near(a: Double, b: Double) = abs(a - b) <= 1.0
     val preset = PageSetup.PRESETS.firstOrNull { candidate ->
         (near(widthPt, candidate.widthPt) && near(heightPt, candidate.heightPt)) ||
             (near(widthPt, candidate.heightPt) && near(heightPt, candidate.widthPt))
     }
-    return preset?.label ?: "${widthPt.roundToInt()} × ${heightPt.roundToInt()} pt"
+    return preset?.label ?: "${unit.print(widthPt)} × ${unit.print(heightPt)} ${unit.label}"
 }
 
 /** The paper the page in view is wearing, in the window's own word for it (`PageSetup.STYLES`). */
@@ -170,7 +173,9 @@ private fun PageNavRow(actions: PageMenuActions, onClose: () -> Unit) {
  * One axis of **Quick size**: the sheet's measure, and the two buttons that nudge it.
  *
  * The step is [PageSizeStep.DEFAULT_MM] — the tablet's own factory step, a length of paper — turned into
- * points by the shared rule, because a page is kept in points while a step is read in millimetres. Each tap
+ * points by the shared rule, because a page is kept in points while a step is read in paper. Both numbers
+ * are printed in the unit the page format was set to ([PageMenuActions.sizeUnit]), so a sheet kept in
+ * inches says `8.3 in` and steps by `3.9 in`. Each tap
  * applies at once and the menu stays open, so three taps are three steps rather than three visits to the
  * menu.
  */
@@ -180,8 +185,9 @@ private fun QuickSizeRow(actions: PageMenuActions, axis: PageMenuMetrics.Item) {
     val isWidth = axis == PageMenuMetrics.Item.WIDTH
     val measure = if (isWidth) size.first else size.second
     val label = if (isWidth) "Width" else "Height"
+    val unit = actions.sizeUnit
     val stepPt = PageSizeStep.pt(PageSizeStep.DEFAULT_MM)
-    val stepLabel = PageSizeStep.label(PageSizeStep.DEFAULT_MM)
+    val stepLabel = PageSizeStep.label(PageSizeStep.DEFAULT_MM, unit)
     fun nudge(steps: Int) {
         val (width, height) = if (isWidth) {
             PageSizeStep.step(size.first, size.second, steps, 0, stepPt)
@@ -203,7 +209,7 @@ private fun QuickSizeRow(actions: PageMenuActions, axis: PageMenuMetrics.Item) {
             style = DesktopTheme.body,
             modifier = Modifier.weight(1f),
         )
-        Text("${measure.roundToInt()} pt", color = DesktopTheme.ink, style = DesktopTheme.numeric)
+        Text(unit.measure(measure), color = DesktopTheme.ink, style = DesktopTheme.numeric)
         Spacer(Modifier.width(6.dp))
         PageGlyphButton(
             glyph = ChromeGlyph.MINUS,
