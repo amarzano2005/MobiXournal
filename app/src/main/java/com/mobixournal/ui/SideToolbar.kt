@@ -276,7 +276,6 @@ private fun ToolGroupButton(
             modifier = Modifier
                 .size(buttonSize)
                 .clip(shape)
-                .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                 .combinedClickable(
                     // First tap activates the shown tool; once this slot is the live one, the next
                     // tap opens the picker instead. An open menu's own dismiss handles closing it.

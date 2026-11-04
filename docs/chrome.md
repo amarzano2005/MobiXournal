@@ -233,8 +233,8 @@ opening a blank document — that is what makes "nothing open" a state at all. A
 when the document is opened (`EntryPreviews`), so the screen reads a PNG instead of parsing a document
 to draw itself, and the list is `entry_recents`, six at most and de-duplicated by URI.
 
-**A lit tool is its glyph before it is a plate.** The Secondary Toolbar's compact slots turn the live
-tool's icon `primary` and no longer fill with `primaryContainer` behind it, because a 32dp plate inside a
-40dp dock slot read as a second, smaller button; the rail keeps its own lit squircle, which its capsule has
-the room for. The rail's panel slots (Pages, Layers) take the rail's slot shape rather than a circle, so a
-pressed panel has the shape a pressed pen does.
+**A lit tool is its glyph, not a plate.** No bar fills a container behind the live tool: the slot turns its
+icon `primary` and that is the whole mark, in the Secondary Toolbar's compact slots and on the rail alike,
+because a plate inside a slot read as a second, smaller button beside the icon that already names the tool.
+The rail's panel slots (Pages, Layers) take the rail's slot shape rather than a circle, so a pressed panel
+has the shape a pressed pen does.
