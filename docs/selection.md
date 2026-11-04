@@ -104,8 +104,11 @@ edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion re
 widened without being made taller. The window carries the same eight: `SelectionOverlay` draws them,
 `selectionHandleAt` answers them and `scaleFactors` computes the two factors, so a corner keeps the
 proportions and a side stretches one axis on both shells; the one handle an image gives up is the turn,
-because its model carries no rotation. Both shells also cap a handle's reach at a third of the selection,
-so a small element keeps a middle to be moved by. A resize stretches **geometry, not ink**: stroke widths are
+because its model carries no rotation. Both shells cap a handle's reach **per axis**, at a third of that axis's own
+extent, so a small element keeps a middle to be moved by; a **line** — a selection only as thick as the pen
+that drew it — has no middle across its thickness, so it wears just its two end handles: no corners, which
+would sit exactly on them, and no edges along the flat axis, which could only multiply by one. A drag on the
+band above or below such a box carries it, which is where the dead edge handle used to be. A resize stretches **geometry, not ink**: stroke widths are
 carried through untouched (a longer arrow is not a fatter one) and a recognised arrowhead stays at
 the size it was drawn, so only the shaft lengthens (`StrokeStretch`), while text sizes follow the
 scale because letters are the figure there. Their grab radius is capped at a **third** of the
@@ -115,7 +118,13 @@ intended *move* into a resize. A third is the largest cap that leaves the middle
 edge handles sit half a side out from the middle, so a cap of *half* put the middle itself inside a
 handle's reach (below ~60 px of side, an element could not be dragged at all — the failing cross-page
 move test was reporting exactly that). The handles stay grabbable in their own corners and edges.
-`SelectionHandleRadiusTest` pins the rule. A box with **no extent on an axis** offers no edge handles along it: a selection around a part drawn as a line carries no height, its top and bottom handles land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands the press back to the body (`SelectionMovePaintTest`). The outline also carries
+`SelectionHandleRadiusTest` pins the rule. A box with **no extent on an axis** wears no handles across it: a
+selection around a part drawn as a line carries no height worth stretching, its top and bottom handles would
+land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands
+the press back to the body (`SelectionMovePaintTest`). The same rule makes a **corner** drag on a line its end
+handle — the aspect lock has no ratio to keep on a flat axis, so it is skipped rather than copying a factor
+read off a couple of points of ink — and a scale is bounded (0.05–20) so a short span cannot turn a hand's
+travel into an explosion (`DesktopSelectionTest`). The outline also carries
 — for an all-stroke selection only — a **right-edge rotate knob**
 (`SelectionOps.rotate`, which bakes the angle into stroke vertices). A **lasso** marquee
 (`lassoMode`) selects everything wholly inside a traced polygon (`SelectionTester.inPolygon`),

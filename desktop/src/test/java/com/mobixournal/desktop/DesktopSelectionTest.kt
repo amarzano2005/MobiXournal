@@ -9,6 +9,7 @@ import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.MIN_SELECTION_SCALE
+import com.mobixournal.desktop.sheet.MAX_SELECTION_SCALE
 import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.sheet.SelectionHandle
 import com.mobixournal.desktop.sheet.SelectionTool
@@ -138,6 +139,46 @@ class DesktopSelectionTest {
         assertEquals(MIN_SELECTION_SCALE, sy, 1e-9)
     }
 
+    /**
+     * A **line** is stretched from its ends, and only from its ends.
+     *
+     * Its box is only as thick as the pen that drew it, so the report it answers — a line that behaved
+     * differently on every drag — came from the grab radius being capped by that thickness: the end handle
+     * had a reach of a point or two, a press beside it carried the whole line instead, and one a hair further
+     * out dropped the selection and started a new marquee. Two handles with the full radius, no corner stacked
+     * on them, and no edge across the thickness make the same press mean the same thing every time.
+     */
+    @Test
+    fun `a line wears two end handles and stretches only along its length`() {
+        // 64 pt long and 4 pt of box: a line drawn at its pen's own width.
+        val line = PageSelection(rectRegion(100.0, 100.0, 164.0, 104.0), setOf(ElementRef(0, 0)))
+        assertEquals("the left end", SelectionHandle.LEFT, selectionHandleAt(line, 100.0, 102.0, tolPt = 9.0))
+        assertEquals("the right end", SelectionHandle.RIGHT, selectionHandleAt(line, 164.0, 102.0, tolPt = 9.0))
+        // The corner collapses into the end handle: a press there lengthens the line, it does not scale it.
+        assertEquals(SelectionHandle.RIGHT, selectionHandleAt(line, 164.0, 104.0, tolPt = 9.0))
+        // The band above and below the line carries it — where the edge handle that could only multiply by
+        // one used to sit and leave the drag looking dead.
+        assertEquals("the middle", SelectionHandle.BODY, selectionHandleAt(line, 132.0, 102.0, tolPt = 9.0))
+        assertEquals("the band above it", SelectionHandle.BODY, selectionHandleAt(line, 132.0, 96.0, tolPt = 9.0))
+
+        val (sx, sy) = scaleFactors(line.bounds, SelectionHandle.RIGHT, x = 228.0, y = 102.0)
+        assertEquals("the drag's own ratio about the far end", 2.0, sx, 1e-6)
+        assertEquals("a line has no thickness to stretch", 1.0, sy, 1e-6)
+        val (cornerSx, cornerSy) = scaleFactors(
+            line.bounds, SelectionHandle.TOP_LEFT, x = 0.0, y = 102.0, lockAspect = true,
+        )
+        assertEquals("a corner on a line is its end handle", 2.5625, cornerSx, 1e-6)
+        assertEquals(1.0, cornerSy, 1e-6)
+    }
+
+    @Test
+    fun `a stretch is bounded at both ends`() {
+        val (far, _) = scaleFactors(box, SelectionHandle.RIGHT, x = 100_000.0, y = 130.0)
+        assertEquals(MAX_SELECTION_SCALE, far, 1e-9)
+        val (near, _) = scaleFactors(box, SelectionHandle.RIGHT, x = 0.0, y = 130.0)
+        assertEquals(MIN_SELECTION_SCALE, near, 1e-9)
+    }
+
     @Test
     fun `a turn is the angle the pointer swept, and Shift snaps it`() {
         val quarter = rotationBetween(selection, fromX = 150.0, fromY = 100.0, toX = 260.0, toY = 130.0)
@@ -225,6 +266,44 @@ class DesktopSelectionTest {
         assertTrue("the delete is one undo step", tab.undo())
         assertEquals(before, elements(tab.document.page(0)).size)
         tab.document.close()
+    }
+
+    /**
+     * The report this suite grew from, end to end: a **line** pulled longer from its end.
+     *
+     * A click-selected stroke's box is only as thick as its ink, so the handles' reach was capped by that
+     * thickness — the end handle had a point of slack, and the same press carried the line, resized it or
+     * dropped the selection. Now the end is a real target and the drag is one axis: the line is longer, its
+     * ink thickness is untouched and the lift is one undo step.
+     */
+    @Test
+    fun `a click-selected line lengthens from its end`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        tab.document.editPage(0) { page -> page.withElements(listOf(bar(100.0, 100.0))) }
+        val scene = canvas(tab, DesktopTool.MARQUEE)
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+
+            // A click picks the bar, so the outline is the ink's own box: 98..162 by 98..102.
+            click(scene, 130f, 100f, at = 1_000L)
+            assertEquals("the click selected the line", 1, tab.selection!!.refs.size)
+
+            // The right end is taken out to 226: 64 pt of box span, so the drag is a factor of 2 about 98.
+            drag(scene, 162f, 100f, 226f, 100f)
+            val line = elements(tab.document.page(0)).last() as Stroke
+            assertEquals(102.0, line.points.first().x, 1e-6)
+            assertEquals("the end followed the pointer", 222.0, line.points.last().x, 1e-6)
+            assertEquals("on the line it was drawn on", 100.0, line.points.last().y, 1e-6)
+            assertEquals("a longer line is not a thicker one", 4.0, line.points.last().width, 1e-6)
+            assertTrue("one drag, one undo step", tab.undo())
+            assertEquals(160.0, (elements(tab.document.page(0)).last() as Stroke).points.last().x, 1e-6)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
     }
 
     @Test

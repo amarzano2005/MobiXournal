@@ -105,7 +105,9 @@ The window's selection is the tablet's, cut along the seam the core already had.
 (the straight box, or the freehand loop) which is painted as it is drawn, and the **lift** selects every
 element wholly inside it; a **press inside the live outline** acts on the selection instead of starting a
 new one — the body moves it, a **corner handle** scales it about the opposite corner, and the **handle above
-it** turns it about its centre (`Shift` snaps the turn to 15°). Both paths recompute from the page **as it
+it** turns it about its centre (`Shift` snaps the turn to 15°). A **line** — a box only as thick as its pen —
+wears just its two end handles, and either of them lengthens it without thickening it; a press on the band
+above or below it carries it. Both paths recompute from the page **as it
 was at grab time**, so dragging back and forth cannot compound, and one drag is one edit and **one undo
 step**. `Delete` (or `Backspace`) removes what is caught, also as one step; `Esc` drops the outline before it
 means anything else. A selection belongs to the page it was drawn on: turning the page lets it go, because

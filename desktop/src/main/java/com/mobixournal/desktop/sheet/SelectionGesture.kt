@@ -116,23 +116,6 @@ internal class TapTracker(
 }
 
 /**
- * True when [this] handle stretches an axis the box has no extent on, so a drag there could do nothing.
- *
- * A selection the window took around a part drawn as a line carries **no height**, so both its top and bottom
- * edge handles land on the mid-line — which is where the hand presses to carry it. The handle is asked
- * first, so that press became a vertical scale, and a scale on an axis with no extent multiplies by one: the
- * part stayed where it was and the drag looked dead (`SelectionMovePaintTest`).
- */
-private fun SelectionHandle.stretchesNothing(width: Double, height: Double): Boolean = when (this) {
-    SelectionHandle.TOP, SelectionHandle.BOTTOM -> height <= FLAT_PT
-    SelectionHandle.LEFT, SelectionHandle.RIGHT -> width <= FLAT_PT
-    else -> false
-}
-
-/** Below this a box has no extent on an axis: a tenth of a thousandth of a point. */
-private const val FLAT_PT = 1e-9
-
-/**
  * A press on the page, resolved before anything is edited: what it grabbed, and what follows from that.
  *
  * **The pins.** A pin sits on the box's own edge, inside the corner handles' reach, and the corner is asked
@@ -182,12 +165,6 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val picked = page?.let { pickForDrag(it, x0, y0, tol) }
     val grabbed = when {
         handle == SelectionHandle.NONE || handle == SelectionHandle.ROTATE -> handle
-        // A handle with nothing to stretch is not one: the body carries the box instead.
-        live != null &&
-            handle.stretchesNothing(
-                live.bounds.right - live.bounds.left,
-                live.bounds.bottom - live.bounds.top,
-            ) -> SelectionHandle.BODY
         else -> {
             val own = live?.takeIf { it.refs.size == 1 }?.let { one ->
                 val ref = one.refs.first()

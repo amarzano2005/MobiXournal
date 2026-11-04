@@ -88,36 +88,43 @@ private fun DrawScope.drawRegion(region: SelectionRegion, pxPerPt: Float, dashed
  * The eight squares — four corners, four edge midpoints — and, when [isImage] is false, the turn's stem and ring.
  *
  * The edge squares are drawn for **every** selection, not only an image's: they are the one-axis stretch the
- * tablet has always carried, and a handle the hit test answers to must be visible or it may as well be absent.
+ * tablet has always carried, and a handle the hit test answers to must be visible or it may as well be absent
+ * — which is the same rule that hides the rest on a **line**. A box with no extent on an axis wears no
+ * corners (they would sit exactly on its two end handles) and no squares along that axis, so a line shows the
+ * two ends a stretch uses and nothing that a press could not act on (`DesktopSelection.isFlatX`).
  */
 private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float, isImage: Boolean = false) {
     val box = selection.bounds
     fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
-    val corners = listOf(
-        off(box.left, box.top), off(box.right, box.top),
-        off(box.right, box.bottom), off(box.left, box.bottom),
-    )
-    for (corner in corners) {
+    fun square(at: Offset) {
         drawRect(
             color = DesktopTheme.accent,
-            topLeft = Offset(corner.x - HANDLE_SIZE / 2f, corner.y - HANDLE_SIZE / 2f),
+            topLeft = Offset(at.x - HANDLE_SIZE / 2f, at.y - HANDLE_SIZE / 2f),
             size = Size(HANDLE_SIZE, HANDLE_SIZE),
         )
     }
+    if (!box.isFlatX && !box.isFlatY) {
+        for (corner in listOf(
+            off(box.left, box.top), off(box.right, box.top),
+            off(box.right, box.bottom), off(box.left, box.bottom),
+        )) {
+            square(corner)
+        }
+    }
     val midX = (box.left + box.right) / 2.0
     val midY = (box.top + box.bottom) / 2.0
-    val edges = listOf(
-        off(midX, box.top),
-        off(box.right, midY),
-        off(midX, box.bottom),
-        off(box.left, midY),
-    )
+    val edges = buildList {
+        if (!box.isFlatY) {
+            add(off(midX, box.top))
+            add(off(midX, box.bottom))
+        }
+        if (!box.isFlatX) {
+            add(off(box.right, midY))
+            add(off(box.left, midY))
+        }
+    }
     for (edge in edges) {
-        drawRect(
-            color = DesktopTheme.accent,
-            topLeft = Offset(edge.x - HANDLE_SIZE / 2f, edge.y - HANDLE_SIZE / 2f),
-            size = Size(HANDLE_SIZE, HANDLE_SIZE),
-        )
+        square(edge)
     }
     if (!isImage) {
         // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.
