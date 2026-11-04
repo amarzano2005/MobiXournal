@@ -49,7 +49,7 @@ TRUNCATE_AT = 300
 
 
 def format_output(result, full=False):
-    """Format results for Claude consumption (token-optimized)"""
+    """Format results for an agent's consumption (token-optimized)"""
     if "error" in result:
         return f"Error: {result['error']}"
 

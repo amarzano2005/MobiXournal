@@ -67,7 +67,7 @@ _TODO_HEADER = """\
 #
 # Single source of truth for active work (see AGENTS.md -> documentation map).
 # Edit through the todo skill so ids, ordering, and metadata stay consistent:
-#   scripts/todo.sh <command>      (see .claude/skills/todo/SKILL.md)
+#   scripts/todo.sh <command>      (see skills/todo/SKILL.md)
 # Hand-editing works too — it is plain TOML — but the skill keeps it tidy.
 """
 
