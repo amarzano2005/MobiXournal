@@ -233,8 +233,13 @@ opening a blank document — that is what makes "nothing open" a state at all. A
 when the document is opened (`EntryPreviews`), so the screen reads a PNG instead of parsing a document
 to draw itself, and the list is `entry_recents`, six at most and de-duplicated by URI.
 
-**A lit tool is its glyph, not a plate.** No bar fills a container behind the live tool: the slot turns its
-icon `primary` and that is the whole mark, in the Secondary Toolbar's compact slots and on the rail alike,
-because a plate inside a slot read as a second, smaller button beside the icon that already names the tool.
-The rail's panel slots (Pages, Layers) take the rail's slot shape rather than a circle, so a pressed panel
-has the shape a pressed pen does.
+**A live slot wears its plate.** The tool in play is marked twice: its slot fills with `primaryContainer`
+and its glyph turns `primary` — in the Secondary Toolbar's compact slots and on the rail alike. The rail's
+panel slots (Pages, Layers) take the rail's slot shape rather than a circle, so a pressed panel has the
+shape a pressed pen does.
+
+**A tab carries no lit state.** A document's tab is not brighter because it is the one in front, and the
+press indicator is off, so a touch does not light it either: the chip's fill is the same glass at every
+moment and the label says which document is in front, by weight and by ink. A highlight behind a label
+that is already the answer is one mark too many — and on a strip of tabs it is the mark that draws the eye
+to where the eye already is.
