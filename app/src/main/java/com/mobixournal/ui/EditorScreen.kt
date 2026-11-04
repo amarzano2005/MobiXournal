@@ -1,5 +1,11 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -597,8 +603,8 @@ private fun EditorBody(
         // edge — the bar plus the row of document tabs inside it — so the rail hangs directly under the
         // whole header and nothing overlaps anything. That is what costs the rail's spacing budget the
         // tab row; see `RailSizing.kt`.
-        val pageList: @Composable () -> Unit = { PageListLane(ui, pane) }
         val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
+        val pageList: @Composable () -> Unit = { PageListLane(ui, pane, expandFromStart = railOnLeft) }
         Row(modifier = modifier) {
             if (railOnLeft) {
                 RailLane(toolbar, canvasOnRight = true)
@@ -623,9 +629,19 @@ private fun EditorBody(
  * (`PageOps.moveAll`, `PageOps.removeAll`) exactly as it is on the window.
  */
 @Composable
-private fun PageListLane(ui: EditorUiState, pane: PaneState) {
-    if (!ui.pageListOpen || ui.fullPage) return
-    PageListPanel(
+private fun PageListLane(ui: EditorUiState, pane: PaneState, expandFromStart: Boolean) {
+    // The lane **expands** instead of appearing at full width: it takes a slice of the page's own width,
+    // and a slice that arrives in one frame reads as a glitch rather than as a panel being opened.
+    AnimatedVisibility(
+        visible = ui.pageListOpen && !ui.fullPage,
+        enter = expandHorizontally(
+            expandFrom = if (expandFromStart) Alignment.Start else Alignment.End,
+        ) + fadeIn(),
+        exit = shrinkHorizontally(
+            shrinkTowards = if (expandFromStart) Alignment.Start else Alignment.End,
+        ) + fadeOut(),
+    ) {
+        PageListPanel(
         pageCount = pane.pageCount,
         currentPage = pane.currentPage,
         selection = ui.pageSelection,
@@ -633,23 +649,17 @@ private fun PageListLane(ui: EditorUiState, pane: PaneState) {
         pages = pane.surface?.pageCommands?.pages().orEmpty(),
         onSelection = { ui.pageSelection = it },
         onGoToPage = { pane.surface?.goToPage(it) },
-        // One step, keeping the run together: the block starts `delta` places later, and `moveAll`
-        // refuses a target that clamps back onto where it already is.
-        onMove = { delta ->
-            val target = pickedMoveTarget(ui.pageSelection, delta, pane.pageCount)
-            if (target != null) pane.surface?.pageCommands?.movePages(ui.pageSelection, target)
+        // One step, keeping the run together (`moveAll` refuses a target already under the block).
+        onMove = { picked, delta ->
+            val target = pickedMoveTarget(picked, delta, pane.pageCount)
+            if (target != null) pane.surface?.pageCommands?.movePages(picked, target)
         },
         // A dropped row lands where the drag put it — one page, one step, one undo.
         onReorder = { from, to -> pane.surface?.pageCommands?.movePages(setOf(from), to) },
-        onDelete = {
-            pane.surface?.pageCommands?.removePages(ui.pageSelection)
-            ui.pageSelection = emptySet()
-        },
-        onClose = {
-            ui.pageListOpen = false
-            ui.pageSelection = emptySet()
-        },
+        onDelete = { picked -> pane.surface?.pageCommands?.removePages(picked); ui.pageSelection = emptySet() },
+        onClose = { ui.pageListOpen = false; ui.pageSelection = emptySet() },
     )
+    }
 }
 
 /**

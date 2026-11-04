@@ -103,16 +103,20 @@ leading slot, as the phone's menu items do. **Manage pages** is a section of its
 (quick size, add/remove, the page's two questions) stay adjacent.
 
 **The tablet's page list.** The window keeps a page strip down its edge; the tablet opens one from the
-**capsule beside the search** in the top bar (`PageListCapsule`), and it docks **on the rail's side** —
-`EditorBody` places the lane between the rail's lane and the canvas, so turning the toolbar to the
-right-hand edge takes the list with it, the way the window's strip follows its tools. Like the rail it is
-a lane of the layout and never a sheet over the page. A row is a **preview** of its page
-(`PageThumbnail`), its number and its pick box: the row **goes to** that page when tapped, the box
-**picks** it — a tap that navigates is not a tap that selects, which is what makes the multi-select
-readable — and a **long-press drag** carries the page to the row it is dropped on (`PageOps.moveAll`, the
-block rule the window's drag uses). The two arrows under the list step the picked run by one place and
-the bin takes it out (`PageOps.removeAll`, which refuses a pick covering the whole document), each as
-**one** undo step. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
+**capsule beside the search** in the top bar (`PageListCapsule`: the glyph and the words *Page list*), and
+the lane docks **on the rail's side** — `EditorBody` places it between the rail's lane and the canvas, so
+turning the toolbar to the right-hand edge takes the list with it, the way the window's strip follows its
+tools. Like the rail it is a lane of the layout and never a sheet over the page, and it **expands** into
+place rather than appearing at full width: it takes a slice of the page's own width, and a slice that
+arrives in one frame reads as a glitch. A row is its **number**, its **preview** beside it
+(`PageThumbnail`: the sheet's own paper and ink, on a white card so a blank page still reads as a page),
+a box that picks it and a handle that drags it. The number and the preview **go to** the page; the box
+**picks** it, because a tap that navigates is not a tap that selects; the handle **carries** it to the row
+it is dropped on (`PageOps.moveAll`, the block rule the window's drag uses) — the drag lives on the
+handle, since a row that started a drag on any touch would be a row that cannot be scrolled. The two
+arrows under the list step the pick by one place and the bin takes it out (`PageOps.removeAll`, which
+refuses a pick covering the whole document), each as **one** undo step — and with **nothing picked** they
+act on the page in view, which is the plain case and needs no ceremony. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
 reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the
 window's commands cannot act on either.
 
