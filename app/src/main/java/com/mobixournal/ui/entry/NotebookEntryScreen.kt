@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -309,6 +310,9 @@ private fun EntryButton(
                 CircleShape,
             )
             .border(1.dp, if (primary) accent else ink.copy(alpha = HAIRLINE_TINT), CircleShape)
+            // Before the click, so the ripple is the capsule the reader sees: on a bare row a tap lit the
+            // rectangle around it instead of the button itself (`docs/interface-contract.md` §6).
+            .clip(CircleShape)
             // `clickable`, not a raw tap detector: the ripple **is** the pressed state, and the interface
             // contract asks every new control for one (`docs/interface-contract.md`).
             .clickable(onClick = onClick)

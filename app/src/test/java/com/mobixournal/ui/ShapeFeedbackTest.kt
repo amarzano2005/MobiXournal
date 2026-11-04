@@ -53,6 +53,14 @@ class ShapeFeedbackTest {
             ".clip(shape)",
             "Modifier.clickable(",
         ),
+        // The entry screen's door: a capsule drawn inside a bare row, so the row has to be cut to the
+        // capsule before the click or the press lights a rectangle around the button.
+        Control(
+            "entry/NotebookEntryScreen.kt",
+            "private fun EntryButton(",
+            ".clip(CircleShape)",
+            ".clickable(onClick = onClick)",
+        ),
     )
 
     @Test

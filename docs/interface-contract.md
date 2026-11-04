@@ -180,8 +180,8 @@ never the picked fill; disabled keeps its ink but loses its hit area; focus is v
 the pointer. A new element with only a default state is unfinished.
 
 The state layer **follows the shape**. An indication is drawn by the node that owns it, so a click applied
-to a bare box lights the box: a 32 dp square around an 18 dp glyph, a 34 dp cell around a 28 dp swatch, a
-rectangle around a menu pane's 10 dp corner. A rounded control clips to its own shape **before** the click
+to a bare box lights the box: a 32 dp square around an 18 dp glyph, a 34 dp cell around a 28 dp swatch, arectangle around a menu pane's 10 dp corner, the rectangle around the entry screen's capsule door. A
+rounded control clips to its own shape **before** the click
 (`FavoriteSwatch`'s `DotCellShape`, `ZoomBadge`, and the menu's panes, whose click `GlassPane` takes inside
 its clip), so a tap or a hover lights the capsule, circle or squircle the reader sees and not the rectangle
 around it. `ShapeFeedbackTest` holds the shared controls to that order, because a clip one modifier too
