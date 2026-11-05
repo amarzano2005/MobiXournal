@@ -146,11 +146,13 @@ the shared ones touched; `NOTICE` carries the full list). The headline changes:
   instead of a Compose `onKeyEvent`, so any character matches, upper or lower case.
 
 The **app icon is this project's own artwork**: a ruled sheet of paper carrying a stylus `X` and a
-pencil laid across it, drawn from scratch in `ic_launcher_foreground.xml` on the
-`@color/ic_launcher_background` white field, with a matching `ic_launcher_monochrome.xml` for
-Android 13+ themed icons. Every element sits inside the adaptive icon's 128/192 safe zone, so no
-launcher mask crops it. No upstream logo is used, so the icon belongs to this app while the credit
-to Xournal++ stays in the About page and README.
+pencil laid across it — a per-density `ic_launcher_foreground.png` over the
+`@color/ic_launcher_background` white field, with a matching vector `ic_launcher_monochrome.xml` for
+Android 13+ themed icons. The sheet is drawn once and every density is that same composition, with
+the pencil short enough that its capped end sits inside the launcher's central 72/108 safe circle
+and inside the 2/3 circle Android 12 masks the splash icon with, so neither mask slices that end
+off. No upstream logo is used, so the icon belongs to this app while the credit to Xournal++ stays
+in the About page and README.
 
 The Kotlin package, the namespace and **`applicationId` are all `com.mobixournal`** — the install
 identity of this unofficial app, kept distinct from upstream and from any other build. Debug and
