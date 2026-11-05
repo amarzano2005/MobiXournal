@@ -4,7 +4,7 @@
          Android draws the starting window from the theme of the component that launched the app,
          before any of our code runs, and an `activity-alias` only re-labels the icon. So the base
          theme is the *light* splash in the day configuration and the dark one in values-night, and
-         MobiXournalApp.applyThemeMode keeps the app's -night qualifier equal to the chosen theme. -->
+         MobiXournalApp.applyNightMode keeps the app's -night qualifier equal to the chosen theme. -->
     <style name="Theme.MobiXournal" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

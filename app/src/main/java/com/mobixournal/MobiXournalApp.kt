@@ -5,8 +5,8 @@ import android.app.Application
 import android.app.UiModeManager
 import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -16,18 +16,27 @@ import com.mobixournal.ui.ThemeMode
 /**
  * Custom Application class for MobiXournal.
  *
- * Synchronises the user's persisted [ThemeMode] choice with the Android system
- * [UiModeManager] and the active launcher alias (`.LauncherDark` with `#161618` background by
- * default, `.LauncherLight` with `#FFFFFF` background when [ThemeMode.LIGHT] is chosen) so both
- * the app icon and the splash screen match the active theme.
+ * Keeps the two answers a launch reads in step with the persisted [ThemeMode]: the `-night`
+ * qualifier, which decides the startup window's background, and the active launcher alias
+ * (`.LauncherDark` with `#161618` by default, `.LauncherLight` with `#FFFFFF` on [ThemeMode.LIGHT]),
+ * which decides the home-screen icon.
+ *
+ * **They are applied at different moments, and that is deliberate.** Disabling the
+ * `activity-alias` that a running task was launched through makes Android finish that task — the
+ * system finishes activities whose component it just disabled, `DONT_KILL_APP` or not — so syncing
+ * the alias as soon as the theme was picked closed the app on the spot, before the notice offering a
+ * restart could be read. The qualifier is safe to move while the window is up (it is a local
+ * configuration change, and `MainActivity` declares `uiMode`), so the splash is right at the next
+ * start either way; the alias is switched only inside [restartForTheme], once the affinity is on its
+ * way out and no window of ours is left to close.
  */
 class MobiXournalApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        val store = SettingsStore(this)
-        val settings = store.load()
-        applyThemeMode(this, settings.themeMode)
+        // The qualifier only: this is a configuration change, while touching the alias here would
+        // disable the very component this launch came through.
+        applyNightMode(this, SettingsStore(this).load().themeMode)
     }
 
     companion object {
@@ -38,50 +47,55 @@ class MobiXournalApp : Application() {
         private const val RESTART_DELAY_MS = 350L
 
         /**
-         * Applies [mode] to the system [UiModeManager] and switches the active launcher alias so
-         * both the home-screen icon and the startup splash window match the selected theme.
+         * Move the app's `-night` qualifier to [mode], which is what the startup window reads.
          *
-         * **The night qualifier is what the splash reads.** Android draws the starting window from
-         * the theme of the component that launched the app — `MainActivity`'s, since an
-         * `activity-alias` only carries the icon and the label — so the splash background is a
-         * day/night-qualified item (`values/themes.xml`, `values-night/themes.xml`) and this call is
-         * what moves the app's `-night` answer to the chosen theme. Pinning `MODE_NIGHT_YES` for
-         * [ThemeMode.SYSTEM] used to leave the splash dark while the app itself painted light; on
-         * API 30 and below there is no app-level qualifier to set, so the alias remains the only
-         * lever there.
+         * Android draws the starting window from the theme of the component that launched the app —
+         * `MainActivity`'s, since an `activity-alias` only carries the icon and the label — before any
+         * of our code runs, so the splash background is a day/night-qualified item
+         * (`values/themes.xml`, `values-night/themes.xml`) and this call is what moves the answer.
+         * [ThemeMode.SYSTEM] hands the qualifier back to the system ([UiModeManager.MODE_NIGHT_AUTO]);
+         * pinning `MODE_NIGHT_YES` for it used to leave the splash dark under an app painting light.
+         * There is no app-level qualifier on API 30 and below, where the alias remains the only lever.
          */
-        fun applyThemeMode(context: Context, mode: ThemeMode) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                context.getSystemService(UiModeManager::class.java)?.let { uiModeManager ->
-                    val targetMode = when (mode) {
-                        ThemeMode.LIGHT -> UiModeManager.MODE_NIGHT_NO
-                        ThemeMode.DARK -> UiModeManager.MODE_NIGHT_YES
-                        // AUTO is the app-level "no override": the qualifier follows the system again.
-                        ThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_AUTO
-                    }
-                    uiModeManager.setApplicationNightMode(targetMode)
-                }
+        fun applyNightMode(context: Context, mode: ThemeMode) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+            val uiModeManager = context.getSystemService(UiModeManager::class.java) ?: return
+            val targetMode = when (mode) {
+                ThemeMode.LIGHT -> UiModeManager.MODE_NIGHT_NO
+                ThemeMode.DARK -> UiModeManager.MODE_NIGHT_YES
+                ThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_AUTO
             }
-            syncLauncherAlias(context, useLight = mode == ThemeMode.LIGHT)
+            uiModeManager.setApplicationNightMode(targetMode)
         }
 
         /**
-         * Restart the app through its launcher entry so the theme just chosen is the one the
-         * starting window and the home-screen icon wear.
+         * Restart the app through its launcher entry so the icon and the splash wear the theme just
+         * chosen.
          *
-         * The alias, the `-night` qualifier and the splash background are all read when the app is
-         * launched, so a live window cannot repaint them; only a fresh launch can. The launch intent
-         * is the launcher's own, so the enabled alias (light or dark) is the entry that comes back.
-         * The affinity is finished first and the start is posted a beat later: closing the window
-         * persists the open tabs, and a restart must not cost what a colour change never should.
+         * The affinity is finished first and the rest is posted a beat later: closing the window
+         * persists the open tabs, and a restart must not cost what a colour change never should. The
+         * qualifier and the alias are moved inside that beat, when nothing of ours is on screen —
+         * switching the alias any earlier finishes the task the user is sitting in, and the restart
+         * would arrive as the app closing by itself.
          */
         fun restartForTheme(context: Context) {
             val activity = context as? Activity ?: return
-            val launch = activity.packageManager.getLaunchIntentForPackage(activity.packageName) ?: return
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             val app = activity.applicationContext
+            val mode = SettingsStore(app).load().themeMode
             activity.finishAffinity()
-            Handler(Looper.getMainLooper()).postDelayed({ runCatching { app.startActivity(launch) } }, RESTART_DELAY_MS)
+            Handler(Looper.getMainLooper()).postDelayed({
+                runCatching { applyNightMode(app, mode) }
+                runCatching { syncLauncherAlias(app, useLight = mode == ThemeMode.LIGHT) }
+                // Resolved after the switch: the entry that has to come back is the alias just
+                // enabled, and an intent naming the one just disabled would not resolve at all.
+                val entry = runCatching {
+                    app.packageManager.getLaunchIntentForPackage(app.packageName)
+                }.getOrNull()
+                if (entry != null) {
+                    entry.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    runCatching { app.startActivity(entry) }
+                }
+            }, RESTART_DELAY_MS)
         }
 
         private fun syncLauncherAlias(context: Context, useLight: Boolean) {

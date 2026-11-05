@@ -150,7 +150,7 @@ class MainActivity : ComponentActivity() {
      */
     internal fun commitSettings(next: AppSettings) {
         if (settingsState.value.themeMode != next.themeMode) {
-            MobiXournalApp.applyThemeMode(this, next.themeMode)
+            MobiXournalApp.applyNightMode(this, next.themeMode)
             window.setBackgroundDrawableResource(
                 if (isDarkTheme(next)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
             )
@@ -379,7 +379,7 @@ class MainActivity : ComponentActivity() {
         // painted the window's own background charcoal under a light app.
         val dark = isDarkTheme(initialSettings)
         setTheme(if (dark) R.style.Theme_MobiXournal_Dark else R.style.Theme_MobiXournal_Light)
-        MobiXournalApp.applyThemeMode(this, initialSettings.themeMode)
+        MobiXournalApp.applyNightMode(this, initialSettings.themeMode)
         window.setBackgroundDrawableResource(
             if (dark) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
         )
