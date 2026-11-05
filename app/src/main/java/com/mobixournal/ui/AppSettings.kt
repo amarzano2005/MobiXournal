@@ -43,14 +43,8 @@ enum class ToolbarPosition(val label: String) {
  * SYSTEM defers to the device's light/dark setting; LIGHT and DARK force a specific scheme. The theme
  * is applied to the whole app via [XoppTheme][com.mobixournal.ui.theme.XoppTheme].
  */
-enum class ThemeMode(val label: String) {
-    /** Follow the system's light/dark setting. */
-    SYSTEM("System"),
-    /** Always use the light colour scheme. */
-    LIGHT("Light"),
-    /** Always use the dark colour scheme. */
-    DARK("Dark"),
-}
+/** The three theme answers — `mobix-core`'s enum, so both shells pick from the same list. */
+typealias ThemeMode = com.mobixournal.design.ThemeMode
 
 /**
  * The app's user-adjustable preferences (the Settings screen edits these; [SettingsStore] persists
@@ -520,14 +514,21 @@ class SettingsStore(context: Context) {
 
     private val prefs = context.getSharedPreferences("xopp_settings", Context.MODE_PRIVATE)
 
+    /**
+     * A stored dimension, vetted: a preference is typed but never validated, so a NaN or a negative left by
+     * an older build (or a restored backup) would make a page of no width. The window guards the same two.
+     */
+    private fun dimension(key: String, fallback: Double): Double =
+        prefs.getFloat(key, fallback.toFloat()).toDouble().takeIf { it.isFinite() && it > 0.0 } ?: fallback
+
     fun load(): AppSettings {
         val d = AppSettings()
         // An install from before the two taps were configurable carries one on/off switch instead.
         // Its "off" becomes both taps off; its "on" (or absence) keeps the defaults they replaced.
         val legacyTaps = prefs.getBoolean(KEY_MULTI_FINGER_SHORTCUTS, true)
         return AppSettings(
-            defaultPageWidthPt = prefs.getFloat(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt.toFloat()).toDouble(),
-            defaultPageHeightPt = prefs.getFloat(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt.toFloat()).toDouble(),
+            defaultPageWidthPt = dimension(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt),
+            defaultPageHeightPt = dimension(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt),
             pageSizeStepMm = PageSizeStep.clampMm(
                 prefs.getFloat(KEY_PAGE_SIZE_STEP, d.pageSizeStepMm.toFloat()).toDouble(),
             ),

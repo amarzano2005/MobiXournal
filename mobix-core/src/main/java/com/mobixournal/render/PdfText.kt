@@ -16,6 +16,21 @@ data class CharBox(
     val bottom: Double,
 )
 
+/**
+ * The glyphs of one PDFBox string as page-local boxes: [bottom] is the glyph's own bottom edge (PDFBox's
+ * `yDirAdj`, top-left origin, y-down) and [height] its own height, so the top sits one height above it.
+ *
+ * **This arithmetic is the shared half of extraction.** Both shells glue their own PDFBox flavour to it
+ * (the tablet's `com.tom_roush` port, the window's `org.apache.pdfbox`), and the trap is the same in both:
+ * using the reported y as the *top* shifts every box down a line — so the rule is written once, here, rather
+ * than in each adapter.
+ */
+fun glyphBoxes(text: String, left: Double, bottom: Double, width: Double, height: Double): List<CharBox> {
+    val top = bottom - height
+    val right = left + width
+    return text.map { CharBox(it, left, top, right, bottom) }
+}
+
 /** A whole word (whitespace-delimited) with the union box of its glyphs, in page-local points. */
 data class PdfWord(
     val text: String,

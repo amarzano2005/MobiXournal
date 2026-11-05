@@ -98,8 +98,8 @@ enum class PageSizeUnit(val label: String, val perPt: Double) {
      * ([measure]), because two numbers rounded differently would read as two different units.
      */
     fun print(pt: Double): String {
-        val rounded = (fromPt(pt) * 10).roundToInt() / 10.0
-        return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
+        val rounded = fromPt(pt)
+        return decimalText(rounded)
     }
 
     /** [pt] of paper with this unit's symbol — "210 mm", "8.3 in" — what a page or a step is shown as. */

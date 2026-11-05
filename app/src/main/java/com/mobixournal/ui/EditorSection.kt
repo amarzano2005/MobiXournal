@@ -93,7 +93,13 @@ private fun PageSizeStepControl(settings: AppSettings, onChange: (AppSettings) -
     )
 }
 
-/** [mm] as the step field shows it: a whole step without a trailing `.0`, a fractional one as typed. */
+/**
+ * [mm] as the step field shows it: a whole step without a trailing `.0`, a fractional one **as typed**.
+ *
+ * No rounding, on purpose: the field echoes what was entered, so a 0.25 mm step stays `0.25` instead of
+ * being published as the `0.3` the measurement notation (`decimalText`) would print. That rule is for a
+ * value the app *offers* a reader; this one is a value they typed.
+ */
 private fun pageSizeStepText(mm: Double): String =
     if (mm == mm.toLong().toDouble()) mm.toLong().toString() else mm.toString()
 

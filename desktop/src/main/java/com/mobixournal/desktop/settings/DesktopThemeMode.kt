@@ -1,23 +1,35 @@
 package com.mobixournal.desktop.settings
 
-/**
- * The window's two themes, and the answer that defers to Windows.
- *
- * [SYSTEM] is the default: the window opens on whatever the desktop is set to, and a reader who wants one
- * of the other two says so and stays there. [light] is the only place the deferral is resolved, so the
- * tokens, the title bar and the Appearance row cannot disagree about which theme is live.
- */
-enum class DesktopThemeMode(val label: String, val keywords: String) {
-    SYSTEM("System", "follow windows desktop light dark automatic"),
-    DARK("Dark", "night black oled dark"),
-    LIGHT("Light", "day paper white bright light"),
-    ;
+import com.mobixournal.design.ThemeMode
 
-    /** Whether this answer means the light palette. */
-    val light: Boolean
-        get() = when (this) {
-            SYSTEM -> DesktopSystemTheme.isLight()
-            DARK -> false
-            LIGHT -> true
-        }
-}
+/**
+ * The window's theme answers — **the tablet's enum, not a second copy of it** (`mobix-core`'s
+ * [ThemeMode]).
+ *
+ * The two shells used to keep an enum each: the same three names, a different member order, and the
+ * system answer resolved in a different place. What is genuinely the window's is here as extensions:
+ * its search aliases, and the fact that "follow the system" means asking **Windows**.
+ */
+typealias DesktopThemeMode = ThemeMode
+
+/**
+ * Search aliases for the Appearance row, in the shape the settings index reads (`keywords`).
+ *
+ * They are the window's words for its own answers — a reader who types "night" or "bright" reaches the
+ * row — so they live beside the window's UI rather than in the shared enum, where a shell that does not
+ * search with them would carry them for nothing.
+ */
+val ThemeMode.keywords: String
+    get() = when (this) {
+        ThemeMode.SYSTEM -> "follow windows desktop light dark automatic"
+        ThemeMode.DARK -> "night black oled dark"
+        ThemeMode.LIGHT -> "day paper white bright light"
+    }
+
+/** Whether this answer paints the light palette right now — `SYSTEM` asks Windows. */
+val ThemeMode.light: Boolean
+    get() = when (this) {
+        ThemeMode.SYSTEM -> DesktopSystemTheme.isLight()
+        ThemeMode.DARK -> false
+        ThemeMode.LIGHT -> true
+    }

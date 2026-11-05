@@ -23,6 +23,7 @@ import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.io.saveAs
 import com.mobixournal.desktop.settings.DesktopSettingsBackup
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.light
 import com.mobixournal.desktop.shell.BACKUP_TYPES
 import com.mobixournal.desktop.shell.DOCUMENT_OPEN_TYPES
 import com.mobixournal.desktop.shell.DesktopShell

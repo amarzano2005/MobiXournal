@@ -54,14 +54,17 @@ class PdfTextExtractor {
             for (tp in textPositions) {
                 val unicode = tp.unicode ?: continue
                 if (unicode.isEmpty()) continue
-                val left = tp.xDirAdj.toDouble()
                 val height = tp.heightDir.toDouble().let { if (it > 0.0) it else tp.fontSizeInPt.toDouble() }
-                // PDFBox's yDirAdj is the glyph's BOTTOM edge (top-left origin, y-down); the top is
-                // one glyph-height above it. Using yDirAdj as the top shifts every box down a line.
-                val bottom = tp.yDirAdj.toDouble()
-                val top = bottom - height
-                val right = left + tp.widthDirAdj.toDouble()
-                for (c in unicode) chars.add(CharBox(c, left, top, right, bottom))
+                // The box arithmetic — and the trap it exists for: PDFBox's yDirAdj is the glyph's
+                // BOTTOM edge, so using it as the top shifts every box down a line — is `glyphBoxes` in
+                // `mobix-core`, shared with the window's reader.
+                chars += glyphBoxes(
+                    unicode,
+                    tp.xDirAdj.toDouble(),
+                    tp.yDirAdj.toDouble(),
+                    tp.widthDirAdj.toDouble(),
+                    height,
+                )
             }
             collected += PdfWordGrouper.group(chars)
         }

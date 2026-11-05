@@ -79,7 +79,7 @@ step is a page size, and the same document must come out the same on a 320 dpi t
 **It speaks the page format's unit.** The unit picked in **Page format** — mm, in or pt — is a *setting*
 (`AppSettings.pageSizeUnit`, `DesktopSettings.pageSizeUnit`), not a mood of one dialog: the quick size prints
 both the sheet's own measure and its step through one notation (`PageSizeUnit.measure`, which is also what
-`PageSizeStep.label` prints). A sheet kept in inches therefore reads `8.3 in` and steps by `3.9 in` — the
+`PageSizeStep.label` prints). That notation is `mobix-core`'s `decimalText` — the one implementation of it, which the tablet's fields and the window's inspector call instead of repeating its arithmetic. A sheet kept in inches therefore reads `8.3 in` and steps by `3.9 in` — the
 same 100 mm of paper re-expressed, never a second, unrelated number — and a sheet kept in points steps by
 283.5 pt. Both shells read that one stored unit, and the window's Pages menu steps by
 `PageSizeStep.DEFAULT_MM` in it. A tap is a **step, not a size**: it is summed onto the sheet as it is now

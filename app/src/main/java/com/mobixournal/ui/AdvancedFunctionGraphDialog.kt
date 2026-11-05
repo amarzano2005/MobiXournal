@@ -89,6 +89,10 @@ class CurveEditorState(
 
 /**
  * Format a number for range text fields, avoiding redundant trailing '.0'.
+ *
+ * **No rounding, on purpose:** these fields seed a graph's domain, so every digit entered survives —
+ * `decimalText`'s one-decimal rule is for a measurement the app offers (a page size, a pen width), not
+ * for a bound a reader typed.
  */
 internal fun formatRangeNumber(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()

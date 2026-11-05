@@ -10,6 +10,7 @@ import com.mobixournal.render.PdfOutlineTree
 import com.mobixournal.render.PdfTextIndex
 import com.mobixournal.render.PdfWord
 import com.mobixournal.render.PdfWordGrouper
+import com.mobixournal.render.glyphBoxes
 import java.util.IdentityHashMap
 import org.apache.pdfbox.cos.COSDictionary
 import org.apache.pdfbox.pdmodel.PDDocument
@@ -70,12 +71,16 @@ internal object DesktopPdfText {
             for (tp in textPositions) {
                 val unicode = tp.unicode ?: continue
                 if (unicode.isEmpty()) continue
-                val left = tp.xDirAdj.toDouble()
                 val height = tp.heightDir.toDouble().let { if (it > 0.0) it else tp.fontSizeInPt.toDouble() }
-                val bottom = tp.yDirAdj.toDouble()
-                val top = bottom - height
-                val right = left + tp.widthDirAdj.toDouble()
-                for (c in unicode) chars.add(CharBox(c, left, top, right, bottom))
+                // The box arithmetic — and the trap it exists for: PDFBox's y is the glyph's BOTTOM — is
+                // `mobix-core`'s, so this adapter only maps this PDFBox flavour's fields onto it.
+                chars += glyphBoxes(
+                    unicode,
+                    tp.xDirAdj.toDouble(),
+                    tp.yDirAdj.toDouble(),
+                    tp.widthDirAdj.toDouble(),
+                    height,
+                )
             }
             collected += PdfWordGrouper.group(chars)
         }

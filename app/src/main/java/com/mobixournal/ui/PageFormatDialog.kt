@@ -36,14 +36,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.PageSizeUnit
+import com.mobixournal.render.decimalText
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Format a unit value for a field: at most one decimal, trailing `.0` dropped. */
-internal fun fmtDim(value: Double): String {
-    val rounded = (value * 10).roundToInt() / 10.0
-    return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
-}
+/** Format a unit value for a field — [decimalText]'s one-decimal rule, under this dialog's name. */
+internal fun fmtDim(value: Double): String = decimalText(value)
 
 /**
  * A short label for the current page size: the matching preset's name (either orientation), else the

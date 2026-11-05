@@ -18,10 +18,7 @@ import androidx.compose.runtime.setValue
  * live and a file this build writes stays readable in the next.
  */
 var DesktopSettings.theme: DesktopThemeMode
-    get() = properties.getProperty(DesktopSettings.KEY_THEME)
-        ?.trim()
-        ?.let { name -> DesktopThemeMode.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } }
-        ?: DesktopThemeMode.SYSTEM
+    get() = DesktopThemeMode.named(properties.getProperty(DesktopSettings.KEY_THEME))
     set(value) {
         properties.setProperty(DesktopSettings.KEY_THEME, value.name)
         save()

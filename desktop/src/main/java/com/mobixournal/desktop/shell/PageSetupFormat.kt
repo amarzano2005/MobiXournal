@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.PageSizeUnit
+import com.mobixournal.render.decimalText
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -43,11 +44,8 @@ import kotlin.math.roundToInt
  * Every write is [DesktopPageSetupState.setSize]'s: one edit on the page in view, one undo step, so a
  * format chosen here is a page the file will carry and `Ctrl+Z` takes back.
  */
-/** A dimension in the dialog's notation: at most one decimal, a whole number printed without `.0`. */
-internal fun formatDimension(value: Double): String {
-    val rounded = (value * 10).roundToInt() / 10.0
-    return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
-}
+/** A dimension in the dialog's notation — [decimalText]'s one-decimal rule, under this dialog's name. */
+internal fun formatDimension(value: Double): String = decimalText(value)
 
 /** The smallest and largest sheet the fields accept, in points — 1 in to 200 in. */
 private const val MIN_PAGE_PT = 72.0

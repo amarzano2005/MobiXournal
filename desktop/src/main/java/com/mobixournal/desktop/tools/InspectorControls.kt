@@ -457,17 +457,14 @@ private fun CrossGlyph(ink: Color, onClick: () -> Unit) {
     }
 }
 
-/** A number as the lane prints it: an integer without a pointless `.0`, one decimal otherwise. */
-internal fun formatNumber(value: Double): String {
-    // One decimal is the lane's whole precision, and rounding **first** matters: a size derived from a
-    // pen width is 26.000000000000004, which used to print as `26.0` in a field that wanted `26`.
-    val rounded = kotlin.math.round(value * 10.0) / 10.0
-    return if (rounded == rounded.toLong().toDouble()) {
-        rounded.toLong().toString()
-    } else {
-        String.format(java.util.Locale.ROOT, "%.1f", rounded)
-    }
-}
+/**
+ * A number as the lane prints it — [com.mobixournal.render.decimalText]'s one-decimal rule, under the
+ * lane's name for it.
+ *
+ * One decimal is the lane's whole precision, and rounding **first** matters: a size derived from a pen
+ * width is 26.000000000000004, which used to print as `26.0` in a field that wanted `26`.
+ */
+internal fun formatNumber(value: Double): String = com.mobixournal.render.decimalText(value)
 
 /** [value] at one decimal, for a readout — `Locale.ROOT`, so a readout never prints a comma. */
 internal fun Double.roundToTenth(): String = String.format(java.util.Locale.ROOT, "%.1f", this)
