@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 /**
  * Documents: the format a **new** document is born in.
  *
- * It is asked here and, the first time, by the tour ([OnboardingStep5DocumentFormat] asks the format).
+ * It is asked here and, the first time, by the tour ([OnboardingStepDocumentFormat] asks the format).
  * It is a *default for new work*, not a mode: a document that was opened keeps the format it came in
  * (`docs/mobix-format.md`), and Save As converts either way, so this page never has to say what the
  * already-open document is.

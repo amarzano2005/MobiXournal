@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,10 +30,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.rememberChromeColor
 
 /**
- * Onboarding's fourth step: **which hand writes**, which is the only thing that decides where the rail
+ * Onboarding's first step: **which hand writes**, which is the only thing that decides where the rail
  * goes.
  *
  * The choice is [AppSettings.toolbarPosition], and it is a handedness answer rather than a placement
@@ -48,38 +48,22 @@ import com.mobixournal.ui.theme.rememberChromeColor
  * changeable later under **Settings -> Interface -> Toolbar**.
  */
 @Composable
-internal fun OnboardingStep4Handedness(
+internal fun OnboardingStepHandedness(
     selected: ToolbarPosition,
     onSelect: (ToolbarPosition) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PanTool,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = "Which hand do you write with?",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
+        Text(
+            text = "Which hand do you write with?",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
 
         Text(
             text = "The Main Toolbar docks to the edge opposite your writing hand: that keeps the tools " +
                 "under your free hand and out from under your palm. Pick your hand and watch the rail move " +
-                "behind this dialog.",
+                "behind this panel.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -110,9 +94,8 @@ internal fun OnboardingStep4Handedness(
 
         Text(
             text = "Changeable any time in Settings → Interface → Toolbar.",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -136,12 +119,13 @@ private fun HandednessCard(
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     }
     val outline = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val shape = RoundedCornerShape(ModernTheme.capsuleCornerRadiusDp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(shape)
             .background(container)
-            .border(if (selected) 2.dp else 1.dp, outline, RoundedCornerShape(14.dp))
+            .border(if (selected) 2.dp else 1.dp, outline, shape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,

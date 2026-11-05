@@ -131,11 +131,16 @@ fun BackupSection(
         FloatingDialog(
             onDismissRequest = { showResetDialog = false },
             title = { Text("Reset all settings?") },
-            text = { Text("Every preference goes back to its factory value.") },
+            text = {
+                Text(
+                    "Every preference goes back to its factory value. The welcome tour does not come " +
+                        "back — it is not a preference.",
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     showResetDialog = false
-                    onChange(AppSettings())
+                    onChange(settings.factoryDefaults())
                     Toast.makeText(context, "Settings reset to defaults", Toast.LENGTH_SHORT).show()
                 }) {
                     Text("Reset")

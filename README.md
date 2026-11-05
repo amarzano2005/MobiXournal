@@ -325,8 +325,8 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **Theming & Backups**:
   - Material 3 theme (System, Light, Dark) as three chips on the Appearance page, with optional Material You dynamic wallpaper colors (Android 12+). The chrome itself stays black, grey and blue whatever the wallpaper offers — dynamic colour cannot tint a panel, a chip or a menu.
   - Complete settings, palette **and audio** export/import to standard JSON — the folder and *save a
-    separate file* included — accepting only a compatible backup (older versions too) and reporting a wrong
-    or newer file; **Reset all settings** empties them back to the factory answers.
+    separate file* included — accepting only a compatible backup (older versions too) and reporting a
+    wrong or newer file; **Reset all settings** restores the factory answers without replaying the tour.
 
 ### 💾 Saving & Exporting
 

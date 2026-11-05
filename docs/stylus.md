@@ -214,17 +214,23 @@ their font size in both cases — letters are the figure there, not a stroke.
 ## First-launch onboarding
 
 **First-launch onboarding.** Fresh installs display `OnboardingDialog.kt` over `EditorScreen`, controlled
-by `AppSettings.hasSeenOnboarding`. Its five steps are stylus pressure and barrel-button configuration,
-harmonizing figure sizes with handwriting pressure, graphics-tablet ExpressKeys, **handedness**, and the
-format a new document is written in (`.mobix` or `.xopp`).
+by `AppSettings.hasSeenOnboarding`. It asks **two** questions — **handedness**, and the format a new
+document is written in (`.mobix` or `.xopp`) — because those are the two answers a person has to give;
+the stylus pressure, figure widths and ExpressKeys it once explained from there all belong to the
+Settings screen that owns those controls.
 
 The handedness step (`OnboardingHandedness.kt`) asks the question the rail is really about — *which hand
 writes* — rather than which edge to dock to: two cards, a radio set, each carrying a miniature of the
 editor with the rail drawn on the edge that hand implies (right hand → **left** edge, the default; left
-hand → the **right** edge), so the answer is a hand rather than a coin flip. The last two steps edit the
-settings they ask about — `AppSettings.toolbarPosition` and `AppSettings.newDocumentFormat`, through
-`onToolbarPosition` / `onDocumentFormat` — and because the editor is composed behind the dialog, the rail
+hand → the **right** edge), so the answer is a hand rather than a coin flip. Both steps edit the setting
+they ask about — `AppSettings.toolbarPosition` and `AppSettings.newDocumentFormat`, through
+`onToolbarPosition` / `onDocumentFormat` — and because the editor is composed behind the panel, the rail
 is *seen* moving as a card is tapped rather than described.
+
+**A settings reset does not replay the tour.** Resetting the preferences puts every value back to its
+factory one except the flags that record something *has been shown*: `AppSettings.factoryDefaults()`
+carries `hasSeenOnboarding` over, because an introduction the user already sat through is not a
+setting.
 
 Gestures, palm rejection, pressure → width, smoothing, hover, momentum, multi-finger taps, telemetry and
 selection parity are [gestures.md](gestures.md)'s.

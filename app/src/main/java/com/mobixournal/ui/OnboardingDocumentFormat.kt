@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,9 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.ModernTheme
 
 /**
- * Onboarding's last step: which format a **new** document is written in.
+ * Onboarding's second step: which format a **new** document is written in.
  *
  * The one question the format policy deliberately asks the user rather than answering for them
  * (`docs/mobix-format.md`, *Which format a document is written in*): the format is the boundary of
@@ -41,33 +41,17 @@ import androidx.compose.ui.unit.dp
  * and the badge is what says so out loud.
  */
 @Composable
-internal fun OnboardingStep5DocumentFormat(
+internal fun OnboardingStepDocumentFormat(
     selected: NewDocumentFormat,
     onSelect: (NewDocumentFormat) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = "What should a new document be?",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
+        Text(
+            text = "What should a new document be?",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
 
         Text(
             text = "MobiXournal writes two kinds of file. Both draw and save the same pages — they " +
@@ -101,9 +85,8 @@ internal fun OnboardingStep5DocumentFormat(
 
         Text(
             text = "Changeable any time in Settings → App & data → Documents.",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -128,12 +111,13 @@ private fun DocumentFormatCard(
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     }
     val outline = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val shape = RoundedCornerShape(ModernTheme.capsuleCornerRadiusDp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(shape)
             .background(container)
-            .border(if (selected) 2.dp else 1.dp, outline, RoundedCornerShape(14.dp))
+            .border(if (selected) 2.dp else 1.dp, outline, shape)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),

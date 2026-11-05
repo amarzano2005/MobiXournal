@@ -62,3 +62,17 @@ created = 2026-11-01
 tags = ["app"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "onboarding-deslop"
+title = "De-slop the first-launch welcome panel and stop a settings reset from replaying it"
+description = "The welcome panel was a stock Material3 Surface (24 dp corner, tonalElevation 6, opaque) carrying an MX badge, a five-pill step strip, Material icon chips, an emoji tip and three pages of prose about styler pressure, figure widths and ExpressKeys - none of which the dialog can change. Rebuild it as the family's floating surface (FloatingDialog) with two steps: handedness and the new-document format, the two answers the user can actually give, each written through as it is tapped. Drop the decorative badge, the step dots, the icon chips and the emoji; sentence-case the copy. Separately: Settings -> Reset called AppSettings(), whose default hasSeenOnboarding=false, so resetting the preferences replayed the tour. AppSettings.factoryDefaults() now carries the shown-flag over, with AppSettingsFactoryDefaultsTest pinning it."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 1010
+created = 2026-11-05
+tags = ["ui", "onboarding"]
+rebuild = true
+emulator_debug = false
