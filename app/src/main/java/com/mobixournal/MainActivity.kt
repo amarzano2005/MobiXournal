@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
         if (settingsState.value.themeMode != next.themeMode) {
             MobiXournalApp.applyThemeMode(this, next.themeMode)
             window.setBackgroundDrawableResource(
-                if (next.themeMode == ThemeMode.LIGHT) R.drawable.splash_screen_light else R.drawable.splash_screen_dark,
+                if (isDarkTheme(next)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
             )
         }
         settingsState.value = next
@@ -375,11 +375,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupThemeAndWindow(initialSettings: AppSettings) {
-        val useLight = initialSettings.themeMode == ThemeMode.LIGHT
-        setTheme(if (useLight) R.style.Theme_MobiXournal_Light else R.style.Theme_MobiXournal_Dark)
+        // Resolved, not "is it literally LIGHT": SYSTEM has a real answer, and picking Dark for it
+        // painted the window's own background charcoal under a light app.
+        val dark = isDarkTheme(initialSettings)
+        setTheme(if (dark) R.style.Theme_MobiXournal_Dark else R.style.Theme_MobiXournal_Light)
         MobiXournalApp.applyThemeMode(this, initialSettings.themeMode)
         window.setBackgroundDrawableResource(
-            if (useLight) R.drawable.splash_screen_light else R.drawable.splash_screen_dark,
+            if (dark) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
         )
     }
 

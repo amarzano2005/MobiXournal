@@ -323,7 +323,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - Distraction-free **Full-Page View** (double-tap canvas center with Hand tool to hide all chrome).
   - A hairline scroll thumb flush with the canvas edge (drag it to jump, with a page-number bubble while you drag); persistent page counter and zoom indicator (tap to reset to 100%).
 - **Theming & Backups**:
-  - Material 3 theme (System, Light, Dark) as three chips on the Appearance page, with optional Material You dynamic wallpaper colors (Android 12+). The chrome itself stays black, grey and blue whatever the wallpaper offers — dynamic colour cannot tint a panel, a chip or a menu.
+  - Material 3 theme (System, Light, Dark) chosen on the Interface page, with optional Material You dynamic wallpaper colors (Android 12+). The choice repaints the app at once; the startup splash and the home-screen icon take it when the app starts, so changing it offers a restart (now or later), and the splash that comes up is the one your theme asked for. The chrome itself stays black, grey and blue whatever the wallpaper offers — dynamic colour cannot tint a panel, a chip or a menu.
   - Complete settings, palette **and audio** export/import to standard JSON — the folder and *save a
     separate file* included — accepting only a compatible backup (older versions too) and reporting a
     wrong or newer file; **Reset all settings** restores the factory answers without replaying the tour.

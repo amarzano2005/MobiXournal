@@ -1,11 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base theme is a Material 3 splash/launch theme.
-         Defaults to the dark header charcoal (#161618) splash screen. -->
+    <!-- Base theme, and the one MainActivity itself declares.
+         **The startup splash is chosen here, by the day/night qualifier, not by the launcher alias:**
+         Android draws the starting window from the theme of the component that launched the app,
+         before any of our code runs, and an `activity-alias` only re-labels the icon. So the base
+         theme is the *light* splash in the day configuration and the dark one in values-night, and
+         MobiXournalApp.applyThemeMode keeps the app's -night qualifier equal to the chosen theme. -->
     <style name="Theme.MobiXournal" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowBackground">@drawable/splash_screen_dark</item>
+        <item name="android:windowBackground">@drawable/splash_screen_light</item>
     </style>
 
     <!-- Explicit Light style: always uses light splash (#FFFFFF) and light status bar -->

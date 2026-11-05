@@ -1,10 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Android 12+ (API 31+) SplashScreen theme: defaults to dark header charcoal (#161618) -->
+    <!-- Android 12+ (API 31+) SplashScreen theme, day configuration = the app on Light.
+         The base style is what MainActivity declares, so it is the one the system reads for the
+         starting window; values-night-v31 carries the dark half. See values/themes.xml. -->
     <style name="Theme.MobiXournal" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowSplashScreenBackground">@color/splash_background_dark</item>
+        <item name="android:windowSplashScreenBackground">@color/splash_background_light</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
     </style>
