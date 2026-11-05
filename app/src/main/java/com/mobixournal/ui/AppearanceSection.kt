@@ -30,8 +30,11 @@ fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     val context = LocalContext.current
     var restartPending by remember { mutableStateOf(false) }
     OptionGroup(
-        title = "Appearance",
-        subtitle = "The app's theme: light, dark, or whatever the system is set to.",
+        // The row's words are the entry's words (`SettingsSection`), not a second copy of them: this row
+        // used to carry a reworded title and subtitle, and the two drifted apart on the day it moved out
+        // of its own page.
+        title = SettingsSection.APPEARANCE.title,
+        subtitle = SettingsSection.APPEARANCE.summary,
         options = ThemeMode.values().toList(),
         selected = settings.themeMode,
         label = { it.label },

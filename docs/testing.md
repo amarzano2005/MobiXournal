@@ -91,6 +91,7 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   its point geometry where the XML has no telemetry to keep, and is **reported** rather than dropped
   when it cannot be drawn. It is the mechanism behind the compatibility contract of
   [xopp-bridge.md](xopp-bridge.md).
+- **`SettingsCopyParityTest`** (`guards/`) — the sections the tablet's Settings list and the window's index share are spelled the same, read out of both declarations rather than from a shared constant a shell's own list cannot be; and the Appearance row draws its entry's own title and summary instead of carrying a second copy of them.
 - **`CiCoverageTest`** (`guards/`) — the suites CI actually runs. It reads `settings.gradle.kts` and the
   workflow's Gradle lines and fails when a module that carries a test source set is not named there,
   and it fails in the other direction too (no Gradle line found, or `:desktop:test` gone) so a rewritten
