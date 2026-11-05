@@ -187,7 +187,10 @@
             </intent-filter>
         </activity>
 
-        <!-- Default launcher alias: dark header charcoal (#161618) icon and splash screen. -->
+        <!-- Default launcher alias: dark header charcoal (#161618) icon. The splash is not
+             this alias's business — both aliases wear the shared day/night base theme, because a
+             theme here would pin the starting window to one theme whichever one the app picked
+             (a light app relaunched through the still-enabled dark alias came up charcoal). -->
         <activity-alias
             android:name=".LauncherDark"
             android:enabled="true"
@@ -196,14 +199,14 @@
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
             android:targetActivity=".MainActivity"
-            android:theme="@style/Theme.MobiXournal.Dark">
+            android:theme="@style/Theme.MobiXournal">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <!-- Light-theme launcher alias: white (#FFFFFF) icon and splash screen. -->
+        <!-- Light-theme launcher alias: white (#FFFFFF) icon. -->
         <activity-alias
             android:name=".LauncherLight"
             android:enabled="false"
@@ -212,7 +215,7 @@
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_light_round"
             android:targetActivity=".MainActivity"
-            android:theme="@style/Theme.MobiXournal.Light">
+            android:theme="@style/Theme.MobiXournal">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
