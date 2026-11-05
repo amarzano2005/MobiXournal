@@ -7,7 +7,7 @@ import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.sheet.DesktopClipboard
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.LivingFamily
-import com.mobixournal.desktop.sheet.PASTE_OFFSET_PT
+import com.mobixournal.render.SelectionOps
 import com.mobixournal.desktop.sheet.SelectionAction
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.alignSelection
@@ -124,7 +124,7 @@ class DesktopSelectionBarTest {
     }
 
     @Test
-    fun `paste lands beside what was copied and selects the copy`() {
+    fun `paste centres the copy on the page and selects it`() {
         val tab = tabWith(bar(20.0, 20.0))
         tab.selection = selectFirst(tab)
         val clipboard = DesktopClipboard()
@@ -132,12 +132,36 @@ class DesktopSelectionBarTest {
         tab.selection = null
         assertTrue("paste is available with a clipboard and no selection", selectionBarUi(tab, clipboard).hasClipboard)
         assertTrue(pasteClipboard(tab, clipboard))
-        val pasted = elements(tab).last() as Stroke
-        val before = (clipboard.elements.single() as Stroke).points.first()
-        assertEquals(before.x + PASTE_OFFSET_PT, pasted.points.first().x, 1e-6)
-        assertEquals(before.y + PASTE_OFFSET_PT, pasted.points.first().y, 1e-6)
+        // No viewport laid out on this tab, so the page's own centre is where the window is looking.
+        val page = tab.document.page(tab.page)
+        val pasted = SelectionOps.boundsOf(listOf(elements(tab).last()))!!
+        assertEquals("centred on the page: x", page.width / 2, (pasted.left + pasted.right) / 2, 1e-6)
+        assertEquals("centred on the page: y", page.height / 2, (pasted.top + pasted.bottom) / 2, 1e-6)
         assertEquals("the pasted copy is what stays selected", 1, tab.selection?.refs?.size)
         assertTrue("and it is the pasted one", tab.selection!!.refs.contains(ElementRef(0, 1)))
+        tab.document.close()
+    }
+
+    @Test
+    fun `paste lands where the window is looking, not where it was copied from`() {
+        val tab = tabWith(bar(20.0, 20.0))
+        tab.selection = selectFirst(tab)
+        val clipboard = DesktopClipboard()
+        assertTrue(copySelection(tab, clipboard))
+        val copiedBox = clipboard.bounds!!
+        tab.selection = null
+        // A window showing the page at 2x, panned: its centre is the page point (350, 225).
+        tab.viewWidth = 1200f
+        tab.viewHeight = 800f
+        tab.viewport = Viewport(zoom = 2f, offsetX = -100f, offsetY = -50f)
+        assertTrue(pasteClipboard(tab, clipboard))
+        val pasted = SelectionOps.boundsOf(listOf(elements(tab).last()))!!
+        assertEquals("the copy is centred on the viewport: x", 350.0, (pasted.left + pasted.right) / 2, 1e-6)
+        assertEquals("the copy is centred on the viewport: y", 225.0, (pasted.top + pasted.bottom) / 2, 1e-6)
+        assertTrue(
+            "the paste must not sit back at the copied-from spot",
+            kotlin.math.abs((pasted.left + pasted.right) / 2 - (copiedBox.left + copiedBox.right) / 2) > 1.0,
+        )
         tab.document.close()
     }
 

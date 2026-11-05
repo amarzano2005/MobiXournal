@@ -168,7 +168,10 @@ Images are living document elements (ImageElement) on the active layer:
 - **Three entry paths**:
   - **Tool strip**: The image slot (Picture icon) opens a file dialog filtering PNG and JPEG.
   - **System clipboard**: Ctrl+V (or the selection bar's paste button) ingests an image from the OS
-    clipboard (DataFlavor.imageFlavor) when the internal selection clipboard is empty.
+    clipboard (DataFlavor.imageFlavor) when the internal selection clipboard is empty. When it is **not**
+    empty, the pasted elements land **centred on the part of the page the window is showing** — the tablet's
+    own rule ([selection.md](selection.md)) — rather than back at the spot they were copied from, which a pan
+    or a zoom may have left off screen.
   - **Drag-and-drop**: Dropping an image file onto the window displays a hover overlay and places the
     element on the page. Dropping a PDF or notebook routes to document open or PDF append workflows.
 - **Placement geometry**: Initial placement preserves the image's native aspect ratio, sized to fit

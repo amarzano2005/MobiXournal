@@ -87,7 +87,13 @@ enum class SelectionAction {
     EDIT,
 }
 
-/** How far a paste lands from the elements it copied, in page points — a second paste must not hide. */
+/**
+ * How far a **duplicate** lands from the element it copied, in page points — a copy that hid its original
+ * would look like nothing happened.
+ *
+ * A **paste** does not use it: it centres on what the window is showing (`pasteClipboard`), and nudging that
+ * by a fixed amount would be the same wrong-place habit in a smaller size.
+ */
 const val PASTE_OFFSET_PT = 14.0
 
 /** `Delete`: the caught elements go, as one edit and one undo step. */
@@ -145,8 +151,15 @@ internal fun cutSelection(
 }
 
 /**
- * `Ctrl+V`: the clipboard lands on the page, offset by [PASTE_OFFSET_PT] from where it came from and
- * **selected**, so the next gesture — a drag, a recolour — acts on what was just pasted.
+ * `Ctrl+V`: the clipboard lands **where the window is looking** — the pasted box centred on the visible
+ * centre of the page in view — and **selected**, so the next gesture (a drag, a recolour) acts on what was
+ * just pasted.
+ *
+ * Centring on the viewport, not on the spot the elements were copied from: after a pan or a zoom that spot
+ * can be screens away, and a paste that obeyed it used to drop the copy in a corner of a page the reader was
+ * not looking at. The tablet has always done it this way — the copy lands on the page in view, centred — and
+ * `DesktopTab.visiblePageCenter` is the same arithmetic in the window's own units. A clipboard with no
+ * measurable geometry keeps the box where it is, and `appendSelected` already answers that case.
  */
 internal fun pasteClipboard(
     tab: DesktopTab,
@@ -156,7 +169,13 @@ internal fun pasteClipboard(
 ): Boolean {
     if (!clipboard.isEmpty) {
         val elements = clipboard.elements
-        val origin = clipboard.bounds?.let { (it.left + PASTE_OFFSET_PT) to (it.top + PASTE_OFFSET_PT) }
+        val box = clipboard.bounds
+        val origin = if (box == null) {
+            null
+        } else {
+            val (centreX, centreY) = tab.visiblePageCenter(tab.document.page(tab.page))
+            (centreX - (box.right - box.left) / 2.0) to (centreY - (box.bottom - box.top) / 2.0)
+        }
         return appendSelected(tab, elements, origin, onEdited)
     }
 
