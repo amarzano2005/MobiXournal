@@ -44,6 +44,8 @@
       <Directory Id="ProgramMenuFolder">
         <Directory Id="ApplicationProgramsFolder" Name="MobiXournal" />
       </Directory>
+      <!-- The reader's own desktop: a per-user install writes here without an administrator prompt. -->
+      <Directory Id="DesktopFolder" />
     </Directory>
 
     <DirectoryRef Id="ApplicationProgramsFolder">
@@ -57,6 +59,20 @@
         <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
         <!-- The shortcut's keypath: a per-user registry value, so the component is installed for the reader. -->
         <RegistryValue Root="HKCU" Key="Software\MobiXournal" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="C4D5E6F7-1A2B-4C3D-9E8F-0A1B2C3D4E05">
+        <Shortcut Id="DesktopShortcutLink"
+                  Name="MobiXournal"
+                  Description="MobiXournal for Windows"
+                  Target="[INSTALLDIR]MobiXournal.exe"
+                  WorkingDirectory="INSTALLDIR"
+                  Icon="AppIcon" />
+        <!-- A key of its own, so the desktop icon can come and go without touching the Start menu's. -->
+        <RegistryValue Root="HKCU" Key="Software\MobiXournal" Name="desktopShortcut"
+                       Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </DirectoryRef>
 
@@ -115,6 +131,19 @@
              Display="expand">
       <ComponentRef Id="MobixAssociation" />
       <ComponentRef Id="XoppAssociation" />
+    </Feature>
+
+    <!--
+      Also answered **yes** by default and also a choice: an icon on the desktop is wanted by many people
+      and unwanted by those who keep their desktop for their own files.
+    -->
+    <Feature Id="DesktopShortcut"
+             Title="Desktop shortcut"
+             Description="Puts a MobiXournal icon on the desktop."
+             Level="1"
+             Absent="allow"
+             Display="expand">
+      <ComponentRef Id="DesktopShortcut" />
     </Feature>
 
     <UIRef Id="WixUI_FeatureTree" />
