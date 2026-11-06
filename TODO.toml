@@ -64,9 +64,9 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "read-ink-a-line-at-a-time-on-the-lift-and-keep-the-index-warm"
-title = "Read ink a line at a time, on the lift, and keep the index warm"
-description = "Make handwriting recognition feel immediate without shipping a model: (1) give ML Kit a line-level path — MlKitInkEngine.recognizeLine asking one language model for the whole line, plugged as an InkLineEngine so HandwritingRecognizer uses it instead of one call per word and per language tag; (2) recognise the line just written when the pen lifts, debounced ~300 ms, and cache the reading per page so a search reuses it rather than re-walking the notebook (CanvasSearch's generation counter already makes a cancelled walk safe); (3) start the index when a document opens instead of on the first query. Verify: HandwritingEngineTest/HandwritingRecognizerTest still pass with a fake line engine, a new test pins that one line costs one engine call and that an untouched page is read once, and on the tablet (emulator_debug) measure the time from pen lift to result and from opening a written notebook to a ready index; record the numbers in docs/search.md."
+id = "read-ink-on-the-stroke-lift-in-the-window-with-a-per-page-cache"
+title = "Read ink on the stroke lift in the window, with a per-page cache"
+description = "Make the PC window's handwriting reading immediate without shipping a model: after a stroke settles (~300 ms) recognise the touched line through the existing WinRT line call (InkLineEngine in WinInk.kt) instead of waiting for the first search query, keep the reading in the tab's HandwritingCache (DesktopHandwriting.kt) keyed by the edit count so a query reuses it, and start the per-page walk when a document opens rather than on the first query (DesktopSearch.kt / DesktopTabs.kt). Verify with DesktopSearchTest: a line written on the page is readable before any query, an untouched page is recognised once, an edited page is read again; then run the packaged window on a real notebook and record lift-to-reading and open-to-ready in docs/search.md."
 status = "active"
 level = "task"
 category = "feature"
@@ -74,5 +74,5 @@ urgency = "normal"
 order = 1010
 created = 2026-11-06
 tags = ["handwriting"]
-rebuild = true
-emulator_debug = true
+rebuild = false
+emulator_debug = false

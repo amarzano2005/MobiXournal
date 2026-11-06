@@ -144,13 +144,12 @@ The shared module owns the segmentation and the fallback engine; only the model-
 
 ## A local model, measured before it is chosen
 
-*Decision (2026-11-06).* Whether to read ink with a line-level model **inside the APK** — the way
-xournal-qt does, with a 9.1 MB int8 CRNN beside ONNX Runtime — was answered with measurements instead of
-by shipping one. The answer: **the delay a writer feels is the pipeline's, not the model's.** A local
-engine reads a line in tens of milliseconds; this app asks its engine once per *word*, across every page
-of the *document*, only after a query arrives. `MlKitInkEngine.recognizeWord` also asks each downloaded
-language model in turn (up to six tags), so a two-hundred-word page can be more than a thousand calls
-for one search.
+*Decision (2026-11-06).* The question was whether to read ink with a line-level model that travels with
+the app, the way xournal-qt does on Windows (a 9.1 MB int8 CRNN beside ONNX Runtime), instead of asking
+the platform. It is two questions, because the shells' engines differ: the **window** reads with Windows'
+own recognizer (`WinInk.kt`), the **tablet** with ML Kit (`AndroidInkEngine.kt`) — and ML Kit is
+Android-only, so on the PC a local model is the *only* route to that kind of reading, not a faster route
+to one already there. Both were measured; the latency numbers below are the PC's.
 
 ### What one line costs
 
@@ -164,13 +163,21 @@ the closest model at hand, used as a ruler and **not** as a candidate: its weigh
 | 1024 px | 16.3 ms |
 | 2048 px | 31.9 ms |
 
-Session load is 28 ms and the cost is linear in width. The PC is not the tablet, so these numbers give
-the **shape** of the cost — tens of milliseconds, not seconds — and only a device run gives the tablet's
-multiplier. ML Kit's published figure is about 100 ms for a line, the same order.
+Session load is 28 ms and the cost is linear in width: **6–32 ms per line** on this machine. The window's
+baseline is its Windows bridge — about 55 ms just to activate, 17 ms to answer a word, a 419-word page
+read word by word taking 34 s, which is why `InkLineEngine` exists. A local model is therefore 2–10×
+faster per line here, and it keeps working on a machine where the optional Windows handwriting feature is
+absent and `WinInkTest` skips. ML Kit's published ~100 ms for a line is the tablet's order of magnitude.
 
-### What a runtime and its weights add to the APK
+### What a runtime and its weights add
 
-Measured from the artifacts themselves (`unzip -l` of each AAR), uncompressed as they land in an APK:
+On the **PC** size is not the obstacle. The packaged window is **147 MB**; ONNX Runtime's `win-x64`
+library is **12.4 MB** (the `onnxruntime` jar is 139 MB because it carries every platform plus debug
+symbols — we would ship the one DLL). LiteRT is not an option there: it is Android and Linux only. A
+local reader on the PC therefore costs about +12 MB plus its weights, under a tenth of the image.
+
+On the **tablet** the runtime is what costs. Measured from the artifacts themselves (`unzip -l` of each
+AAR), uncompressed as they land in an APK:
 
 | dependency | arm64-v8a native library |
 |---|---|
@@ -180,14 +187,13 @@ Measured from the artifacts themselves (`unzip -l` of each AAR), uncompressed as
 
 The debug APK is 66.8 MB, 29.1 MB of it four copies of `libdigitalink.so` (x86, x86_64, arm64-v8a,
 armeabi-v7a). A tablet is arm64-v8a, so an ABI split alone would free 22.2 MB — more than LiteRT plus a
-13 MB model would add. ONNX Runtime is ruled out on this axis: 3.6× LiteRT's native library for the same
-job. ML Kit also costs the APK nothing for its weights: about 20 MB **per language**, downloaded at
-runtime.
+13 MB model would add, and ONNX Runtime is ruled out on this axis (3.6× LiteRT's native library for the
+same job). ML Kit's weights cost the APK nothing: about 20 MB **per language**, downloaded at runtime.
 
 ### What the quality would be
 
-ML Kit publishes no CER, and neither do we. What permissively licensed alternatives publish is not
-better than what the tablet already reads:
+Neither shell publishes a CER for its own reader, so the published figures of the permissive candidates
+are the only comparable ones — and they are not better than what the platforms already read:
 
 - **PP-OCRv5 mobile recognition** (Apache-2.0, 17 MB LiteRT) is a general text-line model with
   handwriting *coverage*; its own handwritten-English line accuracy is 0.4944 — a coin toss per line.
@@ -199,22 +205,25 @@ better than what the tablet already reads:
   comes with them; the 13 MB sibling (CER 5.43) lists IAM in its training data — the same non-commercial
   taint that keeps xournal-qt's own model out of a commercial build.
 
-So there is no small, permissively licensed, line-level checkpoint today that beats ML Kit's reading.
-One that did would have to be trained for it.
+So no small, permissively licensed, line-level checkpoint measured here is worth shipping. And the
+repository is GPL-2.0: weights offered for non-commercial use only — xournal-qt's own model claims WER
+0.58 %, and its licence forbids exactly that distribution — are an added restriction we cannot pass on,
+on either shell. A model that did fit would have to be trained for it.
 
 ### The decision
 
-**The shipped reading stays ML Kit's, and the work is the pipeline.** Three changes make recognition feel
-immediate without adding a byte to the APK:
+**Read on the stroke lift, not on the first query.** That is what makes recognition feel immediate, and it
+costs no bytes:
 
-1. **A line call, not a word call.** `InkLineEngine` exists for exactly this and only the window's engine
-   implements it; ML Kit recognises an `Ink` of many strokes, so a line is one call and one language
-   model, not six calls per word.
-2. **Read on the stroke lift, debounced, and keep it per page.** The index then reuses readings it already
-   has instead of re-walking the notebook, and `CanvasSearch`'s generation counter already makes a
-   cancelled walk safe.
-3. **Build the index when a document opens**, not when the first query arrives.
+1. **The window already has the call.** `InkLineEngine` exists for the Windows bridge; the change is
+   *when* it is asked — about 300 ms after the pen settles on the line just written — and *where the
+   answer goes* (the tab's `HandwritingCache`, reused until the edit count moves), with the walk started
+   when a document opens instead of on the first query.
+2. **The tablet needs the call first.** ML Kit is asked once per word across up to six language models;
+   it recognises an `Ink` of many strokes, so a line is one call and one model.
 
-A bundled model returns only as an **optional download** behind `InkWordEngine`: LiteRT rather than ONNX
-Runtime, arm64-v8a only, weights whose licence can be stated in this file — never an APK asset whose terms
-we cannot.
+**Then each shell keeps the engine it has.** The window keeps Windows' recognizer as its default — free,
+offline, already installed — and the tablet keeps ML Kit. A local model is added behind `InkWordEngine`
+only where the platform reader is missing or too slow, and on the PC that is a measured proposition:
++12.4 MB of runtime for 6–32 ms a line. What is missing is not the runtime but the **weights**, so the
+seam waits for a model we can licence or train rather than for the plumbing.
