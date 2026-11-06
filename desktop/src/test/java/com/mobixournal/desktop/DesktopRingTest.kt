@@ -11,6 +11,7 @@ import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Tool
 import com.mobixournal.desktop.sheet.RingFace
+import com.mobixournal.desktop.sheet.ringWidthDotDiameter
 import com.mobixournal.render.RadialHud
 
 import androidx.compose.ui.geometry.Offset
@@ -44,6 +45,18 @@ class DesktopRingTest {
 
     private val density = 2f
     private val nib = Offset(300f, 400f)
+
+    @Test
+    fun `the three shipped widths draw three different dots`() {
+        val smallest = ringWidthDotDiameter(PenPalette.DEFAULT_WIDTHS[0])
+        val middle = ringWidthDotDiameter(PenPalette.DEFAULT_WIDTHS[1])
+        val largest = ringWidthDotDiameter(PenPalette.DEFAULT_WIDTHS[2])
+        assertEquals("S is six dp across", 6f, smallest, 1e-4f)
+        assertEquals("L is fourteen dp across", 14f, largest, 1e-4f)
+        // The middle slot must be visibly its own size, not a rounding of its neighbours: measuring
+        // against the pointer's whole range put all three within two dp of each other.
+        assertTrue("M sits well between S and L", middle > smallest + 2.5f && middle < largest - 2.5f)
+    }
 
     private fun ring(
         palette: List<Int> = PenPalette.COLORS,

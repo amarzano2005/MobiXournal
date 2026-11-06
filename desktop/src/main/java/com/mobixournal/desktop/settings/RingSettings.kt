@@ -6,6 +6,7 @@ import com.mobixournal.desktop.tools.rememberClosingValue
 import com.mobixournal.desktop.shell.ShellCommand
 import com.mobixournal.desktop.sheet.RingFace
 import com.mobixournal.desktop.sheet.drawRing
+import com.mobixournal.desktop.sheet.ringWidthDotDiameter
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.FloatingSurface
 import com.mobixournal.desktop.tools.glassSurface
@@ -326,17 +327,12 @@ private val WIDTH_DOT_BOX = 16.dp
 /**
  * **A width's dot**: its diameter is the stroke's own, spread across the pen's three slots.
  *
- * The scale is the *widths the pen ships* rather than the pointer's whole range: measured against the
- * 0.5 – 15 pt range a table can hold, 0.85 and 2.6 pt came out 4.4 dp and 5.4 dp — three rows of dots the
- * eye read as one size, which is exactly the thing the mark exists to answer. Across 0.85 – 2.6 pt the
- * three land six, nine and fourteen dp apart, so S / M / L are told apart before the labels are read.
+ * The ramp itself lives in `DesktopHudPaint.ringWidthDotDiameter`, so this preview and the ring at the
+ * pen cannot disagree about what S, M and L look like. It is the *widths the pen ships* rather than the
+ * pointer's whole 0.5 – 15 pt range, where 0.85 and 2.6 pt came out 4.4 dp and 5.4 dp — dots the eye read
+ * as one size. Across 0.85 – 2.6 pt the three land six, nine and fourteen dp apart.
  */
-private fun widthDot(pt: Float): Dp {
-    val smallest = PenPalette.DEFAULT_WIDTHS.min()
-    val largest = PenPalette.DEFAULT_WIDTHS.max()
-    val t = ((pt - smallest) / (largest - smallest)).coerceIn(0f, 1f)
-    return (6f + 8f * t).dp
-}
+private fun widthDot(pt: Float): Dp = ringWidthDotDiameter(pt).dp
 
 /**
  * **Opening it**: the key that summons the ring, armed on the spot.

@@ -9,7 +9,6 @@ import com.mobixournal.desktop.settings.drawToolGlyph
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.PenPalette
 import com.mobixournal.render.RadialHud
-import kotlin.math.sqrt
 
 /**
  * The window's **ring**, painted — the desktop adapter over the shared geometry, beside the tablet's
@@ -117,8 +116,20 @@ private const val SWATCH_RIM_ALPHA = 0.35f
 private const val GLYPH_BOX_SCALE = 1.2f
 
 /**
- * A width face's dot: 2.5 dp at the thinnest tip, about 12 dp at the widest — the tablet's own ramp, scaled
- * by the slot it is drawn in so a preview and the page's ring read the same.
+ * A width face's dot, in dp: the **shipped widths' own spread**, 6 dp at S and 14 dp at L.
+ *
+ * Measured against the pointer's whole range (0.5–15 pt) the three factory widths land 4.4, 5.4 and 6.5 dp
+ * across, which the eye reads as one size — the exact thing the face exists to answer. Across 0.85–2.6 pt
+ * they are 6, 10 and 14 dp, so S, M and L are told apart before a label is read. The Settings page's own
+ * width dots draw the same ramp (`RingSettings.widthDot`).
  */
+internal fun ringWidthDotDiameter(pt: Float): Float {
+    val smallest = PenPalette.DEFAULT_WIDTHS.min()
+    val largest = PenPalette.DEFAULT_WIDTHS.max()
+    val t = ((pt - smallest) / (largest - smallest)).coerceIn(0f, 1f)
+    return 6f + 8f * t
+}
+
+/** The radius a [ringWidthDotDiameter]'s dot is drawn at, scaled by the slot it sits in. */
 private fun widthDotRadius(pt: Float, slotRadius: Float): Float =
-    slotRadius * (0.125f + 0.475f * sqrt((pt / PenPalette.WIDTH_MAX).coerceIn(0.1f, 1f)))
+    ringWidthDotDiameter(pt) * slotRadius / RadialHud.SLOT_DIAMETER_DP
