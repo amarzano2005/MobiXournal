@@ -141,3 +141,80 @@ and throws the reading away when the document is edited.
 
 The shared module owns the segmentation and the fallback engine; only the model-backed reading stays in
 `app/` with ML Kit.
+
+## A local model, measured before it is chosen
+
+*Decision (2026-11-06).* Whether to read ink with a line-level model **inside the APK** — the way
+xournal-qt does, with a 9.1 MB int8 CRNN beside ONNX Runtime — was answered with measurements instead of
+by shipping one. The answer: **the delay a writer feels is the pipeline's, not the model's.** A local
+engine reads a line in tens of milliseconds; this app asks its engine once per *word*, across every page
+of the *document*, only after a query arrives. `MlKitInkEngine.recognizeWord` also asks each downloaded
+language model in turn (up to six tags), so a two-hundred-word page can be more than a thousand calls
+for one search.
+
+### What one line costs
+
+An int8 CRNN over 64-pixel-high lines, ONNX Runtime 1.31.1, CPU, four threads, on the owner's PC. It is
+the closest model at hand, used as a ruler and **not** as a candidate: its weights are non-commercial.
+
+| line width | median inference |
+|---|---|
+| 384 px | 6.1 ms |
+| 512 px | 8.0 ms |
+| 1024 px | 16.3 ms |
+| 2048 px | 31.9 ms |
+
+Session load is 28 ms and the cost is linear in width. The PC is not the tablet, so these numbers give
+the **shape** of the cost — tens of milliseconds, not seconds — and only a device run gives the tablet's
+multiplier. ML Kit's published figure is about 100 ms for a line, the same order.
+
+### What a runtime and its weights add to the APK
+
+Measured from the artifacts themselves (`unzip -l` of each AAR), uncompressed as they land in an APK:
+
+| dependency | arm64-v8a native library |
+|---|---|
+| Google LiteRT 2.1.0, `libLiteRt.so` (AAR 7.6 MB) | 5.1 MB |
+| ONNX Runtime 1.22.0, `libonnxruntime.so` (AAR 28.5 MB) | 18.2 MB |
+| ML Kit digital ink 19.0.0, `libdigitalink.so` — already shipped | 6.9 MB |
+
+The debug APK is 66.8 MB, 29.1 MB of it four copies of `libdigitalink.so` (x86, x86_64, arm64-v8a,
+armeabi-v7a). A tablet is arm64-v8a, so an ABI split alone would free 22.2 MB — more than LiteRT plus a
+13 MB model would add. ONNX Runtime is ruled out on this axis: 3.6× LiteRT's native library for the same
+job. ML Kit also costs the APK nothing for its weights: about 20 MB **per language**, downloaded at
+runtime.
+
+### What the quality would be
+
+ML Kit publishes no CER, and neither do we. What permissively licensed alternatives publish is not
+better than what the tablet already reads:
+
+- **PP-OCRv5 mobile recognition** (Apache-2.0, 17 MB LiteRT) is a general text-line model with
+  handwriting *coverage*; its own handwritten-English line accuracy is 0.4944 — a coin toss per line.
+- **TrOCR small** reaches IAM CER 4.22, but only as an int8 encoder/decoder pair of about 64 MB in ONNX,
+  decoded autoregressively once per line; the checkpoint's weight licence is undocumented (the repository
+  carries no licence field) although the code is MIT.
+- **The small permissive CTC checkpoints** that do fit (Kraken PP-OCRv6 tiny: 2.84 MB, CER 8.71 / WER
+  30.00) are 2–4× worse than a modern recogniser and ship as safetensors only, so a conversion toolchain
+  comes with them; the 13 MB sibling (CER 5.43) lists IAM in its training data — the same non-commercial
+  taint that keeps xournal-qt's own model out of a commercial build.
+
+So there is no small, permissively licensed, line-level checkpoint today that beats ML Kit's reading.
+One that did would have to be trained for it.
+
+### The decision
+
+**The shipped reading stays ML Kit's, and the work is the pipeline.** Three changes make recognition feel
+immediate without adding a byte to the APK:
+
+1. **A line call, not a word call.** `InkLineEngine` exists for exactly this and only the window's engine
+   implements it; ML Kit recognises an `Ink` of many strokes, so a line is one call and one language
+   model, not six calls per word.
+2. **Read on the stroke lift, debounced, and keep it per page.** The index then reuses readings it already
+   has instead of re-walking the notebook, and `CanvasSearch`'s generation counter already makes a
+   cancelled walk safe.
+3. **Build the index when a document opens**, not when the first query arrives.
+
+A bundled model returns only as an **optional download** behind `InkWordEngine`: LiteRT rather than ONNX
+Runtime, arm64-v8a only, weights whose licence can be stated in this file — never an APK asset whose terms
+we cannot.
