@@ -39,10 +39,12 @@ being edited are the pages searched, unsaved strokes included. And the PDF half 
 **own** `Background.Pdf.pageNo`: the window reorders pages, so document page *n* is not PDF page *n*, and a
 single index passed by position would highlight the wrong words.
 
-Ink is read **lazily and once**: `PageHandwriting` recognises a page the first time a query reaches it, and
-`HandwritingCache` keeps that reading on the tab until the document's edit count moves — a query typed letter
-by letter recognises a written page once, and an edited page is read again. There is no upfront index on the
-PC (the tablet builds one, see below): a search costs the pages it reads, never the whole notebook.
+Ink is read **lazily, a line at a time**: `PageHandwriting` segments a page when a query reaches it and reads
+only the lines it has no reading for, keyed by the line's own ink (`InkLine.key`) — so a query typed letter by
+letter reads a written page once, and an edit re-reads the **line it touched** while the rest of the page stays
+read. `HandwritingCache` keeps that reader on the tab while the document is the same one, and `InkReading`
+warms the page in view about 300 ms after a lift or a page turn. There is still no upfront index on the PC (the
+tablet builds one, see below): a search costs the pages it reads, never the whole notebook.
 
 The field stands on the band always, and two doors run the same `ShellCommand.FIND`: `Ctrl + F`, which hands
 it the keyboard, and the menu's **Search** row.
@@ -215,10 +217,10 @@ on either shell. A model that did fit would have to be trained for it.
 **Read on the stroke lift, not on the first query.** That is what makes recognition feel immediate, and it
 costs no bytes:
 
-1. **The window already has the call.** `InkLineEngine` exists for the Windows bridge; the change is
-   *when* it is asked — about 300 ms after the pen settles on the line just written — and *where the
-   answer goes* (the tab's `HandwritingCache`, reused until the edit count moves), with the walk started
-   when a document opens instead of on the first query.
+1. **The window reads on the lift** (*wired 2026-11-06*). `InkLineEngine` was already the Windows bridge's
+   call; `PageInkGesture` now warms the page about 300 ms after a lift and `SearchRunner` warms the page in
+   view when one is opened or turned, and the answer is kept per line in the tab's `HandwritingCache` — a
+   line is read once, and an edit costs the line it changed.
 2. **The tablet needs the call first.** ML Kit is asked once per word across up to six language models;
    it recognises an `Ink` of many strokes, so a line is one call and one model.
 

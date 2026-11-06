@@ -2,6 +2,7 @@ package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.HandwritingCache
 import com.mobixournal.desktop.ink.PageHandwriting
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.warmInk
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.sheet.number
@@ -156,6 +157,9 @@ internal fun SearchRunner(tab: DesktopTab?) {
     if (tab == null) return
     val query = tab.searchQuery
     val edits = tab.document.edits
+    // The page in view is read a moment after it is opened or turned, so the first query on a written
+    // sheet answers from a reading that already exists rather than from thirty lines of recognition.
+    LaunchedEffect(tab, tab.page) { tab.warmInk() }
     LaunchedEffect(tab, query, edits) {
         if (query.trim().length < DesktopSearchEngine.MIN_QUERY) {
             tab.search = DesktopSearch(query.trim())

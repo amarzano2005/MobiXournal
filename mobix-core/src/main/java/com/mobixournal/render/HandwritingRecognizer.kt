@@ -9,6 +9,23 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
+ * One line of handwritten ink, **segmented but not read**: the words its gaps make, and the box it covers.
+ *
+ * The split matters to a shell that reads ink while the hand is still working: an edit changes one line,
+ * and the reading of the others is still true. [key] is that fact as a value — a structural hash of the
+ * line's own strokes — so a cache can keep a reading until the ink under it changes, instead of throwing
+ * a whole page away because one word moved.
+ */
+class InkLine internal constructor(
+    val words: List<List<Stroke>>,
+    val bounds: Bounds,
+) {
+
+    /** Equal while this line's strokes are unchanged; a cache keys its reading on it. */
+    val key: Int = words.hashCode()
+}
+
+/**
  * Recognizes handwritten text from drawn stroke ink on document pages.
  *
  * Clusters strokes into lines and words and asks an [InkWordEngine] what each word says — the
@@ -107,6 +124,75 @@ object HandwritingRecognizer {
         engine: InkWordEngine = InkEngines.platform,
     ): List<HandwrittenWord> = recognizePage(inkStrokesOf(page), isCancelled, engine)
 
+    /**
+     * The page's lines, segmented but **not read** — what a shell that reads line by line keeps its
+     * readings against ([InkLine.key]). Reading is [recognize].
+     */
+    fun lines(page: Page, isCancelled: () -> Boolean = { false }): List<InkLine> =
+        linesOf(inkStrokesOf(page), isCancelled)
+
+    /** [strokes] as lines, in reading order (top to bottom), each with its words left to right. */
+    fun linesOf(strokes: List<Stroke>, isCancelled: () -> Boolean = { false }): List<InkLine> {
+        val bounded = ArrayList<BoundedStroke>(strokes.size)
+        for (stroke in strokes) {
+            val b = strokeBounds(stroke)
+            if (isHandwritingCandidate(stroke, b)) {
+                bounded.add(BoundedStroke(stroke, b))
+            }
+        }
+        if (bounded.isEmpty() || isCancelled()) return emptyList()
+        val lines = ArrayList<InkLine>()
+        for (line in groupIntoLines(bounded).sortedBy { it.avgMidY }) {
+            if (isCancelled()) return emptyList()
+            val words = groupLineIntoWords(line)
+            if (words.isNotEmpty()) lines.add(InkLine(words, lineBounds(words)))
+        }
+        return lines
+    }
+
+    /**
+     * What **one** line says: the engine's line call where it has one, a word at a time otherwise, with
+     * [FallbackInkEngine] behind every reading that came back empty. The same rules [recognizePage] follows,
+     * applied to one line so a shell can re-read only the line an edit touched.
+     */
+    fun recognize(
+        line: InkLine,
+        engine: InkWordEngine = InkEngines.platform,
+        isCancelled: () -> Boolean = { false },
+    ): List<HandwrittenWord> {
+        if (line.words.isEmpty() || isCancelled()) return emptyList()
+        val bounds = line.words.map { computeWordBounds(it) }
+        // One call for the whole line where the engine can take it: a bridged model pays for every call,
+        // and it reads a connected line better than an isolated word.
+        val bulk = (engine as? InkLineEngine)?.let { reader ->
+            runCatching { reader.recognizeLine(line.words, bounds) }.getOrNull()
+        }
+        return buildList {
+            line.words.forEachIndexed { index, wordStrokes ->
+                if (isCancelled()) return emptyList()
+                val read = bulk?.takeIf { it.size == line.words.size }?.get(index)
+                val word = read ?: recognizeWord(wordStrokes, if (bulk == null) engine else null)
+                if (word != null && word.text.isNotEmpty()) add(word)
+            }
+        }
+    }
+
+    /** The box a line's words cover, so a line carries its own geometry beside its ink. */
+    private fun lineBounds(words: List<List<Stroke>>): Bounds {
+        var left = Double.MAX_VALUE
+        var top = Double.MAX_VALUE
+        var right = -Double.MAX_VALUE
+        var bottom = -Double.MAX_VALUE
+        for (word in words) {
+            val b = computeWordBounds(word)
+            if (b.left < left) left = b.left
+            if (b.top < top) top = b.top
+            if (b.right > right) right = b.right
+            if (b.bottom > bottom) bottom = b.bottom
+        }
+        return Bounds(left, top, right, bottom)
+    }
+
     /** The strokes on [page] that can be handwriting: the pen's and the highlighter's, erasures never. */
     private fun inkStrokesOf(page: Page): List<Stroke> = page.layers.flatMap { layer ->
         layer.elements.filterIsInstance<Stroke>().filter {
@@ -121,43 +207,13 @@ object HandwritingRecognizer {
         return w >= MIN_STROKE_EXTENT || h >= MIN_STROKE_EXTENT
     }
 
-    /** Recognizes words from a list of strokes on a single page. */
+    /** Recognizes words from a list of strokes on a single page — every line, in reading order. */
     fun recognizePage(
         strokes: List<Stroke>,
         isCancelled: () -> Boolean = { false },
         engine: InkWordEngine = InkEngines.platform,
-    ): List<HandwrittenWord> {
-        val bounded = ArrayList<BoundedStroke>(strokes.size)
-        for (stroke in strokes) {
-            val b = strokeBounds(stroke)
-            if (isHandwritingCandidate(stroke, b)) {
-                bounded.add(BoundedStroke(stroke, b))
-            }
-        }
-        if (bounded.isEmpty() || isCancelled()) return emptyList()
-
-        val lines = groupIntoLines(bounded).sortedBy { it.avgMidY }
-        return buildList {
-            for (line in lines) {
-                if (isCancelled()) return emptyList()
-                val words = groupLineIntoWords(line)
-                // One call for the whole line where the engine can take it: a bridged model pays for
-                // every call, and it reads a connected line better than an isolated word.
-                val bulk = (engine as? InkLineEngine)?.let { reader ->
-                    runCatching { reader.recognizeLine(words, words.map { computeWordBounds(it) }) }
-                        .getOrNull()
-                }
-                words.forEachIndexed { index, wordStrokes ->
-                    if (isCancelled()) return emptyList()
-                    val read = bulk?.takeIf { it.size == words.size }?.get(index)
-                    val word = read ?: recognizeWord(wordStrokes, if (bulk == null) engine else null)
-                    if (word != null && word.text.isNotEmpty()) {
-                        add(word)
-                    }
-                }
-            }
-        }
-    }
+    ): List<HandwrittenWord> =
+        linesOf(strokes, isCancelled).flatMap { line -> recognize(line, engine, isCancelled) }
 
     private fun groupIntoLines(boundedStrokes: List<BoundedStroke>): List<LineCluster> {
         val sorted = boundedStrokes.sortedBy { it.top }

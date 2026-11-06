@@ -43,7 +43,6 @@ import androidx.compose.ui.input.key.Key
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -81,11 +80,11 @@ class DesktopSearchTest {
     )
 
     /** A word's worth of ink: two points far enough apart to be read as handwriting at all. */
-    private fun ink(): Stroke = Stroke(
+    private fun ink(x: Double = 10.0, y: Double = 10.0): Stroke = Stroke(
         tool = Tool.PEN,
         color = 0xFF000000.toInt(),
         capStyle = null,
-        points = listOf(StrokePoint(10.0, 10.0, 1.0), StrokePoint(60.0, 34.0, 1.0)),
+        points = listOf(StrokePoint(x, y, 1.0), StrokePoint(x + 50.0, y + 24.0, 1.0)),
         uniformWidth = false,
     )
 
@@ -321,7 +320,7 @@ class DesktopSearchTest {
     }
 
     @Test
-    fun `editing the document throws the recognised ink away`() {
+    fun `editing the document keeps the tab's reader, because a line remembers its own ink`() {
         val tab = tab("edited.xopp", listOf(page(listOf(ink()))))
 
         val first = tab.handwriting.of(tab)
@@ -329,7 +328,33 @@ class DesktopSearchTest {
 
         tab.document.replacePages(tab.document.model.pages)
 
-        assertNotSame("an edit re-reads the ink", first, tab.handwriting.of(tab))
+        assertSame(
+            "an edit keeps the reader; the line's own ink decides what is read again",
+            first,
+            tab.handwriting.of(tab),
+        )
+    }
+
+    /**
+     * A page is read **line by line**, so an edit costs the line the pen touched. Reading a page and then
+     * throwing the whole reading away because one word moved is what made a search on a written sheet as
+     * slow as the first one.
+     */
+    @Test
+    fun `an edit reads only the line that changed`() {
+        val second = ink(y = 200.0)
+        val tab = tab("lines.xopp", listOf(page(listOf(ink(), second))))
+        val engine = CountingEngine("ciao")
+        val handwriting = PageHandwriting(tab.document, engine)
+
+        assertEquals("two lines are read once each", 2, handwriting.words(0).size)
+        assertEquals(2, engine.reads)
+
+        tab.document.replacePages(listOf(page(listOf(ink(x = 30.0), second))))
+        val after = handwriting.words(0)
+
+        assertEquals("only the changed line is read again", 3, engine.reads)
+        assertEquals("and both lines are still on the page", 2, after.size)
     }
 
     /**

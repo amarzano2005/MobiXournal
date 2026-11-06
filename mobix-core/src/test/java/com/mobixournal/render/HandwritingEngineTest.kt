@@ -120,6 +120,31 @@ class HandwritingEngineTest {
         assertTrue("the word the line left unread is still found", words.size == 2 && words[1].text.isNotEmpty())
     }
 
+    /**
+     * A page can be handed out as **lines** without being read. That is what lets a shell keep a reading
+     * against the line's own ink and re-read only the line an edit touched ([InkLine.key]).
+     */
+    @Test
+    fun aPageIsSegmentedIntoLinesThatCarryTheirOwnKey() {
+        val page = page(
+            stroke(10.0, 10.0, 60.0, 40.0),
+            stroke(10.0, 200.0, 60.0, 230.0),
+        )
+
+        val lines = HandwritingRecognizer.lines(page)
+        val again = HandwritingRecognizer.lines(page)
+
+        assertEquals("two lines", 2, lines.size)
+        assertTrue("each carries its words", lines.all { it.words.isNotEmpty() })
+        assertEquals("the same ink is the same key", lines[0].key, again[0].key)
+        assertTrue("and two lines are two keys", lines[0].key != lines[1].key)
+        assertEquals(
+            "a line reads on its own",
+            listOf("appunti"),
+            HandwritingRecognizer.recognize(lines[0], fixedEngine("appunti")).map { it.text },
+        )
+    }
+
     @Test
     fun theDocumentOverloadStillBuildsAnIndexForTheTablet() {
         val doc = Document(pages = listOf(page(stroke(10.0, 10.0, 60.0, 40.0))))

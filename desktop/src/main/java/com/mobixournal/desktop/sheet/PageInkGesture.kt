@@ -12,6 +12,7 @@ import com.mobixournal.desktop.ink.activeTool
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.ink.pagePointOf
 import com.mobixournal.desktop.ink.strokeOf
+import com.mobixournal.desktop.ink.warmInk
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.shell.DesktopTab
@@ -400,6 +401,8 @@ internal class PageInkGesture(
         if (!wrote) return
         tab.record(before)
         onEdited(index)
+        // The line just written is read while the hand moves on, not when a query asks for it (`InkReading`).
+        tab.warmInk()
     }
 
     /** Write [elements] on the page's top layer as one edit and one undo step; false when nothing landed. */
@@ -418,6 +421,7 @@ internal class PageInkGesture(
         if (edited == null) return false
         tab.record(before)
         onEdited(index)
+        tab.warmInk()
         return true
     }
 

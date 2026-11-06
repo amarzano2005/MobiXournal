@@ -65,8 +65,8 @@ emulator_debug = true
 
 [[task]]
 id = "read-ink-on-the-stroke-lift-in-the-window-with-a-per-page-cache"
-title = "Read ink on the stroke lift in the window, with a per-page cache"
-description = "Make the PC window's handwriting reading immediate without shipping a model: after a stroke settles (~300 ms) recognise the touched line through the existing WinRT line call (InkLineEngine in WinInk.kt) instead of waiting for the first search query, keep the reading in the tab's HandwritingCache (DesktopHandwriting.kt) keyed by the edit count so a query reuses it, and start the per-page walk when a document opens rather than on the first query (DesktopSearch.kt / DesktopTabs.kt). Verify with DesktopSearchTest: a line written on the page is readable before any query, an untouched page is recognised once, an edited page is read again; then run the packaged window on a real notebook and record lift-to-reading and open-to-ready in docs/search.md."
+title = "Measure the window's ink reading on a real notebook"
+description = "The reading is wired: PageInkGesture warms the page about 300 ms after a lift, SearchRunner warms the page in view when it opens or turns, PageHandwriting keeps one reading per line keyed by InkLine.key, and HandwritingCache now survives an edit because the line's own ink decides what is stale. What is left is the measurement the decision asked for: open a written notebook in the packaged window, record in docs/search.md the time from pen lift to a reading and from opening a document to its page being read, and confirm that editing one line answers a query from the cached readings of the others."
 status = "active"
 level = "task"
 category = "feature"
