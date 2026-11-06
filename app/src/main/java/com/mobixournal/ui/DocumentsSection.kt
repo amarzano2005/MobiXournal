@@ -26,8 +26,8 @@ fun DocumentsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             onSelect = { onChange(settings.copy(newDocumentFormat = it)) },
         )
         SettingsNote(
-            "A MobiXournal file keeps graphs, tables, shapes and circuits editable. A Xournal++ file " +
-                "opens anywhere, with them drawn as plain ink. Save As converts either way.",
+            ".mobix preserves live interactive elements (plots, tables, shapes). .xopp exports elements " +
+                "as standard ink for universal compatibility. Save As converts either way.",
         )
     }
 }

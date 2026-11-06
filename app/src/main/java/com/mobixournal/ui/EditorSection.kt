@@ -24,7 +24,7 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("New documents") {
         OptionGroup(
             title = "Default tool",
-            subtitle = "Which tool is active when a document opens.",
+            subtitle = "Initial active tool when opening a document.",
             options = DEFAULT_TOOL_CHOICES,
             selected = settings.defaultTool,
             label = { it.label },
@@ -39,21 +39,21 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Drawing aids") {
         SwitchRow(
             title = "Snap to grid",
-            subtitle = "Shape endpoints land on the page background's ruling.",
+            subtitle = "Align shape vertices and endpoints to the background grid.",
             checked = settings.snapToGrid,
             onCheckedChange = { onChange(settings.copy(snapToGrid = it)) },
         )
         SettingsDivider()
         SwitchRow(
             title = "Snap rotation",
-            subtitle = "Rotating a selection steps in 15° increments.",
+            subtitle = "Constrain selection rotation to 15° increments.",
             checked = settings.snapRotation,
             onCheckedChange = { onChange(settings.copy(snapRotation = it)) },
         )
         SettingsDivider()
         SwitchRow(
             title = "Shape recognition",
-            subtitle = "Snap a finished stroke to the shape it resembles. Anything unrecognised stays as drawn.",
+            subtitle = "Automatically convert recognized hand-drawn gestures into geometric shapes.",
             checked = settings.recognizeShapes,
             onCheckedChange = { onChange(settings.copy(recognizeShapes = it)) },
         )

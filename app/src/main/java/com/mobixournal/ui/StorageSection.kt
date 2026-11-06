@@ -9,7 +9,7 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Import") {
         OptionGroup(
             title = "Text import limit",
-            subtitle = "A text file is typeset into a PDF whole, so a huge log takes minutes. Larger files are refused.",
+            subtitle = "Maximum file size for plain text import (larger files are refused).",
             options = AppSettings.TEXT_IMPORT_LIMIT_CHOICES,
             selected = settings.textImportLimitMb,
             label = { "$it MB" },
@@ -19,7 +19,7 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Cache") {
         OptionGroup(
             title = "PDF cache limit",
-            subtitle = "Backgrounds are cached so a file reopens instantly. Past this, the least recently used are dropped.",
+            subtitle = "Maximum cache size for rendered PDF backgrounds (least recently used are evicted).",
             options = AppSettings.PDF_CACHE_LIMIT_CHOICES,
             selected = settings.pdfCacheLimitMb,
             label = { "$it MB" },
@@ -29,7 +29,7 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Audio") {
         SwitchRow(
             title = "Save standalone audio recordings",
-            subtitle = "Also saves a copy of each recording to Music/Recordings as .m4a.",
+            subtitle = "Export standalone .m4a copies to Music/Recordings for external playback.",
             checked = settings.saveStandaloneAudio,
             onCheckedChange = { onChange(settings.copy(saveStandaloneAudio = it)) },
         )

@@ -56,13 +56,10 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 /** The pen width slot a new figure starts at. */
 @Composable
 private fun DefaultFigureSize(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsNote(
-        "A figure draws at this width with no pressure, so with pressure on it can look thicker than " +
-            "a light stroke.",
-    )
+    SettingsNote("Figure tools draw at fixed widths and ignore stylus pressure.")
     OptionGroup(
         title = "Slot",
-        subtitle = "Reuses the pen's S/M/L slots; edit them from any tool's Colour & size popup.",
+        subtitle = "Standard stroke slot (S/M/L) configured in the toolbar color capsule.",
         options = settings.penWidths.indices.toList(),
         selected = settings.defaultShapeSlot,
         label = { i ->

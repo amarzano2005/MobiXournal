@@ -23,7 +23,7 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Main Toolbar") {
         OptionGroup(
             title = "Position",
-            subtitle = "Keep it opposite your writing hand: Left for a right hand, Right for a left one.",
+            subtitle = "Keep it opposite your writing hand: Left for right-handed, Right for left-handed.",
             options = listOf(ToolbarPosition.LEFT, ToolbarPosition.RIGHT),
             selected = if (settings.toolbarPosition == ToolbarPosition.RIGHT) ToolbarPosition.RIGHT else ToolbarPosition.LEFT,
             label = { it.label },
@@ -41,10 +41,7 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 /** The Main Toolbar's reorderable button list. */
 @Composable
 private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsNote("Switch a button off to hide it; hold a row to reorder.")
-    // Pages and Layers are not in this list: they are the rail's navigation, so they always sit at its
-    // foot under a rule and cannot be reordered or switched off (`PINNED_RAIL_IDS`).
-    SettingsNote("Pages and Layers always stay at the bottom of the rail, under its rule.")
+    SettingsNote("Toggle switch to show or hide; hold and drag to reorder. Pages and Layers remain pinned at bottom.")
     ReorderableRowList(
         items = orderedRailItems(settings.railOrder).filterNot { it.id in PINNED_RAIL_IDS },
         hidden = settings.railHidden,

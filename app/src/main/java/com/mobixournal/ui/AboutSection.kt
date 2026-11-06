@@ -48,31 +48,26 @@ fun AboutSection() {
         // The **door out**, where a row naming the *other* shell's version used to stand: a reader who wants
         // the Windows build wants its releases, and the repository is where both shells' work lives.
         LinkRow("MobiXournal on GitHub", AboutLinks.SOURCE, open)
-        SettingsNote("Developed in the open; bug reports and patches are welcome.")
+        SettingsNote("Source code, release downloads, and issue tracker.")
     }
 
     SettingsGroup("Credits") {
         SettingsNote(
-            "MobiXournal continues NeXopp, Brian Monroe's (bamonroe) Android .xopp editor, licensed " +
-                "under the GNU GPL v2 or later. Its author holds the copyright in the parts inherited.",
+            "Continues NeXopp by Brian Monroe (bamonroe), licensed under GNU GPL v2 or later. " +
+                "Original portions copyright Brian Monroe.",
         )
-        LinkRow("NeXopp (GitHub)", AboutLinks.NEXOPP, open)
+        LinkRow("NeXopp on GitHub", AboutLinks.NEXOPP, open)
         SettingsDivider()
         SettingsNote(
-            "Built on and for Xournal++, which defines the .xopp format; the format handling, palette, " +
-                "shape recogniser and highlighter follow that project, whose authors hold the copyright.",
+            "Interoperable with Xournal++, which defines the .xopp format. " +
+                "Unofficial; not affiliated with or endorsed by Xournal++ authors.",
         )
-        SettingsNote("Unofficial: not affiliated with or endorsed by the Xournal++ authors.")
         LinkRow("Xournal++ desktop app", AboutLinks.XOURNALPP, open)
     }
 
-    SettingsGroup("Licence") {
-        SettingsNote(
-            "Free software under the GNU GPL, version 2 or later. Use, study, share and modify it; a " +
-                "modified version you distribute stays free under the same terms and ships its source. " +
-                "No warranty.",
-        )
-        LinkRow("Read the GPL v2 Licence", AboutLinks.LICENSE, open)
+    SettingsGroup("License") {
+        SettingsNote("Free software licensed under GNU General Public License v2 or later. Provided without warranty.")
+        LinkRow("Read the GPL v2 License", AboutLinks.LICENSE, open)
     }
 
 }

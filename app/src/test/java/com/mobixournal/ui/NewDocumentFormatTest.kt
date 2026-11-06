@@ -47,8 +47,7 @@ class NewDocumentFormatTest {
 
     @Test
     fun `the interchange choice is the one desktop Xournal++ opens without an export`() {
-        // `.mobix` needs the companion plugin or a Save As to reach a laptop; `.xopp` does not, which is
-        // what makes it the choice to offer beside the recommended one rather than a third option.
+        // `.mobix` opens in MobiXournal Desktop (or Save As to .xopp for third-party tools); .xopp does not need conversion.
         assertEquals(1, NewDocumentFormat.values().count { it.format == SaveFormat.ORIGINAL })
         assertTrue(NewDocumentFormat.XOPP.label.contains(".xopp"))
     }

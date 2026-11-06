@@ -36,14 +36,14 @@ fun FingerGesturesSection(settings: AppSettings, onChange: (AppSettings) -> Unit
         TapActionPicker(
             selected = settings.twoFingerTapAction,
             onSelect = { onChange(settings.copy(twoFingerTapAction = it)) },
-            hint = "Tap with two fingers and let go without moving them.",
+            hint = "Quick stationary tap with two fingers.",
         )
     }
     SettingsGroup("Three-finger tap") {
         TapActionPicker(
             selected = settings.threeFingerTapAction,
             onSelect = { onChange(settings.copy(threeFingerTapAction = it)) },
-            hint = "Tap with three fingers and let go without moving them.",
+            hint = "Quick stationary tap with three fingers.",
         )
     }
 }
@@ -53,7 +53,7 @@ fun FingerGesturesSection(settings: AppSettings, onChange: (AppSettings) -> Unit
 private fun TapActionPicker(selected: QuickAction, onSelect: (QuickAction) -> Unit, hint: String) {
     OptionGroup(
         title = "Action",
-        subtitle = "$hint A pan or a pinch never fires it.",
+        subtitle = "$hint Panning or pinching will not trigger this action.",
         // The ring is anchored at the nib and closed by the button's release; a tap has neither, so
         // `HUD` is the barrel double-click's alone and is kept out of this list.
         options = QuickAction.values().filter { it != QuickAction.HUD },

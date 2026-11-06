@@ -22,14 +22,14 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Touch") {
         SwitchRow(
             title = "Finger draws",
-            subtitle = "Off: fingers only pan/zoom and never use any tool — stylus only.",
+            subtitle = "When disabled, finger touch only navigates the canvas (pan/zoom) and never draws.",
             checked = settings.fingerDraws,
             onCheckedChange = { onChange(settings.copy(fingerDraws = it)) },
         )
         SettingsDivider()
         SwitchRow(
             title = "Hover preview",
-            subtitle = "Show a ring where a hovering stylus will land.",
+            subtitle = "Display pointer position preview when stylus hovers above screen.",
             checked = settings.showHover,
             onCheckedChange = { onChange(settings.copy(showHover = it)) },
         )
@@ -39,7 +39,7 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Ink") {
         OptionGroup(
             title = "Stroke precision",
-            "How much detail a stroke keeps. Higher is rounder on a dense screen; lower makes smaller files.",
+            "Stroke point sampling density. High increases fidelity; Low reduces file size.",
             options = StrokePrecision.values().toList(),
             selected = settings.strokePrecision,
             label = { it.label },
@@ -65,7 +65,7 @@ fun barrelActionLabel(action: BarrelAction): String = when (action) {
 private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     OptionGroup(
         title = "While held",
-        subtitle = "Action while the stylus side-button is held, whatever the tool.",
+        subtitle = "Tool or action activated while pressing the stylus barrel button.",
         options = BarrelAction.values().toList(),
         selected = settings.barrelAction,
         label = { barrelActionLabel(it) },
@@ -74,8 +74,7 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
     SettingsDivider()
     OptionGroup(
         title = "Double-click",
-        "Action for a double-click of the side-button, tip off the glass. A pen that reports it as " +
-            "a single click runs this on each click.",
+        "Action triggered by double-clicking the stylus barrel button while lifted.",
         options = QuickAction.values().toList(),
         selected = settings.barrelDoubleAction,
         label = { quickActionLabel(it) },
@@ -93,18 +92,17 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
 private fun PressureControls(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SwitchRow(
         title = "Pressure sensitivity",
-        "On: pressing harder thickens the line. Off: every stroke keeps its set width.",
+        "Vary stroke width based on pen pressure; off draws uniform strokes.",
         checked = settings.pressureEnabled,
         onCheckedChange = { onChange(settings.copy(pressureEnabled = it)) },
     )
     SettingsNote(
-        "A figure always draws at its full width, so with pressure on it can look thicker than the " +
-            "pen. Match it under Figures.",
+        "Geometric figure tools ignore pressure and draw at their configured width (see Figures).",
     )
     SettingsDivider()
     ControlHeader(
         "Pressure filter",
-        "Multiplied, then floored. The highlighter and figures always draw at their set width.",
+        "Floor threshold and curve scaling factor for pressure-sensitive ink.",
         Modifier.settingsBlockInset(),
     )
     PenPresetsRow(

@@ -56,7 +56,7 @@ fun BackupSection(
             } catch (e: Exception) {
                 Toast.makeText(
                     context,
-                    "Export failed: ${e.localizedMessage ?: e.javaClass.simpleName}",
+                    "Export failed: ${e.localizedMessage ?: "Unable to save backup file"}",
                     Toast.LENGTH_LONG,
                 ).show()
             }
@@ -83,7 +83,7 @@ fun BackupSection(
             } catch (e: Exception) {
                 Toast.makeText(
                     context,
-                    "Import failed: ${e.localizedMessage ?: e.javaClass.simpleName}",
+                    "Import failed: ${e.localizedMessage ?: "Unable to read backup file"}",
                     Toast.LENGTH_LONG,
                 ).show()
             }
@@ -91,7 +91,7 @@ fun BackupSection(
     }
 
     SettingsGroup("Export") {
-        SettingsNote("Writes every preference to a JSON file you can restore on another device.")
+        SettingsNote("Save all settings to a backup file.")
         Button(
             onClick = { exportLauncher.launch("mobixournal-settings.json") },
             modifier = Modifier.settingsActionPill(),
@@ -103,7 +103,7 @@ fun BackupSection(
     }
 
     SettingsGroup("Import") {
-        SettingsNote("Reads a backup back. A file that is not one, or one from a newer build, is refused.")
+        SettingsNote("Restore settings from a previous backup file.")
         OutlinedButton(
             onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
             modifier = Modifier.settingsActionPill(),
@@ -115,7 +115,7 @@ fun BackupSection(
     }
 
     SettingsGroup("Reset") {
-        SettingsNote("Back to factory values.")
+        SettingsNote("Restore all settings to factory defaults.")
         OutlinedButton(
             onClick = { showResetDialog = true },
             modifier = Modifier.settingsActionPill(),
@@ -133,8 +133,7 @@ fun BackupSection(
             title = { Text("Reset all settings?") },
             text = {
                 Text(
-                    "Every preference goes back to its factory value. The welcome tour does not come " +
-                        "back — it is not a preference.",
+                    "All settings will be restored to their factory defaults. Document files will not be affected.",
                 )
             },
             confirmButton = {

@@ -1,13 +1,8 @@
 package com.mobixournal.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.mobixournal.MobiXournalApp
-import com.mobixournal.ui.theme.DialogPresence
 
 /**
  * Appearance: which Material 3 colour scheme the app's chrome is painted with.
@@ -20,15 +15,12 @@ import com.mobixournal.ui.theme.DialogPresence
  * (`docs/chrome-settings.md`). Search still reaches the row as a page of its own, because a hit for "dark"
  * opens the section.
  *
- * **A change is followed by [ThemeRestartDialog].** The scheme repaints the live window, but the startup
- * screen and the home-screen icon are read when the app launches, so the answer either comes back now
- * (restart) or at the next start — and it is the user who picks, not a silent recreate that would drop them
- * out of their document mid-page.
+ * Picking a mode repaints the live window immediately and updates the app's `-night` qualifier
+ * ([MobiXournalApp.applyNightMode]) without prompting for a restart.
  */
 @Composable
 fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     val context = LocalContext.current
-    var restartPending by remember { mutableStateOf(false) }
     OptionGroup(
         // The row's words are the entry's words (`SettingsSection`), not a second copy of them: this row
         // used to carry a reworded title and subtitle, and the two drifted apart on the day it moved out
@@ -42,17 +34,8 @@ fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         onSelect = { mode ->
             if (mode != settings.themeMode) {
                 onChange(settings.copy(themeMode = mode))
-                restartPending = true
+                MobiXournalApp.applyNightMode(context, mode)
             }
         },
     )
-    DialogPresence(restartPending) {
-        ThemeRestartDialog(
-            onRestartNow = {
-                restartPending = false
-                MobiXournalApp.restartForTheme(context)
-            },
-            onRestartLater = { restartPending = false },
-        )
-    }
 }

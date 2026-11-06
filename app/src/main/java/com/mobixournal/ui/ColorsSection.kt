@@ -39,15 +39,12 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     var favoriteEditing by remember { mutableStateOf<Pair<EditorTool, Int>?>(null) }
 
     SettingsGroup("Favourite colours") {
-        SettingsNote(
-            "The three colours down the rail's Colour & size slot, one tap away. Pen and highlighter " +
-                "keep their own. Tap one to redefine it.",
-        )
+        SettingsNote("Quick-pick colors displayed in the toolbar color capsule. Tap any swatch to customize.")
         FavoritesEditor(settings, onEdit = { tool, index -> favoriteEditing = tool to index })
     }
 
     SettingsGroup("Pen palette") {
-        SettingsNote("The swatches every colour picker offers. Tap one to redefine or remove it; add more below.")
+        SettingsNote("Color swatches available across all color pickers. Tap to edit or delete.")
         settings.penColors.forEachIndexed { i, color ->
             PaletteRow(
                 color = color,

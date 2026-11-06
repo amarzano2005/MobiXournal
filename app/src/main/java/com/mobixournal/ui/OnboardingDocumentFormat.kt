@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -47,16 +48,14 @@ internal fun OnboardingStepDocumentFormat(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
-            text = "What should a new document be?",
+            text = "Default document format",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
 
         Text(
-            text = "MobiXournal writes two kinds of file. Both draw and save the same pages — they " +
-                "differ in what the file keeps, which is what decides whether desktop Xournal++ opens " +
-                "it directly. Documents you open keep their own format; this is only what new ones are.",
+            text = "Choose the format for new documents. Opened notebooks always keep their own format, and you can switch anytime via Save As.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -64,9 +63,12 @@ internal fun OnboardingStepDocumentFormat(
         DocumentFormatCard(
             title = "MobiXournal document",
             extension = ".mobix",
-            description = "Keeps graphs, tables, shapes and circuits as the things you authored, plus " +
-                "pen telemetry — so they reopen as editable objects. Desktop Xournal++ needs the " +
-                "companion plugin, or one Save As to interchange it.",
+            features = listOf(
+                "Embedded compressed audio synced with ink replay (no missing sidecars)",
+                "Living, re-editable STEM elements (plots, formulas, tables, circuits)",
+                "Full stylus telemetry (pressure, tilt, azimuth, temporal dynamics)",
+                "Full interoperability with the MobiXournal Desktop client (or Save As to .xopp)",
+            ),
             recommended = true,
             selected = selected == NewDocumentFormat.MOBIX,
             onClick = { onSelect(NewDocumentFormat.MOBIX) },
@@ -75,16 +77,17 @@ internal fun OnboardingStepDocumentFormat(
         DocumentFormatCard(
             title = "Xournal++ document",
             extension = ".xopp",
-            description = "The file desktop Xournal++ reads and writes itself, so a copy opens on a " +
-                "laptop with nothing installed. Graphs and tables are written out as ink: exactly as " +
-                "they look, but no longer editable as a formula.",
+            features = listOf(
+                "Direct compatibility with desktop Xournal++ without conversion",
+                "Standard vector ink (elements flattened to ink; external WAV audio sidecars)",
+            ),
             recommended = false,
             selected = selected == NewDocumentFormat.XOPP,
             onClick = { onSelect(NewDocumentFormat.XOPP) },
         )
 
         Text(
-            text = "Changeable any time in Settings → App & data → Documents.",
+            text = "Changeable anytime in Settings → App & data → Documents.",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -92,23 +95,22 @@ internal fun OnboardingStepDocumentFormat(
 }
 
 /**
- * One format card: the name, the extension that lands on disk, what the file keeps, and a check when
- * it is the choice. The whole card is the option, so a tap anywhere on it — description included —
- * picks the format.
+ * One format card: the name, the extension that lands on disk, structured bullet highlights,
+ * and a check when it is the choice.
  */
 @Composable
 private fun DocumentFormatCard(
     title: String,
     extension: String,
-    description: String,
+    features: List<String>,
     recommended: Boolean,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
     val container = if (selected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
     }
     val outline = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
     val shape = RoundedCornerShape(ModernTheme.capsuleCornerRadiusDp)
@@ -120,7 +122,7 @@ private fun DocumentFormatCard(
             .border(if (selected) 2.dp else 1.dp, outline, shape)
             .clickable(onClick = onClick)
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -150,11 +152,26 @@ private fun DocumentFormatCard(
             }
         }
         Spacer(Modifier.height(2.dp))
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        for (feature in features) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant),
+                )
+                Text(
+                    text = feature,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
