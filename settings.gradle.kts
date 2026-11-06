@@ -24,6 +24,11 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "MobiXournal"
-include(":app")
+
+// The window is a plain JVM application and must be packageable on a machine with no Android SDK
+// (`docs/tools.md`, *Desktop installer*). `-PdesktopOnly` leaves the tablet module out entirely, so
+// Gradle never applies the Android plugin and never looks for an SDK; every other build configures all
+// three modules, as before.
+if (providers.gradleProperty("desktopOnly").orNull != "true") include(":app")
 include(":mobix-core")
 include(":desktop")

@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "desktop-packaging-installers-and-ci-artifact"
-title = "Desktop packaging: MSI installer and CI artifact"
-description = "desktop/build.gradle.kts configures compose.desktop nativeDistributions (packageName MobiXournal, packageVersion 1.0.0) but nothing produces or publishes an artifact, so the only way to run the desktop shell is :desktop:run. Windows 11 only (decision 2026-10-21): add a documented, repeatable command that builds the MSI and wire it into the release workflow next to the APK, with the same version the Gradle build reports. Requirements: the package must start with a document argument and without one; the build must not need the Android SDK; document the command in README.md and docs/tools.md in the same commit, and record what an unsigned package means for the user. Verify by building the MSI and launching the packaged binary against udiff.xopp."
-status = "active"
-level = "task"
-category = "chore"
-urgency = "low"
-order = 360
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "step-3-desktop-workstation"
 title = "Step 3 — Desktop workstation program (epic)"
 description = "The milestone, and the decisions behind it. MobiXournal Desktop is the native workstation app for WINDOWS 11 ONLY (decision 2026-10-21: no Linux, no macOS, no plugin system) that opens the same documents as the tablet editor, on a graphics tablet, for 21:9 monitors and 144 Hz, with bimanual shortcuts, living-entity editing and tablet rotary-dial support. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the chrome is the app's own glass on a true-black desk (not Mica), the tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is the plain kotlin-jvm module both shells depend on (mobix-core). Shipped phases: the shared core (mobix-core: ink, paper and paper geometry), the complete reader (.mobix and ZIP .xopp, tabs, Ctrl+B sidebar, zoom and pan, the decided chrome, both placements), editing (pressure inking through the shared router, both erasers, the geometry slots, vertical space, undo and redo, Save and Save As under the sticky format policy, the paged page window), the graphics tablet (Wintab and Windows Ink, the packets path, the dial's notch) and 144 Hz render pacing (the page recorded once, scroll and zoom as replays, a lift costing the stroke). What remains is the open work of TODO.toml and nothing else: this epic owns no plan of its own, so read the list. Its ordering is the owner's: (1) every tool equivalent to the tablet's, including the complete icon-to-glyph adaptation, (2) the Settings section, (3) audio recording and playback, (4) everything else - the strip's groups and pickers, selection, text and math, STEM placement, living-entity editing, PDF annotation, images, the radial HUD, undo/redo controls, ultrawide layout, export, page management and search, extra windows, the MSI, and stroke-head prediction. Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, README documenting it, and the 144 Hz and tablet results confirmed by the owner on real hardware. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."

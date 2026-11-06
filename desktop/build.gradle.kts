@@ -1,3 +1,5 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 /**
  * The desktop shell — the first, deliberately small slice of Step 3 (`docs/desktop-workstation.md`).
  *
@@ -56,6 +58,9 @@ compose.desktop {
         mainClass = "com.mobixournal.desktop.MainKt"
 
         nativeDistributions {
+            // One format, named so `:desktop:packageMsi` is the documented, repeatable command
+            // (`docs/tools.md`, *Desktop installer*). jpackage writes it with WiX 3.14.
+            targetFormats(TargetFormat.Msi)
             packageName = "MobiXournal"
             // The window's **own** version line, starting at 1.0.0 and independent of the tablet app's
             // (2.0.0 in app/build.gradle.kts): two artifacts, two numbers, neither derived from the
@@ -68,6 +73,12 @@ compose.desktop {
             // JVM's own icon, so an app that draws a notebook wore a coffee cup in Explorer.
             windows {
                 iconFile.set(project.file("icon/mobixournal.ico"))
+                // One product across versions: a fixed upgrade code makes a newer MSI replace the
+                // installed build instead of installing beside it.
+                upgradeUuid = "6f1f3d64-9a0c-4a3e-9a02-0f4f1a2b7c11"
+                // A notebook app should not need an administrator: the package installs for the reader
+                // and puts its shortcut in their own Start menu.
+                perUserInstall = true
             }
         }
     }

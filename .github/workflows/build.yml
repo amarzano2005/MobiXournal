@@ -100,6 +100,22 @@ jobs:
       - name: Run the desktop suite
         run: .\gradlew.bat :desktop:test --stacktrace
 
+      # jpackage writes the MSI with WiX. The image ships WiX 3.14 but names it only in `WIX`, and
+      # jpackage finds `light.exe` on PATH, so the folder is added here before the one command that
+      # builds the installer (`docs/tools.md`, *Desktop installer*).
+      - name: Build the MSI installer
+        shell: pwsh
+        run: |
+          if ($env:WIX) { $env:PATH = "$env:WIX\bin;$env:PATH" }
+          ./scripts/desktop-package.ps1
+
+      - name: Upload the MSI installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobixournal-desktop-msi
+          path: desktop/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+
       - name: Upload the headless renders
         if: always()
         uses: actions/upload-artifact@v4
@@ -107,3 +123,25 @@ jobs:
           name: desktop-render
           path: desktop/build/desktop-render/
           if-no-files-found: warn
+
+  # The window's installer joins the same release as the APK. A job of its own that needs both, so the
+  # asset is attached after the APK job has created the release, and neither build waits for the other.
+  release-msi:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ build, desktop ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the MSI built on Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: mobixournal-desktop-msi
+          path: msi
+
+      - name: Attach the installer to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "${{ github.ref_name }}" msi/*.msi --clobber

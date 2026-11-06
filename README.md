@@ -33,7 +33,7 @@ Documents live in two formats that work side by side:
 | Platform | How to get started |
 |---|---|
 | **Android (8.0+)** | Download `app-debug.apk` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases), or build it locally with `.\gradlew.bat assembleDebug` (or `scripts/release-apk.sh` for a release-optimized APK). |
-| **Windows 11 Desktop** | Build the standalone package with `.\gradlew.bat :desktop:createDistributable` and run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe`, or launch directly via `.\gradlew.bat :desktop:run --args="udiff.xopp"`. |
+| **Windows 11 Desktop** | Install `MobiXournal-<version>.msi` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases) (unsigned, so SmartScreen warns), or build it with `scripts/desktop-package.ps1` (JDK 21 and WiX 3.14, no Android SDK). Or build the standalone folder with `.\gradlew.bat :desktop:createDistributable` and run `MobiXournal.exe` inside `desktop/build/compose/binaries/main/app/MobiXournal/`. |
 
 ---
 

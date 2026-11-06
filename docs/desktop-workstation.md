@@ -270,7 +270,7 @@ the numbers).
 
 - No search inside a **picture** (no text layer); typed text, PDF words and ink are ([search.md](search.md)).
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
-  the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.
+  the driver's own active area — and the installer is `scripts/desktop-package.ps1` (`docs/tools.md`).
 
 ### The graphics tablet
 

@@ -14,7 +14,7 @@ lives, how to invoke it, and the non-obvious gotchas.
 |-----------------|---------------|--------|
 | Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
-| Desktop shell | Run/test the Compose Multiplatform desktop preview (no emulator, no container) | [below](#desktop-shell) |
+| Desktop shell | Run, test and package the Compose Multiplatform window (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [below](#cutting-a-release) |
 | UI/UX Pro Max | Design data, its search script, and the declaration that closes a UI change | [below](#uiux-pro-max-design-skill) |
 
@@ -132,18 +132,19 @@ platform-free module (document model, codecs, paper and ink geometry) — see th
 `docs/desktop-workstation.md`; do not add Android-dependent code to it, or the desktop build stops
 compiling.
 
-### The packaged build — a `.exe` to try the desktop app
+### The packaged build — the `.exe` and the installer
 
-`.\gradlew.bat :desktop:createDistributable` (with `JAVA_HOME` set as in `AGENTS.md`) writes a
-self-contained folder, runtime included, to
-`desktop/build/compose/binaries/main/app/MobiXournal/` (about 140 MB). Run `MobiXournal.exe` from
-it; a document path after it opens that document, and no argument opens an empty window. It is **not
-an installer and not signed**: Windows SmartScreen may warn on first run, and the folder is only as
-current as the last build. **Regenerate it at the end of every completed task** — the rule is in
-`AGENTS.md` (build flags) and it applies to every task, not only the ones that touch `desktop/`, because
-the packaged window carries `mobix-core` too. A stale `.exe` is a feature delivered only in source: the
-person double-clicking it cannot tell that apart from a feature nobody built. The MSI installer and a CI
-artifact are the open task `desktop-packaging-installers-and-ci-artifact`.
+`.\gradlew.bat :desktop:createDistributable` (with `JAVA_HOME` as in `AGENTS.md`) writes a self-contained
+folder, runtime included, to `desktop/build/compose/binaries/main/app/MobiXournal/`; its `MobiXournal.exe`
+opens a document passed as an argument and an empty window without one. **Regenerate it at the end of every
+completed task** (`AGENTS.md`, build flags — a stale `.exe` is a feature delivered only in source).
+
+`scripts/desktop-package.ps1` reads `packageVersion` from `desktop/build.gradle.kts` (what
+`scripts/todo.sh versions` prints), puts WiX 3.14 on `PATH` (`-WixBin` for an unpacked `wix314-binaries.zip`)
+and runs `:desktop:packageMsi -PdesktopOnly` — no Android module, no Android SDK.
+`desktop/build/compose/binaries/main/msi/MobiXournal-<version>.msi` is the installer: per-user, one fixed
+upgrade code, and **unsigned** (SmartScreen reads an unknown publisher until it is code-signed). CI builds
+it on `windows-latest` and a `v*` tag attaches it to the release beside the APK.
 
 ### Measuring ink latency on screen (this window against Xournal++)
 
@@ -194,7 +195,7 @@ failure).
    git push origin v1.1.0
    ```
 
-4. **Watch the workflow.** The release appears on GitHub with `app-debug.apk` attached.
+4. **Watch the workflow.** The release appears on GitHub with `app-debug.apk` and `MobiXournal-<version>.msi` attached.
 
 The workflow enforces the freeze rather than trusting it: every run lints both task files and runs
 the task CLI's own regression checks — `test_store.py` for the order the file promises, `test_done.py`
@@ -232,11 +233,10 @@ reads as a *number*, so a suffix such as `1.0.0-rc1` fails at packaging — the 
 instead.
 
 `release --bump-gradle` owns the **app** line, because its `versionCode` has to move with it and only
-the archive knows what is pending. The window's number is edited in its Gradle file: its packaging, its
-installer and its own release notes are `desktop-packaging-installers-and-ci-artifact`'s work, which is
-why there is no second changelog to keep in step yet. Tags stay `vX.Y.Z` for an app release, and
-`verify-release` compares them against the app's `versionName` — a desktop tag needs that job extended,
-and that belongs to the same task.
+the archive knows what is pending. The window's number is edited in its Gradle file, and its MSI carries
+it into the same release under the app's tag; `verify-release` still compares a tag with the app's
+`versionName`, so a window that needs release notes of its own gets a tag of its own then. What checks
+both numbers before either is tagged is `scripts/todo.sh versions`.
 
 ## Tab-switch probe (the running window)
 
