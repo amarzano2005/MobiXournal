@@ -267,23 +267,30 @@ class DesktopSettingsTest {
     }
 
     /**
-     * The filter is the **field's**, not the page's: leaving the bar gives the whole index back, so a word
-     * typed once cannot hide a section for the rest of the visit.
+     * The unified search filter stays active while browsing results and clears only when query is emptied.
      */
     @Test
-    fun `a word in a field nobody is typing in does not hide a section`() {
+    fun `the search filter stays active while browsing results until cleared`() {
         val policy = DesktopSettingsState(store())
         policy.openAt()
-        policy.typing = true
         policy.search("wintab")
         assertEquals(listOf(DesktopSettingSection.STYLUS), policy.sections)
 
+        // Blurring the search field does not wipe the results while the word is still in the field
         policy.typing = false
-        assertEquals(
-            "the index comes back with the keyboard",
-            DesktopSettingSection.entries,
-            policy.sections,
-        )
+        assertEquals(listOf(DesktopSettingSection.STYLUS), policy.sections)
+
+        // Clearing query restores all sections
+        policy.search("")
+        assertEquals(DesktopSettingSection.entries, policy.sections)
+    }
+
+    @Test
+    fun `the unified search finds shortcut commands and keys`() {
+        val policy = DesktopSettingsState(store())
+        policy.openAt()
+        policy.search("fullscreen")
+        assertTrue("Shortcuts matches when a command matches", DesktopSettingSection.SHORTCUTS in policy.sections)
     }
 
     @Test

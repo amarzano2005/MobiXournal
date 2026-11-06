@@ -194,6 +194,14 @@ class DesktopSettings(val file: File = defaultFile()) {
         save()
     }
 
+    /** Whether freehand strokes snap to geometric primitives on lift or dwell (`figure.recognizeShapes`). */
+    var recognizeShapes: Boolean
+        get() = properties.getProperty(KEY_RECOGNIZE_SHAPES)?.toBooleanStrictOrNull() ?: true
+        set(value) {
+            properties.setProperty(KEY_RECOGNIZE_SHAPES, value.toString())
+            save()
+        }
+
     /** What a new tab is written as — the Documents section's one answer. */
     var newDocumentFormat: DesktopNewDocumentFormat
         get() = DesktopNewDocumentFormat.of(properties.getProperty(KEY_NEW_DOCUMENT_FORMAT))
@@ -209,6 +217,9 @@ class DesktopSettings(val file: File = defaultFile()) {
             properties.setProperty(KEY_FIT_ON_OPEN, value.name)
             save()
         }
+
+    /** Navigation settings: zoom step and smooth scrolling. */
+    val navigation = DesktopNavigationStore(properties, ::save)
 
     /** When the page list shows itself: the window's own more-than-one-page rule, always or never. */
     var sidebarPolicy: SidebarPolicy
@@ -274,12 +285,7 @@ class DesktopSettings(val file: File = defaultFile()) {
         save()
     }
 
-    /**
-     * Whether the status bar reports the frame time the window actually paints at.
-     *
-     * A readout, not a behaviour: it turns one label on and nothing else, so it is safe to leave off
-     * on a machine whose number nobody is watching.
-     */
+    /** Whether the status bar reports the paint frame time (display.frameTime). */
     var frameTime: Boolean
         get() = properties.getProperty(KEY_FRAME_TIME)?.trim()?.equals("true", ignoreCase = true) ?: true
         set(value) {
@@ -380,11 +386,7 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
-    /**
-     * The live palette the strips' colour flyout draws: opaque, de-duplicated and never empty, because
-     * the decoder runs it through [PenPalette.sanitised]. A fresh or hand-edited file opens on the
-     * factory eight rather than on nothing.
-     */
+    /** Active pen palette colors (palette.colours). */
     var paletteColours: List<Int>
         get() = PaletteCodec.decode(properties.getProperty(KEY_PALETTE_COLORS))
         set(value) {
@@ -590,12 +592,8 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** The preferred pen stream. */
         const val KEY_PEN_STREAM = "tablet.penStream"
 
-        /** What the pen's side button does: erase, or summon the ring. */
-
         /** The refresh rate the window asks for in full screen — a wish, honoured where the panel can. */
         const val KEY_TARGET_HZ = "display.targetHz"
-
-        /** The exponent the pen's reading is shaped by, 1.0 = the model's own arithmetic untouched. */
 
         /** Which part of the tablet's surface is mapped: the whole of it, or the hand's own rectangle. */
         const val KEY_ACTIVE_AREA = "tablet.activeArea"
@@ -618,6 +616,8 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The width a figure is drawn at, in points. */
         const val KEY_FIGURE_WIDTH = "figure.width"
+        /** Whether freehand strokes snap to geometric primitives on lift or dwell. */
+        const val KEY_RECOGNIZE_SHAPES = "figure.recognizeShapes"
 
         /** What a new tab is written as: `.mobix`, a gzip `.xopp` or a zipped `.xopp`. */
         const val KEY_NEW_DOCUMENT_FORMAT = "document.newFormat"
@@ -677,15 +677,7 @@ class DesktopSettings(val file: File = defaultFile()) {
             LineStyle.entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) }
                 ?: LineStyle.PLAIN
 
-        /**
-         * The store's home: `%APPDATA%\MobiXournal\desktop.properties` on Windows, and the same
-         * directory name under the user's home where `APPDATA` is not set.
-         *
-         * [TEST_SETTINGS_PROPERTY] names another file, and the suite sets it: a test that opens a window
-         * with no settings of its own must read a file that test run owns, never the one the installed
-         * window on this machine has been taught (a moved rail or a hidden inspector changes what a
-         * pixel test renders).
-         */
+        /** Default settings file in APPDATA or user home, overridden by [TEST_SETTINGS_PROPERTY]. */
         fun defaultFile(): File {
             System.getProperty(TEST_SETTINGS_PROPERTY)?.takeIf { it.isNotBlank() }?.let { return File(it) }
             val appData = System.getenv("APPDATA")

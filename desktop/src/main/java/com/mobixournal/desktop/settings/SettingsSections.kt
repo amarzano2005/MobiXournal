@@ -93,7 +93,7 @@ enum class DesktopSettingSection(
         "Figures",
         "The width the figure tools draw at, and each figure's own variant.",
         "figures shapes size stroke width presets geometry triangle trapezoid polygon sides " +
-            "variants angles",
+            "variants angles recognize recognition",
         SettingsGlyph.FIGURES,
     ),
     COLORS(
@@ -124,7 +124,7 @@ enum class DesktopSettingSection(
     NAVIGATION(
         "Navigation",
         "How a document opens and how the page list behaves.",
-        "navigation zoom fit page width panning scrolling sidebar page list",
+        "navigation zoom fit page width panning scrolling sidebar page list smooth scroll distance wheel notch",
         SettingsGlyph.NAVIGATION,
     ),
     APPEARANCE(
@@ -162,13 +162,17 @@ enum class DesktopSettingSection(
             DOCUMENTS, BACKUP, ABOUT -> DesktopSettingArea.APP
         }
 
-    /** Whether this section answers [needle] — its title, its summary or one of its aliases. */
+    /** Whether this section answers [needle] — its title, its summary, aliases or commands. */
     fun matches(needle: String): Boolean {
         if (needle.isBlank()) return true
         val lower = needle.trim().lowercase()
-        return title.lowercase().contains(lower) ||
-            summary.lowercase().contains(lower) ||
-            keywords.contains(lower)
+        if (title.lowercase().contains(lower) || summary.lowercase().contains(lower) || keywords.contains(lower)) {
+            return true
+        }
+        if (this == SHORTCUTS) {
+            return ShortcutTable.entries.any { ShortcutFamilies.matches(it, lower) }
+        }
+        return false
     }
 
     companion object {
@@ -235,7 +239,6 @@ internal fun DesktopSettingPage(
 private fun StylusSettings(policy: DesktopSettingsState) {
     StylusPressureGroup(policy)
     StylusAreaGroup(policy)
-    SettingsNote("The status bar names the stream actually open.")
 }
 
 /**
@@ -252,7 +255,7 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
     SettingsGroup("Pressure") {
         SettingsSelect(
             label = "Stream",
-            note = "Wintab reads the driver's packets; Windows Ink goes through the system.",
+            note = "Wintab uses direct driver packets; Windows Ink uses system pointer input.",
             options = PenStream.entries,
             picked = policy.penStream,
             optionLabel = { it.label },
@@ -260,7 +263,7 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
         )
         SettingsRow(
             label = "Pressure sensitivity",
-            note = "Off draws every stroke at its set width.",
+            note = "Vary line width by pen pressure; off draws uniform strokes.",
             onClick = { policy.choosePressureEnabled(!policy.pressureEnabled) },
         ) {
             SettingsSwitch(policy.pressureEnabled)
@@ -268,7 +271,7 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
         StylusPresetCarousel(policy)
         SettingsRow(
             label = "Minimum pressure",
-            note = "The thinnest line a light press can draw, on the preset in use.",
+            note = "Floor threshold: the thinnest stroke drawn under light contact.",
         ) {
             SettingsSlider(
                 value = policy.minimumPressure,
@@ -280,7 +283,7 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
         }
         SettingsRow(
             label = "Multiplier",
-            note = "How far above 1.00 a light press can reach, on the preset in use.",
+            note = "Pressure sensitivity curve multiplier for light and medium strokes.",
         ) {
             SettingsSlider(
                 value = policy.pressureMultiplier,
@@ -292,7 +295,7 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
         }
         SettingsCommand(
             label = "Reset to defaults",
-            note = "The factory floor and multiplier, back on the preset in use.",
+            note = "Restore factory pressure floor and multiplier for the active preset.",
             onClick = policy::resetPressureToDefaults,
         )
     }
@@ -304,7 +307,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
     SettingsGroup("Active area") {
         SettingsSelect(
             label = "Mapped surface",
-            note = "Full is the driver's whole surface; Tablet maps a centred part of it.",
+            note = "Full uses the complete tablet surface; Tablet maps a centered portion.",
             options = TabletArea.entries,
             picked = policy.activeArea,
             optionLabel = { it.label },
@@ -313,7 +316,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
         if (policy.activeArea == TabletArea.TABLET) {
             SettingsRow(
                 label = "Width",
-                note = "Share of the surface the window listens to.",
+                note = "Horizontal percentage of the tablet surface mapped to the screen.",
             ) {
                 SettingsSlider(
                     value = policy.areaWidthPercent.toFloat(),
@@ -326,7 +329,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
             }
             SettingsRow(
                 label = "Height",
-                note = "The same, down the surface.",
+                note = "Vertical percentage of the tablet surface mapped to the screen.",
             ) {
                 SettingsSlider(
                     value = policy.areaHeightPercent.toFloat(),
@@ -339,7 +342,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
             }
             SettingsRow(
                 label = "Aspect lock",
-                note = "Moves the height with the width, keeping the tablet's own shape.",
+                note = "Maintain the tablet's physical aspect ratio when resizing.",
                 onClick = { policy.chooseAspectLock(!policy.aspectLock) },
             ) {
                 SettingsSwitch(policy.aspectLock)
@@ -361,7 +364,7 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
     SettingsGroup("Tool strips") {
         SettingsSelect(
             label = "Placement",
-            note = "Left or Right is the rail; Top is a ribbon under the header.",
+            note = "Left or Right docks a rail; Top positions a ribbon under the header.",
             options = StripPlacement.entries,
             picked = policy.stripPlacement,
             optionLabel = { it.label },
@@ -389,7 +392,7 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
             }
             StripItem.Image -> SettingsRow(
                 label = "Insert image",
-                note = "Follows the slot it stands under.",
+                note = "Follows the tool slot directly above it.",
             ) {
                 val anchor = groups.indexOfFirst { it.face.name == policy.imageAfter }
                 SettingsStepButtons(
@@ -403,35 +406,10 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
         if (policy.toolOrder.isNotEmpty()) {
             SettingsCommand(
                 label = "Reset to defaults",
-                note = "Every slot back where a fresh install draws it.",
+                note = "Restore tool slot positions to factory layout.",
                 onClick = policy::resetToolOrder,
             )
         }
-    }
-}
-
-/** **Navigation**: how a document opens, and the page list that reaches the others. */
-@Composable
-private fun NavigationSettings(policy: DesktopSettingsState) {
-    SettingsGroup("Opening a document") {
-        SettingsSelect(
-            label = "Zoom",
-            note = "Automatic: a tall page to the width, the rest to the page.",
-            options = FitOnOpen.entries,
-            picked = policy.fitOnOpen,
-            optionLabel = { it.label },
-            onPick = policy::chooseFitOnOpen,
-        )
-    }
-    SettingsGroup("Windows") {
-        SettingsSelect(
-            label = "Page list",
-            note = "Automatic shows it once a document has more than one page.",
-            options = SidebarPolicy.entries,
-            picked = policy.sidebarPolicy,
-            optionLabel = { it.label },
-            onPick = policy::chooseSidebarPolicy,
-        )
     }
 }
 
@@ -441,7 +419,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
     SettingsGroup("Theme") {
         SettingsSelect(
             label = "Theme",
-            note = "System follows Windows; a document looks the same either way.",
+            note = "Application theme. System matches Windows appearance.",
             options = DesktopThemeMode.entries,
             picked = policy.appearance.theme,
             optionLabel = { it.label },
@@ -452,7 +430,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         // The desk, and the one thing that can only be asked of a full-screen window: the panel's rate.
         SettingsRow(
             label = "Full screen",
-            note = "F11, or this row. Asks the display for the target rate.",
+            note = "F11 or toggle here. Enables high-refresh display modes.",
             onClick = policy::toggleFullScreen,
         ) {
             SettingsSwitch(policy.fullScreen)
@@ -462,7 +440,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         if (policy.fullScreen) {
             SettingsSelect(
                 label = "Target rate",
-                note = "Asked only while full screen; a panel without it keeps its own.",
+                note = "Requested display refresh rate while in full screen mode.",
                 options = TARGET_HZ,
                 picked = policy.targetHz,
                 optionLabel = { "$it Hz" },
@@ -471,7 +449,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         }
         SettingsRow(
             label = "Frame time",
-            note = "Paint time per frame, beside the display's rate.",
+            note = "Display render time per frame alongside display refresh rate.",
             onClick = { policy.chooseFrameTime(!policy.frameTime) },
         ) {
             SettingsSwitch(policy.frameTime)
@@ -486,12 +464,12 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
 /** **Documents**: the container a new file is written as, and the sheet it starts on. */
 @Composable
 private fun DocumentsSettings(policy: DesktopSettingsState) {
-    SettingsGroup("The document") {
+    SettingsGroup("Default document") {
         // The three answers are phrases, which is what made a row of pills read as three big buttons; every
         // choice of the window is a select now (see `SettingsSelect`).
         SettingsSelect(
             label = "New document",
-            note = ".mobix keeps figures and tables live; zipped .xopp carries its files.",
+            note = ".mobix preserves editable figures and tables; zipped .xopp bundles files.",
             options = DesktopNewDocumentFormat.entries,
             picked = policy.newDocumentFormat,
             optionLabel = { it.label },
@@ -499,7 +477,7 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
         )
         SettingsRow(
             label = "Default page",
-            note = "The size new sheets are born with (set it in Page format).",
+            note = "Starting dimensions for new pages (configured in Page format).",
         ) {
             Text(
                 formatNumber(policy.pageWidthPt) + " × " + formatNumber(policy.pageHeightPt) + " pt",
@@ -536,8 +514,7 @@ private fun AudioSettings(policy: DesktopSettingsState) {
             note = deviceNote(
                 picked = audio.input,
                 fellBackFrom = audio.inputFellBackFrom,
-                missing = "The microphone this window was using is not on this machine any more, " +
-                    "so the system default is used.",
+                missing = "Previously selected microphone is unavailable; using system default.",
             ),
             options = listOf("") + audio.devices.inputs,
             picked = audio.input,
@@ -549,8 +526,7 @@ private fun AudioSettings(policy: DesktopSettingsState) {
             note = deviceNote(
                 picked = audio.output,
                 fellBackFrom = audio.outputFellBackFrom,
-                missing = "The output this window was using is not on this machine any more, " +
-                    "so the system default is used.",
+                missing = "Previously selected output is unavailable; using system default.",
             ),
             options = listOf("") + audio.devices.outputs,
             picked = audio.output,
@@ -562,9 +538,9 @@ private fun AudioSettings(policy: DesktopSettingsState) {
         SettingsRow(
             label = "Input level",
             note = if (DesktopAudioSession.recording) {
-                "What the microphone is hearing right now."
+                "Live microphone input level."
             } else {
-                "Start a take from the capsule beside Save to watch the level."
+                "Start a recording from the toolbar to monitor input level."
             },
         ) {
             PillLevelMeter(if (DesktopAudioSession.recording) DesktopAudioSession.level else 0f)
@@ -574,10 +550,10 @@ private fun AudioSettings(policy: DesktopSettingsState) {
     }
     // The tablet's *Save separate audio*: the take leaves the window's own store, so another program
     // (or another machine) can play it. On by the reader's choice, never by itself.
-    SettingsGroup("Outside the app") {
+    SettingsGroup("External audio") {
         SettingsRow(
             label = "Save separate audio",
-            note = "Copy each take into the folder below, so the recording is usable outside this window.",
+            note = "Export standalone audio copies for playback outside the app.",
             onClick = { audio.chooseSaveExternally(!audio.saveExternally) },
         ) {
             SettingsSwitch(audio.saveExternally)
@@ -585,7 +561,7 @@ private fun AudioSettings(policy: DesktopSettingsState) {
         SettingsRow(
             label = "Folder",
             note = audio.exportFolder.ifBlank {
-                "No folder chosen yet — a copy needs one, and nothing is copied until it is set."
+                "Choose a destination directory to enable standalone audio export."
             },
             onClick = { policy.audio.pickAudioFolder?.invoke() },
         ) {
@@ -604,8 +580,8 @@ private fun deviceLabel(name: String): String = name.ifEmpty { "System default" 
 /** The row's note: the ordinary sentence, or the one that says which device went missing. */
 private fun deviceNote(picked: String, fellBackFrom: String?, missing: String): String = when {
     fellBackFrom != null -> missing
-    picked.isEmpty() -> "The device Windows picks by default."
-    else -> "Used for every take and every clip."
+    picked.isEmpty() -> "System default device."
+    else -> "Active device for recordings and playback."
 }
 
 /** A thin level bar for the Audio page — the take's peak, drawn as the capsule's own bar is. */
@@ -639,12 +615,12 @@ private fun BackupSettings(policy: DesktopSettingsState) {
     SettingsGroup("Settings backup") {
         SettingsCommand(
             label = "Export settings…",
-            note = "Writes every choice in this window to a file.",
+            note = "Save all settings to a backup file.",
             onClick = { policy.pickBackupFile?.invoke(true) { file -> file?.let(policy::exportBackup) } },
         )
         SettingsCommand(
             label = "Import settings…",
-            note = "Reads one back; anything else is refused.",
+            note = "Restore settings from a previous backup file.",
             onClick = { policy.pickBackupFile?.invoke(false) { file -> file?.let(policy::importBackup) } },
         )
         policy.backupNotice?.let { SettingsNote(it) }
@@ -654,7 +630,7 @@ private fun BackupSettings(policy: DesktopSettingsState) {
     SettingsGroup("Defaults") {
         SettingsCommand(
             label = "Reset all settings…",
-            note = "Every choice in this window back to its default. Documents are not touched.",
+            note = "Restore all settings to factory defaults. Document files are not affected.",
             onClick = policy::resetAllSettings,
         )
     }
@@ -676,24 +652,22 @@ private fun AboutSettings() {
         // The door **out**, in place of a row that reported the other shell's version: a reader who wants the
         // Android build wants its releases, and the project's page is where both shells' work lives.
         SettingsCommand(
-            label = "Open the project on GitHub",
-            note = "Source, releases and the issue tracker (`ProjectLinks`).",
+            label = "Open project on GitHub",
+            note = "Source code, release downloads, and issue tracker.",
             onClick = ::openProjectPage,
         )
     }
-    SettingsGroup("Credits") {
+    SettingsGroup("Credits & License") {
         SettingsNote(
-            "MobiXournal continues NeXopp, Brian Monroe's (bamonroe) Android .xopp editor, licensed " +
-                "under the GNU GPL v2 or later. Its author holds the copyright in the parts inherited.",
+            "Continues NeXopp by Brian Monroe (bamonroe), licensed under GNU GPL v2 or later. " +
+                "Original portions copyright Brian Monroe.",
         )
         SettingsNote(
-            "Built on and for Xournal++, which defines the .xopp format; the format handling, palette, " +
-                "shape recogniser and highlighter follow that project, whose authors hold the copyright.",
+            "Interoperable with Xournal++, which defines the .xopp format. " +
+                "Unofficial; not affiliated with or endorsed by Xournal++ authors.",
         )
-        SettingsNote("Unofficial: not affiliated with or endorsed by the Xournal++ authors.")
-        SettingsNote("Free software under the GNU GPL, version 2 or later. No warranty.")
+        SettingsNote("Free software licensed under GNU General Public License v2 or later. Provided without warranty.")
     }
-    SettingsNote("MobiXournal is an independent, unofficial note-taking and scientific drafting app.")
 }
 
 /** The version the packaged window shows — one home for both shells (`BuildVersions`). */

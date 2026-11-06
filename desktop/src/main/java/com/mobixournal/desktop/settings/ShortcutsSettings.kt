@@ -46,7 +46,7 @@ import com.mobixournal.desktop.tools.TOGGLE_COMMANDS
  */
 @Composable
 internal fun ShortcutsSettings(policy: DesktopSettingsState) {
-    var query by remember { mutableStateOf("") }
+    val query = policy.query
     val families = remember { ShortcutFamilies.of(ShortcutTable.entries) }
     val shown = families
         .map { family -> family.copy(entries = family.entries.filter { matches(policy, it, query) }) }
@@ -69,21 +69,13 @@ internal fun ShortcutsSettings(policy: DesktopSettingsState) {
             }
         }
 
-        SettingsGroup("Find a key") {
-            SettingsRow(
-                label = "Search",
-                note = "A tool, a command or a chord — the lists below narrow as you type.",
-            ) {
-                SettingsSearchField(
-                    value = query,
-                    placeholder = "Tool, command or key",
-                    onValueChange = { query = it },
+        if (query.isNotBlank()) {
+            SettingsGroup("Filter") {
+                SettingsReadout(
+                    label = "Search filter",
+                    value = "$found of ${ShortcutTable.entries.size} matching \"${query.trim()}\"",
                 )
             }
-            SettingsReadout(
-                label = "Showing",
-                value = if (query.isBlank()) "$found keys" else "$found of ${ShortcutTable.entries.size}",
-            )
         }
 
         for (family in shown) {
@@ -110,7 +102,6 @@ internal fun ShortcutsSettings(policy: DesktopSettingsState) {
                 note = "Every row back to the key it ships with.",
                 onClick = {
                     policy.cancelArmed()
-                    query = ""
                     policy.restoreShortcuts()
                 },
             )

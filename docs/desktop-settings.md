@@ -31,10 +31,10 @@ corner and the rim as its whole edge — and a lit row wears that shape, ends in
 
 The list is **names only** — a glyph and a word per section — because two-line summaries are a page to skip.
 
-The header carries a **search field** beside the close glyph, and it narrows the index **only while it
-holds the keyboard**: a section stays in the list when its title, its summary or one of its search aliases
-contains the word, and clicking away gives the whole index back. It is deliberately not focused on opening:
-the list is what a reader returns for, and a focused bar eats a shortcut's first letter.
+The header carries a unified **search field** beside the close glyph: a section stays in the list
+when its title, its summary, aliases or commands match, and the filter stays active while browsing
+results until cleared with `×` or `Esc`. It is deliberately not focused on opening: the list is what
+a reader returns for, and a focused bar eats a shortcut's first letter.
 
 The panel always **opens on Stylus** (`DesktopSettingSection.DEFAULT`), whatever page it was closed on: the
 pen is the choice a session starts from. A caller that means another section names it — the hamburger's pen
@@ -156,7 +156,7 @@ beside the eraser's key, *Lasso / Marquee* beside the selection's — and stored
 
 The bindings the table does **not** own stay in `DesktopKeys.unlistedCommand`: `=` arriving as `Shift+0` on an
 Italian keyboard, the keypad's `+`/`-`, `Backspace` beside `Delete`, and the arrows beside the page keys. They
-are not rows, so they are not remappable — and none stops working when another row is remapped.
+are not rows, so they are not remappable.
 
 ## Stylus — the tablet's own section
 
@@ -184,19 +184,10 @@ reads — because the hand decides how hard it presses while the device decides 
   surface's hamburger menu carries the same drawing rows in the same order (`MenuPenBlock`), at the
   menu's smaller line, because they are reached mid-drawing — the stream itself is the page's row only,
   since which driver is open is not a fact about the stroke being made.
-- **Pressure → Presets** — the tablet's named pairs, as one **carousel**: a strip of chips where the preset
-  in use wears the accent on the steel fill, one click applies it (`tablet.penPresets`,
-  `tablet.selectedPenPreset`). The strip's two marks act on the thing they sit on: a **red ×** beside a chip
-  removes that pair — drawn only while a second one exists, because the pen always draws with one — and a
-  **`+`** caps the last chip, opening the one name field the *Stylus* page and the menu's Pen block share
-  (the same draft, whichever surface did it; the `+` is dimmed while a name is being written). A preset is **only those two
-  numbers**, and the sliders under the strip edit *its* numbers (their notes say so), so moving one
-  **rewrites the live entry** and the lit chip never names numbers the pen is not drawing with. Saving an
-  existing name rewrites it in place (the handle, and so the selection, survives), and a stored line this
-  build cannot read falls back to the factory preset rather than emptying the strip.
-- **Pressure → Reset to defaults** puts the floor and the multiplier back on the factory numbers (0.05 and
-  1.00×) through the same two setters, so it rewrites the live preset like a slider would — the tablet's
-  *Reset*, and the only way to undo a slider dragged far without a drag back.
+- **Pressure → Presets** — the tablet's named pairs, as a strip of chips where the active one wears the accent,
+  one click applies it (`tablet.penPresets`, `tablet.selectedPenPreset`). A **red ×** removes a pair, a **`+`**
+  opens the name field, and moving a slider edits the active preset's values.
+- **Pressure → Reset to defaults** restores the factory floor and multiplier (0.05 and 1.00×).
 - **Active area → Mapped surface** (`tablet.activeArea`): *Full* is the driver's own **system context**, the
   surface every other program on the machine sees, and it is what the window has always read. *Tablet* maps
   a **centred rectangle** of that surface onto the window's client area instead, so a small movement of the
@@ -273,21 +264,24 @@ this machine has, by the platform's own names, with **System default** as the fi
 fresh install has, stored as the *absence* of the key rather than as an empty name. The list is read again
 every time the page opens, because a headset can be plugged in while the window runs.
 
-A name that is **no longer on the machine** is dropped to the system default on this page, in the store as
-well, and the row says so; the recorder and the player then fall back to the default themselves if a device
-disappears mid-session (`DesktopAudioDevices.kt`, `chooseDevice`). That is the whole reason the rows exist:
-a device list that let a take fail on a missing microphone would be a list of names, not a setting.
+A name that is **no longer on the machine** drops to the system default, in the store as well; the recorder and
+player fall back to default if a device disappears mid-session (`DesktopAudioDevices.kt`, `chooseDevice`).
 
-**Outside the app** is where a take goes after it is recorded: **Save separate audio**
-(`audio.saveExternally`) and its **folder** (`audio.exportFolder`, picked with the platform's own folder
-chooser). With the toggle on, the end of a take copies every recording the document carries into that
-folder as standalone files — the same offer the tablet's audio page makes — and leaves the clips inside the
-document; with it off, the takes live only in the `.mobix`/`.xopp` they were recorded into.
+**Outside the app**: **Save separate audio** (`audio.saveExternally`) and its **folder** (`audio.exportFolder`)
+copy takes externally on completion while keeping them in the document. **Input level** monitors the microphone.
 
-**Input level** under *The take* is the running take's peak, the same number the header capsule's bar shows,
-and it reads zero with the note that a take has to be started from the capsule — a dead bar with no
-explanation is indistinguishable from a broken microphone. The group also states the file the take is written
-as (44.1 kHz mono 16-bit WAV) and where it lives.
+## Navigation — zoom stepping and smooth scrolling
+
+Under **Navigation**, document opening (`interface.fitOnOpen`), the sidebar policy (`interface.sidebarPolicy`),
+and canvas navigation feel:
+
+- **Zoom step**: **Wheel & dial rate** (`navigation.zoomStepWheel`, 2…30%, default 12%) sets the exponential zoom
+  factor per mouse wheel notch (`Ctrl + wheel`) or dial click; **Keyboard shortcut step**
+  (`navigation.zoomStepKeyboard`, 5…75%, default 25%) sets the scaling factor for `Ctrl +` and `Ctrl -`.
+- **Scrolling**: **Smooth scrolling** (`navigation.smoothScroll`, on by default) glides between wheel notches with
+  an immediate lead response followed by exponential decay; **Scroll distance** (`navigation.scrollStepDp`,
+  16…160 dp, default 64 dp) sets travel per notch, and **Scroll fluidity** (`navigation.scrollFluidity`, 10…90%,
+  default 60%) balances responsiveness and glide. **Reset navigation defaults** restores factory values.
 
 ## Backup — the settings, in a file
 

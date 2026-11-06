@@ -27,6 +27,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,7 +69,7 @@ internal fun SettingsSurface(
 ) {
     // What the help line is saying: the sentence of the row under the pointer, written by the row itself.
     val help = remember { mutableStateOf("") }
-    BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(modifier.fillMaxSize().pointerHoverIcon(PointerIcon.Default), contentAlignment = Alignment.Center) {
         val panelWidth = minOf(maxWidth * 0.9f, MAX_WIDTH)
         val panelHeight = minOf(maxHeight * 0.88f, MAX_HEIGHT)
         val density = LocalDensity.current
@@ -81,7 +83,8 @@ internal fun SettingsSurface(
                 .offset { IntOffset(dx.roundToInt(), dy.roundToInt()) }
                 .width(panelWidth)
                 .height(panelHeight)
-                .glassSurface(fill = DesktopTheme.settingsPanel),
+                .glassSurface(fill = DesktopTheme.settingsPanel)
+                .pointerHoverIcon(PointerIcon.Default),
         ) {
             SettingsPanelHeader(policy)
             CompositionLocalProvider(LocalSettingsHelp provides help) {
@@ -136,11 +139,9 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
             onQuery = policy::search,
             onFocus = { focused ->
                 policy.typing = focused
-                // The filter is the field's while it holds the keyboard: clicking away gives the index
-                // back, so a word typed once cannot hide a section for the rest of the visit.
-                if (focused) policy.cancelArmed() else policy.search("")
+                if (focused) policy.cancelArmed()
             },
-            modifier = Modifier.width(240.dp),
+            modifier = Modifier.width(260.dp),
         )
         Spacer(Modifier.width(8.dp))
         // The same cross the inspector lane closes with: one glyph for "put this away" everywhere.

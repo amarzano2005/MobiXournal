@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-configurable-zoom-step-and-smooth-scrolling-in-navigation-settings"
+title = "Desktop: configurable zoom step and smooth scrolling in Navigation settings"
+description = "Added configurable zoom step (wheel/dial and keyboard) and smooth scrolling (enable toggle, distance/notch, and fluidity) in Settings > Navigation. Implemented frame-rate independent smooth scrolling interpolation with zero-latency lead frame in SmoothScroller and PageCanvasWheel. Added NavigationSettingsTest and regenerated desktop distributable."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-06
+completed = 2026-11-06
+tags = []
+design = "material: Settings cards on panel fill; tokens: DesktopTheme tokens with SettingsSlider and SettingsSwitch; glyph: SettingsGlyph.NAVIGATION catalogue silhouette; states: hover, focused, and pressed states on all rows and sliders; copy: English; keyboard: Ctrl +/- zoom and wheel scroll step; parity: navigation settings section on desktop mirroring mobile navigation controls; docs: docs/desktop-settings.md updated within budget; tests: NavigationSettingsTest, DialWheelSceneTest, and all guards green"
+
+[[task]]
 id = "onboarding-deslop"
 title = "De-slop the first-launch welcome panel and stop a settings reset from replaying it"
 description = "OnboardingDialog.kt is now the family's floating surface (FloatingDialog: glass fill, hairline rim, 20 dp corner, the shared spring) carrying two steps instead of five: handedness and the new-document format. Gone with the old shell are the opaque 24 dp Material Surface with tonalElevation, the \"MX\" badge, the \"• Welcome\" label, the five step pills, the four tinted icon chips, the \"💡 Tip:\" line and the three pages that taught stylus pressure, figure widths and ExpressKeys from a dialog that cannot change them. The step components (OnboardingStepHandedness, OnboardingStepDocumentFormat) keep their radio cards on ModernTheme.capsuleCornerRadiusDp; the footer is Back/Skip + Next/Start writing. The reset bug: BackupSection called onChange(AppSettings()), and the factory value of hasSeenOnboarding is false, so Settings -> Reset replayed the tour. AppSettings.factoryDefaults() (new AppSettingsReset.kt) carries the flag over; the confirmation sheet now says so. AppSettingsFactoryDefaultsTest (2 cases) pins that a reset keeps the tour answered, clears what the user changed, and still asks the tour on an install that never saw it. AppSettings.kt stays at its recorded ceiling. Docs: docs/stylus.md (two questions + the reset rule), README.md backup bullet, DocumentsSection KDoc. Verified with :app:testDebugUnitTest (guards + the new suite, 76 tests) and :app:assembleDebug. NOT verified on a device: no emulator here, so the panel was never seen on screen."

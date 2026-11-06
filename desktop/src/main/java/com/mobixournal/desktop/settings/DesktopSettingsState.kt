@@ -80,11 +80,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** The edge the rail takes, derived from the placement: a ribbon has no side. */
     val railSide: RailSide get() = stripPlacement.railSide ?: RailSide.LEFT
 
-    /**
-     * Where the surface has been dragged to, in dp from the centre of the window: a panel that could only
-     * sit in the middle covers the sheet it is being compared against. Two numbers rather than an
-     * `Offset` so this state stays plain Kotlin and can be tested on the JVM.
-     */
+    /** Dragged panel offset in dp from window center (`panelDx`, `panelDy`). */
     var panelDx by mutableStateOf(0f)
         private set
     var panelDy by mutableStateOf(0f)
@@ -104,6 +100,9 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** The window's theme: the file's answer and the live one, in one place (`DesktopThemeStore`). */
     internal val appearance = DesktopAppearanceState(store)
+
+    /** Navigation preferences: zoom steps and smooth scrolling. */
+    val navigation = DesktopNavigationState(store.navigation)
 
     /** Whether the status bar reports the paint time per frame. */
     var frameTime by mutableStateOf(store.frameTime)
@@ -294,7 +293,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** The sections on the left: the whole index, or what the **focused** search field leaves. */
     val sections: List<DesktopSettingSection>
-        get() = if (typing) DesktopSettingSection.search(query) else DesktopSettingSection.entries
+        get() = if (query.isNotBlank()) DesktopSettingSection.search(query) else DesktopSettingSection.entries
 
     /** The section a click on the list opens, or the first one the search left. */
     val shownSection: DesktopSettingSection?
@@ -441,32 +440,27 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** Open documents at [value] from now on and remember it — the tab already open keeps its zoom. */
     fun chooseFitOnOpen(value: FitOnOpen) {
-        fitOnOpen = value
-        store.fitOnOpen = value
+        fitOnOpen = value; store.fitOnOpen = value
     }
 
     /** Show the page list by [value] and remember it. */
     fun chooseSidebarPolicy(value: SidebarPolicy) {
-        sidebarPolicy = value
-        store.sidebarPolicy = value
+        sidebarPolicy = value; store.sidebarPolicy = value
     }
 
     /** Let the inspector lane open by [value] and remember it. */
     fun chooseInspectorPolicy(value: InspectorPolicy) {
-        inspectorPolicy = value
-        store.inspectorPolicy = value
+        inspectorPolicy = value; store.inspectorPolicy = value
     }
 
     /** Report the paint time per frame, or stop reporting it, and remember the answer. */
     fun chooseFrameTime(value: Boolean) {
-        frameTime = value
-        store.frameTime = value
+        frameTime = value; store.frameTime = value
     }
 
     /** Prefer [value]'s pen stream and remember it; the window reopens its reader. */
     fun choosePenStream(value: PenStream) {
-        penStream = value
-        store.penStream = value
+        penStream = value; store.penStream = value
     }
 
     /** Which eraser the eraser toggle switches to, and remember it for the next session. */
@@ -580,6 +574,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         fitOnOpen = store.fitOnOpen
         sidebarPolicy = store.sidebarPolicy
         inspectorPolicy = store.inspectorPolicy
+        navigation.reload()
         frameTime = store.frameTime
         targetHz = store.targetHz
         penStream = store.penStream
