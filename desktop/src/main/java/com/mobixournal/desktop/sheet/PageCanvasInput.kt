@@ -141,6 +141,7 @@ internal suspend fun PointerInputScope.pageGestures(
         onEdited = onEdited,
         pen = pen,
         bands = pdfBands,
+        recognizeShapes = targets.recognizeShapes,
     )
     // The edge scroll's clock, running for as long as this canvas has a pointer handler: a drag registers
     // itself with [DragView.beginDrag] and is called back while the sheet travels. It has to live out here
@@ -416,46 +417,6 @@ private suspend fun AwaitPointerEventScope.preInkPress(
         down, tool, view.current(), pageW, pageH, previewRegion,
         targets.livingPreview, targets.onLiveDrag, targets.onPlaceLiving,
     )
-}
-
-/** dp a wheel notch moves the page. */
-internal const val WHEEL_STEP_DP = 64f
-
-/**
- * What one wheel event does to the page: `Ctrl` zooms **at the cursor** (exponentially, so 30 % and
- * 300 % feel alike), otherwise it scrolls. Either way the viewport comes back for the caller to apply;
- * null when the event carried no change. A scroll keeps the fit, so reading down a width-fitted strip
- * does not silently turn it into a free zoom.
- *
- * [forceZoom] is the tablet dial's notch: Windows delivers it as a plain `WM_MOUSEWHEEL` with no `Ctrl`
- * held (`docs/desktop-workstation.md` measured it), so the caller says which wheel turned — identified
- * by the device that sent it (`TabletWheel`) — and the notch takes the zoom path with no modifier. It is
- * the same zoom as `Ctrl + wheel`, cursor anchor and all, because a dial has no second opinion to add.
- */
-internal fun wheelViewport(
-    event: PointerEvent,
-    viewport: Viewport,
-    zoom: Float,
-    density: Float,
-    pageW: Float,
-    pageH: Float,
-    viewW: Float,
-    viewH: Float,
-    onFit: (FitMode) -> Unit,
-    forceZoom: Boolean = false,
-): Viewport? {
-    val change = event.changes.firstOrNull() ?: return null
-    val delta = change.scrollDelta
-    val fitted = viewport.copy(zoom = zoom)
-    return if (forceZoom || event.keyboardModifiers.isCtrlPressed) {
-        // One notch is roughly 0.1 of a zoom step.
-        val factor = exp((-delta.y * 0.12f)).coerceIn(0.5f, 2f)
-        val anchor = change.position / density
-        onFit(FitMode.NONE)
-        fitted.zoomBy(factor, anchor.x, anchor.y, pageW, pageH, viewW, viewH)
-    } else {
-        fitted.pannedBy(-delta.x * WHEEL_STEP_DP, -delta.y * WHEEL_STEP_DP, pageW, pageH, viewW, viewH)
-    }
 }
 
 /**

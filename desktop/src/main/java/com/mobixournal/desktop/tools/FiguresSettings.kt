@@ -1,10 +1,10 @@
 package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.SettingsGroup
-import com.mobixournal.desktop.settings.SettingsNote
 import com.mobixournal.desktop.settings.SettingsRow
 import com.mobixournal.desktop.settings.SettingsSelect
 import com.mobixournal.desktop.settings.SettingsSlider
+import com.mobixournal.desktop.settings.SettingsSwitch
 
 import androidx.compose.runtime.Composable
 import com.mobixournal.design.PenPalette
@@ -19,11 +19,24 @@ import kotlin.math.roundToInt
  */
 @Composable
 internal fun FiguresSettings(policy: DesktopSettingsState) {
+    FigureRecognitionSettings(policy)
     FigureWidthSettings(policy)
-    SettingsNote("The pen's own widths stay in the strip's colour capsule.")
     TriangleSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRIANGLE) })
     TrapezoidSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRAPEZOID) })
     PolygonSettings(policy)
+}
+
+@Composable
+private fun FigureRecognitionSettings(policy: DesktopSettingsState) {
+    SettingsGroup("Shape recognition") {
+        SettingsRow(
+            label = "Recognize shapes",
+            note = "Automatically convert recognized freehand strokes into geometric shapes on lift or dwell.",
+            onClick = { policy.figures.chooseRecognizeShapes(!policy.figures.recognizeShapes) },
+        ) {
+            SettingsSwitch(policy.figures.recognizeShapes)
+        }
+    }
 }
 
 @Composable
@@ -33,7 +46,7 @@ private fun FigureWidthSettings(policy: DesktopSettingsState) {
     SettingsGroup("Figure width") {
         SettingsSelect(
             label = "Preset",
-            note = "The pen's three slots, for every figure tool — figures ignore pressure.",
+            note = "Standard stroke widths for figure tools (pen widths stay in toolbar color capsule).",
             options = widths.indices.toList(),
             picked = PenPalette.widthSlot(policy.figures.width),
             optionLabel = { index ->
@@ -44,7 +57,7 @@ private fun FigureWidthSettings(policy: DesktopSettingsState) {
         )
         SettingsRow(
             label = "Width",
-            note = "Anything between the slots, in points.",
+            note = "Custom stroke width in points (figure tools ignore pen pressure).",
         ) {
             SettingsSlider(
                 value = policy.figures.width,

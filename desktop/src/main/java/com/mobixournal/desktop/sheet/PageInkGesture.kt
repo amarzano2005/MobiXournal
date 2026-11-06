@@ -35,6 +35,7 @@ import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.RecognisedFigure
 import com.mobixournal.render.ShapeDwell
+import com.mobixournal.render.ShapeRecognizer
 import kotlin.math.hypot
 import com.mobixournal.render.eraserRadiusPt
 
@@ -79,6 +80,7 @@ internal class PageInkGesture(
      * preview to publish.
      */
     private val bands: MutableState<List<MagneticHighlighter.Band>>? = null,
+    private val recognizeShapes: Boolean = false,
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
@@ -175,6 +177,7 @@ internal class PageInkGesture(
      * writes: the figure's own points, all at the width the stroke was drawn at.
      */
     fun dwellCheck(nowNanos: Long = System.nanoTime()) {
+        if (!recognizeShapes) return
         if (!drawing || dwellFigure != null) return
         if (nowNanos - lastSampleNanos < ShapeDwell.MS_NANOS) return
         if (tool.inkTool() == null) return
@@ -364,10 +367,19 @@ internal class PageInkGesture(
      */
     private fun commit() {
         val drawnTool = tool.inkTool() ?: return
-        // The figure the dwell found, if it is one this shell keeps as living geometry: a closed
-        // polygon, drawn with the pen, on a plain line — the same rule the tablet commits by.
-        val figure = dwellFigure?.takeIf { drawnTool == Tool.PEN && ink.lineStyle == LineStyle.PLAIN }
         val samples = draft.toList()
+        val onLiftFigure = if (dwellFigure == null && recognizeShapes && samples.size >= 3 &&
+            (drawnTool == Tool.PEN || drawnTool == Tool.HIGHLIGHTER) && ink.lineStyle == LineStyle.PLAIN
+        ) {
+            val width = ink.width.toDouble()
+            val points = samples.map { StrokePoint(it.x, it.y, width * it.factor) }
+            val average = points.map { it.width }.average()
+            ShapeRecognizer.classify(points, average)
+        } else {
+            null
+        }
+        val activeFigure = dwellFigure ?: onLiftFigure
+        val figure = activeFigure?.takeIf { drawnTool == Tool.PEN && ink.lineStyle == LineStyle.PLAIN }
         dwellFigure = null
         drawnSamples = emptyList()
         draft.clear()
@@ -389,7 +401,16 @@ internal class PageInkGesture(
             // menu is the one being written on, not always the stack's last sheet.
             tab.document.editPage(index) { page -> page.withElement(shape, tab.inkLayer(page)) } != null
         } else {
-            val stroke = strokeOf(drawnTool, ink.colour, ink.width, samples, ink.lineStyle)
+            val committedSamples = if (onLiftFigure != null && samples.isNotEmpty()) {
+                val width = ink.width.toDouble()
+                val average = samples.map { width * it.factor }.average()
+                val factor = if (width > 0.0) (average / width).toFloat() else 1f
+                val pointer = samples.last().pointer
+                onLiftFigure.points.map { point -> InkSample(point.x, point.y, factor, pointer) }
+            } else {
+                samples
+            }
+            val stroke = strokeOf(drawnTool, ink.colour, ink.width, committedSamples, ink.lineStyle)
                 ?: return
             // A stroke drawn while a take runs carries its `fn`/`ts` from the **one funnel** every
             // committed stroke passes through — not per tool, so a highlighter and a pen cannot stamp

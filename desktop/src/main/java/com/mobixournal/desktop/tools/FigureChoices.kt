@@ -22,6 +22,10 @@ internal class FigureChoices(private val store: DesktopSettings) {
     var width by mutableStateOf(store.figureWidth)
         private set
 
+    /** Whether freehand strokes snap to geometric primitives on lift or dwell (igure.recognizeShapes). */
+    var recognizeShapes by mutableStateOf(store.recognizeShapes)
+        private set
+
     /** The triangle's and trapezoid's answers — the variant a drag draws, and its angles. */
     var shape by mutableStateOf(store.figureShape())
         private set
@@ -39,6 +43,12 @@ internal class FigureChoices(private val store: DesktopSettings) {
         val clamped = PenPalette.clampWidth(value)
         width = clamped
         store.figureWidth = clamped
+    }
+
+    /** Pick whether freehand strokes snap to geometric shapes. */
+    fun chooseRecognizeShapes(value: Boolean) {
+        recognizeShapes = value
+        store.recognizeShapes = value
     }
 
     /** One figure's answer changed — the variant, an angle a scalene one is built from, or the sides. */
@@ -83,6 +93,7 @@ internal class FigureChoices(private val store: DesktopSettings) {
     fun reload() {
         width = store.figureWidth
         shape = store.figureShape()
+        recognizeShapes = store.recognizeShapes
         menu = null
         editingFigure = null
     }

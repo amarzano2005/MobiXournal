@@ -45,6 +45,8 @@ internal class PagePressTargets(
      * the preview and the lift build the same figure.
      */
     val figures: FigureShape = FigureShape(),
+    /** Whether freehand strokes snap to geometric primitives on lift or dwell (`figure.recognizeShapes`). */
+    val recognizeShapes: Boolean = false,
     /**
      * The drag in flight that `Esc` would cancel, or null once it is over. The shell holds the other end
      * (`DesktopShellState.liveDrag`): a shape is drawn from a drag, and a drag with no way back is a

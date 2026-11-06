@@ -66,12 +66,9 @@ class SourceStructureTest {
         // +3 deliberate: the layer manager is one member beside the page list's commands, for the same
         // reason — it is a section of the window, and the next change here splits.
         "desktop/shell/DesktopShell.kt" to 720,
-        // The two files that now carry the ring's own end of the work, each a few lines past the budget
-        // rather than a second topic: the catalogue's glyph table gained the ring's six-slots-round-a-nib
-        // mark (ToolGlyphs), and the canvas gained the one branch that swallows the copy Windows makes of a
-        // press the pen already answered (PageCanvasInput). The next change to either splits.
+        // The file that now carries the ring's own end of the work: the catalogue's glyph table gained
+        // the ring's six-slots-round-a-nib mark (ToolGlyphs).
         "design/ToolGlyphs.kt" to 715,
-        "desktop/sheet/PageCanvasInput.kt" to 705,
     )
 
     /** A function past this is the "~100 lines max" in `AGENTS.md`: extract a helper. */

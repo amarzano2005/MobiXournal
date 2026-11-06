@@ -72,6 +72,8 @@ internal fun PenPacketStrokes(
     bands: MutableState<List<MagneticHighlighter.Band>>? = null,
     /** The pen-tip ring: while it is up the packets answer it and lay no ink under it. */
     hud: HudUi = HudUi(),
+    /** Whether freehand strokes snap to geometric primitives on lift or dwell (`figure.recognizeShapes`). */
+    recognizeShapes: Boolean = false,
     packets: PenPacketSource?,
 ) {
     // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
@@ -91,6 +93,7 @@ internal fun PenPacketStrokes(
             onEdited = onEdited,
             startOnDown = true,
             bands = bands,
+            recognizeShapes = recognizeShapes,
         )
     }
     // One ring update per frame, not one per packet: the driver sends 400 readings a second and each
@@ -131,16 +134,7 @@ internal fun PenPacketStrokes(
                 stroke.finishIfStale(now)
             }
         }
-        // Frames are **asked for by packets**, never by a loop: a `withFrameNanos` loop that never ends
-        // renders the window at the display's full rate for ever — measured at ~120 fps on a window with
-        // nothing happening, which on a 21:9 sheet is what starved the message thread and read as the
-        // window freezing. One token per batch means the ink still costs at most one frame per screen.
-        //
-        // The batch is applied **here**, not after the next frame (`withFrameNanos { flush() }` used to
-        // sit between the two): a resumed frame awaiter is dispatched back to this thread *after* that
-        // frame has been drawn, so waiting for it spent a frame and the ink landed on the one following.
-        // Measured on a 120 Hz display: 12.45 ms median / 16.82 ms p95, which is two 8.33 ms frames.
-        // Writing the samples now invalidates the canvas, and Compose paints it at the very next frame.
+        // Frames are asked for by packets: applying batches here invalidates at next frame.
         while (true) {
             stroke.awaitPacket()
             stroke.flush()

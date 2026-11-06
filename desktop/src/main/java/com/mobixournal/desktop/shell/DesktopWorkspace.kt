@@ -7,6 +7,7 @@ import com.mobixournal.desktop.ink.TabletWintab
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.PdfIndexLoader
 import com.mobixournal.desktop.settings.InspectorPolicy
+import com.mobixournal.desktop.settings.LocalNavigationState
 import com.mobixournal.desktop.settings.RailSide
 import com.mobixournal.desktop.sheet.HudUi
 import com.mobixournal.desktop.sheet.PageCanvas
@@ -31,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.mobixournal.format.model.LineStyle
 
@@ -70,102 +72,76 @@ private fun Modifier.canvasBandShade(state: DesktopShellState): Modifier {
 
 @Composable
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
-    Row(Modifier.fillMaxSize()) {
-        if (state.sidebarVisible) WorkspaceSidebar(state, tab)
-        val placement = state.prefs.stripPlacement
-        val railOnLeft = state.prefs.railSide == RailSide.LEFT
-        Column(Modifier.weight(1f).fillMaxHeight()) {
-            // The ribbon is a band of its own above the canvas, not a bar lying on the sheet.
-            if (placement.showsRibbon) StripRibbon(state)
-            Row(Modifier.weight(1f).fillMaxWidth()) {
-                if (placement.showsRail && railOnLeft) StripRail(state)
-                Box(Modifier.weight(1f).fillMaxHeight().canvasBandShade(state)) {
-                    // The PDF's text layer and Contents, read once per file off the UI thread and published
-                    // on the tab: the selection, the magnetic highlighter and the sidebar all read it there.
-                    PdfIndexLoader(tab)
-                    PageCanvas(
-                        tab = tab,
-                        panMode = state.panMode,
-                        tool = state.tools.current,
-                        // The page's ink, not the strip's: a highlighter writes a band, not a wide pen.
-                        ink = state.pageInk,
-                        // Figures, circuits and placements always take the pen's ink, never the highlighter's.
-                        shapeInk = state.shapeInk,
-                        // The component the Circuit slot is armed with — the picker's answer the drag reads.
-                        circuitKind = state.activeCircuitKind,
-                        // The triangle's and trapezoid's variants and angles — Settings ▸ Figures.
-                        figures = state.prefs.figures.shape,
-                        // A STEM slot asks its values before the element exists, so the canvas hands the box over.
-                        onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
-                        // A component is pulled out along the drag's own two ends, aimed at the page's pins.
-                        onPlaceCircuit = { kind, span -> state.placeCircuit(tab, kind, span) },
-                        // A double-click on the selected living element opens the same lane its pencil does —
-                        // the tablet's double-tap, and one command rather than a second way to edit.
-                        onEditLiving = { state.runSelection(SelectionAction.EDIT) },
-                        // The Text slot types in place: the canvas opens the box, the field hands the typing
-                        // back, and nothing reaches the page until the box is committed (`DesktopTextBox`).
-                        text = TextBoxUi(
-                            box = state.textBox.box,
-                            onPress = { x, y, pageW, pageH ->
-                                state.textBox.begin(tab, x, y, pageW, pageH, state.ink, state::edited)
-                            },
-                            onChange = { text -> state.textBox.change(text) },
-                        ),
-                        // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
-                        // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
-                        pen = tablet?.pen,
-                        // And, when the driver has packets, the stroke is drawn from those: the same contact,
-                        // without waiting for Windows' mouse emulation to notice the touch.
-                        packets = tablet?.wintab,
-                        // Which wheel turned: the dial's notches arrive from the tablet's own HID device, so
-                        // they zoom at the cursor while the mouse's wheel keeps scrolling.
-                        dialWheel = { tablet?.dialWheelRecently() == true },
-                        // A figure being dragged can be cancelled with `Esc`; the shell keeps the end of that,
-                        // because the key reaches the window and not the canvas.
-                        onLiveDrag = { cancel -> state.liveDrag = cancel },
-                        // The bar under the outline: what the selection can be, and the one command it runs. The
-                        // rules (what is available, and when) are the shell's, so the canvas only draws them.
-                        selectionBar = selectionBarFor(state, tab),
-                        onViewport = { tab.viewport = it },
-                        onFit = { tab.fit = it },
-                        // An edit changes the page's picture, so the thumbnail cached for it is stale; the other
-                        // pages keep theirs. It is only *dropped* here — re-rendering it now would cost a full
-                        // software paint per stroke, so the sidebar paints it again once the burst is quiet
-                        // (`ThumbnailRefresh`, keyed on `thumbnailRevision`). The edit also starts the clock on
-                        // the crash snapshot, which the shell writes after the same burst.
-                        onEdited = { index ->
-                            state.thumbnails[tab.key]?.remove(index)
-                            state.noteEdit()
-                        },
-                        // No chrome inset: the bands take their room out of the row, so the canvas is already
-                        // the clear space a fitted page is framed in — nothing of the chrome lies over the sheet.
-                        modifier = Modifier.fillMaxSize(),
-                        // The ring: up or not (read live, so a press sees the ring as it is), what it holds,
-                        // the nib's place it is anchored to, and that a press on it is never the page's.
-                        hud = HudUi(
-                            open = { state.ring.open },
-                            onPress = { x, y, density -> state.ring.press(x, y, density) },
-                            slots = state.ring.slots,
-                            onPointerAt = { at, density -> state.ring.notePointer(at, density) },
-                            // One contact reaches the window twice (packets, then Windows' copy of them as a
-                            // mouse): the ring's answer holds the page out until that contact lifts.
-                            pressHeld = { state.ring.pressHeld },
-                            onRelease = { state.ring.release() },
-                        ),
-                    )
+    CompositionLocalProvider(LocalNavigationState provides state.prefs.navigation) {
+        Row(Modifier.fillMaxSize()) {
+            if (state.sidebarVisible) WorkspaceSidebar(state, tab)
+            val placement = state.prefs.stripPlacement
+            val railOnLeft = state.prefs.railSide == RailSide.LEFT
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                if (placement.showsRibbon) StripRibbon(state)
+                Row(Modifier.weight(1f).fillMaxWidth()) {
+                    if (placement.showsRail && railOnLeft) StripRail(state)
+                    WorkspaceCanvas(state, tab, tablet)
+                    if (placement.showsRail && !railOnLeft) StripRail(state)
                 }
-                // The rail is one composable with two homes — the lane before the canvas or the lane
-                // after it, whichever edge `RailSide` names — so the two edges cannot drift into two
-                // rails, and each lane takes its width from the row.
-                if (placement.showsRail && !railOnLeft) StripRail(state)
+            }
+            if (state.prefs.inspectorPolicy != InspectorPolicy.NEVER) {
+                InspectorLane(state = state, tab = tab)
             }
         }
-        // The inspector, in a lane of its own on the right: it takes width from the row, so the page is
-        // never resized by it. Its policy can only keep it shut — a column of blank controls is not an
-        // answer the lane has.
-        if (state.prefs.inspectorPolicy != InspectorPolicy.NEVER) {
-            InspectorLane(state = state, tab = tab)
-        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.WorkspaceCanvas(
+    state: DesktopShellState,
+    tab: DesktopTab,
+    tablet: DesktopTablet?,
+) {
+    Box(Modifier.weight(1f).fillMaxHeight().canvasBandShade(state)) {
+        // The PDF's text layer and Contents, read once per file off the UI thread and published
+        // on the tab: the selection, the magnetic highlighter and the sidebar all read it there.
+        PdfIndexLoader(tab)
+        PageCanvas(
+            tab = tab,
+            panMode = state.panMode,
+            tool = state.tools.current,
+            ink = state.pageInk,
+            shapeInk = state.shapeInk,
+            circuitKind = state.activeCircuitKind,
+            figures = state.prefs.figures.shape,
+            recognizeShapes = state.prefs.figures.recognizeShapes,
+            onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
+            onPlaceCircuit = { kind, span -> state.placeCircuit(tab, kind, span) },
+            onEditLiving = { state.runSelection(SelectionAction.EDIT) },
+            text = TextBoxUi(
+                box = state.textBox.box,
+                onPress = { x, y, pageW, pageH ->
+                    state.textBox.begin(tab, x, y, pageW, pageH, state.ink, state::edited)
+                },
+                onChange = { text -> state.textBox.change(text) },
+            ),
+            pen = tablet?.pen,
+            packets = tablet?.wintab,
+            dialWheel = { tablet?.dialWheelRecently() == true },
+            onLiveDrag = { cancel -> state.liveDrag = cancel },
+            selectionBar = selectionBarFor(state, tab),
+            onViewport = { tab.viewport = it },
+            onFit = { tab.fit = it },
+            onEdited = { index ->
+                state.thumbnails[tab.key]?.remove(index)
+                state.noteEdit()
+            },
+            modifier = Modifier.fillMaxSize(),
+            hud = HudUi(
+                open = { state.ring.open },
+                onPress = { x, y, density -> state.ring.press(x, y, density) },
+                slots = state.ring.slots,
+                onPointerAt = { at, density -> state.ring.notePointer(at, density) },
+                pressHeld = { state.ring.pressHeld },
+                onRelease = { state.ring.release() },
+            ),
+        )
     }
 }
 

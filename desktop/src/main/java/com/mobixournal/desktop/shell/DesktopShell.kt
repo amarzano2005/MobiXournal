@@ -658,10 +658,10 @@ class DesktopShellState(
                 tabs.previous(); true
             }
             ShellCommand.ZOOM_IN -> {
-                zoomBy(tab, ZOOM_STEP); true
+                zoomBy(tab, prefs.navigation.zoomStepKeyboard); true
             }
             ShellCommand.ZOOM_OUT -> {
-                zoomBy(tab, 1f / ZOOM_STEP); true
+                zoomBy(tab, 1f / prefs.navigation.zoomStepKeyboard); true
             }
             ShellCommand.FIT_PAGE -> {
                 tab.fit = FitMode.PAGE

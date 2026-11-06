@@ -87,6 +87,7 @@ class DesktopDwellTest {
             onEdited = {},
             // The tablet's rule: a press is a pen on paper, so the stroke opens on the down.
             startOnDown = true,
+            recognizeShapes = true,
         )
         return Fixture(tab, gesture, draft)
     }
@@ -223,7 +224,7 @@ class DesktopDwellTest {
         tab.fit = FitMode.NONE
         tab.viewport = Viewport(zoom = 1f)
         val scene = ImageComposeScene(500, 700, Density(1f)) {
-            PageCanvas(tab = tab, panMode = false, onViewport = {}, onFit = {}, ink = DesktopInk(width = 4f))
+            PageCanvas(tab = tab, panMode = false, onViewport = {}, onFit = {}, ink = DesktopInk(width = 4f), recognizeShapes = true)
         }
         try {
             val corners = listOf(100f to 100f, 300f to 100f, 300f to 250f, 100f to 250f, 100f to 100f)

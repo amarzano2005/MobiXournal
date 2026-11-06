@@ -63,6 +63,9 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.runtime.DisposableEffect
+import com.mobixournal.desktop.settings.DesktopNavigationState
+import com.mobixournal.desktop.settings.LocalNavigationState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -115,6 +118,8 @@ internal fun PageCanvas(
     circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
     /** The triangle's and trapezoid's own answers, read by a figure drag (Settings ▸ Figures). */
     figures: FigureShape = FigureShape(),
+    /** Whether freehand strokes snap to geometric primitives on lift or dwell (`figure.recognizeShapes`). */
+    recognizeShapes: Boolean = false,
     /**
      * What a lifted living-slot drag means. The window asks the family's values first ([DesktopShellState]'s
      * placement card); a canvas on its own commits the family's defaults, which is what a test drives.
@@ -165,6 +170,7 @@ internal fun PageCanvas(
             shapeInk = shapeInk,
             circuitKind = circuitKind,
             figures = figures,
+            recognizeShapes = recognizeShapes,
             placeLiving = state.placeLiving,
             placeCircuit = onPlaceCircuit,
             text = text,
@@ -288,6 +294,7 @@ internal fun SheetCanvas(
     circuitKind: ShapeKind,
     /** The triangle's and trapezoid's own answers, read by a figure drag (Settings ▸ Figures). */
     figures: FigureShape = FigureShape(),
+    recognizeShapes: Boolean = false,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
     onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
@@ -320,6 +327,9 @@ internal fun SheetCanvas(
 ) {
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`SheetMark`).
     val mark = sheetMark(tool, ink, shapeInk, sheet, density, pointer)
+    val navigation = LocalNavigationState.current
+    val scroller = rememberSmoothScroller()
+    DisposableEffect(tab) { onDispose { scroller.cancel() } }
 
     Box(Modifier.fillMaxSize()) {
         Canvas(
@@ -338,13 +348,15 @@ internal fun SheetCanvas(
                 dialWheel = dialWheel,
                 targets = sheetTargets(
                     onPlaceLiving, onPlaceCircuit, circuitKind, figures, onTextPress, onEditLiving, pointer,
-                    onLiveDrag,
+                    onLiveDrag, recognizeShapes = recognizeShapes,
                 ),
                 density = density,
                 onViewport = onViewport,
                 onFit = onFit,
                 onEdited = onEdited,
                 hud = hud,
+                navigation = navigation,
+                scroller = scroller,
             ),
         ) {
             paintSheetOf(
@@ -397,11 +409,13 @@ private fun sheetTargets(
     onEditLiving: (() -> Unit)?,
     pointer: PenPointer,
     onLiveDrag: ((() -> Unit)?) -> Unit,
+    recognizeShapes: Boolean = false,
 ): PagePressTargets = PagePressTargets(
     onPlaceLiving = onPlaceLiving,
     onPlaceCircuit = onPlaceCircuit,
     circuitKind = circuitKind,
     figures = figures,
+    recognizeShapes = recognizeShapes,
     onTextPress = onTextPress,
     onEditLiving = onEditLiving,
     // Only the component is drawn live: a plot or table is still waiting for its values.
@@ -441,16 +455,12 @@ private fun Modifier.sheetInput(
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
     hud: HudUi = HudUi(),
+    navigation: DesktopNavigationState,
+    scroller: SmoothScroller,
 ): Modifier = this
     .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode))
     .hoverTracking(pointer, followMouse)
-    .onPointerEvent(PointerEventType.Scroll) { event ->
-        wheelViewport(
-            event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
-            sheet.viewW, sheet.viewH, onFit,
-            forceZoom = dialWheel(),
-        )?.let(onViewport)
-    }
+    .pageWheelScroll(tab, sheet, dialWheel, density, navigation, scroller, onFit, onViewport)
     .sheetGestures(
         tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft, targets, onViewport, onEdited,
         hud = hud,
