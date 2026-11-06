@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.tools.DEFAULT_IMAGE_ANCHOR
 import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.StripItem
@@ -14,7 +15,7 @@ import org.junit.Test
  * The button used to be welded to Text by the same `when` that placed the stroke's settings under the
  * highlighter, so "move it" had no answer at all. The anchor is a slot's name ([stripItems]'s `imageAfter`),
  * which is what these tests hold: a chosen anchor places the row after that slot, and an anchor this
- * arrangement does not hold puts it back on Text instead of dropping it off the strip.
+ * arrangement does not hold puts it back on the default anchor instead of dropping it off the strip.
  */
 class StripItemsTest {
 
@@ -32,7 +33,7 @@ class StripItemsTest {
     @Test
     fun `insert image follows the slot it was put under`() {
         // Three real slot faces: an unknown name is the fallback case below, not an anchor.
-        for (anchor in listOf(DesktopTool.TEXT, DesktopTool.PEN, DesktopTool.ERASER)) {
+        for (anchor in listOf(DesktopTool.TEXT, DesktopTool.PDF_TEXT_SELECT, DesktopTool.ERASER)) {
             val (image, slot) = indices(anchor.name)
             assertTrue("the image slot is on the strip under $anchor", image > 0)
             assertEquals("it stands right after $anchor", slot + 1, image)
@@ -40,10 +41,10 @@ class StripItemsTest {
     }
 
     @Test
-    fun `a slot this arrangement does not hold puts the image back on Text`() {
+    fun `a slot this arrangement does not hold puts the image on the default anchor`() {
         assertEquals(
-            "an unknown anchor is Text, not a missing button",
-            imageIndexAfter(DesktopTool.TEXT.name),
+            "an unknown anchor is the default, not a missing button",
+            imageIndexAfter(DEFAULT_IMAGE_ANCHOR.name),
             imageIndexAfter("NO_SUCH_SLOT"),
         )
         assertTrue("and the strip still carries it", imageIndexAfter("NO_SUCH_SLOT") > 0)

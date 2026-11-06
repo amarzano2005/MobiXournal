@@ -208,10 +208,10 @@ class DesktopGeometryTest {
             drag(FigureShape(triangleKind = TriangleKind.EQUILATERAL)),
             drag(FigureShape(triangleKind = TriangleKind.RIGHT)),
         )
-        // A regular polygon draws the count the figures' answers carry — six at the factory, as on the
+        // A regular polygon draws the count the figures' answers carry — four at the factory, as on the
         // tablet — and it closes on its first vertex.
         val polygon = shapeFromDrag(ShapeKind.POLYGON, 0.0, 0.0, 100.0, 100.0, 2f, constrained = false)
-        assertEquals("six sides plus the closing point at the factory count", 7, polygon.size)
+        assertEquals("four sides plus the closing point at the factory count", 5, polygon.size)
         assertEquals(polygon.first().x, polygon.last().x, 1e-9)
         assertEquals(polygon.first().y, polygon.last().y, 1e-9)
         val heptagon = shapeFromDrag(

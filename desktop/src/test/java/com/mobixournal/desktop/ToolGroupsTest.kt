@@ -197,10 +197,10 @@ class ToolGroupsTest {
     fun `every figure is a slot of its own, in the order the rail draws them`() {
         val figures = listOf(
             DesktopTool.LINE,
-            // The two arrowheads are one slot: the second member of the arrow's, as the erasers are.
-            DesktopTool.ARROW,
             DesktopTool.RECTANGLE,
             DesktopTool.ELLIPSE,
+            // The two arrowheads are one slot: the second member of the arrow's, as the erasers are.
+            DesktopTool.ARROW,
             DesktopTool.AXES,
         )
         for (figure in figures - DesktopTool.ARROW) {

@@ -159,8 +159,9 @@ internal fun slotSurface(
  *
  * Pen and highlighter keep a slot each because nothing shares them; the eraser slot holds its two members
  * (`docs/drawing-tools.md`: the partial eraser cuts the disc's path out of a stroke, the whole-stroke one
- * takes the stroke); the figures share the last slot, so the stem of the rail is the ink you write with,
- * then the things you draw with.
+ * takes the stroke). The factory order is the owner's own arrangement (2026-11-06): the ink you write
+ * with, then the selection, text and page commands, then the figures, then the STEM slot-elements, with
+ * the guides at the foot.
  */
 val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.PEN)),
@@ -168,28 +169,23 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.ERASER, DesktopTool.ERASER_WHOLE)),
     // Panning as a tool of its own, with the hand the tablet's rail shows (`docs/drawing-tools.md`).
     ToolGroup(listOf(DesktopTool.HAND)),
-    ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
     // The two ways to select a region on the page: a rectangle and a freehand loop.
     ToolGroup(listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)),
-    // The tablet's drawing guides (`docs/drawing-tools.md`): one slot, two instruments, and the *Off* row
-    // of the tablet's own menu in its picker. A guide lays no ink of its own — it pulls the pen's onto its
-    // edge — so it is not a member of an ink slot.
-    ToolGroup(listOf(DesktopTool.SETSQUARE, DesktopTool.COMPASS)),
-    // Reading a PDF's text layer: a slot of its own, because it selects rather than inks — it draws no
-    // stroke and writes nothing to the page (`docs/pdf.md`), so it cannot be a member of the ink slots.
-    ToolGroup(listOf(DesktopTool.PDF_TEXT_SELECT)),
     // Typing on the page: a slot of its own, because a text box is neither ink nor a figure. It carries the
     // tablet's two members — prose and a formula — with Text as its face.
     ToolGroup(listOf(DesktopTool.TEXT, DesktopTool.MATH)),
+    // Reading a PDF's text layer: a slot of its own, because it selects rather than inks — it draws no
+    // stroke and writes nothing to the page (`docs/pdf.md`), so it cannot be a member of the ink slots.
+    ToolGroup(listOf(DesktopTool.PDF_TEXT_SELECT)),
+    // Vertical space reflows a page rather than inking it, so it stands after the commands that read or type
+    // on the page and before the figures.
+    ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
     // **No audio slot.** The tablet's Play object is reached from the header pill's Play and from `Y`
     // (`DESKTOP_TOOLS_WITHOUT_A_SLOT`): the capsule owns audio on both shells, and a strip button beside
     // it was the same act twice (`docs/audio.md`).
     // Every figure is a slot of its own, as the tablet's rail draws them: one click picks a figure,
     // never a picker. The strip scrolls, so the seven slots cost no reachability.
     ToolGroup(listOf(DesktopTool.LINE)),
-    // The two arrowheads share one slot, as the erasers do: a variant of the same figure re-faces the
-    // button the reader already has, instead of a second button for the one-headed twin.
-    ToolGroup(listOf(DesktopTool.ARROW, DesktopTool.DOUBLE_ARROW)),
     ToolGroup(listOf(DesktopTool.RECTANGLE)),
     ToolGroup(listOf(DesktopTool.ELLIPSE)),
     // The tablet's STEM figures, **one slot each** as the tablet's rail draws them: a triangle and a
@@ -199,17 +195,25 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.TRIANGLE)),
     ToolGroup(listOf(DesktopTool.TRAPEZOID)),
     ToolGroup(listOf(DesktopTool.POLYGON)),
-    ToolGroup(listOf(DesktopTool.AXES)),
+    // The two arrowheads share one slot, as the erasers do: a variant of the same figure re-faces the
+    // button the reader already has, instead of a second button for the one-headed twin.
+    ToolGroup(listOf(DesktopTool.ARROW, DesktopTool.DOUBLE_ARROW)),
     // The STEM slots: each places a **living element** (a re-editable recipe), not ink, so each keeps a
     // slot of its own rather than sharing a picker — a plot, a table and a component are three tools, the
     // same way the pen and the highlighter are.
     ToolGroup(listOf(DesktopTool.PLOT)),
+    ToolGroup(listOf(DesktopTool.AXES)),
     ToolGroup(listOf(DesktopTool.TABLE)),
     // The tablet's three circuit palettes, one slot each (`CircuitFamily`): a merged slot would hide
     // which family a part belongs to, which is how the tablet's secondary toolbar draws them.
     ToolGroup(listOf(DesktopTool.CIRCUIT)),
     ToolGroup(listOf(DesktopTool.CIRCUIT_ACTIVE)),
     ToolGroup(listOf(DesktopTool.CIRCUIT_LOGIC)),
+    // The tablet's drawing guides (`docs/drawing-tools.md`): one slot, two instruments, and the *Off* row
+    // of the tablet's own menu in its picker. A guide lays no ink of its own — it pulls the pen's onto its
+    // edge — so it is not a member of an ink slot. Last in the factory order: an instrument is reached less
+    // often than the figures it rules.
+    ToolGroup(listOf(DesktopTool.SETSQUARE, DesktopTool.COMPASS)),
 )
 
 /**

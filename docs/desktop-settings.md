@@ -232,7 +232,8 @@ two different questions:
   the same list and at its own place in it, the row for **Insert image** (`interface.imageAfter`), the strip's only
   non-ink command: the rows are the strip's contents (`stripItems`), so that row sits where the rail draws it. The arrangement is `DesktopSettingsState.toolGroups` and both strips read it,
   so a button moved here moves in the rail and in the ribbon. **Reset to defaults** puts every slot back;
-  the factory order is every slot not in `toolbar.order`, so it writes nothing.
+  the factory order is every slot not in `toolbar.order`, so it writes nothing. A fresh install opens on
+  that order: the ink tools, the selection and text commands, the figures, the STEM slots, then the guides.
 
 ## Figures — a width of their own
 

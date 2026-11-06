@@ -142,7 +142,7 @@ data class ToolStripState(
      */
     val groups: List<ToolGroup> = DESKTOP_TOOL_GROUPS,
     /** The slot **Insert image** stands under — the strip's one movable command (`stripItems`). */
-    val imageAfter: String = DesktopTool.TEXT.name,
+    val imageAfter: String = DEFAULT_IMAGE_ANCHOR.name,
     /** Opening (an index) or closing (null) the picker — the slot's chevron and `Alt+Down` both go here. */
     val onOpenGroup: (Int?) -> Unit = {},
     /** The part each circuit slot is armed with — the palettes' answers, one per family. */
