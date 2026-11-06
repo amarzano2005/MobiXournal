@@ -69,13 +69,16 @@ screen rests on: the areas cover every section exactly once (an unlisted section
 and no area owns a single child (a one-child area is a tap that explains nothing). Section bodies live
 in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Ring** section (`RingSection.kt`, under Drawing) draws the pen-tip ring and edits its faces: a tap picks a face and a select under the drawing says what it holds — a colour, a width or **any tool the rail has**, and the ring is stored as one line under `ring.slots` (`RadialHud.encodeSlots`) — absent means the factory ring, which is what *Reset to defaults* writes. The **Shortcuts** section lists its answers as **three subpages** — *Toggles*, *Tool shortcuts* and *Colour
 shortcuts* — and each draws its name **once**, in the header that walks back to the list. It
-owns the whole keyboard-shortcut table: `AppSettings.penEraserToggleKey` / `handToggleKey` (the two
-toggles, with `ringShortcutKey` calling the pen-tip ring up at the pen as the barrel button does) plus two maps — `toolShortcutKeys` (one key per `EditorTool`) and `colorShortcutKeys` (one
+owns the whole keyboard-shortcut table: `AppSettings.penEraserToggleKey` / `handToggleKey` /
+`selectToggleKey` / `fullPageToggleKey` (the toggles — eraser, pan, select, chrome — with
+`ringShortcutKey` calling the pen-tip ring up at the pen as the barrel button does) plus two maps — `toolShortcutKeys` (one key per `EditorTool`) and `colorShortcutKeys` (one
 key per palette swatch). They are persisted by `encodeToolShortcuts` / `decodeToolShortcuts`
 and `encodeColorShortcuts` / `decodeColorShortcuts` (the same `key:value` comma-list style as the
 other codecs, dropping unknown tools/colours and blank keys), migrating the old per-colour keys
-(`black_pen_key` etc.) once. `EditorRegions.onKeyPressed` resolves a character against those maps —
-toggles first, then colour, then tool — so the table is data, not code. The factory pen palette (`PEN_COLORS` — desktop Xournal++'s default palette, hex for hex; see `PaletteColorsTest`) and `PEN_WIDTH_LABELS`
+(`black_pen_key` etc.) once. `EditorKeyShortcuts.routeShortcutKey` resolves a character against those fields and maps —
+toggles first, then colour, then tool — so the table is data, not code. Every row is a label and a
+key chip (one tap opens the detection dialog) and the tool and colour lists carry a filter field:
+the rows used to be text fields, one per tool, and opening a list of them stuttered. The factory pen palette (`PEN_COLORS` — desktop Xournal++'s default palette, hex for hex; see `PaletteColorsTest`) and `PEN_WIDTH_LABELS`
 now read `mobix-core`'s `design/PenPalette.kt`, the one home of the values and rules (`ToolbarColorPopup.kt` / `ToolbarSizePopup.kt` keep only the UI); the **live** palette is `AppSettings.penColors`, seeded with `PEN_COLORS` and edited under **Settings → Drawing → Colors**
 (`ColorsSection.kt`: add / redefine / delete, capped at `MAX_PEN_COLORS`, opaque and
 de-duplicated by `sanitized()`, round-tripped by `encodePenColors` / `decodePenColors` which falls

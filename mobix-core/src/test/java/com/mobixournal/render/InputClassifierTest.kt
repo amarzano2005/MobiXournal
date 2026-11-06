@@ -53,6 +53,17 @@ class InputClassifierTest {
         assertEquals(GestureIntent.PAN, classify(PointerKind.STYLUS, ActiveTool.HAND, barrel = true, settings = s))
     }
 
+    @Test fun barrelHandPansWhateverTheTool() {
+        // "While held = Hand (pan)": the pen navigates the page instead of laying ink, and the tool the
+        // user was holding is untouched on release because the switch never happened.
+        val s = InputSettings(barrelAction = BarrelAction.HAND)
+        assertEquals(GestureIntent.PAN, classify(PointerKind.STYLUS, ActiveTool.PEN, barrel = true, settings = s))
+        assertEquals(GestureIntent.PAN, classify(PointerKind.STYLUS, ActiveTool.HIGHLIGHTER, barrel = true, settings = s))
+        assertEquals(GestureIntent.PAN, classify(PointerKind.UNKNOWN, ActiveTool.ERASER, barrel = true, settings = s))
+        // Released, the on-screen tool applies as usual.
+        assertEquals(GestureIntent.ERASE, classify(PointerKind.STYLUS, ActiveTool.ERASER, settings = s))
+    }
+
     @Test fun barrelOnlyAppliesToStylusNotFinger() {
         // A finger reporting a button state (e.g. a mouse) shouldn't hijack the tool.
         assertEquals(GestureIntent.DRAW, classify(PointerKind.FINGER, ActiveTool.PEN, barrel = true))

@@ -63,6 +63,8 @@ object AppSettingsBackup {
         b.append("  \"defaultTool\": \"").append(settings.defaultTool.name).append("\",\n")
         b.append("  \"penEraserToggleKey\": \"").append(escape(settings.penEraserToggleKey)).append("\",\n")
         b.append("  \"handToggleKey\": \"").append(escape(settings.handToggleKey)).append("\",\n")
+        b.append("  \"selectToggleKey\": \"").append(escape(settings.selectToggleKey)).append("\",\n")
+        b.append("  \"fullPageToggleKey\": \"").append(escape(settings.fullPageToggleKey)).append("\",\n")
         b.append("  \"ringShortcutKey\": \"").append(escape(settings.ringShortcutKey)).append("\",\n")
         b.append("  \"momentum\": ").append(settings.momentum).append(",\n")
         b.append("  \"momentumCurve\": \"").append(settings.momentumCurve.name).append("\",\n")
@@ -289,6 +291,8 @@ object AppSettingsBackup {
             defaultTool = readEnum("defaultTool", EditorTool.values(), fallback.defaultTool),
             penEraserToggleKey = root.getStr("penEraserToggleKey", fallback.penEraserToggleKey),
             handToggleKey = root.getStr("handToggleKey", fallback.handToggleKey),
+            selectToggleKey = root.getStr("selectToggleKey", fallback.selectToggleKey),
+            fullPageToggleKey = root.getStr("fullPageToggleKey", fallback.fullPageToggleKey),
             ringShortcutKey = root.getStr("ringShortcutKey", fallback.ringShortcutKey),
             momentum = root.getFloat("momentum", fallback.momentum),
             momentumCurve = readEnum("momentumCurve", MomentumCurve.values(), fallback.momentumCurve),

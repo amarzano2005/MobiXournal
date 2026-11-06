@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,16 +50,16 @@ import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 /**
- * The keyboard shortcuts, apart from the input behaviours they used to sit among: the two toggles,
- * then **one key per tool** and **one key per pen colour**. Every field takes a single character
- * (letter, digit or symbol); leaving it empty disables that shortcut.
+ * The keyboard shortcuts, apart from the input behaviours they used to sit among: the **toggles**,
+ * then **one key per tool** and **one key per pen colour**. Every row takes a single key (letter,
+ * digit or symbol); leaving it unset disables that shortcut.
  *
  * Keys pressed on a hardware keyboard reach the editor through `onKeyPressed` (see
- * `EditorRegions.kt`), which resolves a character against these maps — first the colour map, then
- * the tool map — so the whole table is data, not code.
+ * `EditorRegions.kt`), which resolves a character against these fields and maps — toggles first, then
+ * colour, then tool — so the whole table is data, not code.
  */
 enum class ShortcutSubpage(val title: String, val summary: String) {
-    TOGGLES("Toggles", "Flip between two tools with one key."),
+    TOGGLES("Toggles", "Flip between two tools, or the chrome, with one key."),
     TOOLS("Tool shortcuts", "One key for each drawing and editing tool."),
     COLOURS("Colour shortcuts", "One key for each pen colour in your palette."),
 }
@@ -88,12 +87,18 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         ShortcutSubpage.TOGGLES -> {
             SubpageHeader(active.title) { subpage = null }
             SettingsCard {
-                SettingsNote("Flip between two tools with one key. Leave a field empty to disable it.")
+                SettingsNote("Flip between two tools, or the chrome, with one key. Leave a row unset to disable it.")
                 KeySettingField("Eraser / last tool", settings.penEraserToggleKey) {
                     onChange(settings.copy(penEraserToggleKey = it))
                 }
-                KeySettingField("Hand/Pan", settings.handToggleKey) {
+                KeySettingField("Hand / pan", settings.handToggleKey) {
                     onChange(settings.copy(handToggleKey = it))
+                }
+                KeySettingField("Select", settings.selectToggleKey) {
+                    onChange(settings.copy(selectToggleKey = it))
+                }
+                KeySettingField("Full page", settings.fullPageToggleKey) {
+                    onChange(settings.copy(fullPageToggleKey = it))
                 }
                 // The ring is the input's other door: one key that calls it up at the pen, exactly as the
                 // barrel button does, so a pen without a reachable button can still reach its faces.
@@ -104,25 +109,40 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         }
         ShortcutSubpage.TOOLS -> {
             SubpageHeader(active.title) { subpage = null }
+            var query by remember { mutableStateOf("") }
             SettingsCard {
                 SettingsNote("One key for every tool — jumping straight to it, exactly as its rail slot would.")
-                for (tool in EditorTool.entries) {
-                    KeySettingField(tool.label, settings.toolShortcutKeys[tool].orEmpty()) {
-                        onChange(settings.copy(toolShortcutKeys = settings.toolShortcutKeys.with(tool, it)))
+                ShortcutFilter(query, "Filter tools") { query = it }
+                val tools = EditorTool.entries.filter { it.label.contains(query, ignoreCase = true) }
+                if (tools.isEmpty()) {
+                    SettingsNote("No tool matches “$query”.")
+                } else {
+                    for (tool in tools) {
+                        KeySettingField(tool.label, settings.toolShortcutKeys[tool].orEmpty()) {
+                            onChange(settings.copy(toolShortcutKeys = settings.toolShortcutKeys.with(tool, it)))
+                        }
                     }
                 }
             }
         }
         ShortcutSubpage.COLOURS -> {
             SubpageHeader(active.title) { subpage = null }
+            var query by remember { mutableStateOf("") }
             SettingsCard {
                 SettingsNote(
                     "One key for every pen colour in your palette (Settings → Colors) — selecting the pen in " +
                         "that swatch. The list is the palette itself, so a colour you add joins it here at once.",
                 )
-                for ((color, key) in colourShortcutRows(settings.penColors, settings.colorShortcutKeys)) {
-                    KeySettingField(colorDisplayName(color), key, swatch = color) {
-                        onChange(settings.copy(colorShortcutKeys = settings.colorShortcutKeys.with(color, it)))
+                ShortcutFilter(query, "Filter colours") { query = it }
+                val rows = colourShortcutRows(settings.penColors, settings.colorShortcutKeys)
+                    .filter { query.isBlank() || colorDisplayName(it.first).contains(query, ignoreCase = true) }
+                if (rows.isEmpty()) {
+                    SettingsNote("No colour matches “$query”.")
+                } else {
+                    for ((color, key) in rows) {
+                        KeySettingField(colorDisplayName(color), key, swatch = color) {
+                            onChange(settings.copy(colorShortcutKeys = settings.colorShortcutKeys.with(color, it)))
+                        }
                     }
                 }
             }
@@ -153,6 +173,30 @@ private fun SubpageHeader(title: String, onBack: () -> Unit) {
     }
 }
 
+/**
+ * The filter over a long list, so a tool or a colour is found by typing a few letters rather than by
+ * scrolling past fifty rows. One field per subpage, never one per row: this page's rows used to each
+ * carry their own text field, and opening *Tool shortcuts* then cost a full list of text fields in one
+ * frame — the stutter it was reported as.
+ */
+@Composable
+private fun ShortcutFilter(value: String, hint: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(hint) },
+        singleLine = true,
+        trailingIcon = {
+            if (value.isNotEmpty()) {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear filter")
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+    )
+}
+
 /** [map] with [tool] bound to [key], dropping the entry when the key is cleared. */
 private fun Map<EditorTool, String>.with(tool: EditorTool, key: String): Map<EditorTool, String> =
     if (key.isEmpty()) this - tool else this + (tool to key)
@@ -176,8 +220,14 @@ internal fun colourShortcutRows(colors: List<Int>, keys: Map<Int, String>): List
     colors.distinct().map { color -> color to keys[color].orEmpty() }
 
 /**
- * A single-character key field; clearing it disables the shortcut it belongs to. When [swatch] is set
- * the field leads with that colour's circle, so a colour row is recognisable as a colour at a glance.
+ * One shortcut row: the name, then the key it carries, as a compact chip.
+ *
+ * A row is **one tap target and two texts**, not a text field with a label, supporting text and two
+ * trailing buttons: the tool and colour lists are dozens of rows long, and composing a form control
+ * for each of them was what made opening a list stutter. Tapping the chip opens [KeyDetectionDialog],
+ * which is also the door a tablet's express key comes through; the clear button beside it unsets the
+ * shortcut. When [swatch] is set the row leads with that colour's circle, so a colour is recognisable
+ * as a colour at a glance.
  */
 @Composable
 private fun KeySettingField(
@@ -186,52 +236,60 @@ private fun KeySettingField(
     swatch: Int? = null,
     onValueChange: (String) -> Unit,
 ) {
-    var text by remember(value) { mutableStateOf(value) }
     var detecting by remember { mutableStateOf(false) }
-    val leading: (@Composable () -> Unit)? =
-        if (swatch != null) ({ ShortcutColorDot(swatch) }) else null
 
-    OutlinedTextField(
-        value = text,
-        onValueChange = {
-            text = it.take(1)
-            onValueChange(text)
-        },
-        label = { Text(label) },
-        leadingIcon = leading,
-        supportingText = { Text("Any key: letter, number or symbol. Empty = disabled.") },
-        singleLine = true,
-        trailingIcon = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (text.isNotEmpty()) {
-                    IconButton(
-                        onClick = {
-                            text = ""
-                            onValueChange("")
-                        },
-                    ) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear shortcut")
-                    }
-                }
-                IconButton(
-                    onClick = { detecting = true },
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Keyboard,
-                        contentDescription = "Detect key directly",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (swatch != null) {
+            ShortcutColorDot(swatch)
+            Spacer(Modifier.width(10.dp))
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            maxLines = 2,
+        )
+        if (value.isNotEmpty()) {
+            IconButton(
+                onClick = { onValueChange("") },
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    Icons.Default.Clear,
+                    contentDescription = "Clear the $label shortcut",
+                    modifier = Modifier.size(18.dp),
+                )
             }
-        },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-    )
+            Spacer(Modifier.width(4.dp))
+        }
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { detecting = true }
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text(
+                text = value.ifEmpty { "Set" },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (value.isEmpty()) FontWeight.Normal else FontWeight.Bold,
+                color = if (value.isEmpty()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+            )
+        }
+    }
 
     DialogPresence(detecting) {
         KeyDetectionDialog(
             label = label,
             onKeyDetected = { detected ->
-                text = detected
                 onValueChange(detected)
                 detecting = false
             },
@@ -375,4 +433,3 @@ internal fun keyStringFromKeyEvent(event: android.view.KeyEvent): String? {
     val unicode = if (event.unicodeChar != 0) event.unicodeChar else event.getUnicodeChar(event.metaState)
     return resolveKeyString(unicode, event.displayLabel, event.keyCode)
 }
-

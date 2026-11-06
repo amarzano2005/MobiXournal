@@ -78,11 +78,13 @@ enum class SettingsArea(
         ),
         SettingsGlyph.FIGURES.imageVector(),
     ),
-    /** How the app looks and how the canvas is navigated: toolbars, theme, panning. */
+    /** How the app looks and how the canvas is navigated: toolbars, panning, theme. */
     INTERFACE(
         "Interface",
-        "Toolbar layout, theme, momentum and panning.",
-        listOf(SettingsSection.TOOLBAR, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
+        "Toolbar layout, momentum and panning, theme.",
+        // Appearance after Navigation: the theme is the last thing looked up on this page, and the
+        // two Canvas behaviours read together.
+        listOf(SettingsSection.TOOLBAR, SettingsSection.NAVIGATION, SettingsSection.APPEARANCE),
         SettingsGlyph.APPEARANCE.imageVector(),
     ),
     /** The app itself: what it writes, how much it may store, how its settings move, what it is. */

@@ -41,6 +41,8 @@ class AppSettingsBackupTest {
             defaultTool = EditorTool.HIGHLIGHTER,
             penEraserToggleKey = "E",
             handToggleKey = "P",
+            selectToggleKey = "K",
+            fullPageToggleKey = "G",
             momentum = 0.5f,
             momentumCurve = MomentumCurve.LINEAR,
             panSensitivity = 1.5f,

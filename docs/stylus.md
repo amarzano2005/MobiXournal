@@ -51,7 +51,7 @@ toolbar":
 
 1. **Eraser tip.** A `TOOL_TYPE_ERASER` pointer (the flipped-over tip) erases whatever the tool.
 2. **Barrel button.** The button held on a pen invokes a configurable action while
-   held — default **erase**, **select**, the pen-tip **Ring** or **none** (`BarrelAction`), whatever the
+   held — default **erase**, **select**, **hand (pan)**, the pen-tip **Ring** or **none** (`BarrelAction`), whatever the
    on-screen tool.
    Which stream reports it depends on the pen and the platform, so detection is deliberately broad
    and latched (pure, JVM-tested **`BarrelButtonState`**, see `BarrelButtonStateTest`):

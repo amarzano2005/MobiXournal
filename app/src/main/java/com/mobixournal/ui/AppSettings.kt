@@ -169,6 +169,10 @@ data class AppSettings(
     val penEraserToggleKey: String = "B",
     /** Key to toggle hand/pan tool (empty = disabled). */
     val handToggleKey: String = "H",
+    /** Key to toggle the Select tool and back to the tool before it (empty = disabled). */
+    val selectToggleKey: String = "S",
+    /** Key to show or hide the chrome — the full-page view (empty = disabled). */
+    val fullPageToggleKey: String = "F",
     /** Key that calls the pen-tip ring up at the pen, as the barrel button does (empty = disabled). */
     val ringShortcutKey: String = "",
     /** How far a released pan keeps gliding — the momentum-strength factor (0 = off, 1 = normal). */
@@ -534,9 +538,6 @@ class SettingsStore(context: Context) {
             ),
             pageSizeUnit = PageFormatPrefs.read(prefs),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
-            penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
-            handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
-            ringShortcutKey = prefs.getString(KEY_RING_SHORTCUT, d.ringShortcutKey) ?: d.ringShortcutKey,
             fingerDraws = prefs.getBoolean(KEY_FINGER_DRAWS, d.fingerDraws),
             barrelAction = enumOr(prefs.getString(KEY_BARREL, null), d.barrelAction),
             barrelDoubleAction = enumOr(prefs.getString(KEY_BARREL_DOUBLE, null), d.barrelDoubleAction),
@@ -653,7 +654,7 @@ class SettingsStore(context: Context) {
                 if (legacyTaps) d.threeFingerTapAction else QuickAction.NONE,
             ),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
-        ).sanitized()
+        ).withToggleKeys(prefs).sanitized()
     }
 
     /**
@@ -690,9 +691,7 @@ class SettingsStore(context: Context) {
             .putString(KEY_NEW_DOCUMENT_FORMAT, s.newDocumentFormat.name)
         // Retired: every document is a page stack now, so a save clears the old canvas-geometry key.
         e.remove(KEY_NEW_DOCUMENT_CANVAS)
-            .putString(KEY_PEN_ERASER_TOGGLE, s.penEraserToggleKey)
-            .putString(KEY_HAND_TOGGLE, s.handToggleKey)
-            .putString(KEY_RING_SHORTCUT, s.ringShortcutKey)
+            .putToggleShortcuts(s)
             .putBoolean(KEY_FINGER_DRAWS, s.fingerDraws)
             .putString(KEY_BARREL, s.barrelAction.name)
             .putString(KEY_BARREL_DOUBLE, s.barrelDoubleAction.name)
@@ -806,10 +805,6 @@ class SettingsStore(context: Context) {
         const val KEY_DEFAULT_PAGE_WIDTH = "default_page_width_pt"
         const val KEY_DEFAULT_PAGE_HEIGHT = "default_page_height_pt"
         const val KEY_PAGE_SIZE_STEP = "page_size_step_px"
-        const val KEY_PEN_ERASER_TOGGLE = "pen_eraser_toggle_key"
-
-        const val KEY_HAND_TOGGLE = "hand_toggle_key"
-        const val KEY_RING_SHORTCUT = "ring_shortcut_key"
         const val KEY_FINGER_DRAWS = "finger_draws"
         const val KEY_BARREL = "barrel_action"
         const val KEY_BARREL_DOUBLE = "barrel_double_action"

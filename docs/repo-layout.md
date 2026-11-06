@@ -270,7 +270,8 @@ app/
       SettingsSidebar.kt     # the wide screen's permanent side menu (search field + the four areas)
       SettingsSearch.kt      # which sections answer a query, by title/summary/alias keywords (pure)
       SettingsWidgets.kt     # the shared settings controls (switches, option groups, key fields)
-      ShortcutsSection.kt    # the Shortcuts page: the two toggles + one key per tool and per pen colour; FingerGesturesSection.kt: the Finger gestures page (what a still two- and three-finger tap runs)
+      ShortcutsSection.kt    # the Shortcuts page: the toggle keys + one key per tool and per pen colour, each a compact row with a filter;      EditorKeyShortcuts.kt  # the keyboard's routing table (which toggle, colour or tool a pressed character means) and the toggle keys' persistence
+      FingerGesturesSection.kt: the Finger gestures page (what a still two- and three-finger tap runs)
       AppearanceSection.kt   # the theme select, drawn on the Interface page instead of behind a page of its own
       BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework; an import is refused unless it is a compatible backup
       AboutSection.kt        # the About page and the links it sends people to

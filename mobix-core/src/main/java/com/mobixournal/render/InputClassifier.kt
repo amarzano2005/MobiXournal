@@ -64,6 +64,15 @@ enum class BarrelAction {
     SELECT,
 
     /**
+     * Pan the page while held — the Hand tool for as long as the button is down.
+     *
+     * The point-down becomes [GestureIntent.PAN] whatever the on-screen tool, so the pen navigates
+     * without the toolbar being switched and the tool the user was holding is still there when the
+     * button is released. It is the held counterpart of the Hand toggle's key.
+     */
+    HAND,
+
+    /**
      * Summon the pen-tip radial HUD while the tip is off the glass, and commit the slot the pen is
      * released over (`docs/ui-modernization.md`, *The pen-tip HUD*).
      *
@@ -256,7 +265,7 @@ data class InputSettings(
  *
  * Precedence, matching desktop Xournal++'s "the pen hardware wins over the toolbar":
  *  1. The flipped-over **eraser tip** always erases, whatever the tool.
- *  2. A held **barrel button** applies its configured action (erase/select), whatever the tool.
+ *  2. A held **barrel button** applies its configured action (erase/select/pan), whatever the tool.
  *  3. With **finger-draw off**, a finger only ever pans — it actuates no tool at all (pen, eraser,
  *     highlighter, text, selection, placement…), so a palm can't ink and only the stylus works.
  *  4. Otherwise the on-screen tool's [ActiveTool.defaultIntent].
@@ -282,6 +291,7 @@ object InputClassifier {
             when (settings.barrelAction) {
                 BarrelAction.ERASE -> return GestureIntent.ERASE
                 BarrelAction.SELECT -> return GestureIntent.SELECT
+                BarrelAction.HAND -> return GestureIntent.PAN
                 // NONE applies no modifier; HUD is a hover gesture, already handled (or cancelled)
                 // before a tip-down reaches this classifier. Both fall through to the on-screen tool.
                 BarrelAction.NONE, BarrelAction.HUD -> Unit

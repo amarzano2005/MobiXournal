@@ -56,6 +56,7 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
  */
 fun barrelActionLabel(action: BarrelAction): String = when (action) {
     BarrelAction.HUD -> "Ring"
+    BarrelAction.HAND -> "Hand (pan)"
     else -> action.name.lowercase().replaceFirstChar(Char::uppercase)
 }
 

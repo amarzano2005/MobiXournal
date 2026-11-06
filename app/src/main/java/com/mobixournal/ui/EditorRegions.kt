@@ -1555,40 +1555,7 @@ private fun DrawingSurfaceView.bindEditorActions(
     }
 
     onKeyPressed = { char ->
-        val settings = getSettings()
-        var consumed = false
-        val hit: (String) -> Boolean = { it.isNotEmpty() && char.equals(it, ignoreCase = true) }
-
-        // Toggle the eraser with the tool that was live before it
-        if (!consumed && hit(settings.penEraserToggleKey)) {
-            val previous = ui.tool
-            ui.toggleTool(ui.eraserSwitchTarget(settings))
-            activateTool(ui.tool, ui, settings, onSettingsChange, previous)
-            consumed = true
-        }
-
-        if (!consumed && hit(settings.handToggleKey)) {
-            val newTool = if (ui.tool == EditorTool.HAND) EditorTool.PEN else EditorTool.HAND
-            activateTool(newTool, ui, settings, onSettingsChange)
-            consumed = true
-        }
-        if (!consumed && hit(settings.ringShortcutKey)) { summonRingForShortcut(); consumed = true }
-
-        // Colour shortcut: one key per palette colour, each switching to the pen.
-        val color = settings.colorShortcutKeys.entries.firstOrNull { hit(it.value) }?.key
-        if (!consumed && color != null) {
-            switchToPen(color)
-            consumed = true
-        }
-
-        // Tool shortcut: one key per tool, activated the same way as from the rail or the barrel button.
-        val target = settings.toolShortcutKeys.entries.firstOrNull { hit(it.value) }?.key
-        if (!consumed && target != null) {
-            activateTool(target, ui, settings, onSettingsChange)
-            consumed = true
-        }
-
-        consumed
+        routeShortcutKey(char, ui, getSettings(), onSettingsChange, ::switchToPen)
     }
 }
 
