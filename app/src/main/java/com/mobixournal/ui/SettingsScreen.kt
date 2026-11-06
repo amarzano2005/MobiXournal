@@ -133,12 +133,11 @@ enum class SettingsSection(
             "finger drawing touch eraser tip stylus pen presets diagnostics thickness",
         SettingsGlyph.STYLUS.imageVector(),
     ),
-    /** Editor behaviour: default tool, shape recognition, snapping to grid or angles. */
+    /** Editor behaviour: default tool, snapping to grid or angles. */
     EDITOR(
         "Editor",
         "Default tool and snapping to the grid or to 15° rotations.",
-        "default tool startup snapping snap grid ruling rotation angle degrees shape recognition " +
-            "recognizer layer pages",
+        "default tool startup snapping snap grid ruling rotation angle degrees layer pages",
         SettingsGlyph.EDITOR.imageVector(),
     ),
     /** Toolbar configuration: which buttons appear in the Main and Secondary Toolbars and their order. */
@@ -149,12 +148,12 @@ enum class SettingsSection(
             "reorder rail secondary top bar figures",
         SettingsGlyph.TOOLBAR.imageVector(),
     ),
-    /** Figures: the default figure size and each figure tool's default variant. */
+    /** Figures: shape recognition, the default figure size and each figure tool's default variant. */
     FIGURES(
         "Figures",
-        "Default figure size, and each figure tool's default variant.",
-        "figure size width shapes submenu triangle trapezoid scalene angles rectangle ellipse " +
-            "polygon sides arrow table circuit logic guides",
+        "Shape recognition, default figure size, and each figure tool's default variant.",
+        "shape recognition recognize recognizer recogniser figure size width shapes submenu triangle " +
+            "trapezoid scalene angles rectangle ellipse polygon sides arrow table circuit logic guides",
         SettingsGlyph.FIGURES.imageVector(),
     ),
     /** Colors: the pen palette every colour picker offers. */

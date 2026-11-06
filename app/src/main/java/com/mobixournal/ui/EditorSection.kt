@@ -17,7 +17,8 @@ import com.mobixournal.render.PageSizeStep
 
 /**
  * Editor preferences, in the order a user meets them: what a new document starts as (tool, page
- * size), then the aids that tidy what they draw (snapping, shape recognition).
+ * size), then the aids that tidy what they draw (snapping to the grid and to 15° angles). Shape
+ * recognition is a figure's own setting, so it lives under **Figures**.
  */
 @Composable
 fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
@@ -49,13 +50,6 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             subtitle = "Constrain selection rotation to 15° increments.",
             checked = settings.snapRotation,
             onCheckedChange = { onChange(settings.copy(snapRotation = it)) },
-        )
-        SettingsDivider()
-        SwitchRow(
-            title = "Shape recognition",
-            subtitle = "Automatically convert recognized hand-drawn gestures into geometric shapes.",
-            checked = settings.recognizeShapes,
-            onCheckedChange = { onChange(settings.copy(recognizeShapes = it)) },
         )
     }
 }

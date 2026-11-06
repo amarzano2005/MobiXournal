@@ -32,8 +32,10 @@ import com.mobixournal.ui.theme.DialogPresence
 import kotlin.math.roundToInt
 
 /**
- * The figure (shape) tools: the default size a new figure starts at, and each tool's default
- * variant.
+ * The figure (shape) tools: whether a freehand stroke snaps to a figure, the default size a new figure
+ * starts at, and each tool's default variant. The recognition switch opens the page because it decides
+ * what a drawn stroke *becomes* before any of the figures below are picked — the same place it holds
+ * under the window's **Figures** page.
  *
  * The default size lives here because a figure is drawn at its set width with **no** pressure, while
  * a pen stroke thins with pressure — so with the pen's pressure sensitivity on, a figure can read
@@ -46,6 +48,14 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    SettingsGroup("Shape recognition") {
+        SwitchRow(
+            title = "Recognize shapes",
+            subtitle = "Automatically convert recognized freehand strokes into geometric shapes on lift or dwell.",
+            checked = settings.recognizeShapes,
+            onCheckedChange = { onChange(settings.copy(recognizeShapes = it)) },
+        )
+    }
     SettingsGroup("Default size") { DefaultFigureSize(settings, onChange) }
     SettingsGroup("Triangle") { TriangleGeometry(settings, onChange) }
     SettingsGroup("Trapezoid") { TrapezoidGeometry(settings, onChange) }

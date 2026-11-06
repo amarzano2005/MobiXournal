@@ -18,7 +18,7 @@ dwell, on the pen and the highlighter alike.
 | Hold before snapping | `SHAPE_DWELL_MS` = **300 ms** of stillness |
 | "Still" means | the tip travels **under 3 pt** (page space) between samples |
 | Shortest stroke ever snapped | **40 pt** across the stroke's bounding diagonal |
-| Switch | Settings → Drawing → **Shape recognition** (`recognizeShapes`), one switch for both triggers |
+| Switch | Settings → Figures → **Shape recognition** (`recognizeShapes`), one switch for both triggers |
 
 The timer is re-armed by every movement past the slop, so a hand that keeps writing never snaps
 mid-letter; 300 ms is above the stalls inside a word and below the pause a person makes when they
