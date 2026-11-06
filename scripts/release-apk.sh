@@ -2,9 +2,10 @@
 # Build the APK to actually install on a tablet: a **release** build, signed with the debug key.
 #
 # Why this exists: `assembleDebug` is the check artifact, not the one to judge the app by. A debug
-# build keeps Compose's debug checks and skips R8, so on a page carrying ink it feels slower than
-# the release build of the same code — which is exactly the difference that made the tablet look
-# like it had lost its snap. This script builds the release variant and signs it with the Android
+# build runs `debuggable` (the debugger hooks ART keeps for it) and keeps Compose's debug checks, so
+# on a page carrying ink it feels slower than the release build of the same code — which is exactly
+# the difference that made the tablet look like it had lost its snap. R8 is off in both here, so the
+# gain is the flag, not a shrink. This script builds the release variant and signs it with the Android
 # debug keystore (~/.android/debug.keystore), the same key `assembleDebug` signs with, so the two
 # install over each other in both directions and switching costs no app data.
 #
