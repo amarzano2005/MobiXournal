@@ -15,345 +15,99 @@
   <img src="docs/assets/preview.jpg" alt="MobiXournal Tablet UI Preview" width="850" />
 </div>
 
-**MobiXournal** is an open-source note-taking and technical-drafting suite for Android and Windows. Its documents are stored in its own native format, `.mobix`, which keeps what an XML drawing cannot — living tables, plots, circuits and formulas, full stylus telemetry, and pages read as you scroll — and it reads and writes [Xournal++](https://github.com/xournalpp/xournalpp) files (`.xopp`) without loss, so a notebook still opens on a desktop that has only Xournal++. Active styluses, graphics tablets (Wacom, Huion, XP-Pen) and configurable hardware shortcuts are first-class.
+**MobiXournal** is an open-source note-taking and scientific drafting suite for **Android tablets** and **Windows 11 PCs**, built over a single shared core (`mobix-core`). Both apps open, edit, save, and export the same notebooks with full support for active styluses, graphics tablets (Wacom, Huion, XP-Pen, Gaomon), and hardware shortcuts.
 
-Two promises hold the project together: **`.mobix` is the document** — nothing the app can author is lost when it saves — and **`.xopp` stays a complete interchange copy**, whose return trip gives back the same file. A notebook edited here reopens identically in desktop Xournal++ on Linux, macOS or Windows, and a `.xopp` brought back in is revived as the editable elements it was, as long as nobody edited it in between.
-
-In addition to core note-taking, MobiXournal features a specialized **STEM toolset** (electronic circuits, IEEE logic gates, relational schema tables, coordinate systems, virtual drafting instruments, and on-device LaTeX rendering) saved as standard vector strokes.
+Documents live in two formats that work side by side:
+- **`.mobix` (Native format)**: Stores re-editable graphs, tables, circuits, shapes, and formulas, compressed Opus audio bundled inside the file, full stylus telemetry, and fast page-by-page streaming.
+- **`.xopp` (Xournal++ interchange)**: Reads and writes standard [Xournal++](https://github.com/xournalpp/xournalpp) files losslessly. Living `.mobix` elements export as standard vector strokes with embedded metadata, reviving as editable objects when reopened in MobiXournal unless modified externally.
 
 > **Credits & License**:
-> - **Xournal++**: Format handling, palette, and shape recognition are derived from or matched to [Xournal++](https://github.com/xournalpp/xournalpp) (GPL-2.0-or-later).
-> - **NeXopp**: MobiXournal is a continuation and rebranding of [NeXopp](https://github.com/bamonroe/NeXopp) by Brian Monroe (`bamonroe`).
-> - This project is independent and unofficial, distributed under the **GPL-2.0-or-later** license. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+> - **Xournal++**: Format compatibility, color palette, and shape recognition match upstream [Xournal++](https://github.com/xournalpp/xournalpp) (GPL-2.0-or-later).
+> - **NeXopp**: MobiXournal continues and expands Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) (`bamonroe`).
+> - Independent and unofficial project distributed under the **GPL-2.0-or-later** license. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
 
 ---
 
-## ▶️ Try it
+## ▶️ Try It
 
-| What | How |
+| Platform | How to get started |
 |---|---|
-| **Android app** | Download `app-debug.apk` from the latest [GitHub Release](https://github.com/amarzano2005/MobiXournal/releases), or build it with `.\gradlew.bat assembleDebug` — the APK lands in `app/build/outputs/apk/debug/`. It installs as **MobiXournal**, upgrading an installed build in place rather than appearing as a second app. To judge speed, install the **release** build instead: `scripts/release-apk.sh` produces it signed with the debug key, so it also upgrades an installed build in place. |
-| **Desktop app (Windows 11)** | Build it with `.\gradlew.bat :desktop:createDistributable`, then run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe` (add a file path to open a document; `udiff.xopp` in this repository is a good first one). It is a self-contained folder with no installer and unsigned. See *Desktop app* below. |
-
-Both builds need a JDK 21 and, for the APK, the Android SDK — see *Build & Requirements* below.
+| **Android (8.0+)** | Download `app-debug.apk` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases), or build it locally with `.\gradlew.bat assembleDebug` (or `scripts/release-apk.sh` for a release-optimized APK). |
+| **Windows 11 Desktop** | Build the standalone package with `.\gradlew.bat :desktop:createDistributable` and run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe`, or launch directly via `.\gradlew.bat :desktop:run --args="udiff.xopp"`. |
 
 ---
 
-## 📚 Documentation Map
+## ✨ Key Features
 
-MobiXournal follows a hub-and-spoke documentation model:
+### 📂 Workspace, Documents & Formats
+- **Sticky Format Policy**: Every opened file saves back in its own format (`.mobix` or `.xopp`), while **Save As** converts cleanly in either direction.
+- **Multi-Tab & Split View**: Work across multiple tabs or side-by-side split panes; open a live mirror of the same notebook to view a reference page while writing on another.
+- **Universal Import & Export**: Annotate PDFs (replace or append specific page ranges), import Markdown/plain text and images (`PNG`, `JPEG`, `WebP`), and export vector PDFs, per-page SVGs, or PNGs.
+- **Safe Cloud & Local Saves**: Atomic staged writes protect cloud shares (Google Drive, Nextcloud, OneDrive, WebDAV), while incremental `.mobix` saves update only modified pages in milliseconds.
 
-| Topic | Document |
-|---|---|
-| **Development & Conventions** | [`AGENTS.md`](AGENTS.md) |
-| **System Architecture** (the index of the spokes) | [`docs/architecture.md`](docs/architecture.md) |
-| **UI contract** (what a new interface element must satisfy) | [`docs/interface-contract.md`](docs/interface-contract.md) |
-| **The native `.mobix` format** | [`docs/mobix-format.md`](docs/mobix-format.md) |
-| **The desktop app** | [`docs/desktop-workstation.md`](docs/desktop-workstation.md) |
-| **The `.xopp` on-disk schema** | [`docs/xopp-format.md`](docs/xopp-format.md) |
-| **Build Tools, Container & Emulator** | [`docs/tools.md`](docs/tools.md) |
-| **Active tasks** | [`TODO.toml`](TODO.toml) (via `scripts/todo.sh list`) |
-| **Completed Work Archive** | [`FINISHED.toml`](FINISHED.toml) |
-| **Release Notes (per version)** | [`docs/releases/`](docs/releases/) |
+### 🖊️ Stylus, Graphics Tablets & Inking
+- **Stylus-First Inking**: Capacitive palm rejection, hover cursor preview, pressure-tapered pen strokes, and multiply-blended highlighters that preserve underlying text.
+- **Pressure Calibration & Presets**: Fine-tune minimum pressure floor (`0.01–1.00`) and multiplier (`0.5–4.0×`) with named presets and live input diagnostics.
+- **Shape Recognition & Hold to Snap**: Pause the pen tip for 300 ms at the end of a stroke (or enable continuous shape recognition) on Android or Windows to snap freehand ink into clean lines, rectangles, triangles, circles, ellipses, arcs, or arrows.
+- **Pen-Tip Ring & Barrel Actions**: Trigger the radial ring menu at the nib via barrel button or shortcut (`Alt + B` on PC) to switch tools, colors, and stroke widths without reaching for the toolbar.
+- **Graphics Tablet Integration**: Plug-and-play USB/Bluetooth tablets on Android with 1-click ExpressKey mapping, plus dedicated Wintab and Windows Ink pen streams on Windows 11.
+
+### 🔬 STEM & Technical Drafting
+- **Living 2D Function Plotter**: Plot Cartesian $y = f(x)$ and parametric $\{x(t), y(t)\}$ curves with live calculus analysis, shaded definite integrals, and interactive on-canvas parameter sliders.
+- **Electronic Circuits & IEEE Logic Gates**: Place and edit passive/active components (resistors, capacitors, inductors, diodes, LEDs, BJTs, op-amps, sources) and digital logic gates with magnetic pin snapping.
+- **Chemistry & Dimensioning**: Draw single, double, or triple chemical bonds, aromatic benzene rings, and a 60°/120° hexagonal bond lattice, or drag auto-measured millimeter dimension arrows.
+- **Relational Tables & Math Blocks**: Author resizable data tables with optional relational headers and in-place cell editing, plus re-editable LaTeX / Typst math formulas rendered as crisp vectors.
+- **Virtual Drafting Instruments**: Rule exact lines and arcs against an on-canvas setsquare, compass, or protractor, or snap directly to lined, graph, dotted, and isometric paper meshes.
+
+### 🎙️ Audio Sync, PDF & Full-Document Search
+- **Synchronized Audio Notes**: Record audio while taking notes; tap any stroke with **Play Object** (or scrub the waveform player at $0.8\times\text{–}2.0\times$ speed) to jump to the exact moment it was written.
+- **Self-Contained & Exportable Audio**: `.mobix` bundles compressed Opus audio (~15 MB/hour) directly inside the notebook, with optional background recording and automatic `.m4a` export on Android.
+- **Smart PDF Annotation**: Select and copy real PDF text (`Shift + S` on PC), use the magnetic highlighter to snap cleanly along text lines, browse the PDF Table of Contents, and reorder, duplicate, or copy/paste pages across documents.
+- **Handwriting & Full-Text Search**: Search typed text, math source, PDF text, and handwritten ink simultaneously — powered by Google ML Kit on Android, Windows Ink recognition on PC, and an offline Kotlin fallback.
+- **Tailored Navigation & Unified Settings**: Customize zoom step and smooth wheel scrolling on PC or momentum curves on Android, and find any option or keyboard shortcut instantly via the unified settings search bar.
 
 ---
 
 ## 🛠️ Build & Requirements
 
-### Requirements
-- **Linux container host**: Docker (all builds run in a containerized Android toolchain; no local JDK, SDK, or Gradle needed) and, optionally, KVM for headless emulator testing.
-- **Windows 11 (or any host without `/data/android`)**: a JDK 21 and the Android SDK, driven by `.\gradlew.bat` (the desktop app alone needs only the JDK).
+- **Containerized Linux (`/data/android`)**: Uses Docker (with Podman fallback) so no local JDK or Android SDK is required.
+- **Windows 11 / macOS / Linux host**: Requires **JDK 21** (17–24 supported by Gradle) and the **Android SDK** configured in `local.properties` (building `:desktop` requires only the JDK).
 
-Without Docker (or on a machine with no `/data/android` toolchain) the same build runs on the host's
-Gradle wrapper, which needs a **JDK the wrapper supports** (17–24 for the version in the tree — a
-JDK 25 host fails before compiling anything) and an Android SDK at `local.properties`' `sdk.dir`.
-`scripts/host-build.sh` finds both for you (and reports them with `--list`) instead of leaving it to
-the wrapper's own confusing failure. See
-[Host fallback](docs/tools.md#host-fallback--no-dataandroid-no-docker) in `docs/tools.md`.
-
-### Build Commands
 ```sh
-# Full build: the app and core unit tests + debug APK
+# Containerized build (Linux with /data/android): unit tests + debug APK
 scripts/build.sh
 
-# Run the JVM unit tests only (instant, no device needed) — both suites
-scripts/build.sh :app:testDebugUnitTest :mobix-core:test
-
-# Clean release-path build of the debug APK
-scripts/build.sh clean assembleDebug
-```
-
-On a host with no `/data/android` and no Docker, `scripts/host-build.sh` is the same loop with the
-JDK/SDK discovery done for you (`--list` reports what it picked, `--jdk`/`--sdk` override it):
-
-```sh
-# Host fallback: finds a supported JDK + the SDK, then runs the wrapper
+# Host fallback (auto-discovers JDK 21 + Android SDK): unit tests + debug APK
 scripts/host-build.sh
 
-# Any Gradle task passes through — including the instrumented suite, on the host's own adb
-scripts/host-build.sh connectedDebugAndroidTest
-```
-For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release is documented there too, and it is a command rather than a chore: `scripts/todo.sh release --version <version> --bump-gradle` stamps everything finished since the last release and drafts `docs/releases/v<version>.md` from it, then you curate that draft and push the `v<version>` tag so CI builds the APK and publishes the Release.
-
-### 🖥️ Desktop app (Windows 11)
-
-A native PC window, in the tree and buildable today. It opens a `.xopp`, a zipped `.xopp` or a native `.mobix`
-— the family is read from its bytes, not its name — and paints every page as written: ruling, pressure-tapered
-strokes, highlighters, text, images, PDF backgrounds and the living tables, graphs, shapes and formulas.
-
-It also edits them: pen and highlighter, both erasers, the figure tools, text boxes, vertical space and the
-selection with its action bar and inspector lane all write to the page, each gesture one undo step, and
-`Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu (on the band too),
-its imports and exports (a PDF either way, or PNG/SVG per page) and the Settings panel are the tablet's, drawn
-in the same glass. A notebook reads its pages as you scroll, and the pen's packet stream draws the ink when a
-graphics tablet is attached. Rest the pen on the page and the stroke perfects itself while you hold it.
-
-- **Audio, the tablet's way**: the capsule left of Save records, pauses and plays back, and a take's strokes carry their offset
-  (`%APPDATA%\MobiXournal\audio`); its **Play** (or `Y`) replays a point, and a clip makes it a transport (scrubber, speed 1×–2×) that writes the page as recorded. Audio belongs to the tab it was recorded in: switching documents shows that document's own recording, never the one being made next door, and **Settings → Audio ▸ Outside the app** copies every recording out to a folder of your own at the end of a take, as the tablet offers.
-- **The tablet's figures**: the **triangle**, the **trapezoid** and the **polygon** each have their own slot, and each slot's own menu picks what it draws — the four triangle kinds, the three trapezoid kinds, or the polygon's three to twelve sides, with the live count printed on the slot. **Settings → Figures** sets the same variants, their angles and the side count, next to the width figures are drawn at.
-- **Keys**: every tool and command has one — including `Alt + B`, the ring at the pen: the tablet's pen-tip ring
-  where the nib is. **Settings → Ring** *draws* the ring — a click on a face sets a **colour**, **any tool of the
-  window** or a **width** — and the key beside it opens it; the table is in [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md)
-  and **Settings → Shortcuts** rebinds any of them — the three **switch** keys too (eraser, hand, selection) — plus a row per **circuit part** (*Resistor*, *LED*, *XOR gate* …) under each of the three slots. The pointer's ring is drawn in the **ink in hand** — an eraser's carries its own mark — and **Settings → Toolbar** moves *Insert image* among the slots.
-- **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen block
-  or **Settings → Stylus**; the menu keeps them as chips. **A file to try it on**: `udiff.xopp`, at the root.
-- **Settings → Colors is the palette itself**: redefine a swatch in its place, add or delete one, or **Restore default palette** — the same list the strip, the ring and the text dialog draw.
-- **Save As asks the format in the save window itself**: its **File type** list leads with your **default format**,
-  then `.xopp` and `.mobix`, then the zipped package, the suffix in the name field; `Ctrl + S` keeps the document's own.
-- **Import PDF**: the menu's *Import PDF* turns a PDF into pages you can write on — its own document or added
-  after the one you have — and asks which pages (*pages 3 to 7 of 412*): on the tablet, after the pick.
-- **The PDF's pages are the document's pages**: every sheet in the sidebar wears the PDF page it stands
-  for, its row's **×** drops that sheet, and the pages menu — navigator, quick sizes, *Move page up* /
-  *Move page down* — reorders them, one undo step each, and the export follows that order. **Drag a thumbnail** onto
-  another row to move it there, with the list scrolling itself near an edge; **Ctrl-click** picks several
-  rows (**Shift** takes a run), and dragging one carries them all or the bar deletes them. **Manage pages…**
-  acts on a whole run at once (*pages 3 to 7* moved or removed). Removing the sheet that carries the PDF's
-  own reference hands it to the next one, so the document never loses its PDF. The list's **`+` row** adds a
-  blank sheet where the pages end, *Duplicate page* copies the one you picked (a copy of its own, ids and all),
-  and the picked rows have their own clipboard: **Copy**, **Cut** and **Paste** in the bar under the pick,
-  which also works between two open documents.
-- **Search the document** (the field in the band, the menu's **Search** row, or `Ctrl + F`): it finds
-  typed text boxes, formulas by their source, PDF words and **your handwriting**, counting matches as you
-  type — and while the pages are still being read the field, the status bar and the sidebar say *Searching…*,
-  never `0 / 0`. The sidebar lists the matches, the page shows the current one in the accent, and `Enter` /
-  `Shift + Enter` or the field's arrows step through them, the sheet scrolling to the word. Nothing is written.
-- **The PDF's text, read as text**: **Select text (PDF)** (`Shift + S`) drags across a PDF page's words and
-  copies them (`Ctrl + C`, or the selection's **Copy** bar); the **highlighter snaps** to the line it crosses
-  over real PDF text, previewed as you drag and committed as ordinary ink. Neither writes to the document, and
-  a page with no text layer (a scan, a `.mobix` page) says so. A PDF's **Contents** sits under the sidebar's
-  layers: indented bookmarks leading to the page that shows each sheet, listed only once you open it.
-- **The setsquare and compass on the PC**: one guides slot (`Q` / `Shift + Q`) lays the instrument where you are looking — drag its body with the mouse (or with the pen while the slot is in hand) to slide it, its tip to turn or open it — a small pill beside the tip reads the angle (or the compass's opening) as you go — and hold **Shift** to land on 15° steps; the menu's **Off** takes it away. Ink drawn within a hair of its edge comes out along it, so a line ruled against the setsquare is straight in the file — and the guide itself is never saved into the document.
-- **A remote or synced file** has to be available offline before it opens — a placeholder is not a document.
-- **Not yet**: importing anything but a document or a PDF, editing layers, and an installer — see
-  [`TODO.toml`](TODO.toml) and [`docs/desktop-workstation.md`](docs/desktop-workstation.md) (*What the window does not do*).
-
-Two commands, both on a Windows 11 host with a JDK 21 (see *Build & Requirements* below):
-
-```sh
-# Run it from the tree, opening one document
-.\gradlew.bat :desktop:run --args="udiff.xopp"
-
-# Or package a self-contained, unsigned folder to double-click
+# Direct Gradle commands (Windows PowerShell with JAVA_HOME set to JDK 21)
+.\gradlew.bat :app:testDebugUnitTest :mobix-core:test :desktop:test
+.\gradlew.bat assembleDebug
 .\gradlew.bat :desktop:createDistributable
 ```
 
-That folder is `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe`; it takes a document
-path as its argument, and without one it opens on an empty desk with **Open** in reach.
-
-The detail lives in the spokes, one topic each: what the window is and what a drag on its page does —
-[`docs/desktop-workstation.md`](docs/desktop-workstation.md),
-[`docs/desktop-editing.md`](docs/desktop-editing.md); its panels, its keys and its pen —
-[`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md),
-[`docs/desktop-settings.md`](docs/desktop-settings.md),
-[`docs/desktop-tablet.md`](docs/desktop-tablet.md),
-[`docs/desktop-pen-feel.md`](docs/desktop-pen-feel.md); what its suite proves —
-[`docs/desktop-testing.md`](docs/desktop-testing.md).
+For emulator testing (`scripts/connected-test.sh`) and cutting releases (`scripts/todo.sh release --version <version> --bump-gradle`), see [`docs/tools.md`](docs/tools.md).
 
 ---
 
-## 📖 User Guide
+## 📚 Documentation Map & Project Structure
 
-### 📂 Workspace & Documents
+MobiXournal uses a strict hub-and-spoke documentation model where each fact has a single authoritative home:
 
-- **Multi-Tab Interface**: Work with multiple documents simultaneously. Each tab preserves its own viewport, zoom, page position, and history. Tabs can be dragged to reorder, and in split view each half shows its own tab strip — with its own **+** and a numbered badge marking the half the tools are acting on — instead of one strip that switches when you touch the other pane.
-- **Split View & Live Mirroring**:
-  - **Split View**: View and edit two different documents side by side with an adjustable divider that follows your finger exactly and re-fits each half to its width as you drag it; its floating grip lights up while you hold it, and a double-tap recenters it at 50/50. Because a page is fitted to its half's width, dragging the divider re-fits it, but opening or closing the split keeps the page the same size on screen: the zoom is compensated for the narrower half (the badge shows that compensated value), so a page never jumps bigger or smaller when you toggle the split. Each side keeps its own tabs, viewport and zoom, and each half's tabs stay visible in a strip over that half; when the same document is open in both halves (a mirror), the two share **one undo history**, so undoing a stroke on one side removes it on both. To hand a document to the other side, long-press its tab: the menu names the destination ("Move to pane 2", or "Move to split view" when the split is closed) and can also open a live mirror there instead. The split workspace — whether it is open, and which half has focus — comes back if Android restarts the app in the background.
-  - **Mirrored View**: Open a second live view of the *same* document (e.g. view a reference diagram at the top while writing notes at the bottom). Changes sync immediately.
-- **Tab Overview**: Tap the grid icon in the top bar to inspect all open tabs as thumbnail previews.
-- **Session Restore**: Open tabs and unsaved drafts are cached locally and restored automatically on next launch.
-- **Universal File Import**:
-  - **`.xopp` / `.xopp.gz`**: Standard Xournal++ documents (both gzip and zipped single-file archives).
-  - **`.mobix`**: MobiXournal's own documents. A `.mobix` and a zipped `.xopp` are both ZIP archives, so the file is recognised by the type it declares inside, never by its name — and it reopens in the format it was saved in.
-  - **PDF Documents**: Open or import any PDF for annotation. Choose **Replace** or **Append** (appends merge seamlessly into a single document). Pages are drawn on screen through the raster cache and its tiles — smooth to pan, pinch and draw on, and still sharp at any zoom because the visible tiles are rasterised at the true on-screen resolution.
-  - **Plain Text & Markdown (`.txt`, `.md`)**: Automatically typeset into annotatable pages with rich headings, monospace code blocks, and lists. Text remains selectable and copyable.
-  - **Images (`PNG`, `JPEG`, `WebP`)**: Opened as annotatable pages with the image as the background.
-  - **System Integration**: MobiXournal registers as a document handler for `.xopp`, `.mobix`, PDF, and images in the Android "Open with" / "Share" menu. Remote shares (WebDAV, Nextcloud, SSHFS) are supported via Storage Access Framework.
+| Topic | Authoritative Document |
+|---|---|
+| **Development Workflow & Conventions** | [`AGENTS.md`](AGENTS.md) |
+| **System Architecture Index (all spokes)** | [`docs/architecture.md`](docs/architecture.md) |
+| **UI & Design Contract** | [`docs/interface-contract.md`](docs/interface-contract.md) |
+| **Native `.mobix` Format & `.xopp` Bridge** | [`docs/mobix-format.md`](docs/mobix-format.md), [`docs/xopp-bridge.md`](docs/xopp-bridge.md) |
+| **Windows 11 Desktop Workstation** | [`docs/desktop-workstation.md`](docs/desktop-workstation.md), [`docs/desktop-settings.md`](docs/desktop-settings.md) |
+| **Build, Emulator & Release Pipelines** | [`docs/tools.md`](docs/tools.md), [`docs/testing.md`](docs/testing.md) |
+| **Task Queue & Completed Archive** | [`TODO.toml`](TODO.toml), [`FINISHED.toml`](FINISHED.toml), [`docs/releases/`](docs/releases/) |
 
-### 🖊️ Stylus & Drawing Experience
-
-- **Stylus-First Input**:
-  - **Palm Rejection**: Capacitive fingers only pan/zoom while the pen writes (finger drawing can be toggled on in settings).
-  - **Pressure Sensitivity, Multiplier & Presets**: Dynamic line width matching desktop Xournal++ tapering curves. The two knobs are the desktop's own filter — **Minimum pressure** (the floor, 0.01 → 1.00) and **Pressure multiplier** (0.5 → 4.00×, so a light hand can thicken a stroke well past its size) — with customizable presets and editable names, adjustable on the fly via the top-bar overflow menu ("Pen parameters…") or in Settings → Stylus. With **Pressure sensitivity** switched off both controls are shown disabled with the reason, instead of silently doing nothing. **Pen diagnostics** prints the live filter and the raw pressure the tablet reports, so a value that never reaches the pen is visible rather than guessed at.
-  - **Hover Preview**: S-Pen / Active Pen hover ring indicates exact tip contact point.
-  - **Hold to Snap**: rest the tip on the glass for a moment (300 ms) and the stroke you are drawing is **shown** as clean geometry **before you lift** — a straight line, a triangle, a rectangle, a circle, an oval, an arc or an arrow. Nothing is committed by the pause, and the ink itself is never rewritten: draw on and your own stroke comes straight back, so a wrong guess costs nothing. The hold uses the same recogniser as **Shape recognition** in Settings → Drawing, and is off with it.
-  - **Hardware Barrel Buttons**: Hold barrel button to erase or lasso select (supported on Android 14+ stylus buttons, Bluetooth pens, and mouse right-clicks). Double-click to undo, toggle tools, or open the ring at the pen tip.
-  - **Ring at the pen tip**: choose **Ring** as what the barrel button does *while held*, or as its **double-click** action (Settings → Stylus), and pressing it with the pen off the glass opens a ring at the nib — the palette's first five colours (the custom HEX one included), the three pen widths and six tools: Line, Lasso, Marquee, Highlighter, Eraser and Pen. Arrange its faces under **Settings → Drawing → Ring**: tap a face, then choose under the drawing among its **colours**, **tools** and **widths** — the same three groups the window's ring chooser shows — take one off, add a position, or reset to the factory ring. **While held**, flick to a slot and release to take it; a release in the centre, or a tip that touches the page, closes it without changing anything. **On double-click** there is nothing held to release, so the ring waits: it stays on screen until you **tap a slot** (or tap well outside it to put it away), which is what makes it usable with a pen whose button is kept for erasing.
-- **Pen & Realistic Highlighter**:
-  - **Pen**: Smooth vector strokes with digitizer wobble filtering and pressure dynamics.
-  - **Highlighter**: Realistic multiply blending (~47% opacity) preserving ink visibility underneath. Standard desktop tip sizes (1 mm, 3 mm, 7 mm).
-- **Precision Eraser**:
-  - **Partial Eraser**: Splits strokes at contact boundaries.
-  - **Whole-Stroke Eraser**: Deletes entire strokes touched by the tip.
-  - **The eraser switch gives your tool back**: the `B` key, a barrel double-click and a finger gesture set to *toggle eraser* all switch into the eraser the rail is showing and, pressed again, straight back to the tool you were using — a highlighter, a line, a rectangle, a selection — instead of always to the pen.
-  - Tip size adjusts with width slots; visual contact radius ring follows the cursor.
-- **Color Palette & Stroke Width**:
-  - 8 standard desktop Xournal++ colors in a fixed order — black, red, green, blue, orange, yellow, magenta, white — plus a custom HSV/hex picker.
-  - **The custom slot starts empty**, not pre-filled with a colour nobody chose: it is drawn as an outline until you set one, then shows and offers that colour everywhere. The picker also offers **the colours already in the app** as a tap-to-start-from row, so a new colour can begin from an existing one instead of from a hex you would have to know.
-  - **New colours from the canvas**: the Colour & size pop-up's swatch row ends with an **add-colour** swatch, which appends to the palette (and selects the new colour). The row scrolls rather than wraps, so however many colours you add the pop-up keeps the same height.
-  - 3 customizable width slots per tool (`S` / `M` / `L`).
-  - Tools remember their own active color and stroke width independently.
-  - Line styles: **Solid**, **Dashed**, **Dash-dot**, **Dotted**.
-- **Layers**:
-  - Full layer stack per page: add, reorder, rename, hide/show, merge down, and move selections between layers.
-
-### 🔬 STEM & Technical Tools
-
-MobiXournal includes a dedicated technical toolset engineered for science, engineering, and mathematics note-taking:
-
-- **Electronic Circuits (Passive & Active)**: Placed as **living components** — select, move, rotate, and edit them in place via the in-place circuit editor (change symbol, value/designation text, stroke color/width, 90° rotation, and terminal pins with magnetic net snapping). The value is typed on a **dedicated circuit keyboard** that opens along the bottom of the canvas instead of the system one — digits, designator letters and the circuit symbols on three pages (Ω, µ, k, M, ±, °C…), with backspace and cursor keys — and can be placed **above, below, left or right** of the symbol — the label is laid out around the drawn component and never over it, so a turned resistor keeps its value clear of its body. **Double-tap a component in the Select tool** (as with any table, plot or figure) to open its editor. A wire drawn with the **Line** tool snaps onto a component's pin so a net closes cleanly, and onto nothing else: with a circuit tool or the Line armed, every pin shows as a small ring and the one your wire has caught fills in, so you can see where it will land (at any zoom, too — the magnet's reach never drops below a fingertip on screen); pen strokes and other wires are never magnetised — neither when you draw them nor when you drag them — so two lines beside each other stay two lines and only a component ever closes a net; ordinary shapes and freehand ink keep exactly the geometry you drew — only *Snap to grid* can pull those onto the paper's ruling. Placing a component works the same way from the other side: its pins are drawn **while you are still dragging it**, and it snaps onto the ends of wires you already drew (marked with a small square), so it no longer matters whether the wire or the component comes first.
-  - **Passive Circuits**: Drag to place and orient passive components: **Resistors** (zigzag), **Capacitors** (parallel plates), **Inductors** (multi-loop coils), and **Earth Ground** — the drag is the symbol itself, so start it on the wire's end and pull out to the size and direction you want.
-  - **Active Circuits**: Full set of semiconductor and active components: **Diodes** (solid p-n junction triangle with cathode bar), **LEDs** (same solid body plus two detached light-emitting rays), **Zener Diodes** (solid body, cathode bar bent into Z-wings), **Operational Amplifiers (Op-Amps)** (triangle body, `-`/`+` input signs clear of the pins, and output pin), **BJT NPN** and **BJT PNP Transistors** (Base, Collector, Emitter with directional arrows, base bar inside a circular envelope), **DC Voltage Sources / Batteries** (open-gap parallel plates), and **Current Sources** (circle with internal direction arrow).
-- **IEEE Logic Gates**:
-  - Full digital logic symbol library: **AND**, **NAND**, **OR**, **NOR**, **XOR**, **XNOR**, **NOT (Inverter)** and a **Buffer**, with standard input/output terminals and inversion bubbles. Treated as living components with pin connectivity.
-- **Chemical Formulas**:
-  - **Bonds**: drag out a **Single**, **Double** or **Triple bond** — one, two or three parallel lines along the drag, spaced off the pen's own width. Skeletal carbon chains are drawn as ordinary pen strokes; the bonds are ordinary strokes too, so they round-trip through the `.xopp` like anything else.
-  - **Benzene ring**: drag out an **aromatic ring** — a regular hexagon with a vertex at the top and the inner aromatic circle, sized to the drag.
-- **Dimensioning & Measuring Arrows**:
-  - Drag a **dimension line** — a double-ended arrow whose gap is filled in for you: on release the measured length is written into the gap as a text box (**millimetres**, to a tenth), so the drawing carries its own numbers. The value is ordinary text, so it can be moved, restyled or edited like any other text box.
-- **Switching & Magnetics**:
-  - **Open** and **Closed Switches**, a **Transformer** (two coupled windings with core bars) and a **Junction** dot, alongside the passive components above.
-- **Relational Database Tables**:
-  - Interactive grid tables with dynamic row and column counters. The row counter counts **data** rows only; the optional header stacks one extra row above them instead of consuming a data row.
-  - In-place cell editor popup on double-tap or selection bar with row/column steppers, scrollable wide-grid support, Tab/Enter keyboard navigation (with auto-expansion on the last cell), and alignment/bold styling.
-  - Optional **Relational Header** format (double line dividing attribute columns from data rows).
-  - Drag to size or 1-tap center on viewport.
-- **LaTeX Math Formulae**:
-  - On-device formula editor with live preview.
-  - Curated STEM symbol palette for fast symbol insertion: Calculus integrals/differentials, Greek letters, algebraic operators, and physics shortcuts.
-  - The formula is a **living math block**: in a `.mobix` the file keeps its source (LaTeX or Typst), not a picture, so **double-tapping it in the Select tool reopens the editor** and a save or an undo treats it like any other element. Exporting to `.xopp` compiles it to a standard `<teximage>` desktop Xournal++ opens, and PDF export typesets its glyphs as vector text. The PC window writes one too — the Formula tool asks for the source, typesets it as you type, and places it on the page as one edit.
-- **2D Function Plotter**:
-  - **Insert graph** — the chart button in the Secondary Toolbar (second from the end): type `f(x)` (sin, cos, tan, inverse and hyperbolic trig, sqrt, abs, ln, log, exp, floor/ceil/round, `pi`/`e`, `+ - * / ^`, parentheses) with the x range to plot it over, and the plot is laid on the page **where you are looking** — centred on the middle of the viewport, then pulled back inside the sheet so the frame is never left half off the page.
-  - Two tabs: **Cartesian**, for one or more `y = f(x)` curves, and **Parametric**, for a single `{x(t), y(t)}` pair (`cos(x)` and `sin(x)` make a circle) swept over the same range — a parametric pair is drawn and saved as the one curve it is, not as two separate waves. Both previews are not pictures *of* the plot: they **are** the plot, compiled by the same code the page uses, so what the preview shows is what Insert places.
-  - The dialog checks the formula as you type — the same parser the plotter uses, and for a parametric pair both of its expressions — so it never accepts something it can't draw.
-  - **Shade integral area**: in the graph dialog, switch it on and type the two bounds you want the area under the curve measured between (they start as the plot's own x range). The area is filled on the page, and the analysis summary reports the definite integral **over that area** — switch it off and both go back to the plot's range. The bounds are part of the graph, so they survive a save, an edit and an undo like anything else.
-  - The plot is inserted as a **living graph** rather than a picture of one: a frame, the axes with a tick and a number on every nice step, and the curve, broken wherever the function is undefined or leaps (a pole stays a gap, not a line drawn across it). In a `.mobix` the file keeps the formula, its range, display flags, and named parameters. A living graph can be selected, moved, resized, re-opened in the graph dialog, and manipulated via **interactive parameter sliders** anchored below the frame: dragging a parameter slider dynamically re-evaluates the curve and the calculus analysis in real-time and commits as an undoable edit on release. Resizing changes the diagram's size, not its line weight — a wider graph has longer axes, not a fatter curve, and an enlarged arrow or coordinate diagram keeps its arrowheads the size they were drawn while only the shaft gets longer. Selecting a graph and tapping **Edit plot** opens a small inspector beside it; while you type in it, a mirrored cell floats just above the keyboard so the field stays readable even when the keyboard covers the inspector. Saving or exporting to `.xopp` flattens the graph into vector strokes so desktop Xournal++ opens it identically.
-- **Geometry & Vectors**:
-  - **Geometric Polygons & Shapes**: triangles, trapezoids, ellipses/circles and rectangles, with a **Polygon** tool in one **Polygons** slot: it draws a regular polygon of however many sides you pick, and **the slot's own menu is that choice** — tap the slot to take the tool, tap it again (or hold it) for the three-to-twelve picker, with the live count in the button's top-left corner, the picker's caret in the bottom-right one and the figure itself centred — the count is set exactly as on the desktop (small, tabular figures) and tucked into the corner clear of the glyph. Six by default; **Settings → Figures** sets the same value. A pentagon, a hexagon and a heptagon are therefore all one tool, and a square still has no button of its own: the rectangle draws one. A polygon is an ordinary stroke, so it resizes, moves and exports like any figure.
-  - **Triangles with Variants & Custom Angles**: Submenu with 4 geometric kinds: **Equilateral** (default, equal sides/angles), **Right-angled**, **Isosceles**, and **Scalene** with fully customizable interior angles (A, B, C; sum = 180°) and live preview. Each kind is drawn as its own outline beside its name in the submenu, so the four triangles are told apart by shape as well as by label.
-  - **Trapezoid with Variants & Custom Angles**: Submenu with 3 kinds: **Isosceles** (default, shorter base centred over the longer one), **Right-angled** (one leg perpendicular to the bases), and **Scalene** with its two base angles customizable — unequal angles give unequal legs, i.e. four different sides — with live preview. As with the triangles, each kind carries a small outline of the shape it draws beside its name. The figure is always fitted inside its drag, and its angles are what is kept exactly.
-  - **Cartesian Coordinate Axes**: Instant oriented X/Y coordinate systems.
-  - **Vectors**: Single and double-ended arrows for force diagrams and dimensioning. A head is sized by the pen, not by the arrow's length: every arrow and both axes of a coordinate system drawn with one pen wear the same head, so a page of them looks drawn by one hand — and resizing one lengthens its shaft without touching its head.
-- **Virtual Drafting Instruments**:
-  - **Setsquare (30°/60°/90°)**: Movable drafting triangle with edge snapping for straight lines.
-  - **Compass**: Circular guide with adjustable radius for arcs and circles.
-  - **Protractor**: 180° scale with 5°/15° tick marks, straight diameter ruler, rim arc snapping, and 15° radial snapping.
-  - **Ruling**: no instrument at all — the page's **own ruling is the guide**, and every drawn vertex (freehand ink and shapes alike) is pulled onto the lines the paper really draws, spacing and margin included. A hand-drawn line comes out along a rule, a rectangle's corners land on the grid, and on an **isometric** sheet every vertex lands on a **node of the ±30° triangular mesh** — the same crossings the paper itself draws, so ink traces the mesh exactly. Nothing to place or hold, and nothing on plain or PDF/image paper, which rule no lattice to snap onto.
-  - **Remembers where you left it**: the placed instrument's **pose** — its anchor, aim and size — is kept with your settings, so a setsquare comes back exactly where it was left after a restart instead of being dropped fresh at the middle of the viewport. The pose is dropped when you change the guide kind, since it belongs to the instrument it was taken from (the invisible rules have no pose to keep).
-  - **Chemistry**: a **60°/120° bond lattice** — rows of nodes one bond length apart, each row offset half a bond, so a node's six nearest neighbours are a regular hexagon. Every drawn vertex (freehand ink and shapes alike) is pulled onto the nearest node, so a sketched **skeletal formula** comes out with exact bond angles and equal bond lengths and a ring drawn around a node is a proper benzene hexagon. The bond length is the guide's own (default 40 pt), independent of the page's background, so it works on any sheet — plain, PDF/image or ruled. Like Ruling it is an invisible rule: nothing to hold, and the guide draws only a faint mesh of the bonds it will snap onto.
-- **Shape Recognition & Snapping**:
-  - **Ported Recognizer**: the desktop Xournal++ algorithm snaps freehand strokes into lines, rectangles (and squares), triangles and circles — and, beyond the desktop's set, ovals, arcs and arrows. A stroke it does not recognise is kept exactly as drawn, so handwriting is never re-shaped. On top of the port, every candidate figure has to **match the ink that produced it** and a second corner finder cuts in when the first one comes up a side short, so a squat, wide rectangle is a rectangle (it used to snap into a wrong triangle) and a quick square drawn with a handful of samples is recognised too.
-  - **Figures you can still reshape**: a triangle or rectangle you draw with the pen is kept as a **living figure**, not as flattened ink. Select it and each corner shows a handle — drag a handle with the pen and the figure follows, while the side running into it snaps onto the page's 0°, 30°, 45° and 90° directions. **Edit shape** on the selection bar switches its two readouts, side lengths and interior angles, which update as you drag; each length is written just outside the side it measures and each angle just inside its corner, so the numbers frame the figure instead of covering it.
-  - **Snap to Grid**: Snaps a shape's **endpoints** to graph, dotted, ruled or **isometric** paper rulings — the same lattice the **Ruling** guide pulls *every* vertex of any stroke onto (an isometric endpoint lands on a mesh node, both coordinates resolved together).
-  - **Snap Rotation**: 15° stepping for object rotation and drafting tools.
-
-### 🛠️ Editing & Canvas Tools
-
-- **Selection & Manipulation**:
-  - **Rectangle & Lasso Selection**: Select active-layer objects.
-  - **Transformations**: Move (with auto-scrolling at screen edges), resize — **proportional from the corner handles and single-axis from the edge handles**, so a drawing can be stretched wider or taller out of proportion — and stroke rotation. A **line**, whose box is only as thick as the pen that drew it, wears just its two end handles: either one makes it longer without making it thicker, and a drag on the band above or below it carries it. **Resizing stretches the figure, not its ink**: a longer arrow, line or Cartesian diagram keeps the line and head thickness it was drawn with, so making a figure bigger never fattens it.
-  - **A precise outline**: the dashed box is drawn **exactly on the selected elements' ink**, with no padding, so a selection shows what it actually holds; the ease of grabbing a handle comes from the hit radii, not from drawing the box bigger than the element. The hit zones shrink with the selection **on each axis**, so the **middle of even a tiny element drags it** instead of being swallowed by its own handles, while the handles stay grabbable in their own corners and edges.
-  - **Edge Auto-Scroll**: Dragging either a move or the rectangle/lasso marquee into the top or bottom edge scrolls the page vertically, so a selection can reach past the viewport (matching desktop Xournal++).
-  - **Copy stays in the app**: Copy and Cut fill MobiXournal's own clipboard, so a copied plot pastes back as a live plot — in this pane or the other one — and **no system copy banner** interrupts the page, where Android's clipboard chip announced a text string for what is a drawing. **Long-pressing the selection** lifts it as a drag, and that is what hands other applications the same payload: an element, an SVG, a PNG and plain text. Dropping content on the page accepts those same flavours plus an image, a PDF or a text file — a CSV/TSV grid becomes a living table, a short formula a math block, prose a text box, at the drop point and as one undoable edit.
-  - **Action Bar**: Cut, Copy, **Paste**, Duplicate, Recolor, Change line weight, Align & distribute, and Delete — all in the one bar that **floats right under the selection** (lifting above it only when the sheet ends below the selection) instead of sitting at the bottom of the screen, so the actions stay by the hand holding the stylus. With **nothing** selected, the same bar shrinks to the **Paste** button alone at the bottom centre — and only while the select tool is in hand, so nothing stands on the page while you write. Paste is therefore available while something *is* selected (so a second copy needs no deselecting first) and the button always sits with the actions it belongs to, rather than a lone pill that vanished on the first tap. The switch is one surface on an animated position, so a new selection grows the pill into the bar instead of flickering. The background-select **region** actions (Copy/Cut a marquee region) keep the bottom edge in their own bar. It is compact — 32dp buttons, almost no air of its own and no Done button, since tapping off the selection already clears it — so it covers about half the canvas it used to. **Recolor** opens a slim strip of swatches rather than a sheet: one line, no title, the bar's own width and height, on the tablet and in the window alike.
-  - **Align & Distribute**: with two or more elements selected, line them up on either edge or either centre, or spread them evenly — horizontally or vertically. Each action is one undoable step, and the action bar's alignment menu shows which tools are available (alignment needs two elements, distribution three).
-  - **Select Background (Flatten)**: Marquee-select a region to copy or cut a flattened raster image including all layers and page background.
-- **PDF Text Selection**: Drag across vector PDF text to highlight and copy text to the system clipboard (no OCR needed).
-- **Magnetic Highlighter**: draw across a PDF's text and the stroke becomes a **flat band on the line**, exactly as tall as the words' ascent and descent — previewed while you drag and committed as ordinary highlighter ink, one undo step. A steep stroke or one over no text stays freehand, so margin marks are never rewritten.
-- **PDF Contents (Table of Contents)**: When an annotated PDF carries an outline, the **Pages** menu offers **Contents…** — the PDF's own bookmark tree, indented by nesting depth with the target page number beside each row. Tapping a row jumps straight to that page. A chapter header that names no page of its own leads to its first section's page instead. The tree is read from the PDF itself, so it matches what desktop Xournal++ or any PDF reader shows; it is navigation the file carries, so it never touches the `.xopp` (whose format has nowhere to keep it).
-- **Full-Document Search & Handwriting Recognition**:
-  - Unified search across authored text boxes, background PDF text, and **handwritten ink strokes**.
-  - **Dual Handwriting Engine**: On Android devices, powered by **Google ML Kit Digital Ink Recognition** for high-accuracy neural recognition of print and cursive handwriting across 300+ languages; on the Windows window, by the **recognizer Windows itself ships** for its handwriting panel (offline, in your installed language), so cursive written on the PC is read as on the tablet; both fall back to a robust offline pure-Kotlin engine (ligature segmentation, topological features) whenever no model is installed.
-  - **Fuzzy & Multi-Candidate Search**: Tolerates handwriting variations via candidate hypothesis matching, diacritic/accent normalization, multi-word continuous phrase matching, and Levenshtein distance tolerance.
-  - **Modern UI & High-Performance Search**: Material 3 search pill with dynamic match badge (`1/3` or `0/0`), auto-focus, keyboard Search action, quick clear button, AI handwriting indexing dialog when opening search (`SearchIndexingDialog`), followed by instantaneous real-time querying while typing and rounded canvas highlights with smooth navigation.
-- **Vertical Space Tool**: Drag to open room on a page, exactly as desktop Xournal++ does it: **only elements that lie entirely below the grabbed line move** (one the line passes through stays put rather than being torn in half) and that is decided once, when you grab, so a block sliding upward doesn't pick up the elements it passes. Dragging down inserts and dragging up closes the gap — **and keeps going: nothing stops the block at the line**, so content can be pulled above the line it was grabbed at (and, pulled far enough, off the top of the sheet, where it stays and can be dragged back down). The amount inserted **snaps to the page ruling** when *Snap to grid* is on. Every layer moves together — a deliberate difference from the desktop, which reflows only the current layer, so no note is left behind by space opened on another layer. This is a reflow of coordinates only, so it round-trips through the `.xopp` file.
-- **Text & Images**: Insert resizable text boxes (Sans, Serif, Monospace, bold, italic, custom colors) and external bitmap images (PNG/JPEG). On desktop, images ingest via the tool strip file dialog, clipboard paste (Ctrl+V), or drag-and-drop onto the window; as on the tablet, every selection wears eight handles — a corner keeps the aspect ratio (Shift to unlock) and a side stretches one axis — modifying bounding coordinates without resampling raw bytes, round-tripping losslessly in .mobix and .xopp.
-- **Synchronized Audio Notes**:
-  - Record audio while handwriting. Strokes are tagged with precise point-level timestamps (`fn`/`ts`), and a recording belongs to the tab it was started in — switching tabs shows that tab's own audio and never stamps ink in another document. 
-  - Use the **Play Object** tool to tap any stroke and replay the audio recorded at that exact moment, or launch the **Floating Frosted-Glass Mini-Player** with interactive amplitude waveform scrubbing, inking density heatmap, subtitle previews, quick $\pm 5\text{s}$ skips, and variable playback speed ($0.8\times$ to $2.0\times$). A long document name is truncated in the player's title instead of squeezing the controls out of the pill, so the speed selector and the close button stay where they are whatever the tab is called. With finger drawing off, the Play Object tool leaves the page navigable: a finger pans and pinches as everywhere else and only the pen picks the stroke whose recording should play.   - **Background Recording & Standalone Export**: Keeps recording seamlessly when switching apps or locking the device via a foreground service, and the notification is the recording's remote control: it counts the elapsed time and its **Pause/Resume** and **Stop** buttons act on the recording without reopening the app (a paused recording keeps the microphone open, so resuming loses nothing). An optional toggle automatically saves an independent audio copy into the device's public `Music/MobiXournal` or `Recordings/MobiXournal` storage, written as **`.m4a` (AAC)** whatever container the notebook itself recorded — the format phones, browsers and AI assistants accept, where an Ogg/Opus file is often refused or a WAV is too large to upload. That copy is encoded **while you are still recording**, so the end of a lecture costs a file copy rather than a conversion, and a copy the app is closed on is picked up again the next time you open it, instead of being lost with the app.
-  - In a **`.mobix`** the recording travels **inside the file**: it is bundled by content hash (one entry however many strokes replay from it) and adopted the moment the page that names it is read, so the document still plays after being moved to a folder with no `.wav` beside it. There the audio is **compressed** (Opus, about 15 MB an hour instead of about 300 MB of WAV). Recording length is never limited by memory: the audio is streamed into the file as it is saved and back out as it is opened, so a lecture-sized recording cannot crash a save. A **`.xopp`** is unchanged — desktop Xournal++ needs its companion `.wav` files, which is why a document written as `.xopp` records WAV in the first place, and the app writes those beside the file from your chosen audio folder. A compressed recording that ends up in a `.xopp` anyway (a `.mobix` saved as one) is written out as the file it really is and the app says so, since it cannot convert it.
-- **Page Management**:
-  - **Page Navigation**: Pages ▸ Pages opens the document's page list; tap a row to jump to it. A page is added, deleted and resized from the same menu.
-  - **Background Rulings**: Plain, Lined, Ruled, Graph, Dotted, and **Isometric** (desktop Xournal++'s triangular mesh) in standard Xournal++ colors. **Pages ▸ Page background** opens them in their own dialog — a submenu like Page format — which keeps it to three short groups: the styles as chips that wrap, the rule-spacing chips with the custom field on the same row, then the stationery presets, so nothing is pushed below the fold.
-  - **Rule spacing**: the sheet's own line spacing, set from that same dialog — **2, 3, 5, 7 or 10 mm** chips or any value you type, with a millimetre grid marking every centimetre bold. The spacing is written in the file as desktop Xournal++'s own ruling parameter, so a page ruled at 7 mm reopens at 7 mm on the desktop instead of quietly reverting.
-  - **Stationery**: ready-made paper — **Millimetre paper**, **5 mm graph**, **7 mm ruled** and **Isometric 5 mm / 10 mm** are real Xournal++ rulings (they look right in the desktop app too), while **Cornell notes** — a layout no Xournal++ version has — is laid down as a layer of rules named after the template, so it stays normal ink you can hide, restyle or delete.
-  - **Page Bookmarks**: flag any page with a label of your own and one of six colours — the flag is drawn as a tab on the sheet's own corner while you write on it. The Pages menu bookmarks the page in view, edits or removes that bookmark, and jumps to any of them. Bookmarks are kept **alongside** the document, not inside it: the `.xopp` format has no page label at all, so a bookmarked file stays byte-identical to an unbookmarked one (and the desktop app never sees markup it would drop).
-  - **Page Format**: In **Pages ▸ Page format**, pick a paper preset or type a custom width and height in **mm**, **in** or **pt**, then click **Set** to apply the size to the page in view or to the whole document. The **Pages** menu also opens with a **Quick size** pair — *Width* and *Height*, each with a minus and a plus — that changes one dimension by a fixed step of paper (100 mm out of the box — 3.9 in or 283 pt when the format is read in those units — adjustable under **Settings → Drawing → Editor**), for the sheet that only needs a few millimetres more.
-- **Settings laid out like a tablet's**: on a screen at least 600dp wide the four areas — **Input**, **Drawing**, **Interface**, **App & data** — are a **permanent side menu** with the selected area's sections beside it (an opened section takes that pane, and back returns to the list); narrower screens drop the menu for the pushed index → area → section. Back steps whichever shape is on screen one level at a time, mirroring the title-bar arrow.
-- **Settings search**: the field at the top of the menu (or of the index on a phone) filters live to the sections that match — by name, by what they cover, and by the words people actually type (*"momentum"*, *"wallpaper"*, *"cache"*, *"left-handed"*). Each result names the area it lives in and opens straight to the section.
-- **First-launch tour (5 steps)**: stylus setup, harmonising figures with handwriting, graphics tablets and shortcuts, **handedness** — which hand writes, shown with a picture of the rail on each edge (a right hand docks the Main Toolbar on the **left**, the default; a left hand on the **right**), and **new-document format** — choosing between native `.mobix` (recommended, preserving living graphs and tables) and `.xopp` (portable desktop interchange). All of it is changeable later in Settings.
-- **New document format**: under **Settings → App & data → Documents**, choose the default format for brand-new documents (`.mobix` or `.xopp`). Opened documents always remember their own format, and Save As converts at any time.
-- **Graphics Tablets**:
-  - Plug-and-play USB OTG and Bluetooth tablet support (Wacom, Huion, XP-Pen, Gaomon).
-  - **1-Click ExpressKey Detection**: Map physical tablet buttons directly to tools and colors by pressing them in **Settings → Shortcuts**.
-  - **Stylus Calibration**: Independent pressure multiplier (up to 4×) and minimum pressure floor (up to 1.00) — desktop Xournal++'s own ranges — plus precision budgets (Economy to Maximum).
-- **Toolbars & Interface**:
-  - **One colour per job**: the *bars* are one colour and the *toolbars* another, one tonal step up. The top bar and the tab strip share the first; the Main Toolbar rail, the Secondary Toolbar's floating dock and **the surround behind the pages** share the second, so the desk a page lies on reads as the same material as the tools floating over it. **Both Android system bars are transparent**, and the chrome never sits **on** the page: the header — the top bar with the row of document tabs inside it — and the tool rail each take a band of their own and the canvas takes what is left, so the whole visible sheet stays writable and no bar ever hides the ink under it. The header is itself one unbroken slab: no rim along its edges and no divider between the tools row and the tabs row, so no grey line cuts across the top of the screen. In Standard the canvas still reaches the screen's bottom edge, where only the clock and the gesture handle are drawn over the sheet rather than a band of the app's own colour below the grid. The gesture handle stays exactly where it was, and the bars' icons still flip light or dark with the theme. A hairline traces each sheet — that is what keeps a page readable when the light theme makes chrome and paper nearly the same white. **Everything that floats over the page is cut from that same material too** — the menus and their submenus, the action bars that appear with a selection, the STEM editors, the page and zoom badges and the dialogs: the bars' own frosted fill, a shade less see-through so the rows on it stay crisp over the page, and the docks' 20dp corner — and a menu carries a hairline rim of its own along its edge, brightest on top and faintest at the bottom, so a menu reads as a lit panel lying **above** the bar it hangs from rather than dissolving into the grey behind it. Both toolbars likewise draw the same tool glyphs at the same size, so the figures' dock never reads as thinner ink than the rail beside it. The floating docks (rounded corners, squircles, pill tabs, grouped undo/redo container, frosted badges, Material 3 tonal elevation) are the only layout, and the theme is set under **Settings → Interface → Appearance**. Nothing on screen is tinted lilac or blue-grey in either theme: menus, chips, dialogs and selected rows are all built from one neutral grey ramp per theme, and the app's blue is kept for what it means — active tools, tabs and the selection.
-  - **Top Bar**: Clean top bar with document title chip, a compact quick **Export PDF** button followed by the one-tap **Save** button at the far right (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
-  - **Main Toolbar & Secondary Toolbar (Dual Toolbar)**:
-    - **Main Toolbar**: The writing tool rail (pen, highlighter, eraser, pan, select, text, pictures, colour & size, layers, pages) dockable to the **Left or Right** edge — the edge opposite your writing hand (right hand → left edge, the default; left hand → right edge). It deliberately carries **no STEM buttons**: those live in the Secondary Toolbar, so no tool ever appears twice on one screen. Audio records from the audio capsule, and the shape-recognition snap is a switch under **Settings → Interface → Drawing**.
-    - **Colour & Size (one slot)**: A single rail position covers the whole stroke. Its left half is the **three favourite colours** of the tool in use, stacked vertically — tap one to take that colour at once without switching tools away (so drawing shapes like lines and rectangles or the active pen continues in the picked colour), long-press one to redefine it from the palette. A tap's ripple — and the highlight a hovering stylus leaves — is the **dot's own circle**, not the rectangle the dot is tapped in — and just over a third of the slot is a **chevron button** that opens the full pop-up with the palette, the three tip sizes and the line style. The pen and the highlighter keep **separate** sets, and the slot shows the set belonging to the tool in use (reach for the highlighter and its three appear in place of the pen's), so it never spends two rail positions on colour. The favourites and the pop-up used to be two separate slots; they are one now, which gives the rail a button back. Both sets are set up under **Settings → Drawing → Colors**, and the factory sets are the ones you would reach for: the pen's **black, red, green** and the highlighter's **yellow, green, blue**. The pop-up's palette row also carries an add-colour swatch and scrolls instead of wrapping, so the menu's height is fixed.
-    - **Never a half button**: The rail fills its height with a **whole number** of buttons, at the size they are meant to be. It measures the height it has and spreads as many slots as fit *whole* over it, so the next button starts exactly at the rail's bottom edge instead of being cut in half by it; a couple of dp left over become buttons a few percent larger rather than a sliver of the next one. **A button is never drawn smaller than its own size** — what doesn't fit is one scroll away — so everything down to the page settings is visible without scrolling. A rail whose buttons all fit is left exactly as it was.
-    - **Secondary Toolbar**: The geometric figures and tools toolbar (lines, rectangles, shapes, tables, circuits, logic gates, guides), displayed as an adaptive floating dock in the top bar, holding the figures alone. It opens with the **active tool indicator**: the tool's icon, a swatch of the live colour and the `S`/`M`/`L` size letter, at the dock's own 40dp height with its 20dp corner. It currently runs as the dock's own **end cap**, wearing the dock's fill rather than a plate of its own, so the capsule is one surface and the face is all that marks it; that also keeps it clear of both the screen's left edge and the rail. The earlier style — the indicator as a **button of its own** standing in the corner the rail's column and the dock leave between them, sized so the figures' toolbar begins exactly on the document tabs' line, where the `Untitled` chip begins — is still in the code behind the `INDICATOR_AS_DOCK_CAP` constant, one flip away from coming back. Tapping it opens the colour & size pop-up; with the Main Toolbar docked to the right edge it trails the dock instead, so it is always on the rail's side (rail → indicator → figures).
-    - **One layout**: the writing toolbar down either vertical edge, plus the top bar's two rows — the Secondary Toolbar's figures, and the document tabs as the row under them. There is no second layout to choose: the bar's edge is the only toolbar setting, and **Settings → Toolbar** is where each bar's buttons are reordered or switched off.
-    - **The chrome never covers the page**: each bar takes a band of its own and the canvas takes the rectangle that is left, so every pixel of the sheet you can see is a pixel you can write on — the top bar and the row of document tabs inside it take the status-bar inset, the rail gets a lane down its edge below the whole header, and the canvas reaches the bottom edge of the screen. Nothing is ever clipped by the screen edge or hidden under another bar, and no bar is ever laid over the page — a popover, a dialog or the pen-tip ring can be, because they last only as long as the gesture that opened them.
-  - Reorder, hide, or show buttons in both the Main Toolbar and Secondary Toolbar under **Settings → Toolbar**.
-- **Navigation & Scrolling**:
-  - Configurable momentum scrolling (linear, quadratic, cubic, exponential curves) and panning sensitivity.
-  - **Finger gesture shortcuts**: a still **two-finger tap** undoes and a still **three-finger tap** redoes by default, anywhere on the canvas — no trip to the toolbar with the stylus in hand. Choose what each tap does under **Settings → Input → Finger gestures** (undo, redo, toggle eraser, toggle select, full-page view, or off), so a tap never does something you did not pick.
-  - Distraction-free **Full-Page View** (double-tap canvas center with Hand tool to hide all chrome).
-  - A hairline scroll thumb flush with the canvas edge (drag it to jump, with a page-number bubble while you drag); persistent page counter and zoom indicator (tap to reset to 100%).
-- **Theming & Backups**:
-  - Material 3 theme (System, Light, Dark) chosen on the Interface page, with optional Material You dynamic wallpaper colors (Android 12+). The choice repaints the app at once; the startup splash and the home-screen icon take it when the app starts, so changing it offers a restart (now or later), and the splash that comes up is the one your theme asked for. The chrome itself stays black, grey and blue whatever the wallpaper offers — dynamic colour cannot tint a panel, a chip or a menu.
-  - Complete settings, palette **and audio** export/import to standard JSON — the folder and *save a
-    separate file* included — accepting only a compatible backup (older versions too) and reporting a
-    wrong or newer file; **Reset all settings** restores the factory answers without replaying the tour.
-
-### 💾 Saving & Exporting
-
-- **Cloud & Remote Storage**: Save and export PDF to any destination the system file picker offers, including cloud providers (Google Drive, OneDrive, Dropbox) and mounted remote shares. Every write is serialised to a local staging file first and pushed across in a single pass, so a slow or failed upload can never leave a half-written `.xopp` behind.
-- **Starting up**: with nothing open the tablet shows an **entry screen** instead of a blank page — *New sheet*, *Open…*, and the notebooks opened lately as cards showing their first page, one tap to carry on where you left it. Closing the last tab returns there, and the recents are the device's own list, never written into a document.
-- **Save**: Writes directly to the open file without prompts. A blocking progress overlay ("Saving …") appears the moment Save is tapped and stays up until the bytes have landed — encoding a large document no longer freezes the app before the note appears. A **`.mobix` saved back to the file it was opened from is repacked in place**: only the manifest and the pages that moved are written, every other entry — untouched pages, bundled PDFs, pictures, recordings — is copied as the bytes the file already holds, and a page nothing touched is never even opened, so one page's edit costs the same few milliseconds however long the notebook is ([docs/mobix-format.md](docs/mobix-format.md)).
-- **Quick Export PDF**: The compact PDF button in the top bar (to the left of Save) exports straight away, without a trip through the overflow menu. The overflow menu's **Export PDF** entry does the same.
-- **Export page as image**: The overflow menu's **Export page as PNG** and **Export page as SVG** write the active page on its own — a raster PNG for sharing or a picture slot, or an SVG that keeps the page as editable vector geometry (strokes, shapes, text and the ruling, with embedded background images).
-- **Save As**:
-  - **Original (`.xopp`)**: Standard gzip-compressed XML file with external PDF/image linking. Best for desktop interchange.
-  - **Zipped (`.xopp`)**: Self-contained archive with PDFs and images bundled internally. Ideal for standalone sharing.
-  - **MobiXournal (`.mobix`)**: This app's own format, and the one that keeps what a `.xopp` can only bake into ink — a table stays a table, a plot keeps its formula (the graph dialog now inserts one), a component keeps its pins, and a stroke keeps the stylus telemetry behind its width. Its pictures and background PDFs are bundled inside the same file, so a `.mobix` is self-contained by construction. To hand one to desktop Xournal++, pick **Original (gzip)** or **Zipped** in **Save As**: the open document stays a `.mobix` (the export is a copy on disk) and the exported file carries the living entities with it, so opening it here again gives the editable table back instead of a drawing of one. Anything the export could not draw — a symbol this version has no drawing for, a formula that will not evaluate — is reported after the save instead of being left out silently.
-- **Export PDF**: Writes a vector PDF — the sheet's ruling, strokes, shapes, text and figures as real page content, with an imported PDF's own pages written back as vectors, so the file stays crisp at any zoom and does not balloon. The marks are page content and nothing else — no `/Highlight`, `/Ink` or `/Text` annotation dictionaries, exactly as the PC window writes them — so every viewer shows them and the two shells produce the same file. Imported PDF pages keep their text selectable, and a `.mobix` exported this way carries the same page the PC window writes.
-
----
-
-## 🏛️ Project Structure
-
-The Kotlin source code is organized under `app/src/main/java/com/mobixournal/`:
-- `format/`: `.xopp` XML parser, writer, models, and gzip/zip container handling.
-- `render/`: Canvas rendering engine, stroke geometry, and STEM shape generators.
-- `ui/`: Jetpack Compose Material 3 chrome, toolbars, settings, and dialogs.
-- `io/`: Android Storage Access Framework (SAF), PDF background loading, and caching.
-- `audio/`: Synchronized microphone recording and playback engine.
-- `tabs/` & `panes/`: Multi-tab session cache and split-view management.
-
-Full architectural details, data flow diagrams, and test suites are documented in the architecture spokes, indexed from [`docs/architecture.md`](docs/architecture.md).
+The repository is split into three Gradle modules (detailed in [`docs/repo-layout.md`](docs/repo-layout.md)):
+- **`mobix-core/`**: Pure JVM module containing the `.mobix` and `.xopp` codecs, living element synthesis/revival, math/plot engine, shape recognizer, and shared rendering geometry.
+- **`app/`**: Android tablet & phone editor (`SurfaceView` low-latency inking pipeline, Jetpack Compose Material 3 UI, SAF storage, and ML Kit handwriting search).
+- **`desktop/`**: Windows 11 Compose Multiplatform (Skiko) desktop editor sharing `mobix-core` and the frosted-glass design system.
 
 ---
 

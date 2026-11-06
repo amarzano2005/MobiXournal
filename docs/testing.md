@@ -68,7 +68,8 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   exists. So the architecture docs cannot decay back into one unaddressable document, or into prose that
   describes a file that has since been renamed. The two front doors are held to their own rules, since
   they sit outside `docs/`: a recorded line budget, no paragraph of running prose past 1 200 characters,
-  their links resolving like a spoke's, and every file at the repository root named by something (a doc,
+  `README.md` further capped at 1 400 words total and 300 visible characters per bullet item (with `.kt`
+  names, `dp` measurements and changelog narration forbidden), their links resolving like a spoke's, and every file at the repository root named by something (a doc,
   a test or a script) rather than left there as an orphan.
 - **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
   (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from

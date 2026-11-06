@@ -84,22 +84,27 @@ class DocsGuardTest {
      * `README.md` is the human's front door (what it is, how to run it, where to read more) and
      * `AGENTS.md` the agent's map; neither is a place to accumulate detail, because detail has an owner
      * in `docs/` and a second copy of it drifts.
-     *
-     * `README.md` moved 360 → 368 on 2026-10-31: its desktop section gained the two bullets the front door
-     * owes a reader — **Search the document** and the page list's own clipboard — a line of feature and a
-     * link each, with the detail in `docs/search.md` and `docs/desktop-editing.md`.
      */
-    private val frontDoorBudget = mapOf("README.md" to 369, "AGENTS.md" to 430)
+    private val frontDoorBudget = mapOf("README.md" to 160, "AGENTS.md" to 430)
 
     /**
      * The longest a single paragraph of **running prose** may get in a front door, in characters.
      *
      * A wall of text is not a style opinion here: the README's desktop section was one paragraph of
      * 13 369 characters describing every command the window has, and a paragraph that long has no
-     * sentence a reader can find again. Lists, tables, quotes, headings, HTML and code are exempt — they
-     * are scanned by their shape, and a feature catalogue is legitimately long.
+     * sentence a reader can find again.
      */
     private val proseParagraphWall = 1_200
+
+    /**
+     * Hard readability caps for `README.md` so it stays a scannable human overview rather than a
+     * commit log or a dump of implementation micro-notes:
+     * - [readmeMaxWords]: total words across `README.md` (prevents bypassing line caps with long lines).
+     * - [readmeBulletWall]: max characters in a single bullet item (excluding markdown link targets),
+     *   closing the loophole where 2 000-character essays were packed into `- **Feature**: ...` lines.
+     */
+    private val readmeMaxWords = 1_400
+    private val readmeBulletWall = 300
 
     @Test
     fun everySpokeIsReachableFromTheIndex() {
@@ -404,6 +409,65 @@ class DocsGuardTest {
             }
         }
         assertTrue("these paragraphs are walls of text:\n  " + walls.joinToString("\n  "), walls.isEmpty())
+    }
+
+    /**
+     * `README.md` must stay scannable and readable for a human (`AGENTS.md`).
+     *
+     * Previously, updates bypassed [noFrontDoorParagraphIsAWallOfText] by cramming 1 500–2 200 characters
+     * of commit-log notes, `dp` measurements and internal constants into single `- **Bullet**: ...` lines
+     * until `README.md` reached 68 KB (~10 800 words). This test enforces:
+     * 1. Total word count stays within [readmeMaxWords].
+     * 2. Every bullet line stays within [readmeBulletWall] visible characters (link URLs stripped).
+     * 3. No Kotlin `.kt` file names, raw `dp` measurements, or historical changelog phrases ("used to be",
+     *    "previously", "still in the code") appear in `README.md` — those belong in `docs/` or `FINISHED.toml`.
+     */
+    @Test
+    fun readmeStaysReadableForAHuman() {
+        val readme = File(repoRoot(), "README.md")
+        assertTrue("README.md is missing", readme.isFile)
+        val text = readme.readText()
+        val words = text.split(Regex("""\s+""")).count { it.isNotBlank() }
+        assertTrue(
+            "README.md is $words words (max $readmeMaxWords) — keep README.md concise and move detail to docs/",
+            words <= readmeMaxWords,
+        )
+
+        val violations = mutableListOf<String>()
+        var fenced = false
+        val linkTarget = Regex("""]\([^)]*\)""")
+        val dpMeasure = Regex("""\b\d+\s*dp\b""", RegexOption.IGNORE_CASE)
+        val ktFile = Regex("""\b[A-Za-z0-9_]+\.kt\b""")
+        val changelogPhrase = Regex("""\b(used to be|previously|still in the code|behind the `[A-Z0-9_]+` constant)\b""", RegexOption.IGNORE_CASE)
+
+        readme.readLines().forEachIndexed { idx, raw ->
+            val trimmed = raw.trim()
+            if (trimmed.startsWith("```")) {
+                fenced = !fenced
+                return@forEachIndexed
+            }
+            if (fenced) return@forEachIndexed
+
+            if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+                val visible = trimmed.replace(linkTarget, "]").length
+                if (visible > readmeBulletWall) {
+                    violations += "README.md:${idx + 1} bullet is $visible chars (max $readmeBulletWall) — condense it and move details to docs/"
+                }
+            }
+            if (dpMeasure.containsMatchIn(raw)) {
+                violations += "README.md:${idx + 1} contains raw dp layout measurement — move UI specs to docs/interface-contract.md"
+            }
+            if (ktFile.containsMatchIn(raw)) {
+                violations += "README.md:${idx + 1} names a .kt source file — implementation internals belong in docs/"
+            }
+            if (changelogPhrase.containsMatchIn(raw)) {
+                violations += "README.md:${idx + 1} contains changelog/history narration — describe only current behaviour"
+            }
+        }
+        assertTrue(
+            "README.md readability violations:\n  " + violations.joinToString("\n  "),
+            violations.isEmpty(),
+        )
     }
 
     /**

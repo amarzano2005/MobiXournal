@@ -38,3 +38,4 @@ tablet-probe.csv
 
 # A JDK and build log kept in the workspace for cloud verification runs — never versioned.
 /.toolchain/
+/.cloud-attachments/

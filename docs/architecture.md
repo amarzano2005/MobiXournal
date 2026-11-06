@@ -92,8 +92,9 @@ few fat documents — and from drifting into statements that are no longer true 
   that was split away sends them nowhere (`FINISHED.toml` is exempt: it records the past);
 - **a doc names a task id** that neither `TODO.toml` nor `FINISHED.toml` holds;
 - **a front door outgrows its job** — `README.md` and `AGENTS.md` carry a recorded line budget and a cap on
-  one paragraph of running prose, because they sit outside `docs/` and had no rule at all: a front door
-  *points at* its spokes, and a paragraph nobody can finish belongs in the one that owns it;
+  one paragraph of running prose, while `README.md` also enforces a 1 400-word cap, a 300-character limit
+  per bullet item, and bans `.kt` file names, raw `dp` measurements and changelog narration so it stays
+  readable for a human;
 - **a file at the repository root is an orphan** — the root is the first thing a reader sees, so everything
   there is either infrastructure or named by a doc, a test or a script.
 
