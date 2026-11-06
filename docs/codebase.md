@@ -157,4 +157,4 @@ belongs to this app while the credit to Xournal++ stays in the About page and RE
 The Kotlin package, the namespace and **`applicationId` are all `com.mobixournal`** — the install
 identity of this unofficial app, kept distinct from upstream and from any other build. Debug and
 release builds share it, so installing a build upgrades the app already there — see
-[a debug build installs as the same app](tools.md#a-debug-build-installs-as-the-same-app).
+[the APK you install should be the release one](tools.md#the-apk-you-install-and-why-it-should-be-the-release-one).

@@ -30,6 +30,7 @@ gradle/libs.versions.toml                                  # version catalog (al
 gradlew, gradle/wrapper/                                    # Gradle wrapper (pinned 8.9)
 Dockerfile, compose.yaml, .dockerignore                    # containerized build image + service
 scripts/build.sh                                           # docker/podman build entry point
+scripts/release-apk.sh                                     # the APK to install: release build, signed with the debug key
 
 mobix-core/                  # shared, platform-free core (kotlin-jvm): no android.*, no Compose
   build.gradle.kts           # jvmToolchain(21), jvmTarget 17, junit; fixtures read from app's test resources

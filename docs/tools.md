@@ -58,14 +58,14 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   - The parent mount is what makes the optional real-file test resolve its repo-root sample; the
     rule is documented in [`testing.md`](testing.md#what-the-unit-tests-cover).
 
-### A debug build installs as the same app
+### The APK you install, and why it should be the release one
 
-`app/build.gradle.kts` sets no `applicationIdSuffix`, so `scripts/build.sh` and `./gradlew
-assembleDebug` produce an APK with the **same identity as a release build**: it installs as
-`com.mobixournal`, upgrading the installed app in place rather than appearing beside it as a second
-icon. Launch and filter with that package (`emulator.sh launch com.mobixournal`, `adb logcat`), and
-remember that the build you install *is* the app on the device — its tabs and settings are the ones the
-next launch reads.
+No `applicationIdSuffix` is set, so every APK installs as `com.mobixournal`, upgrading in place rather
+than beside it (`emulator.sh launch com.mobixournal`, `adb logcat`) — and the build you install *is*
+the app on the device, tabs and settings included. **Judge speed on the release build:**
+`assembleDebug` keeps Compose's debug checks and skips R8, so on an inked page it is slower;
+`scripts/release-apk.sh` builds `:app:assembleRelease` and signs it with the debug keystore (so it
+upgrades in place, and back), writing `app/build/outputs/apk/release/app-release.apk`.
 
 ### Host fallback — no `/data/android`, no Docker
 
