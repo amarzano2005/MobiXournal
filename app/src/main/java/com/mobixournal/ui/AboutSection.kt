@@ -47,8 +47,12 @@ fun AboutSection() {
         InfoRow("Version", BuildConfig.VERSION_NAME)
         // The **door out**, where a row naming the *other* shell's version used to stand: a reader who wants
         // the Windows build wants its releases, and the repository is where both shells' work lives.
-        LinkRow("MobiXournal on GitHub", AboutLinks.SOURCE, open)
-        SettingsNote("Source code, release downloads, and issue tracker.")
+        LinkRow(
+            "MobiXournal on GitHub",
+            AboutLinks.SOURCE,
+            open,
+            note = "Source code, release downloads, and issue tracker.",
+        )
     }
 
     SettingsGroup("Credits") {
@@ -84,9 +88,15 @@ private fun InfoRow(label: String, value: String) {
     }
 }
 
-/** A tappable line that hands its URL to the system browser. */
+/**
+ * A tappable line that hands its URL to the system browser, with [note] as its own subtitle.
+ *
+ * The note is inside the row rather than a [SettingsNote] after it: a separate block carries a cell's
+ * air above and below, so the sentence that explains the link sat a group's gap away from it and read
+ * as belonging to whatever came next.
+ */
 @Composable
-private fun LinkRow(label: String, url: String, open: (String) -> Unit) {
+private fun LinkRow(label: String, url: String, open: (String) -> Unit, note: String? = null) {
     val reach = LocalSettingsCardInset.current
     Column(
         modifier = Modifier
@@ -100,5 +110,13 @@ private fun LinkRow(label: String, url: String, open: (String) -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
         )
+        if (note != null) {
+            Text(
+                note,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
     }
 }
