@@ -56,21 +56,21 @@ jobs:
       - name: Compile the instrumented tests
         run: ./gradlew :app:compileDebugAndroidTestKotlin --stacktrace
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build signed Release APK
+        run: sh scripts/release-apk.sh
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mobixournal-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: mobixournal-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: app/build/outputs/apk/release/app-release.apk
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false

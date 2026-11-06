@@ -160,7 +160,7 @@ what makes the two numbers comparable. The measurements and their caveats are ow
 ## Cutting a release
 
 Releases are produced by CI, never by hand. Pushing an annotated tag `vX.Y.Z` runs
-`.github/workflows/build.yml`, which builds the debug APK and creates the GitHub Release with
+`.github/workflows/build.yml`, which builds the signed release APK (`scripts/release-apk.sh`) and creates the GitHub Release with
 that APK attached and its notes read from `docs/releases/vX.Y.Z.md` (the step's `body_path`).
 
 **A version's contents are the *pending* set in `FINISHED.toml`** — every finished task that does
@@ -195,7 +195,7 @@ failure).
    git push origin v1.1.0
    ```
 
-4. **Watch the workflow.** The release appears on GitHub with `app-debug.apk` and `MobiXournal-<version>.msi` attached.
+4. **Watch the workflow.** The release appears on GitHub with `app-release.apk` and `MobiXournal-<version>.msi` attached.
 
 The workflow enforces the freeze rather than trusting it: every run lints both task files and runs
 the task CLI's own regression checks — `test_store.py` for the order the file promises, `test_done.py`
