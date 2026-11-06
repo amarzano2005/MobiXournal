@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -310,6 +311,35 @@ private fun ShortcutColorDot(color: Int) {
     )
 }
 
+/**
+ * How many frames the key dialog waits for its own window to attach before it stops asking for focus.
+ * Three is enough for the window to be added on every device seen so far, and bounded so a dialog that
+ * somehow never attaches cannot spin.
+ */
+private const val FOCUS_FRAMES = 3
+
+/**
+ * The key dialog's focus, asked for across its first frames.
+ *
+ * The dialog's window is attached on the frame **after** its content first composes, so asking for
+ * focus from the composition's first effect is a race — and the loser gets
+ * "FocusRequester is not initialized", thrown inside an effect, which takes the app down. That is why
+ * the shell's other two focus requests are wrapped in `runCatching`; this one asks again on the next
+ * frame instead of failing the first time, and stops asking after [FOCUS_FRAMES] so a window that
+ * never attaches cannot spin. Either way the dialog stays dismissible with Cancel or Back.
+ */
+@Composable
+private fun rememberKeyCaptureFocus(): FocusRequester {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(focusRequester) {
+        repeat(FOCUS_FRAMES) {
+            withFrameNanos { }
+            if (runCatching { focusRequester.requestFocus() }.isSuccess) return@LaunchedEffect
+        }
+    }
+    return focusRequester
+}
+
 /** Modal dialog that listens for the next key press (keyboard or tablet express key) to assign it. */
 @Composable
 fun KeyDetectionDialog(
@@ -317,11 +347,7 @@ fun KeyDetectionDialog(
     onKeyDetected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
+    val focusRequester = rememberKeyCaptureFocus()
 
     Dialog(
         onDismissRequest = onDismiss,
