@@ -49,6 +49,17 @@ internal class DesktopAudioPlayer(
     var paused: Boolean = false
         private set
 
+    /**
+     * True while a pause holds the **feeder**.
+     *
+     * A stopped device can answer a write with nothing, and the loop used to read that as the end of
+     * the recording: it drained, held the playhead at the clip's length and closed itself, so a pause
+     * jumped to the last word. The feeder now waits here instead of reading, which keeps the rest of the
+     * take for the resume and stops a zero-write from ever looking like an ending.
+     */
+    @Volatile
+    private var held: Boolean = false
+
     /** The clip that is on, or null — a pill that shows a transport only when there is something to hear. */
     var clipName: String? = null
         private set
@@ -161,6 +172,7 @@ internal class DesktopAudioPlayer(
      */
     private fun start(audio: DesktopAudioSource, output: PcmLine, atMs: Int): String? {
         paused = false
+        held = false
         playing = true
         playhead.attach(clock)
         // After `attach`, so the playhead reports the target until the sound lands there (Playhead's rule).
@@ -182,6 +194,9 @@ internal class DesktopAudioPlayer(
         if (!playing) return
         playing = false
         paused = true
+        // Before the device stops, so the feeder is already waiting when a stopped line answers its
+        // write with nothing.
+        held = true
         runCatching { line?.stop() }
         playhead.hold(durationMs, playhead.positionMs() ?: 0)
     }
@@ -195,11 +210,13 @@ internal class DesktopAudioPlayer(
             // The held position was ours, so it has to be handed to the device as a seek before the
             // clock becomes the stack's again — otherwise resuming would start at the last place the
             // feeder read from, not where the scrubber stood.
-            val held = playhead.positionMs() ?: 0
+            val atMs = playhead.positionMs() ?: 0
             paused = false
             playing = true
+            // Released before the device starts, so the feeder's next turn applies the seek below.
+            held = false
             playhead.attach(clock)
-            playhead.seekTo(held)
+            playhead.seekTo(atMs)
             runCatching { output.start() }
             return
         }
@@ -267,6 +284,11 @@ internal class DesktopAudioPlayer(
         val buffer = ShortArray(CHUNK_SAMPLES * channels)
         var bytes = ByteArray(buffer.size * 2)
         while (generation == run) {
+            // A held clip is not read: the rest of the take stays where the reader left it.
+            if (held) {
+                if (awaitSound(run)) return
+                continue
+            }
             seekRequest?.let { target ->
                 seekRequest = null
                 runCatching { output.flush() }
@@ -275,7 +297,13 @@ internal class DesktopAudioPlayer(
                 fedFrames = target.toLong() * audio.sampleRate / 1000 + (output.queuedFrames.toLong())
             }
             val read = runCatching { audio.read(buffer) }.getOrDefault(0)
-            if (read <= 0) break
+            if (read <= 0) {
+                if (held) {
+                    if (awaitSound(run)) return
+                    continue
+                }
+                break
+            }
             val frames = read / channels
             val (samples, count) = if (speed == 1f) {
                 buffer to read
@@ -290,16 +318,31 @@ internal class DesktopAudioPlayer(
             // the same stretch of the recording, and a clock counting the device's would run at half speed.
             fedFrames += written / 2 / channels
             // A device that took nothing at all is not going to take the next chunk either (`write`
-            // blocking always fills), so the clip ends here rather than racing silently to its last word.
-            if (written <= 0) break
+            // blocking always fills), so the clip ends here rather than racing silently to its last word
+            // — unless the pause is what emptied the write, in which case the take is only held.
+            if (written <= 0) {
+                if (held) {
+                    if (awaitSound(run)) return
+                    continue
+                }
+                break
+            }
         }
         if (generation != run) return
+        // A paused clip is not a finished one: let the pause lift before deciding the take has ended.
+        if (held && awaitSound(run)) return
         runCatching { output.drain() }
-        if (generation != run) return
+        if (generation != run || held) return
         playing = false
         paused = false
         playhead.hold(durationMs, durationMs)
         runCatching { output.stop() }
+    }
+
+    /** Wait out a pause; true when this run is no longer the device's (a stop, or a new clip). */
+    private fun awaitSound(run: Int): Boolean {
+        while (generation == run && held) Thread.sleep(15)
+        return generation != run
     }
 
     /**
@@ -337,6 +380,7 @@ internal class DesktopAudioPlayer(
         playhead.detach()
         playing = false
         paused = false
+        held = false
     }
 
     private fun refuse(sentence: String): String {

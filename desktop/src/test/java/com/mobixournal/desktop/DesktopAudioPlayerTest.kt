@@ -146,6 +146,33 @@ class DesktopAudioPlayerTest {
         }
     }
 
+    @Test
+    fun `a pause holds the clip instead of closing it at its end`() {
+        val name = recording("held.wav", ms = 400)
+        val gate = CountDownLatch(1)
+        val devices = FakeDevices(gate = gate)
+        val player = DesktopAudioPlayer(store, devices)
+        try {
+            assertNull(player.play(AudioRef(name, 0)))
+            // The feeder is parked in its first write, so the clip stands at its head.
+            player.pause()
+            gate.countDown()
+            // The stopped line now answers the parked write with nothing. That is a hold, not an end.
+            Thread.sleep(200)
+            assertEquals("the clip is still on", name, player.clipName)
+            assertTrue("held, with no sound", player.paused && !player.playing)
+            assertEquals("held where the pause found it, not at the last word", 0, player.positionMs() ?: -1)
+            assertEquals("the device was not reopened", 1, devices.opens)
+
+            player.resume()
+            awaitEnd(player)
+            assertEquals("and the resume plays it to its own end", 400, player.positionMs() ?: -1)
+        } finally {
+            gate.countDown()
+            player.close()
+        }
+    }
+
     // --- fixtures -----------------------------------------------------------------------------------
 
     /** The clip's own samples: each one carries its index, so any byte offset is a time. */
@@ -193,9 +220,17 @@ class DesktopAudioPlayerTest {
 
         override val bufferFrames: Int get() = 1_024
 
-        override fun start() = Unit
+        /** What a sound card does when it is stopped: it takes no more bytes until it starts again. */
+        @Volatile
+        private var sounding = true
 
-        override fun stop() = Unit
+        override fun start() {
+            sounding = true
+        }
+
+        override fun stop() {
+            sounding = false
+        }
 
         override fun flush() {
             flushedAt = audio.size()
@@ -205,6 +240,8 @@ class DesktopAudioPlayerTest {
 
         override fun write(bytes: ByteArray, offset: Int, length: Int): Int {
             gate?.await()
+            // A stopped line answers a write with nothing, which used to read as the clip's end.
+            if (!sounding) return 0
             val accepted = minOf(take, length)
             audio.write(bytes, offset, accepted)
             return accepted

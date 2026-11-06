@@ -5,7 +5,9 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopTabAudio
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.glyph
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.desktop.sheet.barWidth
 import com.mobixournal.desktop.sheet.number
 
@@ -117,7 +119,9 @@ internal fun HeaderAudioPill(
 }
 
 /**
- * The tablet's **three buttons**, in its order and with its meanings: record/stop, hold the take, play.
+ * The tablet's **three buttons**, in its order and with its meanings: record/stop, hold the take, play —
+ * and, once a clip is on, a fourth that **closes** it. A transport with no way out left the recording on
+ * the header for good, because nothing else in the window lets a clip go.
  *
  * Split out of [HeaderAudioPill] so the capsule's layout stays one row and each button's states are read
  * in one place (`SourceStructureTest` counts both halves).
@@ -182,6 +186,13 @@ private fun TransportButtons(
             },
         ) { colour, size ->
             if (playing) drawPauseBars(colour, size) else drawPlayTriangle(colour, size)
+        }
+        if (clipOn) {
+            // The catalogue's close mark, because letting a clip go is a chrome command rather than a
+            // transport mark: the same X a tab, a panel and a search field wear.
+            PillButton(description = "Close the audio", onClick = { audio.stopPlayback() }) { colour, _ ->
+                drawChromeGlyph(ChromeGlyph.CLOSE, colour)
+            }
         }
 }
 

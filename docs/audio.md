@@ -129,7 +129,11 @@ default take, not a failure.
 *The transport.* A clip on screen turns the same capsule into the transport, because the window has no
 second surface for it: the readout becomes `position / length`, a **scrubber** appears between the
 buttons and the time (a hairline whose drag calls `seek`, landing on the clip's ends rather than past
-them — `scrubMs`), and a **speed** button walks `1× · 1.25× · 1.5× · 2×`. The speed is the feeder's
+them — `scrubMs`), a **speed** button walks `1× · 1.25× · 1.5× · 2×`, and a **close** (the × after the
+speed) lets the clip go — nothing else in the window can, so without it a recording stayed on the
+header for good. A pause **holds** the streamed feeder rather than reading on: the loop waits at the
+held clip and a stopped line's empty write is never taken for the end of the take, which used to jump
+the playhead to its last word and close the transport on the pause. The speed is the feeder's
 own resample (`resample`, linear, applied per chunk), while the clock keeps counting the
 *recording's* frames — a clock counting written samples would run at half speed at 2× and put the
 karaoke a word behind. The transport's controls are the pill's, not a floating panel: the owner asked
