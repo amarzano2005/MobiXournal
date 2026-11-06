@@ -17,12 +17,25 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
-latest_release = "1.3.0"
+latest_release = "2.0.0"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
 growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
+
+[[task]]
+id = "step-3-desktop-workstation"
+title = "Step 3 — Desktop workstation program (epic)"
+description = "Delivered MobiXournal Desktop 1.0.0 for Windows 11 alongside MobiXournal 2.0.0 for Android over the shared mobix-core module: native .mobix and lossless .xopp reading/writing/exporting (PDF, PNG, SVG), full tool strip in left/right rail and top ribbon placements with shared frosted-glass tokens and monoline glyphs, Wintab and Windows Ink pen streams with radial dial and 120/144 Hz PagePicture rendering, shape recognition and hold-to-snap, living STEM entities (2D function plots, circuits, logic gates, tables, chemistry, parametric shapes, LaTeX/Typst formulas) with magnetic pin snapping and in-place editing, PDF import/outline/text selection/page management, Ogg Opus and WAV synchronized audio recording and playback, handwriting and full-text search, multi-tab and split-view workspace, 11-section unified Settings with search, and the WiX MSI installer."
+status = "finished"
+level = "epic"
+category = "feature"
+created = 2026-10-21
+completed = 2026-11-06
+release = "2.0.0"
+tags = []
+design = "material: shared frosted-glass band and floating capsule surfaces over a true-black desk across desktop and tablet; tokens: DesktopTheme and shared mobix-core tokens; glyph: shared ToolGlyphCatalogue and ChromeGlyph; states: rest, hover, pressed, active, disabled and focus ring verified across strips, menus and modals; copy: English across all controls, dialogs and status bar; keyboard: full workstation shortcuts and non-focus-stealing popups; parity: shared mobix-core codecs, LivingInk, InkPointerRouter, PageEraser and PageWindow; docs: desktop-workstation.md, desktop-editing.md, desktop-settings.md, desktop-tablet.md, desktop-documents.md, desktop-testing.md and README.md; tests: desktop JVM and Skiko scene suites plus app/mobix-core unit and guard suites"
 
 [[task]]
 id = "desktop-installer-optional-file-associations-and-automatic-signing"
@@ -33,6 +46,7 @@ level = "task"
 category = "feature"
 created = 2026-11-06
 completed = 2026-11-06
+release = "2.0.0"
 tags = []
 design = "none: the installer's screens are the Windows Installer's stock WiX dialog set (CustomSetup, progress, exit) rather than the app's own surface, so no design tokens, material classes or glyphs of ours appear and only the feature titles are our English copy"
 
@@ -45,6 +59,7 @@ level = "task"
 category = "chore"
 created = 2026-10-21
 completed = 2026-11-06
+release = "2.0.0"
 tags = []
 design = "none: build, packaging and CI only - no UI element, token, glyph or state changed"
 
@@ -57,6 +72,7 @@ level = "task"
 category = "feature"
 created = 2026-11-06
 completed = 2026-11-06
+release = "2.0.0"
 tags = []
 design = "material: Settings cards on panel fill; tokens: DesktopTheme tokens with SettingsSlider and SettingsSwitch; glyph: SettingsGlyph.NAVIGATION catalogue silhouette; states: hover, focused, and pressed states on all rows and sliders; copy: English; keyboard: Ctrl +/- zoom and wheel scroll step; parity: navigation settings section on desktop mirroring mobile navigation controls; docs: docs/desktop-settings.md updated within budget; tests: NavigationSettingsTest, DialWheelSceneTest, and all guards green"
 
@@ -69,6 +85,7 @@ level = "task"
 category = "bug"
 created = 2026-11-05
 completed = 2026-11-05
+release = "2.0.0"
 tags = ["ui", "onboarding"]
 design = "material: FloatingDialog's glass, rim, 20 dp corner and spring replace the opaque 24 dp Material Surface with its tonalElevation; tokens: capsuleCornerRadiusDp replaces two 14 dp literals and no hex was added; glyph: the four icon chips and the MX badge are deleted rather than redrawn, so no mark joins either catalogue; states: the cards keep radio semantics and both drawn states, and the footer's Material text buttons draw all five themselves; copy: sentence case throughout, with the emoji tip and the Title Case headings gone; parity: deliberately Android-only, since the tour has no desktop twin to match; docs: stylus.md owns the two questions and the reset rule, and README and DocumentsSection follow it; tests: AppSettingsFactoryDefaultsTest pins the reset rule and every guard suite is green"
 
@@ -81,6 +98,7 @@ level = "task"
 category = "feature"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["selection"]
 
 [[task]]
@@ -92,6 +110,7 @@ level = "task"
 category = "feature"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["toolbar"]
 
 [[task]]
@@ -103,6 +122,7 @@ level = "task"
 category = "bug"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["pages"]
 
 [[task]]
@@ -114,6 +134,7 @@ level = "task"
 category = "bug"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["audio"]
 
 [[task]]
@@ -125,6 +146,7 @@ level = "task"
 category = "bug"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -136,6 +158,7 @@ level = "task"
 category = "feature"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -147,6 +170,7 @@ level = "task"
 category = "feature"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -158,6 +182,7 @@ level = "task"
 category = "feature"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -169,6 +194,7 @@ level = "task"
 category = "feature"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -180,6 +206,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -191,6 +218,7 @@ level = "task"
 category = "feature"
 created = 2026-11-02
 completed = 2026-11-02
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -202,6 +230,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -213,6 +242,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop", "stylus"]
 
 [[task]]
@@ -224,6 +254,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop", "stylus"]
 
 [[task]]
@@ -235,6 +266,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop", "stylus"]
 
 [[task]]
@@ -246,6 +278,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop", "stylus"]
 
 [[task]]
@@ -257,6 +290,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -268,6 +302,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -279,6 +314,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -290,6 +326,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -301,6 +338,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -312,6 +350,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -323,6 +362,7 @@ level = "task"
 category = "feature"
 created = 2026-11-01
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -334,6 +374,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-24
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -345,6 +386,7 @@ level = "task"
 category = "bug"
 created = 2026-10-31
 completed = 2026-11-01
+release = "2.0.0"
 tags = ["desktop", "search"]
 
 [[task]]
@@ -356,6 +398,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop", "search", "ui"]
 
 [[task]]
@@ -367,6 +410,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop", "search"]
 
 [[task]]
@@ -378,6 +422,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop", "search", "ui"]
 
 [[task]]
@@ -389,6 +434,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop", "search"]
 
 [[task]]
@@ -400,6 +446,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop", "pages"]
 
 [[task]]
@@ -411,6 +458,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop", "pages"]
 
 [[task]]
@@ -422,6 +470,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop", "search"]
 
 [[task]]
@@ -433,6 +482,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -444,6 +494,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["pdf", "desktop"]
 
 [[task]]
@@ -455,6 +506,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["pdf", "desktop"]
 
 [[task]]
@@ -466,6 +518,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["pdf", "desktop"]
 
 [[task]]
@@ -477,6 +530,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["pdf", "desktop"]
 
 [[task]]
@@ -488,6 +542,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["pdf", "desktop"]
 
 [[task]]
@@ -499,6 +554,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["pdf", "desktop"]
 
 [[task]]
@@ -510,6 +566,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -521,6 +578,7 @@ level = "task"
 category = "docs"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -532,6 +590,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -543,6 +602,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -554,6 +614,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -565,6 +626,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -576,6 +638,7 @@ level = "task"
 category = "feature"
 created = 2026-10-31
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -587,6 +650,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-31
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -598,6 +662,7 @@ level = "task"
 category = "feature"
 created = 2026-10-30
 completed = 2026-10-30
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -609,6 +674,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -620,6 +686,7 @@ level = "task"
 category = "bug"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -631,6 +698,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-29
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -642,6 +710,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -653,6 +722,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -664,6 +734,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -675,6 +746,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -686,6 +758,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -697,6 +770,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -708,6 +782,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -719,6 +794,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -730,6 +806,7 @@ level = "task"
 category = "feature"
 created = 2026-10-29
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop", "audio"]
 
 [[task]]
@@ -741,6 +818,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -752,6 +830,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-29
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -763,6 +842,7 @@ level = "task"
 category = "feature"
 created = 2026-10-28
 completed = 2026-10-28
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -774,6 +854,7 @@ level = "task"
 category = "bug"
 created = 2026-10-28
 completed = 2026-10-28
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -785,6 +866,7 @@ level = "task"
 category = "feature"
 created = 2026-10-28
 completed = 2026-10-28
+release = "2.0.0"
 tags = ["desktop", "pdf"]
 
 [[task]]
@@ -796,6 +878,7 @@ level = "task"
 category = "feature"
 created = 2026-10-28
 completed = 2026-10-28
+release = "2.0.0"
 tags = ["desktop", "pdf"]
 
 [[task]]
@@ -807,6 +890,7 @@ level = "task"
 category = "feature"
 created = 2026-10-28
 completed = 2026-10-28
+release = "2.0.0"
 tags = ["desktop", "pdf"]
 
 [[task]]
@@ -818,6 +902,7 @@ level = "task"
 category = "feature"
 created = 2026-10-28
 completed = 2026-10-28
+release = "2.0.0"
 tags = ["desktop", "pdf"]
 
 [[task]]
@@ -829,6 +914,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-28
 completed = 2026-10-28
+release = "2.0.0"
 tags = ["desktop", "pdf"]
 
 [[task]]
@@ -840,6 +926,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -851,6 +938,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -862,6 +950,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -873,6 +962,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -884,6 +974,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -895,6 +986,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -906,6 +998,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -917,6 +1010,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -928,6 +1022,7 @@ level = "task"
 category = "feature"
 created = 2026-10-26
 completed = 2026-10-26
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -939,6 +1034,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-26
+release = "2.0.0"
 tags = ["desktop", "ui"]
 
 [[task]]
@@ -950,6 +1046,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -961,6 +1058,7 @@ level = "task"
 category = "feature"
 created = 2026-10-25
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop", "export"]
 
 [[task]]
@@ -972,6 +1070,7 @@ level = "task"
 category = "feature"
 created = 2026-10-25
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop", "export"]
 
 [[task]]
@@ -983,6 +1082,7 @@ level = "task"
 category = "feature"
 created = 2026-10-25
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop", "export"]
 
 [[task]]
@@ -994,6 +1094,7 @@ level = "task"
 category = "feature"
 created = 2026-10-25
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop", "export"]
 
 [[task]]
@@ -1005,6 +1106,7 @@ level = "task"
 category = "feature"
 created = 2026-10-25
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop", "export"]
 
 [[task]]
@@ -1016,6 +1118,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1027,6 +1130,7 @@ level = "task"
 category = "feature"
 created = 2026-10-25
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1038,6 +1142,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1049,6 +1154,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1060,6 +1166,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop", "ui"]
 
 [[task]]
@@ -1071,6 +1178,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1082,6 +1190,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1093,6 +1202,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1104,6 +1214,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-25
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1115,6 +1226,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1126,6 +1238,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "ui", "stem"]
 
 [[task]]
@@ -1137,6 +1250,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1148,6 +1262,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1159,6 +1274,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1170,6 +1286,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1181,6 +1298,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1192,6 +1310,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1203,6 +1322,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1214,6 +1334,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "ui"]
 
 [[task]]
@@ -1225,6 +1346,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1236,6 +1358,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1247,6 +1370,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1258,6 +1382,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "mobile"]
 
 [[task]]
@@ -1269,6 +1394,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1280,6 +1406,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "ui"]
 
 [[task]]
@@ -1291,6 +1418,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "ui"]
 
 [[task]]
@@ -1302,6 +1430,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "ui"]
 
 [[task]]
@@ -1313,6 +1442,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "perf"]
 
 [[task]]
@@ -1324,6 +1454,7 @@ level = "task"
 category = "bug"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1335,6 +1466,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "perf"]
 
 [[task]]
@@ -1346,6 +1478,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "performance"]
 
 [[task]]
@@ -1357,6 +1490,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "perf"]
 
 [[task]]
@@ -1368,6 +1502,7 @@ level = "task"
 category = "bug"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "bug"]
 
 [[task]]
@@ -1379,6 +1514,7 @@ level = "task"
 category = "bug"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "bug"]
 
 [[task]]
@@ -1390,6 +1526,7 @@ level = "task"
 category = "bug"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "bug"]
 
 [[task]]
@@ -1401,6 +1538,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "perf"]
 
 [[task]]
@@ -1412,6 +1550,7 @@ level = "task"
 category = "bug"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop", "tablet"]
 
 [[task]]
@@ -1423,6 +1562,7 @@ level = "epic"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["ui", "mobile", "roadmap"]
 
 [[task]]
@@ -1434,6 +1574,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["drag-and-drop", "ingestion"]
 
 [[task]]
@@ -1445,6 +1586,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["drag-and-drop", "selection"]
 
 [[task]]
@@ -1456,6 +1598,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["multi-window", "dex"]
 
 [[task]]
@@ -1467,6 +1610,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["pdf", "export"]
 
 [[task]]
@@ -1478,6 +1622,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["pdf", "highlighter"]
 
 [[task]]
@@ -1489,6 +1634,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["export", "math"]
 
 [[task]]
@@ -1500,6 +1646,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["math", "canvas"]
 
 [[task]]
@@ -1511,6 +1658,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["multi-window"]
 
 [[task]]
@@ -1522,6 +1670,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["pdf"]
 
 [[task]]
@@ -1533,6 +1682,7 @@ level = "task"
 category = "feature"
 created = 2026-10-24
 completed = 2026-10-24
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1544,6 +1694,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1555,6 +1706,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1566,6 +1718,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1577,6 +1730,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1588,6 +1742,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1599,6 +1754,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1610,6 +1766,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1621,6 +1778,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1632,6 +1790,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-23
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1643,6 +1802,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1654,6 +1814,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1665,6 +1826,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1676,6 +1838,7 @@ level = "task"
 category = "bug"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1687,6 +1850,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1698,6 +1862,7 @@ level = "task"
 category = "feature"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1709,6 +1874,7 @@ level = "task"
 category = "bug"
 created = 2026-10-23
 completed = 2026-10-23
+release = "2.0.0"
 tags = ["shapes", "hud", "labels"]
 
 [[task]]
@@ -1720,6 +1886,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["shapes", "mobix"]
 
 [[task]]
@@ -1731,6 +1898,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1742,6 +1910,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["ui", "stylus"]
 
 [[task]]
@@ -1753,6 +1922,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["ui"]
 
 [[task]]
@@ -1764,6 +1934,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["ui", "stylus"]
 
 [[task]]
@@ -1775,6 +1946,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1786,6 +1958,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1797,6 +1970,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1808,6 +1982,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["shapes"]
 
 [[task]]
@@ -1819,6 +1994,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-22
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -1830,6 +2006,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1841,6 +2018,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1858,6 +2036,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["audio"]
 
 [[task]]
@@ -1869,6 +2048,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1886,6 +2066,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["audio"]
 
 [[task]]
@@ -1901,6 +2082,7 @@ level = "task"
 category = "bug"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["audio"]
 
 [[task]]
@@ -1916,6 +2098,7 @@ level = "task"
 category = "bug"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["audio"]
 
 [[task]]
@@ -1931,6 +2114,7 @@ level = "task"
 category = "bug"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["audio"]
 
 [[task]]
@@ -1942,6 +2126,7 @@ level = "task"
 category = "test"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1953,6 +2138,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1969,6 +2155,7 @@ level = "task"
 category = "bug"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["audio"]
 
 [[task]]
@@ -1980,6 +2167,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -1991,6 +2179,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2002,6 +2191,7 @@ level = "scope"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2013,6 +2203,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2024,6 +2215,7 @@ level = "task"
 category = "docs"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2035,6 +2227,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2046,6 +2239,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2057,6 +2251,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2068,6 +2263,7 @@ level = "scope"
 category = "refactor"
 created = 2026-10-21
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2079,6 +2275,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2090,6 +2287,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2101,6 +2299,7 @@ level = "task"
 category = "feature"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2112,6 +2311,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-22
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2123,6 +2323,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop"]
 
 [[task]]
@@ -2134,6 +2335,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-22
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2145,6 +2347,7 @@ level = "task"
 category = "test"
 created = 2026-10-21
 completed = 2026-10-22
+release = "2.0.0"
 tags = ["desktop", "ci"]
 
 [[task]]
@@ -2156,6 +2359,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2167,6 +2371,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2178,6 +2383,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2189,6 +2395,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2200,6 +2407,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2211,6 +2419,7 @@ level = "task"
 category = "feature"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2222,6 +2431,7 @@ level = "scope"
 category = "refactor"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2233,6 +2443,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2244,6 +2455,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2255,6 +2467,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-21
 completed = 2026-10-21
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2266,6 +2479,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-20
 completed = 2026-10-20
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2277,6 +2491,7 @@ level = "task"
 category = "bug"
 created = 2026-10-20
 completed = 2026-10-20
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2288,6 +2503,7 @@ level = "task"
 category = "bug"
 created = 2026-10-20
 completed = 2026-10-20
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2299,6 +2515,7 @@ level = "task"
 category = "bug"
 created = 2026-10-20
 completed = 2026-10-20
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2310,6 +2527,7 @@ level = "task"
 category = "bug"
 created = 2026-10-20
 completed = 2026-10-20
+release = "2.0.0"
 tags = ["render", "living-elements"]
 
 [[task]]
@@ -2321,6 +2539,7 @@ level = "task"
 category = "bug"
 created = 2026-10-20
 completed = 2026-10-20
+release = "2.0.0"
 tags = ["render", "page-window"]
 
 [[task]]
@@ -2332,6 +2551,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-19
+release = "2.0.0"
 tags = ["circuit", "mobix"]
 
 [[task]]
@@ -2343,6 +2563,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-19
+release = "2.0.0"
 tags = ["circuit"]
 
 [[task]]
@@ -2354,6 +2575,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-19
+release = "2.0.0"
 tags = ["circuit", "mobix"]
 
 [[task]]
@@ -2365,6 +2587,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-19
+release = "2.0.0"
 tags = ["circuit", "mobix"]
 
 [[task]]
@@ -2376,6 +2599,7 @@ level = "task"
 category = "feature"
 created = 2026-10-19
 completed = 2026-10-19
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2387,6 +2611,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-19
 completed = 2026-10-19
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2398,6 +2623,7 @@ level = "task"
 category = "bug"
 created = 2026-10-18
 completed = 2026-10-18
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2409,6 +2635,7 @@ level = "task"
 category = "bug"
 created = 2026-10-18
 completed = 2026-10-18
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -2420,6 +2647,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["ui", "mobix", "table"]
 
 [[task]]
@@ -2431,6 +2659,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["table", "mobix"]
 
 [[task]]
@@ -2442,6 +2671,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["table"]
 
 [[task]]
@@ -2453,6 +2683,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["table", "mobix"]
 
 [[task]]
@@ -2464,6 +2695,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["ui", "plot"]
 
 [[task]]
@@ -2475,6 +2707,7 @@ level = "task"
 category = "test"
 created = 2026-10-13
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["ui", "guard"]
 
 [[task]]
@@ -2486,6 +2719,7 @@ level = "task"
 category = "test"
 created = 2026-10-13
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["ui", "testing"]
 
 [[task]]
@@ -2497,6 +2731,7 @@ level = "task"
 category = "feature"
 created = 2026-10-18
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["audio", "karaoke", "sync", "inking"]
 
 [[task]]
@@ -2508,6 +2743,7 @@ level = "task"
 category = "feature"
 created = 2026-10-18
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["audio", "ui", "waveform", "player"]
 
 [[task]]
@@ -2519,6 +2755,7 @@ level = "task"
 category = "feature"
 created = 2026-10-18
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["audio", "stt", "transcription", "search"]
 
 [[task]]
@@ -2530,6 +2767,7 @@ level = "task"
 category = "feature"
 created = 2026-10-18
 completed = 2026-10-18
+release = "2.0.0"
 tags = ["audio", "recording", "background"]
 
 [[task]]
@@ -2541,6 +2779,7 @@ level = "task"
 category = "feature"
 created = 2026-10-17
 completed = 2026-10-17
+release = "2.0.0"
 tags = ["canvas", "infinite-canvas", "ui"]
 
 [[task]]
@@ -2552,6 +2791,7 @@ level = "task"
 category = "feature"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["ui", "theme", "design-system"]
 
 [[task]]
@@ -2567,6 +2807,7 @@ level = "epic"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["mobix", "format", "roadmap"]
 
 [[task]]
@@ -2578,6 +2819,7 @@ level = "task"
 category = "test"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["audio", "emulator"]
 
 [[task]]
@@ -2589,6 +2831,7 @@ level = "task"
 category = "test"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["audio", "emulator"]
 
 [[task]]
@@ -2600,6 +2843,7 @@ level = "task"
 category = "test"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["mobix", "ui", "emulator"]
 
 [[task]]
@@ -2611,6 +2855,7 @@ level = "task"
 category = "test"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["plot", "emulator"]
 
 [[task]]
@@ -2622,6 +2867,7 @@ level = "task"
 category = "test"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["canvas", "mobix", "emulator"]
 
 [[task]]
@@ -2633,6 +2879,7 @@ level = "task"
 category = "test"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["canvas", "ui", "emulator"]
 
 [[task]]
@@ -2647,6 +2894,7 @@ level = "task"
 category = "bug"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["mobix", "ui", "emulator"]
 
 [[task]]
@@ -2661,6 +2909,7 @@ level = "task"
 category = "test"
 created = 2026-10-16
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["plot", "emulator"]
 
 [[task]]
@@ -2675,6 +2924,7 @@ level = "task"
 category = "test"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["mobix", "ui", "emulator"]
 
 [[task]]
@@ -2689,6 +2939,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["canvas", "ui"]
 
 [[task]]
@@ -2703,6 +2954,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["canvas", "mobix"]
 
 [[task]]
@@ -2717,6 +2969,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["plot", "ui"]
 
 [[task]]
@@ -2731,6 +2984,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["format", "guard"]
 
 [[task]]
@@ -2745,6 +2999,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["mobix", "audio"]
 
 [[task]]
@@ -2756,6 +3011,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["audio", "mobix"]
 
 [[task]]
@@ -2767,6 +3023,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["audio", "ui"]
 
 [[task]]
@@ -2778,6 +3035,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["audio", "ui"]
 
 [[task]]
@@ -2789,6 +3047,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["audio", "mobix"]
 
 [[task]]
@@ -2800,6 +3059,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["audio", "mobix"]
 
 [[task]]
@@ -2811,6 +3071,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["canvas", "export"]
 
 [[task]]
@@ -2822,6 +3083,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["canvas", "ui"]
 
 [[task]]
@@ -2833,6 +3095,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-16
+release = "2.0.0"
 tags = ["canvas", "ui"]
 
 [[task]]
@@ -2844,6 +3107,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["canvas", "mobix"]
 
 [[task]]
@@ -2855,6 +3119,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "canvas"]
 
 [[task]]
@@ -2866,6 +3131,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "ui"]
 
 [[task]]
@@ -2877,6 +3143,7 @@ level = "task"
 category = "feature"
 created = 2026-10-15
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["stylus", "telemetry"]
 
 [[task]]
@@ -2888,6 +3155,7 @@ level = "task"
 category = "bug"
 created = 2026-10-15
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["stylus", "mobix"]
 
 [[task]]
@@ -2899,6 +3167,7 @@ level = "task"
 category = "bug"
 created = 2026-10-15
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "audio", "data-loss"]
 
 [[task]]
@@ -2910,6 +3179,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "audio", "replay"]
 
 [[task]]
@@ -2921,6 +3191,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "canvas"]
 
 [[task]]
@@ -2932,6 +3203,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "stylus"]
 
 [[task]]
@@ -2943,6 +3215,7 @@ level = "task"
 category = "bug"
 created = 2026-10-15
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix"]
 
 [[task]]
@@ -2954,6 +3227,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -2965,6 +3239,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "audio"]
 
 [[task]]
@@ -2976,6 +3251,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -2987,6 +3263,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix"]
 
 [[task]]
@@ -2998,6 +3275,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3009,6 +3287,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-15
+release = "2.0.0"
 tags = ["mobix", "ui"]
 
 [[task]]
@@ -3020,6 +3299,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix"]
 
 [[task]]
@@ -3031,6 +3311,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3042,6 +3323,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3053,6 +3335,7 @@ level = "task"
 category = "test"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["plot", "emulator"]
 
 [[task]]
@@ -3064,6 +3347,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["plot", "math"]
 
 [[task]]
@@ -3075,6 +3359,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["plot", "math"]
 
 [[task]]
@@ -3086,6 +3371,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3097,6 +3383,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3108,6 +3395,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3119,6 +3407,7 @@ level = "task"
 category = "test"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix", "xopp"]
 
 [[task]]
@@ -3130,6 +3419,7 @@ level = "task"
 category = "docs"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["mobix", "docs"]
 
 [[task]]
@@ -3141,6 +3431,7 @@ level = "task"
 category = "feature"
 created = 2026-10-14
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["ui", "onboarding"]
 
 [[task]]
@@ -3152,6 +3443,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-13
 completed = 2026-10-14
+release = "2.0.0"
 tags = ["ui", "settings"]
 
 [[task]]
@@ -3163,6 +3455,7 @@ level = "task"
 category = "bug"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui", "chrome"]
 
 [[task]]
@@ -3174,6 +3467,7 @@ level = "task"
 category = "bug"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui", "chrome"]
 
 [[task]]
@@ -3185,6 +3479,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui", "chrome"]
 
 [[task]]
@@ -3196,6 +3491,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui", "chrome"]
 
 [[task]]
@@ -3207,6 +3503,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui", "stem"]
 
 [[task]]
@@ -3218,6 +3515,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui"]
 
 [[task]]
@@ -3229,6 +3527,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui", "stem"]
 
 [[task]]
@@ -3240,6 +3539,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui"]
 
 [[task]]
@@ -3251,6 +3551,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui"]
 
 [[task]]
@@ -3262,6 +3563,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["ui", "tokens"]
 
 [[task]]
@@ -3273,6 +3575,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3284,6 +3587,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3295,6 +3599,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3306,6 +3611,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3317,6 +3623,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3328,6 +3635,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3339,6 +3647,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3350,6 +3659,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3361,6 +3671,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = []
 
 [[task]]
@@ -3372,6 +3683,7 @@ level = "epic"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["mobix", "roadmap"]
 
 [[task]]
@@ -3383,6 +3695,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["mobix", "desktop"]
 
 [[task]]
@@ -3394,6 +3707,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["audio", "mobix"]
 
 [[task]]
@@ -3405,6 +3719,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["canvas", "mobix"]
 
 [[task]]
@@ -3416,6 +3731,7 @@ level = "task"
 category = "feature"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["plot", "math"]
 
 [[task]]
@@ -3427,6 +3743,7 @@ level = "task"
 category = "docs"
 created = 2026-10-13
 completed = 2026-10-13
+release = "2.0.0"
 tags = ["docs", "mobix"]
 
 [[task]]
@@ -3438,6 +3755,7 @@ level = "epic"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "v2", "roadmap"]
 
 [[task]]
@@ -3449,6 +3767,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "sync"]
 
 [[task]]
@@ -3460,6 +3779,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "sync"]
 
 [[task]]
@@ -3471,6 +3791,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "sync"]
 
 [[task]]
@@ -3482,6 +3803,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "sync"]
 
 [[task]]
@@ -3493,6 +3815,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3504,6 +3827,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "perf"]
 
 [[task]]
@@ -3522,6 +3846,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "plot", "ui"]
 
 [[task]]
@@ -3540,6 +3865,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "selection", "render"]
 
 [[task]]
@@ -3551,6 +3877,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "io"]
 
 [[task]]
@@ -3562,6 +3889,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "settings"]
 
 [[task]]
@@ -3573,6 +3901,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "plot", "ui"]
 
 [[task]]
@@ -3591,6 +3920,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "plot", "render"]
 
 [[task]]
@@ -3602,6 +3932,7 @@ level = "scope"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "render"]
 
 [[task]]
@@ -3613,6 +3944,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "io"]
 
 [[task]]
@@ -3624,6 +3956,7 @@ level = "task"
 category = "bug"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "sync"]
 
 [[task]]
@@ -3635,6 +3968,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "io"]
 
 [[task]]
@@ -3646,6 +3980,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "bridge"]
 
 [[task]]
@@ -3657,6 +3992,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "bridge"]
 
 [[task]]
@@ -3668,6 +4004,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "bridge"]
 
 [[task]]
@@ -3679,6 +4016,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix"]
 
 [[task]]
@@ -3690,6 +4028,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix"]
 
 [[task]]
@@ -3701,6 +4040,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix"]
 
 [[task]]
@@ -3712,6 +4052,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix", "json"]
 
 [[task]]
@@ -3723,6 +4064,7 @@ level = "task"
 category = "feature"
 created = 2026-10-12
 completed = 2026-10-12
+release = "2.0.0"
 tags = ["mobix"]
 
 [[task]]

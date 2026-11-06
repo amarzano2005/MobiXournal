@@ -5,7 +5,7 @@
  * Compose Multiplatform on Skiko, so it is a second **shell** over one implementation rather than a
  * fork. It does not yet share the editor: the Android `render`, `ui`, `tabs` and `io` packages are
  * Android-bound, and each shared piece moves into `mobix-core` as its own task
- * (`step-3-desktop-workstation` in `TODO.toml`).
+ * (`step-3-desktop-workstation` in `FINISHED.toml`).
  */
 plugins {
     alias(libs.plugins.kotlin.jvm)
