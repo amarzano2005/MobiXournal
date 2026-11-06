@@ -100,11 +100,19 @@ jobs:
       - name: Run the desktop suite
         run: .\gradlew.bat :desktop:test --stacktrace
 
-      # jpackage writes the MSI with WiX. The image ships WiX 3.14 but names it only in `WIX`, and
-      # jpackage finds `light.exe` on PATH, so the folder is added here before the one command that
+      # The MSI is linked with WiX. The image ships WiX 3.14 but names it only in `WIX`, and the script
+      # looks for candle/light/heat on PATH, so the folder is added here before the one command that
       # builds the installer (`docs/tools.md`, *Desktop installer*).
+      #
+      # Signing material comes from the repository's secrets; with none of them the script builds an
+      # unsigned MSI and says so, so a fork without a certificate still gets an installer.
       - name: Build the MSI installer
         shell: pwsh
+        env:
+          MOBIX_SIGN_PFX_BASE64: ${{ secrets.MOBIX_SIGN_PFX_BASE64 }}
+          MOBIX_SIGN_PFX_PASSWORD: ${{ secrets.MOBIX_SIGN_PFX_PASSWORD }}
+          MOBIX_SIGN_THUMBPRINT: ${{ secrets.MOBIX_SIGN_THUMBPRINT }}
+          MOBIX_SIGN_TIMESTAMP: ${{ vars.MOBIX_SIGN_TIMESTAMP }}
         run: |
           if ($env:WIX) { $env:PATH = "$env:WIX\bin;$env:PATH" }
           ./scripts/desktop-package.ps1
@@ -113,7 +121,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mobixournal-desktop-msi
-          path: desktop/build/compose/binaries/main/msi/*.msi
+          path: desktop/build/installer/*.msi
           if-no-files-found: error
 
       - name: Upload the headless renders

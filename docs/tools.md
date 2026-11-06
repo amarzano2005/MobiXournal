@@ -139,12 +139,12 @@ folder, runtime included, to `desktop/build/compose/binaries/main/app/MobiXourna
 opens a document passed as an argument and an empty window without one. **Regenerate it at the end of every
 completed task** (`AGENTS.md`, build flags — a stale `.exe` is a feature delivered only in source).
 
-`scripts/desktop-package.ps1` reads `packageVersion` from `desktop/build.gradle.kts` (what
-`scripts/todo.sh versions` prints), puts WiX 3.14 on `PATH` (`-WixBin` for an unpacked `wix314-binaries.zip`)
-and runs `:desktop:packageMsi -PdesktopOnly` — no Android module, no Android SDK.
-`desktop/build/compose/binaries/main/msi/MobiXournal-<version>.msi` is the installer: per-user, one fixed
-upgrade code, and **unsigned** (SmartScreen reads an unknown publisher until it is code-signed). CI builds
-it on `windows-latest` and a `v*` tag attaches it to the release beside the APK.
+`scripts/desktop-package.ps1` builds the app image (`:desktop:createDistributable -PdesktopOnly`), harvests it
+with WiX's `heat` and links `desktop/build/installer/MobiXournal-<version>.msi` from `desktop/installer/main.wxs`
+with `candle`/`light` — not jpackage's MSI, whose one feature offers no choice, while this feature tree does:
+`.mobix`/`.xopp` associations, on by default and switchable off, per user under `%LOCALAPPDATA%`. The MSI is
+signed whenever `MOBIX_SIGN_PFX_BASE64`+`MOBIX_SIGN_PFX_PASSWORD`, `MOBIX_SIGN_PFX` or `MOBIX_SIGN_THUMBPRINT`
+is set (`MOBIX_SIGN_TIMESTAMP` names the server), unsigned otherwise; CI builds it and a `v*` tag releases it.
 
 ### Measuring ink latency on screen (this window against Xournal++)
 

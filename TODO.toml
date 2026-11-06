@@ -62,3 +62,17 @@ created = 2026-11-06
 tags = ["handwriting"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "desktop-installer-optional-file-associations-and-automatic-signing"
+title = "Desktop installer: optional file associations and automatic signing"
+description = "Ship an MSI authored in desktop/installer/main.wxs (WiX 3 feature tree) that offers .mobix and .xopp associations on by default and lets the reader switch them off, replacing jpackage's single-feature MSI; scripts/desktop-package.ps1 builds it and signs it with signtool whenever MOBIX_SIGN_PFX_BASE64, MOBIX_SIGN_PFX or MOBIX_SIGN_THUMBPRINT is set, and CI passes the secrets through."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1020
+created = 2026-11-06
+tags = []
+rebuild = false
+emulator_debug = false
