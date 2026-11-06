@@ -227,3 +227,25 @@ offline, already installed — and the tablet keeps ML Kit. A local model is add
 only where the platform reader is missing or too slow, and on the PC that is a measured proposition:
 +12.4 MB of runtime for 6–32 ms a line. What is missing is not the runtime but the **weights**, so the
 seam waits for a model we can licence or train rather than for the plumbing.
+
+### What it costs while you write
+
+The question that decides whether this is usable is not the per-line figure but what the running app
+pays. Measured on the same model, ONNX Runtime, this PC:
+
+| threads | 512 px line | 1024 px line |
+|---|---|---|
+| 1 | 23.3 ms | 45.7 ms |
+| 2 | 13.0 ms | 26.0 ms |
+| 4 | 8.0 ms | 15.9 ms |
+
+Session load is 20 ms and the session holds about 16 MB. Three consequences for how it is wired:
+
+- **One or two threads, never four.** Latency halves from one to two and then the paint thread pays for it.
+  Two threads at 13–26 ms a line is the setting that cannot be felt.
+- **Recognise the line that changed, not the page.** A 30-line page re-read per stroke is close to a second
+  of CPU per stroke; one line is 13–26 ms. The tab's `HandwritingCache` throws the whole page away when the
+  edit count moves, so a per-line reading has to sit in front of it rather than inside it.
+- **Bucket the line width.** ONNX Runtime's CPU arena grows with the shapes it sees (+27 MB over 30 varying
+  widths in this run); a few fixed widths, or the arena off, keep it flat. Loaded lazily on the first
+  recognition, none of this delays the window opening.
