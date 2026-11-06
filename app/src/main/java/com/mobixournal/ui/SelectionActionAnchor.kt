@@ -1,8 +1,6 @@
 package com.mobixournal.ui
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntOffsetAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -10,7 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -29,6 +27,7 @@ import com.mobixournal.render.singleSelectedCircuit
 import com.mobixournal.render.singleSelectedPlot
 import com.mobixournal.render.singleSelectedShape
 import com.mobixournal.render.singleSelectedTable
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import kotlin.math.roundToInt
 
 /** Gap between the floating action bar and the selection it belongs to. */
@@ -36,25 +35,6 @@ private val SELECTION_BAR_GAP = 10.dp
 
 /** Smallest distance the floating action bar keeps from the canvas edges. */
 private val SELECTION_BAR_MARGIN = 8.dp
-
-/** How long the bar takes to fade in once it knows where it sits. */
-private const val SELECTION_BAR_FADE_MS = 120
-
-/**
- * Fades the bar in over [SELECTION_BAR_FADE_MS] while it is unmeasured.
- *
- * The placement needs the bar's own width and height, which only land a frame or two after the
- * selection appears. Drawing it before then puts it at the fallback margin and then at the selection,
- * which reads as a flicker; holding it at zero alpha until it has been measured makes it fade in once,
- * where it belongs.
- */
-@Composable
-private fun rememberAppearAlpha(measured: Boolean): Float =
-    animateFloatAsState(
-        targetValue = if (measured) 1f else 0f,
-        animationSpec = tween(durationMillis = SELECTION_BAR_FADE_MS),
-        label = "selectionBarAlpha",
-    ).value
 
 /**
  * The element-selection action bar (cut / copy / paste / duplicate / recolour / width / delete),
@@ -90,7 +70,7 @@ fun SelectionActionAnchor(
     }
     val palette = rememberColorPaletteState(settings, onSettingsChange)
     var barSize by remember { mutableStateOf(IntSize.Zero) }
-    val appear = rememberAppearAlpha(measured = barSize.width > 0)
+    val measured = barSize.width > 0
     val gapPx = with(LocalDensity.current) { SELECTION_BAR_GAP.roundToPx() }
     val marginPx = with(LocalDensity.current) { SELECTION_BAR_MARGIN.roundToPx() }
     val offset = selectionBarOffset(
@@ -104,11 +84,17 @@ fun SelectionActionAnchor(
         gapPx = gapPx,
         marginPx = marginPx,
     )
-    // The placement **glides** instead of jumping. The bar changes shape the instant a selection appears
-    // (Paste alone ↔ the whole set), and its own size only lands a frame after the content does — so the
-    // first frame is placed with yesterday's width. A hard switch flashed the bar at the paste spot before
-    // snapping it under the selection; animating the offset turns that flash into one move.
-    val placed by animateIntOffsetAsState(offset, label = "selectionBarPlace")
+    // The placement **glides** instead of jumping, but only once the bar has been measured. Before that
+    // its target is the parked margin, and an offset animation started there carried the bar in from the
+    // top of the canvas. Creating the animation state at the first real placement makes it begin *at* its
+    // target, so the bar appears where it belongs; a later change of shape (Paste alone ↔ the whole set,
+    // an Edit button arriving) still glides into place instead of snapping.
+    val placed = if (measured) {
+        val gliding by animateIntOffsetAsState(offset, label = "selectionBarPlace")
+        gliding
+    } else {
+        offset
+    }
     SelectionActionBar(
         hasSelection = rect != null,
         canPaste = canPaste,
@@ -149,7 +135,11 @@ fun SelectionActionAnchor(
         },
         modifier = modifier
             .offset { placed }
-            .alpha(appear)
+            // The arrival is the app's one floating-surface motion — the glass spring's scale and fade,
+            // played **in place**. The bar is a surface over the page, so it appears where the selection
+            // is instead of sliding in from an edge. Applied before the bar's own fill, so the layer
+            // holds the glass and not just the rows inside it.
+            .liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0f))
             .onSizeChanged { barSize = it },
     )
 }

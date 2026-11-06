@@ -71,6 +71,22 @@ internal object DrawingSurfaceDefaults {
     const val ROTATE_ARM_PX = 40f      // gap from the right edge out to the rotate knob
 
     /**
+     * How far **inside** the selection's ink box a resize handle still answers a press (view px), before
+     * the box becomes the body a drag carries.
+     *
+     * The drawn dot straddles the border (radius 7 px), so a hand aiming at it lands a few pixels in and
+     * the dot's inner half must not be dead. Beyond this band the interior is a **move**: [HANDLE_HIT_PX]
+     * read inward is a 30 px border on every side, which on a phone-sized selection is the whole
+     * element — every touch meant as a drag grabbed an edge and resized it instead. `handleInside` caps
+     * the band at a third of a small axis, so a tiny selection keeps a middle to be carried by.
+     */
+    const val HANDLE_INSIDE_PX = 12f
+
+    /** The inward half of a handle's grab band on an axis [extentPx] across: never more than a third. */
+    fun handleInside(extentPx: Float): Float =
+        minOf(HANDLE_INSIDE_PX, extentPx / 3f).coerceAtLeast(0f)
+
+    /**
      * An axis no thicker than this in **page points** is a line, not a box: it is the thickness a pen
      * draws, so a stroke's box is exactly that thick on its short side. The window keeps the same number
      * (`desktop.sheet.FLAT_PT`), so one rule holds in both shells (`docs/selection.md`).

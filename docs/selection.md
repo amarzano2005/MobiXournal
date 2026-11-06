@@ -88,10 +88,10 @@ pass next to `reportScroll`) through `PaneState.selectionRect`, and `EditorPaneV
 the canvas ends below the selection, clamped inside the canvas either way). It carries **no Done
 button**: tapping off the selection clears it, and that same tap starts the next stroke. Its controls
 are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halves the bar's footprint,
-and it is held at zero alpha until it has been measured so it fades in where it belongs instead of
-flickering there. Pure placement geometry lives in `ui/SelectionActionAnchor.kt`'s
-`selectionBarOffset`, pinned by `SelectionActionAnchorTest`. The
-other mode bars (paste/region, table, PDF-text selection) stay on the bottom edge. The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
+and it arrives **in place** on the shared glass spring (`liquidGlassSpringAnimation`, scale + fade —
+the motion every floating surface plays), its offset animated only once it has been measured, so it
+never travels in from the canvas edge. Pure placement geometry lives in
+`ui/SelectionActionAnchor.kt`'s `selectionBarOffset`, pinned by `SelectionActionAnchorTest`. The other mode bars (paste/region, table, PDF-text selection) stay on the bottom edge. The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
 works in Select mode (it abandons the in-progress selection gesture).
 
 The outline itself is drawn **exactly on the elements' ink box** (`SELECT_PAD_PX` = 0): a padded box
@@ -114,12 +114,12 @@ the size it was drawn, so only the shaft lengthens (`StrokeStretch`), while text
 scale because letters are the figure there. Their grab radius is capped at a **third** of the
 selection's on-screen size **on each axis** (`DrawingSurfaceDefaults.handleReach`; the axis
 `DrawingSurfaceDefaults.isFlat` calls a line's own thickness keeps the whole radius), because a fixed 30 px
-radius swallows a small selection whole — every touch inside it lands within 30 px of a handle, turning an
-intended *move* into a resize. A third is the largest cap that leaves the middle a move: the four
-edge handles sit half a side out from the middle, so a cap of *half* put the middle itself inside a
-handle's reach (below ~60 px of side, an element could not be dragged at all — the failing cross-page
-move test was reporting exactly that). The handles stay grabbable in their own corners and edges.
-`SelectionHandleRadiusTest` pins the rule. A box with **no extent on an axis** wears no handles across it: a
+radius swallows a small selection whole, turning an intended *move* into a resize: a third is the
+largest cap that leaves the middle a move, since the edge handles sit half a side out from it. On the
+tablet that reach is **outward** only: a press deeper inside the box than a `HANDLE_INSIDE_PX` band
+(a third of a small axis at most) is the **body** and moves the selection — `beginHandleResize` asks
+`insideSelectionBody` first, so only the border band the drawn dots straddle resizes, and a line keeps
+its end handles, having no interior to protect. `SelectionHandleRadiusTest` pins both. A box with **no extent on an axis** wears no handles across it: a
 selection around a part drawn as a line carries no height worth stretching, its top and bottom handles would
 land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands
 the press back to the body (`SelectionMovePaintTest`). The same rule makes a **corner** drag on a line its end

@@ -231,8 +231,16 @@ internal class SelectionGestureController(
             }
         }
         // Four corner resize handles and the four edge midpoints, asked by one helper: which of them a
-        // touch is on, and with what anchor and axis, is `beginHandleResize`.
-        if (beginHandleResize(event, box, b)) return true
+        // touch is on, and with what anchor and axis, is `beginHandleResize`. A press in the box's
+        // **body** skips them ([insideSelectionBody]): the handles answer from the border band, so a
+        // drag that lands on the element itself is carried, never read as a resize of its edge.
+        val inBody = insideSelectionBody(
+            event.x, event.y,
+            box.toViewX(b.left, viewport.scrollX), box.toViewY(b.top, viewport.scrollY),
+            box.toViewX(b.right, viewport.scrollX), box.toViewY(b.bottom, viewport.scrollY),
+            box.scale,
+        )
+        if (!inBody && beginHandleResize(event, box, b)) return true
         // Inside the outline: move.
         if (b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY))) {
             beginMove(event, box)

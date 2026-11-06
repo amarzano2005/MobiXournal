@@ -73,6 +73,51 @@ class SelectionHandleRadiusTest {
         assertFalse("a thicker pen is a box", DrawingSurfaceDefaults.isFlat(24f, 3f))
     }
 
+    /**
+     * The **inward** half of a handle's grab band ([DrawingSurfaceDefaults.handleInside]) is the drawn
+     * dot plus finger slop, capped on a small axis — beyond it the box is the body a drag carries.
+     *
+     * Reading the whole 30 px reach inward made every press on a phone-sized selection a resize: the
+     * hand landed on the element and grabbed one of its edges, which is the inaccuracy the band fixes.
+     */
+    @Test
+    fun `a handle answers only from a narrow band inside the box`() {
+        assertEquals(12f, DrawingSurfaceDefaults.handleInside(400f), 1e-4f)
+        assertTrue(
+            "the inward band stays well inside the outward reach",
+            DrawingSurfaceDefaults.handleInside(400f) < DrawingSurfaceDefaults.HANDLE_HIT_PX / 2f,
+        )
+        // A small selection keeps a middle to be carried by: under 36 px of side the band shrinks
+        // with its own axis, so the third that `handleReach` leaves clear stays clear.
+        assertEquals(12f, DrawingSurfaceDefaults.handleInside(60f), 1e-4f)
+        assertEquals(36f / 3f, DrawingSurfaceDefaults.handleInside(36f), 1e-4f)
+        assertEquals(30f / 3f, DrawingSurfaceDefaults.handleInside(30f), 1e-4f)
+        assertEquals(0f, DrawingSurfaceDefaults.handleInside(-4f), 1e-4f)
+    }
+
+    /**
+     * Inside a box the **body** wins outside the narrow band ([insideSelectionBody]): the middle of an
+     * element is always a drag, and only the border the drawn dots straddle is read as a handle.
+     */
+    @Test
+    fun `the middle of a selection is its body and the border is not`() {
+        fun body(x: Float, y: Float) = insideSelectionBody(
+            x, y, leftPx = 100f, topPx = 200f, rightPx = 500f, bottomPx = 500f, scale = 1f,
+        )
+        assertTrue("the centre carries the element", body(300f, 350f))
+        assertTrue("15 px inside the left edge is still body", body(115f, 350f))
+        assertFalse("5 px inside the left edge is the handle band", body(105f, 350f))
+        assertFalse("a point above the box is outside it", body(300f, 190f))
+    }
+
+    @Test
+    fun `a line has no body so its end handles keep the whole reach`() {
+        // A 240 px stroke drawn 4 pt thick is 4 px of box at 100 %: flat, so it never answers "body".
+        assertFalse(
+            insideSelectionBody(160f, 202f, 100f, 200f, 340f, 204f, scale = 1f),
+        )
+    }
+
     @Test
     fun `the radius never collapses to an unhittable point`() {
         // A degenerate box (a one-point stroke, an empty text box) still gets a grabbable handle.
