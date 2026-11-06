@@ -199,7 +199,7 @@
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
             android:targetActivity=".MainActivity"
-            android:theme="@style/Theme.MobiXournal">
+            android:theme="@style/Theme.MobiXournal.Dark">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -215,7 +215,7 @@
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_light_round"
             android:targetActivity=".MainActivity"
-            android:theme="@style/Theme.MobiXournal">
+            android:theme="@style/Theme.MobiXournal.Light">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

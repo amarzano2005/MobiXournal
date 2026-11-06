@@ -1,5 +1,5 @@
 <resources>
-    <!-- The launcher background: dark header charcoal (#161618) by default, white (#FFFFFF) in light mode. -->
+    <!-- .LauncherDark adaptive icon background (#161618) and .LauncherLight background (#FFFFFF). -->
     <color name="ic_launcher_background">#161618</color>
     <color name="ic_launcher_light_background">#FFFFFF</color>
 

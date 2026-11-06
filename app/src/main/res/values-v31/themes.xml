@@ -2,10 +2,11 @@
     <!-- Android 12+ (API 31+) SplashScreen theme, day configuration = the app on Light.
          The base style is what MainActivity declares, so it is the one the system reads for the
          starting window; values-night-v31 carries the dark half. See values/themes.xml. -->
-    <style name="Theme.MobiXournal" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.MobiXournal" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@drawable/splash_screen_light</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background_light</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
@@ -16,6 +17,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@drawable/splash_screen_light</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background_light</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
@@ -26,6 +28,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@drawable/splash_screen_dark</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background_dark</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>

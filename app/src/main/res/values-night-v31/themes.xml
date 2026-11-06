@@ -4,6 +4,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@drawable/splash_screen_dark</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background_dark</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
@@ -14,6 +15,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@drawable/splash_screen_light</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background_light</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
@@ -24,6 +26,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@drawable/splash_screen_dark</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background_dark</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>

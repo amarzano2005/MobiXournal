@@ -9,12 +9,13 @@
     android:viewportWidth="192"
     android:viewportHeight="192">
 
-    <!-- Paper sheet outline -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"
-        android:strokeWidth="4"
-        android:pathData="M62,44 L130,44 A18,18 0 0 1 148,62 L148,130 A18,18 0 0 1 130,148 L62,148 A18,18 0 0 1 44,130 L44,62 A18,18 0 0 1 62,44 Z" />
+    <group
+        android:pivotX="96"
+        android:pivotY="96"
+        android:scaleX="1.45"
+        android:scaleY="1.45"
+        android:translateX="-4"
+        android:translateY="4">
 
     <!-- Calligraphic X stroke -->
     <path
@@ -28,4 +29,5 @@
     <path
         android:fillColor="#000000"
         android:pathData="M129,72 L155,46 C157,44 160,44 162,46 L164,48 C166,50 166,53 164,55 L138,81 Z M112,89 L126.5,74.5 L135.5,83.5 L121,98 Z M103,98 L112,89 L121,98 L112,107 Z M98,103 L103,98 L107,102 L102,107 Z" />
+    </group>
 </vector>

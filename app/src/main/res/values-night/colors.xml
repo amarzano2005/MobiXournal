@@ -1,0 +1,9 @@
+<resources>
+    <!-- .LauncherDark adaptive icon background (#161618) and .LauncherLight background (#FFFFFF). -->
+    <color name="ic_launcher_background">#161618</color>
+    <color name="ic_launcher_light_background">#FFFFFF</color>
+
+    <!-- Splash screen window background colors -->
+    <color name="splash_background_light">#FFFFFF</color>
+    <color name="splash_background_dark">#161618</color>
+</resources>
