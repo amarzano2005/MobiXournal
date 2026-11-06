@@ -595,7 +595,7 @@ class SettingsStore(context: Context) {
             } ?: d.trapezoidKind,
             trapezoidAngleA = prefs.getFloat(KEY_TRAPEZOID_ANGLE_A, d.trapezoidAngleA),
             trapezoidAngleB = prefs.getFloat(KEY_TRAPEZOID_ANGLE_B, d.trapezoidAngleB),
-            polygonSides = prefs.getInt(KEY_POLYGON_SIDES, d.polygonSides),
+            polygonSides = readPolygonSides(prefs, d.polygonSides),
             shapeOrder = decodeToolNames(prefs.getString(KEY_SHAPE_ORDER, null), FIGURE_TOOLS),
             shapeHidden = decodeToolNames(prefs.getString(KEY_SHAPE_HIDDEN, null), FIGURE_TOOLS).toSet(),
             toolGroupSelections = decodeToolGroupSelections(prefs.getString(KEY_TOOL_GROUPS, null)),
@@ -782,7 +782,7 @@ class SettingsStore(context: Context) {
         e.apply()
     }
 
-    private companion object {
+    internal companion object {
 
         const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding"
 

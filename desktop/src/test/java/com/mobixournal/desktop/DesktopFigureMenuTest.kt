@@ -53,6 +53,22 @@ class DesktopFigureMenuTest {
         DesktopShellState(DesktopSettings(temp.newFile("figures.properties")))
 
     @Test
+    fun `the polygon's old factory count becomes four once`() {
+        val old = Properties().apply { setProperty("figure.polygonSides", "6") }
+        assertEquals("six was the old factory default", 4, FigureSettings.read(old).polygonSides)
+        assertEquals("and the migration is written back", "4", old.getProperty("figure.polygonSides"))
+
+        // Once migrated, a deliberate six stays six — the migration never runs over it again.
+        old.setProperty("figure.polygonSides", "6")
+        assertEquals(6, FigureSettings.read(old).polygonSides)
+
+        // A write records the flag beside the reader's answer, so a chosen six survives a fresh read.
+        val chosen = Properties()
+        FigureSettings.write(chosen, FigureShape(polygonSides = 6))
+        assertEquals(6, FigureSettings.read(chosen).polygonSides)
+    }
+
+    @Test
     fun `each figure is a slot of its own and opens its own menu`() {
         for (tool in FIGURE_TOOLS) {
             val group = groupOf(tool)

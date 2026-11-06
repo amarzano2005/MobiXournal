@@ -20,7 +20,7 @@ import com.mobixournal.render.TriangleKind
  * figure is drawn. It is held here, next to the variants, so every figure tool reads one value.
  *
  * The defaults are the tablet's own ([TriangleKind.EQUILATERAL], [TrapezoidKind.ISOSCELES], 40°/60°/80°,
- * 75°/60° and a six-sided polygon), so a fresh install draws the same figure on both shells.
+ * 75°/60° and a four-sided polygon), so a fresh install draws the same figure on both shells.
  */
 data class FigureShape(
     val triangleKind: TriangleKind = TriangleKind.EQUILATERAL,

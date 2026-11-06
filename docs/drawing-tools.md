@@ -169,8 +169,9 @@ and figure-style stroke (inheriting and adjusting figure width, color, and line 
 The **polygon tool** is the family's generic figure, and the one whose shape count the user picks: a
 single drag, and `ShapeBuilder` inscribes a regular polygon of `polygonSides` sides in the drag's box —
 the same `regularPolygon` every other regular figure comes from, so the pentagon and the hexagon are
-that one tool at five and six sides rather than figures of their own. The count is 3–12 (six at the
-factory) and is chosen where the figure is: **the Polygons slot's own menu** is the side-count picker
+that one tool at five and six sides rather than figures of their own. The count is 3–12 (four at the
+factory; a profile that saved the old six is moved to four once, and a count chosen afterwards is kept)
+and is chosen where the figure is: **the Polygons slot's own menu** is the side-count picker
 (`PolygonSlotButton` — tap the slot to take the tool, tap it again or long-press for the picker, with
 the live count riding the button's top-left corner in **the window's own voice** (the label role with
 tabular figures at 9 sp, pulled a shade tighter into the corner than the window's 4 dp/2 dp because this

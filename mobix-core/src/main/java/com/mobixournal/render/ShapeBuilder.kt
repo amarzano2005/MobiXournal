@@ -54,7 +54,12 @@ object ShapeBuilder {
      */
     const val MIN_POLYGON_SIDES = 3
     const val MAX_POLYGON_SIDES = 12
-    const val DEFAULT_POLYGON_SIDES = 6
+
+    /**
+     * The count a fresh install draws: four, so the Polygon tool opens as the square a table of
+     * figures starts from, and every other count is a step in the slot's own menu.
+     */
+    const val DEFAULT_POLYGON_SIDES = 4
 
     fun build(
         kind: ShapeKind,
