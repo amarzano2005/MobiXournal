@@ -171,6 +171,26 @@ class DesktopShellTest {
         assertEquals("and the readout says so", "25%", zoomLabel(tab.viewport.zoom, tab.widthFitZoom))
     }
 
+    /**
+     * **Back to 100 %**, the command behind a click on the zoom readout: the width fit, which is the scale the
+     * readout calls 100 %, with the page re-framed instead of left where the zoom put it.
+     */
+    @Test
+    fun `the hundred percent command is the width fit`() {
+        val state = DesktopShellState(DesktopSettings(File(temp.root, "hundred.properties")))
+        val notebook = temp.newFile("hundred.mobix")
+            .also { SyntheticNotebook.write(it, SyntheticNotebook.pages(2)) }
+        state.open(notebook)
+        val tab = state.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 4f, offsetX = -30f, offsetY = -40f)
+
+        assertTrue("the command is handled", state.apply(ShellCommand.FIT_WIDTH))
+        assertEquals("a manual zoom gives way to the fit", FitMode.WIDTH, tab.fit)
+        assertEquals("and the page is re-framed", 0f, tab.viewport.offsetX, 0f)
+        assertEquals(0f, tab.viewport.offsetY, 0f)
+    }
+
     @Test
     fun `the status bar's figures follow the tab`() {
         val tab = tabsOf("stato.mobix", "altro.mobix").active!!

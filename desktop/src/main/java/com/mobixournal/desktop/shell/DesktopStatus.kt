@@ -14,6 +14,11 @@ import com.mobixournal.desktop.sheet.pageLabel
 import com.mobixournal.desktop.sheet.zoomLabel
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,10 +34,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.awt.GraphicsEnvironment
 import java.util.Locale
@@ -156,6 +163,7 @@ internal fun StatusBar(
      * band names what it is waiting for instead.
      */
     opening: String? = null,
+    onCommand: (ShellCommand) -> Unit = {},
 ) {
     Row(
         Modifier
@@ -186,8 +194,7 @@ internal fun StatusBar(
             return@Row
         }
         Spacer(Modifier.width(14.dp))
-        // 100 % is the page's width filling the window (`zoomLabel`), not a page point per dp.
-        Text(zoomLabel(zoom, tab.widthFitZoom), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
+        ZoomReadout(zoom, tab.widthFitZoom, onCommand)
         Spacer(Modifier.width(14.dp))
         Text(
             text = when (fit) {
@@ -238,6 +245,34 @@ internal fun StatusBar(
         Spacer(Modifier.width(12.dp))
         ProgressBar(pageProgress(tab.page, tab.pageCount))
     }
+}
+
+/**
+ * The zoom readout, and the command standing behind it: **a click puts the page back at 100 %** — the scale a
+ * document opens at ([ShellCommand.FIT_WIDTH], which is also `Ctrl+1`).
+ *
+ * A reading that is also a door, so it carries the window's answers to the pointer: the resting ink, the
+ * accent while hovered, the plate while pressed. No ripple — the band is 24 dp tall, and a ripple in it would
+ * read as a fault rather than as feedback.
+ */
+@Composable
+private fun ZoomReadout(zoom: Float, widthFitZoom: Float, onCommand: (ShellCommand) -> Unit) {
+    val pointer = remember { MutableInteractionSource() }
+    val hovered by pointer.collectIsHoveredAsState()
+    val pressed by pointer.collectIsPressedAsState()
+    Text(
+        text = zoomLabel(zoom, widthFitZoom),
+        color = if (hovered || pressed) DesktopTheme.accent else DesktopTheme.inkSecondary,
+        style = DesktopTheme.numeric,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(if (pressed) DesktopTheme.activeSlot else Color.Transparent)
+            .hoverable(pointer)
+            .clickable(interactionSource = pointer, indication = null) {
+                onCommand(ShellCommand.FIT_WIDTH)
+            }
+            .padding(horizontal = 4.dp, vertical = 1.dp),
+    )
 }
 
 /**

@@ -120,7 +120,7 @@ internal object ShortcutTable {
         entry(ShellCommand.ZOOM_IN, "Zoom in", "Ctrl+="),
         entry(ShellCommand.ZOOM_OUT, "Zoom out", "Ctrl+-"),
         entry(ShellCommand.FIT_PAGE, "Fit the page", "Ctrl+0"),
-        entry(ShellCommand.FIT_WIDTH, "Fit the width", "Ctrl+1"),
+        entry(ShellCommand.FIT_WIDTH, "Fit the width (100%)", "Ctrl+1"),
         entry(ShellCommand.DISMISS_FAILURE, "Dismiss the notice", "Esc"),
     )
 

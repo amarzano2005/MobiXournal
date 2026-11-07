@@ -45,7 +45,8 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   reads 100 % **when the page's width fills the window** (`zoomPercentOfWidthFit`, against the fit-width
   reference the canvas measures), so the number means the same thing as the sheet in front of the reader
   rather than a page point per dp; the window's limits are percentages of that same 100 %, so the range is
-  always **25 % … 3 200 %** whatever the page. While a
+  always **25 % … 3 200 %** whatever the page. It is also the band's one **door**: a click on the percentage
+  runs `Ctrl + 1`, putting the page back at 100 % mid-zoom, and it lifts to the accent under the pointer. While a
   document is being read it says `opening <name>…` instead of `no document`, because the read runs off the
   frame thread: the window keeps painting through an open instead of freezing until it lands.
 
@@ -132,7 +133,7 @@ Everything the chrome does can also be done from the keyboard:
 | `Ctrl + ,` | open the window's Settings — a page of the window, not a card over the page |
 | `Ctrl + =`, `Ctrl + NumPad +` | zoom in — see the layout note below |
 | `Ctrl + -`, `Ctrl + NumPad -` | zoom out |
-| `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width |
+| `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width — the readout's 100 %, also reached by clicking the zoom percentage |
 | `Page Up` / `Page Down` | previous / next page |
 | `Space` (held) | pan with the primary button; the middle button always pans |
 | `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool — §3's shortcut table is the list |
