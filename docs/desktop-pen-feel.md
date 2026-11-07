@@ -52,6 +52,16 @@ is plainly moving. The gain is a feel constant, not a measurement, and it is the
 and a wheel notch keep the distance their device reports. A held **Space** takes the packets from the
 stroke path, so a pen in hand never inks the sheet it is scrolling.
 
+Settings ▸ **Scrolling** describes scrolling, not the wheel, so it governs the hand as well. *Scroll
+distance* is a distance (`64 dp` is the default and reads as 1:1, `128` as twice the travel): the pointer
+drag scales by it, and the pen's packets scale their own `PAN_GAIN` by it — bounded to a quarter and two and
+a half, so the slider's ends stay usable rather than making the page uncontrollable. *Smooth scrolling* and
+*Scroll fluidity* are the **release**: the hand's flick keeps travelling for a twelfth of a second of its
+own speed (smoothed over the last events, the pen measuring its 400 Hz readings), eased with the same decay
+a notch glides with and to the same target-based rule — no lead step, because a hand that has just let go
+does not need to be answered. Switched off, the sheet stops where the hand left it. Two glides still cannot
+fight: each one lets go the moment another writer moves the offset.
+
 ## The window's share of the machine
 
 A stroke's smoothness is not the drawing code's property — it is **how soon the thread that receives the

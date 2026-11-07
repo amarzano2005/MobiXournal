@@ -54,6 +54,10 @@ internal fun Modifier.sheetGestures(
      * node took the press with it — the report that the hand did nothing after a scroll.
      */
     cancelGlide: () -> Unit = {},
+    /** Settings ▸ Scrolling's distance, as the dp the hand travels per dp of pointer travel. */
+    handGain: Float = 1f,
+    /** Settings ▸ Scrolling's glide, as the travel a release carries ([flingBy]). */
+    onFling: (Float, Float) -> Unit = { _, _ -> },
 ): Modifier = pointerInput(
     tab, panMode, tool, ink, shapeInk, pen,
     sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH,
@@ -93,6 +97,8 @@ internal fun Modifier.sheetGestures(
         hud = hud,
         penVoice = penVoice,
         cancelGlide = cancelGlide,
+        handGain = handGain,
+        onFling = onFling,
     )
 }
 
@@ -117,10 +123,23 @@ internal suspend fun AwaitPointerEventScope.panByDrag(
     viewH: Float,
     onViewport: (Viewport) -> Unit,
     owned: () -> Boolean = { false },
+    /** dp the sheet travels per dp the pointer does — Settings ▸ Scrolling's *Scroll distance*. */
+    gain: Float = 1f,
+    /** Carries the sheet on by ([dx], [dy]) dp when the hand lets go; nothing when the glide is off. */
+    onFling: (Float, Float) -> Unit = { _, _ -> },
 ) {
+    var lastAt = 0L
+    var velocityX = 0f
+    var velocityY = 0f
     while (true) {
         val change = awaitPointerEvent().changes.firstOrNull() ?: return
-        if (change.changedToUpIgnoreConsumed()) return
+        if (change.changedToUpIgnoreConsumed()) {
+            // The lift is the last moment the hand's speed is known, so the release is measured here.
+            if (velocityX != 0f || velocityY != 0f) {
+                onFling(velocityX * FLING_SECONDS, velocityY * FLING_SECONDS)
+            }
+            return
+        }
         val drag = change.positionChange()
         if (drag != Offset.Zero) {
             if (owned()) {
@@ -128,10 +147,33 @@ internal suspend fun AwaitPointerEventScope.panByDrag(
             } else {
                 DesktopDiagnostics.panCompose(drag.y / density)
                 onViewport(
-                    currentViewport().pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH),
+                    currentViewport().pannedBy(
+                        drag.x / density * gain, drag.y / density * gain, pageW, pageH, viewW, viewH,
+                    ),
                 )
             }
+            // The release speed, smoothed over the last events: one slow frame must not decide how far a
+            // flick carries, and a hand that stops before lifting carries nowhere.
+            val elapsed = change.uptimeMillis - lastAt
+            if (lastAt != 0L && elapsed in 1..100) {
+                val seconds = elapsed / 1000f
+                velocityX = VELOCITY_KEEP * velocityX + (1f - VELOCITY_KEEP) * (drag.x / density * gain / seconds)
+                velocityY = VELOCITY_KEEP * velocityY + (1f - VELOCITY_KEEP) * (drag.y / density * gain / seconds)
+            }
+            lastAt = change.uptimeMillis
             change.consume()
         }
     }
 }
+
+/**
+ * How long a release keeps travelling, in seconds.
+ *
+ * The glide is an ease to a target, not a physics simulation, so the flick is projected as this much of
+ * the hand's own speed; a twelfth of a second is about the tail of a wrist-flick and stays inside one
+ * screenful even at the fastest pan a mouse can report.
+ */
+internal const val FLING_SECONDS = 0.12f
+
+/** Weight kept from the previous reading in the release speed: a smoothed last sliver, not one frame's. */
+private const val VELOCITY_KEEP = 0.6f

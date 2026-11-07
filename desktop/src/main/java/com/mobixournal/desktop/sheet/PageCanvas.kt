@@ -204,7 +204,7 @@ internal fun PageCanvas(
  * already moved on from does not drag the ring back to where the emulated mouse still thinks it is.
  */
 @OptIn(ExperimentalComposeUiApi::class)
-private fun Modifier.hoverTracking(pointer: PenPointer, followMouse: () -> Boolean): Modifier =
+internal fun Modifier.hoverTracking(pointer: PenPointer, followMouse: () -> Boolean): Modifier =
     onPointerEvent(PointerEventType.Enter) { event ->
         if (followMouse()) pointer.hover.value = event.changes.firstOrNull()?.position
     }
@@ -422,54 +422,6 @@ private fun sheetTargets(
     livingPreview = pointer.previewLiving,
     onLiveDrag = onLiveDrag,
 )
-
-/**
- * The sheet's **input surface**, as one modifier: the tool's pointer, the pen's readings, the wheel and the
- * gestures a press can start.
- *
- * The pointer over the page is the *tool's*: a ring is the pointer while a pen, a highlighter or an eraser is
- * in hand (an arrow beside it pointed at nothing), a hand for the hand, and the desktop's arrow for every
- * other slot (`DesktopCursor.toolPointerIcon`). The pen-tip ring does not change it: its faces are aimed at
- * with that same ring, which its layer paints above the glass. Split out of the composable so the surface that
- * owns a page stays layout and wiring (`SourceStructureTest`).
- */
-@OptIn(ExperimentalComposeUiApi::class)
-private fun Modifier.sheetInput(
-    tab: DesktopTab,
-    panMode: Boolean,
-    tool: DesktopTool,
-    ink: DesktopInk,
-    shapeInk: DesktopInk,
-    pen: PenContactStream?,
-    sheet: SheetLayout,
-    pointer: PenPointer,
-    draft: SnapshotStateList<InkSample>,
-    /** Whether the tool draws a ring: the pointer is blank behind it, the arrow otherwise. */
-    ringVisible: Boolean,
-    /** A mouse move that is a copy of the contact must not drag the ring back (`PenPacketStroke`). */
-    followMouse: () -> Boolean,
-    dialWheel: () -> Boolean,
-    targets: PagePressTargets,
-    density: Float,
-    onViewport: (Viewport) -> Unit,
-    onFit: (FitMode) -> Unit,
-    onEdited: (Int) -> Unit,
-    hud: HudUi = HudUi(),
-    navigation: DesktopNavigationState,
-    scroller: SmoothScroller,
-): Modifier = this
-    .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode))
-    .hoverTracking(pointer, followMouse)
-    .pageWheelScroll(tab, sheet, dialWheel, density, navigation, scroller, onFit, onViewport)
-    .sheetGestures(
-        tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft, targets, onViewport, onEdited,
-        hud = hud,
-        // A pen's press arrives twice; while the driver's packets are the pen's voice, their own lift ends
-        // the contact a ring answered — the mouse copy must not hand the page that contact a frame early.
-        penVoice = { !followMouse() },
-        // The hand takes the viewport from the wheel's glide, before it writes its own travel.
-        cancelGlide = { scroller.cancel() },
-    )
 
 /**
  * The sheet and the stroke being drawn, in the **page's own** coordinate space, carried by [viewport]:

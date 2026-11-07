@@ -10,8 +10,24 @@ import com.mobixournal.desktop.settings.DesktopNavigationState
 import com.mobixournal.desktop.shell.DesktopTab
 import kotlin.math.exp
 
-/** dp a wheel notch moves the page by default. */
+/** dp a wheel notch moves the page by default — and the distance a 1:1 hand pan reads as. */
 internal const val WHEEL_STEP_DP = 64f
+
+/**
+ * How far the **hand** moves the sheet for each dp the pointer (or the pen) travels.
+ *
+ * Settings ▸ Scrolling's *Scroll distance* is a distance, not a wheel's private number: `64 dp` is the
+ * default and reads as 1:1, `128` as twice the travel. A pan that ignored it made the one setting that
+ * describes scrolling a wheel-only one, so the same document moved by two different rules depending on
+ * how the reader pushed it. Bounded, because the slider's ends are a usable range and not a multiplier
+ * anyone should be able to leave the page uncontrollable with.
+ */
+internal fun handScrollGain(scrollStepDp: Float): Float =
+    (scrollStepDp / WHEEL_STEP_DP).coerceIn(HAND_GAIN_MIN, HAND_GAIN_MAX)
+
+/** The smallest and largest gain the hand may take from *Scroll distance*: a quarter to two and a half. */
+internal const val HAND_GAIN_MIN = 0.25f
+internal const val HAND_GAIN_MAX = 2.5f
 
 /**
  * What one wheel event does to the page: `Ctrl` zooms **at the cursor** (exponentially, so 30 % and

@@ -1,7 +1,10 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.sheet.FitMode
+import com.mobixournal.desktop.sheet.HAND_GAIN_MAX
+import com.mobixournal.desktop.sheet.HAND_GAIN_MIN
 import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.handScrollGain
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.tools.DesktopTool
@@ -168,6 +171,40 @@ class DesktopHandPanTest {
             scene.close()
             state.tabs.closeAll()
         }
+    }
+
+    /**
+     * Settings ▸ Scrolling's *Scroll distance* is the hand's distance too: at 128 dp — twice the default —
+     * the same 50 px of pointer travel moves the sheet 100 dp. Read through the shell's own navigation
+     * state, so the setting the Settings page writes is the one the pan reads.
+     */
+    @Test
+    fun `the hand travels the Scrolling distance`() {
+        val state = state()
+        val tab = state.tabs.active!!
+        state.prefs.navigation.chooseScrollStepDp(128f)
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            event(scene, PointerEventType.Press, 400f, 400f, pressed = true, at = 1_000L)
+            event(scene, PointerEventType.Move, 400f, 350f, pressed = true, at = 1_016L)
+            assertEquals("twice the Scrolling distance, twice the travel", -100f, tab.viewport.offsetY, 0.5f)
+            event(scene, PointerEventType.Release, 400f, 350f, pressed = false, at = 1_032L)
+        } finally {
+            scene.close()
+            state.prefs.navigation.chooseScrollStepDp(64f)
+            state.tabs.closeAll()
+        }
+    }
+
+    /** The default distance reads as 1:1, and the slider's ends are bounded into a usable gain. */
+    @Test
+    fun `the Scrolling distance becomes a bounded gain`() {
+        assertEquals(1f, handScrollGain(64f), 0.001f)
+        assertEquals(2f, handScrollGain(128f), 0.001f)
+        assertEquals(HAND_GAIN_MIN, handScrollGain(1f), 0.001f)
+        assertEquals(HAND_GAIN_MAX, handScrollGain(1_000f), 0.001f)
     }
 
     /** One **stylus** event at ([x], [y]) in window pixels — the pen as Compose sees it. */

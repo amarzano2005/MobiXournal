@@ -56,14 +56,14 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
     SettingsGroup("Scrolling") {
         SettingsRow(
             label = "Smooth scrolling",
-            note = "Glide smoothly between wheel notches instead of jumping.",
+            note = "Glide smoothly between wheel notches and after a hand pan, instead of stopping dead.",
             onClick = { nav.chooseSmoothScroll(!nav.smoothScroll) },
         ) {
             SettingsSwitch(nav.smoothScroll)
         }
         SettingsRow(
             label = "Scroll distance",
-            note = "Distance scrolled per mouse notch. Default: 64 dp.",
+            note = "Distance scrolled per mouse notch, and the travel a hand pan covers. Default: 64 dp.",
         ) {
             SettingsSlider(
                 value = nav.scrollStepDp,

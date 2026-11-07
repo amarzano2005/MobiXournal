@@ -47,6 +47,30 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
     }
 
     /**
+     * The zero-latency first step of a notch: it moves a fraction of the way at once, so the wheel is
+     * answered on its own event frame, and answers **true** when that step already arrived — nothing is
+     * then left to animate.
+     */
+    private fun leadStep(
+        vp: Viewport,
+        diffX: Float,
+        diffY: Float,
+        decay: Float,
+        onViewport: (Viewport) -> Unit,
+    ): Boolean {
+        val initialAlpha = (1f - exp(-decay * 0.016f)).coerceIn(0.15f, 0.45f)
+        val stepX = vp.offsetX + diffX * initialAlpha
+        val stepY = vp.offsetY + diffY * initialAlpha
+        onViewport(vp.copy(offsetX = stepX, offsetY = stepY))
+        writtenX = stepX
+        writtenY = stepY
+        if (hypot(targetX - stepX, targetY - stepY) >= 0.5f) return false
+        cancel()
+        onViewport(vp.copy(offsetX = targetX, offsetY = targetY))
+        return true
+    }
+
+    /**
      * Nudges the viewport by [dx] and [dy] dp, animating smoothly towards the target offset.
      */
     fun scrollBy(
@@ -59,6 +83,8 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
         viewH: Float,
         fluidity: Float,
         onViewport: (Viewport) -> Unit,
+        /** False for a **fling**: the hand already moved what it moved, so there is no lead step to make. */
+        lead: Boolean = true,
     ) {
         val vp = currentViewport()
         val contentW = pageW * vp.zoom
@@ -84,20 +110,11 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
         }
 
         val decay = DesktopNavigationStore.decayRate(fluidity)
+        writtenX = curX
+        writtenY = curY
 
-        // Immediate responsive lead step: provides zero-latency visual feedback on the event frame
-        val initialAlpha = (1f - exp(-decay * 0.016f)).coerceIn(0.15f, 0.45f)
-        val stepX = curX + diffX * initialAlpha
-        val stepY = curY + diffY * initialAlpha
-        onViewport(vp.copy(offsetX = stepX, offsetY = stepY))
-        writtenX = stepX
-        writtenY = stepY
-
-        if (hypot(targetX - stepX, targetY - stepY) < 0.5f) {
-            cancel()
-            onViewport(vp.copy(offsetX = targetX, offsetY = targetY))
-            return
-        }
+        // Immediate responsive lead step: provides zero-latency visual feedback on the event frame.
+        if (lead && leadStep(vp, diffX, diffY, decay, onViewport)) return
 
         if (job?.isActive == true) return
 
@@ -151,6 +168,28 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
         run.invokeOnCompletion { if (job === run) job = null }
     }
 }
+
+/**
+ * The **hand's release**: [dx]/[dy] dp of projected travel, eased with the fluidity a notch uses.
+ *
+ * Same engine, one difference — no lead step. A notch jumps a little on the frame it arrives so the wheel
+ * feels answered; a hand that has just let go has already answered itself, and a jump there would read as
+ * the sheet running away from the pointer.
+ */
+internal fun SmoothScroller.flingBy(
+    dx: Float,
+    dy: Float,
+    currentViewport: () -> Viewport,
+    pageW: Float,
+    pageH: Float,
+    viewW: Float,
+    viewH: Float,
+    fluidity: Float,
+    onViewport: (Viewport) -> Unit,
+) = scrollBy(
+    dx = dx, dy = dy, currentViewport = currentViewport, pageW = pageW, pageH = pageH,
+    viewW = viewW, viewH = viewH, fluidity = fluidity, onViewport = onViewport, lead = false,
+)
 
 @Composable
 internal fun rememberSmoothScroller(): SmoothScroller {

@@ -1,6 +1,11 @@
 package com.mobixournal.desktop.ink
+import com.mobixournal.desktop.settings.LocalNavigationState
+import com.mobixournal.desktop.sheet.FLING_SECONDS
 import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.flingBy
+import com.mobixournal.desktop.sheet.handScrollGain
 import com.mobixournal.desktop.sheet.panByDrag
+import com.mobixournal.desktop.sheet.rememberSmoothScroller
 import com.mobixournal.desktop.shell.DesktopDiagnostics
 
 import androidx.compose.runtime.Composable
@@ -41,6 +46,12 @@ internal class PenPacketPan(
     private val onViewport: (Viewport) -> Unit,
     /** Called when this path takes the contact and when it lets it go. */
     private val onOwnership: (Boolean) -> Unit = {},
+    /**
+     * dp the sheet travels per dp the pen does: [PAN_GAIN], scaled by Settings ▸ Scrolling's distance.
+     */
+    private val gain: Float = PAN_GAIN,
+    /** The release glide, in dp of projected travel: the Scrolling section's *Smooth scrolling*. */
+    private val onRelease: (Float, Float) -> Unit = { _, _ -> },
 ) {
 
     private val inbox = java.util.concurrent.ConcurrentLinkedQueue<PenPacket>()
@@ -53,6 +64,11 @@ internal class PenPacketPan(
     /** True between the tip's first packet and its lift. Frame-thread only. */
     var dragging: Boolean = false
         private set
+
+    /** When the previous reading arrived, and the release speed it implies in dp/s. Frame-thread only. */
+    private var lastNanos = 0L
+    private var velocityX = 0f
+    private var velocityY = 0f
 
     /** One packet, from the driver's thread: no state, no lock, no viewport. */
     fun packet(packet: PenPacket) {
@@ -126,19 +142,55 @@ internal class PenPacketPan(
         if (dx == 0f && dy == 0f) return null
         // A stylus pans **further than it travels**: a pen is moved by the wrist across a tablet's own
         // working area, not by the arm across a desk, so a 1:1 pan reads as a page that crawls under a
-        // hand which is plainly moving. [PAN_GAIN] is the same feel rule as the tablet's, not a
-        // measurement, and it is applied to the pen's packets only — a mouse drag and a wheel keep the
-        // distance their device reports (`panByDrag`).
-        return (dx / density * PAN_GAIN) to (dy / density * PAN_GAIN)
+        // hand which is plainly moving. [gain] is that feel rule ([PAN_GAIN]) **times** Settings ▸
+        // Scrolling's distance, so the one setting that says how far a scroll goes governs the pen too
+        // (`handScrollGain`), and a reader who wants a shorter travel is not told it applies to wheels.
+        val moved = (dx / density * gain) to (dy / density * gain)
+        // The hand's own readings arrive 400 a second, so a flick's last sliver is measurable here with
+        // no clock of our own; a gap the driver swallowed does not get to invent a speed.
+        val elapsed = packet.atNanos - lastNanos
+        if (lastNanos != 0L && elapsed in NANOS_PER_READING..NANOS_PER_PAUSE) {
+            val seconds = elapsed / 1_000_000_000f
+            velocityX = SPEED_KEEP * velocityX + (1f - SPEED_KEEP) * (moved.first / seconds)
+            velocityY = SPEED_KEEP * velocityY + (1f - SPEED_KEEP) * (moved.second / seconds)
+        }
+        lastNanos = packet.atNanos
+        return moved
     }
 
-    /** End the pan where it is — the canvas's ticker also calls this when the packets go quiet. */
+    /**
+     * End the pan where it is — the canvas's ticker also calls this when the packets go quiet.
+     *
+     * The lift is also the only moment the hand's speed is known, so the release glide is asked for here:
+     * the same eased scroll a notch uses, projected from what the pen was doing when it left the glass. A
+     * hand that stopped before lifting carries nowhere, and one that never moved asks for nothing.
+     */
     fun release() {
         if (!dragging) return
         dragging = false
         onOwnership(false)
+        if (velocityX != 0f || velocityY != 0f) {
+            onRelease(velocityX * FLING_SECONDS, velocityY * FLING_SECONDS)
+        }
+        resetSpeed()
+    }
+
+    /** A new contact starts from no speed: the last flick's must not carry the next pan's release. */
+    private fun resetSpeed() {
+        lastNanos = 0L
+        velocityX = 0f
+        velocityY = 0f
     }
 }
+
+/** The fastest a reading may arrive from its predecessor (a 400 Hz stream) — below is a clock's own jitter. */
+private const val NANOS_PER_READING = 1_000_000L
+
+/** A gap wider than this is not a speed: the driver stopped, and the flick it would invent is not the hand's. */
+private const val NANOS_PER_PAUSE = 100_000_000L
+
+/** Weight kept from the previous reading in the release speed — the same smoothing `panByDrag` applies. */
+private const val SPEED_KEEP = 0.6f
 
 /**
  * How much further the page travels than the pen does, on the pen's own packets.
@@ -175,10 +227,15 @@ internal fun PenPacketPan(
     owns: MutableState<Boolean>,
     packets: PenPacketSource?,
 ) {
+    // Settings ▸ Scrolling is the reader's answer to *how a scroll goes*, and the pen is a scroll: the
+    // distance scales the pan, and the release carries on with the fluidity a notch glides with. The pan
+    // keeps its own scroller so a flick never leaves a glide running over the next stroke.
+    val navigation = LocalNavigationState.current
+    val scroller = rememberSmoothScroller()
     // The latest reader, never the value it answered at composition: a flush happens on a packet, which
     // may land long after the frame that composed this.
     val live by rememberUpdatedState(viewport)
-    val pan = remember(density, pageW, pageH, viewW, viewH) {
+    val pan = remember(density, pageW, pageH, viewW, viewH, navigation.scrollStepDp) {
         PenPacketPan(
             viewport = { live() },
             pageW = pageW,
@@ -188,8 +245,23 @@ internal fun PenPacketPan(
             density = density,
             onViewport = onViewport,
             onOwnership = { owns.value = it },
+            gain = PAN_GAIN * handScrollGain(navigation.scrollStepDp),
+            onRelease = { dx, dy ->
+                if (navigation.smoothScroll) {
+                    scroller.flingBy(
+                        dx = dx, dy = dy,
+                        currentViewport = { live() },
+                        pageW = pageW, pageH = pageH,
+                        viewW = viewW, viewH = viewH,
+                        fluidity = navigation.scrollFluidity,
+                        onViewport = onViewport,
+                    )
+                }
+            },
         )
     }
+    // A page left behind must not keep gliding the sheet it panned.
+    DisposableEffect(pan) { onDispose { scroller.cancel() } }
     DisposableEffect(packets, pan) {
         val stop = packets?.listen(pan::packet)
         // Leaving the hand (the next tool, another page) must hand the contact back: a stuck flag would

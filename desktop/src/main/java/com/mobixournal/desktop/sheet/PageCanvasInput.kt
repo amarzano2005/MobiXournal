@@ -127,6 +127,10 @@ internal suspend fun PointerInputScope.pageGestures(
     penVoice: () -> Boolean = { false },
     /** Stops a wheel glide still in flight, when the hand takes the sheet (see `sheetGestures`). */
     cancelGlide: () -> Unit = {},
+    /** Settings ▸ Scrolling's distance: the dp the hand travels per dp of pointer travel. */
+    handGain: Float = 1f,
+    /** Settings ▸ Scrolling's glide: the travel a release carries, or nothing when it is off. */
+    onFling: (Float, Float) -> Unit = { _, _ -> },
 ) {
     // The drags' shared view: the live mapping, and the eased edge scroll each of them may ask for.
     val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
@@ -164,6 +168,7 @@ internal suspend fun PointerInputScope.pageGestures(
             penActive = penActive, pageW = pageW, pageH = pageH,
             viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
             hud = hud, penVoice = penVoice, cancelGlide = cancelGlide,
+            handGain = handGain, onFling = onFling,
         )
     }
 }
@@ -195,6 +200,8 @@ private suspend fun PointerInputScope.pageGestureLoop(
     hud: HudUi = HudUi(),
     penVoice: () -> Boolean = { false },
     cancelGlide: () -> Unit = {},
+    handGain: Float = 1f,
+    onFling: (Float, Float) -> Unit = { _, _ -> },
 ) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
@@ -233,52 +240,25 @@ private suspend fun PointerInputScope.pageGestureLoop(
             // sheet between two of the drag's events (and so does the edge ticker), so each event's travel
             // has to be applied to the view as it is now — measuring from the press-time copy put the page
             // back where the gesture began, which is the bounce a pan on the tablet used to show.
-            panByDrag(viewport, pageW, pageH, viewW, viewH, onViewport, owned = penActive)
-            return@awaitEachGesture
-        }
-        if (!buttons.isPrimaryPressed) return@awaitEachGesture
-        // A slot whose product is not ink **clicks** instead of drawing — the Text box it opens, the take the
-        // Audio slot replays — so the gesture ends at the press and no page edit is recorded.
-        if (clickSlotTakesThePress(down, tool, tab, vp, density, pageW, pageH, targets)) {
-            return@awaitEachGesture
-        }
-        // The **PDF text** slot reads instead of drawing: a press anchors the word under it and the drag
-        // extends the range in the page's own reading order. Nothing is written — the selection is view
-        // state (`docs/pdf.md`) — so the gesture ends at the lift and no page edit is recorded.
-        if (tool == DesktopTool.PDF_TEXT_SELECT) {
-            pdfTextDrag(down, tab, dragView)
-            return@awaitEachGesture
-        }
-        // A **circuit** slot pulls the part out along the pen, from the press to the pointer, aimed at the
-        // page's pins: its own two ends, not a box — the tablet's rule, and the one a rotated part needs
-        // (`CircuitGesture.circuitPress`).
-        if (circuitPress(down, tool, tab, shapeInk, dragView, targets, onEdited)) return@awaitEachGesture
-        // A press on the placed **instrument** poses it, whatever tool is in hand: the guide is an aid on the
-        // page, not a tool that inks, and this is the gesture the guides slot exists for (`GuideGesture`).
-        if (guideDrag(down, tool, tab, dragView, targets.onLiveDrag, guideAim)) return@awaitEachGesture
-        // A selection, a living element or a figure takes the drag before the ink sees it.
-        if (
-            preInkPress(down, tool, tab, dragView, pageW, pageH, previewRegion, onEdited, taps, targets)
-        ) {
-            return@awaitEachGesture
-        }
-        tool.shapeKind()?.let { kind ->
-            shapeDrag(
-                down, kind, tab, shapeInk, dragView, draft, targets.onLiveDrag, onEdited,
-                figures = targets.figures,
-                page = runCatching { tab.document.page(tab.page) }.getOrNull(),
+            panByDrag(
+                viewport, pageW, pageH, viewW, viewH, onViewport, owned = penActive,
+                gain = handGain, onFling = onFling,
             )
             return@awaitEachGesture
         }
-        // The vertical-space tool reflows the page under a grab line instead of drawing on it, and it needs
-        // both of its readings: the line it shows and the offset the sheet replays (`LiveShift`).
-        if (tool.activeTool() == ActiveTool.VERTICAL_SPACE && grabLine != null && liveShift != null) {
-            verticalSpaceDrag(down, tab, dragView, grabLine, liveShift, onEdited)
-            return@awaitEachGesture
-        }
-        if (inkDrag(down, gesture, packetsOwn)) return@awaitEachGesture
+        if (!buttons.isPrimaryPressed) return@awaitEachGesture
+        pressAfterPan(
+            down = down, tool = tool, tab = tab, viewport = vp, density = density,
+            pageW = pageW, pageH = pageH, shapeInk = shapeInk, dragView = dragView, targets = targets,
+            guideAim = guideAim, grabLine = grabLine, liveShift = liveShift,
+            previewRegion = previewRegion, onEdited = onEdited, taps = taps, draft = draft,
+            gesture = gesture, packetsOwn = packetsOwn,
+        )
+        return@awaitEachGesture
     }
 }
+
+
 
 /**
  * The two slots whose gesture is one **click**: Text opens a box and hands the keyboard to its field, Audio
@@ -288,7 +268,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
  * A text box is written on commit and a replay is never ink, so neither leaves an element or an undo step
  * behind an abandoned gesture.
  */
-private fun clickSlotTakesThePress(
+internal fun clickSlotTakesThePress(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
@@ -317,7 +297,7 @@ private fun clickSlotTakesThePress(
  * True when the pen's packets took the stroke over mid-gesture — the caller must then leave the gesture
  * without committing, because that stroke is the packets' to finish.
  */
-private suspend fun AwaitPointerEventScope.inkDrag(
+internal suspend fun AwaitPointerEventScope.inkDrag(
     down: PointerInputChange,
     gesture: PageInkGesture,
     packetsOwn: () -> Boolean,
@@ -356,7 +336,7 @@ private suspend fun AwaitPointerEventScope.inkDrag(
  *
  * False when the press missed, so the gesture falls through to the tool in hand.
  */
-private suspend fun AwaitPointerEventScope.guideDrag(
+internal suspend fun AwaitPointerEventScope.guideDrag(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
@@ -413,7 +393,7 @@ private suspend fun AwaitPointerEventScope.guideDrag(
  * region, a STEM slot places a living element, and each is one edit and one undo step of its own. A
  * geometry slot is asked after this ([AwaitPointerEventScope.shapeDrag]), because a figure *is* ink.
  */
-private suspend fun AwaitPointerEventScope.preInkPress(
+internal suspend fun AwaitPointerEventScope.preInkPress(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
@@ -451,7 +431,7 @@ private suspend fun AwaitPointerEventScope.preInkPress(
  * preview is rebuilt on every tick, not only on every pointer event, so the figure follows the sheet
  * while the pointer rests against the edge.
  */
-private suspend fun AwaitPointerEventScope.shapeDrag(
+internal suspend fun AwaitPointerEventScope.shapeDrag(
     start: PointerInputChange,
     kind: ShapeKind,
     tab: DesktopTab,
@@ -560,7 +540,7 @@ private fun commitShape(
  * instead measured 5.2 ms of reflow plus a full re-record, and the watchdog caught one drag re-recording the
  * sheet 48 times a second with a worst frame of 146 ms.
  */
-private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
+internal suspend fun AwaitPointerEventScope.verticalSpaceDrag(
     start: PointerInputChange,
     tab: DesktopTab,
     view: DragView,
@@ -630,7 +610,7 @@ private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
  * lands between words — and the range is read in the page's reading order. A page with no text layer
  * says so in one sentence instead of swallowing the gesture.
  */
-private suspend fun AwaitPointerEventScope.pdfTextDrag(
+internal suspend fun AwaitPointerEventScope.pdfTextDrag(
     start: PointerInputChange,
     tab: DesktopTab,
     view: DragView,
