@@ -154,6 +154,8 @@ class DesktopShellTest {
         val tab = tabsOf("zoom.mobix").active!!
         tab.fit = FitMode.PAGE
         tab.viewport = Viewport(1f, 0f, 0f)
+        // The reference the canvas publishes: here 100 % is scale 1, so the limits read as themselves.
+        tab.widthFitZoom = 1f
 
         zoomBy(tab, ZOOM_STEP)
         assertEquals("a manual zoom is no longer a fit", FitMode.NONE, tab.fit)
@@ -162,8 +164,11 @@ class DesktopShellTest {
         repeat(20) { zoomBy(tab, ZOOM_STEP) }
         assertEquals("never past the deepest zoom", Viewport.MAX_ZOOM, tab.viewport.zoom, 1e-4f)
 
+        assertEquals("and the readout says so", "3200%", zoomLabel(tab.viewport.zoom, tab.widthFitZoom))
+
         repeat(40) { zoomBy(tab, 1f / ZOOM_STEP) }
         assertEquals("never under 25%", Viewport.MIN_ZOOM, tab.viewport.zoom, 1e-4f)
+        assertEquals("and the readout says so", "25%", zoomLabel(tab.viewport.zoom, tab.widthFitZoom))
     }
 
     @Test

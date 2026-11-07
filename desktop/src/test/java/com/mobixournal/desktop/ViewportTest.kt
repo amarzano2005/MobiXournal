@@ -94,11 +94,13 @@ class ViewportTest {
     @Test
     fun `zoom is clamped to the range the shell promises`() {
         val start = Viewport.centred(1f, pageW, pageH, viewW, viewH)
+        // The limits are percentages of the fit width, which is the scale the readout calls 100 %.
+        val fit = Viewport.fitWidthZoom(pageW, viewW)
         val tiny = start.zoomBy(0.01f, viewW / 2f, viewH / 2f, pageW, pageH, viewW, viewH)
-        assertEquals("never smaller than 25%", Viewport.MIN_ZOOM, tiny.zoom, 1e-4f)
+        assertEquals("never smaller than 25%", fit * Viewport.MIN_ZOOM, tiny.zoom, 1e-4f)
 
         val huge = start.zoomBy(100f, viewW / 2f, viewH / 2f, pageW, pageH, viewW, viewH)
-        assertEquals("never larger than 3 200%", Viewport.MAX_ZOOM, huge.zoom, 1e-4f)
+        assertEquals("never larger than 3 200%", fit * Viewport.MAX_ZOOM, huge.zoom, 1e-4f)
     }
 
     @Test

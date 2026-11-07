@@ -278,7 +278,9 @@ Under **Navigation**, document opening (`interface.fitOnOpen`, **Fit width** by 
 
 - **Zoom step**: **Wheel & dial rate** (`navigation.zoomStepWheel`, 2…30%, default 12%) sets the exponential zoom
   factor per mouse wheel notch (`Ctrl + wheel`) or dial click; **Keyboard shortcut step**
-  (`navigation.zoomStepKeyboard`, 5…75%, default 25%) sets the scaling factor for `Ctrl +` and `Ctrl -`.
+  (`navigation.zoomStepKeyboard`, 5…75%, default 25%) sets the scaling factor for `Ctrl +` and `Ctrl -`. Both
+  rates are bounded by the window's limits — **25 % … 3 200 % of the 100 % scale** (`Viewport.MIN_ZOOM`/
+  `MAX_ZOOM`), so the readout reaches those two numbers on any page.
 - **Scrolling**: **Smooth scrolling** (`navigation.smoothScroll`, on by default) glides between wheel notches with
   an immediate lead response followed by exponential decay; **Scroll distance** (`navigation.scrollStepDp`,
   16…160 dp, default 64 dp) sets travel per notch, and **Scroll fluidity** (`navigation.scrollFluidity`, 10…90%,

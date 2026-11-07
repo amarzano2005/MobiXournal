@@ -28,7 +28,7 @@ data class Viewport(
 
     /** Zoom one step around the viewport point ([anchorX], [anchorY]), keeping that point fixed. */
     fun zoomBy(factor: Float, anchorX: Float, anchorY: Float, pageW: Float, pageH: Float, viewW: Float, viewH: Float): Viewport {
-        val next = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        val next = clampToFitWidth(zoom * factor, pageW, viewW)
         if (next == zoom) return this
         // The page-space point under the anchor is what stays put.
         val pageX = (anchorX - offsetX) / zoom
@@ -135,10 +135,19 @@ data class Viewport(
     /** The zoom plus the centred/page-anchored offset that shows the whole page. */
     companion object {
 
+        /**
+         * The shallowest zoom the window offers: **25 % of the fit width** — a quarter of the scale the
+         * status bar calls 100 %, whatever that scale is for this page and this window.
+         *
+         * The two limits are percentages of the **fit width** rather than absolute scales because the
+         * readout is ([zoomPercentOfWidthFit]): an absolute ceiling would print a different number for every
+         * page, and "25 %–3 200 %" would be true of only one of them.
+         */
         const val MIN_ZOOM = 0.25f
 
         /**
-         * The deepest zoom the window offers: **3 200 %**, a page point drawn as 32 screen pixels.
+         * The deepest zoom the window offers: **3 200 % of the fit width** — thirty-two times the scale the
+         * status bar calls 100 %.
          *
          * 400 % was the room a retouched stroke or a single glyph needed, and nothing more: the sheet is a
          * recorded **vector** picture replayed under the canvas's own matrix (`PagePicture`), so a deeper
@@ -149,19 +158,41 @@ data class Viewport(
          */
         const val MAX_ZOOM = 32f
 
+        /** The fit's own safety range: a page of nonsense size must not ask for a degenerate scale. */
+        private const val SAFE_MIN_ZOOM = 0.01f
+        private const val SAFE_MAX_ZOOM = 64f
+
+        /**
+         * [zoom] brought inside the window's limits for a page whose width fit is [widthFitZoom] — 25 % …
+         * 3 200 % of it, so the readout spans exactly those two numbers however big the page is.
+         *
+         * A reference of 0 (no page laid out yet) leaves the scale to the safe range: there is no
+         * percentage to be a percentage *of*.
+         */
+        fun clampZoom(zoom: Float, widthFitZoom: Float): Float =
+            if (widthFitZoom <= 0f) {
+                zoom.coerceIn(SAFE_MIN_ZOOM, SAFE_MAX_ZOOM)
+            } else {
+                zoom.coerceIn(widthFitZoom * MIN_ZOOM, widthFitZoom * MAX_ZOOM)
+            }
+
+        /** The same, from the page and the room it is framed in — the fit width is the readout's 100 %. */
+        fun clampToFitWidth(zoom: Float, pageW: Float, viewW: Float): Float =
+            clampZoom(zoom, fitWidthZoom(pageW, viewW))
+
         /** The zoom at which `pageW × pageH` fits `viewW × viewH` with [margin] dp to spare. */
         fun fitZoom(pageW: Float, pageH: Float, viewW: Float, viewH: Float, margin: Float = PAGE_MARGIN_DP): Float {
             if (pageW <= 0f || pageH <= 0f) return 1f
             val usableW = (viewW - margin * 2f).coerceAtLeast(1f)
             val usableH = (viewH - margin * 2f).coerceAtLeast(1f)
-            return (minOf(usableW / pageW, usableH / pageH)).coerceIn(MIN_ZOOM, MAX_ZOOM)
+            return (minOf(usableW / pageW, usableH / pageH)).coerceIn(SAFE_MIN_ZOOM, SAFE_MAX_ZOOM)
         }
 
         /** The zoom at which the page's width fits, keeping its height scrollable. */
         fun fitWidthZoom(pageW: Float, viewW: Float, margin: Float = PAGE_MARGIN_DP): Float {
             if (pageW <= 0f) return 1f
             val usableW = (viewW - margin * 2f).coerceAtLeast(1f)
-            return (usableW / pageW).coerceIn(MIN_ZOOM, MAX_ZOOM)
+            return (usableW / pageW).coerceIn(SAFE_MIN_ZOOM, SAFE_MAX_ZOOM)
         }
 
         /** A viewport at [zoom] with the page centred (or, when taller than the view, aligned to its top). */

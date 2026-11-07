@@ -19,7 +19,7 @@ code.
 
 What it does today:
 - Opens **every container the app writes** — gzip `.xopp`, self-contained ZIP `.xopp` and native `.mobix` —
-  from the toolbar or a path argument, lists its pages, and zooms deep in and out. The file is identified by
+  from the toolbar or a path argument, lists its pages, and zooms 25 %–3 200 %. The file is identified by
   its **bytes** (`FileKind` plus a ZIP's `mimetype`), never its extension, so a rename still opens.
 - **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
   keeps its own page, zoom and fit), a collapsible 240 dp sidebar of page thumbnails, the current page's

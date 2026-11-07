@@ -44,7 +44,8 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 - **Status bar**: page counter, effective zoom, fit mode and the container behind the document. The zoom
   reads 100 % **when the page's width fills the window** (`zoomPercentOfWidthFit`, against the fit-width
   reference the canvas measures), so the number means the same thing as the sheet in front of the reader
-  rather than a page point per dp. While a
+  rather than a page point per dp; the window's limits are percentages of that same 100 %, so the range is
+  always **25 % … 3 200 %** whatever the page. While a
   document is being read it says `opening <name>…` instead of `no document`, because the read runs off the
   frame thread: the window keeps painting through an open instead of freezing until it lands.
 

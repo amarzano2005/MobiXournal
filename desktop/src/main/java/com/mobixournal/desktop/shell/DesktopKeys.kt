@@ -283,7 +283,8 @@ internal fun isZoomOut(key: Key): Boolean = key == Key.Minus || key == Key.NumPa
 /** Zooms a tab around its centre (the keyboard path; the wheel zooms around the cursor). */
 internal fun zoomBy(tab: DesktopTab, factor: Float) {
     tab.fit = FitMode.NONE
-    tab.viewport = tab.viewport.copy(zoom = (tab.viewport.zoom * factor).coerceIn(Viewport.MIN_ZOOM, Viewport.MAX_ZOOM))
+    // The limits are the readout's own — 25 % … 3 200 % of the fit width the canvas published.
+    tab.viewport = tab.viewport.copy(zoom = Viewport.clampZoom(tab.viewport.zoom * factor, tab.widthFitZoom))
 }
 
 /**

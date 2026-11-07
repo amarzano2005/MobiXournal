@@ -19,7 +19,9 @@ import org.junit.Test
 class ZoomCalibrationTest {
 
     private val pageW = 794f
+    private val pageH = 1123f
     private val viewW = 1400f
+    private val viewH = 900f
 
     @Test
     fun `the width fit reads exactly one hundred percent`() {
@@ -44,6 +46,20 @@ class ZoomCalibrationTest {
     fun `a page the canvas has not measured yet keeps the absolute scale`() {
         assertEquals("250%", zoomLabel(2.5f, 0f))
         assertEquals("250%", zoomLabel(2.5f))
+    }
+
+    @Test
+    fun `the zoom limits are the readout's own two numbers`() {
+        val fit = Viewport.fitWidthZoom(pageW, viewW)
+        assertEquals("3200%", zoomLabel(Viewport.clampZoom(1000f, fit), fit))
+        assertEquals("25%", zoomLabel(Viewport.clampZoom(0.0001f, fit), fit))
+    }
+
+    @Test
+    fun `a zoom the canvas measured clamps in its own scale`() {
+        val fit = Viewport.fitWidthZoom(pageW, viewW)
+        val deep = Viewport(zoom = 1f).zoomBy(1000f, viewW / 2f, viewH / 2f, pageW, pageH, viewW, viewH)
+        assertEquals(fit * Viewport.MAX_ZOOM, deep.zoom, 1e-3f)
     }
 
     @Test
