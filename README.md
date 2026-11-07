@@ -10,23 +10,26 @@
   [![Format](https://img.shields.io/badge/Format-.mobix%20(native)%20%2F%20.xopp%20(lossless)-orange)](docs/xopp-bridge.md)
   [![Stylus & Tablet](https://img.shields.io/badge/Stylus-S--Pen%20%7C%20Active%20Pen%20%7C%20Tablet-blueviolet)]()
 
-  <br />
-
-  <img src="docs/assets/preview.jpg" alt="MobiXournal Android - UI Preview" width="850" />
-  <br /><br />
-  <img src="docs/assets/preview-desktop.png" alt="MobiXournal Desktop - UI Preview" width="850" />
-</div>
-
 **MobiXournal** is an open-source note-taking and scientific drafting suite for **Android tablets** and **Windows 11 PCs**, built over a single shared core (`mobix-core`). Both apps open, edit, save, and export the same notebooks with full support for active styluses, graphics tablets (Wacom, Huion, XP-Pen, Gaomon), and hardware shortcuts.
 
-Documents live in two formats that work side by side:
+**Documents live in two formats that work side by side:**
 - **`.mobix` (Native format)**: Stores re-editable graphs, tables, circuits, shapes, and formulas, compressed Opus audio bundled inside the file, full stylus telemetry, and fast page-by-page streaming.
 - **`.xopp` (Xournal++ interchange)**: Reads and writes standard [Xournal++](https://github.com/xournalpp/xournalpp) files losslessly. Living `.mobix` elements export as standard vector strokes with embedded metadata, reviving as editable objects when reopened in MobiXournal unless modified externally.
 
-> **Credits & License**:
-> - **Xournal++**: Format compatibility, color palette, and shape recognition match upstream [Xournal++](https://github.com/xournalpp/xournalpp) (GPL-2.0-or-later).
-> - **NeXopp**: MobiXournal continues and expands Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) (`bamonroe`).
-> - Independent and unofficial project distributed under the **GPL-2.0-or-later** license. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+  <br />
+  <img src="docs/assets/preview.jpg" alt="MobiXournal Mobile - UI Preview" width="850" />
+  
+  *MobiXournal Mobile*
+
+  
+  <br />
+  <br />
+  <img src="docs/assets/preview-desktop.png" alt="MobiXournal Desktop - UI Preview" width="850" />
+  
+  *MobiXournal Desktop*
+
+  
+</div>
 
 ---
 
@@ -115,11 +118,7 @@ The repository is split into three Gradle modules (detailed in [`docs/repo-layou
 
 ## 📄 License
 
-MobiXournal is free software licensed under the **GNU General Public License, version 2 or later** ([GPL-2.0-or-later](LICENSE)), matching upstream [Xournal++](https://github.com/xournalpp/xournalpp).
-
-```
-MobiXournal - native-format note-taking and STEM drafting for Android and Windows
-Copyright (C) 2024-2026 amarzano2005
-Based on NeXopp, Copyright (C) 2023-2024 Brian Monroe
-Based on Xournal++, Copyright (C) 2018-2026 The Xournal++ Team
-```
+> **Credits & License**:
+> - **Xournal++**: Format compatibility, color palette, and shape recognition match upstream [Xournal++](https://github.com/xournalpp/xournalpp) (GPL-2.0-or-later).
+> - **NeXopp**: MobiXournal continues and expands Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) (`bamonroe`).
+> - Independent and unofficial project distributed under the **GPL-2.0-or-later** license. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
