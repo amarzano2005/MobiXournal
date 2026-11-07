@@ -1,9 +1,10 @@
 package com.mobixournal.desktop.ink
 import com.mobixournal.desktop.settings.LocalNavigationState
 import com.mobixournal.desktop.sheet.FLING_SECONDS
+import com.mobixournal.desktop.sheet.PEN_GAIN
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.flingBy
-import com.mobixournal.desktop.sheet.handScrollGain
+import com.mobixournal.desktop.sheet.penScrollGain
 import com.mobixournal.desktop.sheet.panByDrag
 import com.mobixournal.desktop.sheet.rememberSmoothScroller
 import com.mobixournal.desktop.shell.DesktopDiagnostics
@@ -47,7 +48,7 @@ internal class PenPacketPan(
     /** Called when this path takes the contact and when it lets it go. */
     private val onOwnership: (Boolean) -> Unit = {},
     /**
-     * dp the sheet travels per dp the pen does: [PAN_GAIN], scaled by Settings ▸ Scrolling's distance.
+     * dp the sheet travels per dp the pen does: [penScrollGain], over Settings ▸ Scrolling's distance.
      */
     private val gain: Float = PAN_GAIN,
     /** The release glide, in dp of projected travel: the Scrolling section's *Smooth scrolling*. */
@@ -142,9 +143,9 @@ internal class PenPacketPan(
         if (dx == 0f && dy == 0f) return null
         // A stylus pans **further than it travels**: a pen is moved by the wrist across a tablet's own
         // working area, not by the arm across a desk, so a 1:1 pan reads as a page that crawls under a
-        // hand which is plainly moving. [gain] is that feel rule ([PAN_GAIN]) **times** Settings ▸
-        // Scrolling's distance, so the one setting that says how far a scroll goes governs the pen too
-        // (`handScrollGain`), and a reader who wants a shorter travel is not told it applies to wheels.
+        // hand which is plainly moving. [gain] is that rule ([penScrollGain]) over Settings ▸ Scrolling's
+        // distance, so the one setting that says how far a scroll goes governs the pen too — and the rule is
+        // the sheet's own, so a notch, a hand and a pen are one distance with one extra.
         val moved = (dx / density * gain) to (dy / density * gain)
         // The hand's own readings arrive 400 a second, so a flick's last sliver is measurable here with
         // no clock of our own; a gap the driver swallowed does not get to invent a speed.
@@ -193,14 +194,15 @@ private const val NANOS_PER_PAUSE = 100_000_000L
 private const val SPEED_KEEP = 0.6f
 
 /**
- * How much further the page travels than the pen does, on the pen's own packets.
+ * How much further the page travels than the pen does, on the pen's own packets — the sheet's one extra over
+ * the distance a notch and a hand share ([PEN_GAIN]).
  *
- * A stylus is held like a pen: the hand moves it a few centimetres while the page has to cross a window
- * that may be forty wide, so matched 1:1 the pan reads as broken rather than precise. 1.6 is the point
- * where a wrist-flick crosses a third of a 21:9 sheet; it is a feel constant — the only one in this file
- * — and it is applied to the pen only, never to a mouse drag or a wheel notch.
+ * A stylus is held like a pen: the hand moves it a few centimetres while the page has to cross a window that
+ * may be forty wide, so matched 1:1 the pan reads as broken rather than precise. It was 1.6 and is now 1.25:
+ * at 1.6 the pen ran visibly ahead of the wheel set beside it. The number lives in the sheet, next to the
+ * hand's and the notch's, so the three inputs cannot drift into three rules.
  */
-internal const val PAN_GAIN = 1.6f
+internal const val PAN_GAIN = PEN_GAIN
 
 /**
  * The hand's packet pan, composed while the **Hand** slot is picked (or Space is held, which is the same
@@ -245,7 +247,7 @@ internal fun PenPacketPan(
             density = density,
             onViewport = onViewport,
             onOwnership = { owns.value = it },
-            gain = PAN_GAIN * handScrollGain(navigation.scrollStepDp),
+            gain = penScrollGain(navigation.scrollStepDp),
             onRelease = { dx, dy ->
                 if (navigation.smoothScroll) {
                     scroller.flingBy(

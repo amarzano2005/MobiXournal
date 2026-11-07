@@ -30,6 +30,32 @@ internal const val HAND_GAIN_MIN = 0.25f
 internal const val HAND_GAIN_MAX = 2.5f
 
 /**
+ * dp a **pen's own reading** moves the sheet by, per dp the pen travels — the pen's extra over the hand.
+ *
+ * The three inputs share one distance ([handScrollGain] and [notchTravelDp]) and this is the only
+ * difference between them: a stylus is held like a pen, moving a few centimetres while the page has to
+ * cross a window, so 1:1 under it reads as a crawl. It used to be 1.6 — the pen ran visibly ahead of the
+ * wheel set beside it (a notch and a hand agreed at 64 dp while the pen covered 96) — so the compromise is
+ * **1.25**: still further than a hand, no longer far enough ahead of a notch to read as another rule.
+ */
+internal const val PEN_GAIN = 1.25f
+
+/** The pen's distance: [PEN_GAIN] over the same *Scroll distance* the wheel and the hand read. */
+internal fun penScrollGain(scrollStepDp: Float): Float = PEN_GAIN * handScrollGain(scrollStepDp)
+
+/**
+ * dp one wheel notch travels: the notch's [delta] (Compose reports it in notches, sign included) over the
+ * same rule the hand reads — the reference notch times [handScrollGain].
+ *
+ * It used to be the raw *Scroll distance*, which made the notch unbounded while the hand's gain was not: at
+ * the slider's top a notch covered 512 dp and a hand drag of the same `512 dp` covered 160, which is exactly
+ * the "the wheel and the hand follow two rules" this rule exists to prevent. A function, so the compromise
+ * is arithmetic rather than two numbers kept equal by hand (`DesktopHandPanTest`).
+ */
+internal fun notchTravelDp(delta: Float, scrollStepDp: Float): Float =
+    delta * WHEEL_STEP_DP * handScrollGain(scrollStepDp)
+
+/**
  * What one wheel event does to the page: `Ctrl` zooms **at the cursor** (exponentially, so 30 % and
  * 300 % feel alike), otherwise it scrolls. Either way the viewport comes back for the caller to apply;
  * null when the event carried no change. A scroll keeps the fit, so reading down a width-fitted strip
@@ -62,7 +88,11 @@ internal fun wheelViewport(
         onFit(FitMode.NONE)
         fitted.zoomBy(factor, anchor.x, anchor.y, pageW, pageH, viewW, viewH)
     } else {
-        fitted.pannedBy(-delta.x * scrollStepDp, -delta.y * scrollStepDp, pageW, pageH, viewW, viewH)
+        fitted.pannedBy(
+            notchTravelDp(-delta.x, scrollStepDp),
+            notchTravelDp(-delta.y, scrollStepDp),
+            pageW, pageH, viewW, viewH,
+        )
     }
 }
 
@@ -97,8 +127,8 @@ internal fun Modifier.pageWheelScroll(
             )?.let(onViewport)
         } else if (navigation.smoothScroll) {
             val delta = change.scrollDelta
-            val dx = -delta.x * navigation.scrollStepDp
-            val dy = -delta.y * navigation.scrollStepDp
+            val dx = notchTravelDp(-delta.x, navigation.scrollStepDp)
+            val dy = notchTravelDp(-delta.y, navigation.scrollStepDp)
             scroller.scrollBy(
                 dx = dx,
                 dy = dy,

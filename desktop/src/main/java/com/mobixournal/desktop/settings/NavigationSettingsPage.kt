@@ -63,7 +63,7 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
         }
         SettingsRow(
             label = "Scroll distance",
-            note = "Distance scrolled per mouse notch, and the travel a hand pan covers. Default: 64 dp.",
+            note = "Distance scrolled per mouse notch, per dp of a hand pan, and per dp of the pen. Default: 64 dp.",
         ) {
             SettingsSlider(
                 value = nav.scrollStepDp,
@@ -76,7 +76,7 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
         if (nav.smoothScroll) {
             SettingsRow(
                 label = "Scroll fluidity",
-                note = "Deceleration response: crisp at lower values, soft glide at higher.",
+                note = "Deceleration response of the glide after a notch or a pan: crisp at lower values, soft glide at higher.",
             ) {
                 SettingsSlider(
                     value = nav.scrollFluidity,

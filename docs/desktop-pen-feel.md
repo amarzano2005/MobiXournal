@@ -52,10 +52,11 @@ is plainly moving. The gain is a feel constant, not a measurement, and it is the
 and a wheel notch keep the distance their device reports. A held **Space** takes the packets from the
 stroke path, so a pen in hand never inks the sheet it is scrolling.
 
-Settings ▸ **Scrolling** describes scrolling, not the wheel, so it governs the hand as well. *Scroll
-distance* is a distance (`64 dp` is the default and reads as 1:1, `128` as twice the travel): the pointer
-drag scales by it, and the pen's packets scale their own `PAN_GAIN` by it — bounded to a quarter and two and
-a half, so the slider's ends stay usable rather than making the page uncontrollable. *Smooth scrolling* and
+Settings ▸ **Scrolling** describes scrolling, not the wheel, so one distance governs all three inputs: a
+notch of 1, a hand drag of `64 dp` and a pen reading travel the same dp at the default, and the slider scales
+them together (`64 dp` is 1:1, `128` twice the travel) — bounded to a quarter and two and a half, so its ends
+stay usable rather than making the page uncontrollable. The pen keeps one extra over that distance
+(`PEN_GAIN`, now 1.25 — down from 1.6, which read as a second rule beside the wheel). *Smooth scrolling* and
 *Scroll fluidity* are the **release**: the hand's flick keeps travelling for a twelfth of a second of its
 own speed (smoothed over the last events, the pen measuring its 400 Hz readings), eased with the same decay
 a notch glides with and to the same target-based rule — no lead step, because a hand that has just let go

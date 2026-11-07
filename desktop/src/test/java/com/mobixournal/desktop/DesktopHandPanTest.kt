@@ -3,8 +3,12 @@ package com.mobixournal.desktop
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.HAND_GAIN_MAX
 import com.mobixournal.desktop.sheet.HAND_GAIN_MIN
+import com.mobixournal.desktop.sheet.PEN_GAIN
 import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.sheet.WHEEL_STEP_DP
 import com.mobixournal.desktop.sheet.handScrollGain
+import com.mobixournal.desktop.sheet.notchTravelDp
+import com.mobixournal.desktop.sheet.penScrollGain
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.tools.DesktopTool
@@ -24,6 +28,7 @@ import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -205,6 +210,40 @@ class DesktopHandPanTest {
         assertEquals(2f, handScrollGain(128f), 0.001f)
         assertEquals(HAND_GAIN_MIN, handScrollGain(1f), 0.001f)
         assertEquals(HAND_GAIN_MAX, handScrollGain(1_000f), 0.001f)
+    }
+
+    /**
+     * The **compromise** the inputs keep: one wheel notch and a hand drag of [WHEEL_STEP_DP] travel the same
+     * dp, at every *Scroll distance* — the setting scales the notch and the hand by the same number, so
+     * neither is the odd one out and a reader who tunes one has tuned the other.
+     */
+    @Test
+    fun `a notch and a hand drag travel the same distance`() {
+        // The default is the reference notch itself, and twice the distance is twice the travel.
+        assertEquals(64f, notchTravelDp(1f, 64f), 0.001f)
+        assertEquals(128f, notchTravelDp(1f, 128f), 0.001f)
+        // And the ends are bounded **once**, for both: a notch at the slider's top travels what the hand's
+        // capped gain travels, not the raw setting.
+        assertEquals(WHEEL_STEP_DP * HAND_GAIN_MAX, notchTravelDp(1f, 512f), 0.001f)
+        listOf(16f, 32f, 64f, 128f, 256f, 512f).forEach { step ->
+            assertEquals(
+                "one notch against ${WHEEL_STEP_DP.toInt()} dp of hand at $step dp",
+                notchTravelDp(1f, step),
+                WHEEL_STEP_DP * handScrollGain(step),
+                0.001f,
+            )
+        }
+    }
+
+    /**
+     * The **pen** is the one input with an extra ([PEN_GAIN]) — it covers more than a hand, and less than the
+     * 1.6 that read as another rule beside the wheel — and *Scroll distance* still scales it like the others.
+     */
+    @Test
+    fun `the pen keeps one extra over the same Scrolling distance`() {
+        assertEquals(PEN_GAIN, penScrollGain(64f), 0.001f)
+        assertEquals(2f * PEN_GAIN, penScrollGain(128f), 0.001f)
+        assertTrue("the extra is a compromise, not a second rule", PEN_GAIN in 1f..1.6f)
     }
 
     /** One **stylus** event at ([x], [y]) in window pixels — the pen as Compose sees it. */

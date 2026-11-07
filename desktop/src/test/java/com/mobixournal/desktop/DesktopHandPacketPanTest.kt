@@ -1,4 +1,5 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.sheet.PEN_GAIN
 
 import com.mobixournal.desktop.ink.PenPacket
 import com.mobixournal.desktop.ink.PenPacketSource
@@ -83,10 +84,11 @@ class DesktopHandPacketPanTest {
             packets.send(400f, 350f, pressure = null)
             scene.render()
 
-            // The hand pans **further than the pen travels** (PAN_GAIN): 50 px up is 80 dp up.
+            // The hand pans **further than the pen travels** by the sheet's one extra (*Scroll distance*'s
+            // `penScrollGain`): 50 dp of pen travel is 50 × PEN_GAIN dp of sheet.
             assertEquals(
                 "the packets' own travel must reach the sheet",
-                -80f,
+                -50f * PEN_GAIN,
                 tab.viewport.offsetY,
                 0.5f,
             )
@@ -96,7 +98,7 @@ class DesktopHandPacketPanTest {
             scene.render()
             assertEquals(
                 "each batch carries on from where the last left the sheet",
-                -160f,
+                -100f * PEN_GAIN,
                 tab.viewport.offsetY,
                 0.5f,
             )
@@ -139,7 +141,7 @@ class DesktopHandPacketPanTest {
 
             assertEquals(
                 "one contact, one pan: the packets' travel only",
-                -80f,
+                -50f * PEN_GAIN,
                 tab.viewport.offsetY,
                 0.5f,
             )
