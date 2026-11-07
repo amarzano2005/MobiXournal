@@ -9,6 +9,7 @@ import com.mobixournal.desktop.ink.PenPacketStrokes
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopKaraoke
 import com.mobixournal.desktop.io.pdfTextCopyUi
+import com.mobixournal.desktop.shell.DesktopDiagnostics
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.TextBoxUi
@@ -212,9 +213,12 @@ private fun PenPaths(
             packets = packets,
         )
     }
+    DesktopDiagnostics.panSource(packets != null)
     if (packets != null && (tool == DesktopTool.HAND || panMode)) {
         PenPacketPan(
-            viewport = sheet.viewport,
+            // Read live at each batch, through the painter's own derivation, so a pan carries on from
+            // where the sheet actually is (`SheetLayout.liveViewport`).
+            viewport = { sheet.liveViewport(tab.viewport) },
             pageW = sheet.pageW,
             pageH = sheet.pageH,
             viewW = sheet.viewW,

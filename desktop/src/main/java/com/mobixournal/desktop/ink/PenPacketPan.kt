@@ -85,6 +85,7 @@ internal class PenPacketPan(
         // Applied even when the batch ended the drag: a lift is not a reason to throw away the travel
         // that arrived with it, and the last frame of a pan is the one the eye follows.
         if (dx == 0f && dy == 0f) return
+        DesktopDiagnostics.panPackets(dy)
         onViewport(viewport().pannedBy(dx, dy, pageW, pageH, viewW, viewH))
     }
 
@@ -156,10 +157,14 @@ internal const val PAN_GAIN = 1.6f
  * Nothing is drawn from it: the page itself moves, so a frame is asked for by a packet and the canvas
  * repaints the sheet at the new offset. A tool that inks is not composed here at all — its strokes are
  * [PenPacketStrokes]'s — so one contact is never claimed twice.
+ *
+ * [viewport] is a **reader**, not the viewport the composition was built with: a batch is applied to the
+ * sheet where it is at that moment, for the reason `panByDrag` gives — two writers of one offset, and a
+ * pan measured from a stale base puts the page back where the gesture began.
  */
 @Composable
 internal fun PenPacketPan(
-    viewport: Viewport,
+    viewport: () -> Viewport,
     pageW: Float,
     pageH: Float,
     viewW: Float,
@@ -170,10 +175,12 @@ internal fun PenPacketPan(
     owns: MutableState<Boolean>,
     packets: PenPacketSource?,
 ) {
-    val liveViewport by rememberUpdatedState(viewport)
+    // The latest reader, never the value it answered at composition: a flush happens on a packet, which
+    // may land long after the frame that composed this.
+    val live by rememberUpdatedState(viewport)
     val pan = remember(density, pageW, pageH, viewW, viewH) {
         PenPacketPan(
-            viewport = { liveViewport },
+            viewport = { live() },
             pageW = pageW,
             pageH = pageH,
             viewW = viewW,

@@ -115,6 +115,84 @@ class DesktopHandPanTest {
         }
     }
 
+    @Test
+    fun `a stylus in the hand slot pans the sheet`() {
+        val state = state()
+        val tab = state.tabs.active!!
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            // The pen reaches Compose as a stylus, not a mouse: the pan must not depend on the emulated
+            // mouse's button bits, or a host whose tablet sends no packets loses the hand entirely.
+            stylus(scene, PointerEventType.Press, 400f, 400f, pressed = true, at = 1_000L)
+            stylus(scene, PointerEventType.Move, 400f, 350f, pressed = true, at = 1_016L)
+            assertEquals("the stylus pans the sheet", -50f, tab.viewport.offsetY, 0.5f)
+            stylus(scene, PointerEventType.Move, 400f, 300f, pressed = true, at = 1_032L)
+            assertEquals("and keeps going", -100f, tab.viewport.offsetY, 0.5f)
+            stylus(scene, PointerEventType.Release, 400f, 300f, pressed = false, at = 1_048L)
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
+    /**
+     * A pen contact the emulation reports with **no button bit at all** — the shape that made the Hand slot
+     * a dead gesture: the pan was gated on the primary bit, which this contact never carries.
+     */
+    @Test
+    fun `a pen contact that reports no button still pans the hand slot`() {
+        val state = state()
+        val tab = state.tabs.active!!
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            stylus(scene, PointerEventType.Press, 400f, 400f, true, 1_000L, buttons = PointerButtons())
+            stylus(scene, PointerEventType.Move, 400f, 350f, true, 1_016L, buttons = PointerButtons())
+            assertEquals(
+                "the slot decides the pan, not the emulation's button state",
+                -50f,
+                tab.viewport.offsetY,
+                0.5f,
+            )
+            stylus(scene, PointerEventType.Release, 400f, 350f, false, 1_032L, buttons = PointerButtons())
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
+    /** One **stylus** event at ([x], [y]) in window pixels — the pen as Compose sees it. */
+    private fun stylus(
+        scene: ImageComposeScene,
+        type: PointerEventType,
+        x: Float,
+        y: Float,
+        pressed: Boolean,
+        at: Long,
+        /** The button bits the emulation reports; null means the primary one, as a real click does. */
+        buttons: PointerButtons? = null,
+    ) {
+        scene.sendPointerEvent(
+            eventType = type,
+            pointers = listOf(
+                ComposeScenePointer(
+                    id = PointerId(3),
+                    position = Offset(x, y),
+                    pressed = pressed,
+                    type = PointerType.Stylus,
+                ),
+            ),
+            buttons = buttons ?: if (pressed) PointerButtons(isPrimaryPressed = true) else PointerButtons(),
+            keyboardModifiers = PointerKeyboardModifiers(),
+            timeMillis = at,
+        )
+        Snapshot.sendApplyNotifications()
+        scene.render()
+    }
+
     /** One mouse event at ([x], [y]) in window pixels. */
     private fun event(
         scene: ImageComposeScene,

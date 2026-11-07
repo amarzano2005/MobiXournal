@@ -4,6 +4,7 @@ import com.mobixournal.desktop.ink.InkSample
 import com.mobixournal.desktop.ink.PenContactStream
 import com.mobixournal.desktop.ink.PenPacketPan
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.DesktopDiagnostics
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DesktopTool
 
@@ -113,7 +114,10 @@ internal suspend fun AwaitPointerEventScope.panByDrag(
         if (change.changedToUpIgnoreConsumed()) return
         val drag = change.positionChange()
         if (drag != Offset.Zero) {
-            if (!owned()) {
+            if (owned()) {
+                DesktopDiagnostics.panSkipped()
+            } else {
+                DesktopDiagnostics.panCompose(drag.y / density)
                 onViewport(
                     currentViewport().pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH),
                 )

@@ -50,6 +50,50 @@ internal object DesktopDiagnostics {
     private var packetThread: String? = null
     private var frameThread: String? = null
 
+    /**
+     * What the **hand** did, which is the one input the window cannot check by looking at the page: the
+     * numbers say whether a press was even offered to the pan, which path moved the sheet, and how much.
+     *
+     * A hand that does nothing has three shapes and they look identical on screen: no press reached the
+     * pan (`press=0`), the press arrived but the packets' ownership stood every event down (`skip=` climbing
+     * with `compose=0`), or the writes happened and the offset never moved — which is a clamp, not an input.
+     */
+    private var panPresses = 0
+    private var panCompose = 0
+    private var panPackets = 0
+    private var panSkipped = 0
+    private var panDy = 0f
+    private var panSource: Boolean? = null
+
+    /** A press the canvas offered to the hand's pan — the gesture was recognised at all. */
+    fun panPress() {
+        if (enabled) panPresses++
+    }
+
+    /** One applied Compose-drag event, in dp. */
+    fun panCompose(dy: Float) {
+        if (!enabled) return
+        panCompose++
+        panDy = dy
+    }
+
+    /** One applied batch of the tablet's own packets, in dp. */
+    fun panPackets(dy: Float) {
+        if (!enabled) return
+        panPackets++
+        panDy = dy
+    }
+
+    /** An event the packets' ownership stood down, so one contact is never panned twice. */
+    fun panSkipped() {
+        if (enabled) panSkipped++
+    }
+
+    /** Whether this host offers a packet stream at all, and so whether the hand is the packets' or Compose's. */
+    fun panSource(packets: Boolean) {
+        if (enabled) panSource = packets
+    }
+
     /** Say out loud that the record is on, so a run with no paints is not read as "the tool is off". */
     fun start() {
         if (enabled) write("watching: one line per second of painting")
@@ -91,12 +135,25 @@ internal object DesktopDiagnostics {
             append(" sheet=").append(sheetRecords)
             append(" page=").append(Integer.toHexString(pageId))
             append(" paint=").append(frameThread ?: "-")
+            if (panPresses + panCompose + panPackets + panSkipped > 0) {
+                append(" pan=press:").append(panPresses)
+                append("/compose:").append(panCompose)
+                append("/packets:").append(panPackets)
+                append("/skip:").append(panSkipped)
+                append(" dy=").append(String.format(java.util.Locale.ROOT, "%.1f", panDy))
+            }
+            panSource?.let { append(" hand=").append(if (it) "packets" else "compose") }
         }
         write(line)
         frames = 0
         worst = 0L
         paintTotalMs = 0.0
         paintWorstMs = 0.0
+        panPresses = 0
+        panCompose = 0
+        panPackets = 0
+        panSkipped = 0
+        panDy = 0f
         windowStart = now
     }
 

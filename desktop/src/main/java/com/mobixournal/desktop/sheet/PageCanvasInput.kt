@@ -19,6 +19,7 @@ import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfTextNotice
 import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.io.PdfIndexLoader
+import com.mobixournal.desktop.shell.DesktopDiagnostics
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.find
 import com.mobixournal.desktop.tools.DesktopTool
@@ -214,7 +215,14 @@ private suspend fun PointerInputScope.pageGestureLoop(
         // Middle-drag always pans; a primary drag pans while Space is held or the Hand slot is picked,
         // so the pen keeps the primary button for every other tool.
         val vp = viewport()
-        if (buttons.isTertiaryPressed || ((panMode || tool == DesktopTool.HAND) && buttons.isPrimaryPressed)) {
+        // The hand is the **slot's** pan, not the emulation's button state: on this workstation the pen
+        // reaches Compose as a mouse copy, and a contact can arrive with no button bit set at all — so a
+        // pan gated on `isPrimaryPressed` left the pen in the Hand slot doing nothing, while the packets
+        // (which carry the contact properly) had nothing to move. A **right** press never pans: that is
+        // the context menu's, whatever slot is in hand.
+        val handPan = panMode || tool == DesktopTool.HAND
+        if (buttons.isTertiaryPressed || (handPan && !buttons.isSecondaryPressed)) {
+            DesktopDiagnostics.panPress()
             // The pan is handed the **reader** of the viewport, not `vp`: the pen's packets move this same
             // sheet between two of the drag's events (and so does the edge ticker), so each event's travel
             // has to be applied to the view as it is now — measuring from the press-time copy put the page
