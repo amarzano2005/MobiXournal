@@ -70,7 +70,6 @@ import com.mobixournal.desktop.settings.DesktopNavigationState
 import com.mobixournal.desktop.settings.LocalNavigationState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 /**
  * The page workspace: one page, zoomed and panned, on the desk.
@@ -267,10 +266,14 @@ internal fun sheetLayout(
     val pageW = page.width.toFloat()
     val pageH = page.height.toFloat()
     val zoom = tab.fit.zoomFor(pageW, pageH, viewW - chrome.width, viewH - chrome.height) ?: tab.viewport.zoom
+    // The scale the status bar calls **100 %**: the page's width filling the room this canvas frames it in.
+    val widthFitZoom = Viewport.fitWidthZoom(pageW, viewW - chrome.width)
     // A fitted page is re-centred every layout pass; a free one keeps its own offsets, clamped.
     val viewport = tab.viewport.copy(zoom = zoom).inChrome(chrome, pageW, pageH, viewW, viewH)
-    LaunchedEffect(zoom, viewW, viewH, tab.fit) {
+    LaunchedEffect(zoom, viewW, viewH, tab.fit, widthFitZoom) {
         tab.viewWidth = viewW; tab.viewHeight = viewH
+        // Published even while the reader zooms freely: the reference is the window's, not the mode's.
+        tab.widthFitZoom = widthFitZoom
         if (tab.fit != FitMode.NONE && tab.viewport.zoom != zoom) {
             tab.viewport = tab.viewport.copy(zoom = zoom)
         }
@@ -636,8 +639,13 @@ internal fun connectorKindFor(tool: DesktopTool, circuitKind: ShapeKind): ShapeK
 internal fun pageSizeDp(pageW: Double, pageH: Double, zoom: Float): Pair<Float, Float> =
     (pageW * zoom).toFloat() to (pageH * zoom).toFloat()
 
-/** The zoom label a status bar shows. */
-internal fun zoomLabel(zoom: Float): String = "${(zoom * 100f).roundToInt()}%"
+/**
+ * The zoom label a status bar shows: **100 % is the page's width filling the window**
+ * (`zoomPercentOfWidthFit`), the scale a phone opens a sheet at. [widthFitZoom] is that reference as the
+ * canvas last measured it ([sheetLayout]); 0 — no page laid out yet — falls back to the absolute scale.
+ */
+internal fun zoomLabel(zoom: Float, widthFitZoom: Float = 0f): String =
+    "${zoomPercentOfWidthFit(zoom, widthFitZoom)}%"
 
 /** A page's label: `Page 3 / 12`. */
 internal fun pageLabel(page: Int, count: Int): String = "Page ${page + 1} / ${count.coerceAtLeast(1)}"

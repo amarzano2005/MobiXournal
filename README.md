@@ -66,7 +66,7 @@ Documents live in two formats that work side by side:
 - **Self-Contained & Exportable Audio**: `.mobix` bundles compressed Opus audio (~15 MB/hour) directly inside the notebook, with optional background recording and automatic `.m4a` export on Android.
 - **Smart PDF Annotation**: Select and copy real PDF text (`Shift + S` on PC), use the magnetic highlighter to snap cleanly along text lines, browse the PDF Table of Contents, and reorder, duplicate, or copy/paste pages across documents.
 - **Handwriting & Full-Text Search**: Search typed text, math source, PDF text, and handwritten ink simultaneously — powered by Google ML Kit on Android, Windows Ink recognition on PC, and an offline Kotlin fallback.
-- **Tailored Navigation & Unified Settings**: Customize zoom step and smooth wheel scrolling on PC or momentum curves on Android, and find any option or keyboard shortcut instantly via the unified settings search bar.
+- **Tailored Navigation & Unified Settings**: Documents open at 100 %, the sheet's width filling the window as on the tablet; zoom step and smooth wheel scrolling are customizable on PC (momentum curves on Android), and the settings search finds any option or shortcut.
 
 ---
 

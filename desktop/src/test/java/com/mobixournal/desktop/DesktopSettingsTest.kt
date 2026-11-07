@@ -158,7 +158,7 @@ class DesktopSettingsTest {
         assertEquals(1f, fresh.pressureMultiplier, 1e-6f)
         assertEquals(DesktopNewDocumentFormat.XOPP, fresh.newDocumentFormat)
         assertTrue("no arrangement is the factory order", fresh.toolOrder.isEmpty())
-        assertEquals(FitOnOpen.AUTO, fresh.fitOnOpen)
+        assertEquals(FitOnOpen.WIDTH, fresh.fitOnOpen)
         assertEquals(SidebarPolicy.AUTOMATIC, fresh.sidebarPolicy)
         assertEquals(InspectorPolicy.AUTOMATIC, fresh.inspectorPolicy)
         assertTrue("the frame time is reported until it is switched off", fresh.frameTime)
@@ -191,7 +191,7 @@ class DesktopSettingsTest {
     fun `an unknown value falls back to the default`() {
         assertEquals(StripPlacement.LEFT, StripPlacement.of("Diagonal"))
         assertEquals(RailSide.LEFT, RailSide.of("upwards"))
-        assertEquals(FitOnOpen.AUTO, FitOnOpen.of("zoomed"))
+        assertEquals(FitOnOpen.WIDTH, FitOnOpen.of("zoomed"))
         assertEquals(SidebarPolicy.AUTOMATIC, SidebarPolicy.of("sometimes"))
         assertEquals(InspectorPolicy.AUTOMATIC, InspectorPolicy.of("always"))
         assertEquals(PenStream.AUTOMATIC, PenStream.of("bluetooth"))

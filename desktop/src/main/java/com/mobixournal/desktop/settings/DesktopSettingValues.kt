@@ -103,8 +103,11 @@ enum class RailSide(val label: String) {
 /**
  * **How a document opens**: the zoom the window picks for it before the reader touches anything.
  *
- * `AUTO` is the window's own rule ([FitMode.AUTO] resolves a tall page to fit-width and the rest to
- * fit-page), which is why it leads: a spread of two pages and a single sheet do not want the same answer.
+ * `WIDTH` leads because it is the scale the window now calls **100 %** — the sheet's width filling the
+ * window, the way the tablet opens a page — so a document arrives at 100 % without a zoom step.
+ *
+ * `AUTO` is the window's other rule ([FitMode.AUTO] resolves a tall page to fit-width and the rest to
+ * fit-page), for a reader who wants a sheet shown whole whatever that costs in point size.
  */
 enum class FitOnOpen(val label: String, val fit: FitMode) {
     AUTO("Automatic", FitMode.AUTO),
@@ -114,7 +117,7 @@ enum class FitOnOpen(val label: String, val fit: FitMode) {
     ;
 
     companion object {
-        val DEFAULT: FitOnOpen = AUTO
+        val DEFAULT: FitOnOpen = WIDTH
 
         fun of(name: String?): FitOnOpen =
             entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: DEFAULT

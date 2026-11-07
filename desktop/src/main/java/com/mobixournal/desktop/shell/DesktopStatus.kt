@@ -186,7 +186,8 @@ internal fun StatusBar(
             return@Row
         }
         Spacer(Modifier.width(14.dp))
-        Text(zoomLabel(zoom), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
+        // 100 % is the page's width filling the window (`zoomLabel`), not a page point per dp.
+        Text(zoomLabel(zoom, tab.widthFitZoom), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
         Spacer(Modifier.width(14.dp))
         Text(
             text = when (fit) {

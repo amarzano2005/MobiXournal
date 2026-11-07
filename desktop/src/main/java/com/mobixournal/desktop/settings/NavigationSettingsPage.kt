@@ -10,7 +10,7 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
     SettingsGroup("Opening a document") {
         SettingsSelect(
             label = "Zoom",
-            note = "Initial zoom fit. Automatic fits width for portrait pages, entire page otherwise.",
+            note = "Initial zoom fit. Fit width is 100% — the page's width filling the window. Automatic fits width for portrait pages, entire page otherwise.",
             options = FitOnOpen.entries,
             picked = policy.fitOnOpen,
             optionLabel = { it.label },

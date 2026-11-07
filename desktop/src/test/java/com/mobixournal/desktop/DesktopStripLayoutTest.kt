@@ -95,13 +95,14 @@ class DesktopStripLayoutTest {
             ?: error("no sheet in the row at $y")
     }
 
-    /** The sheet's top edge, read down the middle of it: above the page there is only the desk. */
+    /**
+     * The sheet's top edge, read down the **middle** of the window: a page opened at 100 % spans the width,
+     * so a column chosen by how much paper it holds can land under a tab, whose fill is white too.
+     */
     private fun sheetTop(pixels: IntArray): Int {
-        val x = (0 until width).firstOrNull { px ->
-            (0 until height).count { y -> paper(pixels, px, y) } > 100
-        } ?: error("no sheet in the frame")
+        val x = width / 2
         return (0 until height).firstOrNull { y -> paper(pixels, x, y) }
-            ?: error("no sheet above the desk")
+            ?: error("no sheet in the middle column")
     }
 
     /**
@@ -119,6 +120,7 @@ class DesktopStripLayoutTest {
         val left = render(StripPlacement.LEFT)
         val right = render(StripPlacement.RIGHT)
         val top = render(StripPlacement.TOP)
+        // The opening frame is what this measures: the default fit (the width fit, the readout's 100 %).
 
         val leftEdge = sheetLeft(left)
         val rightEdge = sheetLeft(right)

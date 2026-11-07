@@ -273,8 +273,8 @@ copy takes externally on completion while keeping them in the document. **Input 
 
 ## Navigation — zoom stepping and smooth scrolling
 
-Under **Navigation**, document opening (`interface.fitOnOpen`), the sidebar policy (`interface.sidebarPolicy`),
-and canvas navigation feel:
+Under **Navigation**, document opening (`interface.fitOnOpen`, **Fit width** by default — a document opens at
+100 %, its width filling the window), the sidebar policy (`interface.sidebarPolicy`), and canvas navigation feel:
 
 - **Zoom step**: **Wheel & dial rate** (`navigation.zoomStepWheel`, 2…30%, default 12%) sets the exponential zoom
   factor per mouse wheel notch (`Ctrl + wheel`) or dial click; **Keyboard shortcut step**

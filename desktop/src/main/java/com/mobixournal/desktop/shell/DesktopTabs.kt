@@ -34,8 +34,9 @@ import java.io.File
  * move the chapter, and coming back to a tab has to land where you left it. The document itself owns a
  * file handle (a `.mobix` reader), so closing a tab closes it ([DesktopTabs.close]).
  *
- * The view state starts as [FitMode.AUTO], which shows a sheet whole and fits a long strip to the width
- * so its writing stays readable (`FitMode.resolve`); every zoom key sets a mode explicitly.
+ * The view state starts as [FitMode.WIDTH]: a document opens at **100 %**, the sheet's width filling the
+ * window, which is the scale the tablet opens it at and now the desktop's own default
+ * (`FitOnOpen.DEFAULT`); every zoom key sets a mode explicitly.
  *
  * The fields are **snapshot state**: the strip, the canvas and the status bar read them, so a wheel zoom
  * or a page change has to invalidate those readers or nothing on screen would move. Snapshot state also
@@ -47,7 +48,7 @@ class DesktopTab(
     title: String = document.file.name,
     page: Int = 0,
     viewport: Viewport = Viewport(),
-    fit: FitMode = FitMode.AUTO,
+    fit: FitMode = FitMode.WIDTH,
     /**
      * The crash snapshot this tab was adopted from, or null when the tab came from its own file
      * ([DesktopRecovery]). A recovered tab is dirty from the start: the snapshot holds edits the file
@@ -73,6 +74,12 @@ class DesktopTab(
     var fit: FitMode by mutableStateOf(fit)
     var viewWidth: Float by mutableStateOf(0f)
     var viewHeight: Float by mutableStateOf(0f)
+
+    /**
+     * The zoom the status bar calls **100 %**: the page's width filling the canvas
+     * (`Viewport.fitWidthZoom`), measured by the page's layout pass. 0 until a page has been laid out.
+     */
+    var widthFitZoom: Float by mutableStateOf(0f)
 
     /** Point in page space (pt) currently centered in this tab's visible viewport. */
     fun visiblePageCenter(page: com.mobixournal.format.model.Page): Pair<Double, Double> {

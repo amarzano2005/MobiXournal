@@ -20,7 +20,7 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 │ Pages   │                                                                             │
 │ [Ctrl+B]│                                                                             │
 ├─────────┴─────────────────────────────────────────────────────────────────────────────┤
-│ Page 1 / 6    100%    fit page                                  notebook.mobix        │  status bar
+│ Page 1 / 6    100%    fit width                                 notebook.mobix        │  status bar
 └───────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -38,9 +38,13 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 - **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
   per layer that hides it without writing to the document; it opens itself only when the document has
   **more than one page**.
-- **The sheet alone on the desk**: one page at a time, fitted by what the page is (a sheet whole, a long
-  strip to its width), with the fit mode named in the status bar.
-- **Status bar**: page counter, effective zoom, fit mode and the container behind the document. While a
+- **The sheet alone on the desk**: one page at a time, opened at **100 % — the page's width filling the
+  window**, the scale the tablet opens a page at (`FitOnOpen.DEFAULT` is fit width), with the fit mode named
+  in the status bar.
+- **Status bar**: page counter, effective zoom, fit mode and the container behind the document. The zoom
+  reads 100 % **when the page's width fills the window** (`zoomPercentOfWidthFit`, against the fit-width
+  reference the canvas measures), so the number means the same thing as the sheet in front of the reader
+  rather than a page point per dp. While a
   document is being read it says `opening <name>…` instead of `no document`, because the read runs off the
   frame thread: the window keeps painting through an open instead of freezing until it lands.
 

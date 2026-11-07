@@ -193,9 +193,10 @@ data class ChromeInset(
 /**
  * How the page's zoom follows the window: fitted, or whatever the user set.
  *
- * [AUTO] is what a tab starts as, and it is the only mode that *decides*: a sheet whose shape is a
- * sheet's (A4 is 1.41 high) is shown whole, and a page written as a long strip is fitted to its width
- * and read by scrolling. A strip is not an edge case — the tablet app writes a lecture note as one
+ * [AUTO] is the only mode that *decides*: a sheet whose shape is a sheet's (A4 is 1.41 high) is shown
+ * whole, and a page written as a long strip is fitted to its width and read by scrolling. A tab no longer
+ * starts as it — the readout's 100 % is [WIDTH] (FitOnOpen.DEFAULT) — but it stays an option for a reader
+ * who wants the whole sheet. A strip is not an edge case — the tablet app writes a lecture note as one
  * 850 × 2976 pt page, where "fit page" lands at 27 % and turns a 12 pt hand into three pixels a line,
  * with two thirds of the window left as black desk. The rule keys on the **page**, not on the window:
  * a short window would push the fitted zoom below any threshold, and shrinking the window is not a
@@ -248,3 +249,15 @@ const val REVEAL_MARGIN_DP = 28f
 
 /** Zooms a percentage label wants, e.g. `150%`. */
 internal fun Float.asPercent(): Int = (this * 100f).roundToInt()
+
+/**
+ * A zoom as the reader's percentage, where **100 % is the page's width filling the window** — the scale a
+ * phone opens a sheet at, and the one the desktop opens at too (`FitOnOpen.DEFAULT`).
+ *
+ * [widthFitZoom] is that reference, measured in the same room the canvas frames the page in
+ * ([Viewport.fitWidthZoom]); the zoom itself stays the ordinary absolute scale (`pageW * zoom` dp), so no
+ * arithmetic anywhere else changes sign of meaning. A reference of 0 means the canvas has not measured a
+ * page yet, and the absolute scale is then the only honest answer.
+ */
+internal fun zoomPercentOfWidthFit(zoom: Float, widthFitZoom: Float): Int =
+    if (widthFitZoom <= 0f) (zoom * 100f).roundToInt() else (zoom / widthFitZoom * 100f).roundToInt()
