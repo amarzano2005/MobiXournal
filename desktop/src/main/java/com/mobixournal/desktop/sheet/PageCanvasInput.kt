@@ -215,7 +215,11 @@ private suspend fun PointerInputScope.pageGestureLoop(
         // so the pen keeps the primary button for every other tool.
         val vp = viewport()
         if (buttons.isTertiaryPressed || ((panMode || tool == DesktopTool.HAND) && buttons.isPrimaryPressed)) {
-            panByDrag(vp, pageW, pageH, viewW, viewH, onViewport, owned = penActive)
+            // The pan is handed the **reader** of the viewport, not `vp`: the pen's packets move this same
+            // sheet between two of the drag's events (and so does the edge ticker), so each event's travel
+            // has to be applied to the view as it is now — measuring from the press-time copy put the page
+            // back where the gesture began, which is the bounce a pan on the tablet used to show.
+            panByDrag(viewport, pageW, pageH, viewW, viewH, onViewport, owned = penActive)
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture

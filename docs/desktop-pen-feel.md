@@ -32,6 +32,11 @@ adds its travel — the packet delta over the display's density — and the whol
 write per frame instead of one per reading (`PenPacketPanTest` pins the distance, the single write and the
 lift's own travel).
 
+The Compose pan never holds a press-time copy of the offset: each event's travel is applied to the viewport
+**as it is now**, because the packets may have moved the same sheet between two of its events. Measuring from
+the press instead put the page back where the gesture began — a pan that bounced on every lift rather than
+scrolling — so the rule is one writer at a time and always the live offset (`DesktopHandPanTest`).
+
 It also pans **further than the pen travels** (`PAN_GAIN`, 1.6): a stylus is moved by the wrist across a
 tablet's working area, not by the arm across a desk, so a matched pan reads as a page that lags a hand which
 is plainly moving. The gain is a feel constant, not a measurement, and it is the pen's alone — a mouse drag

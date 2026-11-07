@@ -89,12 +89,18 @@ internal fun Modifier.sheetGestures(
 /**
  * Drag the page by the pointer's movement until it lifts — the pan half of the canvas input.
  *
+ * [currentViewport] is read **per event**, never once at the press. Another writer scrolls this same sheet
+ * while the drag runs — the pen's packets pan it from the driver's own readings (`PenPacketPan`), and the
+ * canvas's edge ticker travels it under a selection — so a position accumulated from the press-time snapshot
+ * would put the page back where the gesture began the first time one of them moved: the drag then reads as a
+ * bounce instead of a pan.
+ *
  * [owned] is the tablet's side of the same drag: while the driver's packets are panning this very contact
  * (`PenPacketPan`), the emulated mouse deltas are **not** applied as well — doing both would pan twice as
  * far per inch of movement, and at the coalesced rate Windows reports a pen that reads as a crawling hand.
  */
 internal suspend fun AwaitPointerEventScope.panByDrag(
-    viewport: Viewport,
+    currentViewport: () -> Viewport,
     pageW: Float,
     pageH: Float,
     viewW: Float,
@@ -102,15 +108,15 @@ internal suspend fun AwaitPointerEventScope.panByDrag(
     onViewport: (Viewport) -> Unit,
     owned: () -> Boolean = { false },
 ) {
-    var current = viewport
     while (true) {
         val change = awaitPointerEvent().changes.firstOrNull() ?: return
         if (change.changedToUpIgnoreConsumed()) return
         val drag = change.positionChange()
         if (drag != Offset.Zero) {
             if (!owned()) {
-                current = current.pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH)
-                onViewport(current)
+                onViewport(
+                    currentViewport().pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH),
+                )
             }
             change.consume()
         }
