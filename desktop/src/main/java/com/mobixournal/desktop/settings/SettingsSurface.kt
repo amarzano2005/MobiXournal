@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.settings
 import com.mobixournal.desktop.tools.PanelEdgeAir
+import com.mobixournal.desktop.tools.PointerOwnership
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.LaneClose
@@ -23,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -67,6 +69,13 @@ internal fun SettingsSurface(
     palette: PaletteActions = PaletteActions(),
     modifier: Modifier = Modifier,
 ) {
+    // The panel is over the page, so the page is not live under it: Compose hands a press to the sheet as
+    // well as to the row it landed on, and the sheet reads presses it did not consume. The pointer is the
+    // panel's until it closes — a drag on a slider no longer draws the line behind the setting.
+    DisposableEffect(Unit) {
+        PointerOwnership.take()
+        onDispose { PointerOwnership.release() }
+    }
     // What the help line is saying: the sentence of the row under the pointer, written by the row itself.
     val help = remember { mutableStateOf("") }
     BoxWithConstraints(modifier.fillMaxSize().pointerHoverIcon(PointerIcon.Default), contentAlignment = Alignment.Center) {

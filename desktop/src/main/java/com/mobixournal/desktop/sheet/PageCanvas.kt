@@ -21,6 +21,7 @@ import com.mobixournal.desktop.shell.drawSearchHit
 import com.mobixournal.desktop.shell.drawToolCursor
 import com.mobixournal.desktop.shell.toolPointerIcon
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.PointerOwnership
 import com.mobixournal.desktop.tools.TextBoxUi
 
 import androidx.compose.foundation.Canvas
@@ -336,34 +337,44 @@ internal fun SheetCanvas(
     val scroller = rememberSmoothScroller()
     DisposableEffect(tab) { onDispose { scroller.cancel() } }
     val overPage = rememberOverPage(pointer, sheet, density)
+    // A surface over the page takes the pointer, and the canvas then carries **no** press handler at all:
+    // consuming above it changed nothing, because the page reads presses it did not consume
+    // ([PointerOwnership]).
+    val live = PointerOwnership.pageIsLive
 
     Box(Modifier.fillMaxSize()) {
         Canvas(
-            Modifier.fillMaxSize().sheetInput(
-                tab = tab,
-                panMode = panMode,
-                tool = tool,
-                ink = ink,
-                shapeInk = shapeInk,
-                pen = pen,
-                sheet = sheet,
-                pointer = pointer,
-                draft = draft,
-                ringVisible = mark.ringPx != null,
-                followMouse = mark.followMouse,
-                dialWheel = dialWheel,
-                targets = sheetTargets(
-                    onPlaceLiving, onPlaceCircuit, circuitKind, figures, onTextPress, onEditLiving, pointer,
-                    onLiveDrag, recognizeShapes = recognizeShapes,
-                ),
-                density = density,
-                onViewport = onViewport,
-                onFit = onFit,
-                onEdited = onEdited,
-                hud = hud,
-                navigation = navigation,
-                scroller = scroller,
-                overPage = overPage.value,
+            Modifier.fillMaxSize().then(
+                if (!live) {
+                    Modifier
+                } else {
+                    Modifier.sheetInput(
+                        tab = tab,
+                        panMode = panMode,
+                        tool = tool,
+                        ink = ink,
+                        shapeInk = shapeInk,
+                        pen = pen,
+                        sheet = sheet,
+                        pointer = pointer,
+                        draft = draft,
+                        ringVisible = mark.ringPx != null,
+                        followMouse = mark.followMouse,
+                        dialWheel = dialWheel,
+                        targets = sheetTargets(
+                            onPlaceLiving, onPlaceCircuit, circuitKind, figures, onTextPress, onEditLiving,
+                            pointer, onLiveDrag, recognizeShapes = recognizeShapes,
+                        ),
+                        density = density,
+                        onViewport = onViewport,
+                        onFit = onFit,
+                        onEdited = onEdited,
+                        hud = hud,
+                        navigation = navigation,
+                        scroller = scroller,
+                        overPage = overPage.value,
+                    )
+                },
             ),
         ) {
             paintSheetOf(

@@ -8,6 +8,7 @@ import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import com.mobixournal.desktop.settings.DesktopNavigationState
 import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.tools.PointerOwnership
 import kotlin.math.exp
 
 /** dp a wheel notch moves the page by default — and the distance a 1:1 hand pan reads as. */
@@ -116,6 +117,9 @@ internal fun Modifier.pageWheelScroll(
     // pan did nothing after a wheel notch until the tool was changed. A glide now ends by itself when
     // another writer moves the sheet (`SmoothScroller`), which is what a press that pans turns out to be.
     .onPointerEvent(PointerEventType.Scroll) { event ->
+        // A surface over the page owns the wheel as well as the press: a scroll inside a Settings page must
+        // not carry the sheet along behind it.
+        if (!PointerOwnership.pageIsLive) return@onPointerEvent
         val change = event.changes.firstOrNull() ?: return@onPointerEvent
         val isZoom = dialWheel() || event.keyboardModifiers.isCtrlPressed
         if (isZoom) {

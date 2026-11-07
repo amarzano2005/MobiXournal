@@ -7,7 +7,9 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 ## What it is
 
 `Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — glass, the
-family's rim, a 20 dp corner — so a setting is changed while looking at the thing it changes. It is
+family's rim, a 20 dp corner — so a setting is changed while looking at the thing it changes. The pointer is
+the panel's while it is up: a press or a wheel notch on a row never reaches the page behind it, because a
+sheet that read the click would ink what nothing on screen was marking. It is
 **draggable by its title bar**: it opens centred, which is over the sheet the reader came to compare
 against, and dragging it is how the thing being changed is kept in view. The offset is clamped so the panel
 cannot be lost off an edge (and it is not stored — a window that opened with its panel half off the screen

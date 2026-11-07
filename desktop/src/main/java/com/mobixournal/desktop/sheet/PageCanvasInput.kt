@@ -24,6 +24,7 @@ import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.find
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.GUIDE_TOOLS
+import com.mobixournal.desktop.tools.PointerOwnership
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -206,6 +207,9 @@ private suspend fun PointerInputScope.pageGestureLoop(
 ) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
+        // A surface over the page owns the contact: the press landed on its rows, not on the sheet. Nothing
+        // is drained and nothing is drawn — the contact ends here, exactly as if the page were not under it.
+        if (!PointerOwnership.pageIsLive) return@awaitEachGesture
         // While the ring is up every press is its own and none inks or pans; only the pen's voice ends it.
         if (hud.open() != null) {
             ringTakesThePress(hud, down.position, density, releaseOnLift = !penVoice())
