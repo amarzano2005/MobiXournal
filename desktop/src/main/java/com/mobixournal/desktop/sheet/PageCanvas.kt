@@ -467,6 +467,8 @@ private fun Modifier.sheetInput(
         // A pen's press arrives twice; while the driver's packets are the pen's voice, their own lift ends
         // the contact a ring answered — the mouse copy must not hand the page that contact a frame early.
         penVoice = { !followMouse() },
+        // The hand takes the viewport from the wheel's glide, before it writes its own travel.
+        cancelGlide = { scroller.cancel() },
     )
 
 /**

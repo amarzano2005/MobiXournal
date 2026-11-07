@@ -41,6 +41,11 @@ And the hand is the **slot's** pan, not the emulated mouse's button state: this 
 contact with no button bit set, so the Hand slot (or a held Space) pans on any press that is not the right
 button — the pen having no other way to scroll is the whole point of the slot (`DesktopHandPanTest`).
 
+The wheel hands the view back when its glide settles: a notch's eased scroll that kept writing its target
+on every frame after it had arrived pinned the sheet where the wheel left it, so the hand moved nothing
+after the first scroll of a session — a wheel and a hand are two writers of one offset, and the one with a
+finished gesture must stop (`DesktopHandPanTest`).
+
 It also pans **further than the pen travels** (`PAN_GAIN`, 1.6): a stylus is moved by the wrist across a
 tablet's working area, not by the arm across a desk, so a matched pan reads as a page that lags a hand which
 is plainly moving. The gain is a feel constant, not a measurement, and it is the pen's alone — a mouse drag

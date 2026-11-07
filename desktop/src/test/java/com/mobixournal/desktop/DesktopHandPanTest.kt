@@ -6,6 +6,7 @@ import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.selectTool
+import com.mobixournal.format.mobix.SyntheticNotebook
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -18,7 +19,6 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
-import com.mobixournal.format.mobix.SyntheticNotebook
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -26,13 +26,19 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * The window's **hand pan** as a drag: the sheet follows the pointer, and it keeps its place when something
- * else scrolls it mid-gesture.
+ * The window's **hand pan** as a drag: the sheet follows the pointer, it keeps its place when something
+ * else scrolls it mid-gesture, and it answers the pen whatever button the emulation reports for it.
  *
  * The second claim is the one that is easy to lose: the pen's own packets pan this same sheet from the
  * driver's readings (`PenPacketPan`), so a drag that measured its travel from the offset it saw at the press
  * wrote that stale position back on its next event — the page travelled with the hand and then jumped home,
  * which on the tablet read as a scroll that bounced instead of scrolling.
+ *
+ * A wheel **glide** is the third writer of that offset and is not covered here: a `withFrameNanos`
+ * animation does not run on `ImageComposeScene`'s clock (a scene rendered in a tight loop is not the same
+ * clock as a window's), so a test of "the wheel, then the hand" in this harness measures the harness. The
+ * rule it has to keep is stated where it lives: a glide ends when it settles, writes nothing after it is
+ * cancelled, and lets go the moment another writer moves the sheet (`SmoothScroller`).
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class DesktopHandPanTest {

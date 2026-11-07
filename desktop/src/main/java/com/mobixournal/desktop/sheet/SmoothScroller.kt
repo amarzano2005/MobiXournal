@@ -29,6 +29,17 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
 
     val isRunning: Boolean get() = job?.isActive == true
 
+    /**
+     * Where this glide last left the viewport.
+     *
+     * A glide owns the view only while nothing else writes it: the hand's pan, the pen's packets and a
+     * search reveal all move the same offset, so a frame that finds it somewhere it did not leave it has
+     * been overtaken and must let go. This is what ends a glide without anybody cancelling it — and
+     * cancelling it on a pointer press was the bug: the press belonged to the hand, and the wheel took it.
+     */
+    private var writtenX = 0f
+    private var writtenY = 0f
+
     /** Cancels any in-flight glide immediately, keeping the current viewport position. */
     fun cancel() {
         job?.cancel()
@@ -79,6 +90,8 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
         val stepX = curX + diffX * initialAlpha
         val stepY = curY + diffY * initialAlpha
         onViewport(vp.copy(offsetX = stepX, offsetY = stepY))
+        writtenX = stepX
+        writtenY = stepY
 
         if (hypot(targetX - stepX, targetY - stepY) < 0.5f) {
             cancel()
@@ -88,32 +101,54 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
 
         if (job?.isActive == true) return
 
-        job = scope.launch {
+        val run = scope.launch {
             var lastNano = withFrameNanos { it }
             while (isActive) {
-                withFrameNanos { nowNano ->
+                // `withFrameNanos` answers whether the glide is **over**, and the loop has to leave when
+                // it is. Clearing [job] inside the frame and returning only from the lambda left the
+                // `while` spinning with no handle on it: the window then wrote this notch's target over
+                // the viewport on every frame, so the sheet stayed glued where the wheel left it and the
+                // hand's pan moved nothing at all. One notch at the start of a session owned the view.
+                val settled = withFrameNanos { nowNano ->
+                    // A frame already queued when the glide was cancelled must write **nothing**: the hand
+                    // cancelled it precisely to write its own travel, and this callback used to land after
+                    // that event and put the wheel's target back.
+                    if (!isActive) return@withFrameNanos true
                     val dt = ((nowNano - lastNano) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
                     lastNano = nowNano
 
                     val currentVp = currentViewport()
                     val frameCurX = currentVp.offsetX
                     val frameCurY = currentVp.offsetY
+                    // Overtaken: someone else moved the sheet since this glide's last write, so the
+                    // glide is over. Writing the target over it is what made the hand look dead after
+                    // a scroll — the sheet was pulled back to the wheel's resting place every frame.
+                    if (hypot(frameCurX - writtenX, frameCurY - writtenY) > 0.5f) return@withFrameNanos true
                     val frameDiffX = targetX - frameCurX
                     val frameDiffY = targetY - frameCurY
 
                     if (hypot(frameDiffX, frameDiffY) < 0.5f) {
                         onViewport(currentVp.copy(offsetX = targetX, offsetY = targetY))
-                        job = null
-                        return@withFrameNanos
+                        writtenX = targetX
+                        writtenY = targetY
+                        true
+                    } else {
+                        val alpha = (1f - exp(-decay * dt)).coerceIn(0.01f, 1f)
+                        val nextX = frameCurX + frameDiffX * alpha
+                        val nextY = frameCurY + frameDiffY * alpha
+                        onViewport(currentVp.copy(offsetX = nextX, offsetY = nextY))
+                        writtenX = nextX
+                        writtenY = nextY
+                        false
                     }
-
-                    val alpha = (1f - exp(-decay * dt)).coerceIn(0.01f, 1f)
-                    val nextX = frameCurX + frameDiffX * alpha
-                    val nextY = frameCurY + frameDiffY * alpha
-                    onViewport(currentVp.copy(offsetX = nextX, offsetY = nextY))
                 }
+                if (settled) break
             }
         }
+        job = run
+        // Drop the handle only if this run is still the current one: a newer notch may own [job] already,
+        // and clearing it would leave that glide uncancellable.
+        run.invokeOnCompletion { if (job === run) job = null }
     }
 }
 

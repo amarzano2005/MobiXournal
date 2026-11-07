@@ -64,9 +64,9 @@ internal fun Modifier.pageWheelScroll(
     onFit: (FitMode) -> Unit,
     onViewport: (Viewport) -> Unit,
 ): Modifier = this
-    .onPointerEvent(PointerEventType.Press) {
-        if (scroller.isRunning) scroller.cancel()
-    }
+    // No press handler: cancelling the glide on a pointer press took the press with it, so the hand's
+    // pan did nothing after a wheel notch until the tool was changed. A glide now ends by itself when
+    // another writer moves the sheet (`SmoothScroller`), which is what a press that pans turns out to be.
     .onPointerEvent(PointerEventType.Scroll) { event ->
         val change = event.changes.firstOrNull() ?: return@onPointerEvent
         val isZoom = dialWheel() || event.keyboardModifiers.isCtrlPressed

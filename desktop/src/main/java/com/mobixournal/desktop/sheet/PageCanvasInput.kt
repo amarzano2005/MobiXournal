@@ -125,6 +125,8 @@ internal suspend fun PointerInputScope.pageGestures(
     hud: HudUi = HudUi(),
     /** True while the tablet's packets are the pen's voice — they end a ring's contact, not the mouse copy. */
     penVoice: () -> Boolean = { false },
+    /** Stops a wheel glide still in flight, when the hand takes the sheet (see `sheetGestures`). */
+    cancelGlide: () -> Unit = {},
 ) {
     // The drags' shared view: the live mapping, and the eased edge scroll each of them may ask for.
     val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
@@ -161,7 +163,7 @@ internal suspend fun PointerInputScope.pageGestures(
             guideAim = guideAim, onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
             viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
-            hud = hud, penVoice = penVoice,
+            hud = hud, penVoice = penVoice, cancelGlide = cancelGlide,
         )
     }
 }
@@ -192,6 +194,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
     viewport: () -> Viewport,
     hud: HudUi = HudUi(),
     penVoice: () -> Boolean = { false },
+    cancelGlide: () -> Unit = {},
 ) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
@@ -223,6 +226,9 @@ private suspend fun PointerInputScope.pageGestureLoop(
         val handPan = panMode || tool == DesktopTool.HAND
         if (buttons.isTertiaryPressed || (handPan && !buttons.isSecondaryPressed)) {
             DesktopDiagnostics.panPress()
+            // The wheel's eased scroll, if it is still travelling, ends here: it is the same offset, and a
+            // glide that wrote its own target after this event would undo the hand's first travel.
+            cancelGlide()
             // The pan is handed the **reader** of the viewport, not `vp`: the pen's packets move this same
             // sheet between two of the drag's events (and so does the edge ticker), so each event's travel
             // has to be applied to the view as it is now — measuring from the press-time copy put the page

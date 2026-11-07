@@ -46,6 +46,14 @@ internal fun Modifier.sheetGestures(
     hud: HudUi = HudUi(),
     /** True while the tablet's packets are the pen's voice — they end the contact a ring answered. */
     penVoice: () -> Boolean = { false },
+    /**
+     * Stops a wheel glide that is still running, called when the hand takes the viewport.
+     *
+     * Here, in the gesture that is already ours, and **not** from a press handler of the wheel's own: a
+     * glide left running writes its target over the pan's first event, and cancel-on-press in the wheel's
+     * node took the press with it — the report that the hand did nothing after a scroll.
+     */
+    cancelGlide: () -> Unit = {},
 ): Modifier = pointerInput(
     tab, panMode, tool, ink, shapeInk, pen,
     sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH,
@@ -84,6 +92,7 @@ internal fun Modifier.sheetGestures(
         onEdited = onEdited,
         hud = hud,
         penVoice = penVoice,
+        cancelGlide = cancelGlide,
     )
 }
 
