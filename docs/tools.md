@@ -234,9 +234,9 @@ instead.
 
 `release --bump-gradle` owns the **app** line, because its `versionCode` has to move with it and only
 the archive knows what is pending. The window's number is edited in its Gradle file, and its MSI carries
-it into the same release under the app's tag; `verify-release` still compares a tag with the app's
-`versionName`, so a window that needs release notes of its own gets a tag of its own then. What checks
-both numbers before either is tagged is `scripts/todo.sh versions`.
+it into the same release under the app's tag; `verify-release` compares a tag with the app's
+`versionName`, so a window that needs notes of its own gets a tag of its own — `desktop-vX.Y.Z`, outside
+the `v*` filter and with `docs/releases/desktop-vX.Y.Z.md` — and `todo.sh versions` checks both numbers.
 
 ## Tab-switch probe (the running window)
 
