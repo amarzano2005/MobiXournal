@@ -383,14 +383,10 @@ internal fun SheetCanvas(
             )
             drawSheetChrome(tab, sheet, density, mark, pointer)
         }
-        // The ring floats over the sheet, and the tool's own ring is painted on **top** of its glass, so
-        // the pointer stays visible where the faces are (`DesktopHudLayer`).
-        DesktopHudLayer(hud, pointer, mark, density)
-        GuideAimLayer(tab, pointer, sheet, density)
-        // A scroll that hit a side flashes it above the sheet, and only for a moment (`EdgeBump`).
-        EdgeBumpLayer(pointer.edge, Modifier.matchParentSize())
+        sheetLayers(hud, pointer, mark, density, tab, sheet)
     }
 }
+
 
 /**
  * Whether the pointer is over a page at all — outside it the sheet wears the arrow, because there is nothing
