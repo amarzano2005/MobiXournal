@@ -10,8 +10,6 @@
   [![Format](https://img.shields.io/badge/Format-.mobix%20(native)%20%2F%20.xopp%20(lossless)-orange)](docs/xopp-bridge.md)
   [![Stylus & Tablet](https://img.shields.io/badge/Stylus-S--Pen%20%7C%20Active%20Pen%20%7C%20Tablet-blueviolet)]()
 
-**MobiXournal** is an open-source note-taking and scientific drafting suite for **Android tablets** and **Windows 11 PCs**, built over a single shared core (`mobix-core`). Both apps open, edit, save, and export the same notebooks with full support for active styluses, graphics tablets (Wacom, Huion, XP-Pen, Gaomon), and hardware shortcuts.
-
 **Documents live in two formats that work side by side:**
 - **`.mobix` (Native format)**: Stores re-editable graphs, tables, circuits, shapes, and formulas, compressed Opus audio bundled inside the file, full stylus telemetry, and fast page-by-page streaming.
 - **`.xopp` (Xournal++ interchange)**: Reads and writes standard [Xournal++](https://github.com/xournalpp/xournalpp) files losslessly. Living `.mobix` elements export as standard vector strokes with embedded metadata, reviving as editable objects when reopened in MobiXournal unless modified externally.
