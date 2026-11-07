@@ -113,7 +113,9 @@ internal fun HeaderMenu(
         }
         GlassPresence(open) {
             GlassPopup(
-                offset = with(density) { IntOffset(0, (DesktopTheme.headerHeight + 6.dp).roundToPx()) },
+                // Air under the **glyph**, not under the band: `headerHeight` left the menu hanging a
+                // whole control's worth of space below the button (the band is taller than the button).
+                offset = with(density) { IntOffset(0, (DesktopTheme.headerControlSize + 4.dp).roundToPx()) },
                 // A draft that was being named goes with the panel: a name field reopened by the next
                 // click would be a question the reader already walked away from.
                 onDismissRequest = {

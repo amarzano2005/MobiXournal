@@ -46,7 +46,10 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   reference the canvas measures), so the number means the same thing as the sheet in front of the reader
   rather than a page point per dp; the window's limits are percentages of that same 100 %, so the range is
   always **25 % … 3 200 %** whatever the page. It is also the band's one **door**: a click on the percentage
-  runs `Ctrl + 1`, putting the page back at 100 % mid-zoom, and it lifts to the accent under the pointer. While a
+  runs `Ctrl + 1`, putting the page back at 100 % mid-zoom, and it lifts to the accent under the pointer. Every
+  other reading answers the pointer the same way, with one sentence in the window's hover pill: the band keeps the
+  short words (`fit width`, `mouse`, `120 Hz · 3.2 ms`) and the jargon — the pen's stream, the display's rate, what
+  a frame costs — in the tip. While a
   document is being read it says `opening <name>…` instead of `no document`, because the read runs off the
   frame thread: the window keeps painting through an open instead of freezing until it lands.
 

@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.StripPill
 import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.FrameMeter
@@ -40,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import java.awt.GraphicsEnvironment
 import java.util.Locale
@@ -184,45 +187,24 @@ internal fun StatusBar(
         // what its own zoom readout means. The page is already in the reader's cache either way.
         val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) }.getOrNull() }
         val fit = page?.let { tab.fitFor(it.width.toFloat(), it.height.toFloat()) } ?: tab.fit
-        Text(pageLabel(tab.page, tab.pageCount), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
+        BandReading(pageLabel(tab.page, tab.pageCount), "The page in view", "PageDown / PageUp", numeric = true)
         SearchCount(tab)
         // A refused command says what happened and what to do, and sits here until the next command
         // replaces it (`docs/ui-modernization.md` — the error-copy rule).
         refusal?.let { sentence ->
-            Spacer(Modifier.width(14.dp))
+            BandGap()
             Text(sentence, color = DesktopTheme.documentRed, style = DesktopTheme.label)
             return@Row
         }
-        Spacer(Modifier.width(14.dp))
-        ZoomReadout(zoom, tab.widthFitZoom, onCommand)
-        Spacer(Modifier.width(14.dp))
-        Text(
-            text = when (fit) {
-                FitMode.NONE -> "free zoom"
-                FitMode.WIDTH -> "fit width"
-                FitMode.PAGE, FitMode.AUTO -> "fit page"
-            },
-            color = DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-        )
-        Spacer(Modifier.width(14.dp))
-        // The pen's source, not the pen's absence: a window with no Windows Ink says `mouse`, which is
-        // what the canvas is actually reading. The dial is named only while one is bound.
-        Text(
-            text = penLabel(tablet?.source ?: PenSource.MOUSE, tablet?.dial == true),
-            color = DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-        )
-        Spacer(Modifier.width(14.dp))
-        // What the loop can reach, not what it did: the refresh rate is the display's, read once because
-        // it changes only when the mode does (the readout is not a per-frame probe).
-        val hz = remember { displayRefreshHz() }
-        Text(refreshLabel(hz), color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-        // And what the window reaches of that budget — the measured half of the same sentence.
-        frameLabel(FrameMeter.averageMs, frameTime)?.let { painted ->
-            Spacer(Modifier.width(14.dp))
-            Text(painted, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+        BandGap()
+        // The band's one door: the percentage is also the way back to 100 % (`Ctrl+1`).
+        BandDoor(zoomLabel(zoom, tab.widthFitZoom), "Back to 100 %", "Ctrl+1") {
+            onCommand(ShellCommand.FIT_WIDTH)
         }
+        BandGap()
+        BandReading(fitLabel(fit), fitTip(fit))
+        BandGap()
+        PenReading(tablet, frameTime)
         Spacer(Modifier.weight(1f))
         // The PDF text slot's own sentence — `Copied 4 words`, or the reason it could select nothing — in
         // the accent, because it is news about what the press just did (`DesktopPdfTextNotice`).
@@ -247,33 +229,133 @@ internal fun StatusBar(
     }
 }
 
+/** The gap two readings keep on the band: closer than a card's, because a band is one line of them. */
+@Composable
+private fun BandGap() = Spacer(Modifier.width(10.dp))
+
 /**
- * The zoom readout, and the command standing behind it: **a click puts the page back at 100 %** — the scale a
- * document opens at ([ShellCommand.FIT_WIDTH], which is also `Ctrl+1`).
+ * One **reading** of the band — a number or a word to compare — with the sentence that explains it under the
+ * pointer, in the window's own hover pill ([StripPill]).
  *
- * A reading that is also a door, so it carries the window's answers to the pointer: the resting ink, the
- * accent while hovered, the plate while pressed. No ripple — the band is 24 dp tall, and a ripple in it would
- * read as a fault rather than as feedback.
+ * The band speaks in short words and keeps its jargon in the tip: `mouse` is what the pen stream is, and
+ * `Windows Ink · 120 Hz · 3.2 ms` says nothing until the pointer asks. The hover answer is the window's own —
+ * the ink steps up and the reading takes the hover slot — so the band is a band of the same controls as the
+ * strips, one material lighter.
  */
 @Composable
-private fun ZoomReadout(zoom: Float, widthFitZoom: Float, onCommand: (ShellCommand) -> Unit) {
+private fun BandReading(text: String, tip: String, accent: String = "", numeric: Boolean = false) {
+    val pointer = remember { MutableInteractionSource() }
+    val hovered by pointer.collectIsHoveredAsState()
+    Box {
+        Text(
+            text = text,
+            color = if (hovered) DesktopTheme.ink else DesktopTheme.inkMuted,
+            style = if (numeric) DesktopTheme.numeric else DesktopTheme.label,
+            modifier = Modifier
+                .clip(BAND_READING_SHAPE)
+                .background(if (hovered) DesktopTheme.hoverSlot else Color.Transparent)
+                .hoverable(pointer)
+                .padding(horizontal = 4.dp, vertical = 1.dp),
+        )
+        if (hovered) BandTip(tip, accent)
+    }
+}
+
+/**
+ * The band's one **door**: a reading that is also a command — the zoom percentage, back to 100 %.
+ *
+ * It carries the window's three answers to the pointer (the accent at rest, the hover slot under it, the plate
+ * while pressed) and no ripple: the band is 24 dp tall, and a ripple in it would read as a fault.
+ */
+@Composable
+private fun BandDoor(text: String, tip: String, accent: String, onCommand: () -> Unit) {
     val pointer = remember { MutableInteractionSource() }
     val hovered by pointer.collectIsHoveredAsState()
     val pressed by pointer.collectIsPressedAsState()
-    Text(
-        text = zoomLabel(zoom, widthFitZoom),
-        color = if (hovered || pressed) DesktopTheme.accent else DesktopTheme.inkSecondary,
-        style = DesktopTheme.numeric,
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(if (pressed) DesktopTheme.activeSlot else Color.Transparent)
-            .hoverable(pointer)
-            .clickable(interactionSource = pointer, indication = null) {
-                onCommand(ShellCommand.FIT_WIDTH)
-            }
-            .padding(horizontal = 4.dp, vertical = 1.dp),
+    Box {
+        Text(
+            text = text,
+            color = DesktopTheme.accent,
+            style = DesktopTheme.numeric,
+            modifier = Modifier
+                .clip(BAND_READING_SHAPE)
+                .background(
+                    when {
+                        pressed -> DesktopTheme.activeSlot
+                        hovered -> DesktopTheme.hoverSlot
+                        else -> Color.Transparent
+                    },
+                )
+                .hoverable(pointer)
+                .clickable(interactionSource = pointer, indication = null) { onCommand() }
+                .padding(horizontal = 4.dp, vertical = 1.dp),
+        )
+        if (hovered) BandTip(tip, accent)
+    }
+}
+
+/** The tip itself: the window's hover pill, lifted clear of the band it belongs to. */
+@Composable
+private fun BandTip(label: String, accent: String) {
+    val lift = with(LocalDensity.current) { BAND_TIP_LIFT.roundToPx() }
+    StripPill(label = label, accent = accent, offset = IntOffset(0, -lift))
+}
+
+/**
+ * The window's own two facts in one reading: which stream the pen is, and — while the reader keeps the frame
+ * time on — the screen's rate against what the window reaches. The words behind them are [penTip].
+ */
+@Composable
+private fun PenReading(tablet: DesktopTablet?, frameTime: Boolean) {
+    val source = tablet?.source ?: PenSource.MOUSE
+    val hz = remember { displayRefreshHz() }
+    val paint = if (frameTime) FrameMeter.averageMs.takeIf { it > 0.0 } else null
+    BandReading(
+        text = listOfNotNull(source.label, bandMetrics(hz, paint)).joinToString(" · "),
+        tip = penTip(source, tablet?.dial == true, hz, paint),
     )
 }
+
+/** `free zoom`, `fit width`, `fit page`: the mode the canvas is in, as the band's own three words. */
+internal fun fitLabel(fit: FitMode): String = when (fit) {
+    FitMode.NONE -> "free zoom"
+    FitMode.WIDTH -> "fit width"
+    FitMode.PAGE, FitMode.AUTO -> "fit page"
+}
+
+/** What that mode means, in one sentence — the band's tip rather than a second label on it. */
+internal fun fitTip(fit: FitMode): String = when (fit) {
+    FitMode.NONE -> "Free zoom — the scale you set last"
+    FitMode.WIDTH -> "The page's width fills the window"
+    FitMode.PAGE, FitMode.AUTO -> "The whole page is in view"
+}
+
+/**
+ * The band's compact pair — `120 Hz · 3.2 ms` — the rate alone, or nothing when the host cannot name one: the
+ * numbers a reader compares at a glance, with the words kept for the tip ([penTip]).
+ */
+internal fun bandMetrics(hz: Int?, paintMs: Double?): String? {
+    if (hz == null || hz <= 0) return null
+    if (paintMs == null || paintMs <= 0.0) return "$hz Hz"
+    return String.format(Locale.ROOT, "%d Hz · %.1f ms", hz, paintMs)
+}
+
+/**
+ * The sentence behind [PenReading]: the pen's own claim, and — when the host can name one — the display's
+ * ceiling with what the window reaches of it. A machine that cannot say its rate says nothing about it rather
+ * than `refresh unknown`: a tip is a sentence about the window, not a field of one.
+ */
+internal fun penTip(source: PenSource, dial: Boolean, hz: Int?, paintMs: Double?): String = buildString {
+    append(penLabel(source, dial))
+    if (hz != null && hz > 0) {
+        append(" · ").append(refreshLabel(hz))
+        frameLabel(paintMs ?: 0.0, true)?.let { append(" · ").append(it) }
+    }
+}
+
+/** The hollow a reading's hover sits in, and how far above the band its tip stands. */
+private val BAND_READING_SHAPE = RoundedCornerShape(4.dp)
+private val BAND_TIP_LIFT = 26.dp
 
 /**
  * The recording indicator: a record dot in the document red, the take's own `mm:ss`, and a thin level
