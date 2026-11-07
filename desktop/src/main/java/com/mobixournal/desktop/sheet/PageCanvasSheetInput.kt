@@ -10,6 +10,7 @@ import com.mobixournal.desktop.tools.DesktopTool
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 
 /**
@@ -48,10 +49,17 @@ internal fun Modifier.sheetInput(
     hud: HudUi = HudUi(),
     navigation: DesktopNavigationState,
     scroller: SmoothScroller,
+    /** Whether the pointer is over a page at all — outside it the sheet wears the arrow, see [overPage]. */
+    overPage: Boolean = true,
 ): Modifier = this
-    .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode))
+    .pointerHoverIcon(
+        // The desk is not paper: a pen's ring, a hand or a caret over the void promises a gesture nothing
+        // there can take, so outside the sheet the pointer is the desktop's own arrow again.
+        if (overPage) toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode)
+        else PointerIcon.Default,
+    )
     .hoverTracking(pointer, followMouse)
-    .pageWheelScroll(tab, sheet, dialWheel, density, navigation, scroller, onFit, onViewport)
+    .pageWheelScroll(tab, sheet, dialWheel, density, navigation, scroller, onFit, onViewport, edge = pointer.edge)
     .sheetGestures(
         tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft, targets, onViewport, onEdited,
         hud = hud,
@@ -65,6 +73,7 @@ internal fun Modifier.sheetInput(
         // the same fluidity curve, because it is the same glide (`flingBy`).
         handGain = handScrollGain(navigation.scrollStepDp),
         onFling = { dx, dy -> flingHand(scroller, navigation, tab, sheet, onViewport, dx, dy) },
+        onEdge = pointer.edge::report,
     )
 
 /**

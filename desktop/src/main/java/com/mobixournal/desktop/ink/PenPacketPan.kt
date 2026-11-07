@@ -1,6 +1,9 @@
 package com.mobixournal.desktop.ink
 import com.mobixournal.desktop.settings.LocalNavigationState
+import com.mobixournal.desktop.sheet.EdgeBumpState
+import com.mobixournal.desktop.sheet.EdgeHit
 import com.mobixournal.desktop.sheet.FLING_SECONDS
+import com.mobixournal.desktop.sheet.edgeRefusal
 import com.mobixournal.desktop.sheet.PEN_GAIN
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.flingBy
@@ -51,6 +54,8 @@ internal class PenPacketPan(
      * dp the sheet travels per dp the pen does: [penScrollGain], over Settings ▸ Scrolling's distance.
      */
     private val gain: Float = PAN_GAIN,
+    /** The side a batch's travel was refused on, so the window can flash it (`EdgeBump`). */
+    private val onEdge: (EdgeHit) -> Unit = {},
     /** The release glide, in dp of projected travel: the Scrolling section's *Smooth scrolling*. */
     private val onRelease: (Float, Float) -> Unit = { _, _ -> },
 ) {
@@ -102,8 +107,12 @@ internal class PenPacketPan(
         // Applied even when the batch ended the drag: a lift is not a reason to throw away the travel
         // that arrived with it, and the last frame of a pan is the one the eye follows.
         if (dx == 0f && dy == 0f) return
+        val before = viewport()
+        val after = before.pannedBy(dx, dy, pageW, pageH, viewW, viewH)
+        // A hand that has reached the paper's edge is told so by the flash, not by a page that stops.
+        edgeRefusal(before, after, dx, dy)?.let(onEdge)
         DesktopDiagnostics.panPackets(dy)
-        onViewport(viewport().pannedBy(dx, dy, pageW, pageH, viewW, viewH))
+        onViewport(after)
     }
 
     /**
@@ -227,6 +236,8 @@ internal fun PenPacketPan(
     onViewport: (Viewport) -> Unit,
     /** The canvas's shared ownership flag: what stands the Compose pan aside. */
     owns: MutableState<Boolean>,
+    /** The canvas's edge reading: a pan that reaches the paper's side flashes it (`EdgeBump`). */
+    edge: EdgeBumpState,
     packets: PenPacketSource?,
 ) {
     // Settings ▸ Scrolling is the reader's answer to *how a scroll goes*, and the pen is a scroll: the
@@ -248,6 +259,7 @@ internal fun PenPacketPan(
             onViewport = onViewport,
             onOwnership = { owns.value = it },
             gain = penScrollGain(navigation.scrollStepDp),
+            onEdge = edge::report,
             onRelease = { dx, dy ->
                 if (navigation.smoothScroll) {
                     scroller.flingBy(

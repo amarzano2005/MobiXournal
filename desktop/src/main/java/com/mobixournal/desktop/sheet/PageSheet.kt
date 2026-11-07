@@ -226,6 +226,7 @@ private fun PenPaths(
             density = density,
             onViewport = onViewport,
             owns = pointer.owns,
+            edge = pointer.edge,
             packets = packets,
         )
     }

@@ -127,10 +127,10 @@ internal suspend fun PointerInputScope.pageGestures(
     penVoice: () -> Boolean = { false },
     /** Stops a wheel glide still in flight, when the hand takes the sheet (see `sheetGestures`). */
     cancelGlide: () -> Unit = {},
-    /** Settings ▸ Scrolling's distance: the dp the hand travels per dp of pointer travel. */
+    /** Settings ▸ Scrolling's distance and glide, and where a refused edge is reported (`EdgeBump`). */
     handGain: Float = 1f,
-    /** Settings ▸ Scrolling's glide: the travel a release carries, or nothing when it is off. */
     onFling: (Float, Float) -> Unit = { _, _ -> },
+    onEdge: (EdgeHit) -> Unit = {},
 ) {
     // The drags' shared view: the live mapping, and the eased edge scroll each of them may ask for.
     val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
@@ -168,7 +168,7 @@ internal suspend fun PointerInputScope.pageGestures(
             penActive = penActive, pageW = pageW, pageH = pageH,
             viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
             hud = hud, penVoice = penVoice, cancelGlide = cancelGlide,
-            handGain = handGain, onFling = onFling,
+            handGain = handGain, onFling = onFling, onEdge = onEdge,
         )
     }
 }
@@ -202,6 +202,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
     cancelGlide: () -> Unit = {},
     handGain: Float = 1f,
     onFling: (Float, Float) -> Unit = { _, _ -> },
+    onEdge: (EdgeHit) -> Unit = {},
 ) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
@@ -242,7 +243,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
             // back where the gesture began, which is the bounce a pan on the tablet used to show.
             panByDrag(
                 viewport, pageW, pageH, viewW, viewH, onViewport, owned = penActive,
-                gain = handGain, onFling = onFling,
+                gain = handGain, onFling = onFling, onEdge = onEdge,
             )
             return@awaitEachGesture
         }

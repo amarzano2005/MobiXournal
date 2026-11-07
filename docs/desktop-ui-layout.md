@@ -264,3 +264,14 @@ ring is not held to those six: a logic gate or a flowchart arrow can sit at the 
 - **The dial is not part of it** (decision 2026-11-01). A turn still zooms at the cursor, its documented job in
   [`desktop-tablet.md`](desktop-tablet.md): the ring is a pick the pen is already making, and a second device for
   the same choice would be a second rule about what a notch means.
+
+### 5. What the window says back
+
+- **A side that refuses travel flashes.** A pan or a notch that runs into the page's edge is answered with a band of
+  accent along that side, fading over about a quarter of a second; a shove flashes harder than a graze. The rule is
+  the travel a clamp kept back (`sheet/EdgeBump.kt`), reported by every writer that can hit an edge — the hand's
+  drag, the pen's own packets, and the wheel both while it steps and while it glides — and painted over the canvas
+  by `EdgeBumpLayer`, so it never reaches the document. Mid-page nothing is drawn: rounding is not an edge.
+- **Outside the page the pointer is the arrow.** A ring, a hand and a caret all promise something the paper can take;
+  over the desk around it (`PageCanvasSheetInput.kt`) the pointer is the desktop's own arrow instead, so the cursor
+  says what the next press will do before it is made.

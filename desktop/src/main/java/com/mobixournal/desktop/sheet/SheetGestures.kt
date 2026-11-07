@@ -58,6 +58,8 @@ internal fun Modifier.sheetGestures(
     handGain: Float = 1f,
     /** Settings ▸ Scrolling's glide, as the travel a release carries ([flingBy]). */
     onFling: (Float, Float) -> Unit = { _, _ -> },
+    /** A side a drag's clamp refused travel on, for the window's edge flash (`EdgeBump`). */
+    onEdge: (EdgeHit) -> Unit = {},
 ): Modifier = pointerInput(
     tab, panMode, tool, ink, shapeInk, pen,
     sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH,
@@ -99,6 +101,7 @@ internal fun Modifier.sheetGestures(
         cancelGlide = cancelGlide,
         handGain = handGain,
         onFling = onFling,
+        onEdge = onEdge,
     )
 }
 
@@ -125,6 +128,8 @@ internal suspend fun AwaitPointerEventScope.panByDrag(
     owned: () -> Boolean = { false },
     /** dp the sheet travels per dp the pointer does — Settings ▸ Scrolling's *Scroll distance*. */
     gain: Float = 1f,
+    /** The side a clamp refused travel on, so the window can flash it (`EdgeBump`). */
+    onEdge: (EdgeHit) -> Unit = {},
     /** Carries the sheet on by ([dx], [dy]) dp when the hand lets go; nothing when the glide is off. */
     onFling: (Float, Float) -> Unit = { _, _ -> },
 ) {
@@ -146,11 +151,13 @@ internal suspend fun AwaitPointerEventScope.panByDrag(
                 DesktopDiagnostics.panSkipped()
             } else {
                 DesktopDiagnostics.panCompose(drag.y / density)
-                onViewport(
-                    currentViewport().pannedBy(
-                        drag.x / density * gain, drag.y / density * gain, pageW, pageH, viewW, viewH,
-                    ),
-                )
+                val before = currentViewport()
+                val wantX = drag.x / density * gain
+                val wantY = drag.y / density * gain
+                val after = before.pannedBy(wantX, wantY, pageW, pageH, viewW, viewH)
+                // What the clamp kept back is the edge the hand just ran into.
+                edgeRefusal(before, after, wantX, wantY)?.let(onEdge)
+                onViewport(after)
             }
             // The release speed, smoothed over the last events: one slow frame must not decide how far a
             // flick carries, and a hand that stops before lifting carries nowhere.

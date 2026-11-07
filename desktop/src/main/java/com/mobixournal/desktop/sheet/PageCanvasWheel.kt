@@ -109,6 +109,8 @@ internal fun Modifier.pageWheelScroll(
     scroller: SmoothScroller,
     onFit: (FitMode) -> Unit,
     onViewport: (Viewport) -> Unit,
+    /** The canvas's edge reading, so a notch that hits a side flashes it (`EdgeBump`). */
+    edge: EdgeBumpState? = null,
 ): Modifier = this
     // No press handler: cancelling the glide on a pointer press took the press with it, so the hand's
     // pan did nothing after a wheel notch until the tool was changed. A glide now ends by itself when
@@ -139,15 +141,27 @@ internal fun Modifier.pageWheelScroll(
                 viewH = sheet.viewH,
                 fluidity = navigation.scrollFluidity,
                 onViewport = onViewport,
+                // The glide's own target is where the clamp bites, so a notch into the edge flashes even
+                // though the sheet only arrives there a few frames later.
+                onRefused = { refusedX, refusedY -> edge?.report(edgeHitOf(refusedX, refusedY)) },
             )
         } else {
             scroller.cancel()
-            wheelViewport(
-                event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
+            val before = sheet.viewport
+            val after = wheelViewport(
+                event, before, sheet.zoom, density, sheet.pageW, sheet.pageH,
                 sheet.viewW, sheet.viewH, onFit,
                 forceZoom = false,
                 zoomRate = navigation.zoomStepWheel,
                 scrollStepDp = navigation.scrollStepDp,
-            )?.let(onViewport)
+            ) ?: return@onPointerEvent
+            edge?.report(
+                edgeRefusal(
+                    before, after,
+                    notchTravelDp(-change.scrollDelta.x, navigation.scrollStepDp),
+                    notchTravelDp(-change.scrollDelta.y, navigation.scrollStepDp),
+                ),
+            )
+            onViewport(after)
         }
     }

@@ -56,6 +56,9 @@ internal fun rememberCanvasState(tab: DesktopTab): CanvasState {
  */
 internal class PenPointer {
     val owns = mutableStateOf(false)
+
+    /** The side a scroll last ran into, for the flash that says so (`EdgeBump`). */
+    val edge = EdgeBumpState()
     val hover = mutableStateOf<Offset?>(null)
     val atNanos = mutableStateOf(0L)
     val grabLine = mutableStateOf<Double?>(null)

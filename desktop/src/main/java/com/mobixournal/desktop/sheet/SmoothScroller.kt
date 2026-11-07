@@ -85,6 +85,8 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
         onViewport: (Viewport) -> Unit,
         /** False for a **fling**: the hand already moved what it moved, so there is no lead step to make. */
         lead: Boolean = true,
+        /** The dp the clamp kept back, per axis — the edge a notch just ran into (`EdgeBump`). */
+        onRefused: (Float, Float) -> Unit = { _, _ -> },
     ) {
         val vp = currentViewport()
         val contentW = pageW * vp.zoom
@@ -93,8 +95,11 @@ internal class SmoothScroller(private val scope: CoroutineScope) {
         val baseTargetX = if (isRunning) targetX else vp.offsetX
         val baseTargetY = if (isRunning) targetY else vp.offsetY
 
-        targetX = PageIndexScroll.clamp(baseTargetX + dx, contentW, viewW)
-        targetY = PageIndexScroll.clamp(baseTargetY + dy, contentH, viewH)
+        val wantX = baseTargetX + dx
+        val wantY = baseTargetY + dy
+        targetX = PageIndexScroll.clamp(wantX, contentW, viewW)
+        targetY = PageIndexScroll.clamp(wantY, contentH, viewH)
+        onRefused(wantX - targetX, wantY - targetY)
 
         val curX = vp.offsetX
         val curY = vp.offsetY

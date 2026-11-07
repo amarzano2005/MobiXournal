@@ -31,6 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.MutableState
@@ -330,6 +332,7 @@ internal fun SheetCanvas(
     val navigation = LocalNavigationState.current
     val scroller = rememberSmoothScroller()
     DisposableEffect(tab) { onDispose { scroller.cancel() } }
+    val overPage = rememberOverPage(pointer, sheet, density)
 
     Box(Modifier.fillMaxSize()) {
         Canvas(
@@ -357,6 +360,7 @@ internal fun SheetCanvas(
                 hud = hud,
                 navigation = navigation,
                 scroller = scroller,
+                overPage = overPage.value,
             ),
         ) {
             paintSheetOf(
@@ -369,8 +373,31 @@ internal fun SheetCanvas(
         // the pointer stays visible where the faces are (`DesktopHudLayer`).
         DesktopHudLayer(hud, pointer, mark, density)
         GuideAimLayer(tab, pointer, sheet, density)
+        // A scroll that hit a side flashes it above the sheet, and only for a moment (`EdgeBump`).
+        EdgeBumpLayer(pointer.edge, Modifier.matchParentSize())
     }
 }
+
+/**
+ * Whether the pointer is over a page at all — outside it the sheet wears the arrow, because there is nothing
+ * out there for a ring, a hand or a caret to act on (`PageCanvasSheetInput.overPage`).
+ *
+ * Derived rather than read, so a hover that stays on its own side of the border does not recompose the canvas
+ * on every move: only crossing the paper's edge does.
+ */
+@Composable
+private fun rememberOverPage(pointer: PenPointer, sheet: SheetLayout, density: Float): State<Boolean> =
+    remember(pointer, sheet, density) {
+        derivedStateOf {
+            val at = pointer.hover.value
+            if (at == null) {
+                false
+            } else {
+                val (pageX, pageY) = sheet.viewport.toPage(at.x / density, at.y / density)
+                pageX >= 0f && pageX <= sheet.pageW && pageY >= 0f && pageY <= sheet.pageH
+            }
+        }
+    }
 
 /**
  * The marks **above** the painted sheet, in the canvas's own pixels: a PDF text selection (page space, like
