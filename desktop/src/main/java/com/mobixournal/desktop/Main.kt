@@ -1,4 +1,5 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.shell.WindowKeys
 import com.mobixournal.desktop.shell.requestExit
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.InkProbe
@@ -189,6 +190,9 @@ fun main(args: Array<String>) {
         val state = remember { DesktopShellState(recovery = DesktopRecovery()) }
         Window(
             onCloseRequest = { if (state.requestExit()) exitApplication() },
+            // The shortcuts are dispatched **here**, before the composition is asked, so no loss of
+            // composition focus can silence them (`WindowKeys` owns the rule).
+            onPreviewKeyEvent = { event -> WindowKeys.handle(event) },
             state = rememberWindowState(width = 1100.dp, height = 1000.dp),
             // Sets title and icon so the Windows taskbar preview card identifies the window as MobiXournal,
             // while DesktopTitleBar keeps the native Windows title bar text cleanly blended with the caption.

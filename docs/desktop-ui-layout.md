@@ -137,9 +137,10 @@ Everything the chrome does can also be done from the keyboard:
 | `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
 | `]` / `[` | wider / thinner — one step through `S`, `M`, `L`, stopping at the ends |
 
-**The Text tool's box takes the keyboard** — the one holder that does, because its field is on the page rather
-than over it — and hands it back to the window as it closes (`Esc`, a click elsewhere, a tool change), so a box
-used once never leaves every other shortcut dead.
+**The shortcuts are the window's, not the focus's** (`WindowKeys`): they are dispatched from the window's own
+key hook, before the composition is asked, so no gesture — a drag on the page, a box whose field closed — can
+silence them. The table stands down only for a real owner: an open Text box, an armed Shortcuts row, the
+settings surface, the open menu.
 
 Closing a dirty tab, or the window itself, raises the **Save / Discard / Cancel** question in the floating
 glass over the page rather than closing silently; `Esc` is Cancel and the window's X takes the same path.

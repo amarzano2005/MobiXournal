@@ -39,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -98,6 +100,10 @@ internal fun HeaderMenu(
     penPolicy: DesktopSettingsState? = null,
 ) {
     var open by remember { mutableStateOf(false) }
+    // The menu is the one popup that takes the keyboard (`MenuSurface`): while it is up the window's table
+    // stands down, so the Pen block's name field types rather than switching tools.
+    SideEffect { WindowKeys.menuOpen = open }
+    DisposableEffect(Unit) { onDispose { WindowKeys.menuOpen = false } }
     // The guard that lets a second click on the hamburger put the menu away (see [DismissGuard]).
     val guard = remember { DismissGuard() }
     val density = LocalDensity.current

@@ -1,4 +1,5 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.shell.WindowKeys
 
 import androidx.compose.runtime.rememberCoroutineScope
 import com.mobixournal.desktop.shell.openInBackground
@@ -45,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.window.FrameWindowScope
 import java.awt.EventQueue
 import java.awt.Frame
@@ -112,6 +112,7 @@ fun FrameWindowScope.DesktopApp(
     DisposableEffect(Unit) { onDispose { FullScreenMode.leave(window) } }
     // The window's X asked the shell first (`Main`), and the shell says when every answer is in.
     LaunchedEffect(state.exitAllowed) { if (state.exitAllowed) onExit() }
+    installWindowKeys(state, dialogs)
     // A tab holds a reader's file handle (a `.mobix` archive); closing the window closes them all.
     DisposableEffect(Unit) { onDispose { state.tabs.closeAll() } }
 
@@ -158,11 +159,23 @@ fun FrameWindowScope.DesktopApp(
             modifier = Modifier
                 .focusRequester(focus)
                 .focusable()
-                .onFocusChanged { keyboardHeld = it.hasFocus }
-                .onPreviewKeyEvent { event ->
-                    state.onKey(event, dialogs::openDocument, dialogs::saveAs, dialogs::exportPdf)
-                },
+                .onFocusChanged { keyboardHeld = it.hasFocus },
         )
+    }
+}
+
+/**
+ * Hand the window's key hook the shell's answer ([WindowKeys]): the shortcuts are the **window's**, not the
+ * composition's, so a page drag or a field that closed cannot silence the table — the pickers are the
+ * window's own dialogs, which is why this is installed here rather than in the shell.
+ */
+@Composable
+private fun installWindowKeys(state: DesktopShellState, dialogs: DocumentDialogs) {
+    DisposableEffect(state, dialogs) {
+        WindowKeys.onKey = { event ->
+            state.onKey(event, dialogs::openDocument, dialogs::saveAs, dialogs::exportPdf)
+        }
+        onDispose { WindowKeys.onKey = null }
     }
 }
 
