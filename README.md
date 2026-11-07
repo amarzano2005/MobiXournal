@@ -12,9 +12,9 @@
 
   <br />
 
-  <img src="docs/assets/preview.jpg" alt="MobiXournal 2.0.0 Android Tablet UI Preview" width="850" />
+  <img src="docs/assets/preview.jpg" alt="MobiXournal Android - UI Preview" width="850" />
   <br /><br />
-  <img src="docs/assets/preview-desktop.png" alt="MobiXournal Desktop 1.0.0 Windows 11 Ultrawide UI Preview" width="850" />
+  <img src="docs/assets/preview-desktop.png" alt="MobiXournal Desktop - UI Preview" width="850" />
 </div>
 
 **MobiXournal** is an open-source note-taking and scientific drafting suite for **Android tablets** and **Windows 11 PCs**, built over a single shared core (`mobix-core`). Both apps open, edit, save, and export the same notebooks with full support for active styluses, graphics tablets (Wacom, Huion, XP-Pen, Gaomon), and hardware shortcuts.
