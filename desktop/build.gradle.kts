@@ -62,8 +62,13 @@ compose.desktop {
             // other. It must stay numeric `X.Y.Z` — Compose writes it into the MSI's version resource
             // and Windows reads that as a number, so a suffix fails at packaging, not at review.
             // `scripts/todo.sh versions` prints and checks both lines.
-            packageVersion = "1.0.0"
-            description = "MobiXournal for Windows: native .mobix documents, lossless .xopp interchange"
+            packageVersion = "1.0.1"
+            // The app is **named** MobiXournal everywhere Windows asks for a name, and this line is one of
+            // those places: jpackage writes it into the launcher's file description, which is what Task
+            // Manager, the firewall prompt and Explorer's Details column show as the program — so a sentence
+            // here renamed the application in three lists. It reads the product name; the sentence that
+            // describes the product lives where a description is asked for (`desktop/installer/main.wxs`).
+            description = "MobiXournal"
             // The same art as the tablet's launcher: without it the packaged .exe is stamped with the
             // JVM's own icon, so an app that draws a notebook wore a coffee cup in Explorer.
             //
