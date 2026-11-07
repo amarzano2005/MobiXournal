@@ -5,7 +5,7 @@ what the page does when you scroll it, what the zoom percentage means, and a sta
 itself instead of reporting in the language of a profiler.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/amarzano2005/MobiXournal/main/docs/assets/preview-desktop-1.0.1.png" alt="MobiXournal Desktop 1.0.1 — the window with a page open" width="820" />
+  <img src="https://raw.githubusercontent.com/amarzano2005/MobiXournal/main/docs/assets/preview-desktop-1.0.1.png" alt="MobiXournal Desktop 1.0.1 — the Settings surface over the page, with the status band beneath it" width="820" />
 </div>
 
 ---
@@ -50,10 +50,6 @@ itself instead of reporting in the language of a profiler.
   pointer and the sheet reads presses it did not consume, so covering the page was never enough: dragging a
   slider also drew the line behind the panel. The surface now owns the pointer for as long as it is up, and
   the canvas carries no press handler while it does — the wheel follows the same rule.
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/amarzano2005/MobiXournal/main/docs/assets/preview-desktop-1.0.1-settings.png" alt="MobiXournal Desktop 1.0.1 — the Settings surface over the page" width="820" />
-</div>
 
 - **Shortcuts belong to the window.** They were dispatched from the root of the composition, so any way of
   losing composition focus silenced the whole table — a text box that came and went left every shortcut dead
