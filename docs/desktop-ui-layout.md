@@ -137,6 +137,10 @@ Everything the chrome does can also be done from the keyboard:
 | `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
 | `]` / `[` | wider / thinner — one step through `S`, `M`, `L`, stopping at the ends |
 
+**The Text tool's box takes the keyboard** — the one holder that does, because its field is on the page rather
+than over it — and hands it back to the window as it closes (`Esc`, a click elsewhere, a tool change), so a box
+used once never leaves every other shortcut dead.
+
 Closing a dirty tab, or the window itself, raises the **Save / Discard / Cancel** question in the floating
 glass over the page rather than closing silently; `Esc` is Cancel and the window's X takes the same path.
 A tab with unsaved edits wears a dot in the accent after its label (`docs/desktop-documents.md`).

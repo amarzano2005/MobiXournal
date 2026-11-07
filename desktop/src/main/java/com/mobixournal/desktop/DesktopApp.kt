@@ -80,7 +80,8 @@ fun FrameWindowScope.DesktopApp(
     // Whether anything in the window holds the keyboard. A panel that closes takes its text field with
     // it, and Compose is then left with **no** focused element — the shortcuts would be dead until the
     // page was clicked. The window hands the keyboard back to its root instead, so `Ctrl+Z` or `G` works
-    // the moment the panel is gone.
+    // the moment the panel is gone — and when the Text tool's box, the one holder that is not a panel,
+    // gives it back ([windowKeyboard]).
     var keyboardHeld by remember { mutableStateOf(false) }
 
     // Recovery first: a snapshot is newer than the file it stands for, so a file named on the command
@@ -91,7 +92,7 @@ fun FrameWindowScope.DesktopApp(
         state.start(initial)
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    LaunchedEffect(keyboardHeld) { if (!keyboardHeld) runCatching { focus.requestFocus() } }
+    windowKeyboard(focus, keyboardHeld, typing = state.textBox.box != null)
     // The system's title bar cannot be translucent, so it is painted the band's composited colour:
     // one surface from the top of the window down (`DesktopTitleBar`).
     LaunchedEffect(state.prefs.appearance.theme) {
@@ -163,6 +164,20 @@ fun FrameWindowScope.DesktopApp(
                 },
         )
     }
+}
+
+/**
+ * The **keyboard comes back to the window** whenever nothing else holds it: a panel that closes takes its own
+ * field with it, and the Text tool's box — the one holder that is not a panel, because the field is on the
+ * page — gives it back as it closes (`Esc`, a click elsewhere, a tool change).
+ *
+ * Both halves are the rule. Asking for the root while a box is open lifts the keystrokes out of the field;
+ * never asking again is what used to leave every shortcut dead after the Text tool had been used, with the
+ * page needing a click to get them back.
+ */
+@Composable
+private fun windowKeyboard(focus: FocusRequester, held: Boolean, typing: Boolean) {
+    LaunchedEffect(held, typing) { if (!held && !typing) runCatching { focus.requestFocus() } }
 }
 
 /**
