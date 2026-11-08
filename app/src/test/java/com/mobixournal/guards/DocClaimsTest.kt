@@ -239,6 +239,119 @@ class DocClaimsTest {
         }
     }
 
+    /**
+     * The merge engine runs on the `.mobix` open path, so no doc may call it dead code.
+     *
+     * `DocumentIo` merges a conflict sibling before the editor shows the document and records the
+     * outcome as a notification; the surface for that notification does not exist yet, which is a gap
+     * to state, not a reason to describe the engine as uncalled. The old sentences (`no caller`,
+     * `nothing in the app calls it`) survived a rename precisely because they name no symbol.
+     */
+    @Test
+    fun theMergeEngineIsNotDescribedAsDeadCode() {
+        val bridge = File(repoRoot(), "docs/xopp-bridge.md").readText().replace(Regex("\\s+"), " ")
+        assertTrue(
+            "docs/xopp-bridge.md must state that the app calls `MobixMergeEngine` on the `.mobix` open path",
+            "MobixMergeEngine" in bridge && "open path" in bridge,
+        )
+        val found = mutableListOf<String>()
+        for (file in prose()) {
+            file.readLines().forEachIndexed { i, line ->
+                if ("merge" !in line.lowercase()) return@forEachIndexed
+                val prose = line.replace(Regex("`[^`]*`"), " ").lowercase()
+                if ("no caller" in prose || "nothing in the app calls" in prose) {
+                    found += "${file.name}:${i + 1}"
+                }
+            }
+        }
+        assertTrue(
+            "these sentences call the merge engine dead code, but the app calls it on the `.mobix` " +
+                "open path (name the unsurfaced notification instead):\n  " + found.joinToString("\n  "),
+            found.isEmpty(),
+        )
+    }
+
+    /**
+     * Data tables ship with their editor, so the `.mobix` capability table must not deny it.
+     *
+     * The row used to read *Model only — no editor exists* while `TableCellEditorDialog` was already
+     * wired in the editor regions and another spoke described it; a reader scoping work from the
+     * format's own honesty column would have rebuilt a feature that exists.
+     */
+    @Test
+    fun theDataTableRowNamesTheEditorThatShips() {
+        val doc = File(repoRoot(), "docs/mobix-format.md")
+        val row = doc.readLines().firstOrNull { "| **Data tables**" in it }
+        assertTrue("docs/mobix-format.md must keep its data-table capability row", row != null)
+        assertTrue(
+            "the data-table row must state the shipping status, not 'no editor exists': $row",
+            row!!.contains("**Supported**") && "no editor exists" !in row,
+        )
+    }
+
+    /**
+     * The front door names the one conversion the window refuses.
+     *
+     * A packaged `.xopp` whose background lives inside the package cannot be written back faithfully
+     * by the window, which refuses it and leaves the file byte-identical. `Save As converts cleanly in
+     * either direction` promised otherwise at the exact moment a user hands the app their file.
+     */
+    @Test
+    fun theFrontDoorNamesTheConversionItRefuses() {
+        val readme = File(repoRoot(), "README.md").readText()
+        assertTrue(
+            "README.md must name the packaged `.xopp` the Windows window refuses to rewrite",
+            "packaged" in readme && "refuses" in readme,
+        )
+        assertTrue(
+            "README.md must not promise conversion 'cleanly in either direction' — the window refuses " +
+                "one case (docs/desktop-documents.md owns the refusal)",
+            "converts cleanly in either direction" !in readme,
+        )
+    }
+
+    /**
+     * Typst is a preserved source, not a typesetter.
+     *
+     * `MathFlavor.TYPST` keeps and marks the source; every rendering path typesets through the LaTeX
+     * parser and layout engine. Advertising `rendered as crisp vectors` bought a feature the build
+     * does not have, and the failure surfaced after a user had typed their first formula.
+     */
+    @Test
+    fun theTypstClaimStaysQualified() {
+        val found = mutableListOf<String>()
+        for (file in prose()) {
+            file.readLines().forEachIndexed { i, line ->
+                val lower = line.lowercase()
+                if ("typst" in lower && ("crisp vector" in lower || "rendered as" in lower)) {
+                    found += "${file.name}:${i + 1}"
+                }
+            }
+        }
+        assertTrue(
+            "a Typst source is preserved and marked, not typeset: state the limitation instead of " +
+                "promising rendered vectors:\n  " + found.joinToString("\n  "),
+            found.isEmpty(),
+        )
+    }
+
+    /**
+     * The engine's advanced curves have a placement boundary, and the doc says so.
+     *
+     * Parametric and polar curves are drawn, exported and round-tripped, but `MultiFunctionPlotter`
+     * places `y = f(x)` only — the reader who plans a UI for polar plots from the engine section needs
+     * that sentence in the same place as the feature.
+     */
+    @Test
+    fun thePlotPlacementBoundaryIsStated() {
+        val text = File(repoRoot(), "docs/math-engine.md").readText()
+        assertTrue(
+            "docs/math-engine.md must state that the plot tool places Cartesian curves only — a polar " +
+                "curve draws and exports, but cannot be created from it",
+            "places Cartesian curves only" in text,
+        )
+    }
+
     /** One forbidden sentence, and why it is forbidden. */
     private data class Claim(val text: String, val why: String, val onlyAbout: String? = null)
 

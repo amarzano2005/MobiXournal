@@ -43,7 +43,7 @@
 ## ✨ Key Features
 
 ### 📂 Workspace, Documents & Formats
-- **Sticky Format Policy**: Every opened file saves back in its own format (`.mobix` or `.xopp`), while **Save As** converts cleanly in either direction.
+- **Sticky Format Policy**: Every opened file saves back in its own format (`.mobix` or `.xopp`), while **Save As** converts in either direction — the Windows window refuses the one case it cannot write faithfully (a packaged `.xopp` with an embedded background) and leaves the file untouched.
 - **Multi-Tab & Split View**: Work across multiple tabs or side-by-side split panes; open a live mirror of the same notebook to view a reference page while writing on another.
 - **Universal Import & Export**: Annotate PDFs (replace or append specific page ranges), import Markdown/plain text and images (`PNG`, `JPEG`, `WebP`), and export vector PDFs, per-page SVGs, or PNGs.
 - **Safe Cloud & Local Saves**: Atomic staged writes protect cloud shares (Google Drive, Nextcloud, OneDrive, WebDAV), while incremental `.mobix` saves update only modified pages in milliseconds.
@@ -59,7 +59,7 @@
 - **Living 2D Function Plotter**: Plot Cartesian $y = f(x)$ and parametric $\{x(t), y(t)\}$ curves with live calculus analysis, shaded definite integrals, and interactive on-canvas parameter sliders.
 - **Electronic Circuits & IEEE Logic Gates**: Place and edit passive/active components (resistors, capacitors, inductors, diodes, LEDs, BJTs, op-amps, sources) and digital logic gates with magnetic pin snapping.
 - **Chemistry & Dimensioning**: Draw single, double, or triple chemical bonds, aromatic benzene rings, and a 60°/120° hexagonal bond lattice, or drag auto-measured millimeter dimension arrows.
-- **Relational Tables & Math Blocks**: Author resizable data tables with optional relational headers and in-place cell editing, plus re-editable LaTeX / Typst math formulas rendered as crisp vectors.
+- **Relational Tables & Math Blocks**: Author resizable data tables with optional relational headers and in-place cell editing, plus re-editable LaTeX formulas typeset as vectors and Typst sources kept intact through save and export.
 - **Virtual Drafting Instruments**: Rule exact lines and arcs against an on-canvas setsquare, compass, or protractor, or snap directly to lined, graph, dotted, and isometric paper meshes.
 
 ### 🎙️ Audio Sync, PDF & Full-Document Search

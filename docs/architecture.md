@@ -13,8 +13,8 @@ it answers — so a change loads one topic instead of the whole architecture.
 > ruling or an ink rule is never forked for the PC ([`desktop-workstation.md`](desktop-workstation.md),
 > [`desktop-documents.md`](desktop-documents.md)). A document lives in the native `.mobix`;
 > `.xopp` is the interchange format and the compatibility contract is [`xopp-bridge.md`](xopp-bridge.md)'s.
-> There is no sync: the merge engine is library code with no caller ([`mobix-format.md`](mobix-format.md)
-> owns it).
+> There is no sync product: a three-way merge runs when a document opens beside a conflicting copy, and
+> its report reaches no screen yet ([`xopp-bridge.md`](xopp-bridge.md) owns the mechanism).
 
 ---
 

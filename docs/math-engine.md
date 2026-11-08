@@ -94,6 +94,8 @@ Defined over a parameter range $t \in [t_{\min}, t_{\max}]$.
 Evaluated over an angular sweep $\theta \in [\theta_{\min}, \theta_{\max}]$:
 $$x(\theta) = r(\theta) \cos(\theta), \quad y(\theta) = r(\theta) \sin(\theta)$$
 - **Applications**: Rose curves ($r = \cos(k\theta)$), Archimedean spirals ($r = a\theta$), cardioids.
+- **Placement**: the plot tool places Cartesian curves only; a parametric or polar curve is drawn, exported
+  and round-tripped, but has no creation path on the canvas (`MultiFunctionPlotter`).
 
 ---
 

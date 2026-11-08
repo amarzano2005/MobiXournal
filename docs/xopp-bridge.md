@@ -104,10 +104,12 @@ not the position's, so a reordered page is still the same page), entries this bu
 written back untouched, and a payload read from a file and never inspected is re-written rather than
 orphaned.
 
-**Merging two copies is library code, not a product.** `MobixMergeEngine` in `format/mobix/` reconciles
-three sides (base, local, remote) per page and per element id; nothing in the app calls it, there is no
-sync UI, and no account. It stays because the identity work above is what makes it possible, and it is
-tested as a library.
+**Merging two copies is wired, but has no surface.** `MobixMergeEngine` in `format/mobix/` reconciles
+three sides (base, local, remote) per page and per element id, and the app calls it on the `.mobix` open
+path: when a conflict sibling exists, the merge runs before the editor shows the document, and the
+outcome is recorded as a notification on the loaded file. No screen displays that notification yet, so
+the merge is silent; there is no sync UI and no account. The engine is also exercised directly as a
+library, which is why the identity work above pays for it.
 
 **What a reader refuses, rather than opening something it cannot keep:** a page (or chunk) the manifest
 names but the archive does not carry (a corrupt file, never an empty page), a `formatVersion` from a
