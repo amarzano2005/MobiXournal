@@ -41,16 +41,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: python3 scripts/todo/todo.py verify-release --version "${{ github.ref_name }}"
 
-      # Docs are part of the change (`docs/doc-governance.md`), and their guards live in the app's unit
-      # test source set. Running them first means a broken link, an unindexed page or a module the build
-      # no longer has fails under a step named for it, instead of inside the full suite's output.
-      - name: Check the documentation
-        run: >
-          ./gradlew :app:testDebugUnitTest
-          --tests "com.mobixournal.guards.DocsGuardTest"
-          --tests "com.mobixournal.guards.DocClaimsTest"
-          --stacktrace
-
       # `testDebugUnitTest` is a task only the Android module has, so naming it alone ran that
       # module's suite and nothing else: the `.xopp`/`.mobix` codecs, the model and `FormatDriftTest`
       # live in `mobix-core`, which has a plain JVM `test` task. Both are named here, and
@@ -85,6 +75,40 @@ jobs:
           draft: false
           prerelease: false
           body_path: docs/releases/${{ github.ref_name }}.md
+
+  # The documentation checks are their own job, for three reasons the earlier arrangement could not give:
+  # a broken link or an unindexed page fails under a check *named* for it, a documentation-only patch is
+  # answered without waiting for an APK to be signed, and a failing suite below can no longer carry a
+  # documentation failure inside its own output — or the reverse. The two guard classes are the whole
+  # check: `DocsGuardTest` owns the shape of the corpus (the index, links, anchors, the 300-line budget,
+  # duplicated sentences, and the files and task ids a page names), `DocClaimsTest` the statements no file
+  # can witness. They are the app's unit tests, so this reuses the build rather than adding a second
+  # toolchain, and it names no suite task the build job also runs.
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Check the documentation
+        run: >
+          ./gradlew :app:testDebugUnitTest
+          --tests "com.mobixournal.guards.DocsGuardTest"
+          --tests "com.mobixournal.guards.DocClaimsTest"
+          --stacktrace
 
   # The desktop shell is Windows 11 only (`docs/desktop-workstation.md`), so its suite runs on a
   # Windows runner instead of the Ubuntu one above. It is a separate job rather than a step because
