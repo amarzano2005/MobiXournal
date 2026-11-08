@@ -707,15 +707,17 @@ class DocsGuardTest {
     }
 
     /**
-     * The user-facing pages: `docs/guide-*.md` today, `docs/guide/<page>.md` after the folder move, with the
-     * guide index excluded — it is a router, and a router's job is to link pages rather than an owner.
+     * The user-facing task pages: `docs/guide-*.md` today, `docs/guide/<page>.md` after the folder move. The
+     * guide index is excluded at both shapes — it is a router, and a router's job is to link pages rather
+     * than to own a rule, so the three task-page rules below do not apply to it.
      */
     private fun guidePages(): List<File> {
         val flat = docs.listFiles { f: File -> f.isFile && f.name.startsWith("guide-") && f.extension == "md" }
+            ?.filter { it.name != "guide-index.md" }
         val nested = File(docs, "guide")
             .listFiles { f: File -> f.isFile && f.extension == "md" }
             ?.filter { it.name != "index.md" }
-        return ((flat ?: emptyArray<File>()) + (nested ?: emptyList())).sortedBy { it.name }
+        return ((flat ?: emptyList<File>()) + (nested ?: emptyList<File>())).sortedBy { it.name }
     }
 
     /** The docs under the budget and heading rules: everything in `docs/`, minus the release archive. */

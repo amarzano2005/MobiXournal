@@ -386,7 +386,7 @@ Five phases, each independently shippable and revertable. Phase 0 is half a day 
 | TR-10 | `limitations.md` (status matrix) | F-08 | M | §6.3 sign-off |
 | TR-11 | `troubleshooting.md` extracted from the window's failure copy | F-09 | S | TR-10 |
 | TR-12 | `install-android.md`, `install-windows.md` | F-01 | M | TR-10 |
-| TR-13 | `guide/index.md` with the three entry rows | F-10 | S | TR-10…TR-12 |
+| TR-13 | `guide-index.md` (flat, like its pages; the folder move is TR-36) with the three entry rows | F-10 | S | TR-10…TR-12 |
 | TR-14 | README: replace *Try It* with the two guide links; leave the rest for Phase 3 | F-01, F-10 | XS | TR-12 |
 | TR-15 | Extend `DocsGuardTest` for the guide layer (registration, task line, cross-link) | N1–N4 | M | TR-10…TR-13 |
 

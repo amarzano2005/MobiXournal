@@ -78,6 +78,8 @@ holds the per-version changelogs.
 These are written for the person using the app rather than the person changing it, so they are not
 architecture spokes: they quote behaviour and link to the owner of each rule.
 
+- [guide-index.md](guide-index.md) — the three entry rows: install on a tablet or a PC, or get past a
+  failed open or save.
 - [guide-install-android.md](guide-install-android.md) — installing on a tablet, where documents live.
 - [guide-install-windows.md](guide-install-windows.md) — the MSI, the folder build, uninstalling.
 - [guide-troubleshooting.md](guide-troubleshooting.md) — the failure copy, refused saves, recovery.

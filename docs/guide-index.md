@@ -1,0 +1,22 @@
+# The user guide
+
+> Read when you have just installed MobiXournal, or something did not go the way you expected, and you
+> want the page for that job rather than the architecture.
+
+_A guide page for Android and Windows: a router to the task pages. The internal map is [architecture.md](architecture.md)._
+
+Each row is a job, not a topic, so the page you land on opens by telling you what it is for. The pages
+quote the app's own words and link to the doc that owns each rule; nothing here describes how the program
+is built.
+
+| If you want to… | Open |
+|---|---|
+| put MobiXournal on an Android tablet or phone, and find the notebooks afterwards | [Installing on Android](guide-install-android.md) |
+| install the Windows window from the MSI, or run it without installing anything | [Installing on Windows 11](guide-install-windows.md) |
+| get past an open that was refused or a save that did not happen, and recover a notebook after a crash | [When something goes wrong](guide-troubleshooting.md) |
+
+## Adding a page
+
+A new task page is a new `docs/guide-*.md` file with a `# Title` naming the job, a `> Read when …` line, a
+task line, a link to the owning spoke, and a row in the table above. `DocsGuardTest` fails the build when
+one of those is missing.
