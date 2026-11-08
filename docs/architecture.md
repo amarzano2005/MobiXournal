@@ -54,6 +54,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`audio.md`](audio.md) | recording and the recorders, bundled audio, the playhead, the karaoke replay and the window's audio | you change how a recording is made, kept, or followed by the ink |
 | [`images.md`](images.md) | image import, pixmap background, path resolution | you change image handling or background pixmaps |
 | [`pdf.md`](pdf.md) | PDF backgrounds, font caches, text selection, bookmarks outline | you change PDF rendering, text selection or export |
+| [`pdf-backgrounds.md`](pdf-backgrounds.md) | a PDF page shown as a background: the renderer, its caches, and a reference that still resolves | you change how a background is drawn, cached or written |
 | [`text-and-markdown.md`](text-and-markdown.md) | text/markdown import, paginator, layout engine | you change text or markdown import |
 | [`search.md`](search.md) | document search, handwriting index, recognition engines | you change search or recognition |
 | [`testing.md`](testing.md) | unit test coverage, architectural guards, mechanical rules | you want to know what protects a change |

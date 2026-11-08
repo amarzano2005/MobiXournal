@@ -155,7 +155,7 @@ regenerate it on write (or omit it — desktop tolerates its absence).
   - `domain="absolute"` — `filename` is the PDF's path/URI; the .xopp links to it in place (what
     the gzip `ORIGINAL` format writes). There is **no `relative` domain**: desktop carries a
     relative path under this same domain and resolves it against the .xopp's own folder
-    (`LoadHandler::getAbsoluteFilepath`), using an absolute one as-is. See [Relative PDF references](pdf.md#relative-pdf-references) — a relative path is the portable form, so it is what we prefer to write.
+    (`LoadHandler::getAbsoluteFilepath`), using an absolute one as-is. See [Relative PDF references](pdf-backgrounds.md#relative-pdf-references) — a relative path is the portable form, so it is what we prefer to write.
   - `domain="attach"` — the PDF is bundled *inside* the `ZIPPED` container as the `bg.pdf` archive
     entry; `filename` is that in-archive name (`bg.pdf`), which desktop resolves via
     `readZipAttachment`. Self-contained and portable, and reopens with its background intact in this
