@@ -197,7 +197,15 @@ failure).
    git push origin v1.1.0
    ```
 
-4. **Watch the workflow.** The release appears on GitHub with `app-release.apk` and `MobiXournal-<version>.msi` attached.
+4. **Revisit the two pages that carry the version.** The status matrix in
+   [`guide-limitations.md`](guide-limitations.md) opens by naming the builds it describes, so that line
+   moves with the release, and a row whose evidence changed during it is re-checked rather than left
+   standing on an older test. [`releases/index.md`](releases/index.md) then takes the new version into its
+   two current-version lines and its table, so the newest note is reachable without reading the folder.
+   Neither is generated: the command knows which tasks shipped, not which capability changed, and the
+   matrix is a judgement about a build rather than a list of commits.
+
+5. **Watch the workflow.** The release appears on GitHub with `app-release.apk` and `MobiXournal-<version>.msi` attached.
 
 The workflow enforces the freeze rather than trusting it: every run lints both task files and runs
 the task CLI's own regression checks — `test_store.py` for the order the file promises, `test_done.py`
