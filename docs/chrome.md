@@ -33,7 +33,7 @@ can place. The tour that asks it is owned by [`stylus.md`](stylus.md#first-launc
 
 The chrome never sits **on** the page: the header (top bar plus its tabs row) and the rail's lane each
 take a band of their own and the canvas takes what is left, so the whole visible page stays writable —
-see [chrome-frame.md](chrome-frame.md). The **desktop window** is the one shell whose tool strips float
+see [the frame around the page](#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest). The **desktop window** is the one shell whose tool strips float
 instead (2026-10-26): a cursor says what is about to be touched — `docs/interface-contract.md` owns it.
 
 `orderedTopBarItems` places a slot the saved order doesn't name (one added since that order was written) at its **factory
@@ -213,9 +213,63 @@ after a scroll and brightest while dragged, with a page-number bubble beside it.
 control lying on the page, and it never covers a line of the ruling; it is pure navigation, with no
 `.xopp` state, so nothing round-trips.
 
-The frame's bands and divider, the saved toolbar order and the page-less canvas are [chrome-frame.md](chrome-frame.md)'s.
-
 The Settings shell, its search and the prefs behind them are [chrome-settings.md](chrome-settings.md)'s.
+
+## The frame around the page: the chrome's bands, and the canvas's rest
+
+**The chrome is laid out beside the page, never on it**: the header band and the rail's lane are rows of
+the layout, and the canvas (`DrawingSurfaceView`) is handed what is left. `EditorScreen` is a `Column`
+(header first, `EditorBody` in the weight that remains); `EditorBody` is a `Row` of the rail's lane
+(exactly `SideToolbarModernTotalWidth`, the edge `AppSettings.toolbarPosition` names) and the canvas. The
+**document tabs** are the header's own second row, inside the bar's surface (`EditorTopBar`), inset by the
+lane plus their 8dp lead-in (`TAB_STRIP_LEAD_IN`), so no row of the chrome ends on an edge the row beside it
+does not share. In **split view** that row is cut the way the canvas is (`SplitTabRow`): one strip per pane,
+cut by the same `splitPaneSpans` and 22dp handle gap the divider uses (`SPLIT_HANDLE_WIDTH`, whose semantics
+are [data-path.md](data-path.md)'s), the focused pane's badge accent-filled and the other outlined.
+
+**The split's divider is furniture, not a bar.** A hairline rule (`RULE_WIDTH`) that **fades into the sheet
+at both ends** with a **floating capsule grip** on it — a frosted fill (`surfaceContainerHighest`), a hairline
+border and an accent-blue core, lifted by a soft shadow. Nothing fills the 22dp grab lane, so the two pages
+still read as two sheets with the desk between them; in hand the capsule widens, brightens and settles back to a quiet bead on release, transient furniture *over* the seam that never covers a pixel inside either
+sheet.
+
+**The sheet starts on the frame's edge.** `PageStacker` begins the first row at zero and the gap separates
+pages — it is not a margin around the document — so no strip of desk runs between the header's closing edge
+and the paper. The lane's edge and the header's are one corner: the header's segment is inset by the lane's
+width and the lane fades that edge down its canvas side ([interface-contract.md](interface-contract.md),
+the Band row).
+
+**The desk, and why no band floats.** `EditorScreen`'s `Scaffold` takes `rememberChromeColor()` (the scheme's
+`background`, the colour the canvas paints around a page), so the header, the lane and the bottom band read as
+one surface with the page lying on it. Whatever the chrome occupies the canvas does not: a bar floating *on*
+the page hides the ink under it and swallows the stylus, on the strip a hand reaches first. The rule and its
+carve-out are [ui-modernization.md](ui-modernization.md#core-design-principles)'s: *bands never lie on the
+page; transient surfaces may*.
+
+**The canvas is the screen.** The document runs edge to edge under both system bars: `MainActivity` takes the
+window out of the system's insets (`setDecorFitsSystemWindows(false)` + `enableEdgeToEdge`) and every
+system-bar colour it sets — and that `XoppTheme` sets — is **transparent**, so only the bars' own contents
+draw over the page's edges. `XoppTheme`'s `SideEffect` now only *chooses the icon contrast*
+(`isAppearanceLightStatusBars` / `…NavigationBars`): the app has no colour of its own in the system bars,
+only icons. The split is not theoretical — a while ago `XoppTheme` painted both bars while `MainActivity` set
+them transparent, and an opaque `navigationBarColor` is drawn by the framework *above* the window (measured
+as a hard-edged `#FAF8FF` band), so the page stopped 64px short of the bottom edge.
+
+**One header, one slab — and no line through it.** The bar and the tabs row are the two rows of *one*
+surface, and nothing is drawn along the header's edges or between its rows: the slab's own colour and the
+`4dp` shade it draws *inside* its bottom edge are the whole of its edge. It used to wear a `BorderStroke` rim
+**and** a hairline inside itself (`Modifier.topHairline`), which on the true-black dark scheme read as three
+grey rules across the window; both went on request (2026-10-13). The rows are `TOP_BAR_ROW_HEIGHT` (52dp,
+`ui/TopBarIndicator.kt`), padded by `statusBarsPadding()` — a device value, deliberately not part of the
+constant — and `TAB_STRIP_HEIGHT` (`ui/TabStrip.kt`, 38dp), so the lane starts below the whole header.
+
+## A saved toolbar order is not a stale one
+
+`AppSettings.topBarOrder`'s *default* is `DEFAULT_TOP_BAR_ORDER`, and `orderedTopBarItems()` puts any slot
+the saved order doesn't name at its **factory position** (above). The other half is a slot that *moved*: the
+whole settings object is written on any save, so an install whose row was never touched carries a full copy of the factory list **as it was then**, and a saved order deliberately wins. `migrateTopBarOrder()` is the
+one-shot repair: an order still equal to an old factory list (`LEGACY_TOP_BAR_ORDERS`) is refreshed once behind
+the `top_bar_order_migrated_v2` flag, while a hand-arranged row is never rewritten.
 
 ## Starting with nothing open
 

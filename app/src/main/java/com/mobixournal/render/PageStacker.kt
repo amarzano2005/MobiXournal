@@ -122,7 +122,7 @@ internal object PageStacker {
         val contentWidth = maxOf(viewWidthPx.toFloat(), placed.maxOfOrNull { it.width } ?: 0f)
         val boxes = ArrayList<PageBox>(placed.size)
         // The **first** page starts at the content's own top, so it begins directly under the frame's
-        // closing edge with no strip of desk between them — `docs/chrome-frame.md` owns the rod.
+        // closing edge with no strip of desk between them — `docs/chrome.md` owns the rod.
         // [gapPx] therefore separates pages, it is not a margin around the document.
         var top = 0f
         for (page in placed) {

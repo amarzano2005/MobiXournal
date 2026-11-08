@@ -44,8 +44,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`stylus.md`](stylus.md) | the pointer as input: tool detection, the barrel button, pen diagnostics, graphics tablets, first-launch onboarding | you change what a stylus or pen *is* to the app |
 | [`gestures.md`](gestures.md) | pointer motion: wheel, palm rejection, pressure → width, smoothing, hover, momentum, multi-finger taps, telemetry | you change how a pointer's movement is read |
 | [`colours.md`](colours.md) | shared colour picker, palette state, desktop colour parity | you change colour selection or palettes |
-| [`chrome.md`](chrome.md) | the editor screen, the rail's Colour & size slot and its sizing, the Material 3 dock | you change the editor's chrome or the rail |
-| [`chrome-frame.md`](chrome-frame.md) | the bands around the page and the saved toolbar order | you change where the chrome sits |
+| [`chrome.md`](chrome.md) | the editor screen, the rail, the toolbars, the frame around the page and the saved toolbar order | you change where the chrome sits or what a band does |
 | [`chrome-settings.md`](chrome-settings.md) | the phone's Settings shell: its areas, sidebar and search | you change how Settings is presented on the tablet |
 | [`ui-modernization.md`](ui-modernization.md) | the design system: tokens, glass material, true-black depth, type, motion | you change the look of the chrome, on either shell |
 | [`desktop-ui-layout.md`](desktop-ui-layout.md) | the PC window's layout: panes, strip placement, universal shortcuts | you change the window's arrangement |

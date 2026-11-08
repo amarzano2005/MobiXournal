@@ -40,7 +40,7 @@ window's own panes and strips by [desktop-ui-layout.md](desktop-ui-layout.md).
   $85\text{--}90\%$ opacity, $1\text{ px}$ hairline at $12\%$ alpha) that live in **bands of their own** —
   the header across the top and the rail's lane down one edge — so the glass reveals the **desk** the page
   lies on. A bar *on* the sheet hides the ink under it, swallows the stylus there, and covers the top of the
-  sheet, where a hand reaches first ([chrome-frame.md](chrome-frame.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
+  sheet, where a hand reaches first ([chrome.md](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
   **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: an anchored
   popover, dialog or selection bar comes and goes with the gesture, so it may sit over the ink, never as a band.
 - **One edge per surface**: a header closes on **one** bottom edge, with one shadow and **no rim**; in the
@@ -212,7 +212,7 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   and the header carries the document tabs as its second row (the principle above).
 - **The canvas takes the rectangle the chrome leaves** — the rail's lane down one edge and the header band
   above — so the page is never underneath the glass and the whole visible sheet stays writable. See
-  [`chrome-frame.md`](chrome-frame.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
+  [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
 - **Settings opens *and* closes with the app's own spring**: the settings screen is an overlay on the
   still-composed editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector —
   overlaid by a `DialogPresence(ui.showSettings)` gate, so the departure is drawn too instead of the

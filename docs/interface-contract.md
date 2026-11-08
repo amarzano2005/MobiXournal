@@ -7,7 +7,7 @@
 
 This is a **prescriptive** document, not a description of what exists: the design system's numbers live in
 [`ui-modernization.md`](ui-modernization.md) and `DesignTokens`, the layout in [`chrome.md`](chrome.md) and
-[`chrome-frame.md`](chrome-frame.md) — and, for the window, [`desktop-ui-layout.md`](desktop-ui-layout.md).
+[`chrome.md`](chrome.md) — and, for the window, [`desktop-ui-layout.md`](desktop-ui-layout.md).
 Where a rule below names a test, that test is the enforcement — a rule with no enforcement is either given
 one in the same change or removed from this contract.
 
