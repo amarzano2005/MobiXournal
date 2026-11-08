@@ -1,6 +1,7 @@
 # Pages, paper and backgrounds
 
 > Read when you change a page's paper (ruling, templates, background chooser), bookmarks, or the page list.
+> For the task: [Your first notebook](guide-first-notebook.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
