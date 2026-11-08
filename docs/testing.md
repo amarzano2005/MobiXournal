@@ -72,7 +72,8 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   names, `dp` measurements and changelog narration forbidden), their links resolving like a spoke's, and every file at the repository root named by something (a doc,
   a test or a script) rather than left there as an orphan. The guide layer adds four rules of its own: every guide page
   carries a task line naming its audience and platform, links at least one owner spoke, closes on that
-  link with `## How it works`, and is registered in the index.
+  link with `## How it works`, and is registered in the index; the spokes those pages lean on name the
+  page back in a `For the task` line at the end of their reader block.
 - **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
   (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from
   `DesktopSettingSection` so a new section fails until the doc names it, and every test class a doc

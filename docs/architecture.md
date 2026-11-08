@@ -116,8 +116,8 @@ few fat documents — and from drifting into statements that are no longer true 
 
 - **a guide page loses its place** — each one under the guide layer carries a task line naming its audience
   and platform, closes on the spoke that owns the how with a `## How it works` section, and is registered
-  above, so a page written for a person
-  doing a job stays a pointer rather than a second home;
+  above, and each spoke it leans on names it back in a `For the task` line, so a page written for a
+  person doing a job stays a pointer rather than a second home;
 
 ### Adding a spoke
 

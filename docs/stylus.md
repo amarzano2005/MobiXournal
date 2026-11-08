@@ -2,6 +2,7 @@
 
 > Read when you change the input layer: tool detection, the barrel button, diagnostics, graphics
 > tablets and first-launch onboarding.
+> For the task: [What works, and what is not there](guide-limitations.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md). How a pointer's
 **motion** is read — wheel, palm rejection, pressure → width, smoothing, momentum, multi-finger taps,

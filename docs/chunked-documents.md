@@ -1,6 +1,7 @@
 # Chunked documents: how a board is stored, opened, written and queried
 
 > Read when implementing or extending spatial chunking, `chunks/`, `canvas.json`, or the incremental save of a chunked document.
+> For the task: [What works, and what is not there](guide-limitations.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

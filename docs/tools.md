@@ -1,6 +1,7 @@
 # Tools & build pipelines
 
 > Read when you build, test, package or release the project, or reach for one of the tools it lists.
+> For the task: [Installing on Android](guide-install-android.md), [Installing on Windows 11](guide-install-windows.md), [What works](guide-limitations.md).
 
 Authoritative home for **external tooling** this project depends on: build pipelines, deploy scripts,
 device/emulator harnesses, code generators, and anything else outside the repo's own in-tree build.
@@ -72,8 +73,7 @@ upgrades in place, and back), writing `app/build/outputs/apk/release/app-release
 `/data/android` is a **machine-local path**. On a host that doesn't have it, `scripts/build.sh`
 stops immediately ("Shared Android toolchain not found at /data/android") and the build runs on the
 host's own toolchain — the `./gradlew` loop `AGENTS.md` already lists for host systems. Two things
-the container would otherwise supply have to be there, and they are where a host build usually
-fails:
+the container would otherwise supply have to be there, and they are where a host build usually fails:
 
 - **A supported JDK.** `./gradlew` runs on the JDK `JAVA_HOME` points at, and a Gradle version
   accepts only a range of them — newer than that range, the build dies before compiling anything

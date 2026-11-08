@@ -209,14 +209,7 @@ class DocsGuardTest {
                 problems += "${page.name}: its last section is $found, not \"## How it works\""
                 continue
             }
-            val owners = lines.drop(lastHeading + 1)
-                .flatMap { line -> Regex("""\]\(([^)\s]+)\)""").findAll(line).map { it.groupValues[1] } }
-                .map { target -> File(page.parentFile, target.substringBefore('#')).canonicalFile }
-                .filter { file ->
-                    file.isFile && file.name != index && file.path.startsWith(docs.canonicalPath) &&
-                        file.parentFile?.name != "guide" && !file.name.startsWith("guide-")
-                }
-            if (owners.isEmpty()) {
+            if (ownersOf(page).isEmpty()) {
                 problems += "${page.name}: \"## How it works\" links no owning spoke"
             }
         }
@@ -224,6 +217,31 @@ class DocsGuardTest {
             "a guide page has to end by naming the spoke that owns the how, or the guide becomes the " +
                 "only description of the rule:\n  " + problems.joinToString("\n  "),
             problems.isEmpty(),
+        )
+    }
+
+    /**
+     * A spoke a task page leans on names the page back.
+     *
+     * N3: the reader block ends with `For the task`, linking the page. One direction alone is how a guide
+     * turns into the only description of a rule; the other is how a developer reading the mechanism finds
+     * the page that has to change with it. So every owner a guide page links has to name that page in a
+     * `For the task` line — the same line the page's closing section points at.
+     */
+    @Test
+    fun everyOwnerNamesTheTaskPageThatLeansOnIt() {
+        val missing = mutableListOf<String>()
+        for (page in guidePages()) {
+            for (owner in ownersOf(page)) {
+                if (owner.readLines().none { "For the task" in it && page.name in it }) {
+                    missing += "${owner.name} names no ${page.name} in a `For the task` line"
+                }
+            }
+        }
+        assertTrue(
+            "a spoke a guide page leans on names it back at the end of its reader block, so the two " +
+                "halves of one fact stay findable from either side:\n  " + missing.joinToString("\n  "),
+            missing.isEmpty(),
         )
     }
 
@@ -264,17 +282,7 @@ class DocsGuardTest {
                     missing += "${page.name}: its task line lost the link back to the index"
                 }
             }
-            val owners = Regex("""\]\(([^)\s]+)\)""").findAll(page.readText())
-                .map { target -> File(page.parentFile, target.groupValues[1].substringBefore('#')).canonicalFile }
-                .filter { file ->
-                    val path = file.path
-                    // The index is not an owner: every task line links it, so counting it here would
-                    // make this rule unfailable.
-                    file.isFile && file.name != index && path.startsWith(docs.canonicalPath) &&
-                        file.parentFile?.name != "guide" && !file.name.startsWith("guide-")
-                }
-                .toList()
-            if (owners.isEmpty()) {
+            if (ownersOf(page).isEmpty()) {
                 missing += "${page.name}: links no owner — a guide page points at the spoke that owns the how"
             }
             val registered = page.name in indexText ||
@@ -744,6 +752,25 @@ class DocsGuardTest {
             }
         }
         return ids
+    }
+
+    /**
+     * The docs a guide page leans on: relative links that resolve under `docs/` to something that is
+     * neither a guide page, the guide index, nor the architecture index. Those are the spokes whose
+     * rules the page quotes, and the ones that have to name the page back.
+     */
+    private fun ownersOf(page: File): List<File> {
+        val linked = Regex("""\]\(([^)\s]+)\)""").findAll(page.readText()).map { it.groupValues[1] }
+        return linked
+            .map { target -> File(page.parentFile, target.substringBefore('#')).canonicalFile }
+            .filter { file ->
+                // The index is not an owner: every task line links it, so counting it here would make
+                // the owner rule unfailable.
+                file.isFile && file.name != index && file.path.startsWith(docs.canonicalPath) &&
+                    file.parentFile?.name != "guide" && !file.name.startsWith("guide-")
+            }
+            .distinct()
+            .toList()
     }
 
     /**

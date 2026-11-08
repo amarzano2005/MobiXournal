@@ -4,6 +4,7 @@
 > it paints a page. What a drag *does* is [desktop-editing.md](desktop-editing.md); what the window does with a
 > file is [desktop-documents.md](desktop-documents.md); what the tests prove is
 > [desktop-testing.md](desktop-testing.md).
+> For the task: [Installing on Windows 11](guide-install-windows.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
@@ -297,4 +298,3 @@ it matching the tablet); **three tool placements ship** — a vertical rail on t
 same rail on the right edge for a left hand, and a horizontal ribbon under the header — chosen in
 **Settings**, not by a header chooser, where the order of the tools in the strip is set too; and the
 tab/view model is Compose **snapshot state**, redrawn by the state it reads instead of a second copy.
-

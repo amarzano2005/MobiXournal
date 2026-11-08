@@ -2,6 +2,7 @@
 
 > Read when you change what the `desktop/` window does with a file — how it decides a file's family, what it
 > says when an open or a save is refused, how a tab knows it has unsaved edits, and how a crash comes back.
+> For the task: [Installing on Windows 11](guide-install-windows.md), [When something goes wrong](guide-troubleshooting.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

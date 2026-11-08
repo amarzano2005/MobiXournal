@@ -1,6 +1,7 @@
 # The data path: opening, reading and saving
 
 > Read when you change how a document's bytes are sniffed, read, encoded or written.
+> For the task: [When something goes wrong](guide-troubleshooting.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

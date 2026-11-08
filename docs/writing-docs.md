@@ -2,6 +2,7 @@
 
 > Read when you write, rewrite or review documentation — a file under `docs/`, `README.md`, a release
 > note, or the words the app shows when something fails.
+> For the task: [What works, and what is not there](guide-limitations.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md). Which file owns
 which fact is the map in [AGENTS.md](../AGENTS.md)._
