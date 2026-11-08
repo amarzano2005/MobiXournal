@@ -623,6 +623,40 @@ class DocsGuardTest {
         )
     }
 
+    /**
+     * The status vocabulary is spent on one page.
+     *
+     * `writing-docs.md` defines the six words and `guide-limitations.md` is the only page that may put
+     * one against a capability; every other page links it. Four scattered sources in three vocabularies
+     * are what the guide layer replaced, and a fifth — a spoke calling a feature "Experimental" in
+     * passing — is how that comes back: the reader then holds two answers and no way to tell which the
+     * release honours.
+     */
+    @Test
+    fun onlyTheStatusPagesSpendTheStatusWords() {
+        val owners = setOf("writing-docs.md", "guide-limitations.md")
+        val words = listOf(
+            "Supported", "Partially supported", "Experimental",
+            "Planned", "Not supported", "Not verified",
+        )
+        val found = mutableListOf<String>()
+        for (file in docsOfRecord()) {
+            if (file.name in owners) continue
+            file.readLines().forEachIndexed { i, line ->
+                for (word in words) {
+                    if (Regex("""\\b""" + Regex.escape(word) + """\\b""").containsMatchIn(line)) {
+                        found += "${file.name}:${i + 1} states `" + word + "`"
+                    }
+                }
+            }
+        }
+        assertTrue(
+            "the status vocabulary belongs to `writing-docs.md` (the definition) and " +
+                "`guide-limitations.md` (the matrix) — state it there and link the page: $found",
+            found.isEmpty(),
+        )
+    }
+
     /** A reference to a spoke, as `docs/<name>.md`; the `docs/[name].md` template in the map is not one. */
     private val docReference = Regex("""docs/([A-Za-z0-9/._-]+\.md)""")
 

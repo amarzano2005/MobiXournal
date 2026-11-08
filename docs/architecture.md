@@ -125,6 +125,11 @@ few fat documents — and from drifting into statements that are no longer true 
 - **a file at the repository root is an orphan** — the root is the first thing a reader sees, so everything
   there is either infrastructure or named by a doc, a test or a script.
 
+- **a status word leaves its owner** — `writing-docs.md` defines the six words and
+  [`guide-limitations.md`](guide-limitations.md) puts them against capabilities; a spoke that reports a
+  feature `Experimental` in passing hands the reader a second answer, and none of the guards can say
+  which one the release honours;
+
 - **a guide page loses its place** — each one under the guide layer carries a task line naming its audience
   and platform, closes on the spoke that owns the how with a `## How it works` section, and is registered
   above, and each spoke it leans on names it back in a `For the task` line, so a page written for a

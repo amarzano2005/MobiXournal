@@ -28,7 +28,7 @@ Abstract Syntax Tree (Expression Node)
 
 ---
 
-## Supported mathematical primitives
+## The mathematical primitives
 
 The parser evaluates real-valued functions $f: \mathbb{R} \to \mathbb{R}$:
 
