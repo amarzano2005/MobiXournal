@@ -82,6 +82,39 @@ Stated so the next pass does not repeat it blind, and because a clean inventory 
   page goes stale when the window's version moves; the version guard covers the three pages that do carry
   a number.
 
+## Third pass — reproducibility, CI and the links beyond the tree, 2026-11-08
+
+A third pass over the same corpus, on the two findings the second pass left open and on the CI failure
+that followed it. Same rule as above: a row is *fixed* only with the check that now fails if it goes
+back, and the verification column names the kind of evidence — **automatic** (a test or a script fails
+without it), **measured** (a command was run and its output read), **manual** (read against the source),
+**not verified**.
+
+| Finding | Severity | Status | Evidence | Verification |
+|---|---|---|---|---|
+| N-06 benchmark conditions | Medium | Partially resolved | every report now prints the block `BenchmarkEnvironment.kt` builds — CPU, logical cores, RAM, OS, JDK, Kotlin, Gradle, `-X` arguments and heap, workload, warm-up, iterations, measurement and date, with **Not recorded** where the JVM cannot establish a field. [benchmarks.md](docs/benchmarks.md) owns the method; [mobix-format.md](docs/mobix-format.md) and [document-session.md](docs/document-session.md) link it instead of restating it | measured: the three benchmarks were re-run and their reports carry the block. The figures those pages already quote stay historical — the block postdates them, and their own audit table still says *not recorded* for the fields it could not reconstruct |
+| N-07 external links | Low | Partially resolved | `scripts/check-external-links.py` collects the prose URLs of the corpus and classifies each answer; `.github/workflows/link-check.yml` runs it weekly and on demand, uploads the report as a build artifact, and continues on error, so no pull request depends on a third-party host | measured: a local run checked 21 URLs. The scheduled workflow has not been observed running — it cannot be triggered from this host |
+| N-09 the CI run that failed on `main` | High | Fixed | the failing step was **Run the app and core suites**, not *Check the documentation*: `PackageStructureTest` reported `desktop.sheet=51` against a cap of 50, and the run before it had gone red the same way. Reproduced locally with the same two task names before any change was made | measured (the run's own step results, plus the local reproduction) and automatic (`PackageStructureTest` passes in the full suite). The cap was closed by N-13's move — the remedy the guard itself names — and not by raising the number |
+| N-10 three guide rules failed on Windows only | Medium | Fixed | `DocsGuardTest.ownersOf` built a `File` out of every link target, so a guide page's `https://…` link became an invalid Windows path and the rule threw `Invalid file path` — passing on Ubuntu while failing on the host the window is developed on. Non-relative targets are now skipped before any path is formed | automatic: the three rules pass in the full suite on this host, where they threw before |
+| N-11 `code-structure.md` carried a stale census | Medium | Fixed | it said `sheet` 40 while the directory held 51, and the count is exactly what `PackageStructureTest` measures; the paragraph now says the guard owns the number instead of copying one beside it | automatic (the guard) and measured (a count of the directory) |
+| N-12 a 404 presented as a mirror, and an image that was never committed | Medium | Fixed | the new checker found `github.com/xournalpp/xournalpp_mobile` answering 404 while the GitLab repository answers 200, so the *mirror* claim in [codebase.md](docs/codebase.md) was false and the link is gone rather than replaced; [desktop-v1.0.1.md](docs/releases/desktop-v1.0.1.md) pointed an `<img>` at `preview-desktop-1.0.1.png`, which `docs/assets/` has never held, so the element is removed rather than repointed at a different capture | measured (HTTP status, and the contents of `docs/assets/`) |
+| N-13 a glyph reader in the wrong package | Low | Fixed | `SvgPath.kt` sat in `desktop.sheet` although only `desktop.settings` reads it — the package [code-structure.md](docs/code-structure.md) gives *the theme and its glyphs*. Moved, which is the cap's own remedy and took the package to 50 | automatic: `PackageStructureTest` and `:desktop:test` pass |
+| N-14 a report stamped with a fixed date | Low | Fixed | `MobixXoppSizeBenchmarkTest` printed `@ 2026-10-14` whatever day it ran, beside a metadata block carrying the real date; it now prints the day of the run | measured (the two date lines in the report agree) |
+| N-15 no vocabulary for the kind of evidence | Medium | Fixed | [writing-docs.md](docs/writing-docs.md) names the five classes — verified on Android, verified on Windows, verified through automated tests, verified through source-code inspection only, not verified — and states that source inspection may never stand in for a UI workflow | manual (read against the standard). The guide's rows still cite an owner rather than a class, which is the next step rather than a regression |
+
+### What this pass could not verify
+
+- **No Android runtime check.** `adb devices` listed no attached device and no running emulator, so no
+  workflow in [guide-install-android.md](docs/guide-install-android.md) or
+  [guide-first-notebook.md](docs/guide-first-notebook.md) was driven on hardware for this pass. What
+  stands behind those pages is what stood behind them before: the automated suites and the source.
+- **No Windows runtime check.** The window was exercised through `:desktop:test`, which renders pages and
+  chrome headlessly and asserts the layout. No MSI was installed and no native window was driven, and
+  this environment cannot capture one — so a Windows procedure here is **verified through automated
+  tests** at best, never **verified on Windows**.
+- **Nothing was measured twice.** The re-run reports are one run each on one machine; they make the next
+  comparison possible, they do not make a new performance claim.
+
 ## How this report is written
 
 Every claim below is traceable to a file and, where the claim is about behaviour, to the code that settles it. Severity is graded by **user harm**, not by tidiness:

@@ -106,6 +106,24 @@ Never conclude that Windows does it because Android does, that a visible control
 that an element which renders can also be edited, selected, deleted and written back. Displaying is not
 editing, editing is not saving, and saving is not round-tripping.
 
+### What the evidence behind a claim is
+
+A statement about behaviour also says which kind of check stands behind it, because the five are not
+equally strong and only one of them is about a person actually doing the thing.
+
+| Class | Means | What it can support |
+|---|---|---|
+| **Verified on Android** | the workflow was driven on a device or an emulator, and the run was written down | a procedure a tablet reader follows |
+| **Verified on Windows** | the same, on the window, with the build named | a procedure a Windows reader follows |
+| **Verified through automated tests** | a named test asserts it and passes | the behaviour under test |
+| **Verified through source-code inspection only** | the code was read and settles the question | what the code does — never that someone can do it |
+| **Not verified** | nothing available could confirm it | an open question, written as one |
+
+Source inspection is the class a mechanism claim needs and the one a workflow claim may never borrow: a
+control that exists in a composable is not a control a reader can find, and a code path is not a step they
+can follow. A page that describes an interaction nothing in this repository exercised says so, and the
+support matrix is where that word is carried by name ([guide-limitations.md](guide-limitations.md)).
+
 ## The six status words
 
 When a capability's state is stated, it is stated with one of these words — and the platform is named
