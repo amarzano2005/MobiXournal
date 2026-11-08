@@ -20,6 +20,8 @@ import org.junit.Test
  *    a section added to the window fails the build until the doc names it. This is the model for the
  *    other enumerable facts: anything the code lists, the doc's list is derived from, not retyped.
  *  - **the test-class check** — a doc naming `DesktopSomethingTest` names a class that exists.
+ *  - **the writing standard** — `docs/writing-docs.md` keeps the vocabulary, the phases and the Definition
+ *    of Done every doc task follows, and both front doors keep pointing at it.
  */
 class DocClaimsTest {
 
@@ -153,6 +155,88 @@ class DocClaimsTest {
                 missing.joinToString("\n  "),
             missing.isEmpty(),
         )
+    }
+
+    /**
+     * `docs/writing-docs.md` says a compatibility claim is evidenced, never asserted in adjectives.
+     *
+     * The evidential claim is what this project already makes (`xopp-bridge.md` states its contract and
+     * names the tests), so the vague superlative is the drift: it reads as a stronger promise while
+     * carrying no test behind it. `docs/releases/` is exempt — a changelog records what a release said,
+     * and rewriting history is the opposite of an archive.
+     */
+    @Test
+    fun compatibilityClaimsStayQualified() {
+        val vague = listOf(
+            "fully compatible",
+            "100% compatible",
+            "perfectly compatible",
+            "completely lossless",
+            "guaranteed lossless",
+            "seamless conversion",
+        )
+        val found = mutableListOf<String>()
+        for (file in prose().filter { it.parentFile?.name != "releases" }) {
+            file.readLines().forEachIndexed { i, line ->
+                val prose = line.replace(Regex("`[^`]*`"), " ").lowercase()
+                vague.firstOrNull { it in prose }?.let {
+                    found += "${file.name}:${i + 1} -> \"$it\" (name what was verified, or state the limitation)"
+                }
+            }
+        }
+        assertTrue(
+            "these docs promise compatibility in adjectives instead of evidence — say which step was " +
+                "verified and which was not (`docs/writing-docs.md`, *Two formats: state what survives*):\n  " +
+                found.joinToString("\n  "),
+            found.isEmpty(),
+        )
+    }
+
+    /**
+     * The writing standard is a document that must not quietly lose its own rules.
+     *
+     * `docs/writing-docs.md` is what every doc task follows, so its vocabulary, its phases and its
+     * Definition of Done are read out of the file here: dropping a status word or a phase fails the
+     * build, and so does a front door that stops pointing at it — a standard nobody links is a standard
+     * nobody follows.
+     */
+    @Test
+    fun theWritingStandardKeepsItsMandatoryParts() {
+        val standard = File(repoRoot(), "docs/writing-docs.md")
+        assertTrue("docs/writing-docs.md is missing — it is where a doc task's rules live", standard.isFile)
+        val text = standard.readText()
+        val vocabulary = listOf(
+            "Supported", "Partially supported", "Experimental",
+            "Planned", "Not supported", "Not verified",
+        )
+        val missingWords = vocabulary.filter { it !in text }
+        assertTrue(
+            "docs/writing-docs.md must keep the six status words every doc uses: $missingWords",
+            missingWords.isEmpty(),
+        )
+        val missingPhases = (1..7).map { "Phase $it" }.filter { it !in text }
+        assertTrue(
+            "docs/writing-docs.md must keep its seven phases — a phase dropped is a step nobody runs: " +
+                missingPhases,
+            missingPhases.isEmpty(),
+        )
+        val audiences = listOf("New users", "Xournal++ users", "Regular users", "Developers", "Contributors")
+        val missingAudiences = audiences.filter { it !in text }
+        assertTrue(
+            "docs/writing-docs.md must keep the audiences it writes for: $missingAudiences",
+            missingAudiences.isEmpty(),
+        )
+        assertTrue(
+            "docs/writing-docs.md must keep its Definition of Done",
+            "Definition of Done" in text,
+        )
+        for (door in listOf("AGENTS.md", "README.md")) {
+            assertTrue(
+                "$door must point at docs/writing-docs.md: the standard is a step of a doc task only while " +
+                    "both front doors send their reader to it",
+                "docs/writing-docs.md" in File(repoRoot(), door).readText(),
+            )
+        }
     }
 
     /** One forbidden sentence, and why it is forbidden. */

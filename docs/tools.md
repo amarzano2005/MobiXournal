@@ -1,12 +1,12 @@
 # Tools & build pipelines
 
-Authoritative home for **external tooling** this project depends on — build pipelines, deploy
-scripts, device/emulator harnesses, code generators, and anything else that isn't part of the
-repo's own in-tree build. `AGENTS.md` only *points* here; the specifics live in this file (or
-in a dedicated `docs/<tool>.md` that this file links when the detail is large).
+> Read when you build, test, package or release the project, or reach for one of the tools it lists.
 
-Add one entry per tool. Keep each entry to what an AI agent needs to *use* it: where it
-lives, how to invoke it, and the non-obvious gotchas.
+Authoritative home for **external tooling** this project depends on: build pipelines, deploy scripts,
+device/emulator harnesses, code generators, and anything else outside the repo's own in-tree build.
+`AGENTS.md` only *points* here; a detail lives here, or in the `docs/<tool>.md` that this file links.
+
+Add one entry per tool, kept to what an agent needs to *use* it: where it lives, how to call it, and its gotchas.
 
 ## Index
 

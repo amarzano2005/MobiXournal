@@ -16,6 +16,7 @@ you pull in a spoke only when the task touches it, instead of reading everything
 | **What to do next** (active tasks only)          | `TODO.toml` (via the `todo` skill) |
 | **What's already done** (completed-work archive) | `FINISHED.toml` (via the `todo` skill) |
 | **How to work here** (conventions, decisions, host profile) | `AGENTS.md` (this file) |
+| **How to write or review a doc** (audience, workflow, status vocabulary, Definition of Done) | `docs/writing-docs.md` |
 | **How the system works internally** (data flow, layout, all spokes) | `docs/architecture.md` — the **index** of the architecture spokes |
 | **What every new UI element must satisfy** (material, colour, states, glyphs, tests; the checklist is `scripts/design.sh` and `done` needs its declaration) | `docs/interface-contract.md` |
 | **Native `.mobix` format & `.xopp` bridge policy** | `docs/mobix-format.md`, `docs/mobix-schema-spec.md`, `docs/mobix-elements.md` |
@@ -117,7 +118,7 @@ The JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce stru
 `docs/testing.md` the full inventory:
 - **`DocsGuardTest`**: fails the build if any `.md` file in `docs/` (outside `docs/releases/`) is
   missing from `docs/architecture.md`, if any relative markdown link or `#anchor` slug is broken, if any
-  doc exceeds the **300-line budget**, if a spoke does not open with `# Title` + a `> Read when …` line,
+  doc exceeds the **300-line budget**, if a doc does not open with `# Title` + a `> Read when …` line,
   if two spokes claim one title or section heading, if a sentence is pasted into two docs, if a doc
   names a code file, another doc or a task id that does not exist. The two front doors it never used to
   read are held to their own rules, because they live outside `docs/`: a recorded **line budget**, no
@@ -353,6 +354,12 @@ told, and never let work pile up uncommitted.
 
 **Documentation is part of the feature, not a follow-up.** Write it *during* the feature
 work, or immediately after — never defer it to "later," and never ship code without it.
+
+**A doc is written to be used, not to mirror the code.** Every documentation change follows
+`docs/writing-docs.md` — its reader model, its seven phases and its Definition of Done are steps of the
+task, next to the build and the tests — and a capability's state is stated in its vocabulary
+(**Supported**, **Partially supported**, **Experimental**, **Planned**, **Not supported**, **Not
+verified**) instead of in adjectives.
 
 - **Keep `README.md` readable for a human.** `README.md` is the front door for a human user or
   operator, **not** an architectural spoke or a commit log:

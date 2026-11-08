@@ -1,5 +1,7 @@
 # Architecture — the index
 
+> Read when you need to know how the system works internally, or where one of its topics is written down.
+
 Authoritative home for **how the system works internally**: the Android application pipeline, the
 shared `mobix-core` module, the `desktop/` window, the repository layout and the data paths. This file
 is the **index**, not the content: each topic below is one spoke, and each spoke opens with the question
@@ -67,8 +69,9 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`desktop-pen-feel.md`](desktop-pen-feel.md) | the pen's active area, the hand's pan, the measurement against Xournal++ | you change how the pen feels in the window |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
-pipelines, [`tools-emulator.md`](tools-emulator.md) the emulator and device harness, and
-[`releases/`](releases/) holds the per-version changelogs.
+pipelines, [`tools-emulator.md`](tools-emulator.md) the emulator and device harness,
+[`writing-docs.md`](writing-docs.md) how a doc is written and reviewed, and [`releases/`](releases/)
+holds the per-version changelogs.
 
 ## How this stays honest
 
@@ -80,8 +83,8 @@ few fat documents — and from drifting into statements that are no longer true 
   file, or a `#anchor`, that does not exist (renaming a heading is a decision, not an accident);
 - **a spoke passes 300 lines** — the point of a spoke is that one topic loads on its own, and 300 leaves
   room for the next sentence instead of forcing a rewrite of the whole file first;
-- **a spoke does not open like the rest** — an `# H1`, then a `> Read when …` line saying who should open
-  it;
+- **a doc does not open like the rest** — an `# H1`, then a `> Read when …` line naming its reader (every
+  file under `docs/`, not only a spoke);
 - **two spokes claim one title or one section heading** — the same topic described twice is two homes for
   one fact, and one of them will go stale;
 - **a sentence is pasted into two spokes** — a moved paragraph leaves a pointer, not a copy;

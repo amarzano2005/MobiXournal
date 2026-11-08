@@ -18,8 +18,8 @@ import org.junit.Test
  *  - every spoke is reachable from the index, and every index row resolves;
  *  - every doc fits its **300-line** budget, which leaves headroom for the next sentence instead of a
  *    forced rewrite of the file before it;
- *  - every spoke opens the same way (`# H1`, then a `> Read when …` line) so a new one is written the
- *    way the rest are;
+ *  - every doc under `docs/` opens the same way (`# H1`, then a `> Read when …` line naming its reader)
+ *    so a new one is written the way the rest are;
  *  - no two spokes share a title or a section heading — that is one topic with two homes, one of which
  *    is already going stale;
  *  - no sentence is pasted into two spokes: a moved paragraph leaves a pointer, not a copy;
@@ -83,9 +83,10 @@ class DocsGuardTest {
      *
      * `README.md` is the human's front door (what it is, how to run it, where to read more) and
      * `AGENTS.md` the agent's map; neither is a place to accumulate detail, because detail has an owner
-     * in `docs/` and a second copy of it drifts.
+     * in `docs/` and a second copy of it drifts. `AGENTS.md` carries the rule that makes
+     * `docs/writing-docs.md` a step of every doc task, which is why its ceiling is the larger one.
      */
-    private val frontDoorBudget = mapOf("README.md" to 160, "AGENTS.md" to 430)
+    private val frontDoorBudget = mapOf("README.md" to 160, "AGENTS.md" to 440)
 
     /**
      * The longest a single paragraph of **running prose** may get in a front door, in characters.
@@ -168,9 +169,9 @@ class DocsGuardTest {
      * because a new doc written in a different shape is where a set of docs starts to come apart.
      */
     @Test
-    fun everySpokeOpensWithItsTitleAndAReadWhenLine() {
+    fun everyDocOpensWithItsTitleAndAReadWhenLine() {
         val wrong = mutableListOf<String>()
-        for (file in spokes()) {
+        for (file in docsOfRecord()) {
             val lines = file.readLines()
             val title = lines.firstOrNull { it.isNotBlank() } ?: ""
             if (!title.startsWith("# ")) wrong += "${file.name}: does not open with an `# ` title"
@@ -180,11 +181,18 @@ class DocsGuardTest {
             }
         }
         assertTrue(
-            "every spoke opens the same way (`# Title`, then `> Read when …`):\n  " +
-                wrong.joinToString("\n  "),
+            "every doc under `docs/` opens the same way (`# Title`, then a `> Read when …` line that " +
+                "names its reader — see `docs/writing-docs.md`):\n  " + wrong.joinToString("\n  "),
             wrong.isEmpty(),
         )
     }
+
+    /**
+     * Every doc a reader can open directly under `docs/` — spokes, the index, the tooling pair and the
+     * writing standard. `docs/releases/` is exempt: a changelog is frozen at the version it describes.
+     */
+    private fun docsOfRecord(): List<File> =
+        docs.listFiles { f: File -> f.isFile && f.extension == "md" }!!.sortedBy { it.name }
 
     /**
      * One topic, one home: no two spokes may carry the same H1, and no section heading of four words or

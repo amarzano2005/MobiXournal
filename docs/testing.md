@@ -62,10 +62,10 @@ The desktop window has suites of its own — headless Compose renders, a real do
 codec — and [desktop-testing.md](desktop-testing.md) is their index.
 
 - **`DocsGuardTest`** (`guards/`) — the shape of the doc set: every spoke doc is reachable from the
-  index, every relative link and `#anchor` resolves, every doc fits its **300-line** budget, every
-  spoke opens with `# Title` + a `> Read when …` line, no two spokes claim one title or section
-  heading, no sentence is pasted into two docs, and every code file, doc and task id a doc names
-  exists. So the architecture docs cannot decay back into one unaddressable document, or into prose that
+  index, every relative link and `#anchor` resolves, every doc fits its **300-line** budget, every doc
+  under `docs/` opens with `# Title` + a `> Read when …` line naming its reader, no two spokes claim one
+  title or section heading, no sentence is pasted into two docs, and every code file, doc and task id a
+  doc names exists. So the architecture docs cannot decay back into one unaddressable document, or into prose that
   describes a file that has since been renamed. The two front doors are held to their own rules, since
   they sit outside `docs/`: a recorded line budget, no paragraph of running prose past 1 200 characters,
   `README.md` further capped at 1 400 words total and 300 visible characters per bullet item (with `.kt`
@@ -74,7 +74,10 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
 - **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
   (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from
   `DesktopSettingSection` so a new section fails until the doc names it, and every test class a doc
-  names exists. A new lie gets a line here — that is the rule, not a rewrite of the guard.
+  names exists. A new lie gets a line here — that is the rule, not a rewrite of the guard. It also holds
+  a compatibility claim to evidence rather than adjectives, and holds
+  [writing-docs.md](writing-docs.md) to its own parts: the six status words, the seven phases, the
+  Definition of Done, and the two front doors' pointer to it.
 - **`SourceStructureTest`** (`guards/`) — a ratchet on file and function size, measured over every
   main source set rather than only the app: `app/src/main`, `mobix-core/src/main` and
   `desktop/src/main` (keys are relative to `com/mobixournal/`, so the desktop shell's files read
