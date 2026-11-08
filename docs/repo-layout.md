@@ -1,291 +1,66 @@
-# The repository layout: every module, package and file
+# The repository layout: the three modules and their packages
 
 > Read when you need to know **where code lives**: the three Gradle modules, and the
-> package-by-package map of `app/src/main` and `mobix-core/`, one line per file.
+> package map of `app/src/main`, `mobix-core/` and `desktop/`.
 >
 > _One spoke of the architecture docs; the index is [architecture.md](architecture.md). What the
 > project is built on, its prior art and its branding live in [codebase.md](codebase.md)._
 
 
-## Repository layout
+## The three modules
 
-Three Gradle modules: `app` (the Android shell), `mobix-core` (platform-free model, codecs, shared
-geometry) and `desktop` (the Compose preview, `docs/desktop-workstation.md`). Code is split into small,
-single-responsibility files per `AGENTS.md`, and the window states its subjects in its packages —
-`desktop.sheet`, `.ink`, `.io`, `.settings`, `.tools`, `.shell`, with only the entry points in the root
-package ([code-structure.md](code-structure.md) owns the rule and `PackageStructureTest` enforces it).
+| Module | What it is | Its own page |
+|---|---|---|
+| `app/` | the Android shell: the activity family, the canvas surface, the settings screens | [chrome.md](chrome.md) |
+| `mobix-core/` | the platform-free model, the codecs, the paper and ink geometry, the export compilers | [mobix-format.md](mobix-format.md) |
+| `desktop/` | the Compose Multiplatform window, a client of the core | [desktop-workstation.md](desktop-workstation.md) |
 
-**The `MainActivity*.kt` family.** An activity can't be split into classes — the framework
-constructs exactly one — so it is split into four files instead, one class plus three files of
-`internal` extension functions on it. `MainActivity.kt` keeps only what has to live on the class:
-the pane/tab/audio fields, the `registerForActivityResult` launchers (which must be registered
-before `onCreate`), `onCreate` and the Compose entry point, the intent handovers from other apps,
-`inBackground`, and the lifecycle hooks. Each of the other three owns one half-independent concern —
-`MainActivityDocuments.kt` (I/O), `MainActivityTabs.kt` (sessions), `MainActivityAudio.kt` (audio) —
-and reads as an ordinary module of small functions.
+The Gradle version is the wrapper's own: `gradle/wrapper/gradle-wrapper.properties` names the
+distribution, and no page restates it as a separate number — an earlier version of this page did, and the
+number had gone stale.
 
-```
-settings.gradle.kts, build.gradle.kts, gradle.properties   # Gradle config
-gradle/libs.versions.toml                                  # version catalog (all deps/plugins)
-gradlew, gradle/wrapper/                                    # Gradle wrapper (pinned 8.9)
-Dockerfile, compose.yaml, .dockerignore                    # containerized build image + service
-scripts/build.sh                                           # docker/podman build entry point
-scripts/release-apk.sh                                     # the APK to install: release build, signed with the debug key
+## The packages
 
-mobix-core/                  # shared, platform-free core (kotlin-jvm): no android.*, no Compose
-  build.gradle.kts           # jvmToolchain(21), jvmTarget 17, junit; fixtures read from app's test resources
-  src/main/java/com/mobixournal/
-    format/model/            # Document/Page/Layer/Background/Element, the living entities, ids, EditedPages
-    format/xml/              # XmlPullReader, XmlWriter, XmlComment — the dependency-free XML layer
-    format/json/             # the JSON value model, parser and writer (public: .mobix, settings, backups)
-    format/FontDescription.kt # Pango-style font description <-> family + bold/italic (pure)
-    format/XoppColor.kt      # #RRGGBBAA <-> ARGB int, named colours
-    format/XoppReader.kt     # XML -> Document
-    format/XoppWriter.kt     # Document -> XML
-    format/Xopp.kt           # gzip open/save + parse/serialize entry points
-    format/XoppZip.kt        # ZIP-package open/save (PDF embedded); see the mimetype caveat
-    format/SaveFormat.kt     # ORIGINAL (gzip) vs ZIPPED (single-file) — the sticky save choice
-    format/FileKind.kt       # content sniffing: ZIP / GZIP / PDF / XML / TEXT / IMAGE / UNKNOWN
-    format/PdfReference.kt   # a .xopp background PDF's relative <-> absolute paths and SAF document ids
-    format/mobix/            # the native .mobix engine; the public streaming contract is marked below
-        MobixFormat.kt       # the format's fixed entry names and the page/chunk/asset naming scheme (pure)
-        MobixContainer.kt    # the ZIP envelope: stored typed mimetype, manifest required, unknown entries kept
-        MobixManifest.kt     # manifest.json: version stamps, ids, page/chunk order, canvas mode, defaults
-        MobixCanvasFile.kt   # canvas.json: the geometry mode, locked dimensions, chunk grid, print origin
-        MobixPagedReader.kt  # public: MobixEntrySource (central-directory access) and the LRU paged reader
-        PageSource.kt        # public: the page surface every reader shares — count, id, page, window
-        MobixAssets.kt       # public: MobixAssetSource (resolve an `assets/` payload) and MobixAssetSink (name = hash)
-        MobixPageCodec.kt    # public: a page <-> JSON, registering the payloads it bundles
-        MobixElementCodec.kt # public: one element <-> JSON, dispatching to the per-family codecs
-        MobixTableCodec.kt, MobixPlotCodec.kt, MobixShapeCodec.kt, MobixCircuitCodec.kt, MobixMathCodec.kt # internal: the living
-                             #   families; MobixJson.kt is the JSON builder they share
-        MobixDocument.kt     # the whole-archive read/write (`.xopp` ingest, encode, refusals); chunk half in
-                             #   MobixChunkWriting.kt (internal: tile coords, the lazy tile list, encode/read)
-        MobixSavePlan.kt     # public: what a full write produces — the entries and the order they are written in
-        MobixIncrementalSave.kt # public: repack over a source, rebuilding only the parts that changed (stats)
-        MobixPageReuse.kt    # the rule that decides which page/chunk may be copied out instead of rebuilt
-        BundledPayloads.kt   # which bytes a page's payload is, and the `assets/` entries a rewrite must carry
-        MobixMergeEngine.kt, MobixConflictDetector.kt # public: three-way page merge and its conflicts
-        MobixMeta*.kt        # the `.xopp` bridge block: what an export claims and the digest that revives it
-        MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
-    render/BackgroundGrid.kt, BackgroundRuling.kt # ruling offsets/spacings + `<background config=…>`
-    render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
-    render/InkTokens.kt, MeasurementText.kt # the drawing tokens the compilers need (label size, wash) and mm<->pt (pure)
-    render/ElementBounds.kt  # pt bounding box of any element + a Bounds value type (pure)
-    render/LivingInk.kt      # HOW a living entity is drawn: the one dispatch over the five families' ink
-                             #   compilers; Uncompilable.kt is the loss they report instead of dropping
-    render/TableInk.kt, PlotInk.kt, ShapeInk.kt, CircuitInk.kt # a family -> its ink: grid rules/cells,
-                             #   axes/ticks/curves/summary, outline/fill/labels, symbol placed by its pins; InkPrimitives.kt
-                             #   holds the stroke and label primitives all four share (pure)
-    render/ShapeBuilder.kt, TriangleKind.kt, TrapezoidKind.kt, FigureGeometry.kt # drag -> vertex list
-                             #   (line/arrow(s)/rect/ellipse/axis/table/circuit); triangle/trapezoid variants;
-                             #   headed figures, where a head is sized by the pen and not by the shaft (pure)
-    render/CircuitShapes.kt, ChemShapes.kt, TriangularLattice.kt # symbols and gates; bonds and the benzene
-                             #   ring; the 60° chemistry lattice (pure)
-    render/FunctionPlot.kt, AdvancedCurves.kt, FunctionAnalysis.kt, MultiFunctionPlotter.kt, PlotFrame.kt
-                             #   f(x) parse/sample/geometry, piecewise + parametric curves, multi-curve plotting
-                             #   with feature detection and summaries, and the frame a plot was drawn in (pure)
-    render/XoppSynthesis.kt  # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
-    render/PageSvgWriter.kt  # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
-    render/PdfBackgroundDomain.kt, PixmapBackgroundDomain.kt # `attach` domain + bundled pixmap entries (pure)
-    render/PdfPagePlan.kt    # a page -> PDF ops an emitter replays; PdfPageTransform.kt flips into user space; LatexParser.kt + LatexLayout.kt typeset a math block glyph by glyph
-    render/PdfText.kt, PdfOutline.kt, MagneticHighlighter.kt # a PDF's positioned words and its
-                             # Contents tree, plus the highlighter's snap to them (pure, shared: the app's
-                             # and the window's PDFBox glue both feed these, so a word box is one box)
-    render/LayerOps.kt       # add/delete/rename/reorder/merge-down/move-selection layer edits (pure, both shells)
-    render/DocumentSearch.kt, SearchableHandwriting.kt # the search both shells call: text boxes, a math
-                             #   block's source, a PDF page's words, and handwritten ink behind an interface (pure)
-    render/HandwritingRecognizer.kt, HandwritingIndex.kt, FallbackInkEngine.kt, HandwritingTemplate.kt # ink ->
-                             #   words: stroke filtering, line/word segmentation, the per-page index, and the
-                             #   pure offline reading every shell falls back to (pure)
-    render/InkWordEngine.kt  # the one platform call recognition needs; InkEngines.platform is what a shell plugs once
-    render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
-    render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt, StrokeSmoother.kt # what a contact
-                             #   begins, how hard it draws, what a stream means (pure)
-    render/PageEraser.kt, StrokeEraser.kt, StrokeHitTester.kt # erase: page mode, the split, the hit
-    render/CanvasGeometry.kt, BoardSlicer.kt, CanvasAutoSlicer.kt # a board: what it is, its sheets (pure)
-    render/VerticalSpaceOps.kt, Snapping.kt, ElementShift.kt, DrawingGuide.kt # reflow a page (and the block a
-                             #   grab line carries, held across a drag), the ruling as a
-                             #   snap lattice, moving one element, and the guide instruments — their projection,
-                             #   their ruling and chemistry snaps, and the parts a finger grabs (pure)
-    io/DocumentEncoder.kt    # THE SAVE without Android: three formats, a SaveTarget, a SaveShape
-  src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
-app/
-  build.gradle.kts                                         # module config (SDK levels, Compose, deps)
-  src/main/AndroidManifest.xml
-  src/main/res/                                            # strings, Material 3 theme (light & dark splash),
-                                                           #   adaptive icon & multi-density mipmaps (see "Branding")
-  src/main/java/com/mobixournal/
-    MainActivity.kt          # hosts the editor; SAF launchers, intent handovers, panes, lifecycle
-    MainActivityDocuments.kt # its document I/O half: open/load, PDF & image adoption, save/export
-    MainActivityTabs.kt      # its tab/session half: tab strip state, show/switch/close, restore, split view
-    MainActivityAudio.kt     # its audio half: canvas wiring, record/playback state, sidecar pull/push
-    io/                      # storage access that isn't format work
-      UriStaging.kt          # stage document bytes to/from a content:// URI (slow remote shares)
-      ScratchDir.kt          # unique-per-call file names (staging and both stores), so overlapping writes can't collide
-      StoreFiles.kt          # the sweep both stores share: drop unreferenced files, then trim oldest-first to a byte budget
-      IncomingDocument.kt    # picks the document URI out of an incoming view/edit intent (pure, testable)
-      SaveTarget.kt          # the suffixes and MIME types we write (.xopp and .mobix), and the names to suggest for a save or a PDF export
-      PdfStore.kt            # one background-PDF file per open document; never rewritten, content-cache index, byte-budget eviction
-      ImageStore.kt          # one never-rewritten copy per pixmap background reference; same liveness sweep and byte budget
-      TextImport.kt          # text file -> generated background PDF, cached by content hash
-      DocumentIo.kt          # I/O policy: staging + PDF stores + read / merge; the write is the core's encoder,
-                             #   fed by saveShapeOf and aimed at UriSaveTarget
-    panes/                   # split view: one or two editing panes, each with its own tabs
-      EditorPane.kt          # one pane: canvas + tab session + save format + its own TabStore
-      MirrorSync.kt          # keeps the several views of one document in step; DocumentSessions.kt is their one undo history per document
-    tabs/                    # several documents open at once, cached across app restarts
-      OpenTab.kt             # one open document: id, title, source URI, save format, PDF, page
-      TabSessions.kt          # the tab list + selection rules (pure; no Android, no canvas)
-      TabIndex.kt            # the session index text format (pure encode/decode)
-      TabStore.kt            # filesDir/tabs: index + one .xopp snapshot per tab
-      DocColors.kt           # the dot colour that marks two tabs as views of the same document (pure)
-    render/
-      DrawingSurfaceView.kt  # low-latency stylus canvas (MotionEvent pressure): state block, document/zoom/page/layer facades, View overrides; gestures live in the DrawingSurface*.kt files
-      DrawingSurfaceConstants.kt # DrawingSurfaceDefaults: the canvas's shared tuning constants; blankDocument/blankPage
-      DrawingSurfacePaint.kt # the surface's render loop, page compositing and chrome overlays (extensions)
-      DrawingSurfaceInput.kt # the surface's touch/hover state machine: gesture dispatch, scroll and gesture end (extensions)
-      DrawingSurfaceStrokes.kt # ink capture from the router's events, plus place; DrawingSurfaceRouter.kt is the MotionEvent -> InkPointer feeding
-      DrawingSurfacePlots.kt # the plot insertions: insertMultiPlot's ink and insertPlotElement's living plot (extensions); PlotElementFactory.kt holds the box and the element, Android-free
-      CanvasHoldSnap.kt      # hold-to-snap as one object: the stillness timer, its anchor and the figure it found (tested)
-      CanvasDiagnostics.kt   # the canvas's diagnostics as one object: the pen log, its coalesced push and the frame watchdog (tested)
-      CanvasSearch.kt        # the canvas's search as one object: the query, its hits, the handwriting index and its worker (tested)
-      CanvasShapeDraft.kt    # a shape tool's drag as one object: the anchor, the live end, the pinned width and the tap rule (tested)
-      CanvasTaps.kt          # the canvas's taps as one object: platform timings, the Hand tool's double-tap and a living element's (tested)
-      CanvasInkGesture.kt    # the ink gesture in progress as one object: the stroke, the shape, its page, the smoother and the router (tested)
-      CanvasScroll.kt        # scrolling as one object: the pan/pinch baselines, the glide and the drag auto-scroll loop (tested)
-      CanvasPressure.kt      # the pen-width model as one object: pressure on/off, its multiplier and its floor (tested)
-      CanvasGestureRouter.kt # which gesture a move belongs to, as one priority order returning a value (tested)
-      PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
-      DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)
-      InkCache.kt            # page-ink rasters built on a worker (zoom buckets), so panning blits instead of re-drawing
-      CanvasChrome.kt        # the canvas's non-document brushes: selection, band, guide, hover, the ring
-      RadialHud.kt           # the pen-tip ring's slots and their angle-to-slot geometry (pure, tested)
-      DrawingSurfaceHud.kt   # the ring's view half: summon at the nib, track the flick, commit or cancel; ToolGlyphPainter.kt draws a catalogue glyph into a Canvas
-      ViewportState.kt       # scroll offsets, zoom, and their clamps (pure, tested)
-      MomentumDriver.kt      # the fling loop: velocity tracking, release seed, per-frame glide
-      PageCommands.kt        # the page/layer edit commands and the two undoable commit pipelines
-      SelectionGestureController.kt # the marquee/lasso pick and the move/resize/rotate drags
-      VerticalSpaceDrag.kt   # the vertical-space tool's live grab-line drag
-      GuideDrag.kt           # the finger that poses the setsquare/compass/protractor guide: which part is held and what a drag does, on the shared DrawingGuide pose maths
-      TextEditController.kt  # placing/editing text boxes, images and LaTeX images from a tap
-      ElementEdits.kt        # the document edits behind those placements (pure, tested)
-      PageStacker.kt         # lays the pages in one vertical column, each fit to the view width (pure geometry)
-      PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
-      ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
-      BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted/isometric at the page's own spacing, or a PDF page image)
-      PageRegionRenderer.kt  # synchronous flattened rectangular page-region copies
-      StrokePainter.kt       # paints a stroke's pressure polyline (shared by screen + PDF export)
-      PageRenderer.kt        # draws a page's layers/elements at a scale/offset (shared)
-      ElementRenderer.kt     # draws text boxes, images, and LaTeX images (real math)
-      LatexRenderer.kt       # draws a parsed LaTeX tree to a Canvas (fractions, scripts, roots); parser + vector layout live in mobix-core
-       PdfTileGeometry.kt     # tile grid math for high-zoom PDF rasterisation (pure geometry)
-       PdfRasterSource.kt     # the PdfRenderer lifecycle: open/close/reopen on file change (serialised)
-       PdfPageCache.kt        # rasterises an imported PDF's pages to bitmaps; orchestrates geometry + source
-       BitmapBudget.kt        # the one memory bound every bitmap cache allocates through
-       BitmapLruCache.kt      # the LRU bitmap-cache core PdfPageCache and ImageBackgroundCache share
-      ImageImport.kt         # builds a one-page Document with an image as its pixmap background
-      ImageBackgroundCache.kt # decodes+scales pixmap background pictures (LRU, off the frame)
-      ImportPdfMode.kt       # how an imported PDF joins the open document (replace vs append-and-merge)
-      PdfImport.kt           # builds a Document of pdf-background pages from a PdfPageCache
-      PdfMerger.kt           # joins two PDFs end-to-end (PDFBox) so Append has one background PDF
-      PdfText.kt             # positioned word model + grouping + range selection (pure, tested)
-      PdfTextExtractor.kt    # pulls a PDF's positioned text layer via PDFBox PDFTextStripper
-      PdfTextIndexCache.kt   # one extracted text layer per PDF file, shared across mirrored views
-      PdfOutline.kt          # the Contents model: one row per bookmark + the tree flattening (pure)
-      PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox; PdfOutlineCache.kt mirrors the text cache
-      PdfExporter.kt         # exports a Document as a vector PDF: pages from the shared plan, imported PDF pages kept verbatim, the ink over them, no annotation dictionaries (as on the window)
-      PdfOverlayMatrix.kt    # overlay cm-matrix that aligns the ink overlay on /Rotate 90/180/270 pages (pure)
-      TextPaginator.kt       # text-import word-wrap + A4 pagination, injected measurement; TextWrapping.kt is the shared tab-expansion/hard-break (pure)
-      PdfFonts.kt            # embeds the bundled Unicode fonts (DejaVu) into a PDDocument, cached per doc
-      TextPdfGenerator.kt    # authors the text-import PDF: selectable embedded text, injected font loader
-      TextFlavor.kt          # plain vs markdown typesetting flavour + its PdfStore cache prefix
-      MarkdownPdfWriter.kt   # draws laid-out markdown pages: a face per run style, rules as filled rects
-      markdown/
-        MarkdownBlock.kt     # the block tree a markdown import lays out from (pure data model)
-        MarkdownLine.kt      # line-level "what does this line start?" recognisers (pure)
-        MarkdownParser.kt    # markdown source -> block tree, line-based recursive descent (pure)
-        StyledRun.kt         # a stretch of text with one style combination (bold/italic/code)
-        MarkdownInlineParser.kt # raw inline source -> styled runs (pure); scanner + emphasis pass
-        InlineScanner.kt     # escapes, code spans and link labels; emits unresolved delimiter runs
-        InlineEmphasis.kt    # pairs the delimiter runs into bold/italic (delimiter-stack walk)
-        StyledWrapper.kt     # styled runs -> lines of positioned fragments, per-style metrics (pure)
-        MarkdownStyle.kt     # every markdown size in one place: page geometry, heading type, gaps, indents
-        MarkdownLayoutItem.kt # the drawable pieces of a page (line / rule / space) + placed items and pages
-        MarkdownComposer.kt  # block tree -> flat groups of wrapped lines, rules and collapsed gaps (pure)
-        MarkdownLayout.kt    # composed groups -> pages: block-aware page breaking, no orphaned headings
-      GlyphSanitizer.kt      # maps codepoints a font can't encode onto a substitution glyph (pure)
-      MotionEventPointer.kt  # the platform half of the input adapter: tool type -> PointerKind, and one pointer sample (history too) -> InkPointer
-      Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
-      RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
-      CircleRecognizer.kt    # inertia roundness + radial-residual score -> a rebuilt circle (pure)
-      MlKitInkEngine.kt      # on-device neural digital ink recognition via Google ML Kit with automatic model download
-      AndroidInkEngine.kt    # the InkWordEngine the tablet plugs in at startup: ML Kit when available, else no answer
-      Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
-      SelectionOps.kt        # scale / rotate / restyle / align / distribute selected elements (pure; translate delegates to mobix-core's ElementShift); ElementTransfer.kt and SelectionTransfer.kt carry a selection out in four flavours and accept drops
-      MultiFingerTapDetector.kt # a still 2/3-finger tap's finger count; FingerTapSettings.kt: the action each tap was given (pure)
-      Fling.kt               # decelerating two-axis momentum-scroll kinematics; VelocityEstimator.kt the release velocity (pure)
-      PageOps.kt             # insert / copy / move / delete pages in a page list (pure)
-      PageThumbnail.kt       # rasterises one page into a small preview bitmap for the tab overview
-      MagneticHighlighter.kt # snap a highlighter drag to the PDF text lines it crosses (pure); ExternalIngest.kt turns dropped text into a table/math/text element (pure)
-    audio/                   # audio-annotated strokes: record, replay, sidecar transfer
-      AudioAnnotation.kt     # AudioRef <-> a stroke's fn/ts attrs; document sidecar set; recording names (pure)
-      WavWriter.kt           # streaming 16-bit PCM RIFF/WAVE writer, header patched on close (pure)
-      AudioRecorder.kt       # AudioRecord -> WavWriter (the .xopp codec); OpusAudioRecorder.kt = Opus/Ogg (.mobix)
-      AudioPlayer.kt         # MediaPlayer wrapper: play one clip from an offset
-      AudioStore.kt          # app-private recordings dir + SAF tree import/export of sidecars
-      AudioSession.kt        # the editor's single audio facade (record / stamp / play / sync)
-    ui/                      # Compose Material 3
-      EditorScreen.kt        # the editor's assembly: the chrome's bands (header, rail lane, dock) + the canvas that takes the rest, split panes
-      EditorUiState.kt       # the screen's remembered chrome state (pen, open dialogs, panes) in one holder + switchToolTo, the one tool-switch rule
-      EditorRegions.kt       # the screen's regions: header (Secondary Toolbar tools + the tab row in it), Main Toolbar wiring, one pane's canvas
-      EditorOverflowMenu.kt  # the top bar's ☰ menu: its button + panel (quick file actions, PDF row, pen, Settings)
-      EditorBackHandler.kt   # back peels off one transient editor state at a time before leaving the app
-      PaneState.kt           # per-pane canvas state the chrome mirrors (zoom, page, layer, undo) + the pane count
-      SplitLayout.kt         # two panes side by side with a slim draggable grip down the middle
-      EditorOverlays.kt      # what layers over the canvas: selection bars + author/save/import dialogs
-      ExportGapsDialog.kt    # what a .xopp export could not draw, in the user's terms (living entities it has to cook into ink)
-      PenDiagnosticsPanel.kt # the on-canvas pen-diagnostics log: the raw stylus stream, with Copy/Clear
-      SideToolbar.kt         # Main Toolbar (rail): the shell + tool-group slots; each pop-up is a Toolbar*.kt below
-      EditorTool.kt          # the editor's tool modes + their labels/icons (pure)
-      ToolbarColorPopup.kt   # rail slot: the compact colour + tip-size + line-style drop-down
-      ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog; ToolbarStylePopup.kt: shared line-style chips
-      ToolGlyphs.kt          # the triangle/trapezoid variants' catalogue mapping; every tool's art lives in mobix-core's ToolGlyphCatalogue now
-      DrawingGuidePopup.kt   # drawing guide popups (rail + compact) with categorized instruments/lattices & custom glyphs
-      ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, page-size dialog
-      ToolbarLayersPopup.kt  # rail slot: the layer manager list + rename dialog
-      TopBarItems.kt         # Secondary Toolbar buttons definition (figures & tools), default order, and codecs
-      TabStrip.kt            # the horizontal strip of open-tab titles: select, reorder, close, long-press menu
-      TabOverviewPopup.kt    # a grid of every open tab shown as the page it was left on
-      ColorPalette.kt        # the one colour picker (swatches + custom slot) all three sites use
-      ColorPicker.kt         # the arbitrary-colour HSV/hex dialog behind the palette's custom slot
-      LatexPalette.kt        # quick-insert STEM symbol palette (calculus, greek, physics, operators) and LaTeX dialog
-      ToolPreset.kt          # a named snapshot of the whole tool config (tool/colour/width/style); capture + apply
-      ToolPresetList.kt      # save/overwrite, reorder and delete on the saved preset list (pure)
-      ToolPresetCodec.kt     # the preset list's one-line SharedPreferences form; forgiving decode (pure)
-      ToolGroups.kt          # the rail's tool groups + their persisted per-slot selections (pure)
-      RailItems.kt           # the rail's button positions + their persisted order/hidden set (pure)
-      ScrollThumb.kt         # right-edge PDF-style scroll thumb: drag to page fast, faint-when-idle, page bubble
-      PageCounter.kt         # always-visible "page X of Y" badge, in the corner opposite the Main Toolbar, + the zoom badge above it (tap = reset to 100%)
-      SettingsScreen.kt      # settings: side menu + sections on a wide screen, pushed index on a narrow one
-      SettingsSidebar.kt     # the wide screen's permanent side menu (search field + the four areas)
-      SettingsSearch.kt      # which sections answer a query, by title/summary/alias keywords (pure)
-      SettingsWidgets.kt     # the shared settings controls (switches, option groups, key fields)
-      ShortcutsSection.kt    # the Shortcuts page: the toggle keys + one key per tool and per pen colour, each a compact row with a filter;      EditorKeyShortcuts.kt  # the keyboard's routing table (which toggle, colour or tool a pressed character means) and the toggle keys' persistence
-      FingerGesturesSection.kt: the Finger gestures page (what a still two- and three-finger tap runs)
-      AppearanceSection.kt   # the theme select, drawn on the Interface page instead of behind a page of its own
-      BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework; an import is refused unless it is a compatible backup
-      AboutSection.kt        # the About page and the links it sends people to
-      AppSettings.kt         # AppSettings model + SettingsStore (SharedPreferences persistence)
-      GuidePose.kt           # the remembered drawing-guide pose (page + live guide) and its JSON codec (pure)
-      AppSettingsBackup.kt   # JSON serializer/parser for AppSettings: versioned, tolerant reader + a compatibility gate (BackupCheck) for imports (pure)
-      theme/                 # XoppTheme (Material You), Color
-  src/test/java/com/mobixournal/format/                         # JVM unit tests for the format layer
-  src/test/java/com/mobixournal/render/                         # JVM unit tests for layout/grid/LaTeX geometry
-  src/test/java/com/mobixournal/audio/                          # JVM unit tests for fn/ts mapping + WAV framing
-  src/androidTest/java/com/mobixournal/                         # on-device smoke test (load/draw/save/reopen)
-  src/test/java/com/mobixournal/ui/                             # JVM unit tests for the chrome's pure logic (incl. the palette)
-```
+Each package is one subject, and the spoke named beside it is where that subject is described. This list is
+the package **names** only: a page that promised one line per file was describing a tree that changed under
+it, so it no longer tries.
+
+### `app/src/main` — the Android shell
+
+- `app/src/main/java/com/mobixournal/app/src/main/java/com/mobixournal`
+- `app/src/main/java/com/mobixournal/audio`
+- `app/src/main/java/com/mobixournal/io`
+- `app/src/main/java/com/mobixournal/panes`
+- `app/src/main/java/com/mobixournal/render`
+- `app/src/main/java/com/mobixournal/render/markdown`
+- `app/src/main/java/com/mobixournal/tabs`
+- `app/src/main/java/com/mobixournal/ui`
+- `app/src/main/java/com/mobixournal/ui/entry`
+- `app/src/main/java/com/mobixournal/ui/theme`
+
+### `mobix-core/src/main` — the platform-free core
+
+- `mobix-core/src/main/java/com/mobixournal/audio`
+- `mobix-core/src/main/java/com/mobixournal/design`
+- `mobix-core/src/main/java/com/mobixournal/format`
+- `mobix-core/src/main/java/com/mobixournal/format/json`
+- `mobix-core/src/main/java/com/mobixournal/format/mobix`
+- `mobix-core/src/main/java/com/mobixournal/format/model`
+- `mobix-core/src/main/java/com/mobixournal/format/xml`
+- `mobix-core/src/main/java/com/mobixournal/io`
+- `mobix-core/src/main/java/com/mobixournal/render`
+
+### `desktop/src/main` — the window
+
+- `desktop/src/main/java/com/mobixournal/desktop`
+- `desktop/src/main/java/com/mobixournal/desktop/ink`
+- `desktop/src/main/java/com/mobixournal/desktop/io`
+- `desktop/src/main/java/com/mobixournal/desktop/settings`
+- `desktop/src/main/java/com/mobixournal/desktop/sheet`
+- `desktop/src/main/java/com/mobixournal/desktop/shell`
+- `desktop/src/main/java/com/mobixournal/desktop/tools`
+
+## Where the subjects meet
 
 The **`format/` layer is the heart** and is deliberately free of Android dependencies: the model, the
 XML/JSON layers and the `.xopp` codecs live in `mobix-core/`, so the round trip is unit-tested on the
