@@ -3,7 +3,7 @@
 > Read when an open or a save did not go the way you expected, the window came back after a crash, or a
 > message named something you did not recognise.
 
-_A page of the user guide; the internal map is [architecture.md](architecture.md)._
+_A guide page for Android and Windows: what to do when an open or a save is refused. The internal map is [architecture.md](architecture.md)._
 
 Both shells decide what a file is by reading its first bytes, not by its name, and the messages on this
 page are the Windows window's, quoted exactly as they appear. The causes are the same on a tablet: the

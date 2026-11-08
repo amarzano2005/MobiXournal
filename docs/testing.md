@@ -70,7 +70,9 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   they sit outside `docs/`: a recorded line budget, no paragraph of running prose past 1 200 characters,
   `README.md` further capped at 1 400 words total and 300 visible characters per bullet item (with `.kt`
   names, `dp` measurements and changelog narration forbidden), their links resolving like a spoke's, and every file at the repository root named by something (a doc,
-  a test or a script) rather than left there as an orphan.
+  a test or a script) rather than left there as an orphan. The guide layer adds three rules of its own: every guide page
+  carries a task line naming its audience and platform, links at least one owner spoke, and is registered
+  in the index.
 - **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
   (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from
   `DesktopSettingSection` so a new section fails until the doc names it, and every test class a doc

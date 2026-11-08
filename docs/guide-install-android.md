@@ -3,7 +3,7 @@
 > Read when you are putting the app on an Android tablet or phone for the first time, or wondering where
 > a notebook you saved actually went.
 
-_A page of the user guide; the internal map is [architecture.md](architecture.md)._
+_A guide page for Android: putting the app on a tablet or phone, and finding the documents it saves. The internal map is [architecture.md](architecture.md)._
 
 ## What you need
 

@@ -3,7 +3,7 @@
 > Read when you are installing the desktop window from the MSI, wondering what it changed on your PC, or
 > deciding whether to use the installer or the folder build.
 
-_A page of the user guide; the internal map is [architecture.md](architecture.md)._
+_A guide page for Windows 11: installing the desktop window, and knowing what it changed. The internal map is [architecture.md](architecture.md)._
 
 ## What you need
 

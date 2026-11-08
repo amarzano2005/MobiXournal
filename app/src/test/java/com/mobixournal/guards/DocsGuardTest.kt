@@ -188,6 +188,65 @@ class DocsGuardTest {
     }
 
     /**
+     * The guide layer is for a **person doing a job**, so it has a shape of its own, and it is the shape
+     * that keeps a task page a pointer rather than a second home. Three rules, all checkable:
+     *
+     *  - a **task line** in the opening lines, naming who the page is for and which platform it covers —
+     *    the page a tablet reader opens must not be the one that describes the window;
+     *  - an **owner link**: at least one relative link to a doc under `docs/` that is not itself a guide
+     *    page, so the mechanism behind the task has a home the page can point at instead of retelling;
+     *  - **registration** — the page is listed in the index above (or in the guide index once one
+     *    exists), so no page is reachable only from another page's body.
+     *
+     * The layer is read at both of the shapes it has had: `docs/guide-*.md` today, `docs/guide/<page>.md`
+     * after the folder move, so that move is a rename rather than a change to this rule.
+     */
+    @Test
+    fun everyGuidePageCarriesItsTaskLineOwnerLinkAndRegistration() {
+        val indexText = docs.resolve(index).readText()
+        val guideIndex = listOf(File(docs, "guide-index.md"), File(docs.resolve("guide"), "index.md"))
+            .firstOrNull { it.isFile }
+        val missing = mutableListOf<String>()
+        for (page in guidePages()) {
+            val opening = page.readLines().take(12)
+            val taskLine = opening.firstOrNull { it.startsWith("_A guide page for ") && it.endsWith("_") }
+            if (taskLine == null) {
+                missing += "${page.name}: no `_A guide page for …_` line in its opening"
+            } else {
+                val audience = taskLine.removePrefix("_A guide page for ").substringBefore(':')
+                if (':' !in taskLine) {
+                    missing += "${page.name}: its task line does not state the job after a colon"
+                } else if (!Regex("Android|Windows").containsMatchIn(audience)) {
+                    missing += "${page.name}: its task line names no platform (Android, Windows)"
+                }
+                if (!taskLine.contains("[architecture.md](architecture.md)")) {
+                    missing += "${page.name}: its task line lost the link back to the index"
+                }
+            }
+            val owners = Regex("""\]\(([^)\s]+)\)""").findAll(page.readText())
+                .map { target -> File(page.parentFile, target.groupValues[1].substringBefore('#')).canonicalFile }
+                .filter { file ->
+                    val path = file.path
+                    file.isFile && path.startsWith(docs.canonicalPath) &&
+                        file.parentFile?.name != "guide" && !file.name.startsWith("guide-")
+                }
+                .toList()
+            if (owners.isEmpty()) {
+                missing += "${page.name}: links no owner — a guide page points at the spoke that owns the how"
+            }
+            val registered = page.name in indexText ||
+                page.relativeTo(docs).invariantSeparatorsPath in indexText ||
+                guideIndex?.readText()?.contains(page.name) == true
+            if (!registered) missing += "${page.name}: not registered in ${guideIndex?.name ?: index}"
+        }
+        assertTrue(
+            "the guide layer's three rules (task line, owner link, registration) are what keep a user " +
+                "page a pointer rather than a second home:\n  " + missing.joinToString("\n  "),
+            missing.isEmpty(),
+        )
+    }
+
+    /**
      * Every doc a reader can open directly under `docs/` — spokes, the index, the tooling pair and the
      * writing standard. `docs/releases/` is exempt: a changelog is frozen at the version it describes.
      */
@@ -642,6 +701,18 @@ class DocsGuardTest {
             }
         }
         return ids
+    }
+
+    /**
+     * The user-facing pages: `docs/guide-*.md` today, `docs/guide/<page>.md` after the folder move, with the
+     * guide index excluded — it is a router, and a router's job is to link pages rather than an owner.
+     */
+    private fun guidePages(): List<File> {
+        val flat = docs.listFiles { f: File -> f.isFile && f.name.startsWith("guide-") && f.extension == "md" }
+        val nested = File(docs, "guide")
+            .listFiles { f: File -> f.isFile && f.extension == "md" }
+            ?.filter { it.name != "index.md" }
+        return ((flat ?: emptyArray<File>()) + (nested ?: emptyList())).sortedBy { it.name }
     }
 
     /** The docs under the budget and heading rules: everything in `docs/`, minus the release archive. */
