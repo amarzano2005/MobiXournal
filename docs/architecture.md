@@ -73,6 +73,15 @@ pipelines, [`tools-emulator.md`](tools-emulator.md) the emulator and device harn
 [`writing-docs.md`](writing-docs.md) how a doc is written and reviewed, and [`releases/`](releases/)
 holds the per-version changelogs.
 
+## The guide pages
+
+These are written for the person using the app rather than the person changing it, so they are not
+architecture spokes: they quote behaviour and link to the owner of each rule.
+
+- [guide-install-android.md](guide-install-android.md) — installing on a tablet, where documents live.
+- [guide-install-windows.md](guide-install-windows.md) — the MSI, the folder build, uninstalling.
+- [guide-troubleshooting.md](guide-troubleshooting.md) — the failure copy, refused saves, recovery.
+
 ## How this stays honest
 
 A fact has **one home**. Every other document links to it. The split is kept from decaying back into a
