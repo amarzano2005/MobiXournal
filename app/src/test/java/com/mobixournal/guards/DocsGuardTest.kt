@@ -1025,6 +1025,13 @@ class DocsGuardTest {
             .findAll(withoutCode(page.readText()).joinToString("\n"))
             .map { it.groupValues[1] }
         return linked
+            // A link to the web is a reference, not a mechanism: on Windows `File(docs, "https://…")`
+            // throws `Invalid file path`, so this rule passed on Linux and crashed on the host the
+            // window is developed on. Only a relative target can name an owner.
+            .filter { target ->
+                target.isNotEmpty() && "://" !in target && !target.startsWith("/") &&
+                    !target.startsWith("mailto:") && !target.startsWith("#")
+            }
             .map { target -> File(page.parentFile, target.substringBefore('#')).canonicalFile }
             .filter { file ->
                 // The index is not an owner: every task line links it, so counting it here would make
