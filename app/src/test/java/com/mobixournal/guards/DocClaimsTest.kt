@@ -284,8 +284,8 @@ class DocClaimsTest {
         val row = doc.readLines().firstOrNull { "| **Data tables**" in it }
         assertTrue("docs/mobix-format.md must keep its data-table capability row", row != null)
         assertTrue(
-            "the data-table row must state the shipping status, not 'no editor exists': $row",
-            row!!.contains("**Supported**") && "no editor exists" !in row,
+            "the data-table row must name the tool that ships, not 'no editor exists': $row",
+            row!!.contains("**Live**") && "the table tool places" in row && "no editor exists" !in row,
         )
     }
 
@@ -349,6 +349,46 @@ class DocClaimsTest {
             "docs/math-engine.md must state that the plot tool places Cartesian curves only — a polar " +
                 "curve draws and exports, but cannot be created from it",
             "places Cartesian curves only" in text,
+        )
+    }
+
+    /**
+     * One page owns a capability's status, and the six words are that page's to spend.
+     *
+     * `writing-docs.md` defines them; `guide-limitations.md` is the only page that answers for a
+     * capability with one. Everywhere else the rule is the rule for every other fact: link the owner
+     * instead of restating its answer, because two answers drift apart and one of them ends up wrong.
+     *
+     * Only the **bold** spelling counts, and only under `docs/`. Bold is how the vocabulary is written,
+     * so `UnsupportedOperationException`, the window's "Unsupported format" heading and a sentence whose
+     * verb happens to be "supports" are not status claims. The front doors are out of scope as well:
+     * `AGENTS.md` lists the words as a rule for writing, not as an answer about a feature.
+     */
+    @Test
+    fun onlyTheStatusOwnerSpendsTheStatusWords() {
+        val words = listOf(
+            "Supported", "Partially supported", "Experimental", "Planned", "Not supported", "Not verified",
+        ).sortedByDescending { it.length }
+        val bold = Regex("""\*\*(${words.joinToString("|") { Regex.escape(it) }})\*\*""")
+        val owners = setOf("writing-docs.md", "guide-limitations.md")
+        val offenders = mutableListOf<String>()
+        for (file in prose()) {
+            if (file.parentFile.name != "docs" || file.name in owners) continue
+            file.readLines().forEachIndexed { i, line ->
+                bold.find(line)?.let { offenders += "${file.name}:${i + 1} — ${it.value}" }
+            }
+        }
+        assertTrue(
+            "a bold status word outside writing-docs.md and guide-limitations.md is a second matrix: " +
+                "link the owner instead of answering for a capability:\n  " + offenders.joinToString("\n  "),
+            offenders.isEmpty(),
+        )
+        val owner = File(repoRoot(), "docs/guide-limitations.md").readText()
+        val absent = words.filter { it !in owner }
+        assertTrue(
+            "the status owner must spend all six words, or a reader cannot tell 'not there' from " +
+                "'nobody wrote it down': " + absent.joinToString(", "),
+            absent.isEmpty(),
         )
     }
 

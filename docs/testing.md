@@ -79,7 +79,9 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   names exists. A new lie gets a line here — that is the rule, not a rewrite of the guard. It also holds
   a compatibility claim to evidence rather than adjectives, and holds
   [writing-docs.md](writing-docs.md) to its own parts: the six status words, the seven phases, the
-  Definition of Done, and the two front doors' pointer to it.
+  Definition of Done, and the two front doors' pointer to it. One of those parts is where a status word
+  may be spent: only [guide-limitations.md](guide-limitations.md) and the standard may carry a bold one,
+  and the owner must spend all six.
 - **`SourceStructureTest`** (`guards/`) — a ratchet on file and function size, measured over every
   main source set rather than only the app: `app/src/main`, `mobix-core/src/main` and
   `desktop/src/main` (keys are relative to `com/mobixournal/`, so the desktop shell's files read
