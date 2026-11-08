@@ -416,7 +416,7 @@ Five phases, each independently shippable and revertable. Phase 0 is half a day 
 | TR-33 | `developer-guide.md`, `CONTRIBUTING.md`, register `tools-emulator` normally | F-15 | M |
 | TR-34 | Delete the rotting tables; fix the wrapper pin; keep the narrative | F-06, F-07 | S |
 | TR-35 | README rewrite (≤160 lines, ≤1 400 words, ≤20-word bullets) | F-16 | S |
-| TR-36 | Folder move + recursive guard + link check, one commit | §3.6 | M |
+| TR-36 | Declined: the tree stays flat, with the reasoning in `docs/architecture.md` | §3.6 | — |
 
 **Exit criteria:** no page over 300 lines; no page states a measurement it cannot regenerate; the folder move changes no content; every page is registered and linked.
 
@@ -471,6 +471,8 @@ cell names the evidence, so the owner's product judgement can overrule a cell wi
 ### 6.4 The folder move is a one-way door for links
 
 Forty-nine spokes live at `docs/*.md`; GitHub URLs, `FINISHED.toml` descriptions, commit messages and the guards all name them. Moving them breaks external anchors silently. Mitigation: move in one commit, add a link checker to the guard first, keep the old paths in a redirect table in `architecture.md` for one release, and accept that external deep links to old files will 404 (GitHub offers no redirect). The alternative — never moving — is acceptable too: the layers can stay flat with prefixes. **This is a decision, not a technical necessity.**
+
+**Decided 2026-11-08: no move.** The layer stays in the file name and the reasoning, with what it costs, is recorded in `docs/architecture.md` (*The tree stays flat*).
 
 ### 6.5 Rotting tables: generate or delete
 
