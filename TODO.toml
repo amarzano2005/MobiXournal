@@ -20,3 +20,17 @@ remove_dropped_items = "Remove dropped items with a one-line why."
 finish_work = "When a task is fully finished (built, tested, documented), run `todo.py done <id> --shipped` to move it to FINISHED.toml; the archive records what the task delivered (files, behaviour, tests, docs, and what it deliberately did not do), not the plan it was picked up from."
 documentation_is_part_of_the_task = "Every task that writes code also writes its documentation, in the same task and the same commit. Never add a separate follow-up task for documenting work that a task already did — a task whose docs are not updated is not finished, and no `done` until they are. The writing rules are `docs/writing-docs.md`'s, and its Definition of Done is the bar."
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
+
+[[task]]
+id = "surface-the-merge-report-on-the-second-shell"
+title = "Surface the merge report on the second shell"
+description = "MobixMergeEngine runs a three-way merge when a document opens beside a conflicting copy, and its report reaches no screen: docs/xopp-bridge.md records the gap and the status row in docs/guide-limitations.md says Not supported. Show the outcome where the document opens — a dismissible notice naming what was reconciled and what could not be — using the counts the engine already produces, on the shell that owns the open path and then on the other. Cover the outcome in a JVM test beside the engine, and in the same commit delete the gap sentence from docs/xopp-bridge.md and re-point the limitations row at the surface, because the doc fix and the fix land together."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 10
+created = 2026-11-08
+tags = ["merge", "desktop"]
+rebuild = true
+emulator_debug = false
