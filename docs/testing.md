@@ -73,6 +73,9 @@ change can see what will fail it:
   page back in a `For the task` line at the end of their reader block. The status vocabulary is the
   standard's to define and [guide-limitations.md](guide-limitations.md)'s to spend, so any other page
   carrying one of the six words fails — the rule that caught a spoke heading reading like a verdict.
+  The governance set is checked with it: the pages the process promises exist, every release note has a
+  row in its index, every Gradle module the build includes is a directory [repo-layout.md](repo-layout.md)
+  names, and every row of the capability matrix spends one of the six words with an evidence link.
 - **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
   (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from
   `DesktopSettingSection` so a new section fails until the doc names it, and every test class a doc

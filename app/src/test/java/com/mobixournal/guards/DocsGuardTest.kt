@@ -306,6 +306,120 @@ class DocsGuardTest {
     }
 
     /**
+     * The pages the process promises exist, whatever the guards say about their contents.
+     *
+     * Governance is worth writing down only while the pages it names are there. A missing contributor
+     * entry point, review checklist or release index is not a broken link — nothing points at a file
+     * that was deleted — so every check above stays green while the promise itself is gone.
+     */
+    @Test
+    fun thePagesTheProcessPromisesExist() {
+        val promised = listOf(
+            "README.md", "AGENTS.md", "CONTRIBUTING.md",
+            ".github/PULL_REQUEST_TEMPLATE.md", ".github/workflows/build.yml",
+            "docs/architecture.md", "docs/writing-docs.md", "docs/doc-governance.md",
+            "docs/guide-index.md", "docs/guide-limitations.md", "docs/guide-troubleshooting.md",
+            "docs/releases/index.md",
+        )
+        val missing = promised.filter { !File(repoRoot(), it).isFile }
+        assertTrue(
+            "these pages carry the process (`docs/doc-governance.md`) and none may disappear quietly: $missing",
+            missing.isEmpty(),
+        )
+    }
+
+    /**
+     * A release note nobody lists is a version nobody can find.
+     *
+     * The notes are written by the release command, so the index is the only thing that has to remember
+     * them: a note added without its row is reachable from a GitHub release and from nowhere else.
+     */
+    @Test
+    fun everyReleaseNoteIsListedInTheIndex() {
+        val folder = File(docs, "releases")
+        val indexText = File(folder, "index.md").readText()
+        val notes = folder.listFiles { f: File -> f.isFile && f.extension == "md" && f.name != "index.md" }
+            .orEmpty().map { it.name }.sorted()
+        val unlisted = notes.filter { it !in indexText }
+        assertTrue("docs/releases/ must hold at least one note to index", notes.isNotEmpty())
+        assertTrue(
+            "every note in docs/releases/ has a row in its index, or the version is unreachable from the " +
+                "page that lists them: $unlisted",
+            unlisted.isEmpty(),
+        )
+    }
+
+    /**
+     * The build names its modules, and two pages have to agree with it.
+     *
+     * A module is a fact the build owns: `settings.gradle.kts` includes it, its directory exists, and
+     * [repo-layout.md] is the page that says what lives where. Reading the three together is what catches
+     * a module added without its paragraph and a paragraph whose module was removed.
+     */
+    @Test
+    fun everyGradleModuleIsBuiltAndInTheLayoutPage() {
+        val root = repoRoot()
+        val included = Regex("""include\(\s*":([A-Za-z0-9._-]+)"\s*\)""")
+            .findAll(File(root, "settings.gradle.kts").readText())
+            .map { it.groupValues[1] }.toSet()
+        val absent = included.filter { !File(root, it).isDirectory }
+        assertTrue("settings.gradle.kts must include the modules this test reads", included.isNotEmpty())
+        val layout = File(docs, "repo-layout.md").readText()
+        val unnamed = included.filter { "`$it/`" !in layout }
+        val unbuilt = root.listFiles().orEmpty()
+            .filter { it.isDirectory && File(it, "build.gradle.kts").isFile }
+            .map { it.name }.toSet() - included
+        assertTrue(
+            "the build and the docs have to name the same modules: a module `settings.gradle.kts` includes " +
+                "must exist and appear in `docs/repo-layout.md`, and a module with a `build.gradle.kts` must " +
+                "be included\n  no such directory: $absent\n  not in repo-layout.md: $unnamed\n" +
+                "  not in settings.gradle.kts: $unbuilt",
+            absent.isEmpty() && unnamed.isEmpty() && unbuilt.isEmpty(),
+        )
+    }
+
+    /**
+     * The capability matrix keeps its own shape: one capability, two shells, one of the six words.
+     *
+     * The status words belong to one page, but nothing yet stopped that page from growing a cell in
+     * prose — "works mostly", "fine on Windows" — which is how a matrix quietly becomes an essay, and a
+     * reader loses the one place they could compare two cells.
+     */
+    @Test
+    fun everyMatrixRowSpendsAnOfficialWord() {
+        val matrix = File(docs, "guide-limitations.md").readText()
+            .substringAfter("## The matrix")
+            .substringBefore("\n## ")
+        val words = setOf(
+            "Supported", "Partially supported", "Experimental", "Planned", "Not supported",
+            "Not verified", "—",
+        )
+        val wrong = mutableListOf<String>()
+        var checked = 0
+        for (line in matrix.lines()) {
+            if (!line.trimStart().startsWith("|")) continue
+            val cells = line.trim().trim('|').split('|').map { it.trim() }
+            if (cells.size < 5) {
+                wrong += "a row has ${cells.size} cells instead of 5: $line"
+                continue
+            }
+            if (cells[0] == "Capability" || cells[1].startsWith("---")) continue
+            checked++
+            for ((shell, cell) in listOf("Android" to cells[1], "Windows" to cells[2])) {
+                val word = cell.removeSurrounding("**")
+                if (word !in words) wrong += "`${cells[0]}` on $shell says `$word`"
+            }
+            if ("](" !in cells[4]) wrong += "`${cells[0]}` has no evidence link"
+        }
+        assertTrue("the matrix section must carry rows to check, or this test reads nothing", checked >= 5)
+        assertTrue(
+            "a matrix row spends one of the six words per shell (or —) and links its evidence, so the page " +
+                "stays comparable rather than becoming prose: $wrong",
+            wrong.isEmpty(),
+        )
+    }
+
+    /**
      * Every doc a reader can open directly under `docs/` — spokes, the index, the tooling pair and the
      * writing standard. `docs/releases/` is exempt: a changelog is frozen at the version it describes.
      */
