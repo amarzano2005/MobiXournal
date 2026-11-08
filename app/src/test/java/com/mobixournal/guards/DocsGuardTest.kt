@@ -379,6 +379,80 @@ class DocsGuardTest {
     }
 
     /**
+     * The version the build carries is the version the docs describe.
+     *
+     * Two artifacts, two numbers (`versionName` in `app/build.gradle.kts`, `packageVersion` in
+     * `desktop/build.gradle.kts`), and three pages that quote them for a reader: the release index, the
+     * status page and the version's own note. Nothing rebuilt them together, so a release could ship
+     * while the page a user checks first still described the previous one.
+     */
+    @Test
+    fun theVersionsTheDocsNameAreTheBuiltOnes() {
+        val root = repoRoot()
+        val app = File(root, "app/build.gradle.kts").readText()
+        val android = Regex("""versionName\s*=\s*"([^"]+)""").find(app)?.groupValues?.get(1)
+        val code = Regex("""versionCode\s*=\s*(\d+)""").find(app)?.groupValues?.get(1)
+        val desktop = Regex("""packageVersion\s*=\s*"([^"]+)""")
+            .find(File(root, "desktop/build.gradle.kts").readText())?.groupValues?.get(1)
+        assertTrue(
+            "both version lines must be readable from the build files (app versionName, desktop packageVersion)",
+            android != null && desktop != null,
+        )
+        val index = File(docs, "releases/index.md").readText()
+        val matrix = File(docs, "guide-limitations.md").readText()
+        val wrong = mutableListOf<String>()
+        if (android != null && android !in index) wrong += "Android $android is missing from the release index"
+        if (android != null && android !in matrix) wrong += "Android $android is missing from the status page"
+        if (desktop != null && desktop !in index) wrong += "Desktop $desktop is missing from the release index"
+        if (desktop != null && desktop !in matrix) wrong += "Desktop $desktop is missing from the status page"
+        if (android != null) {
+            val note = File(root, "docs/releases/v$android.md")
+            if (!note.isFile) wrong += "there is no release note for Android $android"
+            else if (code != null && "versionCode $code" !in note.readText()) {
+                wrong += "the $android note does not name versionCode $code"
+            }
+        }
+        assertTrue(
+            "a version the build carries is the version the docs describe, or the page a user checks " +
+                "first describes the previous release: $wrong",
+            wrong.isEmpty(),
+        )
+    }
+
+    /**
+     * The layout page's package list is a map, and every entry on it has to point somewhere.
+     *
+     * `repo-layout.md` named a package as `app/src/main/java/com/mobixournal/app/src/main/java/...` — a
+     * paste that resolves nowhere — and no check failed, because a path in a code span is prose to the
+     * link test. The base package was missing from the same list for as long as nobody re-read it.
+     */
+    @Test
+    fun everyPackageTheLayoutPageNamesExists() {
+        val named = Regex("""`((?:app|mobix-core|desktop)/[^`]+)`""")
+            .findAll(File(docs, "repo-layout.md").readText())
+            .map { it.groupValues[1] }.toSet()
+        val missing = named.filter { !File(repoRoot(), it).isDirectory }.sorted()
+        val unlisted = mutableListOf<String>()
+        for (module in listOf("app", "mobix-core", "desktop")) {
+            val base = File(repoRoot(), "$module/src/main/java/com/mobixournal")
+            if (!base.isDirectory) continue
+            base.walkTopDown()
+                .filter { dir -> dir.isDirectory && dir.listFiles().orEmpty().any { it.extension == "kt" } }
+                .forEach { dir ->
+                    val path = dir.relativeTo(repoRoot()).invariantSeparatorsPath
+                    if (path !in named) unlisted += path
+                }
+        }
+        assertTrue("the layout page must list packages for this check to read", named.size >= 20)
+        assertTrue(
+            "docs/repo-layout.md is the map of the packages: an entry that is not a directory sends a " +
+                "reader nowhere, and a package holding Kotlin that no entry names is invisible in it\n" +
+                "  not a directory: $missing\n  not listed: ${unlisted.sorted()}",
+            missing.isEmpty() && unlisted.isEmpty(),
+        )
+    }
+
+    /**
      * The capability matrix keeps its own shape: one capability, two shells, one of the six words.
      *
      * The status words belong to one page, but nothing yet stopped that page from growing a cell in
