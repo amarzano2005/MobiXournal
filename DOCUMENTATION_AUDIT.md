@@ -8,6 +8,39 @@
 
 **State audited:** `main` at MobiXournal 2.0.0 (Android, `versionCode 14`) with Desktop 1.0.1 (Windows 11), documentation standard `docs/writing-docs.md` in force, `TODO.toml` empty (no active work).
 
+> **Historical record — written 2026-11-08, before the remediation it recommends.** The findings below are
+> kept exactly as they were found, so the reasoning survives; what changed is tracked once, in *Status of the
+> findings* immediately after this note. Four paths it names no longer exist because they were merged, not
+> lost: `audio-inking-sync.md` → [audio.md](docs/audio.md), `chrome-frame.md` → [chrome.md](docs/chrome.md),
+> `infinite-canvas.md` → [chunked-documents.md](docs/chunked-documents.md), `desktop-testing.md` →
+> [testing.md](docs/testing.md). Two working names in the plan landed as one page:
+> `guide-formats.md` and `guide-xournalpp.md` → [guide-formats-and-conversion.md](docs/guide-formats-and-conversion.md).
+
+## Status of the findings
+
+Every finding from §4, against the corpus as it stands now. *Fixed* means the page that owns the fact says
+the true thing and a guard or a link keeps it there; *partly* means the falsehood is gone but the page is
+still thin.
+
+| Finding | Severity | Status | Where it is now |
+|---|---|---|---|
+| F-01 no user documentation | Critical | Fixed | fifteen task pages under `docs/guide-*.md`, routed by [guide-index.md](docs/guide-index.md) |
+| F-02 the refused conversion promised | High | Fixed | README *Two formats, one document*; [guide-formats-and-conversion.md](docs/guide-formats-and-conversion.md); pinned in `DocClaimsTest` |
+| F-03 merge engine called dead | Critical | Fixed | [xopp-bridge.md](docs/xopp-bridge.md) *Merging two copies is wired…*; the matrix row; a queued task for the missing surface |
+| F-04 tables declared editor-less | Critical | Fixed | [mobix-living-entities.md](docs/mobix-living-entities.md); [guide-stem-tools.md](docs/guide-stem-tools.md) |
+| F-05 Typst advertised as a typesetter | Critical | Fixed | qualified in README and [math-engine.md](docs/math-engine.md); **Partially supported** in the matrix |
+| F-06 the repository map promised files | High | Fixed | [repo-layout.md](docs/repo-layout.md) names modules and packages only; the wrapper is the file's authority |
+| F-07 a measured table wrong in most rows | High | Fixed | the table was deleted with [codebase.md](docs/codebase.md)'s line column; the remaining benchmarks state their gaps |
+| F-08 status in three vocabularies | High | Fixed | [guide-limitations.md](docs/guide-limitations.md) is the only owner, and `DocsGuardTest` fails another page that spends a status word |
+| F-09 failure copy shelved for developers | High | Fixed | [guide-troubleshooting.md](docs/guide-troubleshooting.md) |
+| F-10 no task route into the corpus | High | Fixed | [guide-index.md](docs/guide-index.md); README *Documentation* |
+| F-11 polar plots presented as available | Medium | Fixed | [math-engine.md](docs/math-engine.md) states the placement boundary; the matrix row says **Partially supported** |
+| F-12 release notes with no index | Medium | Fixed | [releases/index.md](docs/releases/index.md), every note dated, one missing H1 added |
+| F-13 reference prose carries anecdote | Medium | Partly | guide pages state the user-facing consequence; several spokes still open with history |
+| F-14 the corpus vocabulary undefined | Medium | Fixed | [guide-glossary.md](docs/guide-glossary.md) |
+| F-15 no contributor entry point | Medium | Fixed | [CONTRIBUTING.md](CONTRIBUTING.md) and [developer-guide.md](docs/developer-guide.md) |
+| F-16 the front door read as a wall | Low | Fixed | README rewritten to eight sections, 79 lines and 584 words |
+
 ## How this report is written
 
 Every claim below is traceable to a file and, where the claim is about behaviour, to the code that settles it. Severity is graded by **user harm**, not by tidiness:
@@ -126,7 +159,7 @@ Every document is listed once, with the audience it actually serves (not the one
 | [`data-path.md`](docs/data-path.md) | 168 | A4 | Sniffing, reading, encoding and writing a document's bytes | One path, no forks between shells | A single `## Data path` section: 168 lines with no headings — the hardest doc to skim in the corpus; a reader looking for "where does a save stage" must read all of it | Keep; break into headings |
 | [`document-session.md`](docs/document-session.md) | 242 | A4 | Where an open document is held: remote staging, tabs, split view | Explains the three-way relationship honestly | Remote staging (SSHFS/FTP/cloud) reads as a supported workflow with no user page and no limitations list | Keep; add the A3 page for remote folders |
 | [`chunked-documents.md`](docs/chunked-documents.md) | 127 | A4 | The storage and I/O engine of a chunked board | Clear ownership statement; links into merge and format | Overlaps `infinite-canvas.md` (geometry and export) — two homes for one topic | Merge target: absorb `infinite-canvas.md` |
-| [`infinite-canvas.md`](docs/infinite-canvas.md) | 87 | A4 | Geometry modes and export slicing of chunked content | Short and specific | Second half of a topic whose first half is `chunked-documents.md`; a reader cannot tell which to open | Merge into `chunked-documents.md` |
+| `infinite-canvas.md` | 87 | A4 | Geometry modes and export slicing of chunked content | Short and specific | Second half of a topic whose first half is `chunked-documents.md`; a reader cannot tell which to open | Merge into `chunked-documents.md` |
 | [`text-and-markdown.md`](docs/text-and-markdown.md) | 206 | A4 | Text/markdown import, the paginator, generated PDFs | Complete on a fiddly path | No user page: importing a markdown file and getting a paginated PDF is a feature nobody can discover from the docs | Keep; add the user task |
 | [`images.md`](docs/images.md) | 72 | A4 | Image import, pixmap background, reference storage | Small, own topic, states round-trip status | `Round-trip status` is the pattern the whole corpus should use and only this doc has | Keep; use it as the template for status sections |
 | [`pdf.md`](docs/pdf.md) | 299 | A2, A3, A4 | Everything PDF: backgrounds, export, fonts, text, outline | Deep and accurate; the magnetic highlighter and text selection are well explained | Seven topics in 299 lines, one of them a retired feature kept as history; a user cannot find "copy text from a PDF" here | **Split** (backgrounds/fonts/references vs text/outline/export) |
@@ -136,7 +169,7 @@ Every document is listed once, with the audience it actually serves (not the one
 | Document | Lines | Audience | Purpose today | Strengths | Weaknesses, gaps, duplication | Home |
 |---|---|---|---|---|---|---|
 | [`chrome.md`](docs/chrome.md) | 245 | A4 | The editor screen, the rail, the secondary toolbar, the floating dock's material | Concrete, with the reasons for each rule (the rail never cuts a slot) | The frame around the page lives in `chrome-frame.md` — one subject, two files; the user's mental model ("where is the pen?") is absent | Keep as owner; absorb `chrome-frame.md` |
-| [`chrome-frame.md`](docs/chrome-frame.md) | 113 | A4 | Bands around the page, saved toolbar order, the empty document | Small and focused | Same subject as `chrome.md`; split by accident of budget | Merge into `chrome.md` |
+| `chrome-frame.md` | 113 | A4 | Bands around the page, saved toolbar order, the empty document | Small and focused | Same subject as `chrome.md`; split by accident of budget | Merge into `chrome.md` |
 | [`chrome-settings.md`](docs/chrome-settings.md) | 136 | A4 | The Settings shell: two shapes, search, prefs behind them | Explains phone vs tablet layout honestly | A user looking for "where is the setting for X" will not open a file about layout; no shortcut table here | Keep as engineering owner; the A3 settings page belongs in the guide |
 | [`pages-and-paper.md`](docs/pages-and-paper.md) | 167 | A3, A4 | Paper and ruling, templates, bookmarks, page list | Bookmark rationale (`.xopp` has no page label) is a good explanation | Written from the model outward; page reorder/duplicate/copy are described in `pdf.md` and here without a single task page | Keep |
 | [`ui-modernization.md`](docs/ui-modernization.md) | 244 | A4 | Why the UI left Material 3, design principles, ergonomics, tokens, shell details | The "why" of the visual identity is genuinely readable; shortcut tables live here | Overlaps `interface-contract.md` (prescriptive rules) and `colours.md` (tokens): three homes for one design system, told three times | Keep as rationale; point at the contract for rules |
@@ -160,7 +193,7 @@ Every document is listed once, with the audience it actually serves (not the one
 | Document | Lines | Audience | Purpose today | Strengths | Weaknesses, gaps, duplication | Home |
 |---|---|---|---|---|---|---|
 | [`audio.md`](docs/audio.md) | 161 | A4 | Recording, replay, `.xopp` sidecars, the window's audio | Explains the format-dependent recorder choice (Opus vs WAV) clearly | Exactly **one** link: the least connected document in the corpus, though it owns a headline feature; the karaoke half is a second file | Keep as owner; absorb `audio-inking-sync.md` |
-| [`audio-inking-sync.md`](docs/audio-inking-sync.md) | 234 | A4 | Stroke-synchronised replay, bundled audio, scrubbing | Detailed, with the telemetry mapping | Opens with a history of Xournal++ sidecars; its vocabulary ("karaoke", "sub-stroke") is invisible to a user looking for "replay my recording"; second half of one topic | Merge into `audio.md` (trim history to fit 300) |
+| `audio-inking-sync.md` | 234 | A4 | Stroke-synchronised replay, bundled audio, scrubbing | Detailed, with the telemetry mapping | Opens with a history of Xournal++ sidecars; its vocabulary ("karaoke", "sub-stroke") is invisible to a user looking for "replay my recording"; second half of one topic | Merge into `audio.md` (trim history to fit 300) |
 
 ### 3.6 The desktop window
 
@@ -173,7 +206,7 @@ Every document is listed once, with the audience it actually serves (not the one
 | [`desktop-editing.md`](docs/desktop-editing.md) | 203 | A4 | What a drag does: figures, placement, selection, PDF text, images, search | Consistent with the tablet's semantics and says where they differ | Long; the parity statements with `app/` are the value and are easy to miss | Keep |
 | [`desktop-pen-feel.md`](docs/desktop-pen-feel.md) | 110 | A4 | Active area, hand-pan, the machine's share | Narrow and honest; the Xournal++ comparison is measured | A4-only by nature: "the pen feels" is what a user searches for, and this is not it | Keep |
 | [`desktop-tablet.md`](docs/desktop-tablet.md) | 300 | A4 | Wintab, Windows Ink, the dial, the packet path | Device-level accuracy that no user doc could carry | At the ceiling; the dial and tablet setup a user needs ("does my tablet work?") is absent | Keep |
-| [`desktop-testing.md`](docs/desktop-testing.md) | 64 | A4 | How the desktop suite runs and what its renders prove | Concrete about pixels and budgets | Duplicates the desktop half of `testing.md` and the *"How it is tested"* section of `desktop-workstation.md`: three homes for one fact | Merge into `testing.md` or keep only as the linked detail of one of the two |
+| `desktop-testing.md` | 64 | A4 | How the desktop suite runs and what its renders prove | Concrete about pixels and budgets | Duplicates the desktop half of `testing.md` and the *"How it is tested"* section of `desktop-workstation.md`: three homes for one fact | Merge into `testing.md` or keep only as the linked detail of one of the two |
 
 ### 3.7 Rendering and mathematics
 
