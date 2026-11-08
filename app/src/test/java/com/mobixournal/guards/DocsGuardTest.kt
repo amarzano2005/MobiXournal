@@ -193,8 +193,9 @@ class DocsGuardTest {
      *
      *  - a **task line** in the opening lines, naming who the page is for and which platform it covers —
      *    the page a tablet reader opens must not be the one that describes the window;
-     *  - an **owner link**: at least one relative link to a doc under `docs/` that is not itself a guide
-     *    page, so the mechanism behind the task has a home the page can point at instead of retelling;
+     *  - an **owner link**: at least one relative link to a doc under `docs/` that is neither a guide
+     *    page nor the index, so the mechanism behind the task has a home the page can point at instead
+     *    of retelling it;
      *  - **registration** — the page is listed in the index above (or in the guide index once one
      *    exists), so no page is reachable only from another page's body.
      *
@@ -227,7 +228,9 @@ class DocsGuardTest {
                 .map { target -> File(page.parentFile, target.groupValues[1].substringBefore('#')).canonicalFile }
                 .filter { file ->
                     val path = file.path
-                    file.isFile && path.startsWith(docs.canonicalPath) &&
+                    // The index is not an owner: every task line links it, so counting it here would
+                    // make this rule unfailable.
+                    file.isFile && file.name != index && path.startsWith(docs.canonicalPath) &&
                         file.parentFile?.name != "guide" && !file.name.startsWith("guide-")
                 }
                 .toList()
