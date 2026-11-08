@@ -117,6 +117,10 @@ whatever else is running, so a figure from it is a functional check rather than 
 row says *not recorded*, nothing in the repository was found to reconstruct it — the honest reading is
 "measured once, conditions unknown", not a reproducible benchmark.
 
+That table audits the figures already here. The rules a new measurement follows — which fields its report
+must carry, how it is warmed and aggregated, and when two runs may be compared at all — are
+[benchmarks.md](benchmarks.md)'s, and every report now opens with the conditions it ran under.
+
 ## Where `.mobix` sits in the app
 
 ### Which format a document is written in

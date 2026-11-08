@@ -167,6 +167,16 @@ class MobixIncrementalSaveBenchmarkTest {
                     appendLine("archive: $pageCount pages, one stroke each, ${file.length()} B on disk")
                     appendLine("times: median of 5 runs, ms, wall clock on the harness host")
                     appendLine()
+                    append(
+                        BenchmarkEnvironment.table(
+                            workload = "$pageCount pages of one stroke each, one page edited; the asset case " +
+                                "adds one 1 MiB blob nothing references",
+                            warmUp = "one unmeasured save of each path before its five measured runs",
+                            iterations = "5 runs per path, plus one run of the asset case; the median is reported",
+                            unit = "milliseconds, pages opened and entries inflated",
+                        ),
+                    )
+                    appendLine()
                     appendLine("reuse (what the app saves now)    " + describe(reuse))
                     appendLine("rebuild every page (what it was)  " + describe(rebuild))
                     appendLine()

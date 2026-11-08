@@ -195,6 +195,13 @@ class MobixPagedOpenBenchmarkTest {
             appendLine("archive: $pageCount pages + one 1 MiB asset, ${file.length()} B on disk, $totalEntries entries")
             appendLine("times: median of 5 runs, ms, wall clock on the harness host")
             appendLine()
+            append(BenchmarkEnvironment.table(
+                workload = "$pageCount page entries plus one $assetBytes B asset, $totalEntries entries in all",
+                warmUp = "one unmeasured open of each path before its five measured runs",
+                iterations = "5 runs per path; the median is reported",
+                unit = "milliseconds to open, and entries inflated per open",
+            ))
+            appendLine()
             appendLine("path                             open ms    entries inflated")
             appendLine("eager (MobixContainer + open)    ${wholeMs.toString().padStart(5)}    ${totalEntries} (every one)")
             appendLine("streaming (MobixDocument.open)    ${streamingMs.toString().padStart(5)}    $entriesOpenedStreaming")

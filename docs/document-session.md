@@ -94,7 +94,8 @@ read, which is the one case a payload can still be missing; the page that needs 
 `report-a-mobix-page-whose-background-is-missing` exists to report.
 
 **Measured** (`MobixIncrementalSaveBenchmarkTest`, report in
-`app/build/reports/mobix-incremental-save.txt`): on a two-hundred-page notebook with one edited page, the
+`app/build/reports/mobix-incremental-save.txt`, and the conditions it ran under are in the report;
+[benchmarks.md](benchmarks.md) states what a report has to carry): on a two-hundred-page notebook with one edited page, the
 save takes **2 ms and opens one page** — the first, which states the document's own paper and page size —
 against **13 ms and 399 page openings** for the build-everything path it replaced, and the file it leaves
 is the source's own bytes for every page nothing touched. On ten pages with one edited (`MobixIncrementalSaveTest`,

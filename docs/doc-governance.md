@@ -88,6 +88,25 @@ owner of that area decides.
 | a module documented and removed | [repo-layout.md](repo-layout.md) names a module `settings.gradle.kts` no longer includes | the guard fails first, and the page follows |
 | a reference to an old API | a code file a page names that no longer exists | the guard fails on the path; the page is rewritten against the new one |
 | a difference between the shells nobody wrote down | a reader on one shell following the other's step | a row in the matrix, and the page split by platform |
+| a measurement, or a download page, that has rotted | the weekly link report, or a reader | re-run the benchmark, or open the URL by hand and update it only once it has moved |
+
+## Measurements and links away from the tree
+
+Two facts outlive the repository: a number measured on someone's machine, and a document at the other end
+of a URL. Neither is answerable by the guards above, and both are handled without making a pull request
+depend on something outside it.
+
+- **A measurement carries its conditions.** Every benchmark report opens with the block
+  [benchmarks.md](benchmarks.md) specifies — machine, JDK, Kotlin, Gradle, workload, warm-up, iterations,
+  unit and date — and carries **Not recorded** where the run could not establish a field. A figure quoted in
+  a page links the report it came from; one whose report says *Not recorded* is described as historical
+  rather than as comparable, and refreshing it means re-running the benchmark, never editing the digits.
+- **External links are swept on a schedule, not in review.** A relative link, an anchor and the file it
+  names are mandatory checks above, and they fail the pull request. A URL on another host is checked by
+  `.github/workflows/link-check.yml` every week and on demand, and what it produces is a report rather
+  than a gate: a 429, a 403, a timeout or a page that refuses automated clients is a **manual
+  verification** item, and a failed request is never by itself a reason to change a link. A URL is
+  replaced after a person has opened it and found the target moved.
 
 ## Running the checks locally
 
