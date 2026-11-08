@@ -41,8 +41,8 @@ shrink-only) — every other file states its subject by choosing a package, whic
 a `Desktop…` file dropped beside `Main.kt` is exactly how the flat 200-file package grew.
 
 **No package may become the next flat one.** A topic package holds at most **50 files**; past that it is two
-subjects and is split (the doc and the guard gain the new row in the same commit). Today: `sheet` 40,
-`tools` 35, `shell` 34, `io` 43, `ink` 27, `settings` 19.
+subjects and is split (the doc and the guard gain the new row in the same commit). No census is kept
+here: `PackageStructureTest` measures each package from the tree, so a count copied into this paragraph cannot go stale.
 
 ## The tablet's canvas (`app/`)
 

@@ -1,6 +1,5 @@
 package com.mobixournal.desktop.settings
 import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.sheet.svgPath
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
