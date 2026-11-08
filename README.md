@@ -8,7 +8,7 @@
 
 **A handwriting-first scientific workspace for Android and Windows.**
 
-*Handwritten ideas, mathematics, scientific tools and document workflows in one workspace — for students, educators and anyone working with technical content.*
+*Handwritten ideas, mathematics, scientific tools and document workflows in one workspace — for students, educators and technical readers.*
 
 [![Android and desktop CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
 [![Licence: GPL-2.0-or-later](https://img.shields.io/badge/Licence-GPL--2.0--or--later-blue.svg)](LICENSE)
@@ -30,8 +30,7 @@ working paper: what you place stays an object you can reopen and change.
 
 It is built for people who think in handwriting and need mathematics, diagrams and source documents beside
 it — a student on a problem set, an educator preparing one, an engineer sketching a circuit, a researcher
-annotating a paper. Files stay
-yours, in the folder you choose, with no account between.
+annotating a paper. Files stay yours, in the folder you choose, with no account between.
 
 ## What the workspace is made of
 
@@ -59,13 +58,13 @@ yours, in the folder you choose, with no account between.
 
 - **Write on the source.** A PDF becomes the page's background — by range, replacing or appended — and its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays exactly as drawn.
-- **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after two files are merged.
-- **Record while you write.** Every stroke is stamped with its place in the recording, and tapping it later starts playback at that moment.
-- **Search everything at once.** Typed text, a PDF's text layer, a formula's source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.
+- **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after two files merge.
+- **Record while you write.** Every stroke is stamped with its place in the recording; tapping it later starts playback there.
+- **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.
 
 ### One workspace, two shells
 
-- **The same file in both.** The tablet editor and the Windows window open the same notebooks and paper through one core; where their tools differ, the limitations page says so.
+- **The same notebook, two surfaces.** One file and one core behind two working surfaces: the tablet built around a pen in hand, the window around tabs, panels and export; where the tools differ, [the limitations page](docs/guide-limitations.md) says so.
 - **The window is a workstation.** Tabs that keep their own page and zoom, a sidebar of thumbnails and layers, and export to PDF, PNG or SVG.
 - **The tablet is the paper.** Split view, the Ring at the pen, palm rejection, and pages sized for a hand.
 - **Nothing converts behind your back.** A document keeps the format it was opened in; nothing needs an account or a connection.
@@ -93,10 +92,9 @@ yours, in the folder you choose, with no account between.
 | **Android 8.0 or newer** | The release APK from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases). A stylus makes it a notebook; a finger does the rest. |
 | **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build that needs no install. |
 
-The shells number separately, so the release you run is the one whose note describes it, and
-[the release index](docs/releases/index.md) is the only place those versions are written down. The installer
-is **unsigned**: Windows reports an unknown publisher and SmartScreen may ask first, left unsigned on
-purpose rather than given a false identity.
+The shells number separately, and [the release index](docs/releases/index.md) is the only place those versions
+are written down. The installer is **unsigned**: Windows reports an unknown publisher and SmartScreen may ask
+first, which is deliberate rather than a false identity.
 
 ## The two file formats
 
@@ -106,9 +104,11 @@ purpose rather than given a false identity.
 | **`.xopp`** | The interchange format desktop Xournal++ reads and writes. On export a plot, table or circuit becomes standard ink, with a metadata block that lets MobiXournal restore it while that ink is unchanged. |
 
 Opening never converts anything: a `.xopp` opened on the tablet still saves as a `.xopp`, and **Save As** is what
-changes the format. The Windows window **refuses** one **packaged** `.xopp` whose background lives inside it,
-leaving the file untouched. Details: [the native format](docs/mobix-format.md), [the `.xopp`
-contract](docs/xopp-bridge.md), [which format your notebook is in](docs/guide-formats-and-conversion.md).
+changes the format. How much survives depends on the document — an untouched file returns the same XML, while
+telemetry and a flattened object's editability are what the format cannot carry. The Windows window **refuses**
+one **packaged** `.xopp` whose background lives inside it, leaving the file untouched. Details: [the native
+format](docs/mobix-format.md), [the `.xopp` contract](docs/xopp-bridge.md), [which format your notebook is
+in](docs/guide-formats-and-conversion.md).
 
 ## Installing, and the first notebook
 
@@ -129,8 +129,7 @@ writes back in that format. The full first run is [your first notebook](docs/gui
 
 ## Where the work stands today
 
-Most of it is settled and in daily use: ink, tables, circuits, Cartesian plots with live sliders,
-LaTeX, PDF annotation and audio replayed from a stroke.
+Most of what the sections above describe is settled and in daily use.
 
 Some of it stops part-way: a Typst source is kept but not typeset, and tablet handwriting search needs its model
 downloaded before it answers. Absent: no sync between devices, tilt does not change stroke width, and the
@@ -155,6 +154,6 @@ chemistry palette is gone. Shell differences: [what works, and what is not there
 ## Licence, credit and lineage
 
 **GPL-2.0-or-later** — [LICENSE](LICENSE), with third-party notices in [NOTICE](NOTICE). MobiXournal continues
-Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) and shares format compatibility with
-[Xournal++](https://github.com/xournalpp/xournalpp). It is an independent project, not affiliated with or
-endorsed by the Xournal++ authors.
+Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) and shares its formats with
+[Xournal++](https://github.com/xournalpp/xournalpp). It is independent, not affiliated with or endorsed by the
+Xournal++ authors.
