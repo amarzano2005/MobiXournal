@@ -383,10 +383,10 @@ Five phases, each independently shippable and revertable. Phase 0 is half a day 
 
 | Item | Work | Fixes | Effort | Depends on |
 |---|---|---|---|---|
-| TR-10 | `limitations.md` (status matrix) | F-08 | M | §6.3 sign-off |
+| TR-10 | `guide-limitations.md` (status matrix; positions read from the tree, owner may overrule a cell) | F-08 | M | §6.3 positions |
 | TR-11 | `troubleshooting.md` extracted from the window's failure copy | F-09 | S | TR-10 |
 | TR-12 | `install-android.md`, `install-windows.md` | F-01 | M | TR-10 |
-| TR-13 | `guide-index.md` (flat, like its pages; the folder move is TR-36) with the three entry rows | F-10 | S | TR-10…TR-12 |
+| TR-13 | `guide-index.md` (flat, like its pages; the folder move is TR-36) with the entry rows | F-10 | S | TR-10…TR-12 |
 | TR-14 | README: replace *Try It* with the two guide links; leave the rest for Phase 3 | F-01, F-10 | XS | TR-12 |
 | TR-15 | Extend `DocsGuardTest` for the guide layer (registration, task line, cross-link) | N1–N4 | M | TR-10…TR-13 |
 
@@ -464,7 +464,9 @@ Seven capabilities cannot be classified from the tree alone, because "supported"
 | Desktop MSI signing | `Not verified` for the published artifact until checked. |
 | Stylus tilt/azimuth | Captured and stored, does not drive width: `Supported` for storage, `Not supported` for drawing? |
 
-Without these rulings the matrix would be invented, which the constraints of this plan forbid.
+Positions were taken from the tree on 2026-11-08 and shipped in `guide-limitations.md`: six rows follow
+the code and its guards, the MSI signature is **Not verified** because no artifact was checked, and each
+cell names the evidence, so the owner's product judgement can overrule a cell without a rewrite.
 
 ### 6.4 The folder move is a one-way door for links
 

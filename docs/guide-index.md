@@ -14,6 +14,7 @@ is built.
 | put MobiXournal on an Android tablet or phone, and find the notebooks afterwards | [Installing on Android](guide-install-android.md) |
 | install the Windows window from the MSI, or run it without installing anything | [Installing on Windows 11](guide-install-windows.md) |
 | get past an open that was refused or a save that did not happen, and recover a notebook after a crash | [When something goes wrong](guide-troubleshooting.md) |
+| check whether something you need works at all, and how far | [What works, and what is not there](guide-limitations.md) |
 
 ## Adding a page
 
