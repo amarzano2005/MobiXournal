@@ -82,6 +82,8 @@ architecture spokes: they quote behaviour and link to the owner of each rule.
   or save, or check a capability.
 - [guide-formats-and-conversion.md](guide-formats-and-conversion.md) — the two formats, Save As, and the one refusal.
 - [guide-xournalpp-migration.md](guide-xournalpp-migration.md) — a Xournal++ user's round trip, and what differs.
+- [guide-inking-and-gestures.md](guide-inking-and-gestures.md) — pen width, palm rejection, the barrel, hold-to-snap, undo.
+- [guide-stem-tools.md](guide-stem-tools.md) — plots, tables, circuits and formulas, and what stays editable.
 - [guide-first-notebook.md](guide-first-notebook.md) — an empty tab, paper, ink, a save, and the way back in.
 - [guide-install-android.md](guide-install-android.md) — installing on a tablet, where documents live.
 - [guide-install-windows.md](guide-install-windows.md) — the MSI, the folder build, uninstalling.

@@ -1,6 +1,7 @@
 # The selection tool: marquee, lasso, handles and transforms
 
 > Read when you change how elements are picked, moved, resized, rotated, aligned or restyled, or the region (background-copy) variant.
+> For the task: [How the pen behaves](guide-inking-and-gestures.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
@@ -297,4 +298,3 @@ a swatch, and reads the element back).
 A placement never leaves the tool armed: once the element exists it is what stays selected, and the window
 picks the **marquee** (`S`) the way the tablet does, so the next drag moves the element just placed instead of
 placing a second one.
-

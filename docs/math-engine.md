@@ -1,7 +1,7 @@
 # Math engine: evaluation, plotting and numerical analysis
 
 > Read when implementing mathematical expression parsing, numerical calculus (roots, extrema, derivatives, integrals), parametric curves, polar plots, or interactive formula sliders.
-> For the task: [What works, and what is not there](guide-limitations.md).
+> For the task: [What works, and what is not there](guide-limitations.md), [Placing a plot, table or circuit](guide-stem-tools.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

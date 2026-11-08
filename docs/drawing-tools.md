@@ -1,7 +1,7 @@
 # The drawing tools and what they do to the page
 
 > Read when you work on a tool: shapes and their styles, the eraser, layers, hold-to-snap, function plots, or how a page is zoomed.
-> For the task: [Your first notebook](guide-first-notebook.md).
+> For the task: [Your first notebook](guide-first-notebook.md), [How the pen behaves](guide-inking-and-gestures.md), [Placing a plot, table or circuit](guide-stem-tools.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
