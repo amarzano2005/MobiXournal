@@ -115,7 +115,8 @@ few fat documents — and from drifting into statements that are no longer true 
   there is either infrastructure or named by a doc, a test or a script.
 
 - **a guide page loses its place** — each one under the guide layer carries a task line naming its audience
-  and platform, links the spoke that owns the how, and is registered above, so a page written for a person
+  and platform, closes on the spoke that owns the how with a `## How it works` section, and is registered
+  above, so a page written for a person
   doing a job stays a pointer rather than a second home;
 
 ### Adding a spoke

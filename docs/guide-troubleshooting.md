@@ -85,8 +85,12 @@ window title or the app's About page, what you did just before, and the message 
 mechanism behind each failure is in [desktop-documents.md](desktop-documents.md); the shared rules for
 reading and writing a document are in [data-path.md](data-path.md).
 
-## Related pages when something fails
+## How it works
 
-- [Installing on Windows](guide-install-windows.md) — installer, associations, uninstall
-- [Installing on Android](guide-install-android.md) — the APK, storage, cloud folders
-- [The `.xopp` bridge](xopp-bridge.md) — what a file keeps when it comes back with its elements
+Each message above comes from a path the architecture docs own:
+
+- [desktop-documents.md](desktop-documents.md) — the open path, and the failures it can report.
+- [data-path.md](data-path.md) — how bytes are read, written and moved into place.
+- [xopp-bridge.md](xopp-bridge.md) — what a file keeps when it comes back with its elements.
+
+The other task pages are in [the user guide](guide-index.md).

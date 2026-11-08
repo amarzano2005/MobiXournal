@@ -66,8 +66,12 @@ Uninstall from *Settings → Apps → Installed apps*. The uninstaller removes t
 are untouched because they are files you chose. Snapshots in `%APPDATA%\MobiXournal\recovery\` are worth a
 look before you remove the folder, since a notebook that was never saved exists only there.
 
-## Related pages on Windows
+## How it works
 
-- [Installing on Android](guide-install-android.md) — the other platform
-- [When something goes wrong](guide-troubleshooting.md) — every message the window can show
-- [`docs/desktop-workstation.md`](desktop-workstation.md) — what the window is, for a developer
+The steps above follow rules that live in the architecture docs, not in this page:
+
+- [desktop-workstation.md](desktop-workstation.md) — the window itself: what it opens, edits and exports.
+- [desktop-documents.md](desktop-documents.md) — how an open document is held, and why a save that fails leaves the old bytes intact.
+- [`docs/tools.md`](tools.md) — the MSI and folder builds, for whoever packages it.
+
+The other task pages are in [the user guide](guide-index.md).

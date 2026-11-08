@@ -52,8 +52,12 @@ The word is one of the six above, the evidence cell links the doc that owns the 
 written as a reader meets it rather than as a prognosis. [architecture.md](architecture.md) holds the
 procedure for the page itself.
 
-## Related pages
+## How it works
 
-- [The user guide](guide-index.md) — the other task pages, by job
-- [Installing on Android](guide-install-android.md) and [installing on Windows 11](guide-install-windows.md)
-- [When something goes wrong](guide-troubleshooting.md) — refused opens, failed saves, recovery
+Every row links the doc that owns its mechanism, and the reason behind a row lives there too. Two pages
+carry the words and the procedure:
+
+- [writing-docs.md](writing-docs.md) — the six words, defined once.
+- [architecture.md](architecture.md) — how a page in this layer is added and registered.
+
+The other task pages are in [the user guide](guide-index.md).

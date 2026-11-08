@@ -19,5 +19,5 @@ is built.
 ## Adding a page
 
 A new task page is a new `docs/guide-*.md` file with a `# Title` naming the job, a `> Read when …` line, a
-task line, a link to the owning spoke, and a row in the table above. `DocsGuardTest` fails the build when
+task line, a closing `## How it works` that links the owning spoke, and a row in the table above. `DocsGuardTest` fails the build when
 one of those is missing.

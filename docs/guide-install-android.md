@@ -54,8 +54,12 @@ full rules — what stays editable, what becomes ink, what never converts silent
 Uninstalling removes the app, not your notebooks: they are ordinary files where you saved them. Files
 the app kept for a crash live in the app's own storage and go with it.
 
-## Related pages on Android
+## How it works
 
-- [Installing on Windows 11](guide-install-windows.md) — the other platform
-- [When something goes wrong](guide-troubleshooting.md) — refused opens, failed saves, recovery
-- [`docs/tools.md`](tools.md) — the build pipelines, for a developer
+None of the rules above live on this page; each one is a spoke's to state:
+
+- [mobix-format.md](mobix-format.md) — what a document is, and the format policy that keeps a `.xopp` saving as `.xopp`.
+- [xopp-bridge.md](xopp-bridge.md) — what crosses to Xournal++ and what becomes ordinary ink.
+- [`docs/tools.md`](tools.md) — the APK pipelines, for whoever builds it.
+
+The other task pages are in [the user guide](guide-index.md).

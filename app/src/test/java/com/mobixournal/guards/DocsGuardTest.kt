@@ -188,6 +188,46 @@ class DocsGuardTest {
     }
 
     /**
+     * A guide page ends where its reader can follow the rule: with the mechanism.
+     *
+     * The steps belong to the page; the reason behind them belongs to a spoke. So the last section is
+     * `## How it works`, and it links at least one owner — a doc under `docs/` that is neither a guide
+     * page nor the index. A page that closes on a list of its siblings is a page whose only description
+     * of the rule is the guide, which is how a second home starts.
+     *
+     * `## How it works` is three words, so four task pages can share it: the heading collision rule only
+     * guards a title or section long enough to be a topic (four words or more).
+     */
+    @Test
+    fun everyGuidePageEndsByNamingTheMechanism() {
+        val problems = mutableListOf<String>()
+        for (page in guidePages()) {
+            val lines = page.readLines()
+            val lastHeading = lines.indexOfLast { it.startsWith("## ") }
+            if (lastHeading < 0 || lines[lastHeading].trim() != "## How it works") {
+                val found = if (lastHeading < 0) "no section at all" else "\"${lines[lastHeading].trim()}\""
+                problems += "${page.name}: its last section is $found, not \"## How it works\""
+                continue
+            }
+            val owners = lines.drop(lastHeading + 1)
+                .flatMap { line -> Regex("""\]\(([^)\s]+)\)""").findAll(line).map { it.groupValues[1] } }
+                .map { target -> File(page.parentFile, target.substringBefore('#')).canonicalFile }
+                .filter { file ->
+                    file.isFile && file.name != index && file.path.startsWith(docs.canonicalPath) &&
+                        file.parentFile?.name != "guide" && !file.name.startsWith("guide-")
+                }
+            if (owners.isEmpty()) {
+                problems += "${page.name}: \"## How it works\" links no owning spoke"
+            }
+        }
+        assertTrue(
+            "a guide page has to end by naming the spoke that owns the how, or the guide becomes the " +
+                "only description of the rule:\n  " + problems.joinToString("\n  "),
+            problems.isEmpty(),
+        )
+    }
+
+    /**
      * The guide layer is for a **person doing a job**, so it has a shape of its own, and it is the shape
      * that keeps a task page a pointer rather than a second home. Three rules, all checkable:
      *
