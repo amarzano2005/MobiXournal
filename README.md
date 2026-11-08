@@ -1,127 +1,79 @@
 <div align="center">
-  <img src="docs/assets/logo.png" alt="MobiXournal Logo" width="140" height="140" />
+  <img src="docs/assets/logo.png" alt="MobiXournal" width="128" height="128" />
 
   # MobiXournal
-  **A stylus-first note-taking & STEM drafting suite for Android and Windows — native `.mobix` documents, lossless `.xopp` interchange, full graphics-tablet support**
+
+  **An independent, unofficial notebook and technical-drafting app for Android tablets and Windows 11, built for a pen: it keeps what you place on the page editable, and stores it in a document format of its own.**
 
   [![Android CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
   [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](LICENSE)
-  [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20%2F%20Windows%2011-3DDC84?logo=android&logoColor=white)](docs/desktop-workstation.md)
-  [![Format](https://img.shields.io/badge/Format-.mobix%20(native)%20%2F%20.xopp%20(lossless)-orange)](docs/xopp-bridge.md)
-  [![Stylus & Tablet](https://img.shields.io/badge/Stylus-S--Pen%20%7C%20Active%20Pen%20%7C%20Tablet-blueviolet)]()
-
-**Documents live in two formats that work side by side:**
-- **`.mobix` (Native format)**: Stores re-editable graphs, tables, circuits, shapes, and formulas, compressed Opus audio bundled inside the file, full stylus telemetry, and fast page-by-page streaming.
-- **`.xopp` (Xournal++ interchange)**: Reads and writes standard [Xournal++](https://github.com/xournalpp/xournalpp) files losslessly. Living `.mobix` elements export as standard vector strokes with embedded metadata, reviving as editable objects when reopened in MobiXournal unless modified externally.
+  [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20%2F%20Windows%2011-3DDC84?logo=android&logoColor=white)](docs/guide-index.md)
 
   <br />
-  <img src="docs/assets/preview.jpg" alt="MobiXournal Mobile - UI Preview" width="850" />
-  
-  *MobiXournal Mobile*
+  <img src="docs/assets/preview.jpg" alt="The MobiXournal editor on an Android tablet" width="820" />
 
-  
-  <br />
-  <br />
-  <img src="docs/assets/preview-desktop.png" alt="MobiXournal Desktop - UI Preview" width="850" />
-  
-  *MobiXournal Desktop*
+  *The tablet editor: one notebook open, the tool strips floating over the page.*
 
-  
+  <br />
+  <img src="docs/assets/preview-desktop.png" alt="The MobiXournal window on Windows 11" width="820" />
+
+  *The Windows window: the same notebook, with tabs and a page sidebar.*
 </div>
 
 ---
 
-## ▶️ Try It
+## Get it running
 
-| Platform | Install it |
+| Your platform | Download, and what you need first |
 |---|---|
-| **Android (8.0+)** | [Installing on Android](docs/guide-install-android.md) — the APK, the first launch, where your notebooks live. |
-| **Windows 11 Desktop** | [Installing on Windows 11](docs/guide-install-windows.md) — the MSI, what it changes on your PC, the folder build. |
+| **Android 8.0 or newer** | [The APK](docs/guide-install-android.md) — one file to sideload, then the first launch and where notebooks live. Nothing to sign up for. |
+| **Windows 11** | [The MSI](docs/guide-install-windows.md) — the installer, what it adds to your PC, and the folder build for a portable copy. |
 
-Releases are on [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases); the build scripts
-and what each does are in [`docs/tools.md`](docs/tools.md).
+Both builds work offline and leave your notebooks in your own storage. Every version is on
+[GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases), and
+[the guide](docs/guide-index.md) starts with the first notebook.
 
----
+## Two formats, one document
 
-## ✨ Key Features
+A notebook saves as **`.mobix`**, a single self-contained file that keeps its plots, tables, circuits,
+formulas, recorded audio and pen samples editable — reopening it reopens the work, not a picture of it.
 
-### 📂 Workspace, Documents & Formats
-- **Sticky Format Policy**: Every opened file saves back in its own format (`.mobix` or `.xopp`), while **Save As** converts in either direction — the Windows window refuses the one case it cannot write faithfully (a packaged `.xopp` with an embedded background) and leaves the file untouched.
-- **Multi-Tab & Split View**: Work across multiple tabs or side-by-side split panes; open a live mirror of the same notebook to view a reference page while writing on another.
-- **Universal Import & Export**: Annotate PDFs (replace or append specific page ranges), import Markdown/plain text and images (`PNG`, `JPEG`, `WebP`), and export vector PDFs, per-page SVGs, or PNGs.
-- **Safe Cloud & Local Saves**: Atomic staged writes protect cloud shares (Google Drive, Nextcloud, OneDrive, WebDAV), while incremental `.mobix` saves update only modified pages in milliseconds.
+It also reads and writes Xournal++'s **`.xopp`** without loss, which is what lets one file be edited in
+either app: a `.xopp` you open saves back as a `.xopp`, and **Save As** converts when you ask it to.
 
-### 🖊️ Stylus, Graphics Tablets & Inking
-- **Stylus-First Inking**: Capacitive palm rejection, hover cursor preview, pressure-tapered pen strokes, and multiply-blended highlighters that preserve underlying text.
-- **Pressure Calibration & Presets**: Fine-tune minimum pressure floor (`0.01–1.00`) and multiplier (`0.5–4.0×`) with named presets and live input diagnostics.
-- **Shape Recognition & Hold to Snap**: Pause the pen tip for 300 ms at the end of a stroke (or enable continuous shape recognition) on Android or Windows to snap freehand ink into clean lines, rectangles, triangles, circles, ellipses, arcs, or arrows.
-- **Pen-Tip Ring & Barrel Actions**: Trigger the radial ring menu at the nib via barrel button or shortcut (`Alt + B` on PC) to switch tools, colors, and stroke widths without reaching for the toolbar.
-- **Graphics Tablet Integration**: Plug-and-play USB/Bluetooth tablets on Android with 1-click ExpressKey mapping, plus dedicated Wintab and Windows Ink pen streams on Windows 11.
+One conversion the Windows window **refuses** rather than write badly: a **packaged** `.xopp` whose page
+background is stored inside the file is left exactly as it is, because rewriting it would drop the
+background. [How conversion behaves, case by case](docs/guide-formats-and-conversion.md).
 
-### 🔬 STEM & Technical Drafting
-- **Living 2D Function Plotter**: Plot Cartesian $y = f(x)$ and parametric $\{x(t), y(t)\}$ curves with live calculus analysis, shaded definite integrals, and interactive on-canvas parameter sliders.
-- **Electronic Circuits & IEEE Logic Gates**: Place and edit passive/active components (resistors, capacitors, inductors, diodes, LEDs, BJTs, op-amps, sources) and digital logic gates with magnetic pin snapping.
-- **Chemistry & Dimensioning**: Draw single, double, or triple chemical bonds, aromatic benzene rings, and a 60°/120° hexagonal bond lattice, or drag auto-measured millimeter dimension arrows.
-- **Relational Tables & Math Blocks**: Author resizable data tables with optional relational headers and in-place cell editing, plus re-editable LaTeX formulas typeset as vectors and Typst sources kept intact through save and export.
-- **Virtual Drafting Instruments**: Rule exact lines and arcs against an on-canvas setsquare, compass, or protractor, or snap directly to lined, graph, dotted, and isometric paper meshes.
+## What it is good at
 
-### 🎙️ Audio Sync, PDF & Full-Document Search
-- **Synchronized Audio Notes**: Record audio while taking notes; tap any stroke with **Play Object** (or scrub the waveform player at $0.8\times\text{–}2.0\times$ speed) to jump to the exact moment it was written.
-- **Self-Contained & Exportable Audio**: `.mobix` bundles compressed Opus audio (~15 MB/hour) directly inside the notebook, with optional background recording and automatic `.m4a` export on Android.
-- **Smart PDF Annotation**: Select and copy real PDF text (`Shift + S` on PC), use the magnetic highlighter to snap cleanly along text lines, browse the PDF Table of Contents, and reorder, duplicate, or copy/paste pages across documents.
-- **Handwriting & Full-Text Search**: Search typed text, math source, PDF text, and handwritten ink simultaneously — powered by Google ML Kit on Android, Windows Ink recognition on PC, and an offline Kotlin fallback.
-- **Tailored Navigation & Unified Settings**: Documents open at 100 %, the sheet's width filling the window as on the tablet; zoom step and smooth wheel scrolling are customizable on PC (momentum curves on Android), and the settings search finds any option or shortcut.
+- **Pen first.** Pressure-tapered ink, palm rejection, a hover preview, and a highlighter that leaves the text beneath it readable.
+- **Shapes from ink.** Hold the pen still at the end of a stroke and freehand lines, circles and arrows snap clean.
+- **Objects that stay editable.** Function plots, tables, circuits and logic gates, chemistry bonds, dimension arrows, LaTeX formulas.
+- **PDFs and recorded notes.** Annotate a PDF, record while you write, then tap a stroke to replay that moment.
+- **Two shells, one document.** The tablet and the Windows window open the same files, with the same tools and the same paper.
 
----
+## Documentation
 
-## 🛠️ Build & Requirements
-
-- **Containerized Linux (`/data/android`)**: Uses Docker (with Podman fallback) so no local JDK or Android SDK is required.
-- **Windows 11 / macOS / Linux host**: Requires **JDK 21** (17–24 supported by Gradle) and the **Android SDK** configured in `local.properties` (building `:desktop` requires only the JDK).
-
-```sh
-# Containerized build (Linux with /data/android): unit tests + debug APK
-scripts/build.sh
-
-# Host fallback (auto-discovers JDK 21 + Android SDK): unit tests + debug APK
-scripts/host-build.sh
-
-# Direct Gradle commands (Windows PowerShell with JAVA_HOME set to JDK 21)
-.\gradlew.bat :app:testDebugUnitTest :mobix-core:test :desktop:test
-.\gradlew.bat assembleDebug
-.\gradlew.bat :desktop:createDistributable
-```
-
-For emulator testing (`scripts/connected-test.sh`) and cutting releases (`scripts/todo.sh release --version <version> --bump-gradle`), see [`docs/tools.md`](docs/tools.md).
-
----
-
-## 📚 Documentation Map & Project Structure
-
-MobiXournal uses a strict hub-and-spoke documentation model where each fact has a single authoritative home:
-
-| Topic | Authoritative Document |
+| If you want | Read |
 |---|---|
-| **Development Workflow & Conventions** | [`AGENTS.md`](AGENTS.md) |
-| **Build, Contribute or Review** | [docs/developer-guide.md](docs/developer-guide.md), [CONTRIBUTING.md](CONTRIBUTING.md) |
-| **Writing or Reviewing a Doc** | [`docs/writing-docs.md`](docs/writing-docs.md) |
-| **System Architecture Index (all spokes)** | [`docs/architecture.md`](docs/architecture.md) The task pages start at [docs/guide-index.md](docs/guide-index.md). |
-| **UI & Design Contract** | [`docs/interface-contract.md`](docs/interface-contract.md) |
-| **Native `.mobix` Format & `.xopp` Bridge** | [`docs/mobix-format.md`](docs/mobix-format.md), [`docs/xopp-bridge.md`](docs/xopp-bridge.md) |
-| **Windows 11 Desktop Workstation** | [`docs/desktop-workstation.md`](docs/desktop-workstation.md), [`docs/desktop-settings.md`](docs/desktop-settings.md) |
-| **Build, Emulator & Release Pipelines** | [`docs/tools.md`](docs/tools.md), [`docs/testing.md`](docs/testing.md) |
-| **Task Queue & Completed Archive** | [`TODO.toml`](TODO.toml), [`FINISHED.toml`](FINISHED.toml), [`docs/releases/`](docs/releases/) |
+| to use the app, task by task | [the guide](docs/guide-index.md) |
+| to know what works on which platform | [what works, and what does not](docs/guide-limitations.md) |
+| the next action after a failure | [troubleshooting](docs/guide-troubleshooting.md) |
+| which version shipped, and when | [the release index](docs/releases/index.md) |
+| how the system is built | [the index of owners](docs/architecture.md) |
+| the rules a change to these pages follows | [the writing standard](docs/writing-docs.md) |
 
-The repository is split into three Gradle modules (detailed in [`docs/repo-layout.md`](docs/repo-layout.md)):
-- **`mobix-core/`**: Pure JVM module containing the `.mobix` and `.xopp` codecs, living element synthesis/revival, math/plot engine, shape recognizer, and shared rendering geometry.
-- **`app/`**: Android tablet & phone editor (`SurfaceView` low-latency inking pipeline, Jetpack Compose Material 3 UI, SAF storage, and ML Kit handwriting search).
-- **`desktop/`**: Windows 11 Compose Multiplatform (Skiko) desktop editor sharing `mobix-core` and the frosted-glass design system.
+## Build from source
 
----
+`scripts/build.sh` where a Linux host carries `/data/android`, `scripts/host-build.sh` anywhere else. The
+suites, the guards, the emulator loop, cutting a release and the documentation rules are
+[the developer guide](docs/developer-guide.md)'s; a report or a patch starts at
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 📄 License
+## Licence and credits
 
-> **Credits & License**:
-> - **Xournal++**: Format compatibility, color palette, and shape recognition match upstream [Xournal++](https://github.com/xournalpp/xournalpp) (GPL-2.0-or-later).
-> - **NeXopp**: MobiXournal continues and expands Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) (`bamonroe`).
-> - Independent and unofficial project distributed under the **GPL-2.0-or-later** license. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+**GPL-2.0-or-later** — [LICENSE](LICENSE), with third-party notices in [NOTICE](NOTICE). MobiXournal
+continues Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) and shares format compatibility with
+[Xournal++](https://github.com/xournalpp/xournalpp). It is an independent project, not affiliated with or
+endorsed by the Xournal++ authors.
