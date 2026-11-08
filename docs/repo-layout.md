@@ -27,7 +27,7 @@ it, so it no longer tries.
 
 ### `app/src/main` — the Android shell
 
-- `app/src/main/java/com/mobixournal/app/src/main/java/com/mobixournal`
+- `app/src/main/java/com/mobixournal`
 - `app/src/main/java/com/mobixournal/audio`
 - `app/src/main/java/com/mobixournal/io`
 - `app/src/main/java/com/mobixournal/panes`

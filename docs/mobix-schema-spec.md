@@ -9,6 +9,9 @@ This file owns the **container and the document envelope**; the elements inside 
 policy are [mobix-format.md](mobix-format.md). The container is canonical here — do not re-draw the
 tree in the other spoke.
 
+The JSON below is **excerpted**: `…` marks elided content, so a block is a shape to read, not a file to
+paste. Where a field's rules matter they are stated in prose under the block, not implied by the sample.
+
 ## Container structure
 
 `.mobix` is a ZIP archive, typed `application/vnd.mobixournal+zip`. The archive layout isolates
