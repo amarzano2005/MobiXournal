@@ -94,7 +94,7 @@ The tablet app and the Windows window are built and released separately, so each
 a release note names the shell it belongs to. This guide states both at the top of every page for that
 reason.
 
-*More:* [the user guide](guide-index.md).
+*More:* [the releases, newest first](releases/index.md).
 
 ## How it works
 
