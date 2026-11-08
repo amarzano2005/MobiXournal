@@ -1,6 +1,7 @@
 # Text and markdown: import, layout, generated PDFs
 
 > Read when you change a text or markdown import, the paginator, the markdown parser, or the PDF those imports are annotated against.
+> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

@@ -51,6 +51,15 @@ writing a reference it cannot honour, and the file on disk is left exactly as it
 The refusal is the safe outcome, not a failure: refusing leaves a working file, and a half-rewritten
 package would not.
 
+## Taking the page somewhere else
+
+Saving a notebook is not the only way out of it. **Export PDF** writes the pages as a PDF from either
+shell, keeping the source PDF's own vector content where it is still available and laying your ink over
+it. The window's menu also exports the pages as **PNG** or **SVG** into a folder you pick.
+
+Audio is the exception in both directions: a recording stays beside the document and never enters an
+exported PDF.
+
 ## Nothing converts behind your back
 
 Opening is read-only with respect to format. A `.xopp` opened on the tablet is still a `.xopp` when the
@@ -64,5 +73,6 @@ The rules above are these docs' to state:
 - [mobix-format.md](mobix-format.md) — the container, and which format a document is written in.
 - [xopp-bridge.md](xopp-bridge.md) — synthesis out, revival in, and the metadata block between them.
 - [data-path.md](data-path.md) — how a file's bytes are sniffed, read and written.
+- [desktop-ui-layout.md](desktop-ui-layout.md) — the window's menu, its export commands and their chips.
 
 The other task pages are in [the user guide](guide-index.md).

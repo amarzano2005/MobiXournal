@@ -1,7 +1,7 @@
 # PDF: backgrounds, export, text and the outline
 
 > Read when you change anything PDF: the background renderer and its caches, fonts in generated PDFs, text selection, the Contents outline, or how a background reference is written portably.
-> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md).
+> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md), [Which format your notebook is in](guide-formats-and-conversion.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

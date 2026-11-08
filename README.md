@@ -104,7 +104,7 @@ MobiXournal uses a strict hub-and-spoke documentation model where each fact has 
 |---|---|
 | **Development Workflow & Conventions** | [`AGENTS.md`](AGENTS.md) |
 | **Writing or Reviewing a Doc** | [`docs/writing-docs.md`](docs/writing-docs.md) |
-| **System Architecture Index (all spokes)** | [`docs/architecture.md`](docs/architecture.md) |
+| **System Architecture Index (all spokes)** | [`docs/architecture.md`](docs/architecture.md) The task pages start at [docs/guide-index.md](docs/guide-index.md). |
 | **UI & Design Contract** | [`docs/interface-contract.md`](docs/interface-contract.md) |
 | **Native `.mobix` Format & `.xopp` Bridge** | [`docs/mobix-format.md`](docs/mobix-format.md), [`docs/xopp-bridge.md`](docs/xopp-bridge.md) |
 | **Windows 11 Desktop Workstation** | [`docs/desktop-workstation.md`](docs/desktop-workstation.md), [`docs/desktop-settings.md`](docs/desktop-settings.md) |

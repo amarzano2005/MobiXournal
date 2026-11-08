@@ -48,6 +48,19 @@ chapter below it, and an entry that points nowhere is listed but not tappable.
 Navigation only: the notebook format has nowhere to keep a bookmark tree, so the outline is read from the
 PDF and your file is untouched by it.
 
+## Text and Markdown, laid out into pages
+
+A plain text or Markdown file can come in the same way, and it arrives as **pages generated from it** — the
+file is laid out and paginated into a PDF you write on, so what you annotate against is the finished
+layout. Markdown is recognised by the file's name rather than by what is inside it, so an unusual
+extension will be read as plain text.
+
+## A picture as a page background
+
+A picture imports as a page's background the same way a PDF page does, and the format decides what happens
+to the file: a `.xopp` references it beside the document, a `.mobix` can carry it inside. Once imported it
+is the sheet you write on rather than an object you can drag around.
+
 ## Recording while you write
 
 The **Audio** slot toggles capture, and the document's format picks the recorder. A `.mobix` records Opus
@@ -84,3 +97,5 @@ it never meets that case.
 - [pdf.md](pdf.md) — backgrounds, import modes, the text index, the highlighter and the outline.
 - [audio.md](audio.md) — capture, the stamp, the playhead, and the platform half.
 - [audio-inking-sync.md](audio-inking-sync.md) — replay modes, the scrubber, and the export rules.
+- [images.md](images.md) — how a picture reaches the page, and what the reference stores.
+- [text-and-markdown.md](text-and-markdown.md) — the paginator, the generated PDF and the two routes in.

@@ -3,7 +3,7 @@
 > Read when laying out the `desktop/` window — its bands, its sidebar, where the tool strips sit, and
 > which key does what. The module's own inventory is [desktop-workstation.md](desktop-workstation.md)'s;
 > the window's Settings surface is [desktop-settings.md](desktop-settings.md)'s.
-> For the task: [Where a setting lives](guide-settings-and-shortcuts.md).
+> For the task: [Where a setting lives](guide-settings-and-shortcuts.md), [Which format your notebook is in](guide-formats-and-conversion.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

@@ -9,6 +9,9 @@ Each row is a job, not a topic, so the page you land on opens by telling you wha
 quote the app's own words and link to the doc that owns each rule; nothing here describes how the program
 is built.
 
+Installing, building and running from source are [README.md](../README.md)'s; this table is for using the
+app, not for building it.
+
 | If you want to… | Open |
 |---|---|
 | write a first notebook, save it, and open it again tomorrow | [Your first notebook](guide-first-notebook.md) |
@@ -22,7 +25,7 @@ is built.
 | get a short answer about licence, accounts, files or versions before reading a task page | [The questions that are not tasks](guide-faq.md) |
 | decode a word the guide uses, or find what Xournal++ calls the same thing | [The words this guide uses](guide-glossary.md) |
 | put MobiXournal on an Android tablet or phone, and find the notebooks afterwards | [Installing on Android](guide-install-android.md) |
-| install the Windows window from the MSI, or run it without installing anything | [Installing on Windows 11](guide-install-windows.md) |
+| install the Windows window from the MSI and get it running | [Installing on Windows 11](guide-install-windows.md) |
 | get past an open that was refused or a save that did not happen, and recover a notebook after a crash | [When something goes wrong](guide-troubleshooting.md) |
 | check whether something you need works at all, and how far | [What works, and what is not there](guide-limitations.md) |
 

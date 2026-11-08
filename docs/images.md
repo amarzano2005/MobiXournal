@@ -1,6 +1,7 @@
 # Images: import, the pixmap background, and its reference
 
 > Read when you change image import, how a pixmap background is painted, or how its reference is resolved and stored.
+> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
