@@ -33,7 +33,7 @@ import java.io.OutputStream
  *
  * Both **paginated** and **infinite-canvas** documents (`INFINITE_VERTICAL`, `INFINITE_HORIZONTAL`,
  * `INFINITE_2D`) are supported: paginated documents store their content in `pages/`, while infinite
- * documents store spatial tiles in `chunks/` (`docs/infinite-canvas.md`).
+ * documents store spatial tiles in `chunks/` (`docs/chunked-documents.md`).
  *
  * Pure Kotlin, no `java.io.File`, like the rest of `format/`: the same code runs on-device and in JVM
  * unit tests.
@@ -439,7 +439,7 @@ class MobixDocument(
      *   the shape a **chunked** document needs and a paginated one ignores. A chunk is named by its
      *   coordinates, and they are a fact of the file rather than of the page list, so a write that
      *   derived them from the index would move every chunk of a 2D board to the first column
-     *   (`docs/infinite-canvas.md`). A caller that has them keeps them; one that does not (a brand-new
+     *   (`docs/chunked-documents.md`). A caller that has them keeps them; one that does not (a brand-new
      *   document) gets the strip the mode implies — down for `INFINITE_VERTICAL`, right for
      *   `INFINITE_HORIZONTAL`, and a vertical strip for `INFINITE_2D`, which is the only honest guess a
      *   document with no board behind it allows. Entries that do not line up fall back to that strip
@@ -489,7 +489,7 @@ class MobixDocument(
         // part keeps the entry the source gave it, so nothing has to be renamed — but the parts this
         // write **does** build are named from the grid, and a write with no grid would put an edited
         // chunk at a strip position, moving it off the board. Rather than move content, a coordinate-less
-        // chunked write rebuilds every part (`docs/infinite-canvas.md`).
+        // chunked write rebuilds every part (`docs/chunked-documents.md`).
         val reuse = if (isPaginated || grid != null) reuse else MobixPageReuse.none
         // Built one at a time, not up front: only a chunk this write actually *writes* is ever built,
         // and building one reads its page (`LazyChunks`).

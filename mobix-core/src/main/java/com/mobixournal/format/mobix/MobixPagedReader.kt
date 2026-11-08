@@ -123,7 +123,7 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
  * Pages outside the active window are evicted from memory; navigating back to an evicted page
  * re-reads its JSON entry from disk losslessly.
  *
- * **A chunked document reads the same way** ([infinite-canvas.md](docs/infinite-canvas.md)): the parts
+ * **A chunked document reads the same way** ([chunked-documents.md](docs/chunked-documents.md)): the parts
  * a `.mobix` declares are its `pages[]` for a paginated document and its `chunks[]` for an infinite
  * one, and the two differ only in how a part becomes a [Page] — a chunk decodes through
  * [MobixChunkCodec] and hands back the page it stands for, which is the shape the rest of the app

@@ -50,8 +50,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`ui-modernization.md`](ui-modernization.md) | the design system: tokens, glass material, true-black depth, type, motion | you change the look of the chrome, on either shell |
 | [`desktop-ui-layout.md`](desktop-ui-layout.md) | the PC window's layout: panes, strip placement, universal shortcuts | you change the window's arrangement |
 | [`interface-contract.md`](interface-contract.md) | what every **new** UI element must satisfy: material, colour, geometry, glyphs, text, states, motion, keyboard, parity | you add anything to the interface |
-| [`infinite-canvas.md`](infinite-canvas.md) | the file's geometry modes (vertical, horizontal, 2D) and how a chunked document exports as pages | you work on chunk geometry or export slicing |
-| [`chunked-documents.md`](chunked-documents.md) | how a chunked document is stored, opened, written and queried as spatial chunks | you change chunk files, `canvas.json` or chunked saving |
+| [`chunked-documents.md`](chunked-documents.md) | the file's geometry modes, the spatial chunking that stores them, and how a chunked document exports as pages | you work on chunk geometry, a geometry mode, or export slicing |
 | [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus, parametric curves, plot interaction | you work on mathematical plotting or formula parsing |
 | [`audio.md`](audio.md) | audio recording (Opus in a `.mobix`, WAV for a `.xopp`), replay, sidecars | you touch audio annotation features |
 | [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, karaoke replay | you work on synchronized audio playback |

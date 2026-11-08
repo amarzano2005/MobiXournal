@@ -8,7 +8,7 @@ import com.mobixournal.format.model.Page
 
 /**
  * The **chunk half** of a `.mobix`: building the tiles an infinite canvas writes, reading them back, and
- * the geometry a chunk's name is computed against (`docs/infinite-canvas.md`).
+ * the geometry a chunk's name is computed against (`docs/chunked-documents.md`).
  *
  * It is split out of [MobixDocument] because a chunk is a *part* like a page — same manifest entry, same
  * codec shape, same reuse and content addressing — while the coordinate arithmetic, the lazy tile list and

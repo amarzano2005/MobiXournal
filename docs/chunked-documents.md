@@ -1,18 +1,58 @@
-# Chunked documents: how a board is stored, opened, written and queried
+# Chunked documents: geometry modes, storage and the export
 
-> Read when implementing or extending spatial chunking, `chunks/`, `canvas.json`, or the incremental save of a chunked document.
+> Read when implementing or extending a document's geometry mode, spatial chunking, `chunks/`,
+> `canvas.json`, or the slicing of a chunked document into pages on export.
 > For the task: [What works, and what is not there](guide-limitations.md), [The words this guide uses](guide-glossary.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-This spoke owns the **storage and I/O engine** of an infinite board: the tile grid, the chunk files, the
-geometry envelope, how a chunked document is opened and saved, and how its parts are queried. The four
-canvas **modes** and the export slicer are [infinite-canvas.md](infinite-canvas.md)'s; the container's
-envelope is [mobix-schema-spec.md](mobix-schema-spec.md)'s.
+This spoke owns everything the `.mobix` container does when its content is not a stack of fixed pages: the
+**geometry modes** a document can declare and what their dimensions mean, the sparse tile grid and its
+files, `canvas.json`, how such a document is opened, edited, saved and queried, and how it leaves the app
+as ordinary paginated files. The container's envelope is [mobix-schema-spec.md](mobix-schema-spec.md)'s.
 
-The app has no board canvas: a chunked `.mobix` is opened as its parts in manifest order, one page per
-chunk, and a save keeps it chunked at its own coordinates. What is described below is that storage and
-I/O path, not a surface the editor draws.
+**The app no longer offers a board canvas.** Every document the editor creates is a page stack: there is
+no mode picker, no unbounded sheet, no paged/chunked toggle and no tiles reading in the chrome. A chunked
+`.mobix` still **opens**, as its parts in manifest order — one page per chunk — and a save writes it back
+as chunks at their own coordinates, so the format is read and kept rather than converted behind the user's
+back. What follows describes the **file's** geometry and its storage path, not a surface the editor
+draws.
+
+## Canvas geometry modes
+
+`canvas.json` records one of four modes:
+
+```text
+┌─────────────────────────┐   ┌─────────────────────────┐   ┌─────────────────────────┐   ┌─────────────────────────┐
+│     Fixed Paginated     │   │    Infinite Vertical    │   │   Infinite Horizontal   │   │       Infinite 2D       │
+│  (A4 / Letter / Custom) │   │     (Fixed Width W)     │   │    (Fixed Height H)     │   │      (Free Board)       │
+│ ┌─────┐ ┌─────┐ ┌─────┐ │   │ ┌─────────────────────┐ │   │ ┌───────────────...───┐ │   │       -∞ < x < +∞       │
+│ │ P.1 │ │ P.2 │ │ P.3 │ │   │ │       0 ≤ x ≤ W     │ │   │ │      0 ≤ y ≤ H      │ │   │       -∞ < y < +∞       │
+│ └─────┘ └─────┘ └─────┘ │   │ │       0 ≤ y < +∞    │ │   │ │      0 ≤ x < +∞     │ │   │                         │
+└─────────────────────────┘   └─────────────────────────┘   └─────────────────────────┘   └─────────────────────────┘
+```
+
+### 1. Fixed Paginated (legacy and `.xopp` compatible)
+
+The ordinary page sequence, stored under `pages/`. Page widths and heights are static, and the document
+is fully round-trippable to desktop Xournal++ through the bridge in [mobix-format.md](mobix-format.md).
+
+### 2. Infinite Vertical (width-locked, continuous downwards)
+
+A vertical strip: $0 \le x \le W$ with the running axis down. `canvas.json`'s `widthPt` is the locked
+side, and it is also the cut width an export uses.
+
+### 3. Infinite Horizontal (height-locked, continuous strip)
+
+A horizontal strip: $0 \le y \le H$ with the running axis right. `heightPt` is the locked side.
+
+### 4. Infinite 2D (unconstrained board)
+
+A free Cartesian plane, locking nothing and signed on both axes: chunk coordinates go negative, which
+is why their names carry the sign ([*Chunk files on disk*](#chunk-files-on-disk)).
+
+The dimensions in a strip mode are the **format's**, not a preference the app applies: the file records
+them, a save writes them back untouched, and the app never resizes them.
 
 ## Spatial indexing & chunking architecture
 
@@ -68,15 +108,15 @@ interpreted in:
 }
 ```
 
-- `mode` is one of `PAGINATED`, `INFINITE_VERTICAL`, `INFINITE_HORIZONTAL`, `INFINITE_2D`. Only
-  `PAGINATED` uses `pages/`; the other three use `chunks/`, and a file that carries both is invalid.
+- `mode` is one of the four modes above. Only `PAGINATED` uses `pages/`; the other three use `chunks/`,
+  and a file that carries both is invalid.
 - `widthPt`/`heightPt` are the **locked** dimension in the two strip modes (ignored in `INFINITE_2D`)
   and the page size in `PAGINATED`.
 - `chunkSizePt` is written explicitly rather than assumed, so a future change to the default cannot
   silently re-interpret an existing document's chunk grid.
 - `origin` records where document coordinates `(0, 0)` sit on the *printed* sheet — the anchor the
   export slicer uses to decide where page 1 of an export begins
-  ([infinite-canvas.md](infinite-canvas.md) → *Export slicing*).
+  ([Export slicing](#export-slicing)).
 
 ### A chunked document opens, is edited and saves as chunks
 
@@ -109,8 +149,7 @@ What the app does with this geometry, so the mode is not a format the editor can
   the file's, in the order the manifest lists them.
 - **It can leave the app as pages.** Save As `.xopp` runs a chunked document through the slicer, so a
   file written that way is one expanded page a machine that only knows pages can read
-  ([Export slicing](infinite-canvas.md#export-slicing)); Export PDF writes each part as the page it
-  stands for.
+  ([Export slicing](#export-slicing)); Export PDF writes each part as the page it stands for.
 
 ### Spatial query and culling
 
@@ -126,3 +165,32 @@ cull chunks today.
    evicted chunk is never written anywhere special: its page — the document's own, edits and all — is
    what the cache was a copy of, and reading the chunk back reads it through the page window rather than
    out of the source file.
+
+## Export slicing
+
+When a chunked document leaves the app as `.xopp`, PNG or SVG (`sheetDocument` → `BoardSlicer.slice`),
+its spatial chunks are assembled into **one single continuous page** (`pages.size == 1`) sized to the
+full area the geometry and the ink describe, while `CanvasAutoSlicer` remains available as the pure
+content-aware seam utility. Export PDF takes the other road: it writes each part as the page it stands
+for, one PDF page per chunk.
+
+### What an export does with a chunked document
+
+`BoardSlicer.slice` translates every chunk's cell-local elements onto one continuous sheet:
+
+- **Where the ink is.** A chunk stores its elements **cell-local** (`x = 0` is the tile's left edge), so
+  each element is moved onto the board by `(cx * chunkSizePt, cy * chunkSizePt)` (plus any
+  `origin.offsetPt`), ordered by spatial cell coordinate, and shifted if any 2D coordinate is negative so
+  all coordinates on the single page are $\ge 0$.
+- **Single expanded page.** The resulting document has `pages.size == 1`, with `width` and `height`
+  covering both the geometry's own extent and the furthest reach of all ink across the tiles.
+- **Which paper the sheet is.** The document's own, taken from its first part (`defaultPaper`), so the
+  ruling runs continuously across the entire single page without tile seams.
+
+The app resolves that geometry from the session's record of the file it opened (`DocumentIo.openedCanvasMode`
+and `canvasGeometryOf`), so an export of a chunked file is sliced correctly even though the editor shows
+it one part at a time.
+
+Pinned by JVM tests: `BoardSlicerTest` (all cells assemble onto one expanded page, spatial coordinate
+ordering, paper preservation) and `InfiniteExportTest` (the written `.xopp` re-parses through
+`Xopp.parseXml` as a single expanded page while the `.mobix` keeps its chunks).

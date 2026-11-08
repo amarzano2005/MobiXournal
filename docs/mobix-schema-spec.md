@@ -18,11 +18,11 @@ global metadata, per-page (or per-chunk) data, and binary assets:
 document.mobix
 ├── mimetype                     # Uncompressed ASCII: "application/vnd.mobixournal+zip"
 ├── manifest.json                # Document envelope & configuration (schema below)
-├── canvas.json                  # Spatial geometry mode & dimensions (see infinite-canvas.md)
+├── canvas.json                  # Spatial geometry mode & dimensions (see chunked-documents.md)
 ├── pages/                       # Paginated mode pages
 │   ├── page-0001.json
 │   └── page-0002.json
-├── chunks/                      # Infinite mode spatial tiles (see infinite-canvas.md)
+├── chunks/                      # Infinite mode spatial tiles (see chunked-documents.md)
 │   ├── chunk_0_0.json
 │   └── chunk_-3_2.json
 ├── assets/                      # Binary payloads, named by the hash of their own bytes
@@ -102,7 +102,7 @@ These are the parts an implementation must get right; the rest is payload. All f
   and nested structure across a rewrite, and they are written last, in the order they were read.
 
 `canvas.json` — the geometry mode and its dimensions — is owned by
-[infinite-canvas.md](infinite-canvas.md), which carries its schema.
+[chunked-documents.md](chunked-documents.md), which carries its schema.
 
 ---
 

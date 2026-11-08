@@ -23,7 +23,7 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * A board leaves the app as pages: the `.xopp` a Save As writes is the document sliced through the
- * slicer, laid out at the coordinates its chunks sit at (`docs/infinite-canvas.md` →
+ * slicer, laid out at the coordinates its chunks sit at (`docs/chunked-documents.md` →
  * *Export slicing*).
  *
  * What the export has to get right is that the file it writes is an **ordinary** one — a reader that

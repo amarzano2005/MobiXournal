@@ -12,7 +12,7 @@ import org.junit.Test
 
 /**
  * The `.mobix` envelope codecs, against the rules `docs/mobix-schema-spec.md` and
- * `docs/infinite-canvas.md` state: the manifest carries the page order, unknown fields survive a
+ * `docs/chunked-documents.md` state: the manifest carries the page order, unknown fields survive a
  * rewrite, only the three fields a reader cannot invent are required, and `minAppVersion` is what
  * says whether this build can keep a file intact.
  */

@@ -61,12 +61,12 @@ object MobixIncrementalSave {
      * @param bridgeSource what the document was called on disk, for the source record a `.mobix` carries
      *   (`MobixBridgeFile`), when the caller knows it.
      * @param canvasMode the mode the document was opened in and must be written back in — a chunked
-     *   document stays chunked ([MobixDocument.of], `docs/infinite-canvas.md`), and the same mode reaches
+     *   document stays chunked ([MobixDocument.of], `docs/chunked-documents.md`), and the same mode reaches
      *   the reuse plan, which is what lets an untouched chunk be copied rather than rebuilt.
      * @param chunkCoords where each page sits on an infinite canvas, in page order, when the caller knows
      *   (a document opened from a chunked file does: the coordinates are the source manifest's own).
      * @param canvas the board geometry a chunked document was opened with, when the caller knows it: the
-     *   `canvas.json` it must write back ([MobixDocument.of], `docs/infinite-canvas.md`).
+     *   `canvas.json` it must write back ([MobixDocument.of], `docs/chunked-documents.md`).
      */
     fun saveOver(
         source: MobixEntrySource,

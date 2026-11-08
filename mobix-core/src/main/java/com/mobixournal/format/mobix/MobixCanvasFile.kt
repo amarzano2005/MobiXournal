@@ -10,7 +10,7 @@ import com.mobixournal.format.json.JsonWriter
  * The manifest already says *which* mode the document is in — a reader needs that before it knows
  * whether to look in `pages/` or `chunks/` — and this file says what the mode's numbers are. The two
  * are separate because they are read at different moments: the manifest on every open, the geometry
- * only when a canvas is actually laid out (`docs/infinite-canvas.md` owns the modes themselves).
+ * only when a canvas is actually laid out (`docs/chunked-documents.md` owns the modes themselves).
  *
  * The one decision worth stating: **`chunkSizePt` is written, never assumed.** The chunk grid a
  * document's tile names were computed against is part of that document, so a future change to the

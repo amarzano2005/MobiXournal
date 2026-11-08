@@ -9,7 +9,7 @@ import com.mobixournal.format.model.Page
 
 /**
  * A board's way **out**: the single continuous expanded page its tiles add up to
- * (`docs/infinite-canvas.md`).
+ * (`docs/chunked-documents.md`).
  *
  * Every chunk stores its elements **cell-local** (`x = 0` is the tile's left edge, `y = 0` is its top
  * edge), so each element is moved onto the board by its cell coordinate times the document's

@@ -248,7 +248,7 @@ data class MobixPart(
 }
 
 /**
- * The spatial geometry mode of a document (`docs/infinite-canvas.md` owns what each one means).
+ * The spatial geometry mode of a document (`docs/chunked-documents.md` owns what each one means).
  *
  * **Public** on purpose, unlike the rest of this layer: the app's document I/O reports the mode a
  * `.mobix` was opened with (`LoadedFile.Doc.canvasMode`) so the editor and the next save write the same

@@ -27,7 +27,7 @@ import com.mobixournal.format.mobix.CanvasMode
  * @property heightPt The board's **paper height**, the locked dimension of
  *   [CanvasMode.INFINITE_HORIZONTAL] and a vertical strip's cut height, read the same way.
  * @property chunkSizePt The spatial tile size, in pt, the document's `chunk_<cx>_<cy>` names were
- *   computed against (`docs/infinite-canvas.md` → *`canvas.json`*).
+ *   computed against (`docs/chunked-documents.md` → *`canvas.json`*).
  * @property chunkCoords The occupied cells, **in the document's order** — index `i` here is page `i`
  *   of the document (`docs/chunked-documents.md` → *A chunked document opens, is edited and saves as
  *   chunks*), which is what lets the write land each chunk where the file had it.
@@ -35,7 +35,7 @@ import com.mobixournal.format.mobix.CanvasMode
  *   (or, for a horizontal strip, horizontal) margin page 1 begins with. It is the one half of
  *   `canvas.json`'s `origin` an export can use: the other, its 1-based `pageNo`, numbers the sheet a
  *   document lands on inside a bigger job, and a standalone export has nothing before its page 1 to
- *   number against (`docs/infinite-canvas.md` → *Export slicing*).
+ *   number against (`docs/chunked-documents.md` → *Export slicing*).
  */
 data class CanvasGeometry(
     val mode: CanvasMode,

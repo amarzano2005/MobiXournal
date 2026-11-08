@@ -236,7 +236,7 @@ enum class GestureIntent {
      * clipboard, moving and resizing), the background-region copy, PDF text selection, and the
      * vertical-space drag. None of them can act on a board, whose content is chunks rather than a page
      * list — so they are refused there, in one place
-     * (`docs/infinite-canvas.md` → *What a board can be edited with*).
+     * (`docs/chunked-documents.md` → *What a board can be edited with*).
      *
      * Drawing, erasing and panning are not among them: ink and the eraser work in **cell space** and the
      * pen can write anywhere on a board.

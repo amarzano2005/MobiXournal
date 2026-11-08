@@ -80,7 +80,7 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   tab cannot turn a chunked document into a paginated rewrite. The same answer goes to the **write**, as
   a `CanvasGeometry` (`io/CanvasGeometry.kt`, resolved by `DocumentIo.canvasGeometryOf` and carried in the
   encoder's `SaveShape`): a page does not know which cell it sits in, so the layer that read the file is
-  the only one that can say ([infinite-canvas.md](infinite-canvas.md)).
+  the only one that can say ([chunked-documents.md](chunked-documents.md)).
 - **What it refuses, it refuses loudly.** A `.mobix` whose `formatVersion` is newer, whose
   `canvas.json` disagrees with the manifest, or that carries `pages/` and `chunks/` both fails the open
   with the reason, rather than being opened as something it is not.

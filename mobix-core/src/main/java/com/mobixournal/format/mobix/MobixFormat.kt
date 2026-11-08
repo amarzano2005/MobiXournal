@@ -28,7 +28,7 @@ object MobixFormat {
     /** The document envelope: version stamps, ids, timestamps and the page/chunk order. Required. */
     const val MANIFEST_ENTRY = "manifest.json"
 
-    /** The spatial geometry mode and its dimensions (`docs/infinite-canvas.md` owns the schema). */
+    /** The spatial geometry mode and its dimensions (`docs/chunked-documents.md` owns the schema). */
     const val CANVAS_ENTRY = "canvas.json"
 
     /** Paginated mode: one entry per page, named by [pageEntry]. */
@@ -60,7 +60,7 @@ object MobixFormat {
     /**
      * The entry name of the chunk at signed chunk coordinates [cx], [cy] (`chunk_-3_2.json`). Plain
      * decimal integers with no padding and no `+`, so `-1` and `1` cannot collide — an infinite 2D
-     * board has both (see *Chunk files on disk* in `docs/infinite-canvas.md`).
+     * board has both (see *Chunk files on disk* in `docs/chunked-documents.md`).
      */
     fun chunkEntry(cx: Int, cy: Int): String = "$CHUNKS_DIR" + "chunk_${cx}_${cy}.json"
 

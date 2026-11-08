@@ -20,7 +20,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Intelligent content-aware auto-slicer for continuous and infinite canvas strips (`docs/infinite-canvas.md`).
+ * Intelligent content-aware auto-slicer for continuous and infinite canvas strips (`docs/chunked-documents.md`).
  *
  * Rather than cutting mechanically at rigid heights (H, 2H, 3H), the slicer searches a +/- [DEFAULT_SEARCH_WINDOW_PT]
  * window (default 40.0 pt) around each target seam for whitespace bands. If a stroke, table, plot, or formula
