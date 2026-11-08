@@ -62,7 +62,7 @@ change can see what will fail it:
   index, every relative link and `#anchor` resolves, every doc fits its **300-line** budget, every doc
   under `docs/` opens with `# Title` + a `> Read when …` line naming its reader, no two spokes claim one
   title or section heading, no sentence is pasted into two docs, and every code file, doc and task id a
-  doc names exists. So the architecture docs cannot decay back into one unaddressable document, or into prose that
+  doc names exists, every image a page shows resolves to an asset that exists and every asset is shown, and the README's install artefact names match the scripts that produce them. So the architecture docs cannot decay back into one unaddressable document, or into prose that
   describes a file that has since been renamed. The two front doors are held to their own rules, since
   they sit outside `docs/`: a recorded line budget, no paragraph of running prose past 1 200 characters,
   `README.md` further capped at 1 400 words total and 300 visible characters per bullet item (with `.kt`

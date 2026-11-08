@@ -9,7 +9,7 @@ pages a given change touches. Answer the questions; delete the ones this change 
 
 ## Documentation
 
-- [ ] A behaviour a reader can see, do or rely on changed, and its page changed with it
+- [ ] I reviewed the README and updated it if this change affects product-facing features, platform support, installation, distribution, screenshots or file-format capabilities — technical facts stay in their owning doc, and the README summarises and links
 - [ ] The capability matrix (`docs/guide-limitations.md`) still says the truth
 - [ ] Every page still describes the behaviour it quotes
 - [ ] A format, API or schema change reached the spoke that owns it

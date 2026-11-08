@@ -744,3 +744,47 @@ Two of these (U1, U2) are the ones a reader is most likely to quote back at the 
 ## Closing note
 
 This corpus is closer to being excellent than its gaps suggest. The single-owner model, the reader line, the guards, the six status words and the seven-phase standard are all in place; what is missing is a layer for the people the product is for, and an accuracy pass over the dozen sentences where mechanism was written with the confidence of state. The work in Section 8 is additive and guard-compatible: nothing in Section 7 requires abandoning the way this repository documents itself — only extending it to readers who never open a `.kt` file.
+
+## Fourth pass — the README as a maintained front door, 2026-11-08
+
+The front door was rebuilt as a product page and then stayed outside the governance every other page lives
+under: no row of the change matrix named it, the pull-request template never asked about it, nothing checked
+that the pictures it shows exist, and its install steps named files that only a script knows. This pass puts
+it inside that system instead of beside it. The rule of the passes above holds: **automatic** means a test
+fails without the row; **manual** means a person read it against the source; and a row is not called fixed
+because a procedure was written down.
+
+| Finding | Status | Evidence | Verification |
+|---|---|---|---|
+| R-01 the front door was not a governance target | Fixed | the *When the README has to change* table in [doc-governance.md](docs/doc-governance.md) and a README box in [the template](.github/PULL_REQUEST_TEMPLATE.md) | manual — a review rule is kept by people, not by a build |
+| R-02 the hero named no audience and no platforms | Fixed | [README.md](README.md) names Android and Windows, and students, educators and technical readers | manual |
+| R-03 the Android gallery image shows one placed curve | Partly | the capture is genuine and stays; the capture that would replace it is listed below rather than invented | manual |
+| R-04 "goes both ways without loss" for `.xopp` | Fixed | README *The two file formats* states what an export compiles to ink and when a living object is restored | manual — no test can read a promise |
+| R-05 the README carried its own version numbers | Fixed | the numbers left the README; [releases/index.md](docs/releases/index.md) is their only home, and `theVersionsTheDocsNameAreTheBuiltOnes` keeps that index honest | automatic for the index, manual for the README staying out of it |
+| R-06 STEM capabilities were one undifferentiated section | Fixed | README splits them into *Mathematics*, *Engineering and logic* and *Documents and research*, each naming its boundary | manual |
+| R-07 an image could go missing, or stay orphaned | Fixed | `everyImageAssetIsShownAndEveryShownImageExists` in `DocsGuardTest` | automatic |
+| R-08 the README could name a file no script builds | Fixed | `theReadmeNamesTheArtefactsTheScriptsBuild` reads `app-release.apk` out of `scripts/release-apk.sh` and the MSI pattern out of `scripts/desktop-package.ps1` | automatic |
+| R-09 `CONTRIBUTING.md` sat outside the link and code-path rules | Fixed | `prose()`, which the link, duplicate and code-path tests read, now includes it; `DOCUMENTATION_AUDIT.md` stays outside as a historical record | automatic |
+| R-10 no periodic README review | Partly | the monthly walk in [doc-governance.md](docs/doc-governance.md) | documented, not automated — nothing schedules it |
+| R-11 the documentation CI step already owned the guards | Unchanged | `.github/workflows/build.yml`, job `docs` | automatic — the new tests report through it; no workflow or job was added |
+
+### What is still manual
+
+- **Captures.** A tablet screen carrying handwritten mathematics beside a plot and a table would replace the
+  single-curve image. The Ring needs a stylus with a barrel button, which no emulator has; split view was
+  captured with an empty second pane and was not published. None of the three was fabricated.
+- **Semantic claims.** Whether the positioning still describes the product, whether a screenshot shows today's
+  UI, and whether two shells really behave the same are questions no test answers. They belong to the monthly
+  walk and to a reviewer.
+- **URLs that leave the tree.** `.github/workflows/link-check.yml` reports on them weekly; a refusal is a manual
+  verification item, not a defect. Neither that workflow nor the documentation job was executed for this pass —
+  see the run record at the end of this section.
+
+### Run record, 2026-11-08
+
+`./gradlew :app:testDebugUnitTest --tests "com.mobixournal.guards.DocsGuardTest" --tests
+"com.mobixournal.guards.DocClaimsTest"` on this checkout: **BUILD SUCCESSFUL**, 27 tests in
+`DocsGuardTest`, 0 failures, with the README at 160 lines and 1 390 words against the 160-line and
+1 400-word caps. Nothing under `.github/workflows/` was executed for this pass: the `docs` job runs these two
+classes, so its result follows from the same tests — but no workflow run was observed here, and none is
+claimed.

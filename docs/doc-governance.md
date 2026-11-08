@@ -61,6 +61,26 @@ affect — do not touch it to look thorough.
 Two of those rows are not judgement calls. Only the matrix may move a capability's word, and a removal
 that leaves the promise standing is the one error a reader cannot forgive.
 
+## When the README has to change
+
+[README.md](../README.md) is the product-facing front door: what the app is, who it is for, how to get it and
+where the truth lives. It summarises and links; it owns no technical fact. A change in any row below triggers a
+README read, and the third column names the pages that own the detail.
+
+| Change | README review | Also re-read |
+|---|---|---|
+| a new user-facing feature | **required** — the capability list and where it sits in the product story | the guide page for that job, [guide-limitations.md](guide-limitations.md) |
+| a removed or changed feature | **required** — a promise left standing is the one error a reader cannot forgive | the guide page, [guide-limitations.md](guide-limitations.md), the format page if the file loses a field |
+| Android- or Windows-only behaviour | **required** — the platform tables, and any claim of parity | [guide-limitations.md](guide-limitations.md), the shell's own spoke |
+| installation or first-run steps | **required** — the two install lists | [guide-install-android.md](guide-install-android.md), [guide-install-windows.md](guide-install-windows.md), [tools.md](tools.md) |
+| a release, a version or the distribution | **required** — the downloads it names | [releases/index.md](releases/index.md), the release note |
+| a file format, the format policy or import/export | **required** — the two-format table and any refusal it states | [mobix-format.md](mobix-format.md), [xopp-bridge.md](xopp-bridge.md), [guide-formats-and-conversion.md](guide-formats-and-conversion.md) |
+| a major UI change | **required when a screenshot or the product story is affected** | [interface-contract.md](interface-contract.md), the chrome spoke |
+| internal refactoring with no user-facing effect | **not required** — an untouched README is the correct outcome | the spoke that owns the mechanism |
+
+Two rules keep the table from becoming busywork: the README changes because a reader's answer moved, never to
+tick a box; and a fact is corrected at its owner first, with the README's sentence following it.
+
 ## The change, in four steps
 
 1. **Find the row above** and open the pages it names. Two rows means two readings; no row means the
@@ -89,6 +109,26 @@ owner of that area decides.
 | a reference to an old API | a code file a page names that no longer exists | the guard fails on the path; the page is rewritten against the new one |
 | a difference between the shells nobody wrote down | a reader on one shell following the other's step | a row in the matrix, and the page split by platform |
 | a measurement, or a download page, that has rotted | the weekly link report, or a reader | re-run the benchmark, or open the URL by hand and update it only once it has moved |
+
+### The README walk, monthly
+
+Once a month, and again before a release is cut, one person reads the README as a stranger and answers six
+questions. What it produces is a report: nothing here edits a page on a reader's behalf, and a finding is
+corrected at its owner first.
+
+| Question | What "wrong" looks like | How it is answered |
+|---|---|---|
+| does the positioning still describe the app | a promise inherited from a previous release | read against [guide-index.md](guide-index.md) |
+| do the screenshots show the current UI | a control that moved, a page style that changed | open the build and compare |
+| are both platforms described as they are today | a Windows step a tablet reader cannot follow | [guide-limitations.md](guide-limitations.md) |
+| do the install steps match what is published | a file name, a gate, or an unsigned-installer note that expired | the release page, opened by hand |
+| do `.mobix`, `.xopp` and the STEM list still match the app | a partial capability sold as whole, or one described in the past tense | [guide-limitations.md](guide-limitations.md), the format pages |
+| does every link to authoritative documentation still land | a moved page, a retired anchor | the guards for the tree, the weekly report for the URLs |
+
+The mechanical half of that list is not on the walk: links, anchors, images, assets, artefact names and the
+version numbers are checked on every pull request by `DocsGuardTest`, and the URLs that leave the tree are
+swept by `.github/workflows/link-check.yml` into a report. The walk is what a build cannot do — decide whether
+the words still describe the product.
 
 ## Measurements and links away from the tree
 

@@ -6,11 +6,9 @@
 
 ### Think. Write. Explore.
 
-**A handwriting-first scientific workspace.**
+**A handwriting-first scientific workspace for Android and Windows.**
 
-*A scientific workspace for learning, creating and exploring ideas.*
-
-A stylus, live mathematics and the documents you work from, on one page — for Android tablets and Windows 11.
+*Handwritten ideas, mathematics, scientific tools and document workflows in one workspace — for students, educators and anyone working with technical content.*
 
 [![Android and desktop CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
 [![Licence: GPL-2.0-or-later](https://img.shields.io/badge/Licence-GPL--2.0--or--later-blue.svg)](LICENSE)
@@ -30,11 +28,12 @@ A stylus, live mathematics and the documents you work from, on one page — for 
 A notebook app treats the page as a picture and a drafting tool treats it as a canvas. MobiXournal treats it as
 working paper: what you place stays an object you can reopen and change.
 
-It is built for people who think in handwriting and then need mathematics, diagrams and source documents beside
-it — a student on a problem set, an engineer sketching a circuit, a researcher annotating a paper. Files stay
+It is built for people who think in handwriting and need mathematics, diagrams and source documents beside
+it — a student on a problem set, an educator preparing one, an engineer sketching a circuit, a researcher
+annotating a paper. Files stay
 yours, in the folder you choose, with no account between.
 
-## Four pillars of the workspace
+## What the workspace is made of
 
 ### Think and write
 
@@ -43,24 +42,30 @@ yours, in the folder you choose, with no account between.
 - **Shapes from ink.** Rest the tip for a third of a second and a line, circle or arrow snaps clean; a closed triangle or rectangle stays a shape with movable corners.
 - **Paper belongs to the page.** Plain, ruled, dotted, graph or isometric ruling, with the sheet's size chosen separately.
 
-### Mathematics and science
+### Mathematics, engineering and science
+
+#### Mathematics
 
 - **Functions you can feel.** A plot keeps its formula live: its named parameters get sliders, and dragging one re-evaluates curve, derivative and summary.
-- **Analysis in the same place.** Critical points, inflections, a shaded definite integral and a written summary belong to the plot, not to a separate calculator.
-- **Objects, not pictures.** A table keeps a header row and real cells a typo edits rather than repaints; circuits wire together at a part's pins.
-- **Formulas and guides.** LaTeX takes a live typeset preview, and the drafting guides snap a 15° protractor, a 60° lattice and the page's grid.
+- **Analysis in the same place.** Critical points, inflections, a shaded integral and a written summary belong to the plot, not a separated calculator.
+- **Formulas and curves.** LaTeX takes a live typeset preview; a parametric or polar curve is stored, drawn and exported, though the plot tool places Cartesian curves only.
 
-### Documents and research
+#### Engineering and logic
+
+- **Objects, not pictures.** A table keeps a header row and real cells a typo edits rather than repaints; circuits wire together at a part's pins.
+- **Drawings that snap.** Drafting guides snap a 15° protractor, a 60° lattice and the page's grid, so a sketch keeps its geometry.
+
+#### Documents and research
 
 - **Write on the source.** A PDF becomes the page's background — by range, replacing or appended — and its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays exactly as drawn.
-- **Follow the document's contents.** A PDF's outline opens as a navigable tree by its own page numbers, even after two files are merged.
+- **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after two files are merged.
 - **Record while you write.** Every stroke is stamped with its place in the recording, and tapping it later starts playback at that moment.
-- **Search everything at once.** Typed text, a PDF's text layer, a formula's source and your handwriting come back together, offline, on both shells.
+- **Search everything at once.** Typed text, a PDF's text layer, a formula's source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.
 
 ### One workspace, two shells
 
-- **The same file in both.** The tablet editor and the Windows window open the same notebooks with the same tools and paper, through one core.
+- **The same file in both.** The tablet editor and the Windows window open the same notebooks and paper through one core; where their tools differ, the limitations page says so.
 - **The window is a workstation.** Tabs that keep their own page and zoom, a sidebar of thumbnails and layers, and export to PDF, PNG or SVG.
 - **The tablet is the paper.** Split view, the Ring at the pen, palm rejection, and pages sized for a hand.
 - **Nothing converts behind your back.** A document keeps the format it was opened in; nothing needs an account or a connection.
@@ -85,19 +90,20 @@ yours, in the folder you choose, with no account between.
 
 | Platform | What you need, and what you get |
 |---|---|
-| **Android 8.0 or newer** | The release APK from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases). A stylus makes it a notebook; a finger does the rest. Current build **2.0.0**. |
-| **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build that needs no install. Current build **1.0.1**. |
+| **Android 8.0 or newer** | The release APK from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases). A stylus makes it a notebook; a finger does the rest. |
+| **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build that needs no install. |
 
-The shells number separately — Android **2.0.0**, Windows **1.0.1** — so the release you run is the one whose note
-describes it; a notebook is not tied to either. The installer is **unsigned**: Windows reports an unknown publisher
-and SmartScreen may ask first, left unsigned on purpose rather than given a false identity.
+The shells number separately, so the release you run is the one whose note describes it, and
+[the release index](docs/releases/index.md) is the only place those versions are written down. The installer
+is **unsigned**: Windows reports an unknown publisher and SmartScreen may ask first, left unsigned on
+purpose rather than given a false identity.
 
 ## The two file formats
 
 | Format | What it is for |
 |---|---|
 | **`.mobix`** | MobiXournal's own container: one self-contained file that keeps plots, tables, circuits, formulas, audio and full stylus telemetry editable, and opens a long notebook page by page. |
-| **`.xopp`** | The interchange format desktop Xournal++ reads and writes. A notebook goes both ways without loss, so one file can be worked on in either app. |
+| **`.xopp`** | The interchange format desktop Xournal++ reads and writes. On export a plot, table or circuit becomes standard ink, with a metadata block that lets MobiXournal restore it while that ink is unchanged. |
 
 Opening never converts anything: a `.xopp` opened on the tablet still saves as a `.xopp`, and **Save As** is what
 changes the format. The Windows window **refuses** one **packaged** `.xopp` whose background lives inside it,
@@ -124,14 +130,11 @@ writes back in that format. The full first run is [your first notebook](docs/gui
 ## Where the work stands today
 
 Most of it is settled and in daily use: ink, tables, circuits, Cartesian plots with live sliders,
-LaTeX, PDF annotation, audio replayed from a stroke, and search across handwriting.
+LaTeX, PDF annotation and audio replayed from a stroke.
 
-Some of it stops part-way: the plot tool places Cartesian curves only, so a parametric or polar curve opens and
-round-trips but cannot be created here; a Typst source is kept but not typeset; tablet handwriting search needs
-its model downloaded first.
-
-Absent: no sync between devices, tilting the pen does not change stroke width, and the chemistry palette is
-gone. What differs by shell is graded in [what works, and what is not there](docs/guide-limitations.md).
+Some of it stops part-way: a Typst source is kept but not typeset, and tablet handwriting search needs its model
+downloaded before it answers. Absent: no sync between devices, tilt does not change stroke width, and the
+chemistry palette is gone. Shell differences: [what works, and what is not there](docs/guide-limitations.md).
 
 ## Documentation, by question
 
@@ -142,7 +145,6 @@ gone. What differs by shell is graded in [what works, and what is not there](doc
 | get past a failure, or recover a notebook | [when something goes wrong](docs/guide-troubleshooting.md) |
 | know which version shipped, and what it changed | [the release index](docs/releases/index.md) |
 | understand how the system is built | [the index of owners](docs/architecture.md) |
-| see how a timing was measured | [the benchmark method](docs/benchmarks.md) |
 | follow the rules these pages obey | [the writing standard](docs/writing-docs.md) and [governance](docs/doc-governance.md) |
 
 ## Building from source, and getting involved

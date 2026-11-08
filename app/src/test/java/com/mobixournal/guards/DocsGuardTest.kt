@@ -494,6 +494,64 @@ class DocsGuardTest {
     }
 
     /**
+     * An image is a claim about the UI, so both directions of it are checked: every picture a page shows
+     * is a file that exists, and no capture sits under `docs/assets/` that no page shows any more.
+     *
+     * The link test already resolves `src="…"`, which is how the README writes its gallery, so a missing
+     * screenshot fails there. What nothing saw was the other half — a capture replaced by a better one and
+     * its predecessor left behind, or a page deleted while its image stayed. A small public asset folder
+     * has no room for a picture nothing claims.
+     */
+    @Test
+    fun everyImageAssetIsShownAndEveryShownImageExists() {
+        val assets = File(repoRoot(), "docs/assets")
+        assertTrue("docs/assets/ holds the images the front door shows", assets.isDirectory)
+        val files = assets.listFiles().orEmpty().filter { it.isFile }
+        assertTrue("docs/assets/ must hold the images the pages show", files.isNotEmpty())
+        val shown = prose().filter { it.isFile }.joinToString("\n") { it.readText() }
+        val unused = files.map { it.name }.filter { it !in shown }.sorted()
+        assertTrue(
+            "an image under docs/assets/ that no page shows is a picture the documentation has stopped " +
+                "claiming — reference it from a page, or delete it: $unused",
+            unused.isEmpty(),
+        )
+    }
+
+    /**
+     * The README tells a reader which file to download, and the scripts that build the releases name the
+     * same files.
+     *
+     * An artefact renamed in a script leaves the install step pointing at a file the release does not
+     * carry, and nothing failed before this: a file name in prose is only prose. Both names are read out of
+     * the scripts that produce them, so the comparison needs no build, no device and no network.
+     */
+    @Test
+    fun theReadmeNamesTheArtefactsTheScriptsBuild() {
+        val root = repoRoot()
+        val readme = File(root, "README.md").readText()
+        val signedApk = File(root, "scripts/release-apk.sh").readLines()
+            .firstOrNull { it.startsWith("SIGNED=\"") }
+            ?.substringAfter('"')?.substringBefore('"')?.substringAfterLast('/')
+        val msiNaming = File(root, "scripts/desktop-package.ps1").readLines()
+            .firstOrNull { "\"MobiXournal-" in it && ".msi\"" in it }
+        assertTrue("scripts/release-apk.sh must name the APK it signs", signedApk != null)
+        assertTrue("scripts/desktop-package.ps1 must name the MSI it links", msiNaming != null)
+        val wrong = mutableListOf<String>()
+        if (signedApk != null && "`$signedApk`" !in readme) {
+            wrong += "the README never names `$signedApk`, the file `scripts/release-apk.sh` signs"
+        }
+        if (msiNaming != null && "MobiXournal-<version>.msi" !in readme) {
+            wrong += "the README never names `MobiXournal-<version>.msi`, the pattern " +
+                "`scripts/desktop-package.ps1` links"
+        }
+        assertTrue(
+            "the install steps must name the artefacts the release scripts build, or a reader goes " +
+                "looking for a file that is not published: $wrong",
+            wrong.isEmpty(),
+        )
+    }
+
+    /**
      * Every doc a reader can open directly under `docs/` — spokes, the index, the tooling pair and the
      * writing standard. `docs/releases/` is exempt: a changelog is frozen at the version it describes.
      */
@@ -1061,9 +1119,17 @@ class DocsGuardTest {
     private fun checkable(): List<File> =
         (spokes() + listOf(docs.resolve("tools.md"), docs.resolve(index))).distinct().sorted()
 
-    /** The docs under the duplication and code-path rules: the same set, plus the two front doors. */
+    /**
+     * The docs under the duplication, code-path and link rules: the same set, plus the three front doors a
+     * person actually opens — the README, the agent guide and the contributor guide. `DOCUMENTATION_AUDIT.md`
+     * is deliberately outside them: it is a historical record kept as it was written, not a live page.
+     */
     private fun prose(): List<File> = (
-        checkable() + listOf(File(repoRoot(), "README.md"), File(repoRoot(), "AGENTS.md"))
+        checkable() + listOf(
+            File(repoRoot(), "README.md"),
+            File(repoRoot(), "AGENTS.md"),
+            File(repoRoot(), "CONTRIBUTING.md"),
+        )
         ).filter { it.isFile }
 
     /** Every architecture spoke: the markdown files under `docs/` that are not the index or tools. */
