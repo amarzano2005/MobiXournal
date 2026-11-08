@@ -68,9 +68,10 @@ Five steps, in this order:
 
 `DocsGuardTest` fails the build when a page has no task line, no `## How it works` section, no owner link,
 no index row, or when a spoke you leaned on does not name you back; it also resolves every relative link
-and `#anchor` in the page. What it cannot see is a malformed heading section — an unterminated code span,
-a heading swallowed into a paragraph — which is how this page itself once lost its closing section, so read
-the rendered page before you commit.
+and `#anchor` in the page. It reads the page, not its examples: a fenced skeleton like the one above is
+skipped, so its closing section cannot stand in for the page's own. What no guard sees is a heading
+swallowed by a paragraph — this page lost its closing section that way once — so read the rendered page
+before you commit.
 
 ## If you are here to change the app
 

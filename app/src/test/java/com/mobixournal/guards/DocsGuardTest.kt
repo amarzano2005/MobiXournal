@@ -202,7 +202,7 @@ class DocsGuardTest {
     fun everyGuidePageEndsByNamingTheMechanism() {
         val problems = mutableListOf<String>()
         for (page in guidePages()) {
-            val lines = page.readLines()
+            val lines = withoutCode(page.readText())
             val lastHeading = lines.indexOfLast { it.startsWith("## ") }
             if (lastHeading < 0 || lines[lastHeading].trim() != "## How it works") {
                 val found = if (lastHeading < 0) "no section at all" else "\"${lines[lastHeading].trim()}\""
@@ -213,6 +213,14 @@ class DocsGuardTest {
                 problems += "${page.name}: \"## How it works\" links no owning spoke"
             }
         }
+        // An example is illustration, not structure: the guide index prints a skeleton that carries a
+        // `## How it works` of its own, and reading that as the page's section is how a page whose own
+        // closing heading had been swallowed still passed.
+        val skeleton = "# Job\n\n```markdown\n## How it works\n\n[owner.md](owner.md)\n```\n"
+        assertTrue(
+            "a fenced example must not be read as the page's own sections: $skeleton",
+            withoutCode(skeleton).none { it.startsWith("## ") },
+        )
         assertTrue(
             "a guide page has to end by naming the spoke that owns the how, or the guide becomes the " +
                 "only description of the rule:\n  " + problems.joinToString("\n  "),
@@ -798,12 +806,36 @@ class DocsGuardTest {
     }
 
     /**
+     * A page's lines with its code removed: fenced blocks dropped, inline spans blanked.
+     *
+     * A guide page illustrates its own rules — the guide index prints a skeleton of a closing section —
+     * so the headings and links inside a fence describe the shape instead of being it. Reading them as
+     * structure let a page whose own last section had been swallowed still satisfy the rule that its last
+     * section is `## How it works`, and a link in an example counted as an owner the page never names.
+     */
+    private fun withoutCode(text: String): List<String> {
+        var fenced = false
+        return text.split('\n').mapNotNull { raw ->
+            if (raw.trimStart().startsWith("```")) {
+                fenced = !fenced
+                null
+            } else if (fenced) {
+                null
+            } else {
+                raw.replace(Regex("`[^`]*`"), " ")
+            }
+        }
+    }
+
+    /**
      * The docs a guide page leans on: relative links that resolve under `docs/` to something that is
      * neither a guide page, the guide index, nor the architecture index. Those are the spokes whose
      * rules the page quotes, and the ones that have to name the page back.
      */
     private fun ownersOf(page: File): List<File> {
-        val linked = Regex("""\]\(([^)\s]+)\)""").findAll(page.readText()).map { it.groupValues[1] }
+        val linked = Regex("""\]\(([^)\s]+)\)""")
+            .findAll(withoutCode(page.readText()).joinToString("\n"))
+            .map { it.groupValues[1] }
         return linked
             .map { target -> File(page.parentFile, target.substringBefore('#')).canonicalFile }
             .filter { file ->
