@@ -31,12 +31,55 @@ app, not for building it.
 
 ## Adding a page
 
-A new task page is a new `docs/guide-*.md` file with a `# Title` naming the job, a `> Read when …` line, a
-task line, a closing `## If you are here to change the app
+A task page is a file named `docs/guide-<job>.md` — the layer lives in the name, not in a folder
+([architecture.md](architecture.md), *The tree stays flat*). One page, one job: if you cannot write the
+job as a line in the table above, the page is a reference page instead.
+
+The smallest page that passes every rule:
+
+```markdown
+# Adding a page to your notebook
+
+> Read when you have written a page and want another one, and you want to know where it lands.
+
+_A guide page for Android and Windows: appending, duplicating and reordering the pages of a notebook.
+The internal map is [architecture.md](architecture.md)._
+
+The **+** button at the end of the page strip appends a page after the one you are on...
+
+## How it works
+
+[pages-and-paper.md](pages-and-paper.md) owns the page model, the paper parameters and the page list.
+```
+
+Five steps, in this order:
+
+1. **Name the job, not the subsystem.** `guide-search-and-organise.md` says what a reader wants;
+   `guide-pages.md` would say what the code contains, and the reference layer already covers that.
+2. **Open like every other page.** An `# H1` naming the job, then a `> Read when …` line, then the
+   em-dash line that names the platform and points at the internal map — copy it from a neighbour and
+   change the clause.
+3. **Write the task, then stop.** Numbered steps with the control the reader can see, and the failure they
+   might meet; quote the app's own words. Mechanism belongs in the owner, not here.
+4. **Close on the owner.** A last `## How it works` section with one to three links to the spokes that own
+   the how. This is what keeps the page a pointer rather than a second home.
+5. **Register it twice.** A row in the table above (job first, link second), and a `For the task` line in
+   the reader block of each spoke you linked, naming this page back.
+
+`DocsGuardTest` fails the build when a page has no task line, no `## How it works` section, no owner link,
+no index row, or when a spoke you leaned on does not name you back; it also resolves every relative link
+and `#anchor` in the page. What it cannot see is a malformed heading section — an unterminated code span,
+a heading swallowed into a paragraph — which is how this page itself once lost its closing section, so read
+the rendered page before you commit.
+
+## If you are here to change the app
 
 The pages above are written for the person using it. The way in for the person changing it is
 [the developer guide](../docs/developer-guide.md), and [CONTRIBUTING.md](../CONTRIBUTING.md) is
 where a report or a patch starts. The internal map is [architecture.md](architecture.md).
 
-## How it works` that links the owning spoke, and a row in the table above. `DocsGuardTest` fails the build when
-one of those is missing.
+## How it works
+
+[writing-docs.md](writing-docs.md) owns the standard this page applies — the reader model, the six status
+words, the seven phases and the Definition of Done — and [architecture.md](architecture.md) owns the index
+that makes a new page reachable.
