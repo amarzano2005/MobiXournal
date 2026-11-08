@@ -15,6 +15,7 @@ you pull in a spoke only when the task touches it, instead of reading everything
 |--------------------------------------------------|---------------------------|
 | **What to do next** (active tasks only)          | `TODO.toml` (via the `todo` skill) |
 | **What's already done** (completed-work archive) | `FINISHED.toml` (via the `todo` skill) |
+| **Why the docs look like this** (the audit and the plan it produced — a record, never user-facing) | `DOCUMENTATION_STRATEGY.md` |
 | **How to work here** (conventions, decisions, host profile) | `AGENTS.md` (this file) |
 | **How to write or review a doc** (audience, workflow, status vocabulary, Definition of Done) | `docs/writing-docs.md` |
 | **How the system works internally** (data flow, layout, all spokes) | `docs/architecture.md` — the **index** of the architecture spokes |
