@@ -399,7 +399,7 @@ Five phases, each independently shippable and revertable. Phase 0 is half a day 
 | TR-20 | `guide-first-notebook.md` (flat, like its neighbours) | F-01 | M |
 | TR-21 | `guide-formats-and-conversion.md` + `guide-xournalpp-migration.md` (flat, like their neighbours) | F-01, F-02, A9 | M |
 | TR-22 | `guide-inking-and-gestures.md` + `guide-stem-tools.md` (flat, like their neighbours) | F-01, F-11 | L |
-| TR-23 | `pdf-and-audio.md`, `search-and-organise.md` | F-01 | L |
+| TR-23 | `guide-pdf-and-audio.md` + `guide-search-and-organise.md` (flat, like their neighbours) | F-01 | L |
 | TR-24 | `settings-and-shortcuts.md` (move the shortcut table) | P4 (audit) | M |
 | TR-25 | `faq.md`, `glossary.md` | F-14 | M |
 | TR-26 | Each completed spoke gains its **For the task** line | N3 | S |

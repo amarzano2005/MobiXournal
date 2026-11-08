@@ -1,7 +1,7 @@
 # Document search and handwriting recognition
 
 > Read when you change search, the handwriting index, or the recognition engines.
-> For the task: [What works, and what is not there](guide-limitations.md).
+> For the task: [What works, and what is not there](guide-limitations.md), [Finding a word, and rearranging pages](guide-search-and-organise.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

@@ -16,6 +16,8 @@ is built.
 | bring your `.xopp` notebooks over from Xournal++, or keep working in both | [Coming from Xournal++](guide-xournalpp-migration.md) |
 | get the pen to behave: width, palm rejection, the barrel button, a shape that snapped | [How the pen behaves](guide-inking-and-gestures.md) |
 | put a plot, table, circuit or formula on the page and edit it afterwards | [Placing a plot, table or circuit](guide-stem-tools.md) |
+| write on an imported PDF, or record while you write and play it back | [Annotating a PDF, and recording](guide-pdf-and-audio.md) |
+| find a word in a long notebook, or move, bookmark and prune its pages | [Finding a word, and rearranging pages](guide-search-and-organise.md) |
 | put MobiXournal on an Android tablet or phone, and find the notebooks afterwards | [Installing on Android](guide-install-android.md) |
 | install the Windows window from the MSI, or run it without installing anything | [Installing on Windows 11](guide-install-windows.md) |
 | get past an open that was refused or a save that did not happen, and recover a notebook after a crash | [When something goes wrong](guide-troubleshooting.md) |

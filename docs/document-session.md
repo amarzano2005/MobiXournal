@@ -1,6 +1,7 @@
 # The document session: remote staging, tabs and split view
 
 > Read when you change where an open document is staged, how the tab session cache is written, or how split view holds two panes.
+> For the task: [Finding a word, and rearranging pages](guide-search-and-organise.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

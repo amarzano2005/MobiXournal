@@ -84,6 +84,8 @@ architecture spokes: they quote behaviour and link to the owner of each rule.
 - [guide-xournalpp-migration.md](guide-xournalpp-migration.md) — a Xournal++ user's round trip, and what differs.
 - [guide-inking-and-gestures.md](guide-inking-and-gestures.md) — pen width, palm rejection, the barrel, hold-to-snap, undo.
 - [guide-stem-tools.md](guide-stem-tools.md) — plots, tables, circuits and formulas, and what stays editable.
+- [guide-pdf-and-audio.md](guide-pdf-and-audio.md) — PDF import and text, the magnetic highlighter, recording and replay.
+- [guide-search-and-organise.md](guide-search-and-organise.md) — what a query reaches, page ranges, bookmarks, tabs and split view.
 - [guide-first-notebook.md](guide-first-notebook.md) — an empty tab, paper, ink, a save, and the way back in.
 - [guide-install-android.md](guide-install-android.md) — installing on a tablet, where documents live.
 - [guide-install-windows.md](guide-install-windows.md) — the MSI, the folder build, uninstalling.

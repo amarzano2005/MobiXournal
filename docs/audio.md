@@ -1,6 +1,7 @@
 # Audio annotation: record, replay, sidecars
 
 > Read when you touch audio recording, playback, or the sidecar files a `.xopp` refers to.
+> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
