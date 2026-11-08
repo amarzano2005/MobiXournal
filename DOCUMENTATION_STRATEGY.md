@@ -465,7 +465,7 @@ Seven capabilities cannot be classified from the tree alone, because "supported"
 | Stylus tilt/azimuth | Captured and stored, does not drive width: `Supported` for storage, `Not supported` for drawing? |
 
 Positions were taken from the tree on 2026-11-08 and shipped in `guide-limitations.md`: six rows follow
-the code and its guards, the MSI signature is **Not verified** because no artifact was checked, and each
+the code and its guards, the MSI signature read **Not verified** only until the published artifact itself was opened on 2026-11-08, when it became **Not supported**, and each
 cell names the evidence, so the owner's product judgement can overrule a cell without a rewrite.
 
 ### 6.4 The folder move is a one-way door for links
@@ -508,7 +508,7 @@ No documentation site or theme, no generated API reference, no video, no localiz
 4. Folder move now or keep the flat tree? (§6.4)
 5. Generate or delete the two rotting tables? (§6.5)
 6. Does the audit stay in the repository? (§6.6)
-7. Is the desktop MSI in the current release signed? (audit U12)
+7. Is the desktop MSI in the current release signed? (audit U12) — **answered 2026-11-08: no**; the published `1.0.1` installer carries no signature, the matrix row reads `Not supported`, and the check is recorded in `docs/guide-limitations.md`
 8. Which desktop version is "current" for the guide — 1.0.1, or does 2.0.x follow? (audit U10)
 
 ---

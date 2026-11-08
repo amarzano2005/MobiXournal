@@ -32,18 +32,21 @@ A capability that works everywhere is not listed: this page is the exceptions, n
 | Sync between devices or machines | **Not supported** | **Not supported** | There is no sync product. A three-way merge reconciles a document that opens beside a conflicting copy, with no interface of its own. | [architecture.md](architecture.md) |
 | Stylus tilt and azimuth recorded | **Supported** | **Supported** | Every sample keeps both. The window's Compose pointer has no such axis, so the pen's own tablet stream supplies them. | [stylus.md](stylus.md) |
 | Tilt changing stroke width | **Not supported** | **Not supported** | Width follows the Xournal++ pressure filter, so tilting the pen changes nothing on the page. | [stylus.md](stylus.md) |
-| MSI signed by a known publisher | — | **Not verified** | The installer is signed only when it is built with a certificate configured; the published file has not been checked. | [tools.md](tools.md) |
+| MSI signed by a known publisher | — | **Not supported** | No certificate is configured for the build, so the installer is left unsigned rather than given a false identity — checked against the published `1.0.1` file on 2026-11-08. | [tools.md](tools.md) |
 
-## What "Not verified" means on this page
+## The check the matrix cannot run
 
-One row carries that word, and it is about a file you download rather than about code: whether the MSI
-published with a release is signed by a known publisher. Nothing in the repository can answer that, because
-the answer belongs to the artifact. To check it on your machine, right-click the `.msi`, choose
-*Properties*, and open *Digital Signatures*; `Get-AuthenticodeSignature` in PowerShell prints the same
-answer. If an unsigned installer is not acceptable to you, build one with a certificate — [tools.md](tools.md)
-names the four variables it reads.
+The signing row is about a file you download rather than about code, and it has been checked: the
+`1.0.1` installer published with the desktop release carries **no signature at all**, so Windows reports
+an unknown publisher and SmartScreen may ask before it runs. To confirm it on any copy, right-click
+the `.msi`, choose *Properties* and open *Digital Signatures*, or run `Get-AuthenticodeSignature` in
+PowerShell. A signed installer is a build with a certificate configured rather than a different
+product — [tools.md](tools.md) says which variables produce one.
 
-A row leaves that section only when the check has been run and written down, so its absence is not a verdict.
+No row on this page carries **Not verified** today: the one that did became a finding about the published
+file. A row returns to that word when a capability is believed to work and nothing available here can
+confirm it, and it leaves only when the check has been run and written down — so the absence of the word
+is not a verdict either way.
 
 ## Adding a row
 
