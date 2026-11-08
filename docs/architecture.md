@@ -62,7 +62,6 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`desktop-workstation.md`](desktop-workstation.md) | the `desktop/` window: module, shell, page painting and the tool strips | you work on the PC window |
 | [`desktop-documents.md`](desktop-documents.md) | what the window does with a file: opening and its refusals, saving and its refusals, the dirty dot, the crash snapshot | you change how a document is opened, saved or recovered on the PC |
 | [`desktop-editing.md`](desktop-editing.md) | the window's editing surface: figures, vertical space, placing a living element, the selection | you change what a drag on the page does |
-| [`desktop-testing.md`](desktop-testing.md) | what the `desktop/` suites render and assert, and how to run them | you add or change a desktop test |
 | [`desktop-settings.md`](desktop-settings.md) | the window's Settings surface: the index, the row rule, and what each section answers | you add or change a desktop setting |
 | [`desktop-tablet.md`](desktop-tablet.md) | the pen's two Windows streams: Wintab packets, Windows Ink, the dial | you change how the window reads the tablet |
 | [`desktop-pen-feel.md`](desktop-pen-feel.md) | the pen's active area, the hand's pan, the measurement against Xournal++ | you change how the pen feels in the window |

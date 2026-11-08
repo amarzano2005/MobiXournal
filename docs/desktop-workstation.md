@@ -3,7 +3,7 @@
 > Read when you change the desktop Compose Multiplatform window: its shell and chrome, its tool strips, or how
 > it paints a page. What a drag *does* is [desktop-editing.md](desktop-editing.md); what the window does with a
 > file is [desktop-documents.md](desktop-documents.md); what the tests prove is
-> [desktop-testing.md](desktop-testing.md).
+> [testing.md](testing.md).
 > For the task: [Installing on Windows 11](guide-install-windows.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
@@ -286,7 +286,7 @@ for Text (it writes words, not a band), and the hand for the hand.
 
 Every test runs on a plain JVM host — no emulator, no device — and the pixel renders under
 `desktop/build/desktop-render/` are what the assertions read. What each suite proves, and how to run them, is
-[desktop-testing.md](desktop-testing.md).
+[testing.md](testing.md).
 
 Why the core is shared, and what has moved into it, is [`codebase.md`](codebase.md#the-shared-core-no-android-in-mobix-core)'s.
 
