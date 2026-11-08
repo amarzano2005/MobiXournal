@@ -1,5 +1,22 @@
 # MobiXournal documentation strategy and implementation plan
 
+> **Status — 2026-11-08, after the plan ran.** This is the planning record, kept as it was written so the
+> reasoning survives; where each phase landed is stated once, here. The governance the plan did not
+> contain is [doc-governance.md](docs/doc-governance.md)'s, and the accuracy findings it inherited are
+> tracked in [DOCUMENTATION_AUDIT.md](DOCUMENTATION_AUDIT.md) (*Status of the findings*).
+>
+> | Plan | State | Where it landed |
+> ||---|---|---|
+> | Phase 0 — truth (TR-01…TR-07) | done | the merge sentence, the data-table row, the Typst qualification, the packaged-`.xopp` refusal and the polar boundary sit in their pages and are pinned by `DocClaimsTest`; the 2.0.0 note carries its breakdown and no total |
+> | Phase 1 — trust and entry (TR-10…TR-15) | done | [guide-limitations.md](docs/guide-limitations.md), [guide-troubleshooting.md](docs/guide-troubleshooting.md), the two install pages and [guide-index.md](docs/guide-index.md); the guide rules are enforced by `DocsGuardTest` |
+> | Phase 2 — tasks (TR-20…TR-26) | done | fifteen task pages under `docs/guide-*.md`, each closing on its owner and named back in a `For the task` line |
+> | Phase 3 — structure (TR-30…TR-36) | done, one declined | the four merges landed (`audio`, `chrome`, `chunked-documents`, `testing`) and `pdf`/`selection`/`tools` were split ([pdf-backgrounds.md](docs/pdf-backgrounds.md), [selection-actions.md](docs/selection-actions.md), [tools-emulator.md](docs/tools-emulator.md)); README is 79 lines and 584 words; TR-36 is the recorded no-move decision in [architecture.md](docs/architecture.md) |
+> | Phase 4 — hardening (TR-40…TR-43) | done | the status vocabulary is guarded, the doc checks are four lines in [CONTRIBUTING.md](CONTRIBUTING.md) and eight boxes in the pull-request template, and the release procedure carries the two expiring pages |
+> | TR-42 — screenshots | not done | the two existing captures still serve the README and the 2.0.0 note; no new page ships a mock-up |
+>
+> Two parts of this plan are owned elsewhere now and are not restated here: the **status rulings** of §6.3
+> are the matrix's rows, and the **decisions** of §6 are recorded where they were applied.
+
 **Input:** [`DOCUMENTATION_AUDIT.md`](DOCUMENTATION_AUDIT.md), re-validated against the tree on 2026-11-08.
 **Constraints honoured here:** no existing document was modified; no capability is described that the code does not have; every technical statement below was re-checked against source, build files or measurements taken for this plan; user-facing pages are planned as task pages, not feature inventories.
 

@@ -41,6 +41,47 @@ still thin.
 | F-15 no contributor entry point | Medium | Fixed | [CONTRIBUTING.md](CONTRIBUTING.md) and [developer-guide.md](docs/developer-guide.md) |
 | F-16 the front door read as a wall | Low | Fixed | README rewritten to eight sections, 79 lines and 584 words |
 
+## Second pass — governance and accuracy re-check, 2026-11-08
+
+The table above tracks the findings this audit was written with. This one tracks what a second pass over
+the same corpus found and did, and it names the evidence behind each row: **automatic** (a test or a
+script fails without it), **manual** (read against the source or the build), **not verified** (nothing in
+reach could confirm it), **not applicable**.
+
+| Finding | Severity | Status | Evidence | Verification |
+|---|---|---|---|---|
+| N-01 `repo-layout.md` named a package as `app/src/main/java/com/mobixournal/app/src/main/java/...` — a paste that resolves nowhere — and the base package was absent from the same list | High | Fixed | the entry names the base package; `everyPackageTheLayoutPageNamesExists` fails on a path that is not a directory and on a package holding Kotlin that the page omits | automatic |
+| N-02 the 2.0.0 note's arithmetic: a total that disagreed with its own breakdown | Resolved | the note carries no total, only `303 + 43 + 32 + 16 + 5 + 5`; the counts are generated from `FINISHED.toml` | manual (read); the breakdown itself was not recomputed — not verified |
+| N-03 the strategy described work with no statement of what had landed | Fixed | dated status block at the top of [DOCUMENTATION_STRATEGY.md](DOCUMENTATION_STRATEGY.md), one row per phase | manual |
+| N-04 a deleted roadmap page left no live reference to itself | Not applicable | `docs/future-roadmap.md` no longer exists; `FINISHED.toml` names it as history and is exempt, and no live page promises a roadmap | automatic (search over the corpus, plus the doc-name guard) |
+| N-05 governance the corpus lacked: no owner map for a change, no review checklist, no CI step, no maintenance sweep | Medium | Fixed | [doc-governance.md](docs/doc-governance.md), `.github/PULL_REQUEST_TEMPLATE.md`, the *Check the documentation* step, and four guards: required pages, release index, Gradle modules, matrix words | automatic (the guards) and manual (the pages) |
+| N-06 benchmark conditions | Medium | Open | [mobix-format.md](docs/mobix-format.md) states machine, repetitions and method per measurement and names CPU, OS, JDK and heap as not recorded | not verified — nothing in the repository can reconstruct them |
+| N-07 external links | Low | Open | no scheduled checker; the corpus's external targets are GitHub URLs and the Xournal++ repository | not verified in this pass |
+| N-08 the versions the docs describe against the version lines the build carries | High | Fixed | `theVersionsTheDocsNameAreTheBuiltOnes` reads `versionName`, `versionCode` and `packageVersion` and fails when the release index, the status page or the version's note disagrees | automatic |
+
+No row is marked fixed because a page was edited: each one names the check that now fails if the page goes
+back, or says plainly that no check exists.
+
+### What the same sweep checked and did not find
+
+Stated so the next pass does not repeat it blind, and because a clean inventory is evidence too:
+
+- **Links.** Every relative link in the corpus resolves — just over nine hundred of them across 82
+  Markdown files. The three
+  residuals are links that live inside code spans in [text-and-markdown.md](docs/text-and-markdown.md),
+  where they are examples of syntax rather than navigation. Anchors are resolved with GitHub's own slug
+  rules (punctuation dropped, one hyphen per space): `docs/stack.md`'s
+  `#fidelity-notes--round-trip-hazards` is correct, and a checker that collapses runs of spaces was the
+  thing that was wrong, not the link.
+- **Paths.** Every `scripts/`, `gradle/` and `desktop/installer/` path the corpus names exists on disk, and
+  so does every Gradle module.
+- **Payload samples.** The fenced JSON snippets in [mobix-schema-spec.md](docs/mobix-schema-spec.md) are
+  excerpts rather than documents: they elide content with `…`, and the page now says so instead of leaving
+  a reader to discover it by pasting one.
+- **Artifacts.** The install pages name their download by placeholder (`MobiXournal-<version>.msi`), so no
+  page goes stale when the window's version moves; the version guard covers the three pages that do carry
+  a number.
+
 ## How this report is written
 
 Every claim below is traceable to a file and, where the claim is about behaviour, to the code that settles it. Severity is graded by **user harm**, not by tidiness:
