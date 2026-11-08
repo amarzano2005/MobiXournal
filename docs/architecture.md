@@ -22,7 +22,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 
 | Spoke | What it owns | Read when |
 |---|---|---|
-| [`repo-layout.md`](repo-layout.md) | the repository map: every module, package and file | you need to know where code lives |
+| [`repo-layout.md`](repo-layout.md) | the repository map: the three modules and the packages in them | you need to know where code lives |
 | [`code-structure.md`](code-structure.md) | where new code belongs: the size rules, the window's seven packages, the closed root, the caps and buckets | you add a file, a package or a subsystem |
 | [`codebase.md`](codebase.md) | what it is built on, the shared-core rule, branding and identity | you ask what the project is or what must not cross into `mobix-core` |
 | [`stack.md`](stack.md) | pinned tech stack: Kotlin, Compose M3, SurfaceView, PDFBox, SAF | you wonder why a dependency or framework is chosen |
@@ -145,3 +145,19 @@ A new topic is a new file, and this is the whole procedure:
 
 And this index only names what exists: a spoke whose subject is not in the tree is deleted, not labelled
 as future work.
+
+### The tree stays flat
+
+The spokes and the guide pages all sit directly under `docs/`, with the layer carried by the file name —
+`guide-*.md` for the task pages — rather than by a folder. Grouping them into `guide/`, `formats/` and
+`desktop/` was considered and **declined**.
+
+A relative link resolves the same either way, so a folder buys browsing order and nothing a reader can
+reach from here that the two indexes do not already give them. Against that, a move rewrites every path
+outside the corpus at once — issue text, release notes, `FINISHED.toml` descriptions, commit messages,
+bookmarks — and none of those can be redirected. It would also change the guards that read `docs/` as one
+flat directory in the same commit as the move, which is the mixed change that makes a failure
+unattributable.
+
+So a new topic is a file with a name, not a directory (see *Adding a spoke*), and the layer stays visible
+in the name.
