@@ -37,25 +37,30 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 
 ## What `.mobix` does beyond `.xopp`
 
-| Capability | `.xopp` (Current) | `.mobix` (Native) | Status today |
+| Capability | `.xopp` (Current) | `.mobix` (Native) | Where it runs today |
 |---|---|---|---|
-| **Mathematical plots** | Baked into dead strokes & text boxes | Living `PlotElement`: formula $f(x)$, range, samples, re-editable anytime | **Live** — created, drawn, re-edited in place ([mobix-elements.md](mobix-elements.md)) |
-| **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text | **Live** — the table tool places a living table and its fixed cell editor writes rows, headers, alignment and cell text as one undo step ([mobix-living-entities.md](mobix-living-entities.md)) |
-| **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \Delta t_{\text{ms}})$ — no barrel roll, which the platform cannot report | **Stored & verified** — tilt, azimuth and $\Delta t$ are captured and written; Pen diagnostics panel prints tilt and azimuth ([stylus.md](stylus.md)). $\Delta t$ is read by stroke replay and audio-karaoke sync ([audio.md](audio.md)). None drives drawn width, which follows desktop pressure filter |
-| **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **Live & verified** — playhead published, frame loop drives canvas with dimmed future ink, progressive stroke growth with glowing tip, and scrubber pop-up seeking ([audio.md](audio.md)). Replay verified on emulator |
-| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Live** — every reader goes through the page surface (`PageSource`): counting, ids and layout come from `manifest.json`/`canvas.json`, and a page is inflated only when the canvas, find or the export asks for it, never at open ([data-path.md](data-path.md)) |
-| **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **Live** — bundled by content hash on the `.mobix` save path |
-| **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Live & verified** — Opus recording and playback bundled in container by content hash as `assets/aud_<sha256>.<ext>`, linked to stroke timestamps, verified on emulator ([audio.md](audio.md)) |
-| **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **Live & verified** — saving back to same `.mobix` URI repacks only changed entries, verified on emulator. Multi-page notebooks, SAF `content://` round-trip, and snapshot asset preservation verified live |
+| **Mathematical plots** | Baked into dead strokes & text boxes | Living `PlotElement`: formula $f(x)$, range, samples, re-editable anytime | **live** — created, drawn, re-edited in place ([mobix-elements.md](mobix-elements.md)) |
+| **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text | **live** — the table tool places a living table and its fixed cell editor writes rows, headers, alignment and cell text as one undo step ([mobix-living-entities.md](mobix-living-entities.md)) |
+| **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \Delta t_{\text{ms}})$ — no barrel roll, which the platform cannot report | **stored, and read by two features** — tilt, azimuth and $\Delta t$ are captured and written; Pen diagnostics panel prints tilt and azimuth ([stylus.md](stylus.md)). $\Delta t$ is read by stroke replay and audio-karaoke sync ([audio.md](audio.md)). None drives drawn width, which follows desktop pressure filter |
+| **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **live**, exercised on a device — playhead published, frame loop drives canvas with dimmed future ink, progressive stroke growth with glowing tip, and scrubber pop-up seeking ([audio.md](audio.md)). Replay verified on emulator |
+| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **live** — every reader goes through the page surface (`PageSource`): counting, ids and layout come from `manifest.json`/`canvas.json`, and a page is inflated only when the canvas, find or the export asks for it, never at open ([data-path.md](data-path.md)) |
+| **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **live** — bundled by content hash on the `.mobix` save path |
+| **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **live**, exercised on a device — Opus recording and playback bundled in container by content hash as `assets/aud_<sha256>.<ext>`, linked to stroke timestamps, verified on emulator ([audio.md](audio.md)) |
+| **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **live**, exercised on a device — saving back to same `.mobix` URI repacks only changed entries, verified on emulator. Multi-page notebooks, SAF `content://` round-trip, and snapshot asset preservation verified live |
 
-The **Status today** column is the honest one: a capability is **Live** only where the open/save path
-actually runs it, **Library only** where a tested engine exists with no caller in `app/src/main`, and
-otherwise names what is missing and the task that will make it live. Everything in the *Native* column
-is what the format is designed to hold, not a claim that it runs.
+This column answers **where the code runs**, in the two wiring words [architecture.md](architecture.md)
+defines: **live** for behaviour wired end to end in an app path, **library only** for a tested engine
+with no caller. It says nothing about whether a capability can be relied on — that is the support
+matrix's question, answered once for the whole product in
+[guide-limitations.md](guide-limitations.md). The page used to grade each row in a vocabulary of its
+own — four words, two of them "verified" compounds — so a reader had to reconcile two systems; the
+column now carries the wiring word alone, and the support grade is stated in the matrix only.
+
+Everything in the *Native* column is what the format is designed to hold, not a claim that it runs.
 
 Its three structural advantages, all of which follow from the container being a ZIP of small parts
 rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec.md)). Whether each
-*runs* today is the capability table's **Status today** column above, not a claim here:
+*runs* today is the capability table's **Where it runs today** column above, not a claim here:
 
 - **Streaming & fast startup** — **live**: the container is part-per-page, the **open** reads the manifest
   and nothing else, and the canvas, find and the export each read the page they are on rather than the
@@ -93,6 +98,24 @@ the numbers say, including where they contradict this doc:
   eight pages here, not eight).
 
 ---
+
+### What these measurements record, and what they leave out
+
+A number is reusable only if its conditions travel with it. This is what each measurement on this page can
+and cannot tell you, stated rather than implied:
+
+| Measurement | Machine | Environment recorded | Repetitions | Method | Not recorded |
+|---|---|---|---|---|---|
+| `.mobix` vs `.xopp` size and write/read time | a development host, JVM | none | median of 5 | bytes on disk and wall time around `DocumentIo.encode` | CPU, OS, JDK version, heap |
+| Paged open, 200-page archive | a development host, JVM | none | none | entries inflated per open, three paths compared | CPU, OS, JDK version, repeat count |
+| Incremental save, 200-page notebook | a development host, JVM | none | none | milliseconds and pages opened, against the replaced path | CPU, OS, JDK version, repeat count |
+| *Document saving* and *Audio annotations* rows | Android emulator (`Pixel_Tablet` AVD) | the AVD image, not a device | none | a manual save/round-trip pass | device hardware, Android build, thermal state, repeat count |
+| "Under 4 ms per frame" and "under 5 ms a page" | unstated | none | none | no benchmark is named for either figure | everything above |
+
+Host numbers and emulator numbers are not comparable: an emulator's CPU and I/O are the host's, shared with
+whatever else is running, so a figure from it is a functional check rather than a performance claim. Where a
+row says *not recorded*, nothing in the repository was found to reconstruct it — the honest reading is
+"measured once, conditions unknown", not a reproducible benchmark.
 
 ## Where `.mobix` sits in the app
 

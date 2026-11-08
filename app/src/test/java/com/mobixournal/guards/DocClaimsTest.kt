@@ -285,7 +285,8 @@ class DocClaimsTest {
         assertTrue("docs/mobix-format.md must keep its data-table capability row", row != null)
         assertTrue(
             "the data-table row must name the tool that ships, not 'no editor exists': $row",
-            row!!.contains("**Live**") && "the table tool places" in row && "no editor exists" !in row,
+            row!!.contains("**live**", ignoreCase = true) &&
+                "the table tool places" in row && "no editor exists" !in row,
         )
     }
 

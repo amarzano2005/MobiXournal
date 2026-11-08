@@ -650,6 +650,15 @@ class DocsGuardTest {
                 }
             }
         }
+        // The vocabulary this table replaced: a page that invents its own compounds is how the
+        // second system came back the first time.
+        for (file in docsOfRecord()) {
+            file.readLines().forEachIndexed { i, line ->
+                for (retired in listOf("Live & verified", "Stored & verified")) {
+                    if (retired in line) found += "${file.name}:${i + 1} uses the retired phrase `$retired`"
+                }
+            }
+        }
         assertTrue(
             "the status vocabulary belongs to `writing-docs.md` (the definition) and " +
                 "`guide-limitations.md` (the matrix) — state it there and link the page: $found",
