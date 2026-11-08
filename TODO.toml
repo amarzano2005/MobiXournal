@@ -34,3 +34,17 @@ created = 2026-11-08
 tags = ["merge", "desktop"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "sign-the-published-windows-installer"
+title = "Sign the published Windows installer"
+description = "The published installer carries no Authenticode signature: the 1.0.1 MSI from desktop-v1.0.1 was opened on 2026-11-08 and is an OLE container with no DigitalSignature stream, so Windows reports an unknown publisher and SmartScreen asks before it runs. Wire signing into the packaging step that produces the file (the variables are listed under The packaged build in docs/tools.md) and into the release workflow, add a step that verifies the produced MSI instead of trusting the build, and fail the release when a published asset is unsigned. In the same commit flip the matrix row MSI signed by a known publisher in docs/guide-limitations.md from Not supported to Supported with the check that proves it, and drop the unsigned-installer section from docs/guide-install-windows.md. The certificate itself is the owner's to obtain; until it exists the row stays as it is."
+status = "active"
+level = "task"
+category = "chore"
+urgency = "normal"
+order = 20
+created = 2026-11-08
+tags = ["signing", "release", "desktop"]
+rebuild = false
+emulator_debug = false
