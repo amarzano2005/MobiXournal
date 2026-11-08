@@ -9,6 +9,8 @@ device/emulator harnesses, code generators, and anything else outside the repo's
 
 Add one entry per tool, kept to what an agent needs to *use* it: where it lives, how to call it, and its gotchas.
 
+The vendored design skill and the design declaration that closes a UI change are [design-workflow.md](design-workflow.md)'s.
+
 ## Index
 
 | Tool / pipeline | What it's for | Detail |
@@ -17,7 +19,7 @@ Add one entry per tool, kept to what an agent needs to *use* it: where it lives,
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
 | Desktop shell | Run, test and package the Compose Multiplatform window (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [below](#cutting-a-release) |
-| UI/UX Pro Max | Design data, its search script, and the declaration that closes a UI change | [below](#uiux-pro-max-design-skill) |
+| UI/UX Pro Max | Design data, its search script, and the declaration that closes a UI change | [below](design-workflow.md) |
 
 ---
 
@@ -248,53 +250,3 @@ pixel** (the sheet appears) and the **settled** page (the ink has stopped arrivi
 second: `paints/s`, the worst gap between paints, and the paint's own cost) — a large `worst` with a
 one-millisecond `paint` is a blocked UI thread, not a slow painter, which is the distinction a headless
 render cannot make.
-
-## UI/UX Pro Max (design skill)
-
-The agent-facing design skill vendored under `skills/`: UI styles, product palettes, font pairings, UX
-guidelines, chart types and per-stack implementation notes — including **Jetpack Compose** and **WPF**,
-the two stacks this product ships on. It is committed like `skills/todo` because it is text and scripts
-only (no binaries), so a clone needs no per-machine install.
-
-**When it is consulted.** Before a UI change lands, as the *checklist*: it names the markers a page can
-carry without anyone deciding to (a weight the family does not ship, body text under 12 sp, one ellipsis
-spelled two ways, an icon control with no accessible name, a press state that shifts layout, a gradient
-used as decoration). It supplies rules to check against and never the verdict —
-`docs/interface-contract.md` decides, and where the two disagree the contract wins, because its 36/40 dp
-controls and its one-glyph catalogue are recorded decisions rather than drift.
-
-```sh
-scripts/design.sh --domain ux "modal keyboard focus"
-scripts/design.sh --domain style "tool app chrome"
-scripts/design.sh --domain typography "dense toolbar type scale"
-scripts/design.sh --design-system "tablet note-taking editor"
-```
-
-`scripts/design.sh` finds a real Python 3.8+ and **refuses the Store stub** (AGENTS.md, Profile D), so
-no interpreter path is pasted into a session, and `DESIGN_PYTHON` overrides the search. `--domain`
-answers well; `--stack jetpack-compose` is thin in the shipped CSV, so an empty result there is the
-corpus rather than the install.
-
-`skills/ui-ux-pro-max/SKILL.md` carries the skill's own workflow; it and its data came from the upstream
-repository, whose **web-page** skills (shadcn/Tailwind styling, brand books, slide decks, banners) are
-not vendored — a Compose/WPF product has no website to style. The upstream installers (`npx skills add`,
-`uipro init`) need Node, absent here, so a refresh is a copy of the same folders.
-
-## Closing a UI change
-
-`docs/interface-contract.md` owns what a change must satisfy; this is the half a machine holds. **`done`
-refuses to archive a task without a design declaration**, so a change that touched the interface records
-which lines it verified instead of leaving the question to memory.
-
-```sh
-scripts/todo.sh done <id> --shipped "what shipped" \
-    --design "material: capsule in the ribbon's lane; states: hover and focus added"
-scripts/todo.sh done <id> --shipped "..." --design "none: docs only, no interface surface"
-```
-
-A declaration is `axis: answer` clauses split by `;` (or one per line, in `--design-file`), in the contract's own checklist words: `material`,
-`tokens`, `glyph`, `states`, `copy`, `keyboard`, `parity`, `docs`, `tests`. Two answers are the minimum, an
-empty one is refused, and an unknown axis is refused with the vocabulary. A `rule: <Category>/<Issue>`
-clause cites the corpus and every id must exist in `ux-guidelines.csv` — checked there, skipped where the
-skill is not vendored. It cannot read a screenshot, only that the question was asked and answered.
-Implementation `scripts/todo/design.py`; regression check `python3 scripts/todo/test_design.py`, run by CI.
