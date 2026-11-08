@@ -64,7 +64,7 @@ class MobixElementCodecTest {
         assertTrue("audioRef object is emitted in .mobix format", json.has("audioRef"))
         val audioRefNode = json.getObj("audioRef")!!
         // The reference the stroke replays from, and — only when the caller's stores could supply the
-        // bytes — the entry they were bundled into (`docs/audio-inking-sync.md`).
+        // bytes — the entry they were bundled into (`docs/audio.md`).
         assertEquals("aud_7a9f1c.opus", audioRefNode.getStrOrNull("filename"))
         assertNull("nothing was bundled here, so no entry is named", audioRefNode.getStrOrNull("assetId"))
         assertEquals(14250, audioRefNode.getInt("startMs", 0))

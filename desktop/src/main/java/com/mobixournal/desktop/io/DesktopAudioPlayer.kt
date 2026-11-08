@@ -15,7 +15,7 @@ import java.nio.ByteOrder
 /**
  * The window playing **one recording at a time**, with the transport the header's audio pill drives.
  *
- * The shape is the tablet's (`docs/audio-inking-sync.md`): sound comes from the platform, while *where
+ * The shape is the tablet's (`docs/audio.md`): sound comes from the platform, while *where
  * we are* is [Playhead]'s answer — a sounding position is the media stack's and a held one is ours. That
  * class moved into `mobix-core` for this exact reason, so the two shells cannot disagree about a seek.
  *

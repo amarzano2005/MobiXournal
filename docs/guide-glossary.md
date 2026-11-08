@@ -30,7 +30,7 @@ described; nothing here is more than a definition.
 | Marquee | The rubber-band selection a drag leaves behind | lasso | [selection.md](selection.md) |
 | Ring | The menu that opens where the pen is, holding the actions you reach for | — | [chrome-settings.md](chrome-settings.md) |
 | Bookmark | A labelled, colour-coded flag on a page, kept by the app rather than written into the file | — | [pages-and-paper.md](pages-and-paper.md) |
-| Playhead | Where a recording currently is, and therefore which strokes are dimmed | — | [audio-inking-sync.md](audio-inking-sync.md) |
+| Playhead | Where a recording currently is, and therefore which strokes are dimmed | — | [audio.md](audio.md) |
 | Vertical space | Room inserted at a point on the page, pushing what follows it down | — | [element-authoring.md](element-authoring.md) |
 
 ## Pen and input

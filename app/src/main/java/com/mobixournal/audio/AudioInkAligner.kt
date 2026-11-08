@@ -10,7 +10,7 @@ import com.mobixournal.render.HandwritingRecognizer
  * Where on the page the recording was being written when the playhead passed a given moment.
  *
  * The only temporal link the app keeps between ink and sound is the stroke's own timestamp
- * (`fn`/`ts`, see `docs/audio-inking-sync.md`): a stroke started at `startMs` of a named recording.
+ * (`fn`/`ts`, see `docs/audio.md`): a stroke started at `startMs` of a named recording.
  * That is enough to follow a playing clip across the page — the mini-player asks which strokes were
  * being written at the playhead and scrolls to them ([findStrokesAtTime]) — and it is all this file
  * answers. Speech recognition, transcripts and the alignment of spoken words to ink are not part of

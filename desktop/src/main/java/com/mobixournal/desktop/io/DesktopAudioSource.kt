@@ -44,7 +44,7 @@ internal class AudioRefused(message: String) : Exception(message)
  *
  * An `.m4a`/AAC recording is refused in words. A plain JVM carries no AAC decoder and Concentus is
  * Opus-only, so pretending otherwise would be a silent failure — the same rule the export path states
- * (`docs/audio-inking-sync.md`): no transcode, no rename, say what is missing.
+ * (`docs/audio.md`): no transcode, no rename, say what is missing.
  */
 internal object DesktopAudioSources {
 

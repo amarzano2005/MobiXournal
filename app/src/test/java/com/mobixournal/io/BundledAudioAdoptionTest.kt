@@ -23,7 +23,7 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * A recording captured Opus is adopted **under the sidecar name the stroke carries** when the page that
- * names it is read (`docs/audio-inking-sync.md`): the file lands where a recording made here lands, with
+ * names it is read (`docs/audio.md`): the file lands where a recording made here lands, with
  * the `.ogg` name the stroke's `fn` says, so playback of that stroke needs nothing else and a `.xopp`
  * export pushes out the file that is really there.
  */

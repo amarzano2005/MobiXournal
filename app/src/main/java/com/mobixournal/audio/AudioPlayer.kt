@@ -12,7 +12,7 @@ import java.io.File
  *
  * It also owns the **playhead** ([Playhead]): where in the clip playback is, which nothing else can
  * know — the platform's reading is the only clock there is, and a second timer beside it would drift
- * away from the sound (`docs/audio-inking-sync.md`). A clip finishing reports through the same
+ * away from the sound (`docs/audio.md`). A clip finishing reports through the same
  * [onPlayingChanged] hook a stop does, so nothing downstream needs a completion path of its own.
  */
 class AudioPlayer {

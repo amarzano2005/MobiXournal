@@ -52,8 +52,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`interface-contract.md`](interface-contract.md) | what every **new** UI element must satisfy: material, colour, geometry, glyphs, text, states, motion, keyboard, parity | you add anything to the interface |
 | [`chunked-documents.md`](chunked-documents.md) | the file's geometry modes, the spatial chunking that stores them, and how a chunked document exports as pages | you work on chunk geometry, a geometry mode, or export slicing |
 | [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus, parametric curves, plot interaction | you work on mathematical plotting or formula parsing |
-| [`audio.md`](audio.md) | audio recording (Opus in a `.mobix`, WAV for a `.xopp`), replay, sidecars | you touch audio annotation features |
-| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, karaoke replay | you work on synchronized audio playback |
+| [`audio.md`](audio.md) | recording and the recorders, bundled audio, the playhead, the karaoke replay and the window's audio | you change how a recording is made, kept, or followed by the ink |
 | [`images.md`](images.md) | image import, pixmap background, path resolution | you change image handling or background pixmaps |
 | [`pdf.md`](pdf.md) | PDF backgrounds, font caches, text selection, bookmarks outline | you change PDF rendering, text selection or export |
 | [`text-and-markdown.md`](text-and-markdown.md) | text/markdown import, paginator, layout engine | you change text or markdown import |

@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Records the microphone to an **Ogg/Opus** file on a background thread using Android's [AudioRecord],
- * [MediaCodec] (Opus encoder) and [MediaMuxer] (`docs/audio-inking-sync.md`).
+ * [MediaCodec] (Opus encoder) and [MediaMuxer] (`docs/audio.md`).
  *
  * The container is Ogg and the file's extension says so — a stroke's sidecar is named
  * `2026-08-02T09-14-33.ogg` and the bundled entry `assets/aud_<sha256>.ogg` — because the bytes really

@@ -23,7 +23,7 @@ import org.junit.rules.TemporaryFolder
 /**
  * A recording travels **inside** the `.mobix`, which is the one promise a native container makes: move
  * the file to another folder, or hand it to another device, and the strokes still replay
- * (`docs/audio-inking-sync.md`).
+ * (`docs/audio.md`).
  *
  * Two names have to stay apart for that to work and for the `.xopp` export to keep working: `filename`
  * is the sidecar the stroke replayed from and `assetId` is the entry the archive carries the bytes in.

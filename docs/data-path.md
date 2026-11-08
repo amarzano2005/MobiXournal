@@ -60,7 +60,7 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   the archive *are* the background — and the recording), when the page that names them is read:
   `io/BundledPageAssets.kt` is a `PageSource` layer over the reader, the `BackgroundResolver` the
   renderer asks afterwards, and the `BundledAudio` sink a recording is written to under the sidecar name
-  the stroke carries, so the file plays with no `.wav` beside it ([audio-inking-sync.md](audio-inking-sync.md)).
+  the stroke carries, so the file plays with no `.wav` beside it ([audio.md](audio.md)).
   The copies are keyed by the reference the document keeps, which is what the renderer looks a picture
   up by, and a background the document only *references* is resolved exactly as a gzip `.xopp`'s is.
   The archive's own PDF is adopted up front, since the model holds **one** background PDF per document;

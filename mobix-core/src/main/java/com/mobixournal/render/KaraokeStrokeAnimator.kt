@@ -6,7 +6,7 @@ import com.mobixournal.format.model.audioRef
 import kotlin.math.hypot
 
 /**
- * Coordinates the **writing that follows the recording** (`docs/audio-inking-sync.md`): which strokes a
+ * Coordinates the **writing that follows the recording** (`docs/audio.md`): which strokes a
  * playhead has reached, which one is being written right now, and where in the clip a tap on the page
  * lands.
  *
@@ -90,7 +90,7 @@ object KaraokeStrokeAnimator {
     /**
      * The **absolute time** point [index] of [points] names, or null when the stroke has no timeline up
      * to it: `T_start` plus the deltas of every point before it, which is the formula
-     * `docs/audio-inking-sync.md` writes (`t_abs(P_i) = T_stroke_start + Σ dt_k`).
+     * `docs/audio.md` writes (`t_abs(P_i) = T_stroke_start + Σ dt_k`).
      *
      * A missing delta is **not** zero: it is a point whose time was never reported (a `.xopp` import, a
      * `.mobix` written before the telemetry landed), and summing it as nothing would put every later

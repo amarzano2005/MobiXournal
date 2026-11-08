@@ -335,7 +335,7 @@ internal fun MainActivity.checkPermissionAndBeginRecording() {
 internal fun MainActivity.beginRecording() {
     // The document's own format decides the codec: a `.mobix` bundles its audio, so it records the
     // compressed stream, while a `.xopp` records the WAV sidecar the desktop plays
-    // (`docs/audio-inking-sync.md`). A `.mobix` whose device cannot encode Opus records WAV too.
+    // (`docs/audio.md`). A `.mobix` whose device cannot encode Opus records WAV too.
     requestNotificationPermissionIfNecessary()
     val name = audio.startRecording(compressed = saveFormat == SaveFormat.MOBIX)
     if (name != null) {

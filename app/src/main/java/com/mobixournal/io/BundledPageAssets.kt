@@ -123,7 +123,7 @@ internal class BundledPageAssets(
 
     /**
      * Copy out the recordings this page's strokes replay from, under the name the stroke carries —
-     * what makes a `.mobix` play with no `.wav` beside it (`docs/audio-inking-sync.md`).
+     * what makes a `.mobix` play with no `.wav` beside it (`docs/audio.md`).
      *
      * Which entry a stroke's audio lives in is the model's own [Stroke.bundledAudio]; a stroke that
      * carries only an `assets/aud_…` name in `fn` (the shape this app wrote before it kept the two

@@ -4,7 +4,7 @@ import android.view.Choreographer
 
 /**
  * **A recording playing with the writing following it**: the frame loop that keeps a page painted at the
- * audio playhead until the clip stops (`docs/audio-inking-sync.md`).
+ * audio playhead until the clip stops (`docs/audio.md`).
  *
  * It has to own its frames rather than ask for a repaint per tick. [DrawingSurfaceView.render] no-ops
  * while a fling is running, so a repaint squeezed into one would be dropped exactly when the user is
@@ -17,7 +17,7 @@ import android.view.Choreographer
  * frame's dimming. Completion is not a case of its own — the session clears the clip it was on and this
  * loop ends with it on the next frame. A **pause** is the one stop that does not clear anything: the
  * loop ends, the state stays published at the held position, and [publishOnce] moves it as the scrubber
- * drags (`docs/audio-inking-sync.md`, mode 2).
+ * drags (`docs/audio.md`, mode 2).
  */
 internal class KaraokeFrameDriver(
     private val choreographer: Choreographer,

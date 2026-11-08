@@ -19,7 +19,7 @@ interface ClipClock {
 
 /**
  * **Where in the recording we are** — the clock `AudioSession.playheadMs` publishes and the replay path
- * draws the writing with (`docs/audio-inking-sync.md`).
+ * draws the writing with (`docs/audio.md`).
  *
  * A clip is **on** in one of two ways, and the difference is the whole reason this is a class rather
  * than a getter on the player:

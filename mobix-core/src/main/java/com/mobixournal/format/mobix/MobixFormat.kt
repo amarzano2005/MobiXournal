@@ -89,7 +89,7 @@ object MobixFormat {
      * rather than being re-encoded to WebP, which would change the pixels the user pasted, and a
      * recording keeps the codec it was recorded in — Ogg/Opus for a `.mobix`, whose container bundles it
      * and can afford ~15 MB an hour, WAV for the sidecar a `.xopp` gives the desktop
-     * (`docs/audio-inking-sync.md`). Nothing is transcoded on the way in, which is what lets the
+     * (`docs/audio.md`). Nothing is transcoded on the way in, which is what lets the
      * extension keep telling the truth about the bytes.
      */
     fun assetEntry(sha256: String, kind: AssetKind, suffix: String = kind.defaultSuffix): String {
@@ -136,7 +136,7 @@ object MobixFormat {
         IMAGE("img", "webp"),
 
         /**
-         * Bundled audio, linked to stroke timestamps (`docs/audio-inking-sync.md`). The default is the
+         * Bundled audio, linked to stroke timestamps (`docs/audio.md`). The default is the
          * **Ogg** container this app's recorder writes into a `.mobix`; a WAV sidecar a `.xopp` document
          * records names itself `wav` for as long as it is bundled.
          */

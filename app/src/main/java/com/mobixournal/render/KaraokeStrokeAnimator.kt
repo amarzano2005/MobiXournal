@@ -9,7 +9,7 @@ import com.mobixournal.format.model.StrokePoint
  *
  * The rules — which strokes are dimmed, which are being written, and where a point sits on the clip's
  * timeline — are not here any more: they are `KaraokeStrokeAnimator` in `mobix-core`, so the window can
- * answer the same questions about the same stroke (`docs/audio-inking-sync.md`). What stayed is the one
+ * answer the same questions about the same stroke (`docs/audio.md`). What stayed is the one
  * thing that needs `android.graphics`: the tip's circle, drawn over the page.
  */
 fun drawKaraokeTipIndicator(

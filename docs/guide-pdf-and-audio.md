@@ -96,6 +96,6 @@ it never meets that case.
 
 - [pdf.md](pdf.md) — backgrounds, import modes, the text index, the highlighter and the outline.
 - [audio.md](audio.md) — capture, the stamp, the playhead, and the platform half.
-- [audio-inking-sync.md](audio-inking-sync.md) — replay modes, the scrubber, and the export rules.
+- [audio.md](audio.md) — replay modes, the scrubber, and the export rules.
 - [images.md](images.md) — how a picture reaches the page, and what the reference stores.
 - [text-and-markdown.md](text-and-markdown.md) — the paginator, the generated PDF and the two routes in.

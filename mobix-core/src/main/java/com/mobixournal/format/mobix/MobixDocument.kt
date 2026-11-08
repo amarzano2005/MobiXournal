@@ -117,7 +117,7 @@ class MobixDocument(
      *   self-contained.
      * @param audioBytes supplies a recording's bytes for the sidecar name a stroke carries (the app's
      *   `AudioStore` does), so a `.mobix` carries its audio instead of pointing at a file that has to sit
-     *   beside it (`docs/audio-inking-sync.md`); the stroke then names the bundled entry *and* keeps the
+     *   beside it (`docs/audio.md`); the stroke then names the bundled entry *and* keeps the
      *   sidecar name the `.xopp` export writes a file for. A caller with no audio passes nothing.
      * @param reuse the pages the source archive already holds ([MobixPageReuse]): each one contributes
      *   **its source part and no entry**, so its JSON is neither rebuilt nor hashed here, and the repack

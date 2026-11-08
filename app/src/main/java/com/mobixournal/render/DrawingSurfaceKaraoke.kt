@@ -4,7 +4,7 @@ import android.graphics.Canvas
 
 /**
  * **A page painted at the audio playhead**: the writing appearing as the recording that was made over
- * it reaches each stroke (`docs/audio-inking-sync.md`, mode 1).
+ * it reaches each stroke (`docs/audio.md`, mode 1).
  *
  * The directive is not computed here — [KaraokeStrokeAnimator.resolve] decides, per stroke, whether it
  * is *dimmed* (the recording has not reached it), *animating* (it is being written at this playhead) or

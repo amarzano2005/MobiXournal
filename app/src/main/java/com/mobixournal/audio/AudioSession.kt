@@ -15,7 +15,7 @@ import java.io.File
  * **Two recorders, and the document decides which.** A recording is captured Opus/Ogg for a `.mobix`
  * (what its container is for: ~15 MB an hour against ~300 MB of WAV) and 16-bit mono WAV for a `.xopp`,
  * whose audio leaves as a **sidecar the desktop plays** — a legacy contract that has no Opus in it
- * (`docs/audio-inking-sync.md`). An Opus recording that does reach a `.xopp` export is pushed out as the
+ * (`docs/audio.md`). An Opus recording that does reach a `.xopp` export is pushed out as the
  * file it really is and reported rather than renamed or faked, because this app has no transcode
  * ([compressedFor]). WAV is also the fallback whenever the Opus encoder or the Ogg muxer is not there.
  *

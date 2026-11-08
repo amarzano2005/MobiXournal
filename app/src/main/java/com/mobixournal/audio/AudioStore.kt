@@ -131,7 +131,7 @@ class AudioStore(context: Context) {
         /** MIME type for a WAV file, used when creating sidecar documents in the SAF tree. */
         const val WAV_MIME = "audio/x-wav"
 
-        /** MIME type for an Ogg/Opus recording (`docs/audio-inking-sync.md`). */
+        /** MIME type for an Ogg/Opus recording (`docs/audio.md`). */
         const val OGG_MIME = "audio/ogg"
 
         /**

@@ -144,7 +144,7 @@ class KaraokeStrokeAnimatorTest {
 
     /**
      * The point-precise seek: a tap starts the recording where the **point under it** was drawn, which is
-     * the timing only a `.mobix` carries (`docs/audio-inking-sync.md`). The lookup is pure, so what a tap
+     * the timing only a `.mobix` carries (`docs/audio.md`). The lookup is pure, so what a tap
      * would seek to is checked here rather than on a device.
      */
     @Test

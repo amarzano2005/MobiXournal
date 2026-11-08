@@ -190,7 +190,7 @@ is the **written decision** about what they are for:
   timestamp was captured. A tilt- or speed-driven width is **out**, and stays out until a later written
   decision moves it — the storage of a value is not a promise to draw with it.
 - **`dtMs` exists for replay, not for drawing.** It is what
-  [audio-inking-sync.md](audio-inking-sync.md) replays the writing against, point by point.
+  [audio.md](audio.md) replays the writing against, point by point.
 - **Barrel roll is not capturable here.** Android's `MotionEvent` exposes tilt and orientation and no
   roll axis, so the platform cannot supply it and no field is captured or stored; a `.mobix` from
   another writer that carried one would simply be an uninterpreted field.

@@ -618,7 +618,7 @@ internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri, format:
     // A .xopp never carries its audio — the sidecars have to land beside it or playback breaks. A
     // .mobix carries the recording inside itself, so there is nothing to push out and no folder to ask
     // for: the whole point of the format is that the file is self-contained
-    // (`docs/audio-inking-sync.md`). Reading the document for the check is also a walk of every page,
+    // (`docs/audio.md`). Reading the document for the check is also a walk of every page,
     // which a save no longer owes.
     if (format != SaveFormat.MOBIX) {
         pushAudioSidecars()
