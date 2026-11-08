@@ -64,6 +64,9 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`desktop-settings.md`](desktop-settings.md) | the window's Settings surface: the index, the row rule, and what each section answers | you add or change a desktop setting |
 | [`desktop-tablet.md`](desktop-tablet.md) | the pen's two Windows streams: Wintab packets, Windows Ink, the dial | you change how the window reads the tablet |
 | [`desktop-pen-feel.md`](desktop-pen-feel.md) | the pen's active area, the hand's pan, the measurement against Xournal++ | you change how the pen feels in the window |
+| [`selection-actions.md`](selection-actions.md) | what a selection can be asked to do: copy and drop, align and distribute, the window's bar and inspector lane | you change a selection command or that bar |
+| [`design-workflow.md`](design-workflow.md) | the vendored design skill and the design declaration a UI change must record | you design, review or close a user-facing change |
+| [`function-plots.md`](function-plots.md) | the plot tool — the expression parser, the living plot and its study — and living figures | you work on *Insert graph* or a recognised figure |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, [`tools-emulator.md`](tools-emulator.md) the emulator and device harness,
