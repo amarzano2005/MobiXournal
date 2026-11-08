@@ -37,11 +37,19 @@ than missing by accident.
 
 ## Change the documentation
 
-Docs land in the same commit as the code. [writing-docs.md](docs/writing-docs.md) owns the reader model,
-the phases and the Definition of Done; the one rule worth repeating here is that a fact has **one** home, so
-a second statement of it is a bug in the docs. A capability's state is stated in the vocabulary
-[writing-docs.md](docs/writing-docs.md) defines and [guide-limitations.md](docs/guide-limitations.md)
-spends.
+Docs land in the same commit as the code, and four checks decide whether a doc change is done. The first
+three now fail the build, so a green run answers them; [writing-docs.md](docs/writing-docs.md) owns the
+rest of the standard.
+
+1. **The page opens like the rest.** An `# H1`, then a `> Read when …` line naming its reader — the line
+   is how the person it was written for recognises that it is theirs.
+2. **The fact has one home.** If it is already stated somewhere, move it to its owner and leave a link;
+   two copies drift apart, and a sentence pasted into two pages fails `DocsGuardTest`.
+3. **A status word is spent once.** `Supported`, `Partially supported`, `Experimental`, `Planned`,
+   `Not supported` and `Not verified` go against a capability only on
+   [guide-limitations.md](docs/guide-limitations.md); every other page links it.
+4. **A guide page is registered and points back.** It is listed in [the router](docs/guide-index.md),
+   closes on the spoke that owns the how, and that spoke names it in a `For the task` line.
 
 ## Licence and credit
 
