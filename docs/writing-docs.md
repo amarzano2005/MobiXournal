@@ -76,6 +76,21 @@ at once.
 Before editing a file, decide what it owns, what it must not repeat, and which reader it serves. A file
 that answers a second audience's questions has become two documents sharing a name.
 
+## A change and its documents
+
+A change that moves what a reader can see, do or rely on carries its documentation **in the same
+commit**, never in a follow-up. A feature whose page still describes the old behaviour is a bug with no
+failing test, and a removal whose page still promises the thing is worse than either.
+
+The rule is one sentence; what it costs you is [doc-governance.md](doc-governance.md)'s matrix — a new
+entity, a new module, a changed rendering path, one shell only, a removal. Two obligations do not move
+with it: a capability's state is restated only in [guide-limitations.md](guide-limitations.md), and item
+10 of the Definition of Done below is what "in the same commit" means in practice.
+
+The other half of the rule matters as much: **do not touch a page the change does not affect**. A doc
+edited to satisfy a form is a page whose next reader re-checks what never changed, which is the cost
+this rule exists to remove.
+
 ## Verify a claim before you write it
 
 Inspect the source, the platform implementation, the tests and the release notes before describing a

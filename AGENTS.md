@@ -18,6 +18,8 @@ you pull in a spoke only when the task touches it, instead of reading everything
 | **Why the docs look like this** (the audit and the plan it produced — a record, never user-facing) | `DOCUMENTATION_STRATEGY.md` |
 | **How to work here** (conventions, decisions, host profile) | `AGENTS.md` (this file) |
 | **How to write or review a doc** (audience, workflow, status vocabulary, Definition of Done) | `docs/writing-docs.md` |
+| **Is a capability supported?** (the one page that grades one, in the six status words) | `docs/guide-limitations.md` |
+| **Who updates which page** (the rule, the change-impact matrix, the PR checklist, the local doc check) | `docs/doc-governance.md` |
 | **How the system works internally** (data flow, layout, all spokes) | `docs/architecture.md` — the **index** of the architecture spokes |
 | **What every new UI element must satisfy** (material, colour, states, glyphs, tests; the checklist is `scripts/design.sh` and `done` needs its declaration) | `docs/interface-contract.md` |
 | **Native `.mobix` format & `.xopp` bridge policy** | `docs/mobix-format.md`, `docs/mobix-schema-spec.md`, `docs/mobix-elements.md` |

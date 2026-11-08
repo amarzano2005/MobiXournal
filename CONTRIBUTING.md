@@ -51,6 +51,14 @@ rest of the standard.
 4. **A guide page is registered and points back.** It is listed in [the router](docs/guide-index.md),
    closes on the spoke that owns the how, and that spoke names it in a `For the task` line.
 
+## Open a pull request
+
+The template asks the eight questions a reviewer would otherwise have to ask in the thread: which
+documented behaviour the change moves, whether the capability matrix is still right, whether a page
+names a file, module or version that no longer exists. Answer them in the description —
+[doc-governance.md](docs/doc-governance.md) is the matrix that says which pages a given change touches,
+and the doc guards run in CI and locally (`:app:testDebugUnitTest --tests "com.mobixournal.guards.*"`).
+
 ## Licence and credit
 
 The licence is [LICENSE](LICENSE) and the third-party notices are [NOTICE](NOTICE). MobiXournal reads and writes Xournal++'s `.xopp` format and continues the NeXopp lineage: the
