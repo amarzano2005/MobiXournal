@@ -1,0 +1,40 @@
+name: External link check
+
+# The internal half of link validation is mandatory and lives in `DocsGuardTest`: a relative link, a
+# `#anchor` or a named file that does not resolve fails the pull request. This workflow is the other
+# half — URLs on other hosts — and it is deliberately not a pull-request gate. A 429, a bot-blocking
+# page or a slow server says more about the network than about the documentation, and blocking a patch
+# on someone else's uptime is how a check gets disabled instead of read.
+#
+# What it produces is a report a person reads: `docs/doc-governance.md` owns the policy, including the
+# rule that a URL is changed only after someone has opened it.
+
+on:
+  schedule:
+    # Every Monday, well away from the release jobs.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check the URLs the docs point at
+        # Non-blocking by design. The verdicts that matter are in the report, and a red run here must
+        # never be read as a documentation failure.
+        continue-on-error: true
+        run: python3 scripts/check-external-links.py --report build/reports/external-links.md
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-link-report
+          path: build/reports/external-links.md
+          if-no-files-found: warn

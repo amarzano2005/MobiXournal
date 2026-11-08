@@ -4,10 +4,6 @@ Released 2026-11-07 · the window's first follow-up to the 1.0.0 that shipped wi
 what the page does when you scroll it, what the zoom percentage means, and a status band that explains
 itself instead of reporting in the language of a profiler.
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/amarzano2005/MobiXournal/main/docs/assets/preview-desktop-1.0.1.png" alt="MobiXournal Desktop 1.0.1 — the Settings surface over the page, with the status band beneath it" width="820" />
-</div>
-
 ---
 
 ## 🔍 Zoom measured in the page, not in pixels
