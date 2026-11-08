@@ -1,6 +1,7 @@
 # The desktop window's Settings
 
 > Read when a change touches a Settings row, its stored key, or the window's own choices.
+> For the task: [Where a setting lives](guide-settings-and-shortcuts.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

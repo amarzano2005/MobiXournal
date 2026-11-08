@@ -86,6 +86,7 @@ architecture spokes: they quote behaviour and link to the owner of each rule.
 - [guide-stem-tools.md](guide-stem-tools.md) — plots, tables, circuits and formulas, and what stays editable.
 - [guide-pdf-and-audio.md](guide-pdf-and-audio.md) — PDF import and text, the magnetic highlighter, recording and replay.
 - [guide-search-and-organise.md](guide-search-and-organise.md) — what a query reaches, page ranges, bookmarks, tabs and split view.
+- [guide-settings-and-shortcuts.md](guide-settings-and-shortcuts.md) — where a setting lives, the window's keys, the pen presets.
 - [guide-first-notebook.md](guide-first-notebook.md) — an empty tab, paper, ink, a save, and the way back in.
 - [guide-install-android.md](guide-install-android.md) — installing on a tablet, where documents live.
 - [guide-install-windows.md](guide-install-windows.md) — the MSI, the folder build, uninstalling.

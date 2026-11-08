@@ -1,6 +1,7 @@
 # Modern UI design system: lightweight, content-first interface
 
 > Read when redesigning or modernizing the mobile and desktop graphical interface, transitioning away from heavy Material Design paradigms, implementing floating capsules, or aligning cross-platform aesthetics.
+> For the task: [Where a setting lives](guide-settings-and-shortcuts.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
