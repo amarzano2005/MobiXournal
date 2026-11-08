@@ -1,6 +1,7 @@
 # The chrome: editor screen, rail and dock
 
 > Read when you change the editor's layout, the rail or the toolbars, or a pop-up's material.
+> For the task: [The words this guide uses](guide-glossary.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

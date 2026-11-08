@@ -2,7 +2,7 @@
 
 > Read when you work on the Text, Image, LaTeX, Plot, Table or Circuit tool, or on vertical space: what a
 > press places, what the window asks first, and what one undo step is.
-> For the task: [What works, and what is not there](guide-limitations.md), [Placing a plot, table or circuit](guide-stem-tools.md).
+> For the task: [What works, and what is not there](guide-limitations.md), [Placing a plot, table or circuit](guide-stem-tools.md), [The words this guide uses](guide-glossary.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md). The stroke tools are
 [drawing-tools.md](drawing-tools.md)'s; what an element *is* on disk is

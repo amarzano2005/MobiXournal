@@ -1,7 +1,7 @@
 # The Settings shell: its two shapes, its search, and the prefs behind them
 
 > Read when you add, move or remove a section of the tablet's Settings, or change how it is searched.
-> For the task: [Where a setting lives](guide-settings-and-shortcuts.md).
+> For the task: [Where a setting lives](guide-settings-and-shortcuts.md), [The words this guide uses](guide-glossary.md).
 
 How the phone's Settings screen is laid out and searched — the areas, the sidebar, and the settings
 objects the sections read and write. What the window's own Settings surface looks like is

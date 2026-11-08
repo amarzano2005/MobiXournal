@@ -1,7 +1,7 @@
 # Audio-inking synchronization: karaoke replay and audio-tap
 
 > Read when implementing real-time audio-stroke synchronization, compressed audio bundling, inking karaoke animation, or sub-stroke audio scrubbing.
-> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md).
+> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md), [The words this guide uses](guide-glossary.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

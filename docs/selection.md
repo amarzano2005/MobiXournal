@@ -1,7 +1,7 @@
 # The selection tool: marquee, lasso, handles and transforms
 
 > Read when you change how elements are picked, moved, resized, rotated, aligned or restyled, or the region (background-copy) variant.
-> For the task: [How the pen behaves](guide-inking-and-gestures.md).
+> For the task: [How the pen behaves](guide-inking-and-gestures.md), [The words this guide uses](guide-glossary.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

@@ -2,7 +2,7 @@
 
 > Read when you change how a pointer's *motion* is read: wheel scrolling, palm rejection, pressure →
 > width, smoothing, hover, momentum, multi-finger taps, telemetry or selection parity.
-> For the task: [How the pen behaves](guide-inking-and-gestures.md).
+> For the task: [How the pen behaves](guide-inking-and-gestures.md), [The words this guide uses](guide-glossary.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md). What a pointer
 **is** — tool detection, the diagnostics panel, graphics tablets, onboarding — is

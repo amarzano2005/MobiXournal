@@ -1,7 +1,7 @@
 # The `.mobix` element schema: the rules and the geometry elements
 
 > Read when implementing or changing the rules that make an element survive a round trip, or one of the four geometry elements a `.xopp` also has. The living entities — table, plot, shape, circuit, math — are [mobix-living-entities.md](mobix-living-entities.md).
-> For the task: [Placing a plot, table or circuit](guide-stem-tools.md).
+> For the task: [Placing a plot, table or circuit](guide-stem-tools.md), [The words this guide uses](guide-glossary.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

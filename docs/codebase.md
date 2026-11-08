@@ -4,7 +4,7 @@
 > branding and identity rules are. **Where code lives** is [repo-layout.md](repo-layout.md)'s.
 >
 > _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
-> For the task: [Coming from Xournal++](guide-xournalpp-migration.md).
+> For the task: [Coming from Xournal++](guide-xournalpp-migration.md), [The questions that are not tasks](guide-faq.md).
 
 ## Prior art — has someone already done this?
 

@@ -401,7 +401,7 @@ Five phases, each independently shippable and revertable. Phase 0 is half a day 
 | TR-22 | `guide-inking-and-gestures.md` + `guide-stem-tools.md` (flat, like their neighbours) | F-01, F-11 | L |
 | TR-23 | `guide-pdf-and-audio.md` + `guide-search-and-organise.md` (flat, like their neighbours) | F-01 | L |
 | TR-24 | `guide-settings-and-shortcuts.md` (flat, like its neighbours) | P4 (audit) | M |
-| TR-25 | `faq.md`, `glossary.md` | F-14 | M |
+| TR-25 | `guide-faq.md`, `guide-glossary.md` (flat, like their neighbours) | F-14 | M |
 | TR-26 | Each completed spoke gains its **For the task** line | N3 | S |
 
 **Exit criteria:** every realistic query in audit §6.1 lands on a page within two clicks; each guide page links at least one owner; nothing in the guide restates mechanism.
