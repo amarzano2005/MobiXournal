@@ -32,5 +32,11 @@ app, not for building it.
 ## Adding a page
 
 A new task page is a new `docs/guide-*.md` file with a `# Title` naming the job, a `> Read when …` line, a
-task line, a closing `## How it works` that links the owning spoke, and a row in the table above. `DocsGuardTest` fails the build when
+task line, a closing `## If you are here to change the app
+
+The pages above are written for the person using it. The way in for the person changing it is
+[the developer guide](../docs/developer-guide.md), and [CONTRIBUTING.md](../CONTRIBUTING.md) is
+where a report or a patch starts. The internal map is [architecture.md](architecture.md).
+
+## How it works` that links the owning spoke, and a row in the table above. `DocsGuardTest` fails the build when
 one of those is missing.

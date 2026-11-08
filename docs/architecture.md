@@ -67,11 +67,12 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`selection-actions.md`](selection-actions.md) | what a selection can be asked to do: copy and drop, align and distribute, the window's bar and inspector lane | you change a selection command or that bar |
 | [`design-workflow.md`](design-workflow.md) | the vendored design skill and the design declaration a UI change must record | you design, review or close a user-facing change |
 | [`function-plots.md`](function-plots.md) | the plot tool — the expression parser, the living plot and its study — and living figures | you work on *Insert graph* or a recognised figure |
+| [`developer-guide.md`](developer-guide.md) | the route in for someone changing the code: build, test, the guards, the docs rule and the release | you are new to the repository, or reviewing a change |
+| [`tools-emulator.md`](tools-emulator.md) | the device loop: boot the emulator, install, drive the screen, run `androidTest` | you run or change an instrumented test |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
-pipelines, [`tools-emulator.md`](tools-emulator.md) the emulator and device harness,
-[`writing-docs.md`](writing-docs.md) how a doc is written and reviewed, and [`releases/`](releases/)
-holds the per-version changelogs.
+pipelines, [`writing-docs.md`](writing-docs.md) how a doc is written and reviewed, and
+[`releases/`](releases/) holds the per-version changelogs.
 
 ## The guide pages
 

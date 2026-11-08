@@ -103,6 +103,7 @@ MobiXournal uses a strict hub-and-spoke documentation model where each fact has 
 | Topic | Authoritative Document |
 |---|---|
 | **Development Workflow & Conventions** | [`AGENTS.md`](AGENTS.md) |
+| **Build, Contribute or Review** | [docs/developer-guide.md](docs/developer-guide.md), [CONTRIBUTING.md](CONTRIBUTING.md) |
 | **Writing or Reviewing a Doc** | [`docs/writing-docs.md`](docs/writing-docs.md) |
 | **System Architecture Index (all spokes)** | [`docs/architecture.md`](docs/architecture.md) The task pages start at [docs/guide-index.md](docs/guide-index.md). |
 | **UI & Design Contract** | [`docs/interface-contract.md`](docs/interface-contract.md) |
