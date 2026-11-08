@@ -33,10 +33,13 @@
 
 ## ▶️ Try It
 
-| Platform | How to get started |
+| Platform | Install it |
 |---|---|
-| **Android (8.0+)** | Download `app-release.apk` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases), or build it locally with `scripts/release-apk.sh` (or `.\gradlew.bat assembleDebug` for a debug APK). |
-| **Windows 11 Desktop** | Install `MobiXournal-<version>.msi` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases) — the installer offers, on by default, to open `.mobix` and `.xopp` files with it and to put an icon on the desktop, and is signed when a certificate is configured — or build it with `scripts/desktop-package.ps1` (JDK 21 and WiX 3.14, no Android SDK). Or build the standalone folder with `.\gradlew.bat :desktop:createDistributable` and run `MobiXournal.exe` inside `desktop/build/compose/binaries/main/app/MobiXournal/`. |
+| **Android (8.0+)** | [Installing on Android](docs/guide-install-android.md) — the APK, the first launch, where your notebooks live. |
+| **Windows 11 Desktop** | [Installing on Windows 11](docs/guide-install-windows.md) — the MSI, what it changes on your PC, the folder build. |
+
+Releases are on [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases); the build scripts
+and what each does are in [`docs/tools.md`](docs/tools.md).
 
 ---
 
