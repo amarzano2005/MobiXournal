@@ -1,6 +1,7 @@
 # The `.xopp` format: the on-disk schema
 
 > Read when you touch the file format: reading, writing, or anything that must round-trip through desktop Xournal++. This is the authoritative home of the mapping.
+> For the task: [Coming from Xournal++](guide-xournalpp-migration.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

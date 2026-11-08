@@ -12,6 +12,8 @@ is built.
 | If you want to… | Open |
 |---|---|
 | write a first notebook, save it, and open it again tomorrow | [Your first notebook](guide-first-notebook.md) |
+| understand, change or hand over the format a notebook is saved in | [Which format your notebook is in](guide-formats-and-conversion.md) |
+| bring your `.xopp` notebooks over from Xournal++, or keep working in both | [Coming from Xournal++](guide-xournalpp-migration.md) |
 | put MobiXournal on an Android tablet or phone, and find the notebooks afterwards | [Installing on Android](guide-install-android.md) |
 | install the Windows window from the MSI, or run it without installing anything | [Installing on Windows 11](guide-install-windows.md) |
 | get past an open that was refused or a save that did not happen, and recover a notebook after a crash | [When something goes wrong](guide-troubleshooting.md) |

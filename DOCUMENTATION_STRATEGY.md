@@ -397,7 +397,7 @@ Five phases, each independently shippable and revertable. Phase 0 is half a day 
 | Item | Work | Fixes | Effort |
 |---|---|---|---|
 | TR-20 | `guide-first-notebook.md` (flat, like its neighbours) | F-01 | M |
-| TR-21 | `formats-and-conversion.md` + `xournalpp-migration.md` | F-01, F-02, A9 | M |
+| TR-21 | `guide-formats-and-conversion.md` + `guide-xournalpp-migration.md` (flat, like their neighbours) | F-01, F-02, A9 | M |
 | TR-22 | `inking-and-gestures.md`, `stem-tools.md` | F-01, F-11 | L |
 | TR-23 | `pdf-and-audio.md`, `search-and-organise.md` | F-01 | L |
 | TR-24 | `settings-and-shortcuts.md` (move the shortcut table) | P4 (audit) | M |

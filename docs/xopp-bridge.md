@@ -2,7 +2,7 @@
 
 > Read when you change how a `.mobix` leaves this app as a `.xopp`, or how a `.xopp` comes back with its living
 > elements intact.
-> For the task: [Installing on Android](guide-install-android.md), [When something goes wrong](guide-troubleshooting.md).
+> For the task: [Installing on Android](guide-install-android.md), [When something goes wrong](guide-troubleshooting.md), [Which format your notebook is in](guide-formats-and-conversion.md), [Coming from Xournal++](guide-xournalpp-migration.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 

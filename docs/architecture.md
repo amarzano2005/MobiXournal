@@ -80,6 +80,8 @@ architecture spokes: they quote behaviour and link to the owner of each rule.
 
 - [guide-index.md](guide-index.md) — the entry rows: install on a tablet or a PC, get past a failed open
   or save, or check a capability.
+- [guide-formats-and-conversion.md](guide-formats-and-conversion.md) — the two formats, Save As, and the one refusal.
+- [guide-xournalpp-migration.md](guide-xournalpp-migration.md) — a Xournal++ user's round trip, and what differs.
 - [guide-first-notebook.md](guide-first-notebook.md) — an empty tab, paper, ink, a save, and the way back in.
 - [guide-install-android.md](guide-install-android.md) — installing on a tablet, where documents live.
 - [guide-install-windows.md](guide-install-windows.md) — the MSI, the folder build, uninstalling.

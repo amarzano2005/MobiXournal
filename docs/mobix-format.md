@@ -1,7 +1,7 @@
 # The `.mobix` native format: why it exists, and where it sits
 
 > Read when designing, reading, writing or optimizing the native `.mobix` container, or when you need to know why the format exists and what the app's own format policy is. The bridge to desktop Xournal++ is [xopp-bridge.md](xopp-bridge.md)'s.
-> For the task: [Installing on Android](guide-install-android.md), [Your first notebook](guide-first-notebook.md).
+> For the task: [Installing on Android](guide-install-android.md), [Your first notebook](guide-first-notebook.md), [Which format your notebook is in](guide-formats-and-conversion.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
