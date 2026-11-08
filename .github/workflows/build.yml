@@ -41,6 +41,16 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: python3 scripts/todo/todo.py verify-release --version "${{ github.ref_name }}"
 
+      # Docs are part of the change (`docs/doc-governance.md`), and their guards live in the app's unit
+      # test source set. Running them first means a broken link, an unindexed page or a module the build
+      # no longer has fails under a step named for it, instead of inside the full suite's output.
+      - name: Check the documentation
+        run: >
+          ./gradlew :app:testDebugUnitTest
+          --tests "com.mobixournal.guards.DocsGuardTest"
+          --tests "com.mobixournal.guards.DocClaimsTest"
+          --stacktrace
+
       # `testDebugUnitTest` is a task only the Android module has, so naming it alone ran that
       # module's suite and nothing else: the `.xopp`/`.mobix` codecs, the model and `FormatDriftTest`
       # live in `mobix-core`, which has a plain JVM `test` task. Both are named here, and
