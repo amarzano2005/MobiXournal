@@ -77,34 +77,56 @@ object DesktopUpdates {
     var dialog by mutableStateOf(false)
         private set
 
-    /** The launch check: silent unless it finds something newer, so a working window opens on its page. */
+    /**
+     * The sentence the **bottom pill** prints, and only for a moment.
+     *
+     * The About row's own note is the panel's hover help, not a line of its own, so a check that reported
+     * nothing there looked like a dead command. This is the answer the reader asked for, drawn over the
+     * page the way the tablet's notification is (`docs/updates.md`).
+     */
+    var notice by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * The launch check: silent unless it finds something newer, so a working window opens on its page — and
+     * no pill, because a reader who did not ask must not be told.
+     */
     fun checkOnLaunch() {
         if (asked) return
         asked = true
-        check()
+        check(announce = false)
     }
 
-    /** The About row's command — the same check, with the answer reported either way. */
-    fun check() {
+    /** The About row's command — the same check, with the answer on the bottom pill either way. */
+    fun check(announce: Boolean = true) {
         if (phase == DesktopUpdatePhase.CHECKING || phase == DesktopUpdatePhase.DOWNLOADING) return
         phase = DesktopUpdatePhase.CHECKING
         message = null
+        if (announce) notice = "Checking for updates…"
         scope.launch {
             val found = runCatching { latest() }
             if (found.isFailure) {
                 phase = DesktopUpdatePhase.FAILED
                 message = "Could not check for updates. Check the connection and try again."
+                if (announce) notice = message
                 return@launch
             }
             val offer = found.getOrNull()
             if (offer == null) {
                 phase = DesktopUpdatePhase.UP_TO_DATE
+                if (announce) notice = "MobiXournal $DESKTOP_VERSION is the latest version."
                 return@launch
             }
             release = offer
             phase = DesktopUpdatePhase.AVAILABLE
+            if (announce) notice = null
             dialog = true
         }
+    }
+
+    /** The pill's own timer: the sentence has been read, so it goes away. */
+    fun clearNotice() {
+        notice = null
     }
 
     /** The dialog's **Update now**: download the MSI and start Windows' installer on it. */

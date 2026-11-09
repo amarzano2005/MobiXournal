@@ -630,9 +630,9 @@ private fun AboutSettings() {
             note = "Source code, release downloads, and issue tracker.",
             onClick = ::openProjectPage,
         )
-        // The check's own row: the release it found (or the version this window already is) is printed as
-        // the row's note, so the answer stays readable after the popup has been sent away
-        // (`docs/updates.md` owns the channel and both installers).
+        // The check's own row. Its note is the panel's hover help, so the answer a reader needs after a tap
+        // — "you are on the latest version" — is the bottom pill the shell hosts, not this line
+        // (`docs/updates.md` owns the channel, the pill and both installers).
         SettingsCommand(
             label = "Check for updates",
             note = DesktopUpdates.statusLine(),

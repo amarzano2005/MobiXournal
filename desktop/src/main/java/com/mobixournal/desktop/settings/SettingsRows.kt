@@ -197,7 +197,9 @@ internal fun SettingsCommand(label: String, note: String? = null, onClick: () ->
             .heightIn(min = SettingsMetrics.ROW_HEIGHT)
             .reportHelp(note)
             .hoverFill(RectangleShape)
-            .pointerInput(onClick) { detectTapGestures { press.value() } }
+            // Keyed on nothing: a lambda key is a new instance per recomposition, so the detector restarted
+            // mid-press (a hover changes the row) and the tap was lost — a command that did nothing.
+            .pointerInput(Unit) { detectTapGestures { press.value() } }
             .padding(horizontal = ROW_INSET, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

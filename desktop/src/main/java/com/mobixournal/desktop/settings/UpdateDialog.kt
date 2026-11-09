@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -23,6 +24,7 @@ import com.mobixournal.desktop.tools.PanelButton
 import com.mobixournal.desktop.tools.glassSpring
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.update.UpdateRelease
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /**
@@ -50,6 +52,32 @@ internal fun BoxScope.DesktopUpdatesHost() {
         ) {
             UpdateDialog(release)
         }
+    }
+}
+
+/**
+ * The **bottom pill**: the answer to *Check for updates* when there is no new version to offer.
+ *
+ * The About row's note is the panel's hover help rather than a line of its own, so "this is the latest
+ * version" had nowhere to appear and the command looked dead. This is the tablet's notification in the
+ * window's material (`docs/updates.md`): one quiet sentence over the page, gone after a few seconds.
+ */
+@Composable
+internal fun BoxScope.DesktopUpdateNotice() {
+    val notice = DesktopUpdates.notice ?: return
+    LaunchedEffect(notice) {
+        delay(4_000)
+        DesktopUpdates.clearNotice()
+    }
+    Box(
+        Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = 36.dp)
+            .glassSpring()
+            .glassSurface()
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+    ) {
+        Text(notice, color = DesktopTheme.ink, style = DesktopTheme.body)
     }
 }
 
