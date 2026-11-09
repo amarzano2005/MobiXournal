@@ -232,7 +232,11 @@ private fun DrawScope.drawElement(
         // renderer to drift: this shell only knows how to paint strokes and text, which is all a
         // compiled entity is.
         else -> if (element.isLivingEntity) {
-            for (ink in LivingInk.of(element).elements) drawElement(ink, scale, textMeasurer, karaoke)
+            // A table's cells are the one family whose ink depends on the font engine: the compiled
+            // text carries its own x, so a centred cell has to be placed on what this shell actually
+            // draws (`livingTextWidth`), not on the per-character estimate an export falls back to.
+            val ink = LivingInk.of(element, livingTextWidth(textMeasurer, scale, this))
+            for (item in ink.elements) drawElement(item, scale, textMeasurer, karaoke)
         }
     }
 }
