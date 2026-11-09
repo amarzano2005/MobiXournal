@@ -6,8 +6,9 @@ package com.mobixournal.render
  * This file is intentionally **pure Kotlin** — it has NO `android.*` imports — so the whole
  * tokenize/parse stage can be unit-tested on the JVM without an emulator. It turns a LaTeX
  * math source string (as Xournal++ stores it in a `<teximage>`, e.g. `\frac{a}{b}`, `x^2`,
- * `\sqrt{x}`, `\alpha + \beta`) into a small [LatexNode] expression tree. The measuring/drawing
- * of that tree lives in [LatexRenderer], which is the only Android-dependent half.
+ * `\sqrt{x}`, `\alpha + \beta`) into a small [LatexNode] expression tree. The measuring of that tree is
+ * [LatexLayout]'s, platform-free and shared by both shells and the PDF; drawing it is the Android painter
+ * `LatexRenderer`, which only paints the layout it is handed.
  *
  * Parsing is deliberately forgiving: unknown `\commands` degrade to their bare name text and
  * malformed input never throws — the worst case is a slightly wrong-looking tree.
