@@ -43,6 +43,12 @@ if [ "$RELEASE_SIGNING" = "1" ]; then
     [ -s "$SIGNING_FILE" ] || die "the signing keystore is empty"
 fi
 
+# The published asset carries the app's own version, the way the MSI does: `MobiXournal-<version>.apk`.
+# The number is read out of the Gradle file rather than copied here, so a version bump moves the name.
+# It is read before the build, so a missing version costs nothing instead of a finished APK.
+VERSION="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' app/build.gradle.kts 2>/dev/null | head -1 | tr -d '\r' || true)"
+[ -n "$VERSION" ] || die "app/build.gradle.kts has no versionName, so the APK has no version in its name"
+
 # --- 1. the unsigned release APK, through the front door ------------------------------------------
 if [ -x "${ANDROID_TOOLCHAIN:-/data/android}/build.sh" ]; then
     sh scripts/build.sh :app:assembleRelease
@@ -51,9 +57,9 @@ else
 fi
 
 UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
-# The published asset name, not Gradle's: a download and a GitHub release page should both say
-# MobiXournal, and `installable()` in the update check only needs the `.apk` suffix.
-SIGNED="app/build/outputs/apk/release/MobiXournal.apk"
+# The published name, not Gradle's: a download and a release page should both say MobiXournal, and the
+# update check only needs the `.apk` suffix (the tablet's version comes from the tag, not this name).
+SIGNED="app/build/outputs/apk/release/MobiXournal-$VERSION.apk"
 ALIGNED="app/build/outputs/apk/release/app-release-aligned.apk"
 [ -f "$UNSIGNED" ] || die "no unsigned release APK at $UNSIGNED — did :app:assembleRelease run?"
 

@@ -28,9 +28,9 @@ class UpdateReleaseTest {
               "browser_download_url": "https://github.com/amarzano2005/MobiXournal/releases/download/v2.0.0/MobiXournal-1.0.0.msi"
             },
             {
-              "name": "MobiXournal.apk",
+              "name": "MobiXournal-2.0.0.apk",
               "size": 59141870,
-              "browser_download_url": "https://github.com/amarzano2005/MobiXournal/releases/download/v2.0.0/MobiXournal.apk"
+              "browser_download_url": "https://github.com/amarzano2005/MobiXournal/releases/download/v2.0.0/MobiXournal-2.0.0.apk"
             }
           ]
         }
@@ -39,7 +39,8 @@ class UpdateReleaseTest {
     @Test
     fun `each shell reads its own asset and its own version`() {
         val android = parseRelease(release, UpdatePlatform.ANDROID)!!
-        assertEquals("MobiXournal.apk", android.assetName)
+        assertEquals("MobiXournal-2.0.0.apk", android.assetName)
+        assertEquals("the APK's name does not decide the tablet's version", "2.0.0", android.version)
         assertEquals("the tag is the tablet's version", "2.0.0", android.version)
         assertEquals("https://github.com/amarzano2005/MobiXournal/releases/tag/v2.0.0", android.notesUrl)
 

@@ -532,6 +532,8 @@ class DocsGuardTest {
         val signedApk = File(root, "scripts/release-apk.sh").readLines()
             .firstOrNull { it.startsWith("SIGNED=\"") }
             ?.substringAfter('"')?.substringBefore('"')?.substringAfterLast('/')
+            // The published name carries the app's version, as the MSI's does: `MobiXournal-<version>.apk`.
+            ?.replace(Regex("""\$\{?VERSION\}?"""), "<version>")
         val msiNaming = File(root, "scripts/desktop-package.ps1").readLines()
             .firstOrNull { "\"MobiXournal-" in it && ".msi\"" in it }
         assertTrue("scripts/release-apk.sh must name the APK it signs", signedApk != null)

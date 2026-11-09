@@ -13,12 +13,17 @@ NAMES = ("MOBIX_ANDROID_KEYSTORE_BASE64", "MOBIX_ANDROID_KEY_ALIAS", "MOBIX_ANDR
          "MOBIX_ANDROID_KEY_PASSWORD", "MOBIX_ANDROID_CERT_SHA256")
 
 class SigningTest(unittest.TestCase):
-    def run_signing(self, updates=None, missing=None):
+    def run_signing(self, updates=None, missing=None, gradle=True):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
             scripts.mkdir()
             shutil.copyfile(SOURCE, scripts / SOURCE.name)
+            (root / "app").mkdir()
+            # The signed APK carries the app's own version, so the Gradle file is the version's home.
+            if gradle:
+                (root / "app" / "build.gradle.kts").write_text(
+                    'android {\n    defaultConfig {\n        versionName = "1.2.3"\n    }\n}\n')
             (scripts / "host-build.sh").write_text("#!/bin/sh\nmkdir -p app/build/outputs/apk/release\n: > built\n: > app/build/outputs/apk/release/app-release-unsigned.apk\n")
             sdk = root / "sdk" / "build-tools" / "1.0"
             sdk.mkdir(parents=True)
@@ -45,7 +50,7 @@ exit 1
                 env.pop(missing)
             env.update(updates or {})
             result = subprocess.run([BASH, str(scripts / SOURCE.name)], env=env, capture_output=True, text=True)
-            return result, (root / "built").exists(), (root / "app/build/outputs/apk/release/MobiXournal.apk").exists()
+            return result, (root / "built").exists(), (root / "app/build/outputs/apk/release/MobiXournal-1.2.3.apk").exists()
 
     def test_missing_configuration_never_starts_a_build(self):
         for name in NAMES:
@@ -54,6 +59,13 @@ exit 1
                 self.assertNotEqual(0, result.returncode)
                 self.assertIn(name, result.stderr)
                 self.assertFalse(built)
+
+    def test_missing_version_never_starts_a_build(self):
+        result, built, signed = self.run_signing(gradle=False)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("versionName", result.stderr)
+        self.assertFalse(built)
+        self.assertFalse(signed)
 
     def test_invalid_base64_never_starts_a_build(self):
         result, built, _ = self.run_signing({NAMES[0]: "!invalid!"})
