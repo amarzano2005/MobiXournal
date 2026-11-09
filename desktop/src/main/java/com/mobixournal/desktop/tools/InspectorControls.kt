@@ -281,6 +281,11 @@ internal fun ValueField(
 ) {
     var text by remember(initial) { mutableStateOf(initial) }
     var focused by remember { mutableStateOf(false) }
+    // A field being typed in owns the keyboard (`WindowKeys`): the window's shortcut table would otherwise
+    // read a letter as a tool's accelerator, and a tool change drops the selection — which closed this very
+    // lane while a value was being written into it.
+    val keyOwner = remember { Any() }
+    DisposableEffect(keyOwner) { onDispose { WindowKeys.focusField(keyOwner, false) } }
     BasicTextField(
         value = text,
         onValueChange = { entered ->
@@ -302,8 +307,10 @@ internal fun ValueField(
             )
             .padding(horizontal = 7.dp, vertical = 6.dp)
             .onFocusChanged { focus ->
-                if (focused && !focus.isFocused) onCommit(text)
+                val had = focused
                 focused = focus.isFocused
+                WindowKeys.focusField(keyOwner, focus.isFocused)
+                if (had && !focus.isFocused) onCommit(text)
             }
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false

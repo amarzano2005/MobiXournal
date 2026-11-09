@@ -34,6 +34,15 @@ internal object WindowKeys {
         if (focused) controls.add(owner) else controls.remove(owner)
         Unit
     }
+    /** Owners that take the keys as **characters** while focused — the properties lane's fields. */
+    private val typingFields = mutableSetOf<Any>()
+    internal fun focusField(owner: Any, focused: Boolean) = synchronized(typingFields) {
+        if (focused) typingFields.add(owner) else typingFields.remove(owner)
+        Unit
+    }
+    /** True while a field is being typed in: no key it receives may be read as a shortcut. */
+    internal fun isTyping(): Boolean = synchronized(typingFields) { typingFields.isNotEmpty() }
+
     internal fun defersControlKey(key: Key): Boolean = synchronized(controls) {
         controls.isNotEmpty() && key in setOf(Key.Enter, Key.NumPadEnter, Key.Spacebar,
             Key.DirectionLeft, Key.DirectionRight, Key.DirectionUp, Key.DirectionDown, Key.Home, Key.MoveHome, Key.MoveEnd)
@@ -42,6 +51,13 @@ internal object WindowKeys {
     /** True when the shell took the key, which is what makes the window consume it. */
     fun handle(event: KeyEvent): Boolean {
         if (menuOpen) return false
+        // A field being typed in takes the key as a character. Without this the window read a letter as a
+        // tool's accelerator, and picking a tool drops the selection — which closed the lane mid-value, so a
+        // cell could not be filled at all. A release is still forwarded, so a held modifier cannot stay down.
+        if (isTyping()) {
+            if (event.type == KeyEventType.KeyUp) onKey?.invoke(event)
+            return false
+        }
         if (defersControlKey(event.key)) {
             // Release held shell modifiers too, while letting the focused control see its key-up.
             if (event.type == KeyEventType.KeyUp) onKey?.invoke(event)

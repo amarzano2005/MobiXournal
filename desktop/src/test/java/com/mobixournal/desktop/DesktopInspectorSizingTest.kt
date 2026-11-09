@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.dp
 import org.junit.Assert.*
 import org.junit.Test
 
-@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class, androidx.compose.ui.InternalComposeUiApi::class)
 class DesktopInspectorSizingTest {
     @Test fun resizingIsBoundedAndKeepsCanvasSpaceOnNarrowWindows() {
         val sizing = InspectorSizing()
@@ -52,5 +52,35 @@ class DesktopInspectorSizingTest {
             assertTrue(keys.defersControlKey(androidx.compose.ui.input.key.Key.Home))
         } finally { keys.focusControl(first, false); keys.focusControl(second, false) }
         assertFalse(keys.defersControlKey(androidx.compose.ui.input.key.Key.DirectionLeft))
+    }
+
+    /**
+     * A field being typed in takes its keys: the window must not read `x` as the text tool.
+     *
+     * This is the lane's own bug: the shortcut table runs **before** the composition (`WindowKeys`), so a
+     * letter typed into a cell was a tool's accelerator instead of text, and picking a tool drops the
+     * selection — which closed the lane the value was being written into.
+     */
+    @Test fun aFocusedLaneFieldTakesItsKeysInsteadOfTheWindowShortcuts() {
+        val keys = com.mobixournal.desktop.shell.WindowKeys
+        val field = Any()
+        var shellSaw = 0
+        val press = androidx.compose.ui.input.key.KeyEvent(
+            androidx.compose.ui.input.key.Key.X,
+            androidx.compose.ui.input.key.KeyEventType.KeyDown,
+        )
+        keys.onKey = { shellSaw++; true }
+        try {
+            keys.focusField(field, true)
+            assertFalse("the caret's field types the key", keys.handle(press))
+            assertEquals("and the window's table never sees it", 0, shellSaw)
+
+            keys.focusField(field, false)
+            assertTrue("without a field the table is back", keys.handle(press))
+            assertEquals(1, shellSaw)
+        } finally {
+            keys.focusField(field, false)
+            keys.onKey = null
+        }
     }
 }

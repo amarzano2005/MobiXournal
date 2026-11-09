@@ -109,7 +109,9 @@ controls, minus the words, which the Text tool types on the sheet (`docs/drawing
 among them because the format cannot store it. A field commits on
 `Enter` or when the caret leaves, as **one** undo step, and an unchanged value writes nothing; `Esc` puts a
 field back, `Esc` again closes the lane, and a focused field wears the accent's ring so the keyboard user can
-see where they are typing. `LivingTarget.kt` resolves the ref against the document as it is *now*, so an undo
+see where they are typing. While a field holds the caret the key is typed into it rather than read as a
+shortcut — a letter is a letter there, not a tool's accelerator, which is what used to end the edit the
+moment a value was typed (`WindowKeys`). `LivingTarget.kt` resolves the ref against the document as it is *now*, so an undo
 cannot leave a panel showing a value the file no longer holds.
 
 **Reading the element is also how the lane follows it.** A page read is not snapshot state, so the column
