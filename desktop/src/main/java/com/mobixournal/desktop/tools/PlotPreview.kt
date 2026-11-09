@@ -21,8 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Stroke as InkStroke
 import com.mobixournal.render.LivingInk
 import com.mobixournal.render.PlotBox
@@ -75,9 +80,12 @@ internal fun PlotInkPreview(plot: PlotElement?, placeholder: String) {
     val background = DesktopTheme.settingsPanel.toArgb()
     val axis = DesktopTheme.inkSecondary.toArgb()
     val accent = DesktopTheme.accent.toArgb()
-    val strokes = remember(plot, background, axis, accent) {
-        plot?.let { LivingInk.of(PlotPreviewPalette.adapt(it, background, axis, accent)).elements.filterIsInstance<InkStroke>() }.orEmpty()
+    val ink = remember(plot, background, axis, accent) {
+        plot?.let { LivingInk.of(PlotPreviewPalette.adapt(it, background, axis, accent)).elements }.orEmpty()
     }
+    val strokes = ink.filterIsInstance<InkStroke>()
+    val numbers = ink.filterIsInstance<TextElement>()
+    val textMeasurer = rememberTextMeasurer()
     Box(
         Modifier
             .fillMaxWidth()
@@ -92,18 +100,25 @@ internal fun PlotInkPreview(plot: PlotElement?, placeholder: String) {
                 modifier = Modifier.align(Alignment.Center),
             )
         } else {
-            Canvas(Modifier.fillMaxSize()) { drawPreviewStrokes(strokes) }
+            Canvas(Modifier.fillMaxSize()) { drawPreviewInk(strokes, numbers, textMeasurer) }
         }
     }
 }
 
 /**
- * Draw [strokes] — page points — fitted into this canvas, keeping the preview box's own aspect.
+ * Draw [strokes] — page points — fitted into this canvas, keeping the preview box's own aspect, and the
+ * [numbers] the plot writes ([TextElement]s of the same compiled ink) at the very coordinates the
+ * compiler gave them: the measured advances the sheet and the exports place them on, so the card's ticks
+ * are the page's ticks.
  *
  * One uniform scale (the smaller of the two) rather than one per axis: a graph stretched to fill the card
  * would show a slope that is not the slope on the page.
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewStrokes(strokes: List<InkStroke>) {
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewInk(
+    strokes: List<InkStroke>,
+    numbers: List<TextElement>,
+    textMeasurer: TextMeasurer,
+) {
     // A plot's ink is in page points, wherever the graph sits: its strokes start at its own `left`/`top`,
     // so the preview shifts them to the card's corner before scaling. A pending graph is built in a box at
     // the origin, so this is the same number for both callers.
@@ -151,6 +166,29 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewStrokes(
             ),
         )
     }
+    // The tick numbers, in the preview's own transform. The analysis summary is prose below the frame,
+    // not a number beside an axis, and would run out of the card.
+    for (number in numbers) {
+        if (number.y > PREVIEW_BOX.bottom + LABEL_SLACK_PT) continue
+        val face = textFace(number.font)
+        val layout = textMeasurer.measure(
+            text = number.content,
+            style = TextStyle(
+                color = Color(number.color),
+                fontSize = (number.size * scale).toFloat().toSp(),
+                fontFamily = face.family,
+                fontWeight = face.weight,
+                fontStyle = face.style,
+            ),
+        )
+        drawText(
+            layout,
+            topLeft = androidx.compose.ui.geometry.Offset(
+                (number.x.toFloat() - originX) * scale + offsetX,
+                (number.y.toFloat() - originY) * scale + offsetY,
+            ),
+        )
+    }
 }
 
 /** The box the preview is compiled in, in page points — the same proportions as the placed graph. */
@@ -161,3 +199,6 @@ private val PREVIEW_HEIGHT = 128.dp
 
 /** One point, so the preview reads a thin curve without turning it into a blob. */
 private const val PREVIEW_STROKE_PT = 1.0
+
+/** How far below the frame's bottom a text element may start and still be a tick number. */
+private const val LABEL_SLACK_PT = 12.0

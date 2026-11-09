@@ -24,9 +24,13 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Stroke as InkStroke
+import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.LivingInk
 import com.mobixournal.render.PlotBox
 import com.mobixournal.render.PlotCurve
@@ -39,6 +43,9 @@ private val PREVIEW_BOX = PlotBox(left = 10.0, top = 10.0, width = 360.0, height
 /** The point size the preview canvas is laid out for, margins included. */
 private const val PREVIEW_WIDTH_PT = 380.0
 private const val PREVIEW_HEIGHT_PT = 180.0
+
+/** How far below the frame's bottom a text element may start and still be a tick number. */
+private const val LABEL_SLACK_PT = 12.0
 
 /**
  * The graph dialog's right-hand column: the **live preview** of the plot being asked for, and the three
@@ -143,8 +150,11 @@ private fun FunctionPlotPreviewBox(
             strokeWidthPt = 1.0,
             axisColor = axisColor,
         )
-        LivingInk.of(PlotPreviewPalette.adapt(element, background, axisColor, accent)).elements.filterIsInstance<InkStroke>()
+        LivingInk.of(PlotPreviewPalette.adapt(element, background, axisColor, accent)).elements
     }
+    val strokes = previewInk.filterIsInstance<InkStroke>()
+    val numbers = previewInk.filterIsInstance<TextElement>()
+    val textMeasurer = rememberTextMeasurer()
 
     Surface(
         modifier = Modifier
@@ -168,7 +178,7 @@ private fun FunctionPlotPreviewBox(
                     val y = top + height * step / 4f
                     drawLine(grid, Offset(left, y), Offset(left + width, y), 1f)
                 }
-                for (ink in previewInk) {
+                for (ink in strokes) {
                     val points = ink.points
                     if (points.size < 2) continue
                     val pathEffect = when (ink.lineStyle) {
@@ -188,6 +198,21 @@ private fun FunctionPlotPreviewBox(
                         color = Color(ink.color),
                         style = Stroke(width = width * scaleX, pathEffect = pathEffect),
                     )
+                }
+                // The numbers the plot writes are the ink's own text elements, at the coordinates the
+                // compiler gave them — its measured advances, the same ones the page and every export
+                // place them on, so a tick in this card is a tick on the sheet. The analysis summary is
+                // prose below the frame, not a tick, and is left out.
+                for (number in numbers) {
+                    if (number.y > PREVIEW_BOX.bottom + LABEL_SLACK_PT) continue
+                    val layout = textMeasurer.measure(
+                        text = number.content,
+                        style = TextStyle(
+                            color = Color(number.color),
+                            fontSize = (number.size * scaleX).toFloat().toSp(),
+                        ),
+                    )
+                    drawText(layout, topLeft = Offset(number.x.toFloat() * scaleX, number.y.toFloat() * scaleY))
                 }
             }
         }
