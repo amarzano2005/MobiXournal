@@ -25,6 +25,7 @@ import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.io.saveAs
 import com.mobixournal.desktop.settings.DesktopSettingsBackup
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.DesktopUpdates
 import com.mobixournal.desktop.settings.light
 import com.mobixournal.desktop.shell.BACKUP_TYPES
 import com.mobixournal.desktop.shell.DOCUMENT_OPEN_TYPES
@@ -93,6 +94,8 @@ fun FrameWindowScope.DesktopApp(
         state.start(initial)
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
+    // The launch check, guarded: an offline machine must never cost the window (`docs/updates.md`).
+    LaunchedEffect(Unit) { runCatching { DesktopUpdates.checkOnLaunch() } }
     windowKeyboard(focus, keyboardHeld, typing = state.textBox.box != null)
     // The system's title bar cannot be translucent, so it is painted the band's composited colour:
     // one surface from the top of the window down (`DesktopTitleBar`).

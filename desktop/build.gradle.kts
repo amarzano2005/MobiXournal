@@ -57,6 +57,12 @@ compose.desktop {
 
         nativeDistributions {
             packageName = "MobiXournal"
+            // The update check talks to GitHub through `java.net.http`, which is **not** in `java.base`: the
+            // packaged app image is a jlink runtime built from what jpackage can see, and without this line
+            // the runtime it ships has no `HttpClient` at all — the window died at startup with
+            // `NoClassDefFoundError: java/net/http/HttpClient` while `:desktop:run` and the tests, on the
+            // full JDK, were fine. The MSI installs this same image, so the installer inherits the fix.
+            modules("java.net.http")
             // The window's **own** version line, starting at 1.0.0 and independent of the tablet app's
             // (2.0.0 in app/build.gradle.kts): two artifacts, two numbers, neither derived from the
             // other. It must stay numeric `X.Y.Z` — Compose writes it into the MSI's version resource

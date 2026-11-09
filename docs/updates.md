@@ -51,7 +51,10 @@ handed to the system installer through a read grant. `REQUEST_INSTALL_PACKAGES` 
 still shows its own prompt the first time, and the reader answers it. Nothing is installed silently.
 
 **Windows.** The MSI is streamed beside the system's temporary files and started with `msiexec`, the per-user
-package `docs/tools.md` builds. The window does **not** close itself while the installer is up: the MSI
+package `docs/tools.md` builds. The window's own HTTP client lives in `java.net.http`, which the packaged app
+image must list as a **jlink module** (`desktop/build.gradle.kts`): the runtime jpackage builds from the
+classpath does not carry it, and a window shipped without it died at startup while every test passed on the
+full JDK. The window does **not** close itself while the installer is up: the MSI
 replaces files the running window holds, and quitting with an unsaved tab is the reader's decision, so the
 card says what to do and the person finishes it.
 
