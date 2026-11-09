@@ -19,6 +19,11 @@ package com.mobixournal.render
  * Text the table does not know is not thereby narrow: an ideograph (CJK, kana, hangul, fullwidth forms)
  * is drawn a full em square, so it is estimated as one, and anything else falls back to
  * [InkTokens.FIGURE_LABEL_CHAR_W].
+ *
+ * The same faces give each glyph its **box above and below the baseline** ([ascentEm], [descentEm]):
+ * `i` rises 0.74 em and `x` 0.54, `g` hangs 0.21 below and `x` not at all. A line's height is therefore
+ * the drawn one instead of a single estimate for every string — which is what the formula layout needs to
+ * stack a fraction or raise a superscript against the text it sits beside.
  */
 object TextAdvance {
 
@@ -27,6 +32,14 @@ object TextAdvance {
 
     /** From here up, a rune is drawn in a full-width ideograph block rather than in Latin metrics. */
     private const val IDEOGRAPH_START = 0x2E80
+
+    /** An ideograph's box: the em square it is drawn in, a sliver of it below the baseline. */
+    private const val IDEOGRAPH_ASCENT = 0.88
+    private const val IDEOGRAPH_DESCENT = 0.12
+
+    /** What a glyph with no measured box falls back on: the faces' ascender and descender. */
+    private const val FALLBACK_ASCENT = 0.75
+    private const val FALLBACK_DESCENT = 0.25
 
     /**
      * Advance per glyph, in em: the mean of Roboto Regular, Inter Regular and DejaVu Sans at the
@@ -60,6 +73,60 @@ object TextAdvance {
         'β' to 0.609, 'γ' to 0.552, 'δ' to 0.587, 'Δ' to 0.690, 'Σ' to 0.631,
     )
 
+    /**
+     * Each glyph's box above and below its baseline, in em: how far its own outline rises and hangs, the
+     * mean of the same three faces. Grouped by the measured pair, so a row that shares a metric shares a
+     * line.
+     */
+    private val BOXES: Map<Char, Pair<Double, Double>> = buildMap {
+        for ((glyphs, box) in listOf(
+            "|" to (0.81 to 0.20),
+            "\$" to (0.81 to 0.12),
+            "()" to (0.78 to 0.17),
+            "[]" to (0.78 to 0.14),
+            "{}" to (0.77 to 0.16),
+            "`²³" to (0.77 to 0.00),
+            "f" to (0.76 to 0.00),
+            "bd√" to (0.75 to 0.01),
+            "hkl" to (0.75 to 0.00),
+            "j" to (0.74 to 0.21),
+            "β" to (0.74 to 0.20),
+            "δ" to (0.74 to 0.01),
+            "\"'i" to (0.74 to 0.00),
+            "Q" to (0.73 to 0.11),
+            "/\\" to (0.73 to 0.09),
+            "%&03689CGOS" to (0.73 to 0.01),
+            "*2?°Ω" to (0.73 to 0.00),
+            "J" to (0.72 to 0.07),
+            "5U" to (0.72 to 0.01),
+            "!#147ABDEFHIKLMNPRTVWXYZΔΣ" to (0.72 to 0.00),
+            "^" to (0.71 to 0.00),
+            "@" to (0.70 to 0.20),
+            "t" to (0.68 to 0.01),
+            "±" to (0.60 to 0.00),
+            "+→←" to (0.58 to 0.00),
+            "<>÷≤≥" to (0.56 to 0.00),
+            "gpq" to (0.55 to 0.21),
+            "aceosα" to (0.55 to 0.01),
+            "mnr×" to (0.55 to 0.00),
+            "yµγ" to (0.54 to 0.21),
+            "uπ" to (0.54 to 0.01),
+            "vwxz" to (0.54 to 0.00),
+            ";" to (0.52 to 0.14),
+            ":" to (0.52 to 0.00),
+            "∞" to (0.51 to 0.00),
+            "≈" to (0.49 to 0.00),
+            "=" to (0.45 to 0.00),
+            "~" to (0.39 to 0.00),
+            "–—" to (0.35 to 0.00),
+            "-" to (0.33 to 0.00),
+            ".…" to (0.12 to 0.00),
+            "," to (0.11 to 0.14),
+            "_" to (0.00 to 0.13),
+            " " to (0.00 to 0.00),
+        )) for (ch in glyphs) put(ch, box)
+    }
+
     /** The width of [text] in em: the sum of its glyphs' measured advances. */
     fun em(text: String): Double {
         var total = 0.0
@@ -69,6 +136,20 @@ object TextAdvance {
 
     /** The width of [text] at [sizePt], in the same points its box is measured in. */
     fun pt(text: String, sizePt: Double): Double = em(text) * sizePt
+
+    /** How far [ch] rises above its baseline, in em: measured, an ideograph's own square, or a guess. */
+    fun ascentEm(ch: Char): Double = BOXES[ch]?.first
+        ?: if (ch.code >= IDEOGRAPH_START) IDEOGRAPH_ASCENT else FALLBACK_ASCENT
+
+    /** How far [ch] hangs below its baseline, in em, on the same three readings. */
+    fun descentEm(ch: Char): Double = BOXES[ch]?.second
+        ?: if (ch.code >= IDEOGRAPH_START) IDEOGRAPH_DESCENT else FALLBACK_DESCENT
+
+    /** The rise of the tallest glyph in [text], in em — where its baseline sits. */
+    fun ascentEm(text: String): Double = text.maxOfOrNull { ascentEm(it) } ?: 0.0
+
+    /** The hang of the deepest glyph in [text], in em — what it adds below the baseline. */
+    fun descentEm(text: String): Double = text.maxOfOrNull { descentEm(it) } ?: 0.0
 
     /** One glyph's advance in em: measured, or the full em of an ideograph, or the flat fallback. */
     fun emOf(ch: Char): Double = EM[ch]

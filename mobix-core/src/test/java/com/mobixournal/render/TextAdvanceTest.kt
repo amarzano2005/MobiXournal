@@ -57,6 +57,23 @@ class TextAdvanceTest {
     }
 
     /**
+     * A glyph's box above and below the baseline is measured too, not estimated for every string alike:
+     * an `x` is an x-height letter, a capital stands taller, an ascender taller still, and only a
+     * descender hangs below.
+     */
+    @Test
+    fun aGlyphsBoxComesFromItsOwnOutline() {
+        assertEquals("x is an x-height letter", 0.54, TextAdvance.ascentEm('x'), 0.02)
+        assertEquals("a capital stands at cap height", 0.72, TextAdvance.ascentEm('M'), 0.02)
+        assertTrue("an ascender tops the capital", TextAdvance.ascentEm('l') > TextAdvance.ascentEm('x') * 1.3)
+        assertEquals("x never goes below the baseline", 0.0, TextAdvance.descentEm('x'), 0.02)
+        assertEquals("g does", 0.21, TextAdvance.descentEm('g'), 0.03)
+        assertEquals("a line rises to its tallest glyph", TextAdvance.ascentEm("Mx"), TextAdvance.ascentEm('M'), 1e-9)
+        assertEquals("and hangs to its deepest", TextAdvance.descentEm("xg"), TextAdvance.descentEm('g'), 1e-9)
+        assertEquals("an ideograph fills its square", 0.88, TextAdvance.ascentEm('\u6f22'), 1e-9)
+    }
+
+    /**
      * A free text box's own box — what a tap hits, what the selection outline draws, what an align
      * command moves — is the measured one, so a narrow box is not outlined and picked as though it
      * held wide letters.

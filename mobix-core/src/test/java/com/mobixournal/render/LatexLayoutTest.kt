@@ -25,7 +25,10 @@ class LatexLayoutTest {
         val script = out.glyphs.glyph("2")
         assertTrue("the script is smaller", script.size < base.size)
         assertTrue("the script's baseline is above the base's", script.y < base.y)
-        assertTrue("both are inside the measured box", out.glyphs.all { it.y in 0.0..out.heightPt })
+        // The layout centres the formula inside the 40 pt box it was handed, so a baseline lies inside
+        // that box: [MathLayout.heightPt] is the formula's own height, without that top offset.
+        val top = ((40.0 - out.heightPt) / 2.0).coerceAtLeast(0.0)
+        assertTrue("both are inside the measured box", out.glyphs.all { it.y in top..(top + out.heightPt) })
     }
 
     @Test
@@ -64,6 +67,35 @@ class LatexLayoutTest {
         assertTrue("and the height", out.heightPt <= 24.0 + 1e-6)
         assertTrue("everything is finite", out.glyphs.all { it.x.isFinite() && it.y.isFinite() && it.size.isFinite() })
         assertTrue("the formula produced glyphs", out.glyphs.size >= 16)
+    }
+
+    /**
+     * A run's baseline and depth are the glyphs' measured ones — the same table the rest of the app lays
+     * text out with — so the formula's box is the drawn one and not a 0.75 em guess above the baseline
+     * with 0.25 below it.
+     */
+    @Test
+    fun aRunsBoxIsTheMeasuredExtentOfItsGlyphs() {
+        val tight = layout("x")
+        val glyph = tight.glyphs.single()
+        val top = ((40.0 - tight.heightPt) / 2.0).coerceAtLeast(0.0)
+        assertEquals(
+            "the baseline is the glyph's own rise",
+            TextAdvance.ascentEm('x') * glyph.size + top,
+            glyph.y,
+            1e-9,
+        )
+        assertEquals("and the box is exactly as tall as the glyph", TextAdvance.ascentEm('x') * glyph.size, tight.heightPt, 1e-9)
+
+        val hanging = layout("g")
+        val descender = hanging.glyphs.single()
+        assertEquals(
+            "a descender adds its own depth below the baseline",
+            (TextAdvance.ascentEm('g') + TextAdvance.descentEm('g')) * descender.size,
+            hanging.heightPt,
+            1e-9,
+        )
+        assertTrue("which is deeper than an x's", TextAdvance.descentEm('g') > 0.1)
     }
 
     @Test

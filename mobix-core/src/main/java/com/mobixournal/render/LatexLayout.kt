@@ -132,19 +132,24 @@ object LatexLayout {
         }
 
         /**
-         * One glyph per character, at the current size's baseline, each placed on its **own** advance:
-         * the glyphs are drawn by a real font, so the layout's width has to be the drawn one — a run of
-         * `i`s is a quarter the width of the same number of `M`s.
+         * One glyph per character, each on its **own** advance and its **own** box: the glyphs are drawn
+         * by a real font, so the layout's width has to be the drawn one — a run of `i`s is a quarter the
+         * width of the same number of `M`s — and its height the drawn one as well, the baseline at the
+         * tallest glyph's rise and the box reaching as deep as the deepest descender. A row of `x`s no
+         * longer reserves a line's worth of room above it, and a row with a `g` in it no longer pretends
+         * to sit flat on the baseline.
          */
         private fun symbols(text: String): Box {
             if (text.isEmpty()) return empty()
+            val ascent = TextAdvance.ascentEm(text) * size
+            val descent = TextAdvance.descentEm(text) * size
             val glyphs = ArrayList<MathGlyph>(text.length)
             var x = 0.0
             for (ch in text) {
-                glyphs += MathGlyph(ch.toString(), x, size * 0.75, size)
+                glyphs += MathGlyph(ch.toString(), x, ascent, size)
                 x += TextAdvance.emOf(ch) * size
             }
-            return Box(x, size * 0.75, size * 0.25, glyphs, emptyList())
+            return Box(x, ascent, descent, glyphs, emptyList())
         }
 
         private fun scripted(base: Box, sup: Box?, sub: Box?): Box {
