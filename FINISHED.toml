@@ -17,7 +17,7 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
-latest_release = "2.0.0"
+latest_release = "2.1.0"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
@@ -33,6 +33,7 @@ level = "task"
 category = "bug"
 created = 2026-11-08
 completed = 2026-11-09
+release = "2.1.0"
 tags = []
 design = "none: CI-only change to signing material, workflow gating and docs — no UI element or state"
 
@@ -45,6 +46,7 @@ level = "task"
 category = "bug"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: background audio scheduling changes preserve the existing controls"
 
@@ -57,6 +59,7 @@ level = "task"
 category = "feature"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "material: existing floating settings panel and compact property controls retained; tokens: scrollbars use shared theme colors and existing control geometry; glyph: existing section catalogue marks unchanged; states: existing selection hover focus and disabled states retained with scrollbar hover; copy: English task areas and clearer recording display and transfer headings; keyboard: existing section activation and control shortcuts retained with scrollable content; parity: desktop task grouping deliberately differs from tablet navigation and is documented; docs: README desktop settings and testing spokes updated; tests: organization coverage multiword search real scroll reset full suites and theme fixtures passed"
 
@@ -69,6 +72,7 @@ level = "task"
 category = "feature"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "material: existing settings floating surface and inspector band retained with flat groups; tokens: shared PROPERTY_CONTROL_CORNER_DP and theme colors; glyph: CHECK comes from shared ChromeGlyphCatalogue; states: checkbox and action hover pressed checked disabled and visible focus covered; copy: English labels and quiet Add equation action; keyboard: focusable toggleable rows and actions with local key ownership and resize Home support; parity: themed contrast-aware graph preview on both shells with documented desktop-only property control geometry; docs: README and desktop settings selection function plots interface and testing spokes updated; tests: full JVM suites and focused checkbox inspector settings render and palette tests passed"
 
@@ -81,6 +85,7 @@ level = "task"
 category = "feature"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "material: existing floating settings surface and band inspector with documented flat groups; tokens: shared theme colors and spacing; glyph: shared catalogue chevrons and existing section icons; states: hover pressed focus disabled and selected preserved or checked; copy: English labels and inline help; keyboard: focusable group headers and resize handle with Left Right Home and local navigation ownership; parity: desktop layout exception documented while existing shared controls remain; docs: README and owning desktop settings selection and interface spokes updated; tests: sizing folding key ownership and light dark rendered fixtures passed"
 
@@ -93,6 +98,7 @@ level = "epic"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: milestone closure records the separately verified child tasks"
 
@@ -105,6 +111,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
 
@@ -117,6 +124,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
 
@@ -129,6 +137,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
 
@@ -141,6 +150,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
 
@@ -153,6 +163,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
 
@@ -165,6 +176,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "material: existing desk with a noninteractive saving status; tokens: existing DesktopTheme desk and accent; states: busy gates pointer keyboard and close while failure retains dirty work; copy: English saving and retry text; keyboard: save shortcuts are gated during the transaction; parity: desktop now stages on IO as Android already does; tests: gated readers sticky format inactive close and settled shell pixel tests; docs: README and desktop-documents updated"
 
@@ -177,6 +189,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: investigation and task decomposition only"
 
@@ -189,6 +202,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: investigation and task decomposition only"
 
@@ -201,6 +215,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
 
@@ -213,6 +228,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
 
@@ -225,6 +241,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
 
@@ -237,6 +254,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
 
@@ -249,6 +267,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
 
@@ -261,6 +280,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
 
@@ -273,6 +293,7 @@ level = "task"
 category = "bug"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "states: Existing progress and failure surfaces cover background operations; tests: Core app and desktop JVM suites pass and Android device suite compiles; docs: Data path rendering session and desktop document owners updated"
 
@@ -285,6 +306,7 @@ level = "task"
 category = "bug"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: Codec integrity and controlled file-format refusals without new interface controls"
 
@@ -297,6 +319,7 @@ level = "task"
 category = "bug"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "none: Internal document asset ownership and cache lifetime without adding interface elements"
 
@@ -309,6 +332,7 @@ level = "task"
 category = "bug"
 created = 2026-11-08
 completed = 2026-11-08
+release = "2.1.0"
 tags = []
 design = "states: Cancellation and failed writes retain committed document state; parity: Both shells commit only successful saves; tests: SavePickerState and DesktopSaveTest regressions pass"
 

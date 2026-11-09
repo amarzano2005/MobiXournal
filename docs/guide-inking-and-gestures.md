@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: the pen, the gestures around it, and the undo they share. The internal map is [architecture.md](architecture.md)._
 
-This page is true for Android **2.0.0** and desktop **1.0.1**.
+This page is true for Android **2.1.0** and desktop **1.1.0**.
 
 ## Width comes from pressure, not from a slider
 

@@ -15,7 +15,7 @@ _A guide page for Windows 11: installing the desktop window, and knowing what it
 ## Get the installer
 
 Download `MobiXournal-<version>.msi` from the project's [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases)
-page. The current desktop build is **1.0.1**; the MSI is named after the version it contains, so the file
+page. The current desktop build is **1.1.0**; the MSI is named after the version it contains, so the file
 you download states it.
 
 ## What the installer does

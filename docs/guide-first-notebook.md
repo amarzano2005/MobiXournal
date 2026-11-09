@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: start a notebook, ink it, save it, reopen it. The internal map is [architecture.md](architecture.md)._
 
-This page is true for Android **2.0.0** and desktop **1.0.1**.
+This page is true for Android **2.1.0** and desktop **1.1.0**.
 
 ## Start a notebook
 

@@ -14,7 +14,7 @@ _A guide page for Android: putting the app on a tablet or phone, and finding the
 ## Get the file
 
 Download `app-release.apk` from the project's [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases)
-page. The current Android build is **2.0.0** (`versionCode 14`).
+page. The current Android build is **2.1.0** (`versionCode 15`).
 
 If you build it yourself instead, `scripts/release-apk.sh` produces the release APK, and
 `.\gradlew.bat assembleDebug` produces a debug one. Installing one over an existing app also requires the same signing certificate; see
