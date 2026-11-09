@@ -49,7 +49,12 @@ class DesktopSettingsClickThroughTest {
     }
 
     private fun state(settingsOpen: Boolean): DesktopShellState {
-        val state = DesktopShellState(DesktopSettings(File(temp.root, "click-through.properties")))
+        // A returning window: the first run's format card would otherwise stand over the page and take
+        // the drags this file measures.
+        val settings = DesktopSettings(File(temp.root, "click-through.properties")).also {
+            it.documentFormatChosen = true
+        }
+        val state = DesktopShellState(settings)
         state.open(notebook())
         state.selectTool(DesktopTool.PEN)
         if (settingsOpen) state.prefs.openAt(DesktopSettingSection.STYLUS) else state.prefs.close()

@@ -60,7 +60,7 @@ internal object DesktopDocuments {
     )
 
     /**
-     * A path for a new document that no open tab already uses: `Untitled 1.xopp`, `Untitled 2.xopp`, …
+     * A path for a new document that no open tab already uses: `Untitled 1.mobix`, `Untitled 2.mobix`, …
      * The file is not created — Save As is what writes it. [extension] is the new format's own suffix
      * (`.mobix`, `.xopp`), so the name a document is born with already says what its first save writes.
      */

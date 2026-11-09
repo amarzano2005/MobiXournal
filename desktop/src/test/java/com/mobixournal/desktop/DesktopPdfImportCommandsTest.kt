@@ -4,6 +4,8 @@ import com.mobixournal.desktop.io.askImportPdf
 import com.mobixournal.desktop.io.confirmImportPdf
 import com.mobixournal.desktop.io.editImportPdf
 import com.mobixournal.desktop.io.importPdf
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
+import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.io.saveAs
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DocumentLoader
@@ -53,7 +55,13 @@ class DesktopPdfImportCommandsTest {
 
     @Test
     fun `replace opens the PDF in a new tab and leaves the open document alone`() {
-        val state = DesktopShellState()
+        // The opened PDF is a new document, so it is named for the format the settings ask for; this
+        // store is the test's own, with `.mobix` — the default — explicitly chosen.
+        val settings = DesktopSettings(File(temp.root, "pdf-import.properties")).also { store ->
+            store.newDocumentFormat = DesktopNewDocumentFormat.MOBIX
+            store.documentFormatChosen = true
+        }
+        val state = DesktopShellState(settings)
         try {
             state.newDocument()
             val open = state.tabs.active!!
@@ -67,7 +75,10 @@ class DesktopPdfImportCommandsTest {
             assertEquals("the PDF's pages are its pages", 3, imported.document.pageCount)
             assertTrue("nothing holds them yet, so it starts dirty", imported.isDirty)
             assertEquals("and it is proposed beside the PDF", temp.root, imported.file.parentFile)
-            assertTrue("with a name the settings asked for: ${imported.file}", imported.file.name.endsWith(".xopp"))
+            assertTrue(
+                "named for the format the settings ask for: ${imported.file}",
+                imported.file.name.endsWith(".mobix"),
+            )
             assertNull(state.failure)
         } finally {
             state.tabs.closeAll()

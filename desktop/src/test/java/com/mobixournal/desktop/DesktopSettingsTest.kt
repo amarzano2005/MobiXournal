@@ -156,13 +156,29 @@ class DesktopSettingsTest {
         assertTrue("a fresh pen reads its pressure", fresh.pressureEnabled)
         assertEquals(PressureCurve.MINIMUM_PRESSURE_DEFAULT, fresh.minimumPressure, 1e-6f)
         assertEquals(1f, fresh.pressureMultiplier, 1e-6f)
-        assertEquals(DesktopNewDocumentFormat.XOPP, fresh.newDocumentFormat)
+        assertEquals(DesktopNewDocumentFormat.MOBIX, fresh.newDocumentFormat)
+        assertFalse("the first run is still owed the format question", fresh.documentFormatChosen)
         assertTrue("no arrangement is the factory order", fresh.toolOrder.isEmpty())
         assertEquals(FitOnOpen.WIDTH, fresh.fitOnOpen)
         assertEquals(SidebarPolicy.AUTOMATIC, fresh.sidebarPolicy)
         assertEquals(InspectorPolicy.AUTOMATIC, fresh.inspectorPolicy)
         assertTrue("the frame time is reported until it is switched off", fresh.frameTime)
         assertEquals(PenStream.AUTOMATIC, fresh.penStream)
+    }
+
+    /** The first run's question is owed until somebody answers it, and a stored format is not an answer. */
+    @Test
+    fun `the first run owes the format question until it is answered`() {
+        val file = File(temp.root, "first-run.properties")
+        val fresh = DesktopSettings(file)
+        assertFalse("a fresh install is asked", fresh.documentFormatChosen)
+        fresh.newDocumentFormat = DesktopNewDocumentFormat.XOPP
+        assertFalse("a stored format is not an answer to the card", fresh.documentFormatChosen)
+
+        val policy = DesktopSettingsState(fresh)
+        policy.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
+        assertTrue("choosing it answers the card", policy.documentFormatChosen)
+        assertTrue("and the file remembers", DesktopSettings(file).documentFormatChosen)
     }
 
     /**

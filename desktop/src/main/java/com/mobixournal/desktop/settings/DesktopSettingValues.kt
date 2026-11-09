@@ -199,8 +199,11 @@ enum class DesktopNewDocumentFormat(
         }
 
     companion object {
-        /** What the window has always written, so an untouched install keeps its habit. */
-        val DEFAULT: DesktopNewDocumentFormat = XOPP
+        /**
+         * What a new document is born in until the first run's question is answered — the format this app
+         * is built around, and the one the tablet defaults to (`docs/mobix-format.md`).
+         */
+        val DEFAULT: DesktopNewDocumentFormat = MOBIX
 
         fun of(name: String?): DesktopNewDocumentFormat =
             entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: DEFAULT

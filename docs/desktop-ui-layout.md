@@ -74,6 +74,12 @@ tab returns to, and the swap is an **arrival** rather than a cut: whichever of t
 springs in from 94 % and fades over 160 ms (`ScreenEntrance`), so opening a notebook and closing the last
 one both land instead of blink.
 
+**The first run asks one question.** With no document open yet, a card asks what new documents are born
+in — *MobiXournal (.mobix)* pre-picked, or *Xournal++ (.xopp)* — and **Start writing** settles it: the
+answer lands where Settings → App & data edits it, and the card never returns (`FirstRunFormatDialog.kt`).
+A stored format is not an answer, so an install older than the card is asked once too; opened notebooks
+keep theirs, and Save As still switches.
+
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the
   sidebar and the tool strips are the same frosted glass the mobile chrome uses, and the desk behind the

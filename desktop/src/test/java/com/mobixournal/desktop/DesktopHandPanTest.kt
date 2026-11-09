@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.HAND_GAIN_MAX
 import com.mobixournal.desktop.sheet.HAND_GAIN_MIN
@@ -65,12 +66,20 @@ class DesktopHandPanTest {
      * A page larger than the window on both axes at 200 %, so a pan has a range to travel in: a page that
      * fits is centred by the clamp, which would pin the offset and answer nothing either way.
      */
-    private fun state(): DesktopShellState = DesktopShellState().also { state ->
+    private fun state(): DesktopShellState = DesktopShellState(returning()).also { state ->
         state.open(notebook())
         val tab = state.tabs.active!!
         tab.fit = FitMode.NONE
         tab.viewport = Viewport(zoom = 2f, offsetX = 0f, offsetY = 0f)
         state.selectTool(DesktopTool.HAND)
+    }
+
+    /**
+     * This test's own settings, with the first run's format question already answered — the window would
+     * otherwise open on that card, whose blocker takes the very drags these pans are about.
+     */
+    private fun returning() = DesktopSettings(File(temp.root, "hand-pan.properties")).also {
+        it.documentFormatChosen = true
     }
 
     @Test

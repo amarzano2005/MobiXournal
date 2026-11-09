@@ -134,10 +134,11 @@ desktop round trip safe:
    `SaveFormat` behaviour ([data-path.md](data-path.md)) extended with a third value, and it is why
    the bridge ([xopp-bridge.md](xopp-bridge.md)) has to be lossless in *both* directions: a `.xopp`
    that went through a phone is still a `.xopp`.
-2. **New documents are born in the default format**, which the user picks **on first launch** (the
-   onboarding flow, [chrome.md](chrome.md)) and can change under Settings → App & data. Every
-   document the app creates is paged, in either format. The recommended format — **`.mobix`** — keeps
-   living elements, telemetry, streaming.
+2. **New documents are born in the default format**, which the user picks **on first launch** — the
+   tablet in its tour ([chrome.md](chrome.md)), the window in a card of its own — and can change under
+   Settings → App & data on either shell. A PDF opened from outside is a new document, so it lands in
+   this format too, never in `.xopp` behind the reader's back. Every document the app creates is paged,
+   in either format. The recommended format — **`.mobix`** — keeps living elements, telemetry, streaming.
 3. **"Save As" switches the format in either direction**, and that switch is the documented way to
    convert: a `.xopp` opened from a colleague's desktop can become the user's own `.mobix`, and a
    `.mobix` can be flattened out to `.xopp` to hand back to Xournal++.

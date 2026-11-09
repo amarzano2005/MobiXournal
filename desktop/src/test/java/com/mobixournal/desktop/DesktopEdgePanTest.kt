@@ -4,6 +4,7 @@ import com.mobixournal.desktop.shell.confirmPlacement
 import com.mobixournal.desktop.shell.placeOrAsk
 import com.mobixournal.desktop.tools.selectTool
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.shell.DesktopShell
@@ -59,12 +60,20 @@ class DesktopEdgePanTest {
      * A zoomed page wider than the window, so there is somewhere to scroll to: at 200 % an A4 sheet is
      * ~1 200 pt and the canvas shows 1 000 px of it.
      */
-    private fun state(): DesktopShellState = DesktopShellState().also { state ->
+    private fun state(): DesktopShellState = DesktopShellState(returning()).also { state ->
         state.open(notebook())
         val tab = state.tabs.active!!
         tab.fit = FitMode.NONE
         tab.viewport = Viewport(zoom = 2f, offsetX = 0f, offsetY = 0f)
         state.selectTool(DesktopTool.MARQUEE)
+    }
+
+    /**
+     * This test's own settings, with the first run's format question already answered — the window would
+     * otherwise open on that card, whose blocker takes the very presses these drags are about.
+     */
+    private fun returning() = DesktopSettings(File(temp.root, "edge-pan.properties")).also {
+        it.documentFormatChosen = true
     }
 
     @Test

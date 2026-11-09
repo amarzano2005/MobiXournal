@@ -147,8 +147,11 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** The figure decisions — its width, and the variant a triangle or a trapezoid draws. */
     internal val figures = FigureChoices(store)
 
-    /** What a new tab is written as. */
+    /** What a new tab is written as, and whether the first run's question about it was answered. */
     var newDocumentFormat by mutableStateOf(store.newDocumentFormat)
+        private set
+
+    var documentFormatChosen by mutableStateOf(store.documentFormatChosen)
         private set
 
     /** The unit the page format and the quick size are read in ([PageSizeUnit]), as both compose it. */
@@ -558,10 +561,10 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         if (wasLive) applyPenPreset(selectedPenPresetId)
     }
 
-    /** What a new tab is written as, from now on. */
     fun chooseNewDocumentFormat(value: DesktopNewDocumentFormat) {
         newDocumentFormat = value
-        store.newDocumentFormat = value
+        documentFormatChosen = true
+        store.documentFormat.choose(value)
     }
 
     /**
@@ -593,6 +596,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         aspectLock = store.aspectLock
         figures.reload()
         newDocumentFormat = store.newDocumentFormat
+        documentFormatChosen = store.documentFormatChosen
         pageSizeUnit = store.pageSizeUnit
         strips.reload()
         toggleEraserTool = toolNamed(store.toggleEraser, DesktopTool.ERASER)

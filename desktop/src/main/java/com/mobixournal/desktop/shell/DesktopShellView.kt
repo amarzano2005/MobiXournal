@@ -12,6 +12,7 @@ import com.mobixournal.desktop.io.ImportPdfDialog
 import com.mobixournal.desktop.io.ImportPdfHost
 import com.mobixournal.desktop.io.OpenFailureCard
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.FirstRunFormatHost
 import com.mobixournal.desktop.settings.SettingsSurface
 import com.mobixournal.desktop.tools.CloseDialogHost
 import com.mobixournal.desktop.tools.ColourPanelHost
@@ -187,6 +188,7 @@ private fun BoxScope.WorkspaceBody(
     ColourPanelHost(state)
     PageSetupHost(state)
     ImportPdfHost(state)
+    FirstRunFormatHost(state.prefs)
     PageRangeHost(state)
     // The rename card: the layer menu's one question that needs the keyboard.
     LayerRenameHost(state)

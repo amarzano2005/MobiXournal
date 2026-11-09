@@ -76,10 +76,13 @@ class DesktopInspectorLaneTest {
     /**
      * A window on **its own** settings: this file clicks the lane's rows by pixel, and where the lane
      * stands depends on the strip placement, the sidebar and the inspector policy — a store shared with
-     * another test (or with the installed window) would move the row out from under the click.
+     * another test (or with the installed window) would move the row out from under the click. The
+     * first run's format question is marked answered for the same reason: its card takes the clicks.
      */
     private fun shell(): DesktopShellState =
-        DesktopShellState(DesktopSettings(File(temp.root, "lane.properties"))).also { it.open(notebook()) }
+        DesktopShellState(
+            DesktopSettings(File(temp.root, "lane.properties")).also { it.documentFormatChosen = true },
+        ).also { it.open(notebook()) }
 
     /**
      * The lane's own column, just inside its right edge: past the cards' 12 dp padding, so the pixel is the

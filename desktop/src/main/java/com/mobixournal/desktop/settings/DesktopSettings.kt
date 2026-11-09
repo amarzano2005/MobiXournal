@@ -202,13 +202,17 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
-    /** What a new tab is written as — the Documents section's one answer. */
+    /** What a new tab is written as, and whether the first run's question about it was answered. */
+    internal val documentFormat = DocumentFormatStore(properties, ::save)
+
     var newDocumentFormat: DesktopNewDocumentFormat
-        get() = DesktopNewDocumentFormat.of(properties.getProperty(KEY_NEW_DOCUMENT_FORMAT))
-        set(value) {
-            properties.setProperty(KEY_NEW_DOCUMENT_FORMAT, value.name)
-            save()
-        }
+        get() = documentFormat.format
+        set(value) { documentFormat.format = value }
+
+    /** Whether the first run's format question was answered — a stored format is not an answer. */
+    var documentFormatChosen: Boolean
+        get() = documentFormat.chosen
+        set(value) { documentFormat.chosen = value }
 
     /** The zoom a document opens at, before the reader touches anything. */
     var fitOnOpen: FitOnOpen
@@ -621,6 +625,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** What a new tab is written as: `.mobix`, a gzip `.xopp` or a zipped `.xopp`. */
         const val KEY_NEW_DOCUMENT_FORMAT = "document.newFormat"
+
+        /** Whether the first run's format question was answered (see [documentFormatChosen]). */
+        const val KEY_DOCUMENT_FORMAT_CHOSEN = "document.formatChosen"
 
         /** The strip's slot order, as [DesktopTool] names; absent means the factory order. */
         const val KEY_TOOL_ORDER = "interface.toolOrder"
