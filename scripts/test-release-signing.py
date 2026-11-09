@@ -45,7 +45,7 @@ exit 1
                 env.pop(missing)
             env.update(updates or {})
             result = subprocess.run([BASH, str(scripts / SOURCE.name)], env=env, capture_output=True, text=True)
-            return result, (root / "built").exists(), (root / "app/build/outputs/apk/release/app-release.apk").exists()
+            return result, (root / "built").exists(), (root / "app/build/outputs/apk/release/MobiXournal.apk").exists()
 
     def test_missing_configuration_never_starts_a_build(self):
         for name in NAMES:

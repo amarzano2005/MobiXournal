@@ -51,7 +51,9 @@ else
 fi
 
 UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
-SIGNED="app/build/outputs/apk/release/app-release.apk"
+# The published asset name, not Gradle's: a download and a GitHub release page should both say
+# MobiXournal, and `installable()` in the update check only needs the `.apk` suffix.
+SIGNED="app/build/outputs/apk/release/MobiXournal.apk"
 ALIGNED="app/build/outputs/apk/release/app-release-aligned.apk"
 [ -f "$UNSIGNED" ] || die "no unsigned release APK at $UNSIGNED — did :app:assembleRelease run?"
 

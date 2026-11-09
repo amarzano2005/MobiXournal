@@ -68,7 +68,8 @@ than beside it (`emulator.sh launch com.mobixournal`, `adb logcat`) — and the 
 the app on the device, tabs and settings included. **Judge speed on the release build:**
 `assembleDebug` runs `debuggable` and keeps Compose's debug checks, so on an inked page it is slower;
 `scripts/release-apk.sh` builds `:app:assembleRelease` and signs it with the debug keystore (so it
-upgrades in place, and back), writing `app/build/outputs/apk/release/app-release.apk`.
+upgrades in place, and back), writing `app/build/outputs/apk/release/MobiXournal.apk` — the name the
+release asset carries too, so the download and the document carry the same file name.
 
 For published Android tags, CI sets `MOBIX_REQUIRE_RELEASE_SIGNING=1`. Configure repository secrets
 `MOBIX_ANDROID_KEYSTORE_BASE64` (base64 of the existing signing keystore), `MOBIX_ANDROID_KEY_ALIAS`,
@@ -216,7 +217,7 @@ failure).
    Neither is generated: the command knows which tasks shipped, not which capability changed, and the
    matrix is a judgement about a build rather than a list of commits.
 
-5. **Watch the workflow.** The release appears on GitHub with `app-release.apk` and `MobiXournal-<version>.msi` attached.
+5. **Watch the workflow.** The release appears on GitHub with `MobiXournal.apk` and `MobiXournal-<version>.msi` attached.
 
 The workflow enforces the freeze rather than trusting it: every run lints both task files and runs
 the task CLI's own regression checks — `test_store.py` for the order the file promises, `test_done.py`

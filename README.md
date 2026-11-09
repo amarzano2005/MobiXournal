@@ -113,7 +113,7 @@ in](docs/guide-formats-and-conversion.md).
 
 **Android**
 
-1. Download `app-release.apk` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases) and open it.
+1. Download `MobiXournal.apk` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases) and open it.
 2. Allow installs from the app you downloaded it with; the permission can be turned off afterwards.
 3. Notebooks are files you pick with Android's own dialog.
 
