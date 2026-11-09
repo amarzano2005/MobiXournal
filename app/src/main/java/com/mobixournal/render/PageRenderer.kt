@@ -56,7 +56,7 @@ object PageRenderer {
                 // pieces, each culled on its own, so a table half off the viewport is not skipped.
                 if (element.isLivingEntity) {
                     drawPieces(
-                        canvas, LivingInk.of(element).elements, scale, offsetX, offsetY,
+                        canvas, LivingInk.of(element, elements).elements, scale, offsetX, offsetY,
                         strokes, elements, visible, strokeOverride,
                     )
                     continue

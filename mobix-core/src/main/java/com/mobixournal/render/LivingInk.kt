@@ -39,6 +39,12 @@ object LivingInk {
     private val cache = Collections.synchronizedMap(IdentityHashMap<Element, Ink>())
 
     /**
+     * The ink built with a font engine ([of]'s two-argument form). Its own map, because a measured
+     * table's ink is not the estimate-built ink the exports hold, and the two must never be swapped.
+     */
+    private val measured = Collections.synchronizedMap(IdentityHashMap<Element, Ink>())
+
+    /**
      * The ink [element] is drawn as. Only meaningful for a living entity: everything else is its own
      * drawing, so callers test [isLivingEntity] first rather than pay for a lookup per element per frame.
      */
@@ -46,6 +52,21 @@ object LivingInk {
         if (cache.size >= CACHE_MAX) cache.clear()
         cache[element] = it
     }
+
+    /**
+     * The ink [element] is drawn as, with [measure] placing a table cell's text where the shell's font
+     * engine ends it ([TextWidth]). Only a table consults it — every other family is its own ink, so it
+     * takes [of]'s cached answer and the measurer never enters their geometry.
+     */
+    fun of(element: Element, measure: TextWidth): Ink =
+        if (element !is TableElement) {
+            of(element)
+        } else {
+            measured[element] ?: Ink(TableInk.ink(element, measure), emptyList()).also {
+                if (measured.size >= CACHE_MAX) measured.clear()
+                measured[element] = it
+            }
+        }
 
     private fun compile(element: Element): Ink = when (element) {
         is PlotElement -> {

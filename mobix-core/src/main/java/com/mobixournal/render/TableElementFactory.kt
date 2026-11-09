@@ -42,6 +42,11 @@ object TableElementFactory {
 
     /**
      * Creates a living [TableElement] spanning from ([startX], [startY]) to ([endX], [endY]).
+     *
+     * [rows] counts **data rows only**: with [hasHeader] the table gets one extra row above them, which
+     * is the row the header labels. That is the same arithmetic the table tool's live preview draws
+     * ([ShapeBuilder.table], `effectiveRows`), so the grid under the finger on release is the grid the
+     * user saw while dragging instead of one data row short.
      */
     fun tableElementFor(
         startX: Double,
@@ -54,17 +59,18 @@ object TableElementFactory {
         borderColor: Int = TableElement.DEFAULT_BORDER,
         borderWidth: Double = DEFAULT_BORDER_WIDTH,
     ): TableElement {
-        val r = rows.coerceAtLeast(1)
+        val dataRows = rows.coerceAtLeast(1)
+        val totalRows = dataRows + if (hasHeader) 1 else 0
         val c = cols.coerceAtLeast(1)
         val left = minOf(startX, endX)
         val top = minOf(startY, endY)
         val rawW = kotlin.math.abs(endX - startX)
         val rawH = kotlin.math.abs(endY - startY)
         val width = rawW.coerceAtLeast(c * MIN_COL_WIDTH_PT)
-        val height = rawH.coerceAtLeast(r * MIN_ROW_HEIGHT_PT)
+        val height = rawH.coerceAtLeast(totalRows * MIN_ROW_HEIGHT_PT)
         val colWidths = List(c) { width / c }
-        val rowHeights = List(r) { height / r }
-        val cells = List(r) { rowIdx -> List(c) { TableCell(bold = hasHeader && rowIdx == 0) } }
+        val rowHeights = List(totalRows) { height / totalRows }
+        val cells = List(totalRows) { rowIdx -> List(c) { TableCell(bold = hasHeader && rowIdx == 0) } }
         return TableElement(
             left = left,
             top = top,

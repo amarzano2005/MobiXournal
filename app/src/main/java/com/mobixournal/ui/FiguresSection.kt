@@ -87,7 +87,7 @@ private fun DefaultFigureSize(settings: AppSettings, onChange: (AppSettings) -> 
 /** Default rows/columns for inserted tables, and the relational header line. */
 @Composable
 private fun TableDefaults(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    ControlHeader("Grid", "Default number of rows and columns for inserted tables.", Modifier.padding(top = 8.dp))
+    ControlHeader("Grid", "Default number of data rows and columns for inserted tables.", Modifier.padding(top = 8.dp))
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -99,7 +99,7 @@ private fun TableDefaults(settings: AppSettings, onChange: (AppSettings) -> Unit
     SettingsDivider()
     SwitchRow(
         title = "Header row (relational)",
-        subtitle = "Draws a double line under the first row.",
+        subtitle = "Adds a bold row above the grid, under a double line.",
         checked = settings.tableHeader,
         onCheckedChange = { onChange(settings.copy(tableHeader = it)) },
     )

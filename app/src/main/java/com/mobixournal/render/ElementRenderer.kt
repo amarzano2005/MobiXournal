@@ -33,7 +33,7 @@ import java.util.IdentityHashMap
  */
 class ElementRenderer(
     private val budget: BitmapBudget = BitmapBudget.shared,
-) : BitmapBudget.Client {
+) : BitmapBudget.Client, TextWidth {
 
     /** Guards [bitmapCache]: [trim] can arrive from another cache's worker thread. */
     private val lock = Any()
@@ -108,6 +108,20 @@ class ElementRenderer(
         val lines = TextBlock.lines(t.content)
         val baselines = TextBlock.baselines(lines.size, topPx, fm.ascent, lineHeight)
         for (i in lines.indices) canvas.drawText(lines[i], xPx, baselines[i], textPaint)
+    }
+
+    /**
+     * The advance of [text] at [sizePt], in points — measured with the same [Paint] and typeface
+     * [drawText] uses, so a table cell's text can be centred on what is drawn rather than on the
+     * per-character estimate in `ElementBounds` ([TextWidth]). A multi-line cell measures its widest
+     * line, which is the box the renderer draws.
+     */
+    override fun of(text: String, sizePt: Double, bold: Boolean): Double {
+        textPaint.typeface = typefaceFor(
+            FontDescription(InkTokens.FIGURE_LABEL_FONT, bold = bold, italic = false).compose(),
+        )
+        textPaint.textSize = sizePt.toFloat()
+        return text.split('\n').maxOfOrNull { textPaint.measureText(it).toDouble() } ?: 0.0
     }
 
     /**

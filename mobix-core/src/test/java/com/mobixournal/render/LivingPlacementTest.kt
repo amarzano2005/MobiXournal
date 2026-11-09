@@ -90,13 +90,13 @@ class LivingPlacementTest {
         val box = Bounds(40.0, 60.0, 340.0, 260.0)
         val table = LivingPlacement.table(box, rows = 3, cols = 4)
         assertEquals(4, table.colWidths.size)
-        assertEquals(3, table.rowHeights.size)
+        assertEquals("three data rows plus the header above them", 4, table.rowHeights.size)
         assertEquals("the grid is as wide as the drag", box.width, table.colWidths.sum(), 1e-9)
         assertEquals("and as tall", box.height, table.rowHeights.sum(), 1e-9)
         assertEquals(box.left, table.left, 1e-9)
         assertEquals(box.top, table.top, 1e-9)
         assertTrue("a fresh table has its header row", table.headerRow)
-        assertEquals(3, table.cells.size)
+        assertEquals(4, table.cells.size)
         assertEquals(4, table.cells.first().size)
     }
 

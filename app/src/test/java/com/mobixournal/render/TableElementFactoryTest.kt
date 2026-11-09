@@ -37,7 +37,7 @@ class TableElementFactoryTest {
         assertEquals(10.0, table.left, 1e-4)
         assertEquals(20.0, table.top, 1e-4)
         assertEquals(4, table.colWidths.size)
-        assertEquals(3, table.rowHeights.size)
+        assertEquals("three data rows plus the header above them", 4, table.rowHeights.size)
         assertEquals(200.0, table.width, 1e-4)
         assertEquals(120.0, table.height, 1e-4)
         assertEquals(200.0, table.colWidths.sum(), 1e-4)
@@ -46,7 +46,7 @@ class TableElementFactoryTest {
         assertEquals(0xFF123456.toInt(), table.borderColor)
         assertEquals(1.5, table.borderWidth, 1e-4)
 
-        assertEquals(3, table.cells.size)
+        assertEquals("one cell row per grid row, header included", 4, table.cells.size)
         table.cells.forEach { row ->
             assertEquals(4, row.size)
             row.forEach { cell ->
@@ -54,6 +54,46 @@ class TableElementFactoryTest {
                 assertEquals("a fresh cell is centred by default", TableAlign.CENTER, cell.align)
             }
         }
+    }
+
+    @Test
+    fun theHeaderIsAnExtraRowOnTopOfTheRequestedDataRows() {
+        val plain = TableElementFactory.tableElementFor(0.0, 0.0, 120.0, 80.0, rows = 2, cols = 2)
+        val headed = TableElementFactory.tableElementFor(
+            0.0, 0.0, 120.0, 80.0, rows = 2, cols = 2, hasHeader = true,
+        )
+
+        assertEquals("without the switch, the asked-for rows are the grid", 2, plain.rowHeights.size)
+        assertEquals("with it, the header is added above them", 3, headed.rowHeights.size)
+        assertTrue("the added row is the bold one", headed.cells.first().all { it.bold })
+        assertTrue("the data rows stay plain", headed.cells.drop(1).all { row -> row.none { it.bold } })
+    }
+
+    @Test
+    fun measuredCellTextIsCentredOnItsDrawnAdvance() {
+        val table = TableElement(
+            left = 50.0,
+            top = 50.0,
+            colWidths = listOf(100.0),
+            rowHeights = listOf(30.0),
+            cells = listOf(listOf(TableCell("Value", TableAlign.CENTER))),
+        )
+        val advance = TextWidth { _, _, _ -> 41.0 }
+
+        val centred = TableInk.ink(table, advance).filterIsInstance<TextElement>().single()
+        assertEquals("the drawn string sits on the cell's midline", 50.0 + (100.0 - 41.0) / 2.0, centred.x, 1e-4)
+
+        val flushRight = TableInk.ink(
+            table.copy(cells = listOf(listOf(TableCell("Value", TableAlign.RIGHT)))),
+            advance,
+        ).filterIsInstance<TextElement>().single()
+        assertEquals("flush right leaves the cell's padding", 50.0 + 100.0 - 41.0 - 2.0, flushRight.x, 1e-4)
+
+        val flushLeft = TableInk.ink(
+            table.copy(cells = listOf(listOf(TableCell("Value", TableAlign.LEFT)))),
+            advance,
+        ).filterIsInstance<TextElement>().single()
+        assertEquals("flush left is the padding, never the estimate", 52.0, flushLeft.x, 1e-4)
     }
 
     @Test

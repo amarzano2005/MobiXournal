@@ -352,7 +352,9 @@ private fun TableCellEditorField(
             },
         singleLine = true,
         keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.None,
+            // A cell is a label, so the keyboard opens ready for one: the first letter is capitalised
+            // without a Shift tap. Not Words — "x² + 1" is one value, not two initials.
+            capitalization = KeyboardCapitalization.Sentences,
             autoCorrect = false,
             imeAction = if (row == state.rowHeights.size - 1 && col == state.colWidths.size - 1) {
                 ImeAction.Done

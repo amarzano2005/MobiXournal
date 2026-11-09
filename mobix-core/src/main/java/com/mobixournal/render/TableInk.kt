@@ -24,13 +24,20 @@ object TableInk {
     /** Space between a cell's edge and its text, so a label never sits on the rule beside it. */
     private const val CELL_PAD_PT = 2.0
 
-    /** [table] as ink: its grid, then its cells' text. A table with no columns draws nothing. */
-    fun ink(table: TableElement): List<Element> {
+    /**
+     * [table] as ink: its grid, then its cells' text. A table with no columns draws nothing.
+     *
+     * [measure] is the shell's font engine when it has one ([TextWidth]). Centring a cell's text needs
+     * the string's real advance, and the per-character estimate this falls back to runs a few points
+     * wide, which a narrow column shows as text sitting left of its centre. The exports pass nothing —
+     * they have no glyphs — while the tablet passes the very `Paint` that draws the string.
+     */
+    fun ink(table: TableElement, measure: TextWidth? = null): List<Element> {
         if (table.colWidths.isEmpty() || table.rowHeights.isEmpty()) return emptyList()
         val out = mutableListOf<Element>()
         out += grid(table)
         out += filledCells(table)
-        out += cellTexts(table)
+        out += cellTexts(table, measure)
         return out
     }
 
@@ -89,10 +96,10 @@ object TableInk {
         return out
     }
 
-    private fun cellTexts(table: TableElement): List<Element> {
+    private fun cellTexts(table: TableElement, measure: TextWidth?): List<Element> {
         val out = mutableListOf<Element>()
         forEachCell(table) { cell, left, top, width, height, rowIdx ->
-            if (cell.text.isNotEmpty()) out += textIn(cell, table, left, top, width, height, rowIdx)
+            if (cell.text.isNotEmpty()) out += textIn(cell, table, left, top, width, height, rowIdx, measure)
         }
         return out
     }
@@ -100,10 +107,11 @@ object TableInk {
     /**
      * A cell's text, placed inside its cell.
      *
-     * Alignment needs the text's width, and there is no font engine in the format's own layer: the
-     * estimate is the app's own ([ElementBounds], the same per-character approximation every hit test
-     * and selection outline uses), which keeps this compilable and testable on the JVM. A cell too
-     * short for its text still gets the text — clipped by the reader, not dropped by the exporter.
+     * Alignment needs the text's width. When [measure] is supplied that is the drawn advance; without
+     * one — an export, the format's own layer — it is the app's estimate ([ElementBounds], the same
+     * per-character approximation every hit test and selection outline uses), which keeps this
+     * compilable and testable on the JVM. A cell too short for its text still gets the text — clipped
+     * by the reader, not dropped by the exporter.
      */
     private fun textIn(
         cell: TableCell,
@@ -113,6 +121,7 @@ object TableInk {
         width: Double,
         height: Double,
         rowIdx: Int,
+        measure: TextWidth?,
     ): TextElement {
         val fontSize = autoFontSizePt(cell.text, width, height, cell.bold)
         val probe = InkPrimitives.text(
@@ -124,10 +133,11 @@ object TableInk {
             sizePt = fontSize,
         )
         val box = ElementBounds.of(probe)
+        val advance = measure?.of(cell.text, fontSize, cell.bold) ?: box.width
         val x = when (cell.align) {
             TableAlign.LEFT -> left + CELL_PAD_PT
-            TableAlign.CENTER -> (left + (width - box.width) / 2.0).coerceAtLeast(left + CELL_PAD_PT)
-            TableAlign.RIGHT -> (left + width - box.width - CELL_PAD_PT).coerceAtLeast(left + CELL_PAD_PT)
+            TableAlign.CENTER -> (left + (width - advance) / 2.0).coerceAtLeast(left + CELL_PAD_PT)
+            TableAlign.RIGHT -> (left + width - advance - CELL_PAD_PT).coerceAtLeast(left + CELL_PAD_PT)
         }
         val y = (top + (height - box.height) / 2.0).coerceAtLeast(top + CELL_PAD_PT)
         return probe.copy(x = x, y = y)

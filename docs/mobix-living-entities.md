@@ -111,6 +111,13 @@ sits); the width and height are the sums above. So a file whose cached `right`/`
 the grid is read at the grid's size and rewritten with the box the grid implies — rule 3, applied to
 the one box that has a stored half and a derived half.
 
+**A new table's *Rows* asks for data rows.** The tablet's table tool creates the asked-for data rows
+and, with the header switch on, one **extra** bold row above them — the same arithmetic the drag's
+preview draws — so the grid under the finger and the grid committed on release are one and the same.
+**A cell's text is centred on what is drawn**: the tablet compiles the canvas's cell text with its own
+font engine (`TextWidth`), so `CENTER` lands on the column's midline, while the `.xopp`, PDF and SVG
+exports fall back to the per-character estimate because they have no glyphs to measure.
+
 The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialog.kt`) — the
 anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app
 draws edge-to-edge, so `adjustResize` gives it nothing to clamp against) and could only edit one
