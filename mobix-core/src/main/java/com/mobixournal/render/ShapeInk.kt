@@ -22,7 +22,7 @@ import kotlin.math.roundToInt
  *    colour and one interior alpha, so a blue figure filled with a light yellow is a filled stroke
  *    underneath plus the outline on top. When the two colours agree, one stroke does both.
  *  - **The angle and side-length labels are drawn, positioned by the app's own text estimate**
- *    ([InkTokens.FIGURE_LABEL_CHAR_W]); the on-screen version measures with the font engine, so a
+ *    ([TextAdvance], measured per glyph); the on-screen version measures with the font engine, so a
  *    label can sit a fraction of a millimetre away from where the screen put it. Its *text* is the
  *    same ([DimensionLabel.measurementText]).
  *
@@ -134,8 +134,7 @@ object ShapeInk {
     /** The label box [content] occupies, in pt: its width and its height at the figure-label size. */
     private fun labelSize(content: String): Pair<Double, Double> {
         val size = InkTokens.FIGURE_LABEL_SIZE_PT
-        return (content.length * size * InkTokens.FIGURE_LABEL_CHAR_W) to
-            (size * InkTokens.FIGURE_LABEL_LINE_H)
+        return TextAdvance.pt(content, size) to (size * InkTokens.FIGURE_LABEL_LINE_H)
     }
 
     /**

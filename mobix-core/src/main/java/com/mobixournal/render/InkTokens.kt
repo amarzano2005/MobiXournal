@@ -18,11 +18,11 @@ object InkTokens {
     const val FIGURE_LABEL_SIZE_PT = 8.0
 
     /**
-     * A label box's width per character, as a share of its size — the estimate `ElementBounds`
-     * measures a text element with. Kept here so a compiler that has to place a label and the bounds
-     * that then enclose it cannot disagree about how big the label is.
+     * A character's width as a share of the size, for text whose glyph the measured table
+     * ([TextAdvance]) does not carry. Kept here so a compiler that has to place a label and the
+     * bounds that then enclose it cannot disagree about how big the label is.
      */
-    const val FIGURE_LABEL_CHAR_W = 0.62
+    const val FIGURE_LABEL_CHAR_W = 0.55
 
     /** A label box's line height, as a share of its size. */
     const val FIGURE_LABEL_LINE_H = 1.3

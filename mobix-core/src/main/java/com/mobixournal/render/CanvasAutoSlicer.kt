@@ -41,7 +41,7 @@ object CanvasAutoSlicer {
     /** Compute the axis-aligned bounding box of any [element] for slicing purposes. */
     fun boundsOf(element: Element): Bounds = when (element) {
         is Stroke -> strokeBounds(element)
-        is TextElement -> textBounds(element)
+        is TextElement -> ElementBounds.of(element)
         is ImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is TexImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is MathBlockElement -> Bounds(element.left, element.top, element.right, element.bottom)
@@ -67,13 +67,6 @@ object CanvasAutoSlicer {
             if (p.y + half > bottom) bottom = p.y + half
         }
         return Bounds(left, top, right, bottom)
-    }
-
-    private fun textBounds(t: TextElement): Bounds {
-        val lines = t.content.split("\n")
-        val h = lines.size * t.size * 1.3
-        val w = (lines.maxOfOrNull { it.length } ?: 1) * t.size * 0.62
-        return Bounds(t.x, t.y, t.x + w, t.y + h)
     }
 
     private fun shapeBounds(s: ParametricShapeElement): Bounds {

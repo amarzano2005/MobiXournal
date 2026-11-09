@@ -35,7 +35,7 @@ class ShapeInkLabelsTest {
     private fun labels(shape: ParametricShapeElement): List<TextElement> =
         ShapeInk.ink(shape)!!.filterIsInstance<TextElement>()
 
-    /** The label box, as the bounds code estimates it. */
+    /** The label box, as the bounds code estimates it ([TextAdvance]'s measured pair of widths). */
     private data class Box(val left: Double, val top: Double, val right: Double, val bottom: Double) {
         fun contains(x: Double, y: Double) = x >= left && x <= right && y >= top && y <= bottom
         fun distanceTo(p: Pair<Double, Double>): Double {
@@ -46,7 +46,7 @@ class ShapeInkLabelsTest {
     }
 
     private fun boxOf(text: TextElement): Box {
-        val width = text.content.length * text.size * InkTokens.FIGURE_LABEL_CHAR_W
+        val width = TextAdvance.pt(text.content, text.size)
         val height = text.size * InkTokens.FIGURE_LABEL_LINE_H
         return Box(text.x, text.y, text.x + width, text.y + height)
     }

@@ -60,8 +60,7 @@ data class Bounds(val left: Double, val top: Double, val right: Double, val bott
  */
 object ElementBounds {
 
-    /** Rough per-em width factor and line-height factor for the text-box approximation. */
-    private const val TEXT_CHAR_W = InkTokens.FIGURE_LABEL_CHAR_W
+    /** Line-height factor for the text-box approximation; the width is [TextAdvance]'s. */
     private const val TEXT_LINE_H = InkTokens.FIGURE_LABEL_LINE_H
 
     /**
@@ -160,7 +159,7 @@ object ElementBounds {
     private fun textBounds(t: TextElement): Bounds {
         val lines = t.content.split("\n")
         val h = lines.size * t.size * TEXT_LINE_H
-        val w = (lines.maxOfOrNull { it.length } ?: 1) * t.size * TEXT_CHAR_W
+        val w = TextAdvance.pt(lines.maxOfOrNull { it } ?: " ", t.size)
         return Bounds(t.x, t.y, t.x + w, t.y + h)
     }
 

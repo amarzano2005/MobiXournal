@@ -116,10 +116,13 @@ and, with the header switch on, one **extra** bold row above them — the same a
 preview draws — so the grid under the finger and the grid committed on release are one and the same.
 **A cell's text is centred on what is drawn, one line at a time**: each shell compiles its cell text
 with its own font engine through `TextWidth` — the tablet's `Paint` (`render/ElementRenderer.kt`), the
-window's `TextMeasurer` (`sheet/LivingTextWidth.kt`) — so `CENTER` lands on the column's midline on
+window's `TextMeasurer` (`sheet/PageView.kt`) — so `CENTER` lands on the column's midline on
 both, and every drawn line of a cell is its own text element, so a shorter second line sits on the
 midline too, spaced by the engine's leading (`TextWidth.lineHeightOf`). The `.xopp`, PDF and SVG
-exports fall back to the per-character estimate because they have no glyphs to measure.
+exports have no glyphs to measure, so they lay the text out from `TextAdvance`: each glyph's advance
+read from the three faces the shells draw with — Android's `Sans`, the window's Inter, the bundled
+DejaVu the PDF embeds — and averaged. That per-glyph table is what a flat per-character guess got
+wrong: it made `iii` 2.4 times its drawn width, and an exported cell centred on it sat off the midline.
 
 The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialog.kt`) — the
 anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app

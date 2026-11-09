@@ -46,7 +46,6 @@ data class SearchStatus(
  */
 object DocumentSearch {
 
-    private const val TEXT_CHAR_W = 0.62
     private const val TEXT_LINE_H = 1.3
 
     /** How long a [SearchHit.snippet] may be, in characters, before it is cut — one row of a list. */
@@ -128,21 +127,24 @@ object DocumentSearch {
 
     private fun textHits(pageIndex: Int, text: TextElement, needle: String): List<SearchHit> =
         buildList {
-            val charW = text.size * TEXT_CHAR_W
-            val lineH = text.size * TEXT_LINE_H
+            val size = text.size
+            val lineH = size * TEXT_LINE_H
             for ((lineIndex, line) in text.content.split("\n").withIndex()) {
                 val haystack = line.lowercase(Locale.ROOT)
                 var start = haystack.indexOf(needle)
                 while (start >= 0) {
                     val top = text.y + lineIndex * lineH
+                    // The highlight starts and ends where the drawn glyphs do: the width before the
+                    // match and the width of the match, both from the measured table.
+                    val left = text.x + TextAdvance.pt(line.substring(0, start), size)
                     add(
                         SearchHit(
                             pageIndex = pageIndex,
                             boxes = listOf(
                                 Bounds(
-                                    left = text.x + start * charW,
+                                    left = left,
                                     top = top,
-                                    right = text.x + (start + needle.length) * charW,
+                                    right = left + TextAdvance.pt(line.substring(start, start + needle.length), size),
                                     bottom = top + lineH,
                                 ),
                             ),

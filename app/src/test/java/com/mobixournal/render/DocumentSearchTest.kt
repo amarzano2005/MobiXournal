@@ -52,8 +52,16 @@ class DocumentSearchTest {
         val hits = DocumentSearch.find(doc, null, "ALPHA")
 
         assertEquals(2, hits.size)
-        assertEquals(Bounds(20.0, 30.0, 51.0, 43.0), hits[0].boxes.single())
-        assertEquals(Bounds(20.0, 43.0, 51.0, 56.0), hits[1].boxes.single())
+        // The highlight ends where the drawn glyphs do: each match's own measured advance, not a flat
+        // per-character guess (which would have run the first one 4 pt too far right).
+        assertEquals(
+            Bounds(20.0, 30.0, 20.0 + TextAdvance.pt("Alpha", 10.0), 43.0),
+            hits[0].boxes.single(),
+        )
+        assertEquals(
+            Bounds(20.0, 43.0, 20.0 + TextAdvance.pt("alpha", 10.0), 56.0),
+            hits[1].boxes.single(),
+        )
     }
 
     @Test fun findsBackgroundPdfPhraseAcrossWords() {

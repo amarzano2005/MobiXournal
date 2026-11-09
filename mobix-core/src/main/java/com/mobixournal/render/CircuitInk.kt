@@ -151,7 +151,7 @@ object CircuitInk {
         axis: Axis,
     ): Pair<Double, Double> {
         val size = InkTokens.FIGURE_LABEL_SIZE_PT
-        val labelWidth = value.length * size * InkTokens.FIGURE_LABEL_CHAR_W
+        val labelWidth = TextAdvance.pt(value, size)
         val labelHeight = size * InkTokens.FIGURE_LABEL_LINE_H
         // A symbol with no geometry this build can draw still has an axis: laying the value out
         // around that degenerate box keeps every side meaning the same thing.
