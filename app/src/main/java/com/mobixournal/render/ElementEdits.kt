@@ -132,7 +132,7 @@ internal object ElementEdits {
         return null
     }
 
-    /** Rough hit test for a text box from its content extent (glyph widths aren't measured here). */
+    /** Hit test for a text box from its content extent ([ElementBounds], on the measured advances). */
     fun hitsText(t: TextElement, xPt: Double, yPt: Double): Boolean =
         ElementBounds.of(t).expand(ElementBounds.TAP_PAD).contains(xPt, yPt)
 

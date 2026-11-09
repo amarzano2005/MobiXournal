@@ -216,17 +216,23 @@ object MultiFunctionPlotter {
         if (step <= 0.0) return emptyList()
         val out = ArrayList<List<StrokePoint>>()
         var value = kotlin.math.ceil(from / step) * step
+        val size = InkTokens.FIGURE_LABEL_SIZE_PT
+        val halfHeight = size * InkTokens.FIGURE_LABEL_LINE_H / 2.0
         while (value <= to + step * 1e-6) {
             val at = toPt(value)
             val text = FunctionPlot.label(value, step)
+            // The number's own measured advance (docs/mobix-living-entities.md, the width estimate):
+            // a flat per-character guess right-aligned a `-0.5` as though it were a `0.5` and left the
+            // x labels off the tick they name.
+            val advance = TextAdvance.pt(text, size)
             if (vertical) {
                 if (at in (topPt - 1e-6)..(topPt + heightPt + 1e-6)) {
                     out.add(listOf(StrokePoint(leftPt, at, strokeWidthPt), StrokePoint(leftPt + 4.0, at, strokeWidthPt)))
-                    labels.add(PlotLabel(text, leftPt - 4.0 - text.length * 5.0, at - 2.5))
+                    labels.add(PlotLabel(text, leftPt - 4.0 - advance, at - halfHeight))
                 }
             } else {
                 out.add(listOf(StrokePoint(at, topPt + heightPt, strokeWidthPt), StrokePoint(at, topPt + heightPt - 4.0, strokeWidthPt)))
-                labels.add(PlotLabel(text, at - text.length * 2.5, topPt + heightPt + 4.0))
+                labels.add(PlotLabel(text, at - advance / 2.0, topPt + heightPt + 4.0))
             }
             value += step
         }

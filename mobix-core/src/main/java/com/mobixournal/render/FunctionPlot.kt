@@ -327,31 +327,28 @@ object FunctionPlot {
         if (step <= 0.0) return emptyList()
         val out = ArrayList<List<StrokePoint>>()
         var value = ceil(from / step) * step
+        val halfHeight = InkTokens.FIGURE_LABEL_SIZE_PT * InkTokens.FIGURE_LABEL_LINE_H / 2.0
         while (value <= to + step * 1e-6) {
             val at = toPt(value)
             val text = label(value, step)
+            // The number's own measured advance, so a `-0.5` is not placed as wide as a `0.5`: a flat
+            // per-character width left the y labels hanging off their right edge and the x labels off
+            // the tick they belong to (docs/mobix-living-entities.md, the width estimate).
+            val advance = TextAdvance.pt(text, InkTokens.FIGURE_LABEL_SIZE_PT)
             if (vertical) {
                 if (at >= topPt - 1e-6 && at <= topPt + heightPt + 1e-6) {
                     out += listOf(
                         StrokePoint(leftPt, at, strokeWidthPt),
                         StrokePoint(leftPt + TICK_PT, at, strokeWidthPt),
                     )
-                    labels += PlotLabel(
-                        text,
-                        leftPt - X_LABEL_OFFSET_PT - text.length * LABEL_CHAR_PT,
-                        at - LABEL_CHAR_PT / 2,
-                    )
+                    labels += PlotLabel(text, leftPt - X_LABEL_OFFSET_PT - advance, at - halfHeight)
                 }
             } else {
                 out += listOf(
                     StrokePoint(at, topPt + heightPt, strokeWidthPt),
                     StrokePoint(at, topPt + heightPt - TICK_PT, strokeWidthPt),
                 )
-                labels += PlotLabel(
-                    text,
-                    at - text.length * LABEL_CHAR_PT / 2,
-                    topPt + heightPt + Y_LABEL_OFFSET_PT,
-                )
+                labels += PlotLabel(text, at - advance / 2.0, topPt + heightPt + Y_LABEL_OFFSET_PT)
             }
             value += step
         }
@@ -398,9 +395,6 @@ object FunctionPlot {
 
     /** How far a tick label sits from its tick line, in pt (vertical axis). */
     private const val Y_LABEL_OFFSET_PT = 4.0
-
-    /** Rough width of one character at the label size, in pt — used to centre labels in pure code. */
-    private const val LABEL_CHAR_PT = 5.0
 }
 
 /**

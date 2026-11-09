@@ -57,6 +57,22 @@ class TextAdvanceTest {
     }
 
     /**
+     * A free text box's own box — what a tap hits, what the selection outline draws, what an align
+     * command moves — is the measured one, so a narrow box is not outlined and picked as though it
+     * held wide letters.
+     */
+    @Test
+    fun aFreeTextBoxIsAsWideAsItsGlyphs() {
+        val box = TextElement("Sans", 10.0, 20.0, 30.0, 0xFF000000.toInt(), "iii")
+        val bounds = ElementBounds.of(box)
+        assertEquals("the box hugs the drawn word", TextAdvance.pt("iii", 10.0), bounds.width, 1e-9)
+        assertTrue(
+            "and not the width a flat per-character guess gave it",
+            bounds.width < 3 * 10.0 * 0.62,
+        )
+    }
+
+    /**
      * The same table chooses a cell's font size (`TableInk.autoFontSizePt`): equal-length words of
      * different glyphs are no longer fitted at one size, which either clipped the wide one or shrank
      * the narrow one for room it had.
@@ -75,6 +91,41 @@ class TextAdvanceTest {
         val regular = TableInk.autoFontSizePt("Frequenza", width = 60.0, height = 60.0)
         val bold = TableInk.autoFontSizePt("Frequenza", width = 60.0, height = 60.0, isBold = true)
         assertTrue("bold is fitted smaller ($bold vs $regular)", bold < regular)
+    }
+
+    /**
+     * A plot's tick numbers are placed on the same measured advance: the y labels right-align on the
+     * frame's gap, the x labels centre under their tick — not on a flat guess that made `-0.5` as wide
+     * as `0.5`.
+     */
+    @Test
+    fun aPlotWritesItsTickNumbersOnTheirMeasuredWidth() {
+        val plot = MultiFunctionPlotter.plot(
+            curves = listOf(PlotCurve(source = "x", color = 0xFF000000.toInt())),
+            xMin = -0.5,
+            xMax = 0.5,
+            leftPt = 100.0,
+            topPt = 50.0,
+            widthPt = 200.0,
+            heightPt = 100.0,
+            strokeWidthPt = 1.0,
+        )
+        assertTrue("the plot writes its numbers", plot.labels.isNotEmpty())
+        val vertical = plot.labels.filter { it.x < 100.0 }
+        assertTrue("and on the y axis too", vertical.isNotEmpty())
+        for (label in vertical) {
+            val width = TextAdvance.pt(label.text, InkTokens.FIGURE_LABEL_SIZE_PT)
+            assertEquals("${label.text} is right-aligned on the frame's gap", 100.0 - 4.0, label.x + width, 1e-9)
+            assertTrue(
+                "${label.text} is not placed as wide as a character count makes it",
+                kotlin.math.abs(label.x + label.text.length * 5.0 - (100.0 - 4.0)) > 1e-6,
+            )
+        }
+        for (label in plot.labels - vertical.toSet()) {
+            val width = TextAdvance.pt(label.text, InkTokens.FIGURE_LABEL_SIZE_PT)
+            val middle = label.x + width / 2.0
+            assertTrue("${label.text} is centred inside the frame's span", middle in 100.0..300.0)
+        }
     }
 
     /**

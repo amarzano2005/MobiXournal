@@ -173,6 +173,8 @@ commit inside the dialog at all.
   and losing a curve over the spelling of its variable would be the reader's fault. A plot draws its own
   frame (`PlotInk`), so there is no `axes` element: the tablet's Axes tool is the coordinate-axis
   **stroke figure** (`ShapeKind.COORDINATE_AXIS`), which both shells already have, and no third one is added.
+  Its tick numbers sit on their own measured advance (`TextAdvance`), so a `-0.5` is not right-aligned
+  as though it were a `0.5` and each x label is centred on the tick it names.
 - Every curve carries **its own `color`**, edited per equation through the row's colour dot in both shells:
   a new equation takes the next palette colour, the first keeps the tool's ink (`PendingPlacement.formulaColours`).
 - `parameters` holds the named constants an expression may reference; a slider re-evaluates the plot
