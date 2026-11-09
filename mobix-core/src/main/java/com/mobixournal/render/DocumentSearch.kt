@@ -70,7 +70,8 @@ object DocumentSearch {
         pdfTextIndex: PdfTextIndex?,
         rawQuery: String,
         handwriting: SearchableHandwriting? = null,
-    ): List<SearchHit> = find(PageSource.of(doc.pages), pdfTextIndex, rawQuery, handwriting)
+        checkCancelled: () -> Unit = {},
+    ): List<SearchHit> = find(PageSource.of(doc.pages), pdfTextIndex, rawQuery, handwriting, checkCancelled)
 
     /**
      * The same search over a document's **page surface** (`PageSource`): pages are read one at a
@@ -82,8 +83,9 @@ object DocumentSearch {
         pdfTextIndex: PdfTextIndex?,
         rawQuery: String,
         handwriting: SearchableHandwriting? = null,
+        checkCancelled: () -> Unit = {},
     ): List<SearchHit> =
-        find(source, { pageIndex -> pdfTextIndex?.words(pageIndex).orEmpty() }, rawQuery, handwriting)
+        find(source, { pageIndex -> pdfTextIndex?.words(pageIndex).orEmpty() }, rawQuery, handwriting, checkCancelled)
 
     /**
      * The same search when the PDF's words are **not** indexed by document page number.
@@ -98,17 +100,21 @@ object DocumentSearch {
         pdfWordsFor: (Int) -> List<PdfWord>,
         rawQuery: String,
         handwriting: SearchableHandwriting? = null,
+        checkCancelled: () -> Unit = {},
     ): List<SearchHit> {
         val query = rawQuery.trim()
         if (query.isEmpty()) return emptyList()
         val needle = query.lowercase(Locale.ROOT)
         return buildList {
             for (pageIndex in 0 until source.pageCount) {
+                checkCancelled()
                 val page = source.page(pageIndex)
                 addAll(pdfHits(pdfWordsFor(pageIndex), pageIndex, needle))
+                checkCancelled()
                 handwriting?.let { addAll(handwritingHits(it, pageIndex, needle)) }
                 for (layer in page.layers) {
                     for (element in layer.elements) {
+                        checkCancelled()
                         when (element) {
                             is TextElement -> addAll(textHits(pageIndex, element, needle))
                             is MathBlockElement -> addAll(mathHits(pageIndex, element, needle))

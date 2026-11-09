@@ -1,7 +1,9 @@
 package com.mobixournal.render
 
+import com.mobixournal.collections.persistentAppend
 import android.graphics.BitmapFactory
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.withPage
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ElementId
@@ -28,7 +30,7 @@ internal object ElementEdits {
     ): Document? {
         val page = doc.pages.getOrNull(pageIndex) ?: return null
         val edited = addElementOn(page, element, activeLayerOf)
-        return doc.copy(pages = doc.pages.toMutableList().also { it[pageIndex] = edited })
+        return doc.withPage(pageIndex, edited)
     }
 
     /**
@@ -39,7 +41,7 @@ internal object ElementEdits {
     fun addElementOn(page: Page, element: Element, activeLayerOf: (Page) -> Int): Page {
         val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
         val target = activeLayerOf(page).coerceIn(0, layers.lastIndex)
-        layers[target] = Layer(layers[target].elements + element, layers[target].name)
+        layers[target] = layers[target].copy(elements = layers[target].elements.persistentAppend(element))
         return page.copy(layers = layers)
     }
 

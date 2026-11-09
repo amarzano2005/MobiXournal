@@ -41,8 +41,7 @@ import java.io.File
  * is clicked, and a restart finds the same answer. A row that only wrote the file would be a setting the
  * window forgot until it was reopened.
  *
- * The surface is a **section of the window**, not a dialog over the page: it takes the whole body between
- * the header and the status bar, so no glass is ever drawn on a sheet (`docs/interface-contract.md`).
+ * The draggable Settings surface floats over the page; its layout is owned by SettingsSurface.
  */
 class DesktopSettingsState(private val store: DesktopSettings) {
 
@@ -95,6 +94,8 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         private set
 
     /** Whether the inspector lane may open. */
+    internal val inspectorSizing = com.mobixournal.desktop.tools.InspectorSizing()
+
     var inspectorPolicy by mutableStateOf(store.inspectorPolicy)
         private set
 
@@ -293,7 +294,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** The sections on the left: the whole index, or what the **focused** search field leaves. */
     val sections: List<DesktopSettingSection>
-        get() = if (query.isNotBlank()) DesktopSettingSection.search(query) else DesktopSettingSection.entries
+        get() = if (query.isNotBlank()) DesktopSettingSection.search(query) else DesktopSettingSection.ORDERED
 
     /** The section a click on the list opens, or the first one the search left. */
     val shownSection: DesktopSettingSection?
@@ -310,7 +311,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
      * stylus explicitly); the plain door always lands on the stylus, so the page a reader closed on
      * *About* does not come back on *About* after a restart.
      */
-    fun openAt(section: DesktopSettingSection = DesktopSettingSection.STYLUS) {
+    fun openAt(section: DesktopSettingSection = this.section) {
         this.section = section
         query = ""
         open = true

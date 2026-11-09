@@ -100,7 +100,8 @@ class NavigationSettingsTest {
 
     @Test
     fun `smooth scroller accumulates target and can be cancelled`() {
-        val scope = CoroutineScope(Job())
+        // The standalone settings fixture needs its own clock; cancellation is tested before any frame.
+        val scope = CoroutineScope(Job() + androidx.compose.runtime.BroadcastFrameClock())
         val scroller = SmoothScroller(scope)
 
         var vp = Viewport(zoom = 1f, offsetX = 0f, offsetY = -500f)

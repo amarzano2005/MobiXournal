@@ -12,6 +12,10 @@ package com.mobixournal.io
  * own: the format layer has no business knowing how recordings are named on disk.
  */
 fun interface BundledAudio {
+    /** A lazy, independently reopenable payload; simple format-only callers may adopt immediately. */
+    fun register(reference: String, token: String, payload: com.mobixournal.format.mobix.MobixPayload) {
+        payload.open().use { adopt(reference, it) }
+    }
 
     /**
      * Keep the recording a stroke names [reference] — the sidecar name it replayed from, so playback

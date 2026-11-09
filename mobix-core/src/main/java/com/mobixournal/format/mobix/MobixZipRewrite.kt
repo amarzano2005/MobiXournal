@@ -228,6 +228,7 @@ internal object MobixZip {
         fun putDeflated(name: String, payload: MobixPayload) {
             val offset = written
             val nameBytes = name.toByteArray(Charsets.UTF_8)
+            ClassicZipLimits.entry(centred.size, offset, nameBytes.size, payload.length, 0)
             val header = localHeader(
                 nameLength = nameBytes.size,
                 method = ZipEntry.DEFLATED,
@@ -244,6 +245,7 @@ internal object MobixZip {
             var size = 0L
             val deflater = Deflater(Deflater.DEFAULT_COMPRESSION, true)
             val deflating = DeflaterOutputStream(counted, deflater, COPY_BUFFER_BYTES, true)
+            try {
             payload.open().use { input ->
                 val buffer = ByteArray(COPY_BUFFER_BYTES)
                 while (true) {
@@ -253,11 +255,14 @@ internal object MobixZip {
                     crc.update(buffer, 0, n)
                     deflating.write(buffer, 0, n)
                     size += n
+                    ClassicZipLimits.field(size)
+                    ClassicZipLimits.field(counted.count)
                 }
             }
             deflating.finish()
-            deflater.end()
+            } finally { deflater.end() }
             val compressed = counted.count
+            ClassicZipLimits.field(compressed)
 
             val descriptor = ByteArray(DATA_DESCRIPTOR_SIZE)
             descriptor.writeIntLe(0, DESCRIPTOR_SIGNATURE)
@@ -274,6 +279,7 @@ internal object MobixZip {
         fun putRaw(name: String, entry: MobixRawEntry) {
             val offset = written
             val nameBytes = name.toByteArray(Charsets.UTF_8)
+            ClassicZipLimits.entry(centred.size, offset, nameBytes.size, entry.size, entry.compressedSize)
             val header = localHeader(nameBytes.size, entry.method, entry.crc, entry.compressedSize, entry.size)
             out.write(header)
             out.write(nameBytes)
@@ -317,6 +323,7 @@ internal object MobixZip {
         private fun put(name: String, method: Int, crc: Long, data: ByteArray, uncompressedSize: Long) {
             val offset = written
             val nameBytes = name.toByteArray(Charsets.UTF_8)
+            ClassicZipLimits.entry(centred.size, offset, nameBytes.size, uncompressedSize, data.size.toLong())
             val header = localHeader(nameBytes.size, method, crc, data.size.toLong(), uncompressedSize)
             out.write(header)
             out.write(nameBytes)
@@ -328,6 +335,7 @@ internal object MobixZip {
         /** Write the central directory and the end record; report the archive's size in bytes. */
         fun finish(): Long {
             val start = written
+            ClassicZipLimits.field(start)
             for (entry in centred) {
                 val nameBytes = entry.name.toByteArray(Charsets.UTF_8)
                 val record = ByteArray(CENTRAL_HEADER_SIZE)
@@ -348,6 +356,7 @@ internal object MobixZip {
                 written += record.size + nameBytes.size
             }
             val directorySize = written - start
+            ClassicZipLimits.field(directorySize)
             val eocd = ByteArray(EOCD_SIZE)
             eocd.writeIntLe(0, EOCD_SIGNATURE)
             eocd.writeShortLe(8, centred.size)

@@ -57,6 +57,7 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
         SettingsRow(
             label = "Smooth scrolling",
             note = "Glide smoothly between wheel notches and after a hand pan, instead of stopping dead.",
+            checked = nav.smoothScroll,
             onClick = { nav.chooseSmoothScroll(!nav.smoothScroll) },
         ) {
             SettingsSwitch(nav.smoothScroll)

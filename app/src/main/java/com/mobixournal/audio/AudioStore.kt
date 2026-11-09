@@ -48,7 +48,7 @@ class AudioStore(context: Context) {
      * adopted on the frame that first reads the page naming it.
      */
     fun adopt(reference: String, source: java.io.InputStream) {
-        local(reference).outputStream().use { out -> source.copyTo(out) }
+        adoptAudioFile(local(reference), source)
     }
 
     /**

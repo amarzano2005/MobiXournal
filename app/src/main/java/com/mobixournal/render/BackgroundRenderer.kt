@@ -17,13 +17,23 @@ import com.mobixournal.format.model.Background
  * whose PDF or picture isn't present, or a decode still in flight) it falls back to a plain sheet.
  */
 object BackgroundRenderer {
+    private val painters = ThreadLocal.withInitial { BackgroundPainter() }
+
+    internal fun draw(
+        canvas: Canvas, box: PageBox, scrollX: Float, scrollY: Float,
+        pageImage: Bitmap? = null, tiles: List<PdfTile> = emptyList(),
+        viewWidthPx: Float = 0f, viewHeightPx: Float = 0f,
+    ) = painters.get().draw(canvas, box, scrollX, scrollY, pageImage, tiles, viewWidthPx, viewHeightPx)
+}
+
+private class BackgroundPainter {
 
     // Spacing defaults live in [BackgroundGrid] and are resolved per page by [BackgroundRulings], so
     // the editor, the SVG writer and the PDF flatten share one copy.
-    private const val MARGIN_PT = BackgroundGrid.MARGIN_PT
+    private val MARGIN_PT = BackgroundGrid.MARGIN_PT
 
     /** The ruled sheet's margin line, in pt (desktop rules it heavier than the ruling). */
-    private const val MARGIN_WIDTH_PT = 1.5
+    private val MARGIN_WIDTH_PT = 1.5
 
     private val fill = Paint()
     private val lined = Paint().apply { color = 0xFF000000.toInt() or BackgroundGrid.LINED_RGB; strokeWidth = 1f }

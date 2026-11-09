@@ -15,6 +15,8 @@ package com.mobixournal.design
  * happens to round to it.
  */
 object DesignTokens {
+    /** Compact desktop property fields and actions; does not alter toolbar or floating-surface corners. */
+    const val PROPERTY_CONTROL_CORNER_DP: Int = 4
 
     // --- Surface tokens (`docs/ui-modernization.md`, Design token specification) -----------------
 

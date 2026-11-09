@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.EditHistory
+import com.mobixournal.render.setBackgroundResolver
 import com.mobixournal.tabs.OpenTab
 
 /**
@@ -74,9 +75,17 @@ class MirrorSync(
             // placeholder from the session index — the edit must not be lost to a later snapshot read.
             // Every record takes the *same* immutable document instance, so this shares one graph
             // rather than copying it per tab.
-            p.tabs.updateMatching({ it.docKey == key }) { it.copy(document = doc, hydrated = true) }
+            val images = source.surface?.imageSources()?.toMap().orEmpty()
+            val backgrounds = source.surface?.backgroundResolver
+            p.tabs.updateMatching({ it.docKey == key }) {
+                it.copy(document = doc, hydrated = true, images = images, backgrounds = backgrounds)
+            }
             if (p === source) continue
-            if (p.tabs.active?.docKey == key) p.surface?.applyMirroredDocument(doc, history)
+            if (p.tabs.active?.docKey == key) {
+                p.surface?.setImageSources(images)
+                p.surface?.setBackgroundResolver(backgrounds)
+                p.surface?.applyMirroredDocument(doc, history)
+            }
         }
     }
 }

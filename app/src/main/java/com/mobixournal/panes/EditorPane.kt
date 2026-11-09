@@ -35,6 +35,16 @@ class EditorPane(
     val tabs = TabSessions()
 
     /**
+     * True while this pane is **offering** the session the last run left in [store] instead of holding
+     * it: the entry screen says what was open and lets the reader take it back.
+     *
+     * It is what keeps the empty pane from answering for the reader — [persist] writes nothing until
+     * the offer is taken or dropped, so the session index and the snapshots it names survive the pane
+     * that is offering them (an empty write would sweep every snapshot away).
+     */
+    var holdsPreviousSession: Boolean = false
+
+    /**
      * The sticky save format for this pane. "Save As" sets it; every later plain Save reuses it.
      * Opening a document adopts the format it was stored in.
      */
@@ -48,16 +58,19 @@ class EditorPane(
      *
      * The session is read here, on the caller's (main) thread, so it is a consistent snapshot; the
      * writing itself is gzip XML per open document, far too slow for the main thread, so it is queued
-     * onto [writer]. One single-threaded queue keeps the writes in the order they were asked for, so
-     * the last state asked for is the state left on disk.
+     * onto [writer]. A serial latest-only queue retains one active write and one replaceable request,
+     * so obsolete pending sessions do not accumulate behind a slow encode.
      */
     fun persist() {
+        // An unclaimed previous session is not overwritten by the empty pane that is offering it.
+        if (tabs.isEmpty && holdsPreviousSession) return
+        if (!tabs.isEmpty) holdsPreviousSession = false
         val session = tabs.session()
         // The app's stores hold this document's sources only while it is on the canvas, so they are read
         // here, with the session: a `.mobix` snapshot has to carry a picture or a recording that was
         // imported this session ([SnapshotSources]), and this is the moment it can be asked.
-        val sources = liveSources()
-        writer.execute { store.save(session, sources) }
+        val sources = liveSources().let { it.copy(images = it.images.toMap()) }
+        writes.submit(session to sources)
     }
 
     /** What the canvas can supply for the active tab's document — nothing before it exists. */
@@ -68,10 +81,11 @@ class EditorPane(
      * snapshot has to be on disk before the process can be killed.
      */
     fun awaitPersist(timeoutMs: Long) {
-        val done = java.util.concurrent.CountDownLatch(1)
-        writer.execute(done::countDown)
-        runCatching { done.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS) }
+        runCatching { writes.awaitLatest(timeoutMs) }
     }
 
     private val writer = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val writes = com.mobixournal.concurrent.LatestWriteQueue<Pair<com.mobixournal.tabs.TabSession, SnapshotSources>>(writer) {
+        (session, sources) -> store.save(session, sources)
+    }
 }

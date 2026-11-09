@@ -165,7 +165,7 @@ class DesktopShellState(
      * snapshot state, because nothing on screen reads it.
      */
     var liveDrag: (() -> Unit)? = null
-
+    internal val saveState = SaveState()
     /** The page list's lane and its one rule: a document of more than one page shows it (`DesktopSidebar`). */
     private val sidebar = DesktopSidebar()
 
@@ -573,7 +573,6 @@ class DesktopShellState(
         }
         return false
     }
-
     /**
      * Do what [command] says, on the active document where it needs one.
      *
@@ -587,6 +586,7 @@ class DesktopShellState(
         onSavePicker: () -> Unit = {},
         onExportPicker: () -> Unit = {},
     ): Boolean {
+        if (isSaving) return false
         when (command) {
             ShellCommand.DISMISS_FAILURE -> return WindowEscape.dismiss(this)
             ShellCommand.OPEN_SETTINGS -> {
@@ -634,7 +634,7 @@ class DesktopShellState(
             ShellCommand.SAVE -> {
                 val tab = tabs.active ?: return false
                 if (!tab.isDirty) return false
-                if (tab.unsaved) onSavePicker() else save()
+                if (tab.unsaved) onSavePicker() else if (saveState.uiBound) requestSave() else save()
                 return true
             }
             else -> Unit

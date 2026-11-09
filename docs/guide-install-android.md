@@ -17,9 +17,8 @@ Download `app-release.apk` from the project's [GitHub Releases](https://github.c
 page. The current Android build is **2.0.0** (`versionCode 14`).
 
 If you build it yourself instead, `scripts/release-apk.sh` produces the release APK, and
-`.\gradlew.bat assembleDebug` produces a debug one. The debug build installs over the release build —
-same application id, no variant suffix — so installing it does not create a second app or lose your
-settings.
+`.\gradlew.bat assembleDebug` produces a debug one. Installing one over an existing app also requires the same signing certificate; see
+[the signing setup](tools.md) before switching between local and published builds.
 
 ## Install it
 
@@ -27,7 +26,7 @@ Open the downloaded APK. Android will ask you to allow installs from the app you
 can turn that permission back off afterwards. The installer shows the app's name and the permissions it
 asks for; nothing here needs special access beyond storage you choose through the system file picker.
 
-If a previous version is installed, the new one replaces it in place: settings, recent documents and
+If a previous version with the same signing identity is installed, the new one replaces it in place: settings, recent documents and
 anything the app keeps for a crash survive the upgrade.
 
 ## Where your documents live

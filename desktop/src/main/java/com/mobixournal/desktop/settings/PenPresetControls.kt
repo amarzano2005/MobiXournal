@@ -52,7 +52,7 @@ internal fun PresetNameField(
     Box(
         modifier
             .height(28.dp)
-            .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
+            .background(DesktopTheme.panelField, PropertyControlShape)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart,
     ) {

@@ -55,13 +55,16 @@ fun DesktopShellState.save(): List<Uncompilable>? {
 fun DesktopShellState.saveAs(file: File, format: SaveFormat? = null): List<Uncompilable>? {
     val tab = tabs.active ?: return null
     val chosen = format ?: DesktopSaves.formatFor(file.name, tab.document.container)
-    return runCatching { DesktopSaves.save(tab.document, file, chosen) }
+    val samePath = com.mobixournal.desktop.shell.DesktopTabs.keyOf(file) == tab.key
+    return runCatching {
+        if (samePath) tab.saveBack(format = chosen) else DesktopSaves.save(tab.document, file, chosen)
+    }
         .onFailure { failure = describeSaveFailure(it) }
         .onSuccess {
             failure = null
             // Settled before the tab moves: the snapshot is keyed by the file it stood in for.
             noteSaved(tab)
-            tab.rehome(file)
+            if (!samePath) tab.rehome(file)
         }
         .getOrNull()
 }

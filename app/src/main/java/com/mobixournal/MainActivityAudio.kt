@@ -53,13 +53,16 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView, p: EditorPane = 
     view.onAudioTap = { ref ->
         when {
             ref == null -> Unit
-            !audio.play(ref) -> toast("Recording not found: ${ref.filename}")
             else -> {
-                lastAudioRef = ref
-                miniPlayerVisible.value = true
-                scrollToAudioTimestamp(ref.startMs)
-                followRecording(view)
-                audioTick.value++
+                withPreparedAudio(ref) {
+                    if (!audio.playPrepared(ref)) toast("Recording not found: ${ref.filename}") else {
+                        lastAudioRef = ref
+                        miniPlayerVisible.value = true
+                        scrollToAudioTimestamp(ref.startMs)
+                        followRecording(view)
+                        audioTick.value++
+                    }
+                }
             }
         }
     }
@@ -74,21 +77,21 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView, p: EditorPane = 
  * ([KaraokeFrameDriver.publishOnce]).
  */
 internal fun MainActivity.scrollToAudioTimestamp(ms: Int) {
-    val surfaceView = surface ?: return
-    val doc = surfaceView.toDocument() ?: return
-    val playing = audio.nowPlaying ?: return
-    val hits = com.mobixournal.audio.AudioInkAligner.findStrokesAtTime(doc, playing, ms)
-    val firstHit = hits.firstOrNull() ?: return
-    surfaceView.scrollToContentBounds(firstHit.first, firstHit.second)
+    requestAudioScroll(ms)
 }
 
 internal fun MainActivity.scrubTo(ms: Int) {
     if (audio.nowPlaying == null) {
-        val candidate = findCandidateAudioRef()
-        if (candidate != null) {
-            audio.play(candidate.copy(startMs = ms))
-            audio.pausePlayback()
+        withAudioCandidate(preparePlayer = true) { candidate ->
+            if (candidate != null) {
+                audio.playPrepared(candidate.copy(startMs = ms))
+                audio.pausePlayback()
+                karaokeDriver?.publishOnce()
+                scrollToAudioTimestamp(ms)
+                audioTick.value++
+            }
         }
+        return
     } else {
         audio.seek(ms)
     }
@@ -108,12 +111,13 @@ internal fun MainActivity.scrubTo(ms: Int) {
  */
 internal fun MainActivity.followRecording(view: DrawingSurfaceView) {
     karaokeDriver?.stop()
+    val cadence = com.mobixournal.audio.AudioUiCadence()
     val driver = KaraokeFrameDriver(
         choreographer = Choreographer.getInstance(),
         clip = { KaraokeFrames.Clip(audio.nowPlaying, audio.playheadMs, audio.isPlaying) },
         publish = { state ->
             view.karaokeState = state
-            audioTick.value++
+            if (cadence.publish(System.nanoTime(), state?.isPlaying == true)) audioTick.value++
         },
     )
     karaokeDriver = driver
@@ -122,6 +126,7 @@ internal fun MainActivity.followRecording(view: DrawingSurfaceView) {
 
 /** Stop following any recording and let every page paint itself again (the host's teardown). */
 internal fun MainActivity.detachAudio() {
+    audioWork.cancel()
     karaokeDriver?.stop()
     karaokeDriver = null
     // A recording torn down with the activity must not leave the `.m4a` encoder running: the tap is
@@ -130,24 +135,28 @@ internal fun MainActivity.detachAudio() {
 }
 
 /** The audio slot's current state, read fresh on every recomposition [MainActivity.audioTick] triggers. */
+@androidx.compose.runtime.Composable
 internal fun MainActivity.audioUiState(): AudioUiState {
     audioTick.value // read so Compose re-invokes this when the session changes
     val settings = settingsState.value
-    val candidate = findCandidateAudioRef()
-    val activeClip = audio.nowPlaying ?: candidate?.filename
-    val playingFile = activeClip?.let { File(filesDir, "audio/$it") }
-    val waveform = if (playingFile != null && playingFile.exists()) {
-        AudioWaveformExtractor.extract(playingFile)
-    } else {
-        emptyList()
-    }
+    val preview = rememberAudioPreview(miniPlayerVisible.value || audio.nowPlaying != null)
+    val activeClip = audio.nowPlaying ?: preview.clip
+    // Whichever clip is on, its own bars are the ones to show — `rememberAudioPreview` keys the decode on
+    // that same clip, so the two cannot disagree about which recording the waveform belongs to.
+    val waveform = preview.waveform
 
     if (audio.clipDurationMs != null && audio.clipDurationMs != 0) {
         lastDurationMs = audio.clipDurationMs
     }
     val duration = if (activeClip != null) (audio.clipDurationMs ?: lastDurationMs) else null
 
-    val clipTitle = resolveActiveClipTitle(activeClip)
+    val title = pane.tabs.active?.title?.takeIf(String::isNotBlank) ?: "Document"
+    val clipTitle = when {
+        audio.isRecording -> "Live recording"
+        activeClip == null -> null
+        preview.page != null -> "$title · Page ${preview.page + 1}"
+        else -> title
+    }
 
     // A take belongs to its tab: this capsule shows a recording only when **this** tab owns it, and says
     // whose it is when another document is the one being recorded.
@@ -181,6 +190,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             audioTick.value++
         },
         onStopPlayback = {
+            audioWork.cancelPlayback()
             audio.stopPlayback()
             karaokeDriver?.stop()
             miniPlayerVisible.value = false
@@ -211,24 +221,6 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         },
         onPlayAutonomous = ::playAutonomousAudio,
     )
-}
-
-private fun MainActivity.resolveActiveClipTitle(activeClip: String?): String? = when {
-    audio.isRecording -> "Live recording"
-    activeClip != null -> {
-        val currentTabTitle = pane.tabs.active?.title?.takeIf { it.isNotBlank() } ?: "Document"
-        val doc = surface?.toDocument()
-        val matchedPage = if (doc != null) {
-            com.mobixournal.audio.AudioInkAligner.findTimestampedStrokes(doc)
-                .firstOrNull { (_, _, ref) ->
-                    val a = ref.filename.substringAfterLast('/').substringAfterLast('\\')
-                    val b = activeClip.substringAfterLast('/').substringAfterLast('\\')
-                    a.equals(b, ignoreCase = true)
-                }?.first
-        } else null
-        if (matchedPage != null) "$currentTabTitle • Page ${matchedPage + 1}" else currentTabTitle
-    }
-    else -> null
 }
 
 /**
@@ -270,16 +262,12 @@ internal fun MainActivity.toggleRecording() {
     // Nothing is recording, so no tab owns a take any more: a stale id must not freeze the button.
     recordingTabId = null
 
-    val existing = findCandidateAudioRef()
-    if (existing != null) {
-        pendingAudioOverwriteClip.value = existing.filename
-        pendingAudioOverwriteConsent.value = {
-            checkPermissionAndBeginRecording()
-        }
-        return
+    withAudioCandidate { existing ->
+        if (existing != null) {
+            pendingAudioOverwriteClip.value = existing.filename
+            pendingAudioOverwriteConsent.value = { checkPermissionAndBeginRecording() }
+        } else checkPermissionAndBeginRecording()
     }
-
-    checkPermissionAndBeginRecording()
 }
 
 /**
@@ -376,67 +364,10 @@ internal fun MainActivity.adoptAudioFolder(uri: Uri) {
 }
 
 /** Copy the sidecars the open document references out of the nominated folder, so they replay. */
-internal fun MainActivity.pullAudioSidecars() {
-    val folder = audioFolder ?: return
-    val doc = surface?.toDocument() ?: return
-    val pulled = audio.importSidecars(folder, doc)
-    val missing = audio.missingFor(doc).size
-    if (pulled > 0) toast("Loaded $pulled recording(s)")
-    else if (missing > 0) toast("$missing recording(s) referenced but not in the audio folder")
-}
+internal fun MainActivity.pullAudioSidecars() = syncAudioSidecars(export = false)
 
 /** Copy the sidecars the open document references into the nominated folder, beside the .xopp. */
-internal fun MainActivity.pushAudioSidecars() {
-    val folder = audioFolder ?: return
-    val doc = surface?.toDocument() ?: return
-    audio.exportSidecars(folder, doc)
-    // The contract an export cannot keep on its own: a `.xopp` names a sidecar the desktop plays, and
-    // nothing here transcodes, so a compressed recording travels as itself and is reported rather than
-    // renamed to a `.wav` that would hold Opus bytes.
-    val compressed = audio.compressedFor(doc)
-    if (compressed.isNotEmpty()) {
-        toast("${compressed.size} recording(s) here are compressed — desktop Xournal++ plays WAV only")
-    }
-}
-
-/** Find an audio recording candidate to play when autonomous playback is triggered. */
-internal fun MainActivity.findCandidateAudioRef(): AudioRef? {
-    val surfaceView = surface
-    val doc = surfaceView?.toDocument()
-
-    // When a document is open in the active tab:
-    if (doc != null) {
-        // 1. Check strokes on the current page first
-        val curPageIndex = surfaceView.ink.currentPage.coerceIn(0, (doc.pages.size - 1).coerceAtLeast(0))
-        val curPage = doc.pages.getOrNull(curPageIndex)
-        if (curPage != null) {
-            val pageFiles = curPage.layers.asSequence()
-                .flatMap { it.elements.asSequence() }
-                .filterIsInstance<com.mobixournal.format.model.Stroke>()
-                .mapNotNull { it.audioRef() }
-                .toList()
-            val available = pageFiles.firstOrNull { File(filesDir, "audio/${it.filename}").isFile }
-            if (available != null) return available
-        }
-
-        // 2. Otherwise check strokes anywhere across the other pages of THIS document
-        val docFiles = documentAudioFiles(doc)
-        val available = docFiles.firstOrNull { File(filesDir, "audio/$it").isFile }
-        if (available != null) return AudioRef(available, 0)
-    }
-
-    // 3. Check if an audio was recorded in this active tab session
-    val activeTabId = pane.tabs.active?.id
-    if (activeTabId != null) {
-        val tabRef = tabAudioRefs[activeTabId]
-        if (tabRef != null && File(filesDir, "audio/${tabRef.filename}").isFile) {
-            return tabRef
-        }
-    }
-
-    // If the active tab has no audio strokes or referenced files at all, do NOT play anything!
-    return null
-}
+internal fun MainActivity.pushAudioSidecars() = syncAudioSidecars(export = true)
 
 /**
  * Play audio autonomously without requiring the user to tap a specific stroke on the page,
@@ -456,18 +387,20 @@ internal fun MainActivity.playAutonomousAudio() {
         audioTick.value++
         return
     }
-    val candidate = findCandidateAudioRef()
-    if (candidate != null) {
-        if (audio.play(candidate)) {
-            lastAudioRef = candidate
-            miniPlayerVisible.value = true
-            scrollToAudioTimestamp(candidate.startMs)
-            if (surfaceView != null) followRecording(surfaceView)
-            audioTick.value++
-        } else {
-            toast("Recording not found: ${candidate.filename}")
+    // Playing the document's audio is the one gesture that may look past the page in front: the user
+    // asked for *the* recording, so that walk is this gesture's own answer rather than a cost the
+    // chrome pays on every tick and every page turn.
+    withAudioCandidate(preparePlayer = true, deep = true) { candidate ->
+        when {
+            candidate == null -> toast("No audio recording in this tab")
+            !audio.playPrepared(candidate) -> toast("Recording not found: ${candidate.filename}")
+            else -> {
+                lastAudioRef = candidate
+                miniPlayerVisible.value = true
+                scrollToAudioTimestamp(candidate.startMs)
+                if (surfaceView != null) followRecording(surfaceView)
+                audioTick.value++
+            }
         }
-    } else {
-        toast("No audio recording in this tab")
     }
 }

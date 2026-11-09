@@ -1,7 +1,7 @@
 package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.shell.cancelClose
 import com.mobixournal.desktop.shell.confirmCloseDiscard
-import com.mobixournal.desktop.shell.confirmCloseSave
+import com.mobixournal.desktop.shell.requestCloseSave
 import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.shell.DesktopShellState
@@ -88,7 +88,7 @@ internal fun BoxScope.CloseDialogHost(state: DesktopShellState) {
         ) {
             CloseConfirmDialog(
                 tabTitle = request?.tab?.title ?: lastTitle,
-                onSave = { state.confirmCloseSave() },
+                onSave = { state.requestCloseSave() },
                 onDiscard = { state.confirmCloseDiscard() },
                 onCancel = { state.cancelClose() },
             )

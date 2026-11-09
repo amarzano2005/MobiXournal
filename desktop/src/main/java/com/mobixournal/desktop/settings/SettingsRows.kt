@@ -5,6 +5,11 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.find
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -84,7 +89,7 @@ import kotlin.math.roundToInt
 internal object SettingsMetrics {
 
     /** The index column: a section's name and its one-line summary, and no wider. */
-    val INDEX_WIDTH = 232.dp
+    val INDEX_WIDTH = 210.dp
 
     /** One setting is one row: 40 dp, the contract's smallest interactive measure. */
     val ROW_HEIGHT = 40.dp
@@ -108,73 +113,34 @@ internal object SettingsMetrics {
     val INDEX_ROW_HEIGHT = 38.dp
 }
 
-/**
- * **One group of settings**, under its own name.
- *
- * The card is the **tablet's settings card** (`docs/chrome.md`): the near-solid panel fill
- * (`DesktopTheme.settingsPanel`, the window's 0.97 glass), the 20 dp panel corner and the family's rim as
- * its whole edge — a pane cut out of the panel rather than a steel tone painted on it. The heading is
- * sentence case in the heading role: the inspector's uppercase eyebrow belongs to a
- * panel read while drawing, where a short shout helps; a settings page is read, not glanced at.
- *
- * It **clips** its rows and pads them neither horizontally nor vertically: a row's own fill has to reach
- * the card's edges, or a lit row is a rounded band floating inside the card — a card inside a card, which
- * is what a highlight with its own margins reads as. Reaching the **top and bottom** edges is what lets
- * the card's rounded clip shape the ends of a lit row; a vertical inset turned the first and last rows'
- * highlight into a rectangle that stopped short of the corner, so a selected row lit a bar instead of the
- * row. The corner a row cannot have, the card has for it.
- */
+/** Desktop property group: a heading and a hairline, with no nested glass or rounded card. */
 @Composable
 internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
-    Spacer(Modifier.height(12.dp))
-    // The heading sits on the **labels' column**, not on the card's edge: the rows inside are inset by
-    // `ROW_INSET`, and a heading 12 dp left of the names under it read as the panel's title beside the card
-    // rather than as the name of the group the card is.
-    Text(
-        title,
-        color = DesktopTheme.ink,
-        style = DesktopTheme.heading,
-        modifier = Modifier.padding(start = ROW_INSET),
-    )
-    Spacer(Modifier.height(5.dp))
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .glassSurface(fill = DesktopTheme.settingsPanel, cornerRadius = DesktopTheme.panelRadius),
-    ) {
-        content()
-    }
+    Spacer(Modifier.height(20.dp))
+    Text(title, color = DesktopTheme.ink, style = DesktopTheme.heading,
+        modifier = Modifier.padding(horizontal = ROW_INSET))
+    Spacer(Modifier.height(8.dp))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
+    Column(Modifier.fillMaxWidth()) { content() }
 }
 
-/**
- * **One setting**: its name on the left, [control] at the right edge, and **one line tall**.
- *
- * The sentence that says what the answer means is not drawn here: it goes to the panel's **help line**
- * ([LocalSettingsHelp]), which shows the sentence of the row under the pointer. Two lines per row made a
- * page of twelve settings run past the bottom of a 700 px window — the reader scrolled to find out what a
- * setting they could already see wanted, and the answers themselves were the thing pushed off. One line of
- * names is a list that fits; the explanation arrives when it is asked for.
- *
- * With [onClick] the whole row is the hit area and takes the hover step — that is what a switch, a choice
- * or a readout wants, because aiming at a 32 dp pill in a 1 000 px row is work nobody asked for. Without
- * it the row is a label beside a control that handles its own pointer (a field).
- *
- * The hover is the row's **full width**: the fill is a rectangle spanning the card, and the 12 dp that used
- * to be the card's padding now sits *inside* the row. The light therefore covers the whole row a reader
- * sees, and the card's own clip rounds it where the group ends.
- */
+/** A desktop property row: readable label/help on the left and a stable control column on the right. */
 @Composable
 internal fun SettingsRow(
     label: String,
     note: String? = null,
     onClick: (() -> Unit)? = null,
+    checked: Boolean? = null,
     control: @Composable () -> Unit,
 ) {
     val press = rememberUpdatedState(onClick)
+    var focused by remember { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = SettingsMetrics.ROW_HEIGHT)
+            .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, PropertyControlShape)
+            .onFocusChanged { focused = it.isFocused }
             .reportHelp(note)
             .then(
                 if (onClick == null) {
@@ -182,14 +148,24 @@ internal fun SettingsRow(
                 } else {
                     Modifier
                         .hoverFill(RectangleShape)
-                        .pointerInput(onClick) { detectTapGestures { press.value?.invoke() } }
+                        .then(if (checked != null) Modifier.toggleable(checked,
+                            interactionSource = remember { MutableInteractionSource() }, indication = null,
+                            role = Role.Checkbox, onValueChange = { press.value?.invoke() })
+                        else Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { press.value?.invoke() })
                 },
             )
             .padding(horizontal = ROW_INSET, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
-        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f).padding(vertical = 4.dp)) {
+            Text(label, color = DesktopTheme.ink, style = DesktopTheme.body)
+            if (!note.isNullOrBlank()) {
+                Spacer(Modifier.height(3.dp))
+                Text(note, color = DesktopTheme.inkSecondary, style = DesktopTheme.label,
+                    maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+        }
+        Spacer(Modifier.width(20.dp))
         // The answer's side has a share of its own rather than "whatever is left": a control wider than
         // the row (three long pills, once) took the whole width and squeezed the label into a column of
         // single letters. A weighted box means the label always keeps its share, and the control fits or
@@ -199,7 +175,7 @@ internal fun SettingsRow(
 }
 
 /** How the row splits between the name and the answer: the answer's share, against the label's 1. */
-private const val CONTROL_SHARE = 1.4f
+private const val CONTROL_SHARE = 0.85f
 
 /**
  * **A command**, as a row: the whole width lights up and the word is in the accent, with **no control at
@@ -334,7 +310,7 @@ internal fun SettingsSlider(
                 .width(width)
                 .height(SettingsMetrics.CONTROL_HEIGHT)
                 .onSizeChanged { trackPx = it.width.toFloat().coerceAtLeast(1f) }
-                .hoverFill(DesktopTheme.capsuleShape)
+                .hoverFill(PropertyControlShape)
                 .focusable()
                 .onFocusChanged { focused = it.isFocused }
                 .onPreviewKeyEvent { event ->
@@ -395,7 +371,7 @@ internal fun SettingsSlider(
 }
 
 /**
- * One **pill**: a name on a capsule that is picked, not a question that is answered.
+ * One compact preset choice; its shape is confined to the property panel.
  *
  * Its one user is the Stylus page's **preset carousel**, where the chips *are* the content — a strip of
  * names you switch between. A row that answers a question (*Left · Right · Top*, three document formats) is
@@ -418,11 +394,11 @@ internal fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
     Box(
         Modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)
-            .hoverFill(DesktopTheme.capsuleShape, active = selected, base = resting)
+            .hoverFill(PropertyControlShape, active = selected, base = resting)
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) DesktopTheme.accent else Color.Transparent,
-                shape = DesktopTheme.capsuleShape,
+                shape = PropertyControlShape,
             )
             .focusable()
             .onFocusChanged { focused = it.isFocused }
@@ -448,24 +424,10 @@ internal fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
     }
 }
 
-/** The switch's drawn half: 32 × 18 inside the row that is the hit area ([SettingsRow]'s `onClick`). */
+/** The square indicator; SettingsRow owns the hit target and checked semantics. */
 @Composable
 internal fun SettingsSwitch(on: Boolean) {
-    Box(
-        Modifier
-            .width(32.dp)
-            .height(18.dp)
-            .background(if (on) DesktopTheme.accent else DesktopTheme.activeSlot, DesktopTheme.capsuleShape),
-        contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart,
-    ) {
-        Box(
-            Modifier
-                .padding(horizontal = 2.dp)
-                .height(14.dp)
-                .width(14.dp)
-                .background(if (on) DesktopTheme.desk else DesktopTheme.inkSecondary, DesktopTheme.capsuleShape),
-        )
-    }
+    PropertyCheckmark(on)
 }
 
 /**
@@ -489,13 +451,13 @@ internal fun SettingsTextAction(
     Box(
         Modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)
-            .background(Color.Transparent, DesktopTheme.capsuleShape)
+            .background(Color.Transparent, PropertyControlShape)
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) DesktopTheme.accent else Color.Transparent,
-                shape = DesktopTheme.capsuleShape,
+                shape = PropertyControlShape,
             )
-            .hoverFill(DesktopTheme.capsuleShape, active = !enabled)
+            .hoverFill(PropertyControlShape, active = !enabled)
             .focusable()
             .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent { event ->
@@ -557,13 +519,13 @@ private fun StepButton(
     Box(
         Modifier
             .size(SettingsMetrics.CONTROL_HEIGHT)
-            .background(DesktopTheme.activeSlot.copy(alpha = if (enabled) 0.35f else 0.15f), DesktopTheme.capsuleShape)
+            .background(DesktopTheme.activeSlot.copy(alpha = if (enabled) 0.35f else 0.15f), PropertyControlShape)
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) DesktopTheme.accent else Color.Transparent,
-                shape = DesktopTheme.capsuleShape,
+                shape = PropertyControlShape,
             )
-            .hoverFill(DesktopTheme.capsuleShape, active = !enabled)
+            .hoverFill(PropertyControlShape, active = !enabled)
             .focusable()
             .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent { event ->
@@ -599,6 +561,7 @@ internal fun SettingsSectionRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    var focused by remember { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxWidth()
@@ -611,8 +574,14 @@ internal fun SettingsSectionRow(
                 base = if (selected) DesktopTheme.activeSlot else Color.Transparent,
             )
             // The index is names only, so its sentence is the help line's too: what the section covers.
+            .drawBehind {
+                if (selected) drawLine(DesktopTheme.accent, Offset(2.dp.toPx(), 8.dp.toPx()),
+                    Offset(2.dp.toPx(), size.height - 8.dp.toPx()), strokeWidth = 2.dp.toPx())
+            }
+            .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, DesktopTheme.railSlotShape)
+            .onFocusChanged { focused = it.isFocused }
             .reportHelp(section.summary)
-            .pointerInput(section) { detectTapGestures { onClick() } }
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

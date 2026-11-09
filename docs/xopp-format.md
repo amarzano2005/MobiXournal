@@ -14,6 +14,10 @@ the repo root (`xournalpp 1.1.1+dev`, `fileversion="4"`), the archived Xournal++
 reference clone, and desktop Xournal++'s writer. Where the sample and the reference disagree,
 **the desktop file wins** — round-trip safety is measured against desktop Xournal++.
 
+The reader requires a complete `xournal` root with matching element closures. A truncated tag,
+comment or document is refused instead of returning a partial notebook. Whitespace inside text is
+preserved, including text containing only spaces (`AuditFormatIntegrityTest`).
+
 #### Two containers, one XML: gzip vs ZIP-package (`SaveFormat`)
 
 The same `<xournal>` XML is written in one of two containers, chosen in the "Save As" dialog and
@@ -269,3 +273,13 @@ covers it — and the bridge block is the one that is.
       the `<title>` boilerplate — see the test's doc), and asserts the writer is a fixed point.
       The model-equality tests above can't see a difference that both the reader and writer agree
       on; this one can, and it is what caught the dropped `<teximage>` PNG body.
+
+## Incremental XML input
+
+`Xopp.open`, raw XML import and ZIP `content.xml` feed a Reader-based `XmlPullReader` through a sliding
+input window. A known element releases consumed markup between events. Unknown subtrees explicitly
+pin only their own markup until `RawElement.body` is captured, including nested comments. The first
+actual bridge comment is collected during tokenization rather than by retaining the full XML string.
+String entry points remain adapters. Reader and input-stream ownership stays with the caller.
+Memory still includes the parsed document, the largest text/attribute/comment token and any preserved
+unknown subtree; streaming XML does not make the resulting `.xopp` model paged.

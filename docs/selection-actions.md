@@ -77,13 +77,13 @@ the same command (`TapTracker`: 400 ms, 8 px), so the tablet's double-tap has a 
 `DesktopSelectionBarTest` walks the families — plot, table, figure, component, formula, text — and fails if
 one does not answer `EDIT`, so a family added later cannot ship uneditable.
 
-That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the
+That editor is the **inspector lane**: a resizable column on the right, so the page keeps the
 rectangle that is left and nothing lies over the sheet. It is made of the **settings panel's** material
 (`DesktopTheme.settingsPanel`, the near-solid glass of `docs/desktop-settings.md`) rather than the bands',
 because this column is read while an element is edited and holds the same kind of fields a settings page
 does — while still taking **no rim**: a lane is geometry of its own, not a pane lying on the ink
 (`docs/chrome.md`). It is drawn in **three parts, always** — a header, a
-body of cards and a footer — and it is up **only while there is something to edit**: a placement asking its
+body of property groups and a footer — and it is up **only while there is something to edit**: a placement asking its
 values, the one element the pencil opened, or a **text box being typed** — a box in the field has a face, a
 size and an ink too, and the moment to set them is while the words are being written, so pressing with the
 Text slot opens the column and committing the box (or its `Done`, its ×, `Esc`) closes both. A selection
@@ -96,18 +96,9 @@ away).
 The **header** is the lane's identity, not just its title: the family's own catalogue glyph, the family's
 name, and one line of the element's content (`sin(x) · −6…6`, `4 × 6 · header`, `BJT NPN · 10 kΩ`, a text
 box's first line and its size) from `livingSummary`, because three plots on a page are all `Plot` and the
-fields below write into exactly one of them. The **body** groups the fields into cards — Graph, Function, Display, Look; Grid, Rules, Cells; Component,
-Placement, Stroke — so a plot's switches no longer read as one wall of 11 sp labels. Each card is the Settings
-page's own group (`SettingsGroup` in `SettingsRows.kt`): the near-solid panel glass, the 20 dp corner, the
-family's rim and a sentence-case heading, so the lane and the settings page read as one material rather than
-a smaller card inside the window's. A plot's card leads
-with the **graph itself**, compiled by `LivingInk` from the element as it stands, so an equation is no longer
-committed blind: the same picture the placement promised follows every edit. A graph carries several
-curves, so the editor offers **Add equation**, a remove glyph and a **colour swatch per row**
-(`plotWithEquation`, `plotWithoutEquation`) exactly as the placement card does: a new curve arrives in the
-next palette ink rather than in the same black as the one above it, and the drawn line is its row's colour. The **footer** is one row of actions shared with
-the placement question — Place/Cancel while it asks, Done once the element exists — and it keeps its height,
-so the fields above it do not move when a card grows.
+fields below write into exactly one of them. The body uses flat, collapsible groups with aligned fields
+and quiet dividers. Settings and inspectors share typography, colours and control states while each
+keeps the space its desktop task needs.
 
 The sections offer only what the model carries — a plot's formula, domain, resolution, the
 display flags and **one colour per curve**; a table's grid, header row, rules and **cells** (a column added divides
@@ -133,3 +124,14 @@ a swatch, and reads the element back).
 A placement never leaves the tool armed: once the element exists it is what stays selected, and the window
 picks the **marquee** (`S`) the way the tablet does, so the next drag moves the element just placed instead of
 placing a second one.
+
+## Desktop property layout
+
+The lane starts at 380 dp. Drag its left divider to resize between 320 and 520 dp; keyboard focus on
+the divider enables Left/Right adjustment and Home to reset. Its effective width is capped at 55% of
+available row space so a narrow window retains canvas space. Width is window state, not a document edit.
+Property groups are flat and their titled headers can be folded with click, Enter or Space. All groups
+start expanded, including the plot Preview; folding changes presentation only. Existing Place/Cancel and direct-edit/Done semantics
+are unchanged. Fields retain their current numeric validation and undo boundaries. Focused group
+headers and resize handles receive navigation keys before global shortcuts; other shortcut keys remain
+available, and disposing a control releases its keyboard ownership. Property fields and buttons use compact corners, boolean rows use square checkboxes, and secondary actions stay unfilled; other window chrome is unchanged.

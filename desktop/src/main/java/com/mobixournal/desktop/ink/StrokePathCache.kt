@@ -8,7 +8,7 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.InkGeometry
-import java.util.IdentityHashMap
+import com.mobixournal.collections.IdentityLruCache
 
 /**
  * The **path of a stroke, built once** and reused by every frame that paints it.
@@ -23,8 +23,7 @@ import java.util.IdentityHashMap
  * Keyed by **identity**, not equality: a stroke is a data class over a long point list, so hashing one is
  * as expensive as drawing it, and the editor shares the elements it did not change, which is exactly the
  * case this cache is for. Scale is part of the key because a zoom is a different path; the map for one
- * stroke is tiny (a page is drawn at one or two scales) and the whole cache is weak, so a closed document's
- * strokes are collected with the page that held them.
+ * stroke is tiny (a page is drawn at one or two scales) and global LRU budgets bound the retained identities and geometry points.
  *
  * Live drafts are cached too, by the list's identity and the box its points cover, which is what makes a
  * frame that only redraws (a scroll, a hover, a selection moving) cost nothing to paint.
@@ -37,8 +36,17 @@ internal object StrokePathCache {
      */
     class Shapes(val polyline: Path, val taper: Path?, val bandWidthPx: Float?)
 
-    private val byStroke = IdentityHashMap<Stroke, MutableMap<Float, Shapes>>()
-    private val byDraft = IdentityHashMap<Any, MutableMap<DraftKey, Shapes>>()
+    private val smoothing = IdentityLruCache<Any, IncrementalSmoothing>(32, 200_000) { it.points.size.toLong() }
+    private val tapers = IdentityLruCache<Any, com.mobixournal.render.IncrementalTaper>(32, 200_000) { it.retainedPoints.toLong() }
+    private class Cached(val shapes: Shapes, val weight: Long)
+    private val byStroke = IdentityLruCache<Stroke, Map<Float, Cached>>(4096, 250_000) { values ->
+        values.values.sumOf { it.weight }
+    }
+    private val byDraft = IdentityLruCache<Any, Map<DraftKey, Cached>>(32, 200_000) { values ->
+        values.values.sumOf { it.weight }
+    }
+    internal val cachedIdentities: Int get() = byStroke.size + byDraft.size
+    internal val cachedGeometryPoints: Long get() = byStroke.cachedWeight + byDraft.cachedWeight
 
     /**
      * How many geometries have been **built** since the cache was last cleared.
@@ -85,13 +93,13 @@ internal object StrokePathCache {
     /** The shapes of one recorded stroke at [scale]. */
     @Synchronized
     fun of(stroke: Stroke, scale: Float): Shapes {
-        val perScale = byStroke.getOrPut(stroke) { HashMap(2) }
-        perScale[scale]?.let { return it }
+        val perScale = byStroke[stroke].orEmpty()
+        perScale[scale]?.let { return it.shapes }
         val shapes = build(stroke.points, stroke.tool, stroke.lineStyle, scale, smooth = !isFigure(stroke))
         // A page is drawn at one scale at a time; keeping two keeps a zoom round-trip warm without
         // letting a wheel gesture's every frame live for ever.
-        if (perScale.size >= 2) perScale.clear()
-        perScale[scale] = shapes
+        val retained = if (perScale.size >= 2) emptyMap() else perScale
+        byStroke.put(stroke, retained + (scale to Cached(shapes, geometryWeight(stroke.points, shapes))))
         return shapes
     }
 
@@ -127,13 +135,22 @@ internal object StrokePathCache {
             if (y > bottom) bottom = y
         }
         val key = DraftKey(size, scale, tool, lineStyle, left, top, right, bottom, smooth)
-        val perDraft = byDraft.getOrPut(identity) { HashMap(4) }
-        perDraft[key]?.let { return it }
-        if (perDraft.size >= 4) perDraft.clear()
-        val shapes = build(points, tool, lineStyle, scale, smooth)
-        perDraft[key] = shapes
+        val perDraft = byDraft[identity].orEmpty()
+        perDraft[key]?.let { return it.shapes }
+        val sampled = if (smooth) (smoothing[identity] ?: IncrementalSmoothing()).also {
+            it.update(points)
+            smoothing.put(identity, it)
+        } else null
+        val numeric = if (sampled != null) tapers[identity] ?: com.mobixournal.render.IncrementalTaper() else null
+        val shapes = build(points, tool, lineStyle, scale, smooth, sampled, numeric)
+        if (numeric != null) tapers.put(identity, numeric)
+        val retained = if (perDraft.size >= 4) emptyMap() else perDraft
+        byDraft.put(identity, retained + (key to Cached(shapes, geometryWeight(points, shapes))))
         return shapes
     }
+
+    private fun geometryWeight(points: List<StrokePoint>, shapes: Shapes): Long =
+        points.size.toLong() * if (shapes.taper == null) 1 else 2
 
     private fun build(
         points: List<StrokePoint>,
@@ -141,13 +158,17 @@ internal object StrokePathCache {
         lineStyle: LineStyle,
         scale: Float,
         smooth: Boolean = true,
+        sampled: IncrementalSmoothing? = null,
+        numeric: com.mobixournal.render.IncrementalTaper? = null,
     ): Shapes {
         builds++
-        val polyline = PageInk.polyline(points, scale, smooth = smooth)
+        val polyline = PageInk.polyline(points, scale, smooth = smooth, curves = sampled?.curves)
         // Only a **pressure** stroke needs its outline filled; a band or a uniform line is the polyline
         // with a width, and building an outline for it would be a path nobody draws.
         val taper = if (tool != Tool.HIGHLIGHTER && !InkGeometry.uniformWidth(points)) {
-            PageInk.taperPath(points, scale, smooth = smooth)
+            if (sampled != null && numeric != null) PageInk.outlinePath(
+                numeric.outline(sampled.points, scale, 0f, 0f, sampled.stablePrefix)
+            ) else PageInk.taperPath(points, scale, smooth = smooth)
         } else {
             null
         }
@@ -164,6 +185,8 @@ internal object StrokePathCache {
     fun clear() {
         byStroke.clear()
         byDraft.clear()
+        smoothing.clear()
+        tapers.clear()
         builds = 0
     }
 }

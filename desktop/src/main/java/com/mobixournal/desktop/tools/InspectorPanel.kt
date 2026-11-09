@@ -61,13 +61,13 @@ import com.mobixournal.render.TableElementFactory
  * The **inspector lane**: the right-hand column that edits the living element a selection names, asks a
  * placement's questions, and says what is selected when nothing is being edited.
  *
- * It is a lane, not a dialog (`docs/interface-contract.md`): 300 dp of its own column beside the page, so
+ * It is a lane, not a dialog (`docs/interface-contract.md`): a resizable column beside the page, so
  * nothing is ever laid over the sheet and the page keeps the rectangle that is left. [DesktopWorkspace]
  * puts it in the row, which is what makes that true mechanically — the lane takes width, the canvas takes
  * the remainder, and no glass floats on the ink.
  *
  * It appears **only while there is something to edit** — a placement asking its values, or an element opened
- * with the pencil — and never for a selection alone: the page is what a selection is about, and a 300 dp
+ * with the pencil — and never for a selection alone: the page is what a selection is about, and an empty
  * column of labels about it is width the sheet could have had. One frame serves both moments, in three
  * parts — the header that says which element this is, the cards that hold its fields, and the footer that
  * holds the action (Place/Cancel, or Done).
@@ -100,16 +100,7 @@ internal fun InspectorLane(
     if (pending == null && drafting == null && live == null) return
     val commitBox = { state.textBox.commit(tab, state::edited) }
 
-    Column(
-        modifier
-            .width(INSPECTOR_WIDTH)
-            .fillMaxHeight()
-            // The **settings panel's** material (`DesktopTheme.settingsPanel`, the near-solid glass), not
-            // the bands': this column is read while an element is edited, and its fields are the same kind
-            // of thing the settings page holds. A lane still takes no rim (`docs/chrome.md`) — it is
-            // geometry of its own, standing beside the page rather than lying over it.
-            .bandSurface(fill = DesktopTheme.settingsPanel),
-    ) {
+    InspectorFrame(state.prefs.inspectorSizing, modifier) {
         LaneHeader(
             tool = pending?.slot?.tool() ?: drafting?.let { DesktopTool.TEXT } ?: live?.family?.tool(),
             title = pending?.let { "New ${it.slot.label().lowercase()}" }
@@ -143,12 +134,12 @@ internal fun InspectorLane(
         LaneFooter {
             when {
                 pending != null -> {
-                    PanelButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
-                    PanelButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
+                    InspectorButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
+                    InspectorButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
                 }
                 // A box being typed is finished by the same answer the field's `Esc` gives: it is written.
-                drafting != null -> PanelButton("Done", primary = true, enabled = true, onClick = commitBox)
-                else -> PanelButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
+                drafting != null -> InspectorButton("Done", primary = true, enabled = true, onClick = commitBox)
+                else -> InspectorButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
             }
         }
     }
@@ -201,7 +192,7 @@ private fun MathQuestion(pending: PendingPlacement) {
  */
 @Composable
 private fun PlotQuestion(pending: PendingPlacement) {
-    SectionCard("Graph") {
+    SectionCard("Preview") {
         PlotQuestionPreview(pending)
     }
     SectionCard("Equations") {
@@ -217,7 +208,7 @@ private fun PlotQuestion(pending: PendingPlacement) {
             )
         }
         Spacer(Modifier.height(4.dp))
-        PanelButton(
+        InspectorButton(
             label = "Add equation",
             primary = false,
             enabled = pending.formulas.size < MAX_EQUATIONS,
@@ -307,7 +298,7 @@ private fun PlotBody(plot: PlotElement, commit: (Element) -> Unit) {
     // The graph the equations draw, in the lane, while they are edited: the placement card's own preview,
     // for the element that already exists. Without it an equation was committed blind and the only way to
     // see what it drew was to close the lane and look at the sheet.
-    SectionCard("Graph") {
+    SectionCard("Preview") {
         PlotInkPreview(plot, "Type an equation to draw it here")
     }
     SectionCard("Function") {
@@ -410,7 +401,7 @@ private fun PlotEquations(plot: PlotElement, commit: (Element) -> Unit) {
         )
     }
     Spacer(Modifier.height(4.dp))
-    PanelButton(
+    InspectorButton(
         label = "Add equation",
         primary = false,
         enabled = plot.curves.size < MAX_EQUATIONS,
@@ -527,16 +518,16 @@ private fun CircuitBody(circuit: CircuitElement, commit: (Element) -> Unit) {
     SectionCard("Placement") {
         Readout("rotation", "${formatNumber(circuit.rotation)}°")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            PanelButton("Rotate 90°", primary = false, enabled = true, onClick = {
+            InspectorButton("Rotate 90°", primary = false, enabled = true, onClick = {
                 commit(circuit.copy(rotation = (circuit.rotation + 90.0) % 360.0))
             })
-            PanelButton("Straighten", primary = false, enabled = true, onClick = {
+            InspectorButton("Straighten", primary = false, enabled = true, onClick = {
                 val straight = (kotlin.math.round(circuit.rotation / 90.0) * 90.0) % 360.0
                 commit(circuit.copy(rotation = if (straight < 0.0) straight + 360.0 else straight))
             })
         }
         Spacer(Modifier.height(6.dp))
-        PanelButton("Label: ${labelSideName(circuit.labelSide)}", primary = false, enabled = true, onClick = {
+        InspectorButton("Label: ${labelSideName(circuit.labelSide)}", primary = false, enabled = true, onClick = {
             val sides = CircuitLabelSide.entries
             commit(circuit.copy(labelSide = sides[(circuit.labelSide.ordinal + 1) % sides.size]))
         })

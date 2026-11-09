@@ -53,10 +53,11 @@ internal class BundledPageAssets(
     private val resolveLinked: (Background) -> File?,
     /** Where a bundled recording goes, or null when the caller keeps none (a pure format test). */
     private val storeAudio: BundledAudio? = null,
+    private val audioArchive: File? = null,
 ) : PageSource, BackgroundResolver {
 
     /** Adopted pictures by the reference the document names them under; live, not a snapshot. */
-    override val images: MutableMap<String, File> = LinkedHashMap()
+    override val images: MutableMap<String, File> = java.util.concurrent.ConcurrentHashMap()
 
     /** The document's background PDF, or null while no page has named one. */
     var pdf: File? = null
@@ -64,6 +65,9 @@ internal class BundledPageAssets(
 
     /** One local copy per asset name, so a shared asset is read and written once. */
     private val byAsset = HashMap<String, File?>()
+
+    /** The pages whose recordings have been registered already — see [page]. */
+    private val scannedPages = HashSet<Int>()
 
     /** Recordings already copied out, by the entry they live in — the audio half of [byAsset]. */
     private val adoptedRecordings = HashSet<String>()
@@ -101,9 +105,14 @@ internal class BundledPageAssets(
     override fun sourceParts(): List<MobixPart>? = delegate.sourceParts()
 
     /** A page read adopts the payloads that page names — the only place the archive says which. */
+    @Synchronized
     override fun page(index: Int): Page = delegate.page(index).also { page ->
         file(page.background)
-        adoptRecordings(page)
+        // **Once per page, not once per read.** A page drawn while a recording plays is read every
+        // frame, and walking every stroke of it to re-find entries already registered is jank the user
+        // feels as a slow interface. A page keeps the asset names the archive gave it, so one scan of
+        // it is all the registration ever needs.
+        if (scannedPages.add(index)) adoptRecordings(page)
     }
 
     override fun close() = delegate.close()
@@ -111,12 +120,14 @@ internal class BundledPageAssets(
     // --- BackgroundResolver ----------------------------------------------------------------------
 
     /** The local copy of [background]'s bytes, adopting it now if this is the first ask. */
+    @Synchronized
     override fun file(background: Background): File? = when (background) {
         is Background.Solid -> null
-        is Background.Pdf -> pdf ?: adopt(background)?.also { pdf = it }
+        is Background.Pdf -> pdf?.takeIf(File::isFile) ?: adopt(background)?.also { pdf = it }
         is Background.Pixmap -> background.filename
             .takeIf(String::isNotEmpty)
-            ?.let { reference -> images[reference] ?: adopt(background)?.also { images[reference] = it } }
+            ?.let { reference -> images[reference]?.takeIf(File::isFile)
+                ?: adopt(background)?.also { images[reference] = it } }
     }
 
     // --- audio -----------------------------------------------------------------------------------
@@ -140,10 +151,16 @@ internal class BundledPageAssets(
                     ?: reference.filename.takeIf { MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO) }
                     ?: continue
                 if (entry in adoptedRecordings) continue
+                if (audioArchive != null) {
+                    store.register(reference.filename, "${audioArchive.absolutePath}:$entry",
+                        MobixPayload.ofArchiveEntry(audioArchive, entry))
+                    adoptedRecordings += entry
+                    continue
+                }
                 // Streamed to the store: a lecture's recording is never held as an array on open.
                 assets.open(entry)?.use { source ->
-                    adoptedRecordings += entry
                     store.adopt(reference.filename, source)
+                    adoptedRecordings += entry
                 }
             }
         }
@@ -189,6 +206,7 @@ internal class BundledPageAssets(
             return linked
         }
         if (asset in missingAssets) return null
+        if (byAsset[asset]?.isFile == false) byAsset.remove(asset)
         return byAsset.getOrPut(asset) {
             assets.bytes(asset)?.let { bytes ->
                 if (background is Background.Pdf) storePdf(bytes) else storeImage(bytes)
@@ -214,6 +232,7 @@ internal class BundledPageAssets(
      * explain (a file that lost its picture, a share that dropped it) and a blank page that looks like a
      * bug.
      */
+    @Synchronized
     override fun drainMissing(): List<String> = missing.toList().also { missing.clear() }
 
     /** Queue [reference] for the report, once: what was already said is never said again. */

@@ -36,6 +36,14 @@ enum class ChromeGlyph {
     /** The same floppy with a pen over it: Save As. */
     SAVE_AS,
 
+    /**
+     * A clock with its hand turned back: a session the last run left open, offered back to the reader.
+     *
+     * It marks both halves of one idea — the *Restore last session* door on the entry screen and the
+     * badge on a card that door would bring back — so one picture means one thing on both shells.
+     */
+    RESTORE,
+
     /** A sheet of text: Picture as PDF. */
     PDF,
 
@@ -69,6 +77,9 @@ enum class ChromeGlyph {
 
     /** Dismiss: the tab's own close, a panel's, a card's. */
     CLOSE,
+
+    /** The checked state of a property checkbox, using Material's shared check silhouette. */
+    CHECK,
 
     /** Find: the header's search field, and the results it lists. */
     SEARCH,
@@ -206,6 +217,7 @@ object ChromeGlyphCatalogue {
                 "1 7.6-5.5c1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"
         ChromeGlyph.CLOSE ->
             "M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"
+        ChromeGlyph.CHECK -> "M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59Z"
         ChromeGlyph.ADD -> "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z"
         ChromeGlyph.MINUS -> "M19 13H5v-2h14v2Z"
         ChromeGlyph.SEARCH ->
@@ -283,6 +295,10 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.DISTRIBUTE_V -> "M22 2v2H2V2H22ZM7 10.5v3h10v-3H7ZM2 20v2h20v-2H2Z"
         ChromeGlyph.CHEVRON_UP -> "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"
         ChromeGlyph.CHEVRON_DOWN -> "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
+        ChromeGlyph.RESTORE ->
+            "M13 3c-4.97 0 -9 4.03 -9 9H1l3.89 3.89 0.07 0.14L9 12H6c0 -3.87 3.13 -7 7 -7s7 3.13 " +
+                "7 7 -3.13 7 -7 7c-1.93 0 -3.68 -0.79 -4.94 -2.06l-1.42 1.42C8.27 19.99 10.51 21 13 " +
+                "21c4.97 0 9 -4.03 9 -9s-4.03 -9 -9 -9Zm-1 5v5l4.28 2.54 0.72 -1.21 -3.5 -2.08V8H12Z"
         ChromeGlyph.SETTINGS ->
             "M19.14 12.94c0.04-0.3 0.06-0.61 0.06-0.94 0-0.32-0.02-0.64-0.07-0.94l2.03-1.58" +
                 "c0.18-0.14 0.23-0.41 0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39 0.96" +

@@ -33,6 +33,13 @@ internal class LazyPages(private val source: PageSource) : AbstractList<Page>() 
     override fun toString(): String = "LazyPages($size pages)"
 }
 
+/** Rebind lazy sources through structural edits, without comparing or materialising any page. */
+fun mapPageSources(pages: List<Page>, transform: (PageSource) -> PageSource): List<Page> = when (pages) {
+    is com.mobixournal.format.model.PageListView -> pages.rebase { mapPageSources(it, transform) }
+    is LazyPages -> transform(pages.backing).asPageList()
+    else -> pages
+}
+
 /**
  * A page's size in pt, and nothing else — what a layout needs of a page to place it *before* anyone
  * draws it. Kept apart from [Page] on purpose: a canvas can then be laid out from the sizes alone,

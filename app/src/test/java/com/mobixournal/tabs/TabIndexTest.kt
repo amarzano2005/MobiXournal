@@ -19,6 +19,37 @@ class TabIndexTest {
         TabIndex.decode(TabIndex.encode(session)) { doc() }
 
     @Test
+    fun cancellingThePickerDropsOnlyTheProposedConversion() {
+        val original = OpenTab("a", "a.xopp", doc(), uri = "content://original", format = SaveFormat.ORIGINAL)
+        val proposed = SavePickerState(PendingSave(0, original.id, SaveFormat.MOBIX, "a.mobix"))
+        assertEquals(SavePickerState(), proposed.answered(null))
+        assertEquals(SaveFormat.ORIGINAL, original.format)
+        assertEquals("content://original", original.uri)
+        assertEquals("content://copy", proposed.answered("content://copy").uri)
+    }
+
+    @Test
+    fun imageSourcesSurviveRestartWithoutCollidingAcrossTabs() {
+        val a = OpenTab("a", "a.xopp", doc(), images = mapOf("bg.png" to java.io.File("one.png")))
+        val b = OpenTab("b", "b.xopp", doc(), images = mapOf("bg.png" to java.io.File("two.png")))
+        val back = roundTrip(TabSession(listOf(a, b), 1))
+        assertEquals(a.images.mapValues { it.value.absoluteFile }, back.tabs[0].images)
+        assertEquals(b.images.mapValues { it.value.absoluteFile }, back.tabs[1].images)
+    }
+
+    @Test
+    fun pendingPickerKeepsItsOwnerAndFormatWhenSelectionChanges() {
+        val a = OpenTab("a", "a.xopp", doc())
+        val session = TabSessions(listOf(a, OpenTab("b", "b.xopp", doc())))
+        val pending = PendingSave(0, a.id, SaveFormat.MOBIX, "a.mobix")
+        session.select(1)
+        assertEquals(a, pending.tabIn(session))
+        assertEquals(SaveFormat.ORIGINAL, a.format)
+        session.close(0)
+        assertEquals(null, pending.tabIn(session))
+    }
+
+    @Test
     fun `every field survives a round trip`() {
         val session = TabSession(
             tabs = listOf(

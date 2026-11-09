@@ -28,6 +28,70 @@ import org.junit.rules.TemporaryFolder
  * export pushes out the file that is really there.
  */
 class BundledAudioAdoptionTest {
+    @Test fun `inserted and removed page views still use independent readers`() {
+        val file = bundledFile()
+        val pair = com.mobixournal.format.mobix.MobixPagedReader.open(file).use { it.parts.toList() to it.getPage(0) }
+        var readable = true
+        val source = object : PageSource {
+            override val pageCount = 1
+            override fun pageId(index: Int) = pair.first[index].id
+            override fun sourceParts() = pair.first
+            override fun page(index: Int): com.mobixournal.format.model.Page {
+                check(readable) { "closed canvas reader" }
+                return pair.second
+            }
+        }
+        val inserted = com.mobixournal.render.PageOps.addBefore(source.asPageList(), 0, 100.0, 100.0)
+        val removed = com.mobixournal.render.PageOps.removeAt(inserted, 0)
+        readable = false
+        val before = com.mobixournal.audio.readAudioPreview(Document(pages = inserted), file,
+            com.mobixournal.audio.AudioReferenceIndex(), { _, _, _ -> })
+        assertEquals(1, before.firstPage(sidecar))
+        val after = com.mobixournal.audio.readAudioPreview(Document(pages = removed), file,
+            com.mobixournal.audio.AudioReferenceIndex(), { _, _, _ -> })
+        assertEquals(0, after.firstPage(sidecar))
+    }
+
+    @Test fun `page registration does not inflate audio and its payload survives reader closure`() {
+        val file = bundledFile()
+        val pages = MobixEntrySource.fromFile(file).use { MobixDocument.open(it).toDocument().pages }
+        var opened = 0
+        var pending: MobixPayload? = null
+        MobixEntrySource.fromFile(file).use { entries ->
+            val spy = object : MobixEntrySource by entries {
+                override fun openEntry(name: String): java.io.InputStream? {
+                    if (MobixFormat.isAssetEntry(name, MobixFormat.AssetKind.AUDIO)) opened++
+                    return entries.openEntry(name)
+                }
+            }
+            val assets = BundledPageAssets(PageSource.of(pages), spy,
+                { error("no PDF") }, { error("no picture") }, { null },
+                object : BundledAudio {
+                    override fun adopt(reference: String, source: java.io.InputStream) = error("UI must not copy audio")
+                    override fun register(reference: String, token: String, payload: MobixPayload) { pending = payload }
+                }, audioArchive = file)
+            assets.page(0)
+        }
+        assertEquals(0, opened)
+        assertEquals(recording.toList(), pending!!.open().use { it.readBytes() }.toList())
+    }
+
+    @Test fun `background audio indexing never asks the canvas reader for a page`() {
+        val file = bundledFile()
+        val parts = com.mobixournal.format.mobix.MobixPagedReader.open(file).use { it.parts.toList() }
+        val source = object : PageSource {
+            override val pageCount = parts.size
+            override fun pageId(index: Int) = parts[index].id
+            override fun sourceParts() = parts
+            override fun page(index: Int): com.mobixournal.format.model.Page = error("canvas reader must stay idle")
+        }
+        val doc = Document(pages = source.asPageList())
+        val index = com.mobixournal.audio.AudioReferenceIndex()
+        val refs = com.mobixournal.audio.readAudioPreview(doc, file, index, { _, _, _ -> })
+        assertEquals(sidecar, refs.candidate(0) { true }!!.filename)
+        assertEquals(0, refs.firstPage(sidecar))
+        assertTrue("the worker closed both ZIP handles", file.renameTo(File(temp.root, "moved.mobix")))
+    }
 
     @get:Rule
     val temp = TemporaryFolder()

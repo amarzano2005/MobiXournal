@@ -243,10 +243,12 @@ object DocumentEncoder {
         // same document (`Document.documentId`). A whole-archive write builds every page from the
         // model, so a page that names `assets/…` writes that reference back — carried from the archive
         // this document was opened from, or the new file names an entry it does not have.
-        val carried = carriedPayloads(document, shape.carriedFrom, ::audioPayload).toMutableMap()
-        carried.putAll(extraEntries)
         val bridgeSource = target?.name
         if (shape.repackOver == null) {
+            val previous = shape.carriedFrom?.let { previousManifest(it, entrySource) }
+                ?.takeIf { it.documentId == document.documentId }
+            val carried = carriedPayloads(document, shape.carriedFrom, ::audioPayload, previous?.defaultPaper).toMutableMap()
+            carried.putAll(extraEntries)
             val mobix = MobixDocument.of(
                 document = document,
                 appVersion = appVersion,
@@ -256,6 +258,7 @@ object DocumentEncoder {
                 canvasMode = shape.mode,
                 chunkCoords = shape.chunkCoords,
                 canvas = shape.canvas,
+                previousManifest = previous,
             )
             MobixContainer.save(mobix.encode(now, backgrounds, ::audioPayload).entries, output)
         } else {
@@ -272,7 +275,7 @@ object DocumentEncoder {
                     canvasMode = shape.mode,
                     chunkCoords = shape.chunkCoords,
                     canvas = shape.canvas,
-                    payloads = carried,
+                    payloads = extraEntries,
                 )
             }
         }
@@ -313,4 +316,14 @@ object DocumentEncoder {
         }
         return withPdf.copy(pages = pages)
     }
+    private fun previousManifest(file: File, entrySource: (File) -> MobixEntrySource): com.mobixournal.format.mobix.MobixManifest? {
+        if (!file.isFile) return null
+        val isZip = file.inputStream().use { it.read() == 0x50 && it.read() == 0x4B }
+        if (!isZip) return null
+        return entrySource(file).use { source ->
+            val type = source.readBytes(com.mobixournal.format.mobix.MobixFormat.MIMETYPE_ENTRY)?.toString(Charsets.UTF_8)
+            if (type == com.mobixournal.format.mobix.MobixFormat.MIMETYPE) com.mobixournal.format.mobix.MobixManifest.read(source) else null
+        }
+    }
+
 }

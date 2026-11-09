@@ -124,12 +124,12 @@ class MobixXoppSizeBenchmarkTest {
     private val pictureFile: File by lazy { temp.newFile("scan.png").apply { writeBytes(pictureBytes) } }
 
     private fun pagesIn(file: File, format: SaveFormat): Int = when (format) {
-        SaveFormat.ORIGINAL -> Xopp.open(file.inputStream()).pages.size
-        SaveFormat.ZIPPED -> XoppZip.open(
-            file.inputStream(),
+        SaveFormat.ORIGINAL -> file.inputStream().use(Xopp::open).pages.size
+        SaveFormat.ZIPPED -> file.inputStream().use { input -> XoppZip.open(
+            input,
             pdfFile = { temp.newFile() },
             imageFile = { temp.newFile() },
-        ).doc.pages.size
+        ).doc.pages.size }
         SaveFormat.MOBIX -> MobixDocument.open(MobixContainer.open(file.inputStream())).toDocument().pages.size
     }
 

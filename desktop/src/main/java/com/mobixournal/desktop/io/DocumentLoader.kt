@@ -70,6 +70,10 @@ class DesktopDocument(
      */
     val pageSource: File = file,
 ) : AutoCloseable {
+    /** Recordings are namespaced by document; a rehome retains this store for a running take. */
+    var audioStore: DesktopAudioStore = DesktopAudioStore.forDocument(file)
+
+
 
     /**
      * The **editable** page window over [source]: a bounded read cache plus the overlay of pages an
@@ -114,8 +118,22 @@ class DesktopDocument(
 
     val pageCount: Int get() = window.pageCount
 
+    internal val textIndex = com.mobixournal.render.PageTextIndex()
+    private var structureRevision = 0L
+    private var nextPageRevision = 0L
+    private val pageRevisions = HashMap<Int, Long>()
+
+    /** A derived edit token: unchanged pages can reuse text without decoding their ink. */
+    @Synchronized internal fun pageRevision(index: Int): Pair<Long, Long> =
+        structureRevision to (pageRevisions[index] ?: 0L)
+
+    private fun invalidatePageRevisions() {
+        structureRevision++
+        pageRevisions.clear()
+    }
+
     /** The page at [index] — the edit if there is one, else decoded now for a `.mobix`, in memory for a `.xopp`. */
-    fun page(index: Int): Page = window.page(index)
+    fun page(index: Int): Page = withReader { synchronized(this) { window.page(index) } }
 
     /**
      * Apply [transform] to page [index] as one edit, through the window, and adopt the result into
@@ -124,9 +142,10 @@ class DesktopDocument(
      * @return the page the edit produced, or null when [transform] handed the same page back (a command
      *   that changed nothing), in which case neither the model nor the edit count moved.
      */
-    fun editPage(index: Int, transform: (Page) -> Page): Page? {
+    @Synchronized fun editPage(index: Int, transform: (Page) -> Page): Page? {
         val edited = window.edit(index, transform) ?: return null
         model = model.withPage(index, edited)
+        pageRevisions[index] = ++nextPageRevision
         edits++
         return edited
     }
@@ -150,9 +169,11 @@ class DesktopDocument(
      * resurrect an edit that had been undone. Untouched pages are read through the source again, so an
      * undo never materialises the rest of a notebook either.
      */
-    fun restore(snapshot: Snapshot) {
+    @Synchronized fun restore(snapshot: Snapshot) {
+
         // A structural step (an added or removed page) changed the list itself, and an index over the
         // old list cannot answer the new one: the window is rebuilt from the snapshot's own pages.
+        invalidatePageRevisions()
         model = snapshot.model
         window = PageWindow(PageSource.of(snapshot.model.pages))
         for ((index, page) in snapshot.overlay) window.set(index, page)
@@ -167,7 +188,8 @@ class DesktopDocument(
      * 200-page notebook still inflates only the page someone reads. The caller records its undo step
      * before calling (`DesktopTab.record`), exactly as for an edit to one page.
      */
-    fun replacePages(pages: List<Page>) {
+    @Synchronized fun replacePages(pages: List<Page>) {
+        invalidatePageRevisions()
         model = model.copy(pages = pages)
         window = PageWindow(PageSource.of(pages))
         edits++
@@ -196,7 +218,7 @@ class DesktopDocument(
      */
     fun saveShapeFor(target: File): DocumentEncoder.SaveShape = shape.copy(
         carriedFrom = pageSource,
-        repackOver = target.takeIf { it.absoluteFile == pageSource.absoluteFile },
+        repackOver = target.takeIf { container == DesktopContainer.MOBIX && it.absoluteFile == pageSource.absoluteFile },
     )
 
     /**
@@ -234,13 +256,11 @@ class DesktopDocument(
     fun pdfBackground(): Background.Pdf? = PdfPageReferences.of(model.pages)
 
     /** True once [close] ran — a tab that was replaced or deduplicated must not keep its reader alive. */
-    var isClosed: Boolean = false
+    @Volatile var isClosed: Boolean = false
         private set
 
-    override fun close() {
-        if (isClosed) return
-        isClosed = true
-        source.close()
+    override fun close() = withExclusive {
+        if (!isClosed) { isClosed = true; source.close() }
     }
 }
 
@@ -267,7 +287,9 @@ object DocumentLoader {
         return when (val kind = FileKind.of(leadingBytes(file))) {
             FileKind.ZIP -> openZip(file)
             FileKind.GZIP, FileKind.XML -> {
-                val document = Xopp.open(file.inputStream().buffered())
+                val document = file.inputStream().buffered().use { input ->
+                    if (kind == FileKind.XML) Xopp.parseXml(input.reader(Charsets.UTF_8)) else Xopp.open(input)
+                }
                 DesktopDocument(
                     file = file,
                     source = PageSource.of(document),
@@ -424,15 +446,15 @@ object DocumentLoader {
     }
 
     private fun openZippedXopp(file: File): DesktopDocument {
-        val loaded = XoppZip.open(
-            file.inputStream().buffered(),
+        val loaded = file.inputStream().buffered().use { input -> XoppZip.open(
+            input,
             pdfFile = {
                 // The package's background has to land somewhere: the codec hands back a file the caller
                 // allocated, never a shared name (two open packages must not overwrite each other).
                 Files.createTempFile("mobixournal-desktop-bg", ".pdf").toFile().also { it.deleteOnExit() }
             },
             imageFile = { Files.createTempFile("mobixournal-desktop-img", ".bin").toFile().also { it.deleteOnExit() } },
-        )
+        ) }
         return DesktopDocument(
             file = file,
             source = PageSource.of(loaded.doc),

@@ -208,7 +208,7 @@ internal fun ExportWorker(state: DesktopShellState) {
         val document = tab.document
         // Nothing is cleared before the write: nulling the request would re-key this effect and cancel
         // the very coroutine doing the work.
-        val outcome = withContext(Dispatchers.IO) { exportOf(document, request) }
+        val outcome = withContext(Dispatchers.IO) { document.withReader { exportOf(document, request) } }
         state.applyExport(outcome)
         DesktopExportQueue.take()
     }

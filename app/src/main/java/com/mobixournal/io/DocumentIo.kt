@@ -83,7 +83,8 @@ class DocumentIo(
     }
 
     /** Staging for document bytes, so slow remote (SSHFS/FTP/cloud) URIs never block the canvas. */
-    private val staging = UriStaging(resolver, File(cacheDir, STAGING_DIR))
+    private val stagingDir = File(cacheDir, STAGING_DIR)
+    private val staging = UriStaging(resolver, stagingDir)
 
     /**
      * Where a document's background PDF is kept while it is open — one file per document, never
@@ -132,6 +133,14 @@ class DocumentIo(
     fun prunePagedOpens(liveDocumentIds: Collection<String?>) = openSessions.prune(liveDocumentIds)
 
     /**
+     * True while [file] is an open `.mobix`'s own archive — the staged copy the session keeps, because
+     * its pages, its deferred recordings and a repack save all read those bytes after the open returns.
+     * The caller that staged it must leave it alone; the session deletes it with the document
+     * ([prunePagedOpens]).
+     */
+    fun retainsStaged(file: File): Boolean = openSessions.retains(file)
+
+    /**
      * The two storage caps the user sets in Settings → Storage, pushed in by the activity whenever
      * settings change. Held as a field rather than a constructor argument because this object
      * outlives any one settings value; unset, both are effectively unlimited.
@@ -145,6 +154,16 @@ class DocumentIo(
 
     /** Push a finished local [file] out to [uri]. Slow; run it off the UI thread. */
     fun stageOut(file: File, uri: Uri) = staging.stageOut(file, uri)
+
+    /**
+     * The archive [tab] can be snapshotted **as**: the one it was opened from, while nothing has been
+     * edited. `MobixTabSnapshots` writes it verbatim — a sequential copy instead of rebuilding a
+     * container whose audio made it large — and null otherwise, so a snapshot is an encode again.
+     */
+    fun openedArchiveFor(tab: com.mobixournal.tabs.OpenTab): File? {
+        if (tab.format != SaveFormat.MOBIX || !openSessions.openedUnedited(tab.document)) return null
+        return openSessions.stagedOf(tab.document)?.takeIf { it.isFile }
+    }
 
     /** Hold onto [uri] across restarts, so a later plain Save can write back to it. */
     fun persist(uri: Uri) = staging.persist(uri)
@@ -208,7 +227,7 @@ class DocumentIo(
                 }
                 FileKind.GZIP -> linked(Xopp.open(input), name, source)
                 // Desktop Xournal++ can write plain XML; accept it and save it back compressed.
-                FileKind.XML -> linked(Xopp.parseXml(input.reader(Charsets.UTF_8).readText()), name, source)
+                FileKind.XML -> linked(Xopp.parseXml(input.reader(Charsets.UTF_8)), name, source)
                 else -> error("unrecognised file type")
             }
         }
@@ -253,6 +272,7 @@ class DocumentIo(
             storeImage = { bytes -> imageStore.copyIn(bytes.inputStream()) },
             resolveLinked = { refs.resolveBackground(it, name, source) },
             storeAudio = audio,
+            audioArchive = staged,
         )
         return try {
             var mobixDoc = MobixDocument.openPaged(reader, backgrounds)
@@ -264,7 +284,11 @@ class DocumentIo(
 
             // Remember what this document was read from, so the next save can repack over it. Keyed by
             // the document's own id, which is what a save of it carries ([Document.documentId]).
-            openSessions.remember(mobixDoc.manifest.documentId, staged, source?.toString())
+            // A deferred recording payload, an independent audio reader and a repack save all read these
+            // bytes after the open has returned, so a copy this layer staged is the session's to keep —
+            // and to delete with the document (`prunePagedOpens`).
+            val owned = staged.parentFile?.absolutePath == stagingDir.absolutePath
+            openSessions.remember(mobixDoc.manifest.documentId, staged, source?.toString(), owned)
             // …and how it is shaped, so the save writes the same shape back: the canvas mode, and — for
             // a chunked document — the coordinates each part sits at (read out of the manifest's own
             // entry names, which costs no page read).
@@ -273,7 +297,7 @@ class DocumentIo(
             openSessions.keep(mobixDoc.manifest.documentId, reader)
 
             LoadedFile.Doc(
-                document = mobixDoc.toDocument(),
+                document = mobixDoc.toDocument().also { openSessions.opened(it) },
                 pdf = backgrounds.pdf,
                 format = SaveFormat.MOBIX,
                 images = backgrounds.images,

@@ -91,9 +91,11 @@ class MobixPageReuse private constructor(
             source: MobixEntrySource,
             /** The mode the write will claim: it decides what a part's entry name has to be. */
             canvasMode: CanvasMode = CanvasMode.PAGINATED,
+            previous: MobixManifest? = MobixManifest.read(source),
         ): MobixPageReuse {
             val (base, edited) = sourceView(pages) ?: return none
             val parts = base.backing.sourceParts() ?: return none
+            val currentParts = previous?.content?.associateBy { it.entry } ?: return none
             val reusable = LinkedHashMap<Int, MobixPart>()
             for (index in 0 until pages.size) {
                 if (index in edited) continue
@@ -102,6 +104,7 @@ class MobixPageReuse private constructor(
                 // have to be copied to this index's name, which is a rewrite, not a copy.
                 if (!entryMatches(part, index, canvasMode)) continue
                 if (part.entry !in source.entryNames) continue
+                if (currentParts[part.entry]?.sha256 != part.sha256) continue
                 reusable[index] = part
             }
             if (reusable.isEmpty()) return none

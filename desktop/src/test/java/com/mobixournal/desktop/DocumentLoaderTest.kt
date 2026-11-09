@@ -52,7 +52,7 @@ class DocumentLoaderTest {
     /** The same `.xopp` content in a self-contained ZIP package, through the app's own writer. */
     private fun zippedXopp(name: String = "packaged.xopp"): File {
         val file = temp.newFile(name)
-        XoppZip.save(Xopp.open(repoFile("udiff.xopp").inputStream().buffered()), pdf = null, output = file.outputStream())
+        XoppZip.save(repoFile("udiff.xopp").inputStream().buffered().use(Xopp::open), pdf = null, output = file.outputStream())
         return file
     }
 

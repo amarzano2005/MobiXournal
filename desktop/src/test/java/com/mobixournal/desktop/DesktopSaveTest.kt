@@ -65,6 +65,23 @@ class DesktopSaveTest {
      * `BuildConfig`, so the number is duplicated here and this test is what keeps the copy honest.
      */
     @Test
+    fun saveAsSamePathCommitsTheChosenContainerAndSavePoint() {
+        val file = temp.newFile("same.xopp")
+        file.outputStream().use { Xopp.save(Document(pages = SyntheticNotebook.pages(1)), it) }
+        val state = DesktopShellState()
+        state.tabs.open(DocumentLoader.load(file))
+        val tab = requireNotNull(state.tabs.active)
+        tab.record(tab.document.snapshot())
+        tab.document.editPage(0) { it.copy(width = 700.0) }
+        val saved = state.saveAs(file, SaveFormat.MOBIX)
+        assertNotNull(state.failure?.toString(), saved)
+        assertFalse(tab.isDirty)
+        assertEquals(DesktopContainer.MOBIX, tab.document.container)
+        assertNotNull(state.save())
+        DocumentLoader.load(file).use { assertEquals(DesktopContainer.MOBIX, it.container) }
+    }
+
+    @Test
     fun appVersionFollowsTheModulesVersionName() {
         val buildFile = repoFile("app/build.gradle.kts")
         val declared = Regex("""versionName\s*=\s*"([^"]+)"""")

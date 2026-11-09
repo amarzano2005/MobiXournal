@@ -103,6 +103,33 @@ class DesktopLifecycleTest {
      * saved state both make it clean again, and a redo away from the save point makes it dirty.
      */
     @Test
+    fun discardedRecoveryCannotBeRepublishedByAnOlderWriter() {
+        val store = store()
+        val state = state(store)
+        state.tabs.open(DocumentLoader.load(notebook()))
+        val tab = requireNotNull(state.tabs.active)
+        tab.edit()
+        val pending = store.prepare(tab)
+        val saved = store.save(pending) { store.forget(tab.file) }
+        org.junit.Assert.assertNull(saved)
+        assertTrue(store.entries().isEmpty())
+    }
+
+    @Test
+    fun newerRecoveryRequestInvalidatesAnOlderOne() {
+        val store = store()
+        val state = state(store)
+        state.tabs.open(DocumentLoader.load(notebook()))
+        val tab = requireNotNull(state.tabs.active)
+        tab.edit()
+        val old = store.prepare(tab)
+        val newer = store.prepare(tab)
+        org.junit.Assert.assertNotNull(store.save(newer))
+        org.junit.Assert.assertNull(store.save(old))
+        assertEquals(1, store.entries().size)
+    }
+
+    @Test
     fun theSavePointSurvivesAnUndoAndSavingIsUnavailableWhenNothingChanged() {
         val state = state()
         try {

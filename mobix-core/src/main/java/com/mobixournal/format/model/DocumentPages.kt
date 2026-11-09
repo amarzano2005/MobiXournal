@@ -1,5 +1,7 @@
 package com.mobixournal.format.model
 
+import com.mobixournal.collections.PersistentIntMap
+
 /**
  * [base] with the pages at [edits] replaced — a **view**, not a copy, so a single-page edit costs one
  * page however long the document is.
@@ -19,8 +21,9 @@ package com.mobixournal.format.model
  */
 class EditedPages private constructor(
     private val base: List<Page>,
-    private val edits: Map<Int, Page>,
-) : AbstractList<Page>() {
+    private val edits: PersistentIntMap<Page>,
+) : AbstractList<Page>(), PageListView {
+    override fun rebase(transform: (List<Page>) -> List<Page>): List<Page> = EditedPages(transform(base), edits)
 
     override val size: Int get() = base.size
 
@@ -45,9 +48,9 @@ class EditedPages private constructor(
     companion object {
         /** [base] with [index] replaced, reusing an existing view's base rather than stacking one. */
         fun of(base: List<Page>, index: Int, page: Page): List<Page> = if (base is EditedPages) {
-            EditedPages(base.base, base.edits + (index to page))
+            EditedPages(base.base, base.edits.put(index, page))
         } else {
-            EditedPages(base, mapOf(index to page))
+            EditedPages(base, PersistentIntMap.empty<Page>().put(index, page))
         }
     }
 }

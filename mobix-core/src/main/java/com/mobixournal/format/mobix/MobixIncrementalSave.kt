@@ -42,9 +42,10 @@ object MobixIncrementalSave {
         source: MobixEntrySource,
         plan: MobixSavePlan,
         output: OutputStream,
+        previous: MobixManifest? = MobixManifest.read(source),
     ): MobixIncrementalSaveStats = MobixIncrementalSaver.repack(
         source = source,
-        dirtyEntries = dirtyEntries(plan.entries, MobixManifest.read(source), source),
+        dirtyEntries = dirtyEntries(plan.entries, previous, source),
         output = output,
         explicitOrder = plan.order,
     )
@@ -82,7 +83,8 @@ object MobixIncrementalSave {
         canvas: MobixCanvasFile? = null,
         payloads: Map<String, MobixPayload> = emptyMap(),
     ): MobixIncrementalSaveStats {
-        val reuse = MobixPageReuse.of(document.pages, source, canvasMode)
+        val previous = MobixManifest.read(source)
+        val reuse = MobixPageReuse.of(document.pages, source, canvasMode, previous)
         val mobix = MobixDocument.of(
             document = document,
             appVersion = appVersion,
@@ -93,8 +95,9 @@ object MobixIncrementalSave {
             payloads = payloads,
             chunkCoords = chunkCoords,
             canvas = canvas,
+            previousManifest = previous,
         )
-        return repack(source, mobix.encode(nowMillis, backgrounds, audio, reuse), output)
+        return repack(source, mobix.encode(nowMillis, backgrounds, audio, reuse), output, previous)
     }
 
     /**

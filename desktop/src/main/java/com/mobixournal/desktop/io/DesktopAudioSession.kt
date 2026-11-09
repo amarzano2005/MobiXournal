@@ -127,6 +127,13 @@ internal object DesktopAudioSession {
     /** Which open document names a recording at all, by tab key — what enables that tab's Play. */
     private val heard = mutableStateMapOf<String, Boolean>()
 
+    /** A Save As changes the path key, but the running take and clip still belong to this tab. */
+    internal fun rehome(previous: String, current: String) {
+        if (takeOwner == previous) takeOwner = current
+        if (clipOwner == previous) clipOwner = current
+        heard.remove(previous)?.let { heard[current] = it }
+    }
+
     /** What the pill draws for [tab]; see [DesktopTabAudio]. */
     fun of(tab: DesktopTab?): DesktopTabAudio {
         val key = tab?.key
@@ -168,6 +175,7 @@ internal object DesktopAudioSession {
      * act on.
      */
     fun adopt(document: DesktopDocument) {
+        val store = document.audioStore
         val archive = document.pageSource ?: document.file
         if (document.container == DesktopContainer.MOBIX) {
             store.adoptBundled(archive, document.model)
@@ -200,7 +208,7 @@ internal object DesktopAudioSession {
     fun toggleRecord(tab: DesktopTab?) {
         if (recording) {
             if (tab != null && takeOwner == tab.key) {
-                finishRecording(tab.document.model)
+                finishRecording(tab.document)
             } else {
                 message = "A recording is running in another tab. Switch back to it to stop it."
             }
@@ -214,7 +222,7 @@ internal object DesktopAudioSession {
             message = "A recording is running in another tab. Switch back to it to stop it."
             return
         }
-        val name = recorder.start()
+        val name = recorder.start(storeOverride = tab.document.audioStore)
         val failure = recorder.message
         if (name == null) {
             message = failure ?: "The microphone could not be started."
@@ -244,7 +252,7 @@ internal object DesktopAudioSession {
      * hold the notebook's audio, and a second take must not be the only file in it. A copy that cannot be
      * written is reported in words rather than swallowed.
      */
-    private fun finishRecording(document: Document?) {
+    private fun finishRecording(document: DesktopDocument?) {
         val name = recorder.stop()
         recording = false
         recordingPaused = false
@@ -257,10 +265,10 @@ internal object DesktopAudioSession {
     }
 
     /** The tablet's *Save separate audio*: put the document's recordings in [exportFolder]. */
-    private fun exportStandalone(document: Document?) {
+    private fun exportStandalone(document: DesktopDocument?) {
         val folder = exportFolder ?: return
         if (!saveExternally || document == null) return
-        val copied = store.exportToFolder(folder, document)
+        val copied = document.audioStore.exportToFolder(folder, document.model)
         if (copied > 0) {
             message = if (copied == 1) {
                 "The recording was also saved to ${folder.absolutePath}."
@@ -332,8 +340,10 @@ internal object DesktopAudioSession {
             }
             return
         }
-        val at = KaraokeStrokeAnimator.seekTimeMs(ref.startMs, stroke.points, x, y)
-        play(ref.copy(startMs = at ?: ref.startMs), tab)
+        // Every clip starts at 0:00, tablet and window alike (`docs/audio.md`, mode 2): the stroke's own
+        // offset records when it was drawn, which is telemetry about the ink, not a place the user asked
+        // playback to begin at.
+        play(ref.copy(startMs = 0), tab)
     }
 
     /** Walk the transport's speeds: 1×, 1.25×, 1.5×, 2×, and back to 1×. */
@@ -346,7 +356,7 @@ internal object DesktopAudioSession {
     /** Play [ref] from its stamp, replacing whatever was on — the clip becomes [tab]'s. */
     fun play(ref: AudioRef, tab: DesktopTab?) {
         clipOwner = tab?.key
-        val failure = player.play(ref)
+        val failure = player.play(ref, tab?.document?.audioStore ?: return)
         message = failure
         refresh()
     }
@@ -424,7 +434,7 @@ internal object DesktopAudioSession {
      */
     fun forget(tab: DesktopTab?) {
         val key = tab?.key ?: return
-        if (recording && takeOwner == key) finishRecording(tab.document.model)
+        if (recording && takeOwner == key) finishRecording(tab.document)
         if (clipOwner == key) stopPlayback()
         heard.remove(key)
     }

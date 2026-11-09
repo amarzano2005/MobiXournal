@@ -1,5 +1,9 @@
 package com.mobixournal.desktop.shell
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.type
 
 /**
  * The window's **shortcuts, as the window's**: the one hook that fires whatever holds the keyboard.
@@ -25,6 +29,24 @@ internal object WindowKeys {
     /** True while the hamburger menu is open — the one popup whose field needs the keys for itself. */
     var menuOpen: Boolean = false
 
+    private val controls = mutableSetOf<Any>()
+    internal fun focusControl(owner: Any, focused: Boolean) = synchronized(controls) {
+        if (focused) controls.add(owner) else controls.remove(owner)
+        Unit
+    }
+    internal fun defersControlKey(key: Key): Boolean = synchronized(controls) {
+        controls.isNotEmpty() && key in setOf(Key.Enter, Key.NumPadEnter, Key.Spacebar,
+            Key.DirectionLeft, Key.DirectionRight, Key.DirectionUp, Key.DirectionDown, Key.Home, Key.MoveHome, Key.MoveEnd)
+    }
+
     /** True when the shell took the key, which is what makes the window consume it. */
-    fun handle(event: KeyEvent): Boolean = if (menuOpen) false else onKey?.invoke(event) == true
+    fun handle(event: KeyEvent): Boolean {
+        if (menuOpen) return false
+        if (defersControlKey(event.key)) {
+            // Release held shell modifiers too, while letting the focused control see its key-up.
+            if (event.type == KeyEventType.KeyUp) onKey?.invoke(event)
+            return false
+        }
+        return onKey?.invoke(event) == true
+    }
 }

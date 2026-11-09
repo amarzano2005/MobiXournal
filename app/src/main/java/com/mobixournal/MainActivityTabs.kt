@@ -123,6 +123,7 @@ internal fun MainActivity.snapshotActiveTab(p: EditorPane = pane) {
             // The resolver a paged `.mobix` reads its backgrounds through, captured like the PDF
             // path: the tab has to be able to hand the next canvas the same one.
             backgrounds = view.backgroundResolver,
+            images = view.imageSources().toMap(),
             page = view.visiblePageIndex(),
         )
     }
@@ -167,6 +168,7 @@ internal fun MainActivity.show(tab: OpenTab, p: EditorPane = pane, then: () -> U
 
 /** Load [tab] onto [p]'s canvas: its document, background PDF, save format and page. */
 internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
+    audioWork.cancelPlayback()
     val view = p.surface ?: return
     if (audio.isPlaying || audio.nowPlaying != null) {
         audio.stopPlayback()
@@ -181,6 +183,7 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     view.isReadOnly = tab.isReadOnly
     // Backgrounds first: a paged `.mobix` resolves its PDF when a page names it, so the file the
     // tab recorded may be null while the resolver can still answer.
+    view.setImageSources(tab.images)
     view.setBackgroundResolver(tab.backgrounds)
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
@@ -220,6 +223,7 @@ internal fun MainActivity.previewTabPage(
 
 /** Switch [p] to the tab at [index], snapshotting the one being left. */
 internal fun MainActivity.selectTab(index: Int, p: EditorPane = pane) {
+    audioWork.cancelPlayback()
     // A chip is a statement about *its* pane: selecting one from a lane the tools aren't on has to
     // hand them over too, or the toolbar would keep editing the other half.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
@@ -254,6 +258,7 @@ internal fun MainActivity.reorderTab(from: Int, to: Int, p: EditorPane = pane) {
  * in. The canvas is only reloaded when the *showing* tab actually changed.
  */
 internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
+    audioWork.cancelPlayback()
     // Closing a tab in a lane focuses that pane: what takes its place (or the fallback blank page)
     // is now what the chrome will act on, so it must be the pane in focus.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
@@ -306,9 +311,10 @@ internal fun MainActivity.blankTab(p: EditorPane = pane): OpenTab =
     )
 
 /**
- * Bring back the tabs [p] was last closed with, or start it on a single blank one. Called once
- * that pane's canvas exists; guarded so a surface rebuilt within this activity doesn't restore
- * twice (and so the right-hand pane only restores when split view actually opens it).
+ * Put [p]'s showing tab on a canvas that has just been built — a surface rebuilt within this activity
+ * (split view toggled, the layout changed). A pane with no tabs keeps them empty: the window is the
+ * entry screen, and the last run's session is *offered* there (`EntryRecents`) rather than restored
+ * here — reopening it behind the reader's back is what makes that offer unreachable.
  */
 internal fun MainActivity.restoreTabs(p: EditorPane, then: () -> Unit = {}) {
     // A pane that already has a session is being handed a *replacement* canvas (split view was
@@ -317,37 +323,7 @@ internal fun MainActivity.restoreTabs(p: EditorPane, then: () -> Unit = {}) {
         p.tabs.active?.let { show(it, p, then) } ?: then()
         return
     }
-    isRestoringTabs = true
-    // Reading the index and parsing the showing tab's snapshot is disk + gzip + XML work, so it
-    // happens on a worker; only the (cheap) hand-off to the canvas runs on the main thread. Doing
-    // it inline is what pushed the first frame past the ANR watchdog on a big restored session.
-    Thread {
-        val session = p.store.load()
-        runOnUiThread {
-            if (p.tabs.isEmpty) {
-                // Nothing was open when the app was last closed — no session at all, or one with no tabs —
-                // so the pane stays **empty** and the window opens on the entry screen.
-                if (session != null && session.tabs.isNotEmpty()) {
-                    session.tabs.forEach(p.tabs::open)
-                    p.tabs.select(session.activeIndex)
-                }
-                val active = p.tabs.active
-                if (active != null) {
-                    show(active, p) {
-                        isRestoringTabs = false
-                        then()
-                    }
-                } else {
-                    isRestoringTabs = false
-                    then()
-                }
-                tabsTick.value++
-            } else {
-                isRestoringTabs = false
-                then()
-            }
-        }
-    }.start()
+    then()
 }
 
 /** Write the focused pane's session out, on every tab change and on the way to the background. */
@@ -366,6 +342,7 @@ internal fun MainActivity.persistTabs() {
  * the canvas is precisely the bug this store exists to prevent.
  */
 internal fun MainActivity.prunePdfCache() {
+    if (backgroundWorkCount > 0) return // A worker may hold assets not attached to its tab yet.
     val live = panes.flatMap { p ->
         p.tabs.tabs.map(OpenTab::pdfPath) + listOf(p.surface?.pdfSourceFile()?.absolutePath)
     }
@@ -375,10 +352,11 @@ internal fun MainActivity.prunePdfCache() {
         p.tabs.tabs.map { it.document.documentId } + listOf(p.surface?.toDocument()?.documentId)
     }
     io.prunePagedOpens(liveDocuments)
-    // Pixmap copies aren't recorded in a tab (a reopened document re-resolves them), so only the
-    // pictures the live canvases are decoding from are kept.
+    // Inactive tabs still own their eagerly resolved copies and their lazy resolver's copies.
     val liveImages = panes.flatMap { p ->
-        p.surface?.imageSources()?.values?.map(File::getAbsolutePath).orEmpty()
+        p.tabs.tabs.flatMap { it.images.values + it.backgrounds?.images.orEmpty().values }
+            .map(File::getAbsolutePath) +
+            p.surface?.imageSources()?.values?.map(File::getAbsolutePath).orEmpty()
     }
     io.prune(live, liveImages)
 }

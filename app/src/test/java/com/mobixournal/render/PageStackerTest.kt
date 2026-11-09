@@ -81,4 +81,33 @@ class PageStackerTest {
         assertEquals(100f, out.contentWidthPx, 1e-4f) // view width, since the page is narrower
         assertEquals(25f, box.leftPx, 1e-4f) // (100 - 50) / 2, centred
     }
+    @Test fun viewportLookupSkipsThousandsOfOtherPages() {
+        val stack = PageStacker.stack(List(10_000) { page(100.0, 200.0) }, 100, 10f)
+        assertEquals(9000, stack.pageAt(50f, 1_890_001f)!!.index)
+        assertTrue(stack.examinedBoxes <= 1)
+        assertEquals(listOf(9000), stack.visible(1_890_001f, 100f).map { it.index })
+        assertTrue(stack.examinedBoxes <= 1)
+    }
+    @Test fun indexedBandsMatchLinearLookupForOverlapsAndSideBySidePages() {
+        val source = object : com.mobixournal.format.mobix.PageSource {
+            override val pageCount = 4
+            override fun pageId(index: Int): String? = null
+            override fun page(index: Int): Page = error("lookup must not decode pages")
+        }
+        val boxes = listOf(
+            PageBox(0, 100f, 0f, 100f, 200f, 1f, source),
+            PageBox(1, 0f, 0f, 100f, 150f, 1f, source),
+            PageBox(2, 0f, 110f, 100f, 150f, 1f, source),
+            PageBox(3, 400f, 0f, 100f, 100f, 1f, source),
+        )
+        val layout = StackedLayout(boxes, 500f, 210f)
+        for (y in -10..510 step 10) {
+            val fy = y.toFloat()
+            assertEquals(boxes.firstOrNull { fy >= it.topPx && fy < it.bottomPx }, layout.pageAt(fy))
+            assertEquals(boxes.filter { it.bottomPx > fy && it.topPx < fy + 40 }, layout.visible(fy, 40f))
+            for (x in -10..220 step 20) {
+                assertEquals(boxes.firstOrNull { it.contains(x.toFloat(), fy) }, layout.pageAt(x.toFloat(), fy))
+            }
+        }
+    }
 }

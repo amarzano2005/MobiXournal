@@ -188,8 +188,8 @@ around it. `ShapeFeedbackTest` holds the shared controls to that order, because 
 late compiles and reads correctly.
 
 The window keeps the rule the other way round: `hoverFill(shape)` and `hoverCapsule` draw the light **with**
-the shape, so one background cannot disagree with its control. A rectangular hover belongs to the settings
-rows alone, whose card clips them (`SettingsGroup` → `glassSurface`); `DesktopShapeFeedbackTest` pins both
+the shape, so one background cannot disagree with its control. A rectangular hover belongs to desktop settings
+rows alone, whose flat groups keep its full row bounds (`SettingsGroup`); `DesktopShapeFeedbackTest` pins both
 halves, and that no control is left with no answer to the pointer at all. A **document tab** is the one picked
 surface that also wears the **accent edge** — 1 dp of the accent at 60 %, the tablet's own ring on a
 selected chip — because a strip of capsules says which document is open by outline as well as by fill. A
@@ -289,10 +289,9 @@ band that stops short of the strip's curve — the lit part no longer wears the 
 pads its rows **vertically** only, the panel's rounded clip supplies the ends, and each row carries the
 inset its own label needs (`OptionMenuItem`'s 16 dp).
 
-A **settings card** is that case on the other axis: it pads **horizontally** only, the rows reach its top
-and bottom edges, and its 20 dp clip therefore rounds the first and last row's highlight instead of
-leaving a square band inside the curve. The vertical air belongs to the blocks (`SettingsCellPad`, a
-note's or a header's block inset), never to the card; `SettingsRowFullBleedTest` fails if it comes back.
+A **tablet settings card** keeps its horizontal air and rounded clipping. Desktop settings and live
+inspectors use flat property groups instead: a heading, whitespace and a hairline, with no nested glass
+or group rim. Their outer panel/lane keeps the existing material. This is the desktop layout decision for the pointer/keyboard workspace; palette, glyphs and minimum 40 dp hit areas remain shared. Desktop row hover is rectangular within its group bounds; `DesktopSettingsStyleTest` checks the pixels. The desktop inspector divider uses a full-height 6 dp resize target with keyboard alternatives, as a boundary handle rather than a button slot. Desktop property controls use the 4 dp `PROPERTY_CONTROL_CORNER_DP` token, square checkbox indicators and unfilled secondary actions; other chrome retains its shapes. Plot previews in both shells inherit the panel background and adapt ink for contrast without recoloring documents.
 
 A select whose answers belong to **several families** prints a **head** over each one — the ring's
 *Colours*, *Tools* and *Widths*, with *Remove* under *Leave it out*. A head names a family, never a choice,

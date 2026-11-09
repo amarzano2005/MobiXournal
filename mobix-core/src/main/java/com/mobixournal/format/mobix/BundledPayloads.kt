@@ -59,9 +59,10 @@ fun carriedPayloads(
     document: Document,
     archive: File?,
     suppliedAudio: (String) -> MobixPayload?,
+    defaultPaper: Background? = null,
 ): Map<String, MobixPayload> {
     if (archive == null) return emptyMap()
-    val referenced = referencedAssets(document, suppliedAudio)
+    val referenced = referencedAssets(document, suppliedAudio, defaultPaper)
     if (referenced.isEmpty()) return emptyMap()
     val present = runCatching {
         ZipFile(archive).use { zip -> zip.entries().asSequence().map { it.name }.toSet() }
@@ -84,8 +85,14 @@ fun carriedPayloads(
 fun referencedAssets(
     document: Document,
     suppliedAudio: (String) -> MobixPayload?,
+    defaultPaper: Background? = null,
 ): Set<String> {
     val names = LinkedHashSet<String>()
+    when (defaultPaper) {
+        is Background.Pdf -> defaultPaper.bundledAsset?.let(names::add)
+        is Background.Pixmap -> defaultPaper.bundledAsset?.let(names::add)
+        else -> Unit
+    }
     for (page in document.pages) {
         when (val background = page.background) {
             is Background.Pdf -> background.bundledAsset?.let(names::add)

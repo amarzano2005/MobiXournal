@@ -70,6 +70,17 @@ the app on the device, tabs and settings included. **Judge speed on the release 
 `scripts/release-apk.sh` builds `:app:assembleRelease` and signs it with the debug keystore (so it
 upgrades in place, and back), writing `app/build/outputs/apk/release/app-release.apk`.
 
+For published Android tags, CI sets `MOBIX_REQUIRE_RELEASE_SIGNING=1`. Configure repository secrets
+`MOBIX_ANDROID_KEYSTORE_BASE64` (base64 of the existing signing keystore), `MOBIX_ANDROID_KEY_ALIAS`,
+`MOBIX_ANDROID_STORE_PASSWORD`, `MOBIX_ANDROID_KEY_PASSWORD`, and repository variable
+`MOBIX_ANDROID_CERT_SHA256` (the signing certificate's 64 hexadecimal SHA-256 digits).
+Missing material fails before building; a certificate mismatch removes the output APK and fails the job.
+Use the certificate of the installed APKs: generating a new key cannot preserve their upgrade path.
+Local builds retain debug signing by default. Android permits an in-place update only when package and
+signing identity agree; a shared application id alone does not make debug and published APKs compatible.
+`scripts/test-release-signing.py` tests preflight and fingerprint enforcement with fake SDK tools:
+run it with Python, without a device, keystore or Android SDK. CI runs it before the APK build.
+
 ### Host fallback — no `/data/android`, no Docker
 
 `/data/android` is a **machine-local path**. On a host that doesn't have it, `scripts/build.sh`

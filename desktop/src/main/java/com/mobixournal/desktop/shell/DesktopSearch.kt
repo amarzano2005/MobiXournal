@@ -17,6 +17,10 @@ import com.mobixournal.render.PdfWord
 import com.mobixournal.render.SearchHit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.delay
+import com.mobixournal.desktop.io.withReader
 
 /**
  * The window's answer to **one** query: what it matched, and which match the reader is standing on.
@@ -104,15 +108,25 @@ internal object DesktopSearchEngine {
         tab: DesktopTab,
         rawQuery: String,
         handwriting: PageHandwriting? = null,
+        checkCancelled: () -> Unit = {},
     ): DesktopSearch {
         val query = rawQuery.trim()
         if (query.length < MIN_QUERY) return DesktopSearch(query)
-        val hits = DocumentSearch.find(
-            TabPages(tab.document),
-            { index -> pdfWordsOf(tab, index) },
+        val document = tab.document
+        val pdf = tab.pdfIndex
+        val hits = document.withReader { document.textIndex.find(
+            TabPages(document),
+            document::pageRevision,
+            pdf,
+            { index ->
+                val page = document.page(index)
+                val number = (page.background as? Background.Pdf)?.pageNo
+                if (number == null) emptyList() else pdf?.words(number).orEmpty()
+            },
             query,
             handwriting,
-        )
+            checkCancelled,
+        ) }
         return DesktopSearch(query = query, hits = hits)
     }
 
@@ -160,12 +174,20 @@ internal fun SearchRunner(tab: DesktopTab?) {
     // The page in view is read a moment after it is opened or turned, so the first query on a written
     // sheet answers from a reading that already exists rather than from thirty lines of recognition.
     LaunchedEffect(tab, tab.page) { tab.warmInk() }
-    LaunchedEffect(tab, query, edits) {
+    LaunchedEffect(tab, query, edits, tab.pdfIndex) {
         if (query.trim().length < DesktopSearchEngine.MIN_QUERY) {
             tab.search = DesktopSearch(query.trim())
             return@LaunchedEffect
         }
+        delay(150)
+        val document = tab.document
         val handwriting = tab.handwriting.of(tab)
-        tab.search = withContext(Dispatchers.Default) { DesktopSearchEngine.run(tab, query, handwriting) }
+        val result = withContext(Dispatchers.Default) {
+            val context = currentCoroutineContext()
+            DesktopSearchEngine.run(tab, query, handwriting) { context.ensureActive() }
+        }
+        if (tab.document === document && tab.document.edits == edits && tab.searchQuery == query) {
+            tab.search = result
+        }
     }
 }

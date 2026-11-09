@@ -2,6 +2,7 @@ package com.mobixournal.desktop.sheet
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.ink.smoothPointsForTaper
 import com.mobixournal.desktop.ink.smoothedInk
+import com.mobixournal.desktop.ink.InkCurve
 
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -27,11 +28,11 @@ internal object PageInk {
      * are 8 ms apart at best, so joining them straight drew the sampling rate as facets along every
      * diagonal. Geometric figures pass [smooth] = false to keep their straight sides and sharp corners untouched.
      */
-    fun polyline(pts: List<StrokePoint>, scale: Float, smooth: Boolean = true): Path = Path().apply {
+    fun polyline(pts: List<StrokePoint>, scale: Float, smooth: Boolean = true, curves: List<InkCurve>? = null): Path = Path().apply {
         val first = pts.firstOrNull() ?: return@apply
         moveTo((first.x * scale).toFloat(), (first.y * scale).toFloat())
         if (smooth) {
-            for (curve in smoothedInk(pts)) {
+            for (curve in curves ?: smoothedInk(pts)) {
                 quadraticBezierTo(
                     (curve.controlX * scale).toFloat(),
                     (curve.controlY * scale).toFloat(),
@@ -51,6 +52,10 @@ internal object PageInk {
     fun taperPath(pts: List<StrokePoint>, scale: Float, smooth: Boolean = true): Path {
         val points = if (smooth && pts.size >= 3) smoothPointsForTaper(pts) else pts
         val outline = InkGeometry.taperOutline(points, scale, offsetX = 0f, offsetY = 0f)
+        return outlinePath(outline)
+    }
+
+    fun outlinePath(outline: FloatArray): Path {
         if (outline.size < 6) return Path()
         return Path().apply {
             moveTo(outline[0], outline[1])

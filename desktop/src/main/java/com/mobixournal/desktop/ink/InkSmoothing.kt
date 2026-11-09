@@ -82,10 +82,10 @@ internal fun smoothedInk(points: List<StrokePoint>): List<InkCurve> {
  */
 private fun straight(to: StrokePoint): InkCurve = InkCurve(to.x, to.y, to.x, to.y)
 
-private fun midpoint(a: StrokePoint, b: StrokePoint): StrokePoint = StrokePoint((a.x + b.x) / 2.0, (a.y + b.y) / 2.0, a.width)
+internal fun midpoint(a: StrokePoint, b: StrokePoint): StrokePoint = StrokePoint((a.x + b.x) / 2.0, (a.y + b.y) / 2.0, a.width)
 
 /** How sharply the stroke turns at sample [i], in degrees: 0 straight on, 90 a right angle. */
-private fun turnDegrees(points: List<StrokePoint>, i: Int): Double {
+internal fun turnDegrees(points: List<StrokePoint>, i: Int): Double {
     val a = points[i - 1]
     val b = points[i]
     val c = points[i + 1]

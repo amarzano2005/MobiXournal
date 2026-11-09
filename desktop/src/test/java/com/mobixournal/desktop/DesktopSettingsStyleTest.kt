@@ -135,7 +135,7 @@ class DesktopSettingsStyleTest {
         val row = SettingsMetrics.ROW_HEIGHT.value
         val control = SettingsMetrics.CONTROL_HEIGHT.value
         val page = SettingsMetrics.PAGE_MAX_WIDTH.value
-        assertEquals("the index is a list of names, and no wider", 232.0, index.toDouble(), 0.0)
+        assertEquals("the index is a list of names, and no wider", 210.0, index.toDouble(), 0.0)
         assertEquals("one setting is one 40 dp row", 40.0, row.toDouble(), 0.0)
         assertTrue("a control sits inside its row: $control dp", control in 24f..32f && control < row)
         assertTrue("the page column is capped so a 21:9 window keeps its line length: $page dp", page <= 760f)
@@ -266,19 +266,12 @@ class DesktopSettingsStyleTest {
             changed.last() in (cardRight - 1)..cardRight,
         )
 
-        // And it **follows the card's shape at the ends**: a row reaches the card's top and bottom edges,
-        // so the card's own rounded clip is what a selected first or last row wears. The card's edges are
-        // measured in the resting frame through the middle column, where no corner rounds them away.
-        val middleX = width / 2
-        val desk = rest[middleX]
-        val cardTop = (0 until height).first { y -> rest[y * width + middleX] != desk }
-        val cardBottom = (0 until height).last { y -> rest[y * width + middleX] != desk }
-        val litColumn = (0 until height).filter { y -> rest[y * width + middleX] != lit[y * width + middleX] }
-        assertTrue("the lit row starts at the card's top edge ($cardTop): ${litColumn.first()}", litColumn.first() in (cardTop - 2)..(cardTop + 2))
-        assertTrue(
-            "and reaches its bottom edge ($cardBottom), not a bar inside it: ${litColumn.last()}",
-            litColumn.last() in (cardBottom - 2)..cardBottom,
-        )
+        val litRows = changedRows.filter { it.second > width / 3 }
+        assertTrue("the flat row keeps its full interaction height", litRows.size >= 38)
+        assertTrue("hover remains inside the group inset", changedRows.all { (y, count) ->
+            count == 0 || (0 until width).filter { x -> rest[y * width + x] != lit[y * width + x] }
+                .all { it in cardLeft..cardRight }
+        })
     }
 
     @Test

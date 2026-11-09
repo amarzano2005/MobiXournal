@@ -19,9 +19,18 @@ import com.mobixournal.format.xml.XmlPullReader.Event
 import java.util.Base64
 
 /** Builds a [Document] from decompressed `.xopp` XML. Attributes we don't model are preserved. */
-class XoppReader(xml: String) {
-
-    private val r = XmlPullReader(xml)
+class XoppReader(reader: java.io.Reader) {
+    constructor(xml: String) : this(java.io.StringReader(xml))
+    private var bridge: String? = null
+    private var bridgeSeen = false
+    private val r = XmlPullReader(reader) { body ->
+        val trimmed = body.trimStart()
+        val tag = Xopp.BRIDGE_COMMENT
+        if (!bridgeSeen && trimmed.startsWith(tag) && trimmed.getOrNull(tag.length)?.isWhitespace() == true) {
+            bridgeSeen = true
+            bridge = com.mobixournal.format.xml.XmlComment.unescape(trimmed.substring(tag.length).trim())
+        }
+    }
 
     /** Attributes handled explicitly per element; everything else is preserved verbatim. */
     private val strokeKnownAttrs = setOf("tool", "color", "width", "capStyle", "style", "fill")
@@ -38,7 +47,20 @@ class XoppReader(xml: String) {
         var fileVersion = "4"
         var preview: String? = null
         var title: String? = null
+        var rootSeen = false
+        var rootClosed = false
         while (r.next() != Event.EOF) {
+            if (r.event == Event.START) {
+                require(!rootClosed) { "Invalid Xournal document: content after root" }
+                if (!rootSeen) {
+                    require(r.name == "xournal") { "Invalid Xournal document: expected xournal root" }
+                    rootSeen = true
+                } else {
+                    require(r.name != "xournal") { "Invalid Xournal document: nested root" }
+                }
+            }
+            if (r.event == Event.END && r.name == "xournal") rootClosed = true
+            if (r.event == Event.TEXT) require(r.text.isBlank()) { "Invalid Xournal document: unexpected text" }
             if (r.event == Event.START) when (r.name) {
                 "xournal" -> {
                     creator = r.attr("creator") ?: creator
@@ -51,7 +73,8 @@ class XoppReader(xml: String) {
                 "page" -> pages += readPage()
             }
         }
-        return Document(creator, fileVersion, pages, preview, title)
+        require(rootSeen && rootClosed) { "Invalid Xournal document: missing xournal root" }
+        return Document(creator, fileVersion, pages, preview, title).copy(bridge = bridge)
     }
 
     /** The attributes of the element at the cursor minus [known], in source order. */
@@ -128,7 +151,7 @@ class XoppReader(xml: String) {
     private fun readRaw(): RawElement {
         val name = r.name
         val attrs = r.attributes().toMap(LinkedHashMap<String, String>())
-        val start = r.position
+        val start = r.beginCapture()
         var end = start
         var depth = 0
         loop@ while (true) {
@@ -137,7 +160,7 @@ class XoppReader(xml: String) {
                 Event.EOF -> { end = before; break@loop }
                 Event.START -> depth++
                 Event.END -> if (depth == 0 && r.name == name) {
-                    end = before
+                    end = r.eventStart
                     break@loop
                 } else {
                     depth--

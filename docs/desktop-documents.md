@@ -66,9 +66,36 @@ while the file already holds the document.
 While a tab is dirty the window also writes a **crash snapshot**: a self-contained `.mobix` in
 `%APPDATA%\MobiXournal\recovery\`, keyed by a digest of the file's path, with a two-line `.origin` sidecar
 naming the tab and the file. It is written once per quiet burst of edits (three seconds), not per stroke,
-because a snapshot is the whole notebook. A start that finds one opens it as `… (recovered)`, dirty, standing
+with a full baseline followed by native deltas as described below. A start that finds one opens it as `… (recovered)`, dirty, standing
 for the original path: `loadRecovered` keeps the **origin** as the save target and the **snapshot** as the
 repack source, so a save rebuilds the pages from the recovered copy instead of copying the file's older ones
 back over them, and it is encoded on a background thread — a whole notebook on the UI thread froze the window
 in the middle of a pause. Saving, discarding or closing the tab deletes the snapshot; nothing in `recovery/`
 is a save.
+
+Save As to the current path uses the same stage/close/replace/reopen sequence as an ordinary Save,
+with the explicitly chosen format. Its reloaded container and save point then become the tab's baseline
+(`DesktopSaveTest`). Quiet recovery captures immutable requests on the UI thread before encoding on IO;
+each origin has a generation. Save or Discard invalidates that generation, so an older writer cannot
+republish a snapshot after it was removed (`DesktopLifecycleTest`).
+
+Recovery encoding is serialized per store. A superseded generation is rejected before staging and at
+output chunks, as well as before replacement, so obsolete requests stop consuming a whole encode.
+Native recovery keeps an independent full baseline plus immutable ZIP entry deltas. Each record carries
+the current manifest/order, changed pages and new assets; normal updates leave the baseline untouched.
+Before reopening, or after 16 records / a bounded byte threshold, compaction publishes a standard
+`.mobix` checkpoint before deleting older records. A checkpoint watermark prevents replay after an
+interrupted cleanup. The watermark is a private ZIP comment; record metadata is outside the document
+entry namespace, so even colliding unknown entry names survive. Unpublished `.writing` files are ignored. Documents without native identity use
+full checkpoints. Final user-file saves still have the ZIP/provider copy cost described in
+[mobix-format.md](mobix-format.md).
+
+## Desktop save transaction
+
+Toolbar, keyboard, Save As and close-confirm saves use `SaveWorker`. The editor is temporarily
+unavailable while IO stages the bytes, drains document reader leases, replaces the destination and
+reopens it. A desk status uses existing theme tokens and English copy. Tab adoption and history/save
+point changes happen on the UI thread. A revision change aborts replacement and asks for another save.
+Search, export and recovery hold read leases; archive closure holds exclusive ownership. Failed
+same-path replacement retains the staged document as a dirty retry source. Synchronous APIs remain
+available to headless callers and tests.

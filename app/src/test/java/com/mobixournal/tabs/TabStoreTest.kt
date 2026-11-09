@@ -8,6 +8,7 @@ import com.mobixournal.format.model.Page
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -27,6 +28,34 @@ class TabStoreTest {
     private fun doc(width: Double) = Document(
         pages = listOf(Page(width, 100.0, Background.Solid(-1, "plain"), listOf(Layer(emptyList())))),
     )
+
+    @Test fun aDroppedTabLeavesTheStoredSessionAndItsSnapshot() {
+        val dir = tmp.newFolder()
+        val store = xoppStore(dir)
+        val session = TabSession(
+            tabs = listOf(
+                OpenTab("t1", "first.xopp", doc(111.0), "content://docs/1"),
+                OpenTab("t2", "second.xopp", doc(222.0), "content://docs/2"),
+            ),
+            activeIndex = 1,
+        )
+        assertEquals(true, store.save(session))
+
+        store.dropTab("t1")
+
+        val back = store.load()!!
+        assertEquals(listOf("second.xopp"), back.tabs.map { it.title })
+        assertTrue("the dropped tab's snapshot is gone", !java.io.File(dir, "t1.xopp").exists())
+    }
+
+    @Test fun droppingTheLastTabLeavesNoSessionAtAll() {
+        val store = xoppStore(tmp.newFolder())
+        assertEquals(true, store.save(TabSession(listOf(OpenTab("t1", "only.xopp", doc(1.0))), 0)))
+
+        store.dropTab("t1")
+
+        assertNull(store.load())
+    }
 
     @Test fun aTwoTabSessionRoundTripsWithItsOwnPdfPathPerTab() {
         val store = xoppStore(tmp.newFolder())

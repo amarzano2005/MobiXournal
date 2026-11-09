@@ -19,54 +19,46 @@ floating alpha the page's own ink came up through the labels.
 
 Its index is **twelve sections** — Stylus, Shortcuts, Audio, Figures, Colors, Ring, Toolbar, Navigation,
 Appearance, Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each
-wearing the shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). They are listed under the tablet's **four
-areas** — *Input*, *Drawing*, *Interface*, *App & data* (`DesktopSettingArea`) — because ten names in one
-flat column is a list read top to bottom while four short groups is one scanned by its shape, and a reader
-who uses both shells finds the same subjects under the same headings. What the window does **not** carry is
+wearing the shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). Desktop navigation follows four task areas: **Workspace** (Appearance, Toolbar, Navigation), **Input** (Stylus, Shortcuts, Ring), **Drawing** (Figures, Colors), and **Files & app** (Documents, Audio, Backup, About). This desktop grouping keeps pen shortcuts together and recording beside document workflows. What the window does **not** carry is
 the phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this
 shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
 **rows**, the name and the control at the right edge (`SettingsRows.kt`), and a group's heading starts on the
 **labels' column** rather than on the card's edge — the rows inside are inset 12 dp, so a group's name and the
 names under it begin at the same x.
 
-A group's card is the **tablet's settings card** (`docs/chrome.md`): the near-solid panel glass, the 20 dp panel
-corner and the rim as its whole edge — and a lit row wears that shape, ends included (`DesktopSettingsStyleTest`).
+Desktop groups are flat: a heading, a quiet divider and aligned property rows. Only the outer floating
+window wears glass and a rim. This desktop-specific composition shares the tablet's palette, glyphs
+and control states while using the wider pointer/keyboard workspace. The panel adapts up to 1050 by
+760 dp, with a 210 dp navigation column and a separator before the content.
 
 The list is **names only** — a glyph and a word per section — because two-line summaries are a page to skip.
 
 The header carries a unified **search field** beside the close glyph: a section stays in the list
 when its title, its summary, aliases or commands match, and the filter stays active while browsing
-results until cleared with `×` or `Esc`. It is deliberately not focused on opening: the list is what
+results until cleared with `×` or `Esc`. Queries match all words, including area names; results and fallback pages follow the visible index order. It is deliberately not focused on opening: the list is what
 a reader returns for, and a focused bar eats a shortcut's first letter.
 
-The panel always **opens on Stylus** (`DesktopSettingSection.DEFAULT`), whatever page it was closed on: the
-pen is the choice a session starts from. A caller that means another section names it — the hamburger's pen
-block asks for the stylus explicitly — and the index picks any of them afterwards.
+The panel remembers its last visited section for the current window. A caller can still explicitly
+request a section, such as Stylus from the pen menu. Switching sections starts the content at its heading; both navigation and content have themed scrollbars for longer lists.
 
-### One line per setting, and a help line
+### Labels and explanations
 
-A row is **one line tall**: its name, and its answer at the right edge. The sentence that explains the
-answer is not drawn under the name — it goes to the panel's **help line**, the footer under the body, which
-shows the sentence of whatever the pointer is over (a page row, or an index row, where it is that section's
-summary) and the open page's own summary at rest. Two lines per row made a page of twelve settings run past
-the bottom of a 640 dp panel: the reader scrolled to find out what a setting already on screen wanted, and
-the answers were what got pushed off. The hand-off is the rows' (`LocalSettingsHelp`, `SettingsHelpTest`),
-so a page rendered outside the panel — a fixture — simply keeps its sentences to itself.
-
-A note is still **one clause**: a setting that needs a paragraph has the wrong name.
+Rows keep aligned control columns and a minimum 40 dp hit area. Explanations are visible beneath their
+labels, up to two lines; the hover footer remains available for the complete sentence. Each page starts
+with its title and summary. Groups use whitespace and a hairline instead of nested rounded cards.
 
 ### The page's grammar
 
 One rule per kind of thing, so a reader can tell an answer from an action at a glance:
 
 - a **value** ends in a slider with its number beside the track (`Minimum pressure`, `Multiplier`);
-- a **choice** ends in a **select**, and in nothing else: the answer in hand on a capsule with a chevron,
+- a **choice** ends in a **select**, and in nothing else: the answer in hand on a compact field with a chevron,
   the rest of the list in a menu under it (`Stream`, `Placement`, `New document`) — a row of lozenges was the
-  same control in a louder costume. The capsule takes the pointer, `Enter`/`Space`, and
-  Left/Right to step through the answers; the menu is the panel's fill with its rows **inset as capsules**,
+  same control in a louder costume. The field takes the pointer, `Enter`/`Space`, and
+  Left/Right to step through the answers; the menu is the panel's fill with its rows **inset as compact controls**,
   because a full-bleed row is cut by the popup's rounded edge — a line of selection with its end sliced off
   (`SettingsSelect`);
-- a **toggle** ends in the switch, and the whole row is the hit area (`Pressure sensitivity`);
+- a **toggle** ends in a square checkbox, and the whole row is the hit area (`Pressure sensitivity`);
 - a **readout** ends in a word or a number with no control at all, at the row's own inset so its small type sits
   on the labels' column (`Version` → *1.0.1*);
 - a **command** is a row with **nothing at its end**: the label is in the accent and the row is the button
@@ -90,9 +82,9 @@ state would look right until the next launch.
 
 **Theme** (`interface.theme`) is the window's tone — **System**, **Dark** or **Light**, System when the file says nothing: the window asks Windows' own *Choose your mode* once, and a host that cannot be asked is dark.
 One flag decides every colour in `DesktopTheme`, so desk, bands, ink and rims turn over together.
-Under **Appearance → Status bar**, because every row there is about the screen it paints on:
+Under **Appearance**, display controls and status readouts have separate groups:
 
-- **Full screen** (`F11`, or the row's switch). The window takes the whole screen through its own
+- **Full screen** (`F11`, or the row's checkbox). The window takes the whole screen through its own
   placement (`FullScreenMode`), and gives it back to the placement it had. Deliberately **not stored**: a
   window opens as a window, and a file that remembered "full screen" would take the desk from a
   double-click.
@@ -100,8 +92,7 @@ Under **Appearance → Status bar**, because every row there is about the screen
   while the window is full screen**. A refresh rate is the panel's mode, not something a window can apply
   to itself, so offering it windowed would be exactly the dead setting this section exists to avoid. While
   full screen, choosing a rate asks the display again without leaving and re-entering the mode.
-- **Frame time** (`display.frameTime`) starts and stops the status bar's paint readout, and the **Display**
-  row under it always reports the rate the panel is **really** at (`refreshLabel(displayRefreshHz())`).
+- **Display** reports the actual refresh rate in its group. **Frame time** (`display.frameTime`) and the painting readout live under **Status bar**.
 
 `DesktopDisplay.kt` is that conversation with the platform, and its rule is the refusal: a laptop panel
 has no 144 Hz mode and a remote session refuses every mode change, so `requestRefresh` answers `false`,

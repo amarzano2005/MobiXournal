@@ -551,10 +551,19 @@ class DesktopShellTest {
      * between two renders would **sometimes** not have reached the recomposer yet — a test that passes
      * or fails with the machine's mood. This call is what a running frame loop does every frame.
      */
+    private var frameTime = 0L
+
     @OptIn(ExperimentalComposeUiApi::class)
     private fun frame(scene: ImageComposeScene, name: String): ByteArray {
+        // Advance the animation clock past the entrance fade, without depending on host speed.
+        repeat(40) {
+            Snapshot.sendApplyNotifications()
+            frameTime += 16_666_667L
+            scene.render(frameTime).close()
+        }
         Snapshot.sendApplyNotifications()
-        val png = scene.render().encodeToData()?.bytes
+        frameTime += 16_666_667L
+        val png = scene.render(frameTime).use { image -> image.encodeToData()?.use { it.bytes } }
         assertNotNull("Skia produced a PNG", png)
         File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }.writeBytes(png!!)
         return png

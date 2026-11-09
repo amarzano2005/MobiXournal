@@ -5,6 +5,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.EditedPages
 import com.mobixournal.format.model.Page
 import java.util.Collections
+import com.mobixournal.collections.PersistentIntMap
 
 /**
  * The canvas's **editable** page window: a bounded read cache over a [PageSource], plus an
@@ -59,7 +60,7 @@ class PageWindow(
     }
 
     /** Pages an edit produced, by index — kept for the whole window's life, never evicted. */
-    private val overlay = LinkedHashMap<Int, Page>()
+    private var overlay = PersistentIntMap.empty<Page>()
 
     // The overlay is what a save reads — through the document the edit was written into
     // (`format/mobix/MobixPageReuse.kt`). The accessors below are the window's own account of itself,
@@ -70,7 +71,7 @@ class PageWindow(
     private val pinned = Collections.synchronizedSet(mutableSetOf<Int>())
 
     /** The edited pages, in the order they were first edited. */
-    val dirtyPages: Map<Int, Page> get() = overlay.toMap()
+    val dirtyPages: Map<Int, Page> get() = overlay
 
     /** The indices of the pages an edit produced. */
     val dirtyIndices: Set<Int> get() = overlay.keys.toSet()
@@ -118,7 +119,7 @@ class PageWindow(
     @Synchronized
     fun set(index: Int, page: Page) {
         require(index in 0 until pageCount) { "page index $index out of bounds (0..${pageCount - 1})" }
-        overlay[index] = page
+        overlay = overlay.put(index, page)
         cache.remove(index)
     }
 
@@ -128,7 +129,7 @@ class PageWindow(
      */
     @Synchronized
     fun revert(index: Int): Page? {
-        overlay.remove(index)
+        overlay = overlay.removeKey(index)
         cache.remove(index)
         return pageOrNull(index)
     }
@@ -158,7 +159,7 @@ class PageWindow(
     /** Forget every edit and every cached page; the source is the truth again. */
     @Synchronized
     fun reset() {
-        overlay.clear()
+        overlay = PersistentIntMap.empty()
         cache.clear()
         pinned.clear()
     }
@@ -188,12 +189,12 @@ class PageWindow(
         val replaced = (pages as? EditedPages)?.editedIndices
         for (index in overlay.keys.toList()) {
             if (index !in pages.indices) {
-                overlay.remove(index)
+                overlay = overlay.removeKey(index)
                 continue
             }
             if (replaced != null && index !in replaced) continue
             val written = pages[index]
-            if (written !== overlay[index]) overlay[index] = written
+            if (written !== overlay[index]) overlay = overlay.put(index, written)
         }
         for (index in cache.keys.toList()) {
             if (index !in pages.indices) {

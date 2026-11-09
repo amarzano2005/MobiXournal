@@ -254,15 +254,16 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
 @Composable
 fun EditorScreen(
     onOpen: () -> Unit,
-    /**
-     * Start a blank sheet. The entry screen's *New sheet*: the activity opens it as a new tab, in the
-     * format new documents are born in, exactly as the header's "+" does.
-     */
+    /** Start a blank sheet in the format new documents are born in — the entry screen's *New sheet*. */
     onNewDocument: () -> Unit = {},
     /** The notebooks opened lately, drawn as the entry screen's cards. */
     recents: List<RecentNotebook> = emptyList(),
-    /** Reopen one of them, by its URI string — the grant was kept when it was first opened. */
-    onOpenRecent: (String) -> Unit = {},
+    /** Reopen one of them — a notebook by its URI, or the tab the last run left open. */
+    onOpenRecent: (RecentNotebook) -> Unit = {},
+    /** Take one card off the list: the card's own `×`. */
+    onRemoveRecent: (RecentNotebook) -> Unit = {},
+    /** Bring the tabs the last run left open back, or null when it left none to bring back. */
+    onRestoreSession: (() -> Unit)? = null,
     onSave: () -> Unit,
     onSaveAs: (filename: String, format: SaveFormat) -> Unit,
     currentSaveFormat: () -> SaveFormat,
@@ -274,11 +275,7 @@ fun EditorScreen(
     /** Export the active page alone, as a PNG image or an SVG vector file. */
     onExportPagePng: () -> Unit = {},
     onExportPageSvg: () -> Unit = {},
-    /**
-     * What the last `.xopp` export could not draw, from whoever did the writing (the activity): living
-     * entities an export has to cook into ink can be un-drawable, and a loss the user is not told about
-     * is a document that quietly lies about its contents. Empty is the normal case.
-     */
+    /** What the last `.xopp` export could not draw, reported rather than dropped. Empty is normal. */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
     /** The document name waiting on consent to open read-only (written by a newer app version). */
@@ -299,11 +296,7 @@ fun EditorScreen(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     audio: AudioUiState = AudioUiState(),
-    /**
-     * Identity of the document the chrome is showing, used to key its **page bookmarks** (see
-     * [BookmarkStore]). Bookmarks are app-side navigation state — the `.xopp` format has no page
-     * label — so they are stored per document key and never written to the file.
-     */
+    /** The document's identity, which its **page bookmarks** are keyed by (see [BookmarkStore]). */
     bookmarkKey: String = "",
     /** One tab session per pane, in pane order (see [com.mobixournal.panes.EditorPane]). */
     tabs: List<TabsUiState> = listOf(TabsUiState()),
@@ -400,7 +393,9 @@ fun EditorScreen(
                             recents = recents,
                             onNew = onNewDocument,
                             onOpen = onOpen,
-                            onOpenRecent = { notebook -> onOpenRecent(notebook.uri) },
+                            onOpenRecent = onOpenRecent,
+                            onRemoveRecent = onRemoveRecent,
+                            onRestoreSession = onRestoreSession,
                         )
                     },
                 ) {

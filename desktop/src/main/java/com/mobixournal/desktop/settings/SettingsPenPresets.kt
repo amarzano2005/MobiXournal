@@ -152,7 +152,7 @@ private fun PresetDeleteMark(name: String, onDelete: () -> Unit) {
         Modifier
             .width(22.dp)
             .height(22.dp)
-            .hoverFill(DesktopTheme.capsuleShape)
+            .hoverFill(PropertyControlShape)
             .pointerInput(name) { detectTapGestures { onDelete() } },
         contentAlignment = Alignment.Center,
     ) {
@@ -172,9 +172,9 @@ private fun NewPresetMark(enabled: Boolean, onClick: () -> Unit) {
         Modifier
             .width(SettingsMetrics.CONTROL_HEIGHT)
             .height(SettingsMetrics.CONTROL_HEIGHT)
-            .background(Color.Transparent, DesktopTheme.capsuleShape)
-            .hoverFill(DesktopTheme.capsuleShape)
-            .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)
+            .background(Color.Transparent, PropertyControlShape)
+            .hoverFill(PropertyControlShape)
+            .border(1.dp, DesktopTheme.hairline, PropertyControlShape)
             .pointerInput(enabled) { if (enabled) detectTapGestures { onClick() } },
         contentAlignment = Alignment.Center,
     ) {

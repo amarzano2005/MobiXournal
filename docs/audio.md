@@ -5,10 +5,7 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-A stroke can name a recording and how far into it the stroke began — `fn` and `ts`, the pair desktop
-Xournal++ defined — and this page owns both ends of that: how a recording is made and kept, where the
-playhead is, and how a replay follows the writing in either shell. The `.mobix` goes further than the
-pair: it records the time of every point, so a long stroke or a pause mid-sentence is still exact.
+This page owns recording, storage and replay in both shells. Strokes carry Xournal++'s `fn`/`ts` link; `.mobix` also preserves each point's time for precise replay.
 
 ## Recording (`audio/`)
 
@@ -40,18 +37,21 @@ pressed; everything else in the app works without it.
   (`assets/aud_<sha256>.<ext>`, [mobix-schema-spec.md](mobix-schema-spec.md)), so the same recording
   referenced twice is stored once: a save and an open go through
   `MobixAssetSink.add(bytes, AssetKind.AUDIO)` and `io/BundledPageAssets.kt` respectively.
-- On open, the recording is adopted into the app's audio store when **the page that names it is read**
-  (`io/BundledPageAssets.kt`), under the sidecar name the stroke carries — so playback needs nothing
-  beside the file, and the `.xopp` export still names that sidecar and pushes a copy out for it.
-- **A recording is streamed, never held.** The archive addresses an asset by the hash of its bytes, so a
-  save needs the recording's hash and its bytes but never both in memory: `format/mobix/MobixPayload.kt`
-  is *how to open* the content (a file, an archive entry, or a small array), and the hash, the deflate and
-  the copy out of a source archive each read it in 64 KiB chunks. Bundling a 30-minute WAV used to cost
-  three copies of it — read to hash, read to deflate, deflated buffer — which is the `OutOfMemoryError` a
-  long recording produced on saving. Adoption streams the other way for the same reason
-  (`io/BundledAudio.kt` takes an `InputStream`).
+- Page reads register bundled audio without copying it (`io/BundledPageAssets.kt`). Workers resolve independent payloads through `DeferredRecordings` before playback/export, retaining sidecar names, and **the archive they read is the session's**: `io/MobixOpenSessions.kt` keeps the staged copy until the document is released, because sweeping it with the open left every bundled recording unplayable and every repack save without its entries. Atomic publication preserves an old file if extraction fails and allows retry.
+- **A recording is streamed, never held.** `format/mobix/MobixPayload.kt` describes how to open it;
+  hashing, deflating and copying read 64 KiB chunks. Bundling a 30-minute WAV formerly needed three
+  lecture-sized buffers and could exhaust memory. Adoption also streams (`io/BundledAudio.kt`),
+  keeping memory independent of the recording's duration.
 - The audio is bound to the document and cannot be detached when sharing or syncing; a `.xopp` exported
   from it is the one shape that still needs a sidecar file on disk.
+
+### Android audio work and frame pacing
+
+Composition reads published preview state (`MainActivityAudioPreview.kt`); it never scans pages or extracts waveforms. Metadata discovery runs even with hidden controls; visible waveforms load independently, keyed by tab and clip rather than document edits, and never delay recording detection. A **compressed** recording's envelope is decoded through the platform's own demuxer and decoder (`audio/CompressedWaveform.kt`) — averaging a codec's bytes answers with the shape of a bit rate, a flat band rather than a waveform — one buffer at a time, keeping only the block peaks.
+`AudioReferenceIndex` caches compact page references and incrementally updates edited overlays and undo, and its reads are **page-scoped** (`read(only = …)`), so a sidecar sweep answers from what earlier reads cached and never inflates the notebook. The chrome's own discovery does not go through the index at all: it reads the page in front through the document the canvas paints and asks the audio store for the clip's **name** — a page read registers the recordings it bundles, so that is a map lookup — and only a player that is actually showing may **resolve** one, because resolving adopts a bundled payload into the store and copying a lecture's audio behind a closed player is what made opening a file with audio take seconds. A scrubber drag answers from the clip's **stroke timeline**, built once per document and clip (`audio/AudioSeekIndex.kt`): the walk reads page by page, keeps only that clip's strokes and holds one page at a time, and every later step of the same drag is a filter over a few hundred records rather than another walk. An **unedited document opened as a `.mobix` is snapshotted as its own archive** (`MobixTabSnapshots` copies the staged file) instead of being re-encoded page by page, because re-writing a lecture's container in the background at open is the I/O that made an audio file take seconds to open. Only the Play gesture that asks for *the* recording walks past that page. Identity keys never compare lazy document contents.
+Background indexing and seek navigation use independent ZIP readers (`AudioPreviewReader.kt`), avoiding the canvas reader lock and its five-page LRU. Tab-owned lifecycle jobs reject stale results and check cancellation between pages.
+Sidecar discovery and SAF copies run off main (`MainActivityAudioSidecars.kt`); bundled recordings are not imported from a sidecar folder. `AudioWaveformExtractor` keeps 16 file versions keyed by path, length, timestamp and sample count; cache locks never cover cancellable chunked reads.
+The canvas follows vsync; `AudioUiCadence` limits moving player-chrome updates to 10 Hz, with immediate pause/stop publication. UI playback awaits asynchronous decoder preparation and then uses a prepared-only entry point; pause/resume retains that player.
 
 ### A take, and its tab
 
@@ -142,7 +142,7 @@ vsync while one sounds and puts the state onto the surface (`KaraokeStrokeAnimat
 being written is drawn as its visible prefix with a glowing tip at the nib, and every other stroke is
 drawn exactly as it is. A page painted at the playhead **cannot come out of the ink cache** — the cached
 bitmap holds the recording's strokes as finished, and no blit can un-draw writing that has not happened —
-so one page is drawn directly for as long as a clip sounds. The driver owns its frames rather than asking
+so one page is drawn directly for as long as a clip sounds — and only a page that carries that recording: a page with none of it resolves every stroke to `Normal`, so it keeps the cache blit instead of being redrawn stroke by stroke every frame. The driver owns its frames rather than asking
 for a repaint per tick, because the surface's own `render()` no-ops while a fling is running; it publishes
 `null` on completion, on a stop and when the editor goes away, so a page never freezes at its last dimmed
 frame. A **pause** is the one stop that clears nothing: the clip is *held*, the state stays published and
@@ -152,19 +152,18 @@ the loop ends.
 carries a **scrubber** over the clip's own length. Dragging it moves the playhead (`AudioSession.seek`,
 which walks a held clip and seeks a sounding one, reusing the one player), and the canvas repaints where
 it landed — one publish per drag step rather than a frame per vsync, since nothing moves between the
-drag's events. The **ink-to-audio** direction is the Play object tap, and it is **point-precise where the
-data is**: the tap seeks to the time of the point nearest it (`KaraokeStrokeAnimator.seekTimeMs` —
-`T_start` plus the deltas up to that point), so a tap on the fifth word starts there rather than at the
-stroke's head. **Which** stroke that is comes from `AudioTap.pickStroke`, and the stroke's **ink** decides
+drag's events. The **ink-to-audio** direction is the Play object tap, and the clip it starts **always begins at 0:00**: a
+stroke's offset records when it was drawn — telemetry about the ink — and is not a place the user asked
+playback to begin, so neither a tap nor the Play control seeks into the recording. `KaraokeStrokeAnimator.seekTimeMs`
+still lands a point-precise start for a caller that wants one, and is library code in both shells. **Which** stroke that is comes from `AudioTap.pickStroke`, and the stroke's **ink** decides
 it: a box rule is the right tolerance for grabbing an element and the wrong one for asking where in a
 recording a tap landed, because a diagonal stroke's rectangle covers everything around its ink — so the
 tap takes the topmost stroke whose **path** passes within reach of the point, falls back to the recorded
 stroke whose ink is nearest when the ink under the pointer carries no recording, and never lets a stroke
-drawn over a recording make that recording unreachable. A stroke whose points carry no deltas — a `.xopp`
-import, a `.mobix` written before the telemetry landed — has no timeline to be precise with and falls back
-to the stroke's own offset, and a gap *inside* a stroke's deltas is read the same way: the times before
-the gap are trusted and the ones after it are not, because summing a missing delta as zero would start the
-recording too early rather than say it does not know.
+drawn over a recording make that recording unreachable. Reading a timeline is the same question on the desktop: a stroke with no
+deltas — a `.xopp` import, a `.mobix` written before the telemetry landed — has no times to be precise
+with, and a gap *inside* one has its earlier points trusted and its later ones not, because summing a
+missing delta as zero would start a clip too early rather than say it does not know.
 
 **The window runs both modes from the same objects.** `DesktopKaraoke` publishes the player's own position
 — once per vsync while sound is coming out, once when it is held — and `PageCanvas` paints the page
@@ -195,9 +194,11 @@ a `.xopp` sidecar needs (`WavWriter`), and the playhead's rules (`Playhead`). Th
 them, so a stroke stamped on the PC replays on the tablet and a position means the same thing on both
 screens.
 
-*Where a recording lives.* `%APPDATA%\MobiXournal\audio`, one bare file name each (`DesktopAudioStore`),
-because a stroke names its recording by name alone and a document that moves must not take the audio out
-of reach. **Every open adopts what the document carries**: a `.mobix` bundles its recordings as
+*Where a recording lives.* `DesktopAudioStore` uses a private folder per document under
+`%APPDATA%\MobiXournal\audio`, keyed by its origin path. Stroke references keep their original bare
+names; playback, recording, saving and recovery use that document's store. Rehoming keeps a running
+take's store; per-document bindings resolve immutable hashed copies, so reopening the old path cannot
+overwrite a moved tab's recording. Sidecar comparisons check content rather than lengths. **Every open adopts what the document carries**: a `.mobix` bundles its recordings as
 `assets/aud_*` entries and they are copied out under the name the strokes call them by, a `.xopp`'s
 sidecars are pulled out of the document's folder, and a save writes them back — bundled into the archive
 (`DocumentEncoder`'s `audioFiles` seam) or pushed beside the `.xopp`. That adoption is what makes editing

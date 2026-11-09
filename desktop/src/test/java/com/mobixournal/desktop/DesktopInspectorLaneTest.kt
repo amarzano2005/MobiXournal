@@ -88,6 +88,22 @@ class DesktopInspectorLaneTest {
     private val lanePixelX = 992
     private val lanePixelY = 320
 
+    @Test fun plotInspectorLayoutFixture() {
+        val state = shell()
+        try {
+            state.selectTool(DesktopTool.PLOT)
+            state.placeOrAsk(state.active!!, LivingSlot.PLOT, Bounds(100.0, 120.0, 340.0, 264.0))
+            for (mode in listOf(com.mobixournal.desktop.settings.DesktopThemeMode.DARK,
+                com.mobixournal.desktop.settings.DesktopThemeMode.LIGHT)) {
+                state.prefs.appearance.chooseTheme(mode)
+                val image = render(state)
+                val file = File("build/desktop-render/inspector-plot-${mode.name.lowercase()}.png").also { it.parentFile.mkdirs() }
+                ImageIO.write(image, "png", file)
+                assertNearLane("the property dock is visible", image)
+            }
+        } finally { DesktopTheme.use(false); state.tabs.closeAll() }
+    }
+
     @Test
     fun `the lane is closed until there is something to edit`() {
         val state = shell()
@@ -164,11 +180,11 @@ class DesktopInspectorLaneTest {
                 for (y in 60 until 260) {
                     val rgb = image.getRGB(x, y) and 0xFFFFFF
                     if (rgb == 0xFFFFFF) paper++
-                    if (rgb <= 0x333333) curve++
+                    if ((rgb and 255) > 130 && ((rgb shr 16) and 255) < 130) curve++
                 }
             }
-            assertTrue("the preview is a sheet of paper in the lane ($paper px)", paper > 500)
-            assertTrue("with the curve drawn on it ($curve px)", curve > 20)
+            assertTrue("the preview has no white plate in the lane ($paper px)", paper < 100)
+            assertTrue("with a visible contrast-adapted curve ($curve px)", curve > 20)
         } finally {
             state.tabs.closeAll()
         }
@@ -294,11 +310,11 @@ class DesktopInspectorLaneTest {
                 for (y in 60 until 260) {
                     val rgb = image.getRGB(x, y) and 0xFFFFFF
                     if (rgb == 0xFFFFFF) paper++
-                    if (rgb <= 0x333333) curve++
+                    if ((rgb and 255) > 130 && ((rgb shr 16) and 255) < 130) curve++
                 }
             }
-            assertTrue("the editor's graph card is paper ($paper px)", paper > 500)
-            assertTrue("with the element's curve on it ($curve px)", curve > 20)
+            assertTrue("the editor preview has no white plate ($paper px)", paper < 100)
+            assertTrue("with a visible contrast-adapted curve ($curve px)", curve > 20)
         } finally {
             state.tabs.closeAll()
         }
@@ -386,21 +402,24 @@ class DesktopInspectorLaneTest {
             Snapshot.sendApplyNotifications()
             scene.render()
 
+            val preview = File("build/desktop-render/inspector-text.png").also { it.parentFile.mkdirs() }
+            preview.writeBytes(scene.render().encodeToData()!!.bytes)
+
             // The rows sit under the card's new settings heading (`SectionCard`), so the clicks are read
             // off the lane as the window draws it rather than carried over from the older card.
-            click(scene, 750, 197)
+            click(scene, 750, 213)
             assertEquals("Bold is set", "Sans Bold", textBox(tab).font)
-            click(scene, 750, 197)
+            click(scene, 750, 213)
             assertEquals("and the same switch takes it away again", "Sans", textBox(tab).font)
 
-            click(scene, 750, 197)
-            click(scene, 750, 230)
+            click(scene, 750, 213)
+            click(scene, 750, 245)
             assertEquals("the italic switch adds to the bold, not over it", "Sans Bold Italic", textBox(tab).font)
 
-            click(scene, 870, 163)
+            click(scene, 795, 175)
             assertEquals("the family chip keeps the two styles", "Serif Bold Italic", textBox(tab).font)
 
-            click(scene, 776, 442)
+            click(scene, 710, 496)
             assertEquals("the ink keeps the face", "Serif Bold Italic", textBox(tab).font)
             assertEquals("and is the swatch that was clicked", 0xFFFF0000.toInt(), textBox(tab).color)
             assertEquals("the size was never touched", 18.0, textBox(tab).size, 1e-9)
@@ -431,12 +450,13 @@ class DesktopInspectorLaneTest {
 
     // --- rendering ------------------------------------------------------------------------------
 
-    private fun render(state: DesktopShellState): BufferedImage {
+    private fun render(state: DesktopShellState, expandPreview: Boolean = false): BufferedImage {
         val scene = ImageComposeScene(1000, 700, Density(1f)) {
             DesktopShell(state = state, onOpenPicker = {})
         }
         return try {
             Snapshot.sendApplyNotifications()
+            if (expandPreview) { scene.render(); click(scene, 700, 133) }
             val png = requireNotNull(scene.render().encodeToData()) { "Skia produced no PNG" }.bytes
             ImageIO.read(ByteArrayInputStream(png))
         } finally {

@@ -44,6 +44,12 @@ work never picks up half a notebook.
 
 The entry screen lists the notebooks you opened recently; **Open** takes a file from anywhere else. A
 notebook that moved since it was listed is a normal case — open it from its new home and the list follows.
+Each card has a **×** at its top-right that takes that notebook off the list.
+
+If the app was closed with notebooks still open, they are not reopened at launch: they appear on the entry
+screen marked as unsaved work from the previous session, and **Restore last session** — the button under
+**New sheet** — brings the whole set back with its edits. **New sheet** answers that offer instead and
+starts a clean session, which drops those marked cards.
 
 ## Where to go next
 

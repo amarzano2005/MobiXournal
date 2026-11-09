@@ -48,7 +48,8 @@ internal fun RecoverySnapshots(state: DesktopShellState) {
     LaunchedEffect(state.editRevision) {
         if (state.editRevision == 0) return@LaunchedEffect
         delay(RECOVERY_QUIET_MS)
-        withContext(Dispatchers.IO) { state.flushRecovery() }
+        val writes = state.prepareRecovery()
+        withContext(Dispatchers.IO) { writes.forEach { (store, request) -> store.save(request) } }
     }
 }
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -52,7 +53,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.DesignTokens
+import com.mobixournal.ui.imageVector
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
@@ -79,6 +82,8 @@ fun NotebookEntryScreen(
     onNew: () -> Unit,
     onOpen: () -> Unit,
     onOpenRecent: (RecentNotebook) -> Unit,
+    onRemoveRecent: (RecentNotebook) -> Unit = {},
+    onRestoreSession: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -100,13 +105,16 @@ fun NotebookEntryScreen(
                         modifier = Modifier.widthIn(max = WIDE_MAX_WIDTH_DP.dp).padding(horizontal = 32.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        StartColumn(WIDE_START_COLUMN_DP, onNew, onOpen, ink)
+                        StartColumn(WIDE_START_COLUMN_DP, onNew, onOpen, ink, onRestoreSession)
                         // A step closer than the gap the grid gets: the sheet sits a little further left, and
                         // the recents gain that width at the window's edge.
                         Spacer(Modifier.width(WIDE_HERO_GAP_DP.dp))
                         NewSheetCard(WIDE_HERO_WIDTH_DP, ink, onNew)
                         Spacer(Modifier.width(WIDE_GAP_DP.dp))
-                        RecentColumn(recents, WIDE_GRID_DP, WIDE_RECENT_WIDTH_DP, WIDE_RECENT_COLUMNS, ink, onOpenRecent)
+                        RecentColumn(
+                            recents, WIDE_GRID_DP, WIDE_RECENT_WIDTH_DP, WIDE_RECENT_COLUMNS, ink,
+                            onOpenRecent, onRemoveRecent,
+                        )
                     }
                 } else {
                     // The narrow block is **as wide as the window allows**, and every part of it shares that
@@ -117,11 +125,14 @@ fun NotebookEntryScreen(
                         modifier = Modifier.width((available + 48f).dp).padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        StartColumn(available, onNew, onOpen, ink)
+                        StartColumn(available, onNew, onOpen, ink, onRestoreSession)
                         Spacer(Modifier.height(24.dp))
                         NewSheetCard(minOf(HERO_WIDTH_DP, available * HERO_SHARE), ink, onNew)
                         Spacer(Modifier.height(24.dp))
-                        RecentColumn(recents, available, MIN_RECENT_DP, RECENT_COLUMNS, ink, onOpenRecent)
+                        RecentColumn(
+                            recents, available, MIN_RECENT_DP, RECENT_COLUMNS, ink,
+                            onOpenRecent, onRemoveRecent,
+                        )
                     }
                 }
             }
@@ -131,7 +142,13 @@ fun NotebookEntryScreen(
 
 /** The first column: what the reader can do. */
 @Composable
-private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit, ink: Color) {
+private fun StartColumn(
+    widthDp: Float,
+    onNew: () -> Unit,
+    onOpen: () -> Unit,
+    ink: Color,
+    onRestoreSession: (() -> Unit)?,
+) {
     Column(Modifier.width(widthDp.dp)) {
         Text(
             "Nothing open yet",
@@ -146,6 +163,18 @@ private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit, i
         )
         Spacer(Modifier.height(18.dp))
         EntryButton("New sheet", Icons.Outlined.NoteAdd, primary = true, ink = ink, onClick = onNew)
+        // Directly under *New sheet*, because it is the same decision: start here, or carry on with the
+        // tabs the app was closed on. It is absent when the last run closed them all (or crashed nowhere).
+        if (onRestoreSession != null) {
+            Spacer(Modifier.height(10.dp))
+            EntryButton(
+                "Restore last session",
+                ChromeGlyph.RESTORE.imageVector(),
+                primary = false,
+                ink = ink,
+                onClick = onRestoreSession,
+            )
+        }
         Spacer(Modifier.height(10.dp))
         EntryButton("Open…", Icons.Outlined.FolderOpen, primary = false, ink = ink, onClick = onOpen)
     }
@@ -165,6 +194,7 @@ private fun RecentColumn(
     columns: Int,
     ink: Color,
     onOpenRecent: (RecentNotebook) -> Unit,
+    onRemoveRecent: (RecentNotebook) -> Unit,
 ) {
     // How many cards fit side by side at a readable size, and how wide each one is when they share the
     // width they are given. The grid then holds **as many as the screen allows**, never a number chosen
@@ -197,12 +227,15 @@ private fun RecentColumn(
             Row(horizontalArrangement = Arrangement.spacedBy(RECENT_GAP_DP.dp)) {
                 line.forEach { notebook ->
                     SheetCard(
-                        key = "recent:${notebook.uri}:$cardWidthDp",
+                        // A session card is keyed by its tab: two untitled documents have no URI to tell them apart.
+                        key = "recent:${notebook.sessionTab ?: notebook.uri}:$cardWidthDp",
                         caption = notebook.name,
                         widthDp = cardWidthDp,
                         ink = ink,
+                        fromSession = notebook.fromPreviousSession,
                         load = { EntryPreviews.load(context, notebook.uri)?.asImage() },
                         onClick = { onOpenRecent(notebook) },
+                        onRemove = { onRemoveRecent(notebook) },
                     )
                 }
             }
@@ -239,6 +272,8 @@ private fun SheetCard(
     ink: Color,
     load: suspend () -> ImageBitmap?,
     onClick: () -> Unit,
+    onRemove: (() -> Unit)? = null,
+    fromSession: Boolean = false,
 ) {
     var preview by remember(key) { mutableStateOf(FACES[key]) }
     // Read here, not inside the canvas: the draw lambda is not a composable scope.
@@ -277,6 +312,15 @@ private fun SheetCard(
                     cornerRadius = CornerRadius(SHEET_CORNER_DP.dp.toPx()),
                 )
             }
+            // The two actions that sit **on** the card, in the paper's own inset so they clear the halo:
+            // the session badge at the top-left, the remove mark at the top-right.
+            if (fromSession) {
+                SessionBadge(ink, Modifier.align(Alignment.TopStart).padding(DesignTokens.PAGE_SHADOW_DP.dp))
+            }
+            onRemove?.let { remove ->
+                // Centred on the paper's own corner, not laid inside it: half the disc hangs over the desk.
+                RemoveButton(ink, remove, Modifier.align(Alignment.TopEnd).offset(x = REMOVE_OFFSET_DP.dp, y = -REMOVE_OFFSET_DP.dp))
+            }
         }
         // Two dp, because the card's box already carries the halo's spread under the paper.
         Spacer(Modifier.height(2.dp))
@@ -289,6 +333,65 @@ private fun SheetCard(
             // Left-aligned, but starting **where the paper starts**, not where the card does.
             modifier = Modifier.width(widthDp.dp).padding(start = DesignTokens.PAGE_SHADOW_DP.dp),
         )
+    }
+}
+
+/**
+ * The mark on a document the last run left unsaved: a clock turned back in floating glass, in the
+ * card's top-left corner. It is the picture *Restore last session* wears — one mark, one idea — and
+ * its description is what says the rest to a screen reader.
+ */
+@Composable
+private fun SessionBadge(ink: Color, modifier: Modifier = Modifier) {
+    val glass = rememberGlassSurfaceColor()
+    Box(
+        modifier = modifier
+            .size(SESSION_BADGE_DP.dp)
+            .background(glass, CircleShape)
+            .border(DesignTokens.RIM_WIDTH_DP.dp, ink.copy(alpha = HAIRLINE_TINT), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            ChromeGlyph.RESTORE.imageVector(),
+            contentDescription = "From the previous session — not saved",
+            tint = ink,
+            modifier = Modifier.size(SESSION_BADGE_GLYPH_DP.dp),
+        )
+    }
+}
+
+/**
+ * A card's `×`: the document leaves the recents, marked in the danger red on the sheet's top-right
+ * corner — half the disc over the desk, so the paper is never drawn through it.
+ *
+ * The finger gets a whole tool slot, and that slot is cut **before** the click, so the press lights the
+ * circle the reader sees rather than the card behind it (`docs/interface-contract.md` §6).
+ */
+@Composable
+private fun RemoveButton(ink: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val glass = rememberGlassSurfaceColor()
+    val danger = MaterialTheme.colorScheme.error
+    Box(
+        modifier = modifier
+            .size(REMOVE_TOUCH_DP.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(REMOVE_BUTTON_DP.dp)
+                .background(glass, CircleShape)
+                .border(DesignTokens.RIM_WIDTH_DP.dp, ink.copy(alpha = HAIRLINE_TINT), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                ChromeGlyph.CLOSE.imageVector(),
+                contentDescription = "Remove from recents",
+                tint = danger,
+                modifier = Modifier.size(REMOVE_GLYPH_DP.dp),
+            )
+        }
     }
 }
 
@@ -385,6 +488,25 @@ private const val RESTING_TINT = 0.06f
 private const val HAIRLINE_TINT = 0.16f
 
 private const val BUTTON_TINT = 0.16f
+
+/** The badge a previous-session card carries, and the mark inside it. */
+private const val SESSION_BADGE_DP = 20f
+
+private const val SESSION_BADGE_GLYPH_DP = 12f
+
+/** A card's remove mark: a small disc sitting on the sheet's corner, in the danger red. */
+private const val REMOVE_BUTTON_DP = 22f
+
+private const val REMOVE_GLYPH_DP = 12f
+
+/** Its tap target: a whole tool slot, placed so the disc's centre lands on the paper corner. */
+private const val REMOVE_TOUCH_DP = 40f
+
+/**
+ * How far that target is nudged out of the card: half of it, less the paper's inset, so the disc is
+ * centred on the corner and not merely touching it.
+ */
+private const val REMOVE_OFFSET_DP = (REMOVE_TOUCH_DP - 2 * DesignTokens.PAGE_SHADOW_DP) / 2f
 
 /** The block's own bound: three columns that stay one block, and do not stretch on a wide tablet. */
 private const val ENTRY_MAX_WIDTH_DP = 1000f

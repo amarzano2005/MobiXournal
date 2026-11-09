@@ -25,6 +25,282 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "android-audio-chrome-jank"
+title = "Keep bundled audio work off Android UI frames"
+description = "Moved Android bundled audio discovery, extraction, waveform processing and sidecar synchronization off UI callbacks with independent archive readers, incremental metadata, cancellation and throttled chrome. Fixed hidden-player discovery deadlock and detached waveform work from document edits. Added regression coverage and updated audio docs. All 1519 app JVM tests passed including guards, with earlier 711 core and 989 desktop tests. APK rebuilt and desktop distributable checked. Tables unchanged. Device playback and frame-time improvement remain unverified."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: background audio scheduling changes preserve the existing controls"
+
+[[task]]
+id = "desktop-settings-organization"
+title = "Organize desktop settings around workspace tasks"
+description = "Organized desktop navigation into Workspace, Input, Drawing and Files and app while retaining section IDs, glyphs and stored preferences. Search uses visible navigation order and supports multiple words and area names. Added themed scrollbars with content reset on section changes, separated Display from Status bar, clarified recording/export/reset headings and corrected Backup and Navigation summaries. Added coverage/order/search and real scroll-reset tests, updated README and owning settings/testing docs, inspected rendered settings, passed 708 core, 1504 app and 989 desktop tests, regenerated APK and desktop distributable without an emulator pass."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "material: existing floating settings panel and compact property controls retained; tokens: scrollbars use shared theme colors and existing control geometry; glyph: existing section catalogue marks unchanged; states: existing selection hover focus and disabled states retained with scrollbar hover; copy: English task areas and clearer recording display and transfer headings; keyboard: existing section activation and control shortcuts retained with scrollable content; parity: desktop task grouping deliberately differs from tablet navigation and is documented; docs: README desktop settings and testing spokes updated; tests: organization coverage multiword search real scroll reset full suites and theme fixtures passed"
+
+[[task]]
+id = "themed-property-controls"
+title = "Unify property controls and theme graph previews"
+description = "Applied compact property controls only to desktop settings and live inspectors: square accessible checkboxes, 4 dp field and action corners, unfilled secondary inspector actions and unchanged surrounding chrome. Graph previews start expanded on desktop and blend into the themed panel on desktop and Android, with a subtle grid and shared preview-only contrast adaptation that preserves document/export colors. Added shared CHECK glyph and palette/control regression tests, fixed the isolated navigation test clock, updated README and owning UI/plot spokes, inspected light/dark fixtures, passed 708 core, 1504 app and 984 desktop tests plus final focused checks, compiled Android instrumentation sources and regenerated APK and desktop distributable without an emulator pass."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "material: existing settings floating surface and inspector band retained with flat groups; tokens: shared PROPERTY_CONTROL_CORNER_DP and theme colors; glyph: CHECK comes from shared ChromeGlyphCatalogue; states: checkbox and action hover pressed checked disabled and visible focus covered; copy: English labels and quiet Add equation action; keyboard: focusable toggleable rows and actions with local key ownership and resize Home support; parity: themed contrast-aware graph preview on both shells with documented desktop-only property control geometry; docs: README and desktop settings selection function plots interface and testing spokes updated; tests: full JVM suites and focused checkbox inspector settings render and palette tests passed"
+
+[[task]]
+id = "desktop-workstation-panels"
+title = "Give desktop settings and live inspectors a workstation layout"
+description = "Redesigned desktop settings with flat groups, inline help, aligned controls, a larger adaptive surface and remembered section. Added resizable live inspectors with collapsible groups, folded plot preview and focus-aware keyboard routing. Preserved existing editing controls and undo behavior. Updated README and owning UI spokes, verified light/dark rendered fixtures, rebuilt APK and current desktop distributable; passed 705 core, 1504 app and 983 desktop tests."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "material: existing floating settings surface and band inspector with documented flat groups; tokens: shared theme colors and spacing; glyph: shared catalogue chevrons and existing section icons; states: hover pressed focus disabled and selected preserved or checked; copy: English labels and inline help; keyboard: focusable group headers and resize handle with Left Right Home and local navigation ownership; parity: desktop layout exception documented while existing shared controls remain; docs: README and owning desktop settings selection and interface spokes updated; tests: sizing folding key ownership and light dark rendered fixtures passed"
+
+[[task]]
+id = "perf-editor-work"
+title = "Reduce whole-document work in editor paths"
+description = "Delivered the bounded caches coalesced writes page-band lookup isolated painters cancellable queries and OCR retention, followed by asynchronous desktop saves persistent edit roots incremental numeric drafts private recovery deltas streaming XML and per-page text corpus. Child scopes produced atomic tasks and all are complete. Remaining backend path assembly corpus scans final ZIP copying and Android full checkpoints are documented implementation limits."
+status = "finished"
+level = "epic"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: milestone closure records the separately verified child tasks"
+
+[[task]]
+id = "perf-page-text-index"
+title = "Reuse per-page searchable text"
+description = "Added shared PageTextIndex retaining compact typed math and PDF text per page revision without ink models. Repeated queries reuse corpus records and one-page edits invalidate one record; desktop PDF arrival reruns search. Android swaps indexes on reload without UI waiting and base identity references are weak. OCR fuzzy matching remains separate and corpus matching remains linear. Counted-read equivalence and search suites pass; search docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
+
+[[task]]
+id = "perf-streaming-xopp"
+title = "Parse Xopp XML incrementally"
+description = "Gzip raw XML and ZIP imports now use a sliding Reader tokenizer without a whole XML String. Unknown subtrees and nested comments remain verbatim and bridge comments are collected during parsing. Desktop closes owned inputs and accepts raw XML, preserving same-path save replacement on Windows. Chunked Unicode bridge malformed XML ownership and full round-trip suites pass; xopp-format docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
+
+[[task]]
+id = "perf-recovery-journal"
+title = "Journal recovery changes before checkpoint compaction"
+description = "Native desktop recovery now uses an independent full baseline and atomically published changed-entry ZIP records. Compaction publishes a checkpoint with a ZIP-comment watermark before deleting old records; metadata is outside the document entry namespace and origin sidecars publish atomically. Added source-part hash validation before reuse. Undo collision-preservation and delta-size tests pass; documents without native identity retain full checkpoints. Desktop-document docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
+
+[[task]]
+id = "perf-incremental-preview"
+title = "Reuse append-only draft geometry"
+description = "Android IncrementalTaper reuses projected coordinates and normals for append-only drafts. Desktop DraftStrokeCache shares converted sample roots and IncrementalSmoothing revises terminal control groups before taper updates. Numeric caches are bounded and replaced figures reset state; every-prefix tests match full contours and smoothing exactly. Backend path assembly and desktop bounds remain linear as documented in rendering docs."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
+
+[[task]]
+id = "perf-persistent-edits"
+title = "Share immutable edit collections"
+description = "Added shared-core PersistentVector and insertion-ordered PersistentIntMap. Layer appends share immutable tree roots and preserve unknown layer attributes; EditedPages and PageWindow snapshots share page-map roots. ElementEdits no longer materializes every page to add one element. Boundary branch ordering history and metadata tests pass; data-path docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal immutable collections geometry scheduling and codec changes preserve the existing interface"
+
+[[task]]
+id = "perf-desktop-save-worker"
+title = "Stage desktop saves off the UI thread"
+description = "Routed desktop toolbar keyboard Save As and close-confirm through SaveWorker. IO stages waits for document reader leases replaces and reopens while editing is gated; UI adopts results and save points. Captures the originating tab and sticky container, aborts revised requests and preserves dirty staging on failed replacement. Reader-gate inactive-close sticky-format and raw-XML ownership tests pass. README and desktop-document docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "material: existing desk with a noninteractive saving status; tokens: existing DesktopTheme desk and accent; states: busy gates pointer keyboard and close while failure retains dirty work; copy: English saving and retry text; keyboard: save shortcuts are gated during the transaction; parity: desktop now stages on IO as Android already does; tests: gated readers sticky format inactive close and settled shell pixel tests; docs: README and desktop-documents updated"
+
+[[task]]
+id = "perf-storage-engine"
+title = "Scope recovery journal and streaming XML import"
+description = "Investigated native recovery checkpoint costs XML retention and page-reuse ownership. Produced perf-recovery-journal and perf-streaming-xopp with atomic publication undo unknown-entry and chunked Reader tests."
+status = "finished"
+level = "scope"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: investigation and task decomposition only"
+
+[[task]]
+id = "perf-edit-deltas"
+title = "Scope shared revisions and persistent edit collections"
+description = "Investigated layer append copies edited-page overlays and draft rebuilding. Produced perf-persistent-edits and perf-incremental-preview with immutable-root history and geometry equivalence requirements."
+status = "finished"
+level = "scope"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: investigation and task decomposition only"
+
+[[task]]
+id = "perf-handwriting-results"
+title = "Keep handwriting results by current page revision"
+description = "Desktop OCR retains synchronized per-page revision results and SHA-256 line geometry fingerprints. Unchanged pages skip segmentation and changed lines reuse other readings without retaining page models. Counting tests retain 140 page readings across queries; search docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
+
+[[task]]
+id = "perf-search-workers"
+title = "Make text search cancellable and asynchronous"
+description = "Android text/PDF matching runs on a separate debounced serial worker with captured inputs generation ownership and cooperative cancellation. Desktop search debounces and checks coroutine cancellation. Stale query results and obsolete OCR callbacks are rejected; search regression tests pass and docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
+
+[[task]]
+id = "perf-background-painters"
+title = "Isolate background painter state per thread"
+description = "Android BackgroundPainter now owns Paint RectF and ruling memo per thread with no global drawing monitor. JVM rendering tests pass and the concurrent pixel androidTest compiles but was not run; rendering docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
+
+[[task]]
+id = "perf-layout-index"
+title = "Index page rows for viewport and pointer lookup"
+description = "PageBandIndex provides binary-search viewport and pointer candidates without page decoding. Tests prove one candidate among 10000 pages and preserve overlap and side-by-side ordering; rendering docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
+
+[[task]]
+id = "perf-session-writes"
+title = "Coalesce session and recovery snapshots"
+description = "LatestWriteQueue coalesces pane checkpoints and waits for durable generations. TabStore skips unchanged models and source/audio stamps, retries failures atomically and disables reuse during recording. Native staging attempts rename before copy. Desktop recovery serializes encodes and rejects obsolete generations before staging at output chunks and at commit. Queue checkpoint and lifecycle tests pass; session and desktop docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
+
+[[task]]
+id = "perf-bounded-geometry"
+title = "Bound identity-based desktop geometry caches"
+description = "Weighted identity LRU budgets now bound StrokePathCache retention across strokes drafts and scales. Tests cover identity hashing eviction and 6000-stroke retention; rendering and package docs updated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: internal scheduling cache and geometry changes preserve existing controls and visual design"
+
+[[task]]
+id = "audit-async-documents"
+title = "Bind asynchronous document work to its session"
+description = "Android parsing and export I/O use workers with captured document state and independent export resources; stale PDF analysis is ignored. Open-session access is synchronized and cache pruning waits for background work. Desktop recovery captures immutable requests and prevents stale commits after save/discard. JVM regressions pass and the PNG device test compiles; no emulator run. Documentation and packaged applications refreshed."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "states: Existing progress and failure surfaces cover background operations; tests: Core app and desktop JVM suites pass and Android device suite compiles; docs: Data path rendering session and desktop document owners updated"
+
+[[task]]
+id = "audit-core-integrity"
+title = "Preserve format metadata and reject incomplete containers"
+description = "Native full and incremental saves preserve manifest creation time, unknown fields and default-paper payloads. XML rejects incomplete or mismatched roots while keeping BOM and whitespace text. Incremental ZIP refuses classic field overflow before publication. All 694 core tests pass, format docs are current and both applications rebuilt."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: Codec integrity and controlled file-format refusals without new interface controls"
+
+[[task]]
+id = "audit-document-assets"
+title = "Isolate document image and audio assets"
+description = "Per-tab image sources survive switching and restart, inactive snapshots retain their sources, and pruning protects every open tab. Deleted native asset copies are re-adopted. Desktop document-local audio bindings use immutable hashed copies, retain ownership through rehome and adopt recovery audio. Cross-document tests pass and docs/build artifacts are current."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "none: Internal document asset ownership and cache lifetime without adding interface elements"
+
+[[task]]
+id = "audit-save-as"
+title = "Keep Save As transactional in both shells"
+description = "Persisted owner-bound Android picker requests commit format and URI only after successful writes; cancelled Save As leaves originals unchanged. Desktop same-path Save As safely stages/reopens its chosen container and resets the save point. Regression tests and docs pass; debug APK and packaged desktop refreshed."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-08
+completed = 2026-11-08
+tags = []
+design = "states: Cancellation and failed writes retain committed document state; parity: Both shells commit only successful saves; tests: SavePickerState and DesktopSaveTest regressions pass"
+
+[[task]]
 id = "step-3-desktop-workstation"
 title = "Step 3 — Desktop workstation program (epic)"
 description = "Delivered MobiXournal Desktop 1.0.0 for Windows 11 alongside MobiXournal 2.0.0 for Android over the shared mobix-core module: native .mobix and lossless .xopp reading/writing/exporting (PDF, PNG, SVG), full tool strip in left/right rail and top ribbon placements with shared frosted-glass tokens and monoline glyphs, Wintab and Windows Ink pen streams with radial dial and 120/144 Hz PagePicture rendering, shape recognition and hold-to-snap, living STEM entities (2D function plots, circuits, logic gates, tables, chemistry, parametric shapes, LaTeX/Typst formulas) with magnetic pin snapping and in-place editing, PDF import/outline/text selection/page management, Ogg Opus and WAV synchronized audio recording and playback, handwriting and full-text search, multi-tab and split-view workspace, 11-section unified Settings with search, and the WiX MSI installer."

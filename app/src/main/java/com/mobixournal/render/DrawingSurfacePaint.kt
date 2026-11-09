@@ -327,8 +327,9 @@ internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
     // A recording playing back paints its page at the playhead instead of blitting the cache: the cached
     // bitmap holds the recording's strokes as finished, and no blit can un-draw one that is still being
     // written ([DrawingSurfaceKaraoke] — one page drawn directly, and only while a clip sounds).
-    karaokeState?.let { state ->
-        drawKaraokePage(canvas, box, state, hidden)
+    val karaoke = karaokeState
+    if (karaoke != null && box.page.carriesRecording(karaoke.audioFile)) {
+        drawKaraokePage(canvas, box, karaoke, hidden)
         return
     }
     if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden)) return
@@ -386,7 +387,7 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
     }
     strokePainter.draw(
         canvas, pts, tool, strokeColor(), box.scale, box.leftPx - scrollX, box.topPx - scrollY,
-        currentLineStyle,
+        currentLineStyle, appendOnly = preview == null,
     )
 }
 

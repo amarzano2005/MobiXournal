@@ -46,9 +46,10 @@ internal fun DrawingSurfaceView.pageAt(index: Int): Page? =
  * unaffected.
  */
 internal fun DrawingSurfaceView.setBackgroundResolver(resolver: BackgroundResolver?) {
-    if (resolver === backgroundResolver) return
+    val changed = resolver !== backgroundResolver
     backgroundResolver = resolver
     if (resolver != null) imageBackgrounds = resolver.images
+    if (!changed) return
     // The same reference may mean different bytes now, and a remembered decode failure would keep a
     // page that can be resolved from ever being drawn.
     imageSource.clear()

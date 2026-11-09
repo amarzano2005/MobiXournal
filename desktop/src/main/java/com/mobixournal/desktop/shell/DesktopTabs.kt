@@ -275,6 +275,8 @@ class DesktopTab(
         if (target.absoluteFile == document.file.absoluteFile && !unsaved) return
         val reloaded = DocumentLoader.load(target)
         val previous = document
+        com.mobixournal.desktop.io.DesktopAudioSession.rehome(key, DesktopTabs.keyOf(target))
+        reloaded.audioStore = previous.audioStore
         document = reloaded
         title = target.name
         unsaved = false
@@ -343,6 +345,7 @@ class DesktopTab(
      * and label: what comes back is the same document, read from the file that now holds the edit.
      */
     fun saveBack(
+        format: com.mobixournal.format.SaveFormat = DesktopSaves.formatOf(document.container),
         /**
          * The step that puts the staged bytes in place. Defaulted to the real move; a test hands it a
          * mover that fails, which is the one case this method must survive without costing the author
@@ -351,9 +354,10 @@ class DesktopTab(
         replace: (File, File) -> Unit = DesktopSaves::replace,
     ): List<Uncompilable> {
         val target = file
+        val audioStore = document.audioStore
         // A staged file an earlier failed save adopted, if there is one: once this save lands it is litter.
         val adopted = document.pageSource.takeIf { it.absoluteFile != document.file.absoluteFile }
-        val staged = DesktopSaves.stage(document, target)
+        val staged = DesktopSaves.stage(document, target, format)
         val failure = try {
             document.close()
             replace(staged.temp, target)
@@ -368,18 +372,29 @@ class DesktopTab(
             // work the save was meant to publish. The destination is still [target], so Save tries it again
             // and Save As is the way out; the tab stays **dirty**, because the file does not hold these
             // pages. Only the undo steps are gone: their snapshots name pages of the archive just released.
-            document = DocumentLoader.adopt(target, staged.temp)
+            document = DocumentLoader.adopt(target, staged.temp).also { it.audioStore = audioStore }
             forgetHistory(dirty = true)
             throw failure
         }
         staged.close()
-        document = DocumentLoader.load(target)
+        document = DocumentLoader.load(target).also { it.audioStore = audioStore }
         unsaved = false
         // The closed archive's pages are what the old steps would restore; after a save the file is the
         // new baseline, so the history starts here and the save point moves with it.
         forgetHistory()
         adopted?.delete()
         return staged.uncompiled
+    }
+
+    internal fun adoptSaved(reloaded: DesktopDocument, dirty: Boolean) {
+        val oldKey = key
+        document = reloaded
+        if (!dirty) {
+            com.mobixournal.desktop.io.DesktopAudioSession.rehome(oldKey, key)
+            title = reloaded.file.name
+            unsaved = false
+        }
+        forgetHistory(dirty)
     }
 
     /** The identity two opens of the same document share — the absolute path, not the label. */

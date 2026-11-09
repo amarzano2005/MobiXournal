@@ -3,6 +3,8 @@ package com.mobixournal.desktop
 import com.mobixournal.desktop.ink.StrokePathCache
 import com.mobixournal.desktop.ink.of
 
+import com.mobixournal.format.model.Stroke
+import org.junit.Assert.assertTrue
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
@@ -71,6 +73,16 @@ class StrokePathCacheTest {
         val first = shapes(ShapeBuilder.build(ShapeKind.LINE, 10.0, 10.0, 100.0, 10.0, widthPt = 2.0))
         val second = shapes(ShapeBuilder.build(ShapeKind.LINE, 10.0, 10.0, 260.0, 10.0, widthPt = 2.0))
         assertNotSame(first, second)
+    }
+
+    @Test
+    fun `global identity retention is bounded across many documents`() {
+        repeat(6000) { index ->
+            val stroke = Stroke(Tool.PEN, 0, null, listOf(StrokePoint(index.toDouble(), 0.0, 1.0)), true)
+            StrokePathCache.of(stroke, 1f)
+        }
+        assertTrue(StrokePathCache.cachedIdentities <= 4096)
+        assertTrue(StrokePathCache.cachedGeometryPoints <= 450_000L)
     }
 
     private companion object {

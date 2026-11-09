@@ -155,11 +155,11 @@ private fun SettingsSelectCapsule(
         Modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)
             .onSizeChanged(onSize)
-            .hoverFill(DesktopTheme.capsuleShape, active = open, base = resting)
+            .hoverFill(PropertyControlShape, active = open, base = resting)
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) DesktopTheme.accent else Color.Transparent,
-                shape = DesktopTheme.capsuleShape,
+                shape = PropertyControlShape,
             )
             .focusable()
             .onFocusChanged { focused = it.isFocused }

@@ -59,7 +59,7 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 - **Write on the source.** A PDF becomes the page's background — by range, replacing or appended — and its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays exactly as drawn.
 - **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after two files merge.
-- **Record while you write.** Every stroke is stamped with its place in the recording; tapping it later starts playback there.
+- **Record while you write.** Tap a stroke to replay its recording. Bundled audio and waveforms load in the background.
 - **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.
 
 ### One workspace, two shells
@@ -92,8 +92,7 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 | **Android 8.0 or newer** | The release APK from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases). A stylus makes it a notebook; a finger does the rest. |
 | **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build that needs no install. |
 
-The shells number separately, and [the release index](docs/releases/index.md) is the only place those versions
-are written down. The installer is **unsigned**: Windows reports an unknown publisher and SmartScreen may ask
+The shells number separately; [the release index](docs/releases/index.md) records both. The installer is **unsigned**: Windows reports an unknown publisher and SmartScreen may ask
 first, which is deliberate rather than a false identity.
 
 ## The two file formats
@@ -103,9 +102,8 @@ first, which is deliberate rather than a false identity.
 | **`.mobix`** | MobiXournal's own container: one self-contained file that keeps plots, tables, circuits, formulas, audio and full stylus telemetry editable, and opens a long notebook page by page. |
 | **`.xopp`** | The interchange format desktop Xournal++ reads and writes. On export a plot, table or circuit becomes standard ink, with a metadata block that lets MobiXournal restore it while that ink is unchanged. |
 
-Opening never converts anything: a `.xopp` opened on the tablet still saves as a `.xopp`, and **Save As** is what
-changes the format. How much survives depends on the document — an untouched file returns the same XML, while
-telemetry and a flattened object's editability are what the format cannot carry. The Windows window **refuses**
+Opening preserves the format. **Save As** changes it after a successful save; cancelling leaves the original unchanged.
+An untouched file returns the same XML; interchange limits affect telemetry and flattened objects' editability. The Windows window **refuses**
 one **packaged** `.xopp` whose background lives inside it, leaving the file untouched. Details: [the native
 format](docs/mobix-format.md), [the `.xopp` contract](docs/xopp-bridge.md), [which format your notebook is
 in](docs/guide-formats-and-conversion.md).
@@ -124,8 +122,10 @@ in](docs/guide-formats-and-conversion.md).
 2. Confirm the SmartScreen prompt if one appears, and keep or decline the associations and shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
-A new tab is an empty notebook until you save it: **Save As** for a name and a format, then **Save**
-writes back in that format. The full first run is [your first notebook](docs/guide-first-notebook.md).
+Desktop settings use task groups; graph previews follow the theme. Windows saves briefly suspend editing while running in the background.
+
+A new tab is empty until saved: **Save As** names it and fixes its format; **Save** writes back there.
+Recents show what you opened — **×** drops one — and **Restore last session** reopens an unfinished session.
 
 ## Where the work stands today
 

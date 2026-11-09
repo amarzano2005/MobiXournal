@@ -44,6 +44,11 @@ class StrokePainter {
      * variant, which also multiplies the *alpha* and so punches a translucent hole in the white page
      * (the band then composites against the window behind the surface and goes muddy).
      */
+    private var draftTaper = IncrementalTaper()
+    private var draftIdentity: Any? = null
+    private var draftCount = 0
+    private var appendMode = false
+
     private val highlighterMultiply = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
     fun draw(
@@ -56,7 +61,14 @@ class StrokePainter {
         offsetY: Float,
         lineStyle: LineStyle = LineStyle.PLAIN,
         fill: Int? = null,
+        appendOnly: Boolean = false,
     ) {
+        appendMode = appendOnly
+        if (!appendOnly || draftIdentity !== pts || pts.size < draftCount) {
+            if (draftIdentity != null) draftTaper = IncrementalTaper()
+            draftCount = 0
+        }
+        draftIdentity = if (appendOnly) pts else null
         if (pts.size < 2) return
         if (fill != null) fillOutline(canvas, pts, color, fill, tool, scale, offsetX, offsetY)
         paint.color = renderColor(tool, color)
@@ -127,7 +139,9 @@ class StrokePainter {
     private fun buildPressureOutline(
         pts: List<StrokePoint>, scale: Float, offsetX: Float, offsetY: Float,
     ) {
-        val outline = InkGeometry.taperOutline(pts, scale, offsetX, offsetY)
+        val outline = if (appendMode) draftTaper.outline(pts, scale, offsetX, offsetY, draftCount).also {
+            draftCount = pts.size
+        } else InkGeometry.taperOutline(pts, scale, offsetX, offsetY)
         if (outline.size < 6) return
         path.rewind()
         path.moveTo(outline[0], outline[1])

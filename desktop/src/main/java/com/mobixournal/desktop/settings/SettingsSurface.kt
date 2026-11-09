@@ -99,19 +99,18 @@ internal fun SettingsSurface(
             CompositionLocalProvider(LocalSettingsHelp provides help) {
                 Row(Modifier.weight(1f).fillMaxWidth()) {
                     SettingsIndex(policy)
-                    Column(
-                        Modifier
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(start = 16.dp, end = 22.dp, top = PanelEdgeAir, bottom = 18.dp),
+                    Box(Modifier.width(1.dp).fillMaxHeight().background(DesktopTheme.hairline))
+                    SettingsScrollPane(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        resetKey = policy.shownSection,
+                        contentPadding = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
                     ) {
                         DesktopSettingPage(policy, palette, policy.shownSection)
                     }
                 }
             }
-            // At rest the line says what the open page is about; the sentence of the row under the pointer
-            // replaces it while it is there. The page above therefore needs no summary of its own.
-            SettingsHelpLine(help.value.ifEmpty { policy.shownSection?.summary.orEmpty() })
+            // Hover expands the inline help; the resting footer explains the immediate-apply model.
+            SettingsHelpLine(help.value.ifEmpty { "Changes apply immediately." })
         }
     }
 }
@@ -162,18 +161,16 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
  * The **index**: the four areas as eyebrows, and their sections under them.
  *
  * Ten names in one flat column is a list read top to bottom; four short groups is a list scanned by its
- * shape, and the tablet groups the same subjects under the same words (`DesktopSettingArea`). A section's
+ * shape, and desktop task areas put related controls together (`DesktopSettingArea`). A section's
  * sentence is not drawn here — the index is names only, and the help line says what a section covers when
  * the pointer is on it.
  */
 @Composable
 private fun SettingsIndex(policy: DesktopSettingsState) {
-    Column(
-        Modifier
-            .width(SettingsMetrics.INDEX_WIDTH)
-            .fillMaxHeight()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 10.dp, vertical = PanelEdgeAir),
+    SettingsScrollPane(
+        modifier = Modifier.width(SettingsMetrics.INDEX_WIDTH).fillMaxHeight(),
+        resetKey = "index",
+        contentPadding = Modifier.padding(horizontal = 10.dp, vertical = PanelEdgeAir),
     ) {
         for (area in DesktopSettingArea.entries) {
             val rows = policy.sections.filter { it.area == area }
@@ -195,13 +192,7 @@ private fun SettingsIndex(policy: DesktopSettingsState) {
     }
 }
 
-/**
- * The panel's **help line**: one sentence of the label role, under a hairline.
- *
- * It is reserved even while it is empty, so the page above it does not jump by a row's height every time
- * the pointer leaves a setting — and it is the only place a setting's explanation is drawn, which is what
- * lets every row be one line tall (`docs/desktop-settings.md`).
- */
+/** Full contextual help on hover, or the immediate-apply reminder at rest. */
 @Composable
 private fun SettingsHelpLine(sentence: String) {
     Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
@@ -223,8 +214,8 @@ private fun SettingsHelpLine(sentence: String) {
 }
 
 /** The panel's cap: wide enough for a row of four chips, and no wider than a settings page reads. */
-private val MAX_WIDTH = 900.dp
-private val MAX_HEIGHT = 640.dp
+private val MAX_WIDTH = 1050.dp
+private val MAX_HEIGHT = 760.dp
 
 /** The panel's own title row — shorter than a band's, because a panel is not the window's chrome. */
 private val HEADER_HEIGHT = 46.dp

@@ -3,7 +3,7 @@
  * thread that builds that index.
  *
  * Search crosses two clocks. The textual half — authored text boxes and an imported PDF's text layer —
- * is answered on the main thread by [DocumentSearch.find]; the handwritten half needs the recogniser,
+ * is answered by a separate query worker through [DocumentSearch.find]; the handwritten half needs the recogniser,
  * which on a real notebook takes seconds, so it is built on a **background thread** and its result lands
  * back on the main looper. Between the two sits a *generation* counter: every cancel, reload or newer
  * request bumps it, and a result posted from a dead generation is dropped rather than installed over a
@@ -25,6 +25,8 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Document
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import java.util.concurrent.CancellationException
+import java.util.concurrent.atomic.AtomicLong
 
 internal class CanvasSearch(
     /** The document to search — read afresh on each query, because the canvas's `doc` is replaced. */
@@ -43,6 +45,7 @@ internal class CanvasSearch(
     private val background: Executor = indexingExecutor(),
     /** Where a finished index lands: the main looper by default, direct in a test. */
     private val main: Executor = mainThreadExecutor(),
+    private val queries: Executor = searchQueryExecutor(),
 ) {
 
     /** The query in force, as typed. */
@@ -71,7 +74,9 @@ internal class CanvasSearch(
      * Bumped by every cancel, reload and new job. A result carries the generation it was built under, and
      * the main thread installs it only while that is still the live one.
      */
-    private var generation = 0
+    @Volatile private var generation = 0
+    private val queryGeneration = AtomicLong()
+    private var textIndex = PageTextIndex()
 
     /** Run [query] and repaint: what the search field calls on every keystroke. */
     fun setQuery(value: String): SearchStatus {
@@ -130,15 +135,14 @@ internal class CanvasSearch(
                             onRepaint()
                         }
                         onComplete?.invoke()
-                    } else {
-                        indexing = false
-                        onIndexing(false, null)
                     }
                 }
             } catch (_: Exception) {
                 main.execute {
-                    indexing = false
-                    onIndexing(false, null)
+                    if (generation == taskGeneration) {
+                        indexing = false
+                        onIndexing(false, null)
+                    }
                 }
             }
         }
@@ -164,6 +168,7 @@ internal class CanvasSearch(
 
     /** Forget the query and its hits, repainting the highlights away. */
     fun clear(): SearchStatus {
+        queryGeneration.incrementAndGet()
         query = ""
         hits = emptyList()
         current = -1
@@ -187,6 +192,7 @@ internal class CanvasSearch(
      * document is not, so rebuild it in place when a query is waiting.
      */
     fun invalidate() {
+        cancel()
         handwriting = null
         indexedDoc = null
         if (query.isNotEmpty()) startIndexing(document())
@@ -198,6 +204,8 @@ internal class CanvasSearch(
      */
     fun edited(midGesture: Boolean) {
         generation++
+        queryGeneration.incrementAndGet()
+        indexing = false
         handwriting = null
         indexedDoc = null
         if (query.isNotEmpty() && !midGesture) rebuild()
@@ -206,12 +214,14 @@ internal class CanvasSearch(
     /** Drop any in-flight indexing; its posted result will be ignored by its generation. */
     fun cancel() {
         generation++
+        queryGeneration.incrementAndGet()
         indexing = false
         onIndexing(false, null)
     }
 
     /** Recompute the hits of the query in force — after an edit, a PDF text layer arriving, or a query. */
     fun rebuild() {
+        val token = queryGeneration.incrementAndGet()
         if (query.isEmpty()) {
             // An empty query clears the highlights, not the index: the next query would rebuild it.
             hits = emptyList()
@@ -220,17 +230,40 @@ internal class CanvasSearch(
             return
         }
         if (handwriting == null && !indexing) startIndexing(document())
-        hits = DocumentSearch.find(document(), pdfText(), query, handwriting)
-        current = when {
-            hits.isEmpty() -> -1
-            current < 0 -> 0
-            else -> current.coerceAtMost(hits.lastIndex)
-        }
+        val target = document()
+        val text = pdfText()
+        val requested = query
+        val ink = handwriting
+        val index = textIndex
+        hits = emptyList()
+        current = -1
         notifyChanged()
+        queries.execute {
+            try {
+                val found = index.find(target, text, requested, ink) {
+                    if (queryGeneration.get() != token) throw CancellationException()
+                }
+                main.execute {
+                    if (queryGeneration.get() == token && document() === target && query == requested) {
+                        hits = found
+                        current = when {
+                            hits.isEmpty() -> -1
+                            current < 0 -> 0
+                            else -> current.coerceAtMost(hits.lastIndex)
+                        }
+                        notifyChanged()
+                        onRepaint()
+                    }
+                }
+            } catch (_: CancellationException) {
+                // A newer query owns the result.
+            }
+        }
     }
 
     /** Drop the hits and the index, without touching the query. */
     private fun forget() {
+        textIndex = PageTextIndex()
         hits = emptyList()
         current = -1
         handwriting = null
@@ -257,12 +290,10 @@ internal class CanvasSearch(
                             rebuild()
                             onRepaint()
                         }
-                    } else {
-                        indexing = false
                     }
                 }
             } catch (_: Exception) {
-                indexing = false
+                main.execute { if (generation == taskGeneration) indexing = false }
             }
         }
     }
@@ -299,4 +330,19 @@ private fun indexingExecutor(): Executor = Executors.newSingleThreadExecutor { r
 private fun mainThreadExecutor(): Executor {
     val handler = android.os.Handler(android.os.Looper.getMainLooper())
     return Executor { runnable -> handler.post(runnable) }
+}
+
+/** A single query worker with one replaceable debounce slot. */
+private fun searchQueryExecutor(): Executor {
+    val worker = Executors.newSingleThreadScheduledExecutor { task ->
+        Thread(task, "document-search").apply { isDaemon = true }
+    }
+    var pending: java.util.concurrent.ScheduledFuture<*>? = null
+    val lock = Any()
+    return Executor { task ->
+        synchronized(lock) {
+            pending?.cancel(false)
+            pending = worker.schedule(task, 150, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
+    }
 }

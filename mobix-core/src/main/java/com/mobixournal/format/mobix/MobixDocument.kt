@@ -467,6 +467,7 @@ class MobixDocument(
         payloads: Map<String, MobixPayload> = emptyMap(),
         chunkCoords: List<Pair<Int, Int>>? = null,
         canvas: MobixCanvasFile? = null,
+        previousManifest: MobixManifest? = null,
     ): MobixDocument {
         val isPaginated = canvasMode == CanvasMode.PAGINATED
         // Identity is the *document's* own: it mints what is missing and keeps what is there, so a
@@ -495,7 +496,14 @@ class MobixDocument(
         // and building one reads its page (`LazyChunks`).
         val chunks = if (!isPaginated) LazyChunks(pages, grid, canvasMode) else emptyList()
         return MobixDocument(
-            manifest = MobixManifest.forNewDocument(
+            manifest = previousManifest?.takeIf { it.documentId == documentId }?.let {
+                it.copy(
+                    canvasMode = canvasMode,
+                    modified = nowMillis,
+                    title = document.title,
+                    minAppVersion = if (compareVersions(it.minAppVersion, appVersion) >= 0) it.minAppVersion else appVersion,
+                )
+            } ?: MobixManifest.forNewDocument(
                 documentId = documentId,
                 canvasMode = canvasMode,
                 nowMillis = nowMillis,

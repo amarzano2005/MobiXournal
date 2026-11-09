@@ -65,8 +65,11 @@ internal class DesktopAudioRecorder(
      * default. A name that has gone falls back to that default inside [openLine], so a vanished headset
      * costs a default take rather than a failure.
      */
-    fun start(device: String? = AudioRoute.input): String? {
+    private var activeStore: DesktopAudioStore = store
+
+    fun start(device: String? = AudioRoute.input, storeOverride: DesktopAudioStore = store): String? {
         if (recording) return fileName
+        activeStore = storeOverride
         message = null
         val name = audioFileName(now(), extension = "wav")
         val capture = try {
@@ -76,7 +79,7 @@ internal class DesktopAudioRecorder(
             return null
         }
         val target = try {
-            store.target(name)
+            storeOverride.target(name)
         } catch (failure: Throwable) {
             runCatching { capture.close() }
             message = "There is no folder to keep recordings in."
@@ -137,7 +140,7 @@ internal class DesktopAudioRecorder(
         writer = null
         // A take that captured nothing (the microphone answered silence and was stopped at once) leaves
         // no file behind: an empty recording named in the document would be worse than no take at all.
-        if (written == 0L) runCatching { store.file(fileName ?: "")?.delete() }
+        if (written == 0L) runCatching { activeStore.file(fileName ?: "")?.delete() }
         recording = false
         paused = false
         level = 0f

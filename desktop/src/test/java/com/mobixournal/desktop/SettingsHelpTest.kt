@@ -54,7 +54,7 @@ class SettingsHelpTest {
             Snapshot.sendApplyNotifications()
             assertEquals("the first row's sentence", "Wintab reads the driver's packets.", help.value)
 
-            scene.sendPointerEvent(PointerEventType.Move, Offset(200f, 60f))
+            scene.sendPointerEvent(PointerEventType.Move, Offset(200f, 95f))
             Snapshot.sendApplyNotifications()
             assertEquals(
                 "the second row replaces it rather than being cleared by the first row's exit",

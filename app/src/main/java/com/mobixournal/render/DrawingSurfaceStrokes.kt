@@ -5,6 +5,7 @@
  */
 package com.mobixournal.render
 
+import com.mobixournal.collections.persistentAppend
 import android.view.MotionEvent
 import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.withAudio
@@ -449,12 +450,10 @@ internal fun DrawingSurfaceView.audioTap(event: MotionEvent, pointerIndex: Int) 
     val page = pageAt(box.index) ?: return
     val stroke = AudioTap.pickStroke(page, xPt, yPt)
     val baseRef = stroke?.audioRef()
-    // Point-precise where the stroke carries the telemetry a `.mobix` stores: the tap starts the
-    // recording at the **point** under it, so a tap on the fifth word starts there rather than at the
-    // stroke's head. A stroke with no deltas (a `.xopp` import, an older `.mobix`) has no timeline to
-    // be precise with, and the stroke's own offset is the honest answer.
-    val at = baseRef?.let { ref -> KaraokeStrokeAnimator.seekTimeMs(ref.startMs, stroke.points, xPt, yPt) }
-    onAudioTap?.invoke(baseRef?.copy(startMs = at ?: baseRef.startMs))
+    // The tap hands over the recording the stroke names, and nothing else: playback **starts at 0:00**
+    // (`docs/audio.md`, mode 2). A stroke's offset records when it was drawn — telemetry about the ink —
+    // and is not a place the user asked the clip to begin at, so the tap does not seek into it.
+    onAudioTap?.invoke(baseRef)
 }
 
 /** [stroke] with the live recording position stamped on, or unchanged when nothing is recording. */
@@ -472,7 +471,7 @@ internal fun DrawingSurfaceView.withStroke(page: Page, stroke: Stroke): Page {
     val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
     val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
     // Stamping here rather than at each commit site covers freehand and shapes alike.
-    layers[target] = Layer(layers[target].elements + withAudioStamp(stroke), layers[target].name)
+    layers[target] = layers[target].copy(elements = layers[target].elements.persistentAppend(withAudioStamp(stroke)))
     return page.copy(layers = layers)
 }
 

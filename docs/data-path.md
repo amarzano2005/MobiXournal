@@ -36,6 +36,12 @@ place the format changes, and then the name it proposes carries the new suffix (
 type changes with it, since a `.mobix` offered to the system as `application/x-xopp` would invite
 desktop Xournal++ to open something it cannot). The `desktop/` window follows the same rule through the same encoder, and its Save As switches it through the **type chosen in its save window** — which names the file in the same dialog; how it stages and moves the write is [desktop-documents.md](desktop-documents.md)'s. The tablet's dialog lists each format **once** — `.xopp`, `.mobix`, then the zipped package — and opens on the one the document already carries (`SaveAsDialog`).
 
+On Android, the picker holds a pending request for its original tab and pane. Cancelling it leaves
+that tab's name, URI and format unchanged; only a successful write commits the chosen format.
+Opening stages and parses the document on a worker; the UI callback only applies the loaded result.
+Exports use independent snapshot resources on a worker (see [rendering.md](rendering.md)).
+PDF text/outline callbacks check that the canvas still shows their source before applying results.
+
 **The write itself is platform-free** (`io/DocumentEncoder.kt` in `mobix-core`): one `write` holds the three format arms, and what is Android-shaped arrives through two seams — a `SaveTarget` (the name and the reference arithmetic: `UriSaveTarget` on a SAF id, `FileSaveTarget` on a path)
 and a `SaveShape` (the container, the canvas geometry, the archive to carry `assets/` from and the archive to repack over) — while `DocumentIo.encode` keeps its staging file and delegates the bytes.
 
@@ -56,11 +62,9 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   `.mobix` decoder mints one for an element that has none (`MobixElementCodec`'s `mint`), so what a save
   has to identify is narrower than it looks: the document's own id, and the page ids the manifest records
   for the pages it rebuilds.
-- **Its bundled payloads are adopted a page at a time** (a `.mobix` is self-contained, so the bytes in
-  the archive *are* the background — and the recording), when the page that names them is read:
-  `io/BundledPageAssets.kt` is a `PageSource` layer over the reader, the `BackgroundResolver` the
-  renderer asks afterwards, and the `BundledAudio` sink a recording is written to under the sidecar name
-  the stroke carries, so the file plays with no `.wav` beside it ([audio.md](audio.md)).
+- **Bundled backgrounds are adopted a page at a time**, when their page is read.
+  `io/BundledPageAssets.kt` layers `PageSource` and `BackgroundResolver` over the reader.
+  Recordings are registered separately; deferred audio resolution is owned by [audio.md](audio.md).
   The copies are keyed by the reference the document keeps, which is what the renderer looks a picture
   up by, and a background the document only *references* is resolved exactly as a gzip `.xopp`'s is.
   The archive's own PDF is adopted up front, since the model holds **one** background PDF per document;
@@ -136,7 +140,7 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   app's own sandbox, and a SAF URI with a persisted read grant is a different source for the adoption's
   source-matching branch to compare, and one no JVM test can build (`open-and-save-a-mobix-through-a-content-uri`).
   The save writes the pages that moved, and **the editor's identity adoption is the save's own answer**:
-  `MainActivityDocuments` asks what this write will build (`DocumentIo.identifyForSave`) and
+  `MainActivitySaves` asks what this write will build (`DocumentIo.identifyForSave`) and
   `DrawingSurfaceView.adoptIdentity` applies it, so a two-hundred-page notebook is no longer opened to be
   told its pages already have ids.
 
@@ -167,3 +171,11 @@ Colors are stored as Android `0xAARRGGBB` ints; the I/O layer converts to/from t
 transform to screen space.
 
 This list mirrors the Kotlin types in `format/model/` — keep the two in sync when the model changes.
+
+## Shared immutable edit roots
+
+Layer appends promote ordinary imported lists once to `PersistentVector`; subsequent appends copy a
+32-way tree path and a bounded tail. `EditedPages` and `PageWindow` use `PersistentIntMap`, a path-copied
+AVL map with insertion-order tracking. History snapshots retain immutable roots instead of copying
+all accumulated page edits. Codecs still consume ordinary List/Map interfaces. Removal occasionally
+compacts insertion-order tombstones; imported-list promotion still traverses the existing list once.

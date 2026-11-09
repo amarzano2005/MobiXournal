@@ -58,7 +58,7 @@ has taken over (`PagePicture`'s `skip`), or the old words would show through the
 
 **Its face, size and ink are the inspector lane's** (`InspectorText.kt`): a text box is one of the families
 `hasInspector` opens, so a click to select it and the bar's pencil (or a double-click) brings up the same
-300 dp column a table or a plot uses, with **family** (Sans / Serif / Monospace — any other family a file
+[resizable column](selection-actions.md) a table or a plot uses, with **family** (Sans / Serif / Monospace — any other family a file
 names joins the row as the picked answer), **Bold**, **Italic**, **size** in pt and the palette's colour.
 Each is one committed field and one undo step, and all five write what the tablet's dialog writes: a Pango
 font description, a size in pt, an ARGB colour, so the box reopens on the tablet with the same face. Its group's second member is the tablet's **LaTeX**

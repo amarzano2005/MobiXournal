@@ -32,30 +32,35 @@ internal class PageHandwriting(
     private val engine: InkWordEngine = InkEngines.platform,
 ) : SearchableHandwriting {
 
-    /** One reading per line of ink, keyed by the line's own content ([InkLine.key]). */
-    private val readings = HashMap<Int, List<HandwrittenWord>>()
+    private class Reading(
+        val revision: Pair<Long, Long>,
+        val lines: Map<String, List<HandwrittenWord>>,
+        val words: List<HandwrittenWord>,
+    )
+    private val readings = HashMap<Int, Reading>()
 
-    /** What page [page] says — every line read at most once per instance, no page the query never reaches. */
-    override fun words(page: Int): List<HandwrittenWord> {
-        // A page the source cannot open (a broken part, a page let go behind the walk) reads as empty ink
-        // rather than failing the whole query: search must answer what it could read.
-        val lines = runCatching { HandwritingRecognizer.lines(document.page(page)) }.getOrDefault(emptyList())
-        if (lines.isEmpty()) return emptyList()
-        return lines.flatMap { line -> read(line) }
-    }
-
-    /** [line]'s reading, from the cache when its ink has not changed since the last one. */
-    private fun read(line: InkLine): List<HandwrittenWord> {
-        readings[line.key]?.let { return it }
-        // A page being written all afternoon mints a key per version of the line under the pen; the map is
-        // a cache, not a history, so it is emptied rather than grown without bound.
-        if (readings.size >= MAX_LINE_READINGS) readings.clear()
-        val words = runCatching { HandwritingRecognizer.recognize(line, engine) }.getOrDefault(emptyList())
-        readings[line.key] = words
+    /** Recognition results are a compact per-page text index, not a 128-line working cache. */
+    @Synchronized override fun words(page: Int): List<HandwrittenWord> {
+        if (page !in 0 until document.pageCount) return emptyList()
+        val revision = document.pageRevision(page)
+        val previous = readings[page]
+        if (previous?.revision == revision) return previous.words
+        val model = runCatching { document.page(page) }.getOrNull() ?: return emptyList()
+        val lines = HandwritingRecognizer.lines(model)
+        val recognized = LinkedHashMap<String, List<HandwrittenWord>>()
+        for (line in lines) {
+            val key = lineFingerprint(line)
+            recognized[key] = previous?.lines?.get(key)
+                ?: runCatching { HandwritingRecognizer.recognize(line, engine) }.getOrDefault(emptyList())
+        }
+        val words = recognized.values.flatten()
+        if (document.pageRevision(page) == revision) readings[page] = Reading(revision, recognized, words)
+        readings.keys.removeAll { it >= document.pageCount }
         return words
     }
 
-    override val hasAnyText: Boolean get() = readings.values.any { it.isNotEmpty() }
+    @get:Synchronized override val hasAnyText: Boolean get() = readings.values.any { it.words.isNotEmpty() }
+
 }
 
 /**
@@ -63,7 +68,7 @@ internal class PageHandwriting(
  *
  * Recognition is the expensive half of a search, so a query typed letter by letter must not pay for the
  * same ink twice. What decides whether a reading is still true is the ink, not the edit count: [PageHandwriting]
- * keys every reading on the line it read ([InkLine.key]), so an edit is answered by re-reading the line that
+ * keys every reading on the line it read (a geometry fingerprint), so an edit is answered by re-reading the line that
  * changed instead of dropping the page. The cache is therefore rebuilt only when the tab points at another
  * document — a Save As, a reload, a recovered file.
  */
@@ -118,9 +123,6 @@ internal fun DesktopTab.warmInk() {
     val reader = handwriting.of(this)
     InkReading.schedule(reader, page)
 }
-
-/** How many line readings one page keeps before the cache starts over. */
-private const val MAX_LINE_READINGS = 128
 
 /** The pause after the last stroke (or page turn) before the page is read. */
 private const val WARM_DELAY_MS = 300L

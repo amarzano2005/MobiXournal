@@ -55,14 +55,15 @@ internal data class StackedLayout(
     val totalHeightPx: Float,
     val contentWidthPx: Float,
 ) {
-
+    private val bands = PageBandIndex(boxes)
+    internal val examinedBoxes: Int get() = bands.examinedBoxes
     /** The page whose vertical band contains [contentY] (content space), or null in a gap. */
     fun pageAt(contentY: Float): PageBox? =
-        boxes.firstOrNull { contentY >= it.topPx && contentY < it.bottomPx }
+        bands.at(contentY).firstOrNull()
 
     /** The page under the content-space point, or null if the point falls in a gap (or beside a page). */
     fun pageAt(contentX: Float, contentY: Float): PageBox? =
-        boxes.firstOrNull { it.contains(contentX, contentY) }
+        bands.at(contentY).firstOrNull { it.contains(contentX, contentY) }
 
     /**
      * The page a probe lands on, falling back to the nearest page when the point is beside it — used for
@@ -70,12 +71,12 @@ internal data class StackedLayout(
      */
     fun nearestPage(contentX: Float, contentY: Float): PageBox? =
         pageAt(contentX, contentY)
-            ?: boxes.filter { contentY >= it.topPx && contentY < it.bottomPx }
+            ?: bands.at(contentY)
                 .minByOrNull { minOf(kotlin.math.abs(contentX - it.leftPx), kotlin.math.abs(contentX - it.rightPx)) }
 
     /** Boxes that intersect the visible window `[scrollY, scrollY + viewHeightPx)`. */
     fun visible(scrollY: Float, viewHeightPx: Float): List<PageBox> =
-        boxes.filter { it.bottomPx > scrollY && it.topPx < scrollY + viewHeightPx }
+        bands.visible(scrollY, viewHeightPx)
 }
 
 /**

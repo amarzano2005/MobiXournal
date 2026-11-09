@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
+import com.mobixournal.desktop.io.DesktopRecovery
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.io.describeSaveFailure
 import com.mobixournal.desktop.io.save
@@ -37,6 +38,7 @@ class CloseRequest internal constructor(val tab: DesktopTab, val exit: Boolean)
  * `Ctrl+W` and the close glyph need to know.
  */
 fun DesktopShellState.requestCloseTab(index: Int): Boolean {
+    if (isSaving) return false
     if (closeRequest != null) return false
     val tab = tabs.all.getOrNull(index) ?: return false
     if (tab.isDirty) {
@@ -57,6 +59,7 @@ fun DesktopShellState.requestCloseActive(): Boolean = requestCloseTab(tabs.activ
  * asks about: a question about a document the user cannot see is a question about the wrong document.
  */
 fun DesktopShellState.requestExit(): Boolean {
+    if (isSaving) return false
     if (exitAllowed) return true
     if (closeRequest != null) return false
     val dirty = tabs.all.firstOrNull { it.isDirty }
@@ -86,6 +89,15 @@ fun DesktopShellState.confirmCloseSave() {
     failure = null
     settle(tab)
     continueClose(request.exit)
+}
+
+internal fun DesktopShellState.requestCloseSave() {
+    val request = closeRequest ?: return
+    requestSave(origin = request.tab, completed = {
+        closeRequest = null
+        settle(request.tab)
+        continueClose(request.exit)
+    })
 }
 
 /** **Discard**: drop the edits and the crash snapshot with them, then let the close continue. */
@@ -119,7 +131,10 @@ fun DesktopShellState.recover(): Int {
             title = "${entry.title} (recovered)",
             recoveredFrom = entry.snapshot,
         )
-        if (tabs.adopt(tab) === tab) adopted++
+        if (tabs.adopt(tab) === tab) {
+            DesktopAudioSession.adopt(document)
+            adopted++
+        }
     }
     return adopted
 }
@@ -136,12 +151,13 @@ fun DesktopShellState.noteEdit() {
  * snapshot is the whole notebook, so the cadence is a decision the window makes, not this method.
  */
 fun DesktopShellState.flushRecovery(): Int {
-    val store = recovery ?: return 0
-    var written = 0
-    for (tab in tabs.all) {
-        if (tab.isDirty && store.save(tab) != null) written++
-    }
-    return written
+    return prepareRecovery().count { (store, request) -> store.save(request) != null }
+}
+
+/** Capture tab state on the UI thread before the quiet writer changes dispatcher. */
+internal fun DesktopShellState.prepareRecovery(): List<Pair<DesktopRecovery, DesktopRecovery.Request>> {
+    val store = recovery ?: return emptyList()
+    return tabs.all.filter { it.isDirty }.map { store to store.prepare(it) }
 }
 
 /** The edits are in the file: the crash snapshot has no reason to outlive them. */

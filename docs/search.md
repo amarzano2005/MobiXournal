@@ -30,7 +30,7 @@ line, words or formula, cut to a row — beside its boxes, which is what a resul
 
 `Ctrl + F` opens the desktop band's field (`HeaderSearch.kt`) and `Esc` closes it; `Enter` steps to the next
 match and `Shift + Enter` to the previous, both wrapping. The answer is kept on the tab as `DesktopSearch`
-(query, hits, current) and walked by `SearchRunner` on `Dispatchers.Default` once per settled query, so
+(query, hits, current) and walked by `SearchRunner` on `Dispatchers.Default` after a 150 ms debounce, so
 repainting the page never re-walks the document. The sidebar lists the matches (`SearchSidebar.kt`, filled
 only while a query is up) and the current one is painted over the page as chrome, at the PDF text
 selection's translucency.
@@ -43,9 +43,12 @@ single index passed by position would highlight the wrong words.
 Ink is read **lazily, a line at a time**: `PageHandwriting` segments a page when a query reaches it and reads
 only the lines it has no reading for, keyed by the line's own ink (`InkLine.key`) — so a query typed letter by
 letter reads a written page once, and an edit re-reads the **line it touched** while the rest of the page stays
-read. `HandwritingCache` keeps that reader on the tab while the document is the same one, and `InkReading`
+read. Unchanged page revisions return cached words before decoding or segmenting; recognized text is kept
+per page instead of clearing every 128 lines. These records retain words and fingerprints, not page models.
+`HandwritingCache` keeps that reader on the tab while the document is the same one, and `InkReading`
 warms the page in view about 300 ms after a lift or a page turn. There is still no upfront index on the PC (the
-tablet builds one, see below): a search costs the pages it reads, never the whole notebook.
+tablet builds one, see below): a query walks the notebook one page at a time without eagerly retaining
+all page models, and unchanged recognized ink is not read again.
 
 The field stands on the band always, and two doors run the same `ShellCommand.FIND`: `Ctrl + F`, which hands
 it the keyboard, and the menu's **Search** row.
@@ -252,3 +255,17 @@ Session load is 20 ms and the session holds about 16 MB. Three consequences for 
 - **Bucket the line width.** ONNX Runtime's CPU arena grows with the shapes it sees (+27 MB over 30 varying
   widths in this run); a few fixed widths, or the arena off, keep it flat. Loaded lazily on the first
   recognition, none of this delays the window opening.
+
+## Query scheduling
+
+Android captures document, PDF text and handwriting references on the UI thread, then matches on a
+separate serial query worker after 150 ms without another query. A generation rejects obsolete work
+before each page and element and before publishing hits. This worker is separate from OCR, so model
+recognition cannot hold a typed query behind its own queue. Desktop uses the same cooperative checks
+with coroutine cancellation. `PageTextIndex` retains compact typed/math geometry and PDF words per page,
+excluding ink. Desktop
+page revisions and PDF-index identity invalidate individual records; Android compares immutable page
+overlays against their base and changed page identities. A repeated query reads no unchanged source
+pages; structural replacement rebuilds the corpus. PDF text arriving on desktop reruns the query.
+Matching still scans the compact corpus and preserves the separate fuzzy handwriting search; there
+is no token-posting index yet. A single recognizer call cannot be interrupted by the search callback.

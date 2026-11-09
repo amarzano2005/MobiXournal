@@ -61,6 +61,7 @@ internal fun DesktopShell(
     /** The window's devices, or null in a test that has none — the canvas then keeps the mouse path. */
     tablet: DesktopTablet? = null,
 ) {
+    SaveWorker(state)
     ThumbnailRefresh(state)
     // The field's answer, walked off the UI thread once per settled query (`DesktopSearch.kt`).
     SearchRunner(state.active)
@@ -75,7 +76,7 @@ internal fun DesktopShell(
     }
     // The one export in flight, written off the UI thread (`DesktopExportCommands.kt`).
     ExportWorker(state)
-    Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
+    Column(modifier.saveInputGate(state.isSaving).fillMaxSize().background(DesktopTheme.desk)) {
         Header(
             tabs = state.tabs,
             sidebarVisible = state.sidebarVisible,
@@ -84,7 +85,7 @@ internal fun DesktopShell(
             onMove = { from, to -> state.tabs.move(from, to) },
             onNew = { state.newDocument() },
             onOpen = onOpenPicker,
-            onSave = { state.save() },
+            onSave = { state.requestSave() },
             onSaveAs = onSavePicker,
             onExportPdf = onExportPdfPicker,
             onImportPdf = onImportPdfPicker,
@@ -128,9 +129,9 @@ internal fun DesktopShell(
             // and not a page of its own. The reader keeps the document in view while a preference is
             // changed — which is the point of changing it (`docs/interface-contract.md` — a surface that
             // comes and goes may lie over the page; only a band may not).
-            WorkspaceBody(state, tablet, onOpenPicker)
-            if (state.prefs.open) SettingsSurface(state.prefs, state.paletteEditor)
-            FigureDialogHost(state)
+            if (state.isSaving) SavingDesk() else WorkspaceBody(state, tablet, onOpenPicker)
+            if (!state.isSaving && state.prefs.open) SettingsSurface(state.prefs, state.paletteEditor)
+            if (!state.isSaving) FigureDialogHost(state)
         }
         StatusBar(
             state.active,

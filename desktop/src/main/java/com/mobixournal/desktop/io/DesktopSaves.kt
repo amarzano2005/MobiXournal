@@ -121,7 +121,7 @@ object DesktopSaves {
          * encoder so a `.mobix` **bundles** them instead of writing page references to entries it does
          * not carry: that omission is what used to delete a document's audio on a PC edit.
          */
-        audio: DesktopAudioStore = DesktopAudioStore.shared,
+        audio: DesktopAudioStore = document.audioStore,
     ): Staged {
         if (format == SaveFormat.ZIPPED && hasAttachments(document)) {
             throw SaveRefused(

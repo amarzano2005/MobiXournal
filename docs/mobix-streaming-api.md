@@ -21,11 +21,9 @@ implementation detail. A shell implements against the table below, not against t
 | write the document back | `DocumentEncoder.write(document, SaveFormat.MOBIX, target, out, appVersion, shape)` | the file itself, in any of the three containers — the app calls this too, so one writer serves both shells |
 | write it *as an archive* | `MobixDocument.open(...)` → `encode(...)`, or `MobixIncrementalSave.saveOver(...)` | the archive's entries, or a repack that copies unchanged parts and rebuilds only the dirty ones |
 
-`PageSource.of(reader)` is the same reader seen as the surface the editor carries (count, id, page,
-window); `PageSource.of(document)` gives the eager read the same shape, so a view is written once for
-both and tests can drive the paged path. `MobixMergeEngine` and `MobixConflictDetector` are the sync
-verbs — three-way page merge and its conflicts — and are public for the same reason: a second shell
-that syncs must not reimplement them.
+`PageSource.of(reader)` presents the reader as the editor's count/id/page surface; `PageSource.of(document)` gives eager documents the same shape, so views and tests serve both paths. `MobixMergeEngine` and `MobixConflictDetector` expose three-way merge and conflicts for other shells.
+
+`mapPageSources` replaces readers without decoding pages. `PageListView` rebases immutable edits and insertion/deletion views (`EditedPages`, `SplicedPages`) while retaining index mapping, so background consumers can use independent readers.
 
 **`PageWindow` is part of the contract too**, because a shell that can *edit* needs the other half of
 streaming: a bounded read cache over a `PageSource` plus an overlay of edited pages eviction never

@@ -35,7 +35,7 @@ class DesktopShapeFeedbackTest {
     }
 
     @Test
-    fun `a rectangular hover belongs to the settings card alone, and that card clips`() {
+    fun `a rectangular hover belongs to flat desktop settings rows`() {
         val rect = sources()
             .filter { Regex("""hoverFill\(\s*RectangleShape""").containsMatchIn(it.readText()) }
             .map { it.relativeTo(root()).invariantSeparatorsPath }
@@ -47,7 +47,7 @@ class DesktopShapeFeedbackTest {
         val rows = File(root(), "settings/SettingsRows.kt").readText()
         assertTrue(
             "the group card must clip the rows whose rectangle it rounds (SettingsGroup → glassSurface)",
-            rows.contains("internal fun SettingsGroup(") && rows.contains("glassSurface("),
+            body(rows, "internal fun SettingsGroup(").let { !it.contains("glassSurface(") && it.contains("DesktopTheme.hairline") },
         )
     }
 

@@ -41,6 +41,8 @@ it, so it no longer tries.
 ### `mobix-core/src/main` — the platform-free core
 
 - `mobix-core/src/main/java/com/mobixournal/audio`
+- `mobix-core/src/main/java/com/mobixournal/collections`
+- `mobix-core/src/main/java/com/mobixournal/concurrent`
 - `mobix-core/src/main/java/com/mobixournal/design`
 - `mobix-core/src/main/java/com/mobixournal/format`
 - `mobix-core/src/main/java/com/mobixournal/format/json`

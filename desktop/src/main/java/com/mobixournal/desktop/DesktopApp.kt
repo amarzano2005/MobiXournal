@@ -1,4 +1,5 @@
 package com.mobixournal.desktop
+import com.mobixournal.desktop.shell.requestSave
 import com.mobixournal.desktop.shell.WindowKeys
 
 import androidx.compose.runtime.rememberCoroutineScope
@@ -243,7 +244,7 @@ internal class DocumentDialogs(
     fun saveAs() {
         val tab = state.active ?: return
         val (file, format) = SaveAsPicker.choose(window, tab) ?: return
-        state.saveAs(file, DesktopSaves.formatOf(format.container))
+        state.requestSave(file, DesktopSaves.formatOf(format.container))
     }
 
     /**

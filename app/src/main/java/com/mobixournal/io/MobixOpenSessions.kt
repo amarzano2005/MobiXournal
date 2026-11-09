@@ -31,7 +31,7 @@ internal class MobixOpenSessions {
      * An open `.mobix`'s own bytes: the staged copy the session keeps, and the URI it came in through.
      * A save landing back on that URI repacks over these bytes instead of writing the archive again.
      */
-    class OpenMobix(val staged: File, val uri: String?)
+    class OpenMobix(val staged: File, val uri: String?, val owned: Boolean = false)
 
     /**
      * The page readers of the `.mobix` documents opened page by page, by the document they back. A
@@ -68,13 +68,45 @@ internal class MobixOpenSessions {
     private val canvases = HashMap<String, MobixCanvasFile>()
 
     /** Record that [documentId] was read from [staged], through [uri] when the caller knows it. */
-    fun remember(documentId: String, staged: File, uri: String?) {
-        sources[documentId] = OpenMobix(staged, uri)
+    @Synchronized
+    fun remember(documentId: String, staged: File, uri: String?, owned: Boolean = false) {
+        sources[documentId] = OpenMobix(staged, uri, owned)
     }
 
+    /**
+     * The **instance** a document was opened as, before any edit — weak, because it is the caller's.
+     *
+     * "Unedited" is identity, not equality: committing a stroke replaces the document, so the record
+     * stops matching by itself and a snapshot goes back to being an encode. What it is for: an opened
+     * `.mobix` *is* its archive, so a snapshot of it can copy those bytes instead of rebuilding them
+     * (`MobixTabSnapshots.uneditedArchive`).
+     */
+    private var openedAs: java.lang.ref.WeakReference<Document>? = null
+
+    @Synchronized
+    fun opened(document: Document) {
+        openedAs = java.lang.ref.WeakReference(document)
+    }
+
+    /** Whether [document] is still the very instance its file was opened as. */
+    @Synchronized
+    fun openedUnedited(document: Document): Boolean = openedAs?.get() === document
+
     /** The staged copy [document] was read from, or null when this session does not hold one. */
+    @Synchronized
     fun stagedOf(document: Document): File? =
         document.documentId?.let { sources[it] }?.takeIf { it.staged.isFile }?.staged
+
+    /**
+     * Whether [file] is an open document's own archive — the staging copy the session keeps for it.
+     *
+     * A `.mobix` is read **through** its bytes after the open returns: a deferred recording payload
+     * opens them, an independent reader indexes them, and a repack save copies entries out of them.
+     * The caller that staged them may therefore not sweep the file while this session holds it.
+     */
+    @Synchronized
+    fun retains(file: File): Boolean =
+        sources.values.any { it.staged.absolutePath == file.absolutePath }
 
     /**
      * The archive a save of [document] to [target] repacks over, or null when there is none: a `.mobix`
@@ -86,11 +118,13 @@ internal class MobixOpenSessions {
      * the document came in through **as a string**, because that is what a session remembers it as and
      * what SAF hands back for the same file.
      */
+    @Synchronized
     fun sourceFor(document: Document, target: Uri?): OpenMobix? =
         document.documentId?.let { sources[it] }
             ?.takeIf { it.staged.isFile && it.uri != null && it.uri == target?.toString() }
 
     /** Keep [reader] alive for as long as the session holds [documentId] — it is what its pages read. */
+    @Synchronized
     fun keep(documentId: String, reader: MobixPagedReader) {
         readers.getOrPut(documentId) { mutableListOf() } += reader
     }
@@ -105,6 +139,7 @@ internal class MobixOpenSessions {
      * being trusted: a wrong grid moves content, and the derived strip the writer falls back to at least
      * keeps every part readable.
      */
+    @Synchronized
     fun shape(mobixDoc: MobixDocument) {
         val id = mobixDoc.manifest.documentId
         canvasModes[id] = mobixDoc.manifest.canvasMode
@@ -120,6 +155,7 @@ internal class MobixOpenSessions {
      * or null for a document this session never opened. Writing a chunked document as paginated is the
      * rewrite `docs/mobix-format.md` refuses a document to avoid, so a file the session *did* open wins.
      */
+    @Synchronized
     fun canvasModeOf(document: Document): CanvasMode? =
         document.documentId?.let { canvasModes[it] }
 
@@ -128,6 +164,7 @@ internal class MobixOpenSessions {
      * manifest's own coordinates, or null for a document with no board behind it (the writer then lays
      * its parts out as the mode's strip, `MobixDocument.of`).
      */
+    @Synchronized
     fun chunkCoordsOf(document: Document): List<Pair<Int, Int>>? =
         document.documentId?.let { chunkGrids[it] }
 
@@ -135,6 +172,7 @@ internal class MobixOpenSessions {
      * The board geometry [document] was opened with, or null for a document with no board behind it — a
      * `.xopp`, a new document, or one opened before this session remembered it.
      */
+    @Synchronized
     fun canvasOf(document: Document): MobixCanvasFile? =
         document.documentId?.let { canvases[it] }
 
@@ -143,10 +181,17 @@ internal class MobixOpenSessions {
      * open tab and live canvas still carries, so a document being shown, mirrored or kept in the
      * background keeps its reader and only the ones nothing points at are released.
      */
+    @Synchronized
     fun prune(liveDocumentIds: Collection<String?>) {
         val live = liveDocumentIds.filterNotNull().toSet()
         for (id in readers.keys.filterNot { it in live }) {
             readers.remove(id)?.forEach { reader -> runCatching { reader.close() } }
+        }
+        // An open `.mobix`'s own bytes are the session's staged copy: a deferred recording payload and
+        // a repack save both read it after the open returned, so it is released with the document.
+        for (id in sources.keys.filterNot { it in live }) {
+            val gone = sources.remove(id) ?: continue
+            if (gone.owned) runCatching { gone.staged.delete() }
         }
         // The mode and the chunk grid are per-document facts of an open, so they are let go with it:
         // an id the session no longer holds cannot be saved again ([canvasModeOf]).

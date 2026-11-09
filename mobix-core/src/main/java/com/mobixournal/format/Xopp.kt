@@ -1,7 +1,6 @@
 package com.mobixournal.format
 
 import com.mobixournal.format.model.Document
-import com.mobixournal.format.xml.XmlComment
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.GZIPInputStream
@@ -23,8 +22,8 @@ object Xopp {
 
     /** Read a `.xopp` stream (gzip + XML) into a [Document]. Does not close [input]. */
     fun open(input: InputStream): Document {
-        val xml = GZIPInputStream(input).reader(Charsets.UTF_8).use { it.readText() }
-        return parseXml(xml)
+        val protected = object : java.io.FilterInputStream(input) { override fun close() = Unit }
+        return GZIPInputStream(protected).reader(Charsets.UTF_8).use { parseXml(it) }
     }
 
     /**
@@ -33,8 +32,10 @@ object Xopp {
      * The XML reader skips comments, so the bridge block — if the file carries one — is taken from the
      * text here: it is a payload beside the document, not part of it (`Document.bridge`).
      */
-    fun parseXml(xml: String): Document =
-        XoppReader(xml).read().copy(bridge = XmlComment.extract(xml, BRIDGE_COMMENT))
+    fun parseXml(xml: String): Document = parseXml(java.io.StringReader(xml))
+
+    /** Parse incrementally without taking ownership of the caller's reader. */
+    fun parseXml(reader: java.io.Reader): Document = XoppReader(reader).read()
 
     /** Serialise a [Document] to `.xopp` bytes (XML + gzip) on [output]. Does not close it. */
     fun save(doc: Document, output: OutputStream) {

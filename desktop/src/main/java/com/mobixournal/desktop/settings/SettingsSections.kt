@@ -36,18 +36,12 @@ import com.mobixournal.render.PressureCurve
 import java.util.Locale
 import kotlin.math.roundToInt
 
-/**
- * The index's **four areas** — the tablet's own split, under the tablet's own words.
- *
- * Ten names in one column is a list read top to bottom; four short groups is a list scanned by its shape, and
- * a reader who uses both shells finds the same subjects under the same headings. The areas are the phone's
- * minus the pages this shell does not carry (`docs/desktop-settings.md`).
- */
+/** Desktop task areas, in their visible navigation order; section IDs remain stable. */
 enum class DesktopSettingArea(val title: String) {
+    INTERFACE("Workspace"),
     INPUT("Input"),
     DRAWING("Drawing"),
-    INTERFACE("Interface"),
-    APP("App & data"),
+    APP("Files & app"),
 }
 
 /**
@@ -123,14 +117,14 @@ enum class DesktopSettingSection(
     ),
     NAVIGATION(
         "Navigation",
-        "How a document opens and how the page list behaves.",
+        "Page layout, zoom steps and smooth scrolling.",
         "navigation zoom fit page width panning scrolling sidebar page list smooth scroll distance wheel notch",
         SettingsGlyph.NAVIGATION,
     ),
     APPEARANCE(
         "Appearance",
         "The theme, and what the status bar reads.",
-        "appearance theme status bar readout frame time paint refresh display",
+        "appearance theme dark light system status bar readout frame time paint refresh display",
         SettingsGlyph.APPEARANCE,
     ),
     DOCUMENTS(
@@ -141,8 +135,8 @@ enum class DesktopSettingSection(
     ),
     BACKUP(
         "Backup",
-        "The recovery snapshot, and a file that carries your settings.",
-        "backup recovery snapshot crash restore unsaved settings export import file transfer",
+        "Export, import and reset your application settings.",
+        "backup restore settings export import file transfer reset",
         SettingsGlyph.BACKUP,
     ),
     ABOUT(
@@ -156,31 +150,32 @@ enum class DesktopSettingSection(
     /** The area of the index this section is listed under. */
     val area: DesktopSettingArea
         get() = when (this) {
-            STYLUS, SHORTCUTS, AUDIO -> DesktopSettingArea.INPUT
-            FIGURES, COLORS, RING -> DesktopSettingArea.DRAWING
+            STYLUS, SHORTCUTS, RING -> DesktopSettingArea.INPUT
+            FIGURES, COLORS -> DesktopSettingArea.DRAWING
             TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
-            DOCUMENTS, BACKUP, ABOUT -> DesktopSettingArea.APP
+            DOCUMENTS, AUDIO, BACKUP, ABOUT -> DesktopSettingArea.APP
         }
 
     /** Whether this section answers [needle] — its title, its summary, aliases or commands. */
     fun matches(needle: String): Boolean {
         if (needle.isBlank()) return true
-        val lower = needle.trim().lowercase()
-        if (title.lowercase().contains(lower) || summary.lowercase().contains(lower) || keywords.contains(lower)) {
-            return true
+        val haystack = "$title $summary $keywords ${area.title}".lowercase()
+        return needle.trim().lowercase().split(Regex("\\s+")).all { term ->
+            term in haystack || (this == SHORTCUTS && ShortcutTable.entries.any { ShortcutFamilies.matches(it, term) })
         }
-        if (this == SHORTCUTS) {
-            return ShortcutTable.entries.any { ShortcutFamilies.matches(it, lower) }
-        }
-        return false
     }
 
     companion object {
+        /** One order for the visible index, searches and their fallback page. */
+        val ORDERED: List<DesktopSettingSection> = listOf(
+            APPEARANCE, TOOLBAR, NAVIGATION, STYLUS, SHORTCUTS, RING,
+            FIGURES, COLORS, DOCUMENTS, AUDIO, BACKUP, ABOUT,
+        )
         /** The section a window opens on: the **pen**, the page every session starts from. */
         val DEFAULT: DesktopSettingSection = STYLUS
 
         /** The sections the search field leaves, in the index's own order. */
-        fun search(query: String): List<DesktopSettingSection> = entries.filter { it.matches(query) }
+        fun search(query: String): List<DesktopSettingSection> = ORDERED.filter { it.matches(query) }
     }
 }
 
@@ -197,12 +192,14 @@ internal fun DesktopSettingPage(
     section: DesktopSettingSection?,
 ) {
     if (section == null) {
-        Text("No setting matches that.", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+        Text("No settings found. Try theme, pressure or scrolling.", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
         return
     }
     // The title only: the section's one-line summary lives in the panel's help line, at rest, under the
     // page — a sentence under the title as well would spend a row saying the same thing twice.
     Text(section.title, color = DesktopTheme.ink, style = DesktopTheme.title)
+    Spacer(Modifier.height(6.dp))
+    Text(section.summary, color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
     when (section) {
         DesktopSettingSection.STYLUS -> StylusSettings(policy)
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
@@ -264,6 +261,7 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
         SettingsRow(
             label = "Pressure sensitivity",
             note = "Vary line width by pen pressure; off draws uniform strokes.",
+            checked = policy.pressureEnabled,
             onClick = { policy.choosePressureEnabled(!policy.pressureEnabled) },
         ) {
             SettingsSwitch(policy.pressureEnabled)
@@ -343,6 +341,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
             SettingsRow(
                 label = "Aspect lock",
                 note = "Maintain the tablet's physical aspect ratio when resizing.",
+                checked = policy.aspectLock,
                 onClick = { policy.chooseAspectLock(!policy.aspectLock) },
             ) {
                 SettingsSwitch(policy.aspectLock)
@@ -416,7 +415,7 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
 /** **Appearance**: the theme, and what the status bar reads. */
 @Composable
 private fun AppearanceSettings(policy: DesktopSettingsState) {
-    SettingsGroup("Theme") {
+    SettingsGroup("Workspace") {
         SettingsSelect(
             label = "Theme",
             note = "Application theme. System matches Windows appearance.",
@@ -426,11 +425,12 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
             onPick = policy.appearance::chooseTheme,
         )
     }
-    SettingsGroup("Status bar") {
+    SettingsGroup("Display") {
         // The desk, and the one thing that can only be asked of a full-screen window: the panel's rate.
         SettingsRow(
             label = "Full screen",
             note = "F11 or toggle here. Enables high-refresh display modes.",
+            checked = policy.fullScreen,
             onClick = policy::toggleFullScreen,
         ) {
             SettingsSwitch(policy.fullScreen)
@@ -447,16 +447,19 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
                 onPick = policy::chooseTargetHz,
             )
         }
+        SettingsReadout("Display", refreshLabel(displayRefreshHz()))
+    }
+    SettingsGroup("Status bar") {
         SettingsRow(
             label = "Frame time",
             note = "Display render time per frame alongside display refresh rate.",
+            checked = policy.frameTime,
             onClick = { policy.chooseFrameTime(!policy.frameTime) },
         ) {
             SettingsSwitch(policy.frameTime)
         }
         // What the panel is *really* at — never the target. A refused mode read back as applied is the one
         // lie a refresh readout must not tell.
-        SettingsReadout("Display", refreshLabel(displayRefreshHz()))
         frameLabel(FrameMeter.averageMs, policy.frameTime)?.let { SettingsReadout("Painting", it) }
     }
 }
@@ -534,7 +537,7 @@ private fun AudioSettings(policy: DesktopSettingsState) {
             onPick = audio::chooseOutput,
         )
     }
-    SettingsGroup("The take") {
+    SettingsGroup("Recording") {
         SettingsRow(
             label = "Input level",
             note = if (DesktopAudioSession.recording) {
@@ -550,10 +553,11 @@ private fun AudioSettings(policy: DesktopSettingsState) {
     }
     // The tablet's *Save separate audio*: the take leaves the window's own store, so another program
     // (or another machine) can play it. On by the reader's choice, never by itself.
-    SettingsGroup("External audio") {
+    SettingsGroup("Export recordings") {
         SettingsRow(
             label = "Save separate audio",
             note = "Export standalone audio copies for playback outside the app.",
+            checked = audio.saveExternally,
             onClick = { audio.chooseSaveExternally(!audio.saveExternally) },
         ) {
             SettingsSwitch(audio.saveExternally)
@@ -612,7 +616,7 @@ private fun PillLevelMeter(level: Float) {
  */
 @Composable
 private fun BackupSettings(policy: DesktopSettingsState) {
-    SettingsGroup("Settings backup") {
+    SettingsGroup("Settings transfer") {
         SettingsCommand(
             label = "Export settings…",
             note = "Save all settings to a backup file.",
@@ -627,7 +631,7 @@ private fun BackupSettings(policy: DesktopSettingsState) {
     }
     // The one command that answers "start over": it is the backup page's own subject — a whole
     // configuration, in or out — and it is drawn as a command, not as a row that reports a state.
-    SettingsGroup("Defaults") {
+    SettingsGroup("Reset settings") {
         SettingsCommand(
             label = "Reset all settings…",
             note = "Restore all settings to factory defaults. Document files are not affected.",

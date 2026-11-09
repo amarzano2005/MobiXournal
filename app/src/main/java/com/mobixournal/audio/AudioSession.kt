@@ -31,6 +31,12 @@ class AudioSession(
     private val aac = AacAudioRecorder()
     private val player = AudioPlayer()
     private val store = AudioStore(context)
+    private val deferred = DeferredRecordings(store::local, store::adopt)
+
+    override fun register(reference: String, token: String, payload: com.mobixournal.format.mobix.MobixPayload) =
+        deferred.register(reference, token, payload)
+
+    fun hasRecording(name: String): Boolean = deferred.known(name)
 
     /** The bare file name of the recording in progress, or null when idle. */
     var currentFile: String? = null
@@ -206,7 +212,15 @@ class AudioSession(
      * ([com.mobixournal.format.mobix.MobixPayload]), so a 30-minute lecture never becomes a 160 MB
      * `ByteArray` on the way to disk.
      */
-    fun recordingFile(name: String): File? = store.local(name).takeIf(File::isFile)
+    fun recordingFile(name: String): File? = deferred.resolve(name)
+
+    suspend fun preparePlayback(ref: AudioRef): Boolean = player.prepare(store.local(ref.filename), ref.startMs)
+
+    fun playPrepared(ref: AudioRef): Boolean {
+        val playing = player.playPrepared(store.local(ref.filename), ref.startMs)
+        nowPlaying = ref.filename.takeIf { playing }
+        return playing
+    }
 
     /**
      * Play [ref]'s recording **from the stroke's own offset** — what the Play object tool promises when
@@ -225,8 +239,7 @@ class AudioSession(
      */
     fun pausePlayback(): Boolean {
         val name = nowPlaying ?: return false
-        val at = player.currentPositionMs ?: return false
-        if (!player.hold(store.local(name), at)) return false
+        if (!player.pause()) return false
         // Still the same clip, just not sounding — the one-clip rule holds, and the position survives.
         nowPlaying = name
         onStateChanged?.invoke()
@@ -236,8 +249,7 @@ class AudioSession(
     /** Sound the clip that is on again from where it is held; false when none is on. */
     fun resume(): Boolean {
         val name = nowPlaying ?: return false
-        val at = player.currentPositionMs ?: return false
-        val playing = player.play(store.local(name), at)
+        val playing = player.resume()
         nowPlaying = name.takeIf { playing }
         onStateChanged?.invoke()
         return playing
@@ -286,14 +298,22 @@ class AudioSession(
     fun importSidecars(folder: Uri, doc: Document): Int =
         store.importFrom(folder, documentAudioFiles(doc)).size
 
+    fun importSidecars(folder: Uri, names: Set<String>): Int = store.importFrom(folder, names).size
+
     /**
      * Push the sidecars [doc] references out to the nominated [folder], so the saved `.xopp` has its
      * audio beside it — under the names the strokes carry, so the `fn` in the file resolves to the file
      * that is actually there. Returns how many were written; a compressed one is written exactly as
      * stored (the caller reports what the desktop will not play, [compressedFor]).
      */
-    fun exportSidecars(folder: Uri, doc: Document): Int =
-        store.exportTo(folder, documentAudioFiles(doc)).size
+    fun exportSidecars(folder: Uri, doc: Document): Int {
+        return exportSidecars(folder, documentAudioFiles(doc))
+    }
+
+    fun exportSidecars(folder: Uri, names: Set<String>): Int {
+        names.forEach { recordingFile(it) }
+        return store.exportTo(folder, names).size
+    }
 
     /** Tear everything down (the host's `onDestroy`); a running recording is finalised first. */
     fun release() {

@@ -71,7 +71,9 @@ class MainActivity : ComponentActivity() {
             // tab snapshots into its own container, which is the only shape that can carry the bundled
             // picture or recording its pages name ([MobixTabSnapshots]).
             EditorPane(
-                store = TabStore(File(filesDir, it), MobixTabSnapshots(io, audio::recordingFile)),
+                store = TabStore(File(filesDir, it), MobixTabSnapshots(io, audio::recordingFile, { audio.isRecording }, {
+            File(filesDir, "audio").listFiles()?.associate { it.name to (it.length() to it.lastModified()) }
+        }, { tab -> io.openedArchiveFor(tab) })),
                 // The canvas holds the imported picture; the document I/O layer knows what to do
                 // with it. Both are asked at snapshot time, for the document that is actually on the
                 // canvas.
@@ -113,11 +115,14 @@ class MainActivity : ComponentActivity() {
         get() = pane.pendingSaveName
         set(value) { pane.pendingSaveName = value }
 
-    /** True while open tabs are being restored asynchronously from TabStore. */
-    internal var isRestoringTabs: Boolean = false
-
-    /** A save URI waiting for tabs restoration to finish before landing on disk. */
-    internal var pendingSaveUri: Uri? = null
+    internal var savePickerState = com.mobixournal.tabs.SavePickerState()
+    internal var backgroundWorkCount = 0
+    internal var pendingSaveUri: Uri?
+        get() = savePickerState.uri?.let(Uri::parse)
+        set(value) { savePickerState = savePickerState.copy(uri = value?.toString()) }
+    internal var pendingSaveRequest: com.mobixournal.tabs.PendingSave?
+        get() = savePickerState.request
+        set(value) { savePickerState = savePickerState.copy(request = value) }
 
     /**
      * The sticky save format. "Save As" sets it; every later plain Save reuses it, so once you save
@@ -175,6 +180,7 @@ class MainActivity : ComponentActivity() {
 
     /** Bumped whenever recording/playback state changes, so the Compose chrome re-reads it. */
     internal var audioTick = mutableStateOf(0)
+    internal val audioWork = com.mobixournal.audio.AudioWorkState()
 
     /** Whether the floating frosted-glass audio mini player is visible. */
     internal var miniPlayerVisible = mutableStateOf(false)
@@ -292,7 +298,7 @@ class MainActivity : ComponentActivity() {
 
     internal val saveLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(XOPP_MIME)) { uri ->
-            uri?.let { handleSaveResult(it) }
+            handleSaveResult(uri)
         }
 
     /**
@@ -303,7 +309,7 @@ class MainActivity : ComponentActivity() {
      */
     internal val saveMobixLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(MOBIX_MIME)) { uri ->
-            uri?.let { handleSaveResult(it) }
+            handleSaveResult(uri)
         }
 
     private val importPdfLauncher =
@@ -452,6 +458,9 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         restoreSplitWorkspace(savedInstanceState)
+        // A launch **offers** the last run's tabs back; a window being recreated (a config change, or a
+        // process-death resume) puts them straight back, because nobody asked it to start over.
+        if (savedInstanceState == null) readPreviousSession() else reopenPreviousSession()
         applyEdgeToEdge(isDarkTheme(initialSettings))
         initSubsystems(initialSettings)
         // Whatever the last session could not finish — a standalone export the user closed the app on
@@ -460,16 +469,12 @@ class MainActivity : ComponentActivity() {
         showEditor(initialSettings)
     }
 
-    /** The notebooks opened lately — the entry screen's cards — and the store they live in. */
-    internal val recentNotebooks by lazy { com.mobixournal.ui.entry.RecentNotebookStore(this) }
-
-    /** What the entry screen draws, as state: a landed open re-orders it without a restart. */
-    internal val recentList =
-        mutableStateOf<List<com.mobixournal.ui.entry.RecentNotebook>>(emptyList())
+    /** The entry screen's memory: the notebooks opened lately, and the session the last run left open. */
+    internal val entryRecents by lazy { EntryRecents(this) }
 
     /** The one window: the editor over the settings store, wired to every launcher this activity owns. */
     private fun showEditor(initialSettings: AppSettings) {
-        recentList.value = recentNotebooks.list()
+        entryRecents.reload()
         settingsState.value = initialSettings.also(::applySettingsToLayers)
         setContent {
             val settings by settingsState
@@ -477,9 +482,11 @@ class MainActivity : ComponentActivity() {
                     EditorScreen(
                     onOpen = { openLauncher.launch(arrayOf("*/*")) },
                     // The entry screen's own three doors: a blank sheet, the picker, and a card's notebook.
-                    onNewDocument = { newTab() },
-                    recents = recentList.value,
-                    onOpenRecent = { uri -> openDocument(Uri.parse(uri)) },
+                    onNewDocument = { startFreshSession() },
+                    recents = entryCards(),
+                    onOpenRecent = { notebook -> openEntryCard(notebook) },
+                    onRemoveRecent = { notebook -> removeEntryCard(notebook) },
+                    onRestoreSession = restoreDoor(),
                     onSave = { saveActiveTab() },
                     busy = busy.value,
                     onExit = { finish() },
@@ -538,7 +545,7 @@ class MainActivity : ComponentActivity() {
                     splitView = splitView.value,
                     onToggleSplitView = ::toggleSplitView,
                     activePane = activePane.value,
-                    onActivePane = { activePane.value = it },
+                    onActivePane = { audioWork.cancelPlayback(); activePane.value = it },
                 )
                 PendingPdfImportCard()
             }
@@ -592,12 +599,18 @@ class MainActivity : ComponentActivity() {
      * seconds, and doing that inline would freeze (and eventually kill) the app.
      */
     internal fun <T> inBackground(label: String, work: () -> T, done: (Result<T>) -> Unit) {
+        backgroundWorkCount++
         busy.value = label
         Thread {
             val result = runCatching(work)
             runOnUiThread {
-                busy.value = null
-                done(result)
+                try {
+                    if (backgroundWorkCount == 1) busy.value = null
+                    done(result)
+                } finally {
+                    backgroundWorkCount--
+                    if (backgroundWorkCount == 0) { busy.value = null; prunePdfCache() }
+                }
             }
         }.start()
     }
@@ -617,23 +630,12 @@ class MainActivity : ComponentActivity() {
         restorePendingSaveState(savedInstanceState)
     }
 
-    private fun restorePendingSaveState(savedInstanceState: Bundle?) {
-        pendingSaveUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            savedInstanceState?.getParcelable(STATE_PENDING_SAVE_URI, Uri::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            savedInstanceState?.getParcelable(STATE_PENDING_SAVE_URI)
-        }
-        savedInstanceState?.getString(STATE_PENDING_SAVE_NAME)?.let { pendingSaveName = it }
-    }
-
     /** Keep the split workspace (and the half in focus) across process death. */
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(STATE_SPLIT_VIEW, splitView.value)
         outState.putInt(STATE_ACTIVE_PANE, activePane.value)
-        pendingSaveUri?.let { outState.putParcelable(STATE_PENDING_SAVE_URI, it) }
-        outState.putString(STATE_PENDING_SAVE_NAME, pendingSaveName)
+        writePendingSaveState(outState)
     }
 
     /** Cache both panes' open tabs on the way to the background — the app may not come back. */
@@ -682,8 +684,8 @@ class MainActivity : ComponentActivity() {
         /** Saved-instance-state keys for the split workspace (see [onSaveInstanceState]). */
         private const val STATE_SPLIT_VIEW = "editor.splitView"
         private const val STATE_ACTIVE_PANE = "editor.activePane"
-        private const val STATE_PENDING_SAVE_URI = "editor.pendingSaveUri"
-        private const val STATE_PENDING_SAVE_NAME = "editor.pendingSaveName"
+
+
     }
 }
 

@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.ink
+import com.mobixournal.collections.persistentAppend
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.sheet.FigureShape
 import com.mobixournal.desktop.sheet.PageCanvas
@@ -264,7 +265,7 @@ fun Page.withElement(element: Element, layer: Int): Page {
     val layers = layers.ifEmpty { listOf(Layer(emptyList())) }
     val target = if (layer in layers.indices) layer else layers.lastIndex
     val grown = layers.toMutableList().also {
-        it[target] = Layer(it[target].elements + element, it[target].name)
+        it[target] = it[target].copy(elements = it[target].elements.persistentAppend(element))
     }
     return copy(layers = grown)
 }

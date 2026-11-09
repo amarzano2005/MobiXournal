@@ -853,7 +853,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Write the current document (backgrounds, PDF pages, and every mark) to a vector PDF. */
     fun exportPdf(out: java.io.OutputStream) =
-        PdfExporter(pdfSource, imageSource).export(doc, out)
+        PdfExporter(pdfSource?.source, imageSource).export(doc, out)
 
     /** Flatten one page (sheet, ruling, PDF/image background and every annotation) to a PNG. */
     fun exportPagePng(pageIndex: Int, out: java.io.OutputStream): Boolean = writePagePng(pageIndex, out)

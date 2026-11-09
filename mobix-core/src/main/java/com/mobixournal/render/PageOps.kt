@@ -180,22 +180,12 @@ object PageOps {
      * index `at` with the new page and shifts the rest by one, reading through to the original list —
      * so a save still finds the untouched pages as the archive's own.
      */
-    private fun insertedAt(pages: List<Page>, at: Int, page: Page): List<Page> = object : AbstractList<Page>() {
-        override val size: Int get() = pages.size + 1
-
-        override fun get(index: Int): Page = when {
-            index < at -> pages[index]
-            index == at -> page
-            else -> pages[index - 1]
-        }
-    }
+    private fun insertedAt(pages: List<Page>, at: Int, page: Page): List<Page> =
+        com.mobixournal.format.model.SplicedPages(pages, at, page)
 
     /** [pages] without index [at], as the same kind of view — the deletion half of [insertedAt]. */
-    private fun withoutAt(pages: List<Page>, at: Int): List<Page> = object : AbstractList<Page>() {
-        override val size: Int get() = pages.size - 1
-
-        override fun get(index: Int): Page = if (index < at) pages[index] else pages[index + 1]
-    }
+    private fun withoutAt(pages: List<Page>, at: Int): List<Page> =
+        com.mobixournal.format.model.SplicedPages(pages, at, null)
 
     /**
      * A copy of [pages] with every page in [indices] removed — the page-overview multi-select delete.

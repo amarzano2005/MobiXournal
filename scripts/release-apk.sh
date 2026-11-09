@@ -1,11 +1,11 @@
 #!/usr/bin/env sh
-# Build the APK to actually install on a tablet: a **release** build, signed with the debug key.
+# Build a release APK: debug-signed locally, or with a verified persistent certificate on CI tags.
 #
 # Why this exists: `assembleDebug` is the check artifact, not the one to judge the app by. A debug
 # build runs `debuggable` (the debugger hooks ART keeps for it) and keeps Compose's debug checks, so
 # on a page carrying ink it feels slower than the release build of the same code — which is exactly
 # the difference that made the tablet look like it had lost its snap. R8 is off in both here, so the
-# gain is the flag, not a shrink. This script builds the release variant and signs it with the Android
+# gain is the flag, not a shrink. By default this script signs the release variant with the Android
 # debug keystore (~/.android/debug.keystore), the same key `assembleDebug` signs with, so the two
 # install over each other in both directions and switching costs no app data.
 #
@@ -25,6 +25,23 @@ die() {
     echo "release-apk: $1" >&2
     exit 1
 }
+
+# Published APKs need one persistent certificate; never mint a replacement identity on a runner.
+RELEASE_SIGNING="${MOBIX_REQUIRE_RELEASE_SIGNING:-0}"
+SIGNING_FILE=""
+if [ "$RELEASE_SIGNING" = "1" ]; then
+    for required in MOBIX_ANDROID_KEYSTORE_BASE64 MOBIX_ANDROID_KEY_ALIAS MOBIX_ANDROID_STORE_PASSWORD MOBIX_ANDROID_KEY_PASSWORD MOBIX_ANDROID_CERT_SHA256; do
+        eval 'present=${'"$required"':-}'
+        [ -n "$present" ] || die "missing $required - published APK signing must be configured"
+    done
+    expected=$(printf '%s' "$MOBIX_ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+    [ "${#expected}" -eq 64 ] || die "MOBIX_ANDROID_CERT_SHA256 must contain 64 hexadecimal digits"
+    case "$expected" in *[!0-9a-f]*) die "MOBIX_ANDROID_CERT_SHA256 is not hexadecimal" ;; esac
+    SIGNING_FILE=$(mktemp)
+    trap 'rm -f "$SIGNING_FILE"' EXIT HUP INT TERM
+    printf '%s' "$MOBIX_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$SIGNING_FILE" || die "invalid signing keystore encoding"
+    [ -s "$SIGNING_FILE" ] || die "the signing keystore is empty"
+fi
 
 # --- 1. the unsigned release APK, through the front door ------------------------------------------
 if [ -x "${ANDROID_TOOLCHAIN:-/data/android}/build.sh" ]; then
@@ -66,7 +83,7 @@ fi
 
 # --- 3. the debug keystore, created exactly as Android creates it if it is missing ----------------
 KEYSTORE="${ANDROID_DEBUG_KEYSTORE:-$HOME/.android/debug.keystore}"
-if [ ! -f "$KEYSTORE" ]; then
+if [ "$RELEASE_SIGNING" != "1" ] && [ ! -f "$KEYSTORE" ]; then
     mkdir -p "$(dirname "$KEYSTORE")"
     KEYTOOL="keytool"
     if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/keytool" ]; then
@@ -81,11 +98,21 @@ fi
 
 # --- 4. align, sign, verify ----------------------------------------------------------------------
 "$ZIPALIGN" -f -p 4 "$UNSIGNED" "$ALIGNED"
-"$SIGNER" sign \
-    --ks "$KEYSTORE" --ks-pass pass:android --ks-key-alias androiddebugkey \
-    --key-pass pass:android --out "$SIGNED" "$ALIGNED"
+if [ "$RELEASE_SIGNING" = "1" ]; then
+    "$SIGNER" sign --ks "$SIGNING_FILE" --ks-pass env:MOBIX_ANDROID_STORE_PASSWORD \
+        --ks-key-alias "$MOBIX_ANDROID_KEY_ALIAS" --key-pass env:MOBIX_ANDROID_KEY_PASSWORD \
+        --out "$SIGNED" "$ALIGNED"
+    actual=$("$SIGNER" verify --print-certs "$SIGNED" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+    if [ "$actual" != "$expected" ]; then
+        rm -f "$SIGNED"
+        die "the APK certificate does not match MOBIX_ANDROID_CERT_SHA256"
+    fi
+else
+    "$SIGNER" sign --ks "$KEYSTORE" --ks-pass pass:android --ks-key-alias androiddebugkey \
+        --key-pass pass:android --out "$SIGNED" "$ALIGNED"
+fi
 rm -f "$ALIGNED"
 "$SIGNER" verify "$SIGNED" || die "the signed APK does not verify"
 
-echo "release-apk: $SIGNED ($(wc -c <"$SIGNED" | tr -d ' ') bytes, signed with the debug key)"
+echo "release-apk: $SIGNED ($(wc -c <"$SIGNED" | tr -d ' ') bytes, verified signing identity)"
 echo "release-apk: install with adb install -r $SIGNED"

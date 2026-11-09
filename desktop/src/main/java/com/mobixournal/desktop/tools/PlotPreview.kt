@@ -19,12 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke as InkStroke
 import com.mobixournal.render.LivingInk
 import com.mobixournal.render.PlotBox
+import com.mobixournal.render.PlotPreviewPalette
 import kotlin.math.min
 
 /**
@@ -37,8 +39,8 @@ import kotlin.math.min
  * to the axes, the critical points and the shaded area.
  *
  * It reads the pending answers as **snapshot state**, so it follows every keystroke: the equations, the two
- * domain numbers, the flags and the shading all redraw it. Paper is white because a graph's ink is black on
- * paper; the ink on this lane's glass would be invisible.
+ * domain numbers, the flags and the shading all redraw it. Only the preview's palette is adapted to the
+ * panel; the placed element and its exported colors remain unchanged.
  */
 @Composable
 internal fun PlotQuestionPreview(pending: PendingPlacement) {
@@ -70,14 +72,16 @@ internal fun PlotQuestionPreview(pending: PendingPlacement) {
  */
 @Composable
 internal fun PlotInkPreview(plot: PlotElement?, placeholder: String) {
-    val strokes = remember(plot) {
-        plot?.let { LivingInk.of(it).elements.filterIsInstance<InkStroke>() }.orEmpty()
+    val background = DesktopTheme.settingsPanel.toArgb()
+    val axis = DesktopTheme.inkSecondary.toArgb()
+    val accent = DesktopTheme.accent.toArgb()
+    val strokes = remember(plot, background, axis, accent) {
+        plot?.let { LivingInk.of(PlotPreviewPalette.adapt(it, background, axis, accent)).elements.filterIsInstance<InkStroke>() }.orEmpty()
     }
     Box(
         Modifier
             .fillMaxWidth()
             .height(PREVIEW_HEIGHT)
-            .background(DesktopTheme.previewPaper, DesktopTheme.railSlotShape)
             .padding(6.dp),
     ) {
         if (strokes.isEmpty()) {
@@ -111,6 +115,16 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewStrokes(
     val scale = min(size.width / boxW, size.height / boxH)
     val offsetX = (size.width - boxW * scale) / 2f
     val offsetY = (size.height - boxH * scale) / 2f
+    for (step in 1 until 8) {
+        val x = offsetX + boxW * scale * step / 8f
+        drawLine(DesktopTheme.hairline, androidx.compose.ui.geometry.Offset(x, offsetY),
+            androidx.compose.ui.geometry.Offset(x, offsetY + boxH * scale), 1f)
+    }
+    for (step in 1 until 4) {
+        val y = offsetY + boxH * scale * step / 4f
+        drawLine(DesktopTheme.hairline, androidx.compose.ui.geometry.Offset(offsetX, y),
+            androidx.compose.ui.geometry.Offset(offsetX + boxW * scale, y), 1f)
+    }
     for (stroke in strokes) {
         val points = stroke.points
         if (points.size < 2) continue

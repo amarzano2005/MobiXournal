@@ -113,14 +113,15 @@ class ToolToggleTest {
     }
 
     @Test
-    fun `settings open on the stylus, whatever section was showing when they closed`() {
+    fun `settings remember the last section and explicit callers can still pick Stylus`() {
         val policy = DesktopSettingsState(DesktopSettings(file("sections.properties")))
         policy.openAt(DesktopSettingSection.TOOLBAR)
         policy.close()
 
         policy.openAt()
-
-        assertEquals(DesktopSettingSection.STYLUS, policy.section)
+        assertEquals(DesktopSettingSection.TOOLBAR, policy.section)
         assertTrue(policy.open)
+        policy.openAt(DesktopSettingSection.STYLUS)
+        assertEquals(DesktopSettingSection.STYLUS, policy.section)
     }
 }

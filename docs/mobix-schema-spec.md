@@ -68,6 +68,10 @@ These are the parts an implementation must get right; the rest is payload. All f
 
 ---
 
+The shared encoder preserves the existing manifest's creation time, default paper and unknown fields
+when saving the same document identity. Modification time, title and canvas mode follow the current
+write; the required app-version floor is never lowered (`ManifestSaveIntegrityTest`).
+
 ## Manifest schema (`manifest.json`)
 
 ```json

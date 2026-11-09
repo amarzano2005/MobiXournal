@@ -369,4 +369,29 @@ class DesktopSearchTest {
         assertTrue("the command opens the field", state.apply(ShellCommand.FIND))
         assertTrue("and the band draws it", state.active!!.searchOpen)
     }
+    @Test
+    fun `more than 128 lines remain recognized across queries`() {
+        val tab = tab("large-ink.xopp", List(140) { page(listOf(ink())) })
+        val engine = CountingEngine("ciao")
+        val handwriting = PageHandwriting(tab.document, engine)
+        DesktopSearchEngine.run(tab, "ciao", handwriting)
+        assertEquals(140, engine.reads)
+        DesktopSearchEngine.run(tab, "cia", handwriting)
+        assertEquals(140, engine.reads)
+    }
+
+    @Test
+    fun `a cancelled walk stops before reading its next page`() {
+        val tab = tab("cancel.xopp", List(20) { page() })
+        var checks = 0
+        try {
+            DesktopSearchEngine.run(tab, "query", checkCancelled = {
+                checks++
+                throw java.util.concurrent.CancellationException()
+            })
+            org.junit.Assert.fail("cancelled search must stop")
+        } catch (_: java.util.concurrent.CancellationException) {
+            assertEquals(1, checks)
+        }
+    }
 }

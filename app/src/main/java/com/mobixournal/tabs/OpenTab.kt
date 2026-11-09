@@ -66,6 +66,8 @@ data class OpenTab(
      * a snapshot whose pages are already in memory.
      */
     val backgrounds: BackgroundResolver? = null,
+    /** Local pixmap sources owned by this tab, including eagerly opened ZIP backgrounds. */
+    val images: Map<String, java.io.File> = emptyMap(),
 )
 
 /** The whole set of open tabs plus which one is showing — what survives an app restart. */

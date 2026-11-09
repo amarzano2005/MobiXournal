@@ -179,7 +179,7 @@ object InkGeometry {
      * vectors, so this traces a semicircle whose ends meet the two offset boundaries. Returns the
      * next write offset.
      */
-    private fun addCap(
+    internal fun addCap(
         out: FloatArray, k0: Int, cx: Float, cy: Float, dx: Float, dy: Float, r: Float,
         startAngle: Float, endAngle: Float,
     ): Int {

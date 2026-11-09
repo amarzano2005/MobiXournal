@@ -86,14 +86,14 @@ object XoppZip {
      * the pages of any document still rendering from it. Throws if `content.xml` is missing.
      */
     fun open(input: InputStream, pdfFile: () -> File, imageFile: (() -> File)? = null): Loaded {
-        var xml: String? = null
+        var document: Document? = null
         var pdf: File? = null
         val images = LinkedHashMap<String, File>()
         ZipInputStream(input).let { zip ->
             while (true) {
                 val entry = zip.nextEntry ?: break
                 when (entry.name) {
-                    "content.xml" -> xml = zip.readBytes().toString(Charsets.UTF_8)
+                    "content.xml" -> document = Xopp.parseXml(zip.reader(Charsets.UTF_8))
                     PDF_ENTRY -> pdf = pdfFile().also { out ->
                         out.outputStream().use { zip.copyTo(it) }
                     }
@@ -110,7 +110,7 @@ object XoppZip {
                 zip.closeEntry()
             }
         }
-        val doc = XoppReader(requireNotNull(xml) { "content.xml missing from ZIP .xopp" }).read()
+        val doc = requireNotNull(document) { "content.xml missing from ZIP .xopp" }
         return Loaded(doc, pdf, images)
     }
 

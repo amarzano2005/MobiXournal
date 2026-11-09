@@ -104,8 +104,8 @@ describes the window as it is, `docs/desktop-editing.md` what a drag on its page
   material classes, tokens only, a glyph from the catalogue, all five states, English copy, both shells
   in agreement.
 - **One package, one install**: `applicationId` is `com.mobixournal` and no build type suffixes it,
-  so a debug APK upgrades the installed app in place (`docs/tools.md`, *A debug build installs as the
-  same app*).
+  so builds target the same installation. Signing compatibility is documented in `docs/tools.md`
+  (*A debug build installs as the same app*).
 
 ---
 

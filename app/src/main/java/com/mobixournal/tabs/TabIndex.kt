@@ -39,7 +39,8 @@ object TabIndex {
             append(escape(tab.pdfPath.orEmpty())).append(SEP)
             append(tab.page).append(SEP)
             append(escape(tab.docKey)).append(SEP)
-            append(tab.isReadOnly).append('\n')
+            append(tab.isReadOnly).append(SEP)
+            append(escape(encodeImages(tab.images))).append('\n')
         }
     }
 
@@ -73,12 +74,31 @@ object TabIndex {
                 docKey = f.getOrNull(6)?.let(::unescape)?.ifEmpty { null } ?: id,
                 isReadOnly = f.getOrNull(7)?.toBooleanStrictOrNull() ?: false,
                 hydrated = false,
+                images = decodeImages(f.getOrNull(8)?.let(::unescape)),
             )
         }
         return TabSession(tabs, active.coerceIn(0, maxOf(0, tabs.size - 1)))
     }
 
     /** Escape the separators (and the escape character itself) so a field can hold any text. */
+    private fun encodeImages(images: Map<String, java.io.File>): String {
+        val encoder = java.util.Base64.getUrlEncoder().withoutPadding()
+        fun encode(value: String) = encoder.encodeToString(value.toByteArray(Charsets.UTF_8))
+        return "images:" + images.entries.joinToString(",") { encode(it.key) + ":" + encode(it.value.absolutePath) }
+    }
+
+    private fun decodeImages(value: String?): Map<String, java.io.File> {
+        if (value?.startsWith("images:") != true) return emptyMap()
+        val decoder = java.util.Base64.getUrlDecoder()
+        fun decode(part: String) = String(decoder.decode(part), Charsets.UTF_8)
+        return value.removePrefix("images:").split(',').mapNotNull { pair ->
+            runCatching {
+                val parts = pair.split(':', limit = 2)
+                decode(parts[0]) to java.io.File(decode(parts[1]))
+            }.getOrNull()
+        }.toMap()
+    }
+
     private fun escape(s: String): String = s
         .replace("\\", "\\\\")
         .replace("\t", "\\t")

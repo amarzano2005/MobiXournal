@@ -2,6 +2,8 @@ package com.mobixournal.audio
 
 import android.media.MediaPlayer
 import java.io.File
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * Plays a stroke's recording back from the moment that stroke was drawn.
@@ -18,6 +20,44 @@ import java.io.File
 class AudioPlayer {
 
     private var player: MediaPlayer? = null
+    private var preparedPath: String? = null
+    private var preparing: kotlinx.coroutines.CancellableContinuation<Boolean>? = null
+
+    /** Android UI callers prepare asynchronously; a late callback can never replace a newer player. */
+    suspend fun prepare(file: File, atMs: Int): Boolean {
+        stop()
+        if (!file.isFile) return false
+        return suspendCancellableCoroutine { continuation ->
+            val mp = MediaPlayer()
+            player = mp
+            preparing = continuation
+            continuation.invokeOnCancellation {
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    if (player === mp) stop() else runCatching { mp.release() }
+                }
+            }
+            mp.setOnPreparedListener {
+                if (player !== mp || !continuation.isActive) return@setOnPreparedListener
+                preparing = null
+                preparedPath = file.absolutePath
+                mp.setOnPreparedListener(null)
+                mp.setOnCompletionListener { if (player === mp) stop() }
+                mp.setOnErrorListener { _, _, _ -> if (player === mp) stop(); true }
+                playhead.hold(mp.duration, atMs)
+                continuation.resume(true)
+            }
+            mp.setOnErrorListener { _, _, _ ->
+                if (player === mp) stop()
+                if (continuation.isActive) continuation.resume(false)
+                true
+            }
+            try { mp.setDataSource(file.absolutePath); mp.prepareAsync() }
+            catch (_: Exception) {
+                if (player === mp) stop()
+                if (continuation.isActive) continuation.resume(false)
+            }
+        }
+    }
 
     private val playhead = Playhead()
 
@@ -25,7 +65,7 @@ class AudioPlayer {
     var onPlayingChanged: ((Boolean) -> Unit)? = null
 
     /** True while a clip is sounding. */
-    val isPlaying: Boolean get() = player?.isPlaying == true
+    val isPlaying: Boolean get() = preparedPath != null && player?.isPlaying == true
 
     /**
      * True while the clip that is on is **sounding** — false when none is on, and false for one held at
@@ -36,11 +76,34 @@ class AudioPlayer {
 
     private var sounding = false
 
+    /** Keep the decoder prepared while paused; resuming must not reopen and decode the same file. */
+    fun pause(): Boolean {
+        val mp = player ?: return false
+        val at = currentPositionMs ?: return false
+        return runCatching {
+            mp.pause()
+            sounding = false
+            playhead.hold(mp.duration, at)
+            true
+        }.getOrDefault(false)
+    }
+
+    fun resume(): Boolean {
+        val mp = player ?: return false
+        return runCatching {
+            mp.start()
+            sounding = true
+            playhead.attach(MediaPlayerClock(mp))
+            onPlayingChanged?.invoke(true)
+            true
+        }.getOrDefault(false)
+    }
+
     /** Where playback is, in ms — null while no clip is on. */
     val currentPositionMs: Int? get() = playhead.positionMs()
 
     /** How long the clip that is on runs, in ms — null while none is (what a scrubber's range needs). */
-    val durationMs: Int? get() = player?.let { runCatching { it.duration }.getOrNull() }
+    val durationMs: Int? get() = if (preparedPath == null) null else player?.let { runCatching { it.duration }.getOrNull() }
 
     /**
      * Jump to [ms] within the clip that is on — sounding or held — and answer the position it will be
@@ -74,6 +137,7 @@ class AudioPlayer {
             return false
         }
         player = mp
+        preparedPath = file.absolutePath
         sounding = false
         playhead.hold(mp.duration, atMs)
         return true
@@ -93,6 +157,7 @@ class AudioPlayer {
                 val params = mp.playbackParams
                 params.speed = playbackSpeed
                 mp.playbackParams = params
+                if (!sounding) mp.pause()
             }
         }
     }
@@ -102,6 +167,18 @@ class AudioPlayer {
      * sidecar is the common case), leaving any previous clip stopped.
      */
     fun play(file: File, startMs: Int): Boolean {
+        if (preparedPath == file.absolutePath) {
+            val mp = player ?: return false
+            return runCatching {
+                playhead.attach(MediaPlayerClock(mp))
+                playhead.seekTo(startMs)
+                mp.start()
+                sounding = true
+                applyPlaybackSpeed()
+                onPlayingChanged?.invoke(true)
+                true
+            }.getOrDefault(false)
+        }
         stop()
         if (!file.isFile) return false
         val mp = MediaPlayer()
@@ -123,20 +200,29 @@ class AudioPlayer {
             return false
         }
         player = mp
+        preparedPath = file.absolutePath
         sounding = true
         playhead.attach(MediaPlayerClock(mp))
         onPlayingChanged?.invoke(true)
         return true
     }
 
+    /** UI entry point: never fall back to synchronous preparation, even after a cancelled request. */
+    fun playPrepared(file: File, startMs: Int): Boolean =
+        preparedPath == file.absolutePath && play(file, startMs)
+
     /** Stop and free whatever is on — sounding or held; a no-op when none is. */
     fun stop() {
+        preparedPath = null
+        val pending = preparing
+        preparing = null
         val mp = player ?: return
         player = null
         sounding = false
         playhead.detach()
         runCatching { mp.stop() }
         runCatching { mp.release() }
+        if (pending?.isActive == true) pending.resume(false)
         onPlayingChanged?.invoke(false)
     }
 

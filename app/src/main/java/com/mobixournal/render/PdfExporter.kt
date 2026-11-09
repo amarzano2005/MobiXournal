@@ -30,14 +30,14 @@ import java.io.OutputStream
  * visible in every viewer because they are paint; a reader's annotation pane stays empty.
  */
 internal class PdfExporter(
-    private val pdfSource: PdfPageCache?,
+    private val pdfSource: java.io.File?,
     private val imageSource: ImageBackgroundCache? = null,
 ) {
 
     private val painter = PdfVectorPainter()
 
     fun export(doc: Document, out: OutputStream) {
-        val source = pdfSource?.source?.let { runCatching { PDDocument.load(it) }.getOrNull() }
+        val source = pdfSource?.let { runCatching { PDDocument.load(it) }.getOrNull() }
         val outDoc = PDDocument()
         try {
             // A chunked document is written as the pages its parts stand for: a PDF reader can only

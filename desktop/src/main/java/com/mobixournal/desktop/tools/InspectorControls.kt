@@ -9,6 +9,11 @@ import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.Header
 import com.mobixournal.desktop.shell.find
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +31,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
+import com.mobixournal.desktop.shell.WindowKeys
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,8 +42,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
@@ -66,7 +75,7 @@ import com.mobixournal.design.PenPalette
  */
 
 /** The lane's width: `docs/interface-contract.md`'s inspector column. */
-internal val INSPECTOR_WIDTH = 300.dp
+internal val INSPECTOR_WIDTH = 380.dp
 
 /** The lane's header: 52 dp, one glyph, the family's name, and the line that says *which* element. */
 internal val LANE_HEADER_HEIGHT = 52.dp
@@ -99,7 +108,7 @@ internal fun LaneHeader(
         Box(
             Modifier
                 .size(30.dp)
-                .background(DesktopTheme.card, DesktopTheme.railSlotShape),
+                .background(DesktopTheme.card, com.mobixournal.desktop.settings.PropertyControlShape),
             contentAlignment = Alignment.Center,
         ) {
             if (tool != null) {
@@ -152,30 +161,40 @@ internal fun LaneFooter(content: @Composable () -> Unit) {
     }
 }
 
-/**
- * A **card**: one group of fields on the lane, in the settings page's own format.
- *
- * The lane's fields used to be one flat run of 11 sp labels, so a plot's five switches, its domain and its
- * stroke read as a single wall. A card is the group, and it is **the Settings page's group** — the
- * near-solid panel glass, the 20 dp panel corner, the family's rim as its whole edge and a sentence-case
- * heading ([DesktopTheme.heading]) over it. The lane holds the same kind of fields a settings page does, so
- * a second, smaller card language inside it read as a different material: a steel box with an upper-case
- * eyebrow inside the window's own card. One format, both columns.
- */
+/** Flat property group. The keyboard-accessible title folds its existing controls without changing values. */
 @Composable
-internal fun SectionCard(title: String? = null, content: @Composable () -> Unit) {
+internal fun SectionCard(title: String? = null, initiallyExpanded: Boolean = true, content: @Composable () -> Unit) {
+    var expanded by remember(title) { mutableStateOf(initiallyExpanded) }
+    var focused by remember(title) { mutableStateOf(false) }
+    val interactions = remember(title) { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val focusManager = LocalFocusManager.current
+    val focusOwner = remember { Any() }
+    DisposableEffect(focusOwner) { onDispose { WindowKeys.focusControl(focusOwner, false) } }
     Spacer(Modifier.height(12.dp))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
     if (title != null) {
-        Text(title, color = DesktopTheme.ink, style = DesktopTheme.heading)
-        Spacer(Modifier.height(5.dp))
+        Row(Modifier.fillMaxWidth().height(40.dp)
+            .background(if (pressed) DesktopTheme.activeSlot else Color.Transparent, com.mobixournal.desktop.settings.PropertyControlShape)
+            .hoverFill(com.mobixournal.desktop.settings.PropertyControlShape)
+            .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, com.mobixournal.desktop.settings.PropertyControlShape)
+            .onFocusChanged { focused = it.isFocused; WindowKeys.focusControl(focusOwner, focused) }
+            .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
+             .clickable(interactionSource = interactions, indication = null) {
+                if (!focused) focusManager.clearFocus()
+                expanded = !expanded
+            }
+            .padding(horizontal = ROW_INSET), verticalAlignment = Alignment.CenterVertically) {
+            Canvas(Modifier.size(14.dp)) {
+                if (expanded) drawChromeGlyph(ChromeGlyph.CHEVRON_DOWN, DesktopTheme.inkSecondary)
+                else rotate(-90f) { drawChromeGlyph(ChromeGlyph.CHEVRON_DOWN, DesktopTheme.inkSecondary) }
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(title, color = DesktopTheme.ink, style = DesktopTheme.heading)
+        }
     }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .glassSurface(fill = DesktopTheme.settingsPanel, cornerRadius = DesktopTheme.panelRadius)
-            .padding(horizontal = ROW_INSET, vertical = 8.dp),
-    ) {
-        content()
+    if (title == null || expanded) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = ROW_INSET, vertical = 6.dp)) { content() }
     }
 }
 
@@ -275,11 +294,11 @@ internal fun ValueField(
         cursorBrush = SolidColor(DesktopTheme.accent),
         modifier = Modifier
             .fillMaxWidth()
-            .background(DesktopTheme.activeSlot.copy(alpha = 0.45f), DesktopTheme.railSlotShape)
+            .background(DesktopTheme.activeSlot.copy(alpha = 0.45f), com.mobixournal.desktop.settings.PropertyControlShape)
             .border(
                 width = 1.dp,
                 color = if (focused) DesktopTheme.accent else DesktopTheme.hairline,
-                shape = DesktopTheme.railSlotShape,
+                shape = com.mobixournal.desktop.settings.PropertyControlShape,
             )
             .padding(horizontal = 7.dp, vertical = 6.dp)
             .onFocusChanged { focus ->
@@ -304,41 +323,10 @@ internal fun ValueField(
     )
 }
 
-/**
- * A labelled switch. The **row** is the hit area (40 dp tall, the contract's smallest control), which is
- * why the drawn switch can be a slim 32 × 18: the thing the pointer has to find is the row, not the pill.
- */
+/** A property checkbox with a full-row hit target and keyboard activation. */
 @Composable
 internal fun SwitchRow(label: String, on: Boolean, onToggle: (Boolean) -> Unit) {
-    // Same rule as `ChoiceRow`: the switch reports through the holder, so a toggle is applied to the
-    // element as it is now rather than to the one that was on screen when the row was built.
-    val toggle = rememberUpdatedState(onToggle)
-    val shown = rememberUpdatedState(on)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 32.dp)
-            .hoverFill(DesktopTheme.railSlotShape)
-            .pointerInput(Unit) { detectTapGestures { toggle.value(!shown.value) } }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = DesktopTheme.inkMuted, style = DesktopTheme.body)
-        Spacer(Modifier.weight(1f))
-        Box(
-            Modifier
-                .size(width = 32.dp, height = 18.dp)
-                .background(if (on) DesktopTheme.accent else DesktopTheme.activeSlot, DesktopTheme.capsuleShape),
-            contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart,
-        ) {
-            Box(
-                Modifier
-                    .padding(horizontal = 2.dp)
-                    .size(14.dp)
-                    .background(if (on) DesktopTheme.desk else DesktopTheme.inkSecondary, DesktopTheme.capsuleShape),
-            )
-        }
-    }
+    com.mobixournal.desktop.settings.PropertyCheckboxRow(label, on, onToggle)
 }
 
 /**
@@ -368,9 +356,9 @@ internal fun ChoiceRow(options: List<String>, picked: String, onPick: (String) -
                     .heightIn(min = 32.dp)
                     .background(
                         if (selected) DesktopTheme.activeSlot else DesktopTheme.activeSlot.copy(alpha = 0.35f),
-                        DesktopTheme.railSlotShape,
+                        com.mobixournal.desktop.settings.PropertyControlShape,
                     )
-                    .hoverFill(DesktopTheme.railSlotShape, active = selected)
+                    .hoverFill(com.mobixournal.desktop.settings.PropertyControlShape, active = selected)
                     .pointerInput(option) { detectTapGestures { answer.value(option) } }
                     .padding(horizontal = 6.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
@@ -407,7 +395,7 @@ internal fun ColourRow(current: Int? = null, onPick: (Int) -> Unit) {
                 Modifier
                     .weight(1f)
                     .height(20.dp)
-                    .background(Color(colour), DesktopTheme.railSlotShape)
+                    .background(Color(colour), com.mobixournal.desktop.settings.PropertyControlShape)
                     .border(
                         width = if (picked) 2.dp else 1.dp,
                         color = when {
@@ -415,7 +403,7 @@ internal fun ColourRow(current: Int? = null, onPick: (Int) -> Unit) {
                             hovered -> DesktopTheme.inkMuted
                             else -> DesktopTheme.hairline
                         },
-                        shape = DesktopTheme.railSlotShape,
+                        shape = com.mobixournal.desktop.settings.PropertyControlShape,
                     )
                     .onPointerEvent(PointerEventType.Enter) { hovered = true }
                     .onPointerEvent(PointerEventType.Exit) { hovered = false }
@@ -449,7 +437,7 @@ private fun CrossGlyph(ink: Color, onClick: () -> Unit) {
     Box(
         Modifier
             .size(24.dp)
-            .hoverFill(DesktopTheme.capsuleShape)
+            .hoverFill(com.mobixournal.desktop.settings.PropertyControlShape)
             .pointerInput(Unit) { detectTapGestures { dismiss.value() } },
         contentAlignment = Alignment.Center,
     ) {
@@ -520,7 +508,7 @@ internal fun ColourDot(colour: Int, open: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .size(16.dp)
-            .background(Color(colour), DesktopTheme.capsuleShape)
+            .background(Color(colour), com.mobixournal.desktop.settings.PropertyControlShape)
             .border(
                 width = if (open) 2.dp else 1.dp,
                 color = when {
@@ -528,7 +516,7 @@ internal fun ColourDot(colour: Int, open: Boolean, onClick: () -> Unit) {
                     hovered -> DesktopTheme.inkMuted
                     else -> DesktopTheme.hairline
                 },
-                shape = DesktopTheme.capsuleShape,
+                shape = com.mobixournal.desktop.settings.PropertyControlShape,
             )
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }

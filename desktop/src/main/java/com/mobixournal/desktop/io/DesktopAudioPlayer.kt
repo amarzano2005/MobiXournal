@@ -131,12 +131,14 @@ internal class DesktopAudioPlayer(
      * window already has open is *not* replaced: it is seeked, because a tap on another word of the same
      * take is the same clip.
      */
-    fun play(ref: AudioRef): String? {
-        val file = store.file(ref.filename)
+    private var clipPath: String? = null
+
+    fun play(ref: AudioRef, storeOverride: DesktopAudioStore = store): String? {
+        val file = storeOverride.file(ref.filename)
             ?: return refuse("This document's recording is not on this machine: ${ref.filename}.")
         val open = source
         val output = line
-        if (open != null && output != null && clipName == file.name) {
+        if (open != null && output != null && clipPath == file.absolutePath) {
             message = null
             return start(open, output, ref.startMs)
         }
@@ -156,7 +158,8 @@ internal class DesktopAudioPlayer(
         }
         source = opened
         line = device
-        clipName = file.name
+        clipPath = file.absolutePath
+        clipName = ref.filename
         durationMs = opened.durationMs
         message = null
         return start(opened, device, ref.startMs)
@@ -255,6 +258,7 @@ internal class DesktopAudioPlayer(
     /** Let the clip go: nothing is on any more, and the pill goes away. */
     fun stop() {
         stopQuietly()
+        clipPath = null
         clipName = null
         durationMs = 0
         playing = false

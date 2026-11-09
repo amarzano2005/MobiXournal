@@ -4,6 +4,11 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
+Android exports capture a `DocumentExportSnapshot` on the UI thread, then encode PDF, PNG or SVG and
+write to the provider on a worker. Each job owns its decoders and element painters; it never reads a
+later tab's View. The shared background painter serializes its mutable paints across render/export
+threads. `DocumentExportSnapshotTest` checks a non-first-page PNG on Android; it requires a device.
+
 ## The frame record (`FrameWatchdog`)
 
 A stutter cannot be argued with from the outside — "it stutters" and "the surface is doing twice the work"
@@ -66,7 +71,9 @@ when a page is wider than the view the same pan gesture scrolls horizontally, an
 are centred in the content band (`PageBox.leftPx`). The stack is **one column**: `PageStacker` lays every
 page under the one above it, each fit to the view width, so `StackedLayout.pageAt(x, y)` is the only
 hit-test a touch needs and `nearestPage(x, y)` resolves a probe that lands in the gap between two pages
-(e.g. the viewport centre). The Pages menu navigates — a page list, `goToPage`, add/delete of a page —
+(e.g. the viewport centre). A cached vertical-band index binary-searches viewport and pointer candidates;
+ordinary separated pages cost O(log P + V), where V is the intersecting page count. Overlapping bands
+preserve original ordering and horizontal hit tests without reading page models. The Pages menu navigates — a page list, `goToPage`, add/delete of a page —
 and there is no page grid, no multi-page selection and no drag-to-reorder: a page is moved by editing the
 document, not by dragging its thumbnail. The same `pageAt(x, y)` hit-test drives
 
@@ -193,3 +200,22 @@ The compilers themselves (`LivingInk`, `TableInk`, `PlotInk`, `ShapeInk`, `Circu
 function/geometry helpers they use) are **platform-free and live in `mobix-core`**: they turn a recipe
 into ordinary ink — strokes and text boxes — rather than painting it, so whoever paints (Android
 `Canvas`, Compose on Skia in the desktop shell, a PDF or SVG writer) draws the same compiled result.
+
+## Painter ownership and retained geometry
+
+Android background drawing uses one `BackgroundPainter` per thread behind `BackgroundRenderer`.
+Its Paint objects, destination rectangle and ruling memo are not shared by canvas and export workers.
+Desktop `StrokePathCache` uses identity-keyed LRU retention: at most 4096 recorded strokes and 32 draft
+identities, additionally bounded by 250000 and 200000 weighted input points respectively. A pressure
+outline counts twice; these are retention budgets, not exact native-byte estimates. Oversized geometry
+is drawn without caching. Eviction changes rebuild cost, never the stroke model or pressure rule.
+
+## Append-only draft work
+
+Freehand Android pressure previews reuse projected points and normals through `IncrementalTaper`.
+Desktop draft conversion shares immutable point roots, and `IncrementalSmoothing` recomputes only the
+two terminal control groups before updating the numeric taper tail. Figures and replaced/shrunk drafts
+reset the incremental state. The resulting contour is still one closed fill, preserving winding,
+self-overlap, caps and highlighter alpha. Numeric draft caches have their own bounded retention.
+Backend path assembly/submission and the desktop bounds walk remain linear in stroke length; this is
+incremental geometry computation, not a claim of constant-time rendering for arbitrarily long ink.

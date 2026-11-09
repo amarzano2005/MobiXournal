@@ -196,6 +196,10 @@ The container's layout is what makes these four engine properties possible. Each
      edited page of a 200-page notebook costs **2 ms and one page opened**, against **13 ms and 399** for
      the path it replaced — constant, not proportional to the notebook. The on-device round trip is run:
      the *Document saving* row above holds what the emulator pass measured.
+   The raw incremental writer rejects ZIP64 sentinel sizes/offsets and entry-count overflow before
+   publication (`ClassicZipLimitsTest`). A save that exceeds these classic ZIP limits fails safely;
+   Save As to a new file uses the standard writer instead. The raw path does not emit ZIP64.
+
 3. **GPU Texture Layering & Path Tessellation Cache** — **live (off-screen raster)**:
    - Static elements (paper rulings, PDF page backgrounds, committed lower layers) are rendered once into
      an off-screen GPU texture (`android.graphics.Bitmap` hardware texture on Android, Skia `Image` on Desktop).

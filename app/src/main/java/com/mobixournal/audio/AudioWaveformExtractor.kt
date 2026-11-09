@@ -21,33 +21,42 @@ object AudioWaveformExtractor {
     private const val READ_BYTES = 64 * 1024
 
     /** In-memory cache of extracted waveforms: audio filename -> list of normalized amplitudes. */
-    private val cache = mutableMapOf<String, List<Float>>()
+    private val cache = object : LinkedHashMap<String, List<Float>>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<Float>>?) = size > 16
+    }
 
     /**
      * Extracts [targetSamples] normalized amplitude points from [audioFile].
      * If the file is a 16-bit PCM WAV, reads the actual sample bytes;
      * otherwise, produces an interpolated pseudo-waveform derived from file chunks.
      */
-    fun extract(audioFile: File, targetSamples: Int = DEFAULT_SAMPLE_COUNT): List<Float> = synchronized(cache) {
-        val cacheKey = "${audioFile.absolutePath}_${audioFile.length()}_$targetSamples"
-        cache[cacheKey]?.let { return it }
+    fun extract(audioFile: File, targetSamples: Int = DEFAULT_SAMPLE_COUNT, checkCancelled: () -> Unit = {}): List<Float> {
+        require(targetSamples > 0)
+        val cacheKey = "${audioFile.absolutePath}_${audioFile.length()}_${audioFile.lastModified()}_$targetSamples"
+        synchronized(cache) { cache[cacheKey] }?.let { return it }
 
         if (!audioFile.exists() || audioFile.length() <= 0L) {
             return defaultWaveform(targetSamples)
         }
 
         val result = if (audioFile.extension.equals("wav", ignoreCase = true)) {
-            extractWavAmplitudes(audioFile, targetSamples)
+            extractWavAmplitudes(audioFile, targetSamples, checkCancelled)
         } else {
-            extractGenericAmplitudes(audioFile, targetSamples)
+            // A compressed recording (the Opus/Ogg a `.mobix` bundles, or the AAC fallback) is **decoded**:
+            // its envelope has to come from what it sounds like. Averaging the compressed bytes — what a
+            // container nothing can parse fell back to — answers with the shape of a bit rate, a flat
+            // band, which is not a waveform.
+            CompressedWaveform.amplitudes(audioFile, targetSamples, checkCancelled)
+                ?: extractGenericAmplitudes(audioFile, targetSamples, checkCancelled)
         }
 
-        cache[cacheKey] = result
-        result
+        checkCancelled()
+        synchronized(cache) { cache[cacheKey] = result }
+        return result
     }
 
     /** The loudest sample of each block of a canonical 16-bit PCM WAV, streamed block by block. */
-    private fun extractWavAmplitudes(file: File, targetSamples: Int): List<Float> {
+    private fun extractWavAmplitudes(file: File, targetSamples: Int, checkCancelled: () -> Unit): List<Float> {
         return runCatching {
             val dataBytes = file.length() - WavWriter.HEADER_BYTES
             if (dataBytes <= 0L) return defaultWaveform(targetSamples)
@@ -62,6 +71,7 @@ object AudioWaveformExtractor {
                 // A sample can straddle a read boundary, so the low byte is carried over.
                 var pendingLow = -1
                 while (true) {
+                    checkCancelled()
                     val n = stream.read(buffer)
                     if (n <= 0) break
                     var at = 0
@@ -82,11 +92,11 @@ object AudioWaveformExtractor {
                 }
             }
             loudest.map { (abs(it).toFloat() / 32768f).coerceIn(0.12f, 1.0f) }
-        }.getOrElse { defaultWaveform(targetSamples) }
+        }.getOrElse { if (it is java.util.concurrent.CancellationException) throw it; defaultWaveform(targetSamples) }
     }
 
     /** The mean byte level of each block of an unknown (compressed) container, streamed the same way. */
-    private fun extractGenericAmplitudes(file: File, targetSamples: Int): List<Float> {
+    private fun extractGenericAmplitudes(file: File, targetSamples: Int, checkCancelled: () -> Unit): List<Float> {
         return runCatching {
             val total = file.length()
             if (total <= 0L) return defaultWaveform(targetSamples)
@@ -98,6 +108,7 @@ object AudioWaveformExtractor {
                 val buffer = ByteArray(READ_BYTES)
                 var position = 0L
                 while (true) {
+                    checkCancelled()
                     val n = stream.read(buffer)
                     if (n <= 0) break
                     for (i in 0 until n) {
@@ -112,7 +123,7 @@ object AudioWaveformExtractor {
                 val avg = if (counts[i] > 0) (sums[i] / counts[i]).toFloat() else 30f
                 (avg / 128f).coerceIn(0.15f, 1.0f)
             }
-        }.getOrElse { defaultWaveform(targetSamples) }
+        }.getOrElse { if (it is java.util.concurrent.CancellationException) throw it; defaultWaveform(targetSamples) }
     }
 
     private fun record(loudest: IntArray, sample: Long, blockSamples: Long, value: Int) {

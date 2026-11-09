@@ -51,6 +51,11 @@ coverage on.
 What the device-only paths (stylus events, hover, the emulator harness) are covered by lives in
 [`stylus.md`](stylus.md) and [`tools.md`](tools.md) — this file owns the JVM suite.
 
+`AuditFormatIntegrityTest`, `ManifestSaveIntegrityTest` and `ClassicZipLimitsTest` exercise malformed
+XML, whitespace fidelity, both manifest-save paths and safe refusal at incremental ZIP limits.
+`DesktopAudioIsolationTest` covers colliding recording names; `DesktopLifecycleTest` rejects obsolete
+recovery commits. Release signing has an SDK-free harness, `scripts/test-release-signing.py`.
+
 ## Rules the build enforces
 
 Some rules cannot be asserted against a running value; they are properties of the tree. Those are
@@ -242,3 +247,26 @@ the workflow or when the workflow stops being readable as Gradle invocations. Th
 (`scripts/build.sh`, `scripts/host-build.sh`) default to the same two suites **and** the instrumented
 compile, so the missing run — or the `androidTest` that stopped compiling — shows up before the push
 instead of after it.
+
+Performance guards use work counts rather than wall-clock thresholds: `IdentityLruCacheTest` and
+`StrokePathCacheTest` bound retention; `LatestWriteQueueTest` gates a running writer to prove pending
+coalescence; `TabCheckpointTest` counts encodes; `PageStackerTest` checks 10000-page candidate counts
+and overlap equivalence; `CanvasSearchTest` rejects stale queries; `DesktopSearchTest` keeps 140 OCR
+page readings warm. `BackgroundPainterConcurrencyTest` exercises independent Android painter output
+on two threads and requires a device; compiling it alone does not verify runtime pixels.
+
+`PersistentVectorTest` and `PersistentIntMapTest` exercise immutable branches and tree boundaries.
+`StreamingXoppTest` splits XML at every character and checks raw markup, bridge and stream ownership.
+`PageTextIndexTest` counts source reads across queries and edits. `IncrementalTaperTest` and
+`IncrementalSmoothingTest` compare every prefix with full geometry. `DesktopSaveWorkerTest` gates a
+reader during save, and `DesktopRecoveryJournalTest` checks delta publication, undo and compaction.
+
+`PlotPreviewPaletteTest` checks contrast adaptation and unchanged document ink. `DesktopInspectorSizingTest` checks resize bounds, retained canvas space and group folding. The settings
+and inspector scene fixtures render the desktop property layout; pointer tests preserve composed text
+style edits after the geometry change. Desktop settings deliberately use flat groups rather than the
+tablet card clipping checked by Android's own tests.
+
+`SettingsOrganizationTest` checks navigation coverage and multiword search. `SettingsScrollPaneTest` verifies that changing section resets a genuinely scrolled page to its heading.
+
+`AudioReferenceIndexTest` counts page reads across ticks, edits and undo. `AudioChromePerformanceTest` guards referential keys and chrome cadence; `AudioWaveformCacheTest` checks bounded reuse, replacement and cancellation. `DeferredRecordingsTest` and `BundledAudioAdoptionTest` cover lazy registration, independent readers and retry-safe extraction.
+`AudioPlayerAsyncTest` is a device test for asynchronous preparation, cancellation and prepared-player reuse; the normal non-device loop compiles it without executing codecs.

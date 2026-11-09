@@ -56,6 +56,7 @@ class DesktopSettingsSurfaceTest {
         }
         return try {
             Snapshot.sendApplyNotifications()
+            scene.render() // Let measured scroll extents reach the scrollbar before capturing.
             val png = scene.render().encodeToData()!!.bytes
             File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }.writeBytes(png)
             val image = ImageIO.read(ByteArrayInputStream(png))
@@ -128,5 +129,16 @@ class DesktopSettingsSurfaceTest {
             val drawn = pixels(state, "settings-${section.name.lowercase()}")
             assertTrue("$section draws a page over the page", longestPaperRun(drawn) >= 40)
         }
+    }
+    @Test fun appearanceUsesTheSharedDarkAndLightPalettes() {
+        val state = state()
+        state.prefs.openAt(DesktopSettingSection.APPEARANCE)
+        try {
+            state.prefs.appearance.chooseTheme(com.mobixournal.desktop.settings.DesktopThemeMode.DARK)
+            val dark = pixels(state, "settings-appearance-dark")
+            state.prefs.appearance.chooseTheme(com.mobixournal.desktop.settings.DesktopThemeMode.LIGHT)
+            val light = pixels(state, "settings-appearance-light")
+            assertTrue("the panel follows the chosen palette", dark.indices.count { dark[it] != light[it] } > dark.size / 3)
+        } finally { com.mobixournal.desktop.settings.DesktopTheme.use(false) }
     }
 }

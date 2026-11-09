@@ -90,7 +90,8 @@ anyway: the model keeps the names it was read with (`Background.Pdf.bundledAsset
 `assets/` entries back out of the staged copy the session still holds and hands them to the writer as
 payloads — so a picture or a recording that no page has ever adopted (a page that was never read) is
 not lost to a Save As. A document whose staged copy the session no longer holds has nothing left to
-read, which is the one case a payload can still be missing; the page that needs it is what
+read, which is the one case a payload can still be missing — the session keeps that staged copy while
+any tab or canvas holds the document and deletes it when none does (`MobixOpenSessions.prune`); the page that needs it is what
 `report-a-mobix-page-whose-background-is-missing` exists to report.
 
 **Measured** (`MobixIncrementalSaveBenchmarkTest`, report in
@@ -114,6 +115,15 @@ snapshot the surface into the outgoing OpenTab (document, save format, canvas ge
   → load the incoming OpenTab into the surface (setPdfSource → load → goToPage)
 ```
 
+The open-session registry serializes its worker/UI access. Cache pruning waits until background I/O
+callbacks finish attaching their results; a pending open or export keeps its readers and assets alive.
+
+Pixmap sources belong to `OpenTab.images`, alongside the background resolver. A tab switch restores
+that map before the resolver; pruning protects the copies of inactive tabs too. The session index
+persists image references and local paths in an optional tagged field, so older records still decode.
+Snapshot writers receive each inactive tab's own background sources. A resolver whose cached copy was
+deleted adopts the asset again from its archive (`PagedMobixOpenTest`).
+
 Consequences worth knowing:
 
 - **Undo history is per surface, not per document.** It is cleared by `load`, so a tab switch starts
@@ -121,10 +131,17 @@ Consequences worth knowing:
 - **Only the active tab's document is live**; every other tab holds the snapshot taken when it was
   last showing. That is also what gets written to disk.
 - **The session is cached, not saved.** `TabStore` writes `filesDir/tabs/`: a `session.index` line
-  file (`TabIndex`) plus one snapshot per tab, rewritten on every tab change and in `onPause`. On
-  launch it is read back, so the app reopens on the same tabs with the same unsaved edits. It is a
+  file (`TabIndex`) plus one snapshot per tab, checked on tab changes and in `onPause`. It is a
   restart cache keyed by tab id — the user's own file (the tab's `uri`) is still the only thing the
   desktop ever sees, and a snapshot never stands in for saving.
+- **A launch offers the session, it does not reopen it.** Only the index is read at start
+  (`EntryRecents.readPreviousSession`), and the empty pane then shows the last run's tabs as cards
+  plus *Restore last session*; taking either loads those tabs, with their unsaved edits, from the
+  snapshots. Until the reader answers, `EditorPane.holdsPreviousSession` makes `persist` write
+  nothing — an empty session written by the pane that is offering it would sweep the snapshots it is
+  offering away. *New sheet* is the answer that drops the offer, and a card's `×` drops one tab with
+  `TabStore.dropTab`, which rewrites the index and deletes that tab's snapshot. Only a cold start
+  offers anything: a config change keeps its tabs in memory, and a process-death restore is a resume.
 - **A snapshot is written in the tab's own container.** `<id>.mobix` for a document whose format is
   the native one, `<id>.xopp` (gzip XML) for every other tab, which is what `TabSnapshots` decides and
   `TabStore` names files by. It has to be that way round: a `.xopp` has nowhere to put a bundled
@@ -144,8 +161,12 @@ Consequences worth knowing:
   (`OpenTab.hydrated = false`); `TabStore.hydrate` parses one tab's snapshot, and `MainActivity.show`
   runs it on a worker and paints the canvas when it lands, so a cold start with many tabs never waits
   on more than the index. Writing is the mirror image: `EditorPane.persist` reads the session on the
-  caller's thread and queues the save onto a single-threaded writer, with `awaitPersist` in `onPause`
-  so a backgrounded app still lands its snapshot. Four rules keep a placeholder from destroying
+  caller's thread and sends it to a serial latest-only writer: one running request and one replaceable
+  pending request. `awaitPersist` waits for the latest requested generation, including coalesced requests.
+  Unchanged document identities, format and source-file stamps (including the native audio store) reuse
+  their durable snapshot; the small session index still changes. Failed writes are retried, and active native audio disables reuse until
+  a post-recording checkpoint succeeds. Native staging attempts a rename before copying. Four rules keep a
+  placeholder from destroying
   content: `TabStore.save` skips unhydrated tabs (their file on disk is the truth); it also skips a
   tab that is still **`OpenTab.opening`** — a slow remote/cloud fetch whose placeholder document is
   on the strip while the canvas still shows the *previous* tab; `snapshotActiveTab` skips a tab whose

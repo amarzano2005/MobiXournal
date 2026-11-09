@@ -27,6 +27,7 @@ class TabStore(
      */
     private val snapshots: TabSnapshots,
 ) {
+    private val checkpoints = java.util.concurrent.ConcurrentHashMap<String, TabCheckpoint>()
 
     /**
      * Write [session] out, replacing whatever was there.
@@ -46,6 +47,7 @@ class TabStore(
         // still that tab's own file. Sweeping by suffix alone would delete it before the write that
         // replaces it — which for a tab left unhydrated below is never.
         val live = session.tabs.map { it.id }.toSet()
+        checkpoints.keys.retainAll(live)
         dir.listFiles()?.forEach { file ->
             val owner = ownerOf(file.name)
             // Stray half-writes left behind by a kill are swept too; nothing may ever reference them.
@@ -58,7 +60,14 @@ class TabStore(
             //   would stamp the wrong (or an empty) document over this tab's snapshot and bring it
             //   back that way on the next launch.
             if (!tab.hydrated || tab.opening) continue
-            writeSnapshotAtomically(tab, if (tab == session.tabs.getOrNull(session.activeIndex)) sources else SnapshotSources())
+            val assets = if (tab.id == session.tabs.getOrNull(session.activeIndex)?.id) sources
+                else SnapshotSources(tab.pdfPath?.let(::File), tab.images)
+            val checkpoint = TabCheckpoint.of(tab, snapshots.suffixFor(tab), assets, snapshots.reuseToken(tab))
+            val reusable = snapshots.canReuse(tab)
+            if (reusable && fileFor(tab).isFile && checkpoints[tab.id]?.matches(checkpoint) == true) continue
+            checkpoints.remove(tab.id)
+            writeSnapshotAtomically(tab, assets)
+            if (reusable) checkpoints[tab.id] = checkpoint
         }
         indexFile().writeText(TabIndex.encode(session))
     }.isSuccess
@@ -74,17 +83,17 @@ class TabStore(
         val tmp = File(dir, file.name + TEMP_SUFFIX)
         runCatching {
             snapshots.write(tmp, tab, sources)
-            // Same-directory rename is atomic; the delete fallback covers a filesystem that refuses
-            // to replace an existing target.
-            if (!tmp.renameTo(file)) {
-                file.delete()
-                tmp.renameTo(file)
+            try {
+                java.nio.file.Files.move(tmp.toPath(), file.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
+                java.nio.file.Files.move(tmp.toPath(), file.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
             }
             // The tab has one snapshot, not two: the file under the other suffix is what this tab's
             // snapshot used to be (an upgrade, or a Save As that switched its format), and leaving it
             // would make the read depend on which of the two the sweep happened to leave behind.
             otherFilesFor(tab).forEach { it.delete() }
-        }.onFailure { tmp.delete() }
+        }.onFailure { tmp.delete() }.getOrThrow()
     }
 
     /**
@@ -112,6 +121,7 @@ class TabStore(
      * there was nothing to copy.
      */
     fun adopt(from: TabStore, sourceId: String, newId: String): Boolean = runCatching {
+        checkpoints.remove(newId)
         val src = from.existingFileById(sourceId) ?: return@runCatching false
         dir.mkdirs()
         src.copyTo(File(dir, newId + src.name.removePrefix(sourceId)), overwrite = true)
@@ -143,6 +153,7 @@ class TabStore(
         return tab.copy(
             document = read.document,
             backgrounds = read.backgrounds,
+            images = tab.images + read.images,
             pdfPath = read.pdf?.absolutePath ?: tab.pdfPath,
             hydrated = true,
         )
@@ -150,7 +161,30 @@ class TabStore(
 
     /** Throw the whole cached session away (used when the user closes the last tab). */
     fun clear() {
+        checkpoints.clear()
         dir.listFiles()?.forEach { it.delete() }
+    }
+
+    /**
+     * Drop tab [id] from the **stored** session and delete its snapshot — a card the reader removed
+     * from the entry screen must not come back on the next launch.
+     *
+     * The index is rewritten directly, with every other tab's snapshot left where it is: this runs on
+     * a session nobody has opened yet, so nothing can be lost by not going through [save]. An empty
+     * session leaves no index at all, exactly as closing the last tab would.
+     */
+    fun dropTab(id: String) {
+        runCatching {
+            val index = indexFile().takeIf(File::isFile) ?: return@runCatching
+            val parsed = TabIndex.decode(index.readText()) { blankDocument() }
+            TabSnapshots.SUFFIXES.forEach { File(dir, id + it).delete() }
+            val activeId = parsed.tabs.getOrNull(parsed.activeIndex)?.id
+            val remaining = parsed.tabs.filterNot { it.id == id }
+            if (remaining.isEmpty()) index.delete()
+            else index.writeText(
+                TabIndex.encode(TabSession(remaining, remaining.indexOfFirst { it.id == activeId }.coerceAtLeast(0))),
+            )
+        }
     }
 
     private fun indexFile() = File(dir, INDEX_NAME)

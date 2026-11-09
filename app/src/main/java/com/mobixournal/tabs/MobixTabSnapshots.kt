@@ -31,7 +31,22 @@ class MobixTabSnapshots(
     private val io: DocumentIo,
     /** The file of the recording a stroke names, when the audio store holds it — streamed into the snapshot. */
     private val audio: (String) -> File? = { null },
+    private val audioIsRecording: () -> Boolean = { false },
+    private val audioState: () -> Any? = { null },
+    /**
+     * The archive a tab can be snapshotted **as**, when nothing has been edited since it was opened.
+     *
+     * A `.mobix` that was just opened *is* its archive: re-writing it — rebuilding every page's JSON,
+     * deflating it, streaming the bundled recording back out through a payload — is the background I/O
+     * that made opening a document with audio take seconds, and it produces the same bytes. So the open
+     * hands this hook the file it copied in, and the snapshot is that copy (a sequential file copy)
+     * instead of an encode.
+     */
+    private val uneditedArchive: (OpenTab) -> File? = { null },
 ) : TabSnapshots {
+    override fun reuseToken(tab: OpenTab): Any? = if (tab.format == SaveFormat.MOBIX) audioState() else null
+
+    override fun canReuse(tab: OpenTab): Boolean = tab.format != SaveFormat.MOBIX || !audioIsRecording()
 
     override fun suffixFor(tab: OpenTab): String =
         if (tab.format == SaveFormat.MOBIX) TabSnapshots.MOBIX_SUFFIX else TabSnapshots.XOPP_SUFFIX
@@ -39,6 +54,17 @@ class MobixTabSnapshots(
     override fun write(file: File, tab: OpenTab, sources: SnapshotSources) {
         if (tab.format != SaveFormat.MOBIX) {
             XoppSnapshots.write(file, tab, sources)
+            return
+        }
+        val verbatim = uneditedArchive(tab)
+        if (verbatim != null && verbatim.isFile) {
+            // Published the way an encode is: a half-copied archive must never be what a tab restores.
+            val pending = File(file.absolutePath + ".part")
+            verbatim.copyTo(pending, overwrite = true)
+            if (!pending.renameTo(file)) {
+                pending.copyTo(file, overwrite = true)
+                pending.delete()
+            }
             return
         }
         val encoded = io.encode(
@@ -52,7 +78,7 @@ class MobixTabSnapshots(
             audioFiles = audio,
         )
         try {
-            encoded.file.copyTo(file, overwrite = true)
+            if (!encoded.file.renameTo(file)) encoded.file.copyTo(file, overwrite = true)
         } finally {
             encoded.file.delete()
         }
@@ -67,7 +93,7 @@ class MobixTabSnapshots(
             // page is read — and the resolver that does it goes back to the tab with them. Reading the
             // container without that would draw the pages but not the pictures they name.
             (io.read(file, file.name, null) as? LoadedFile.Doc)
-                ?.let { SnapshotRead(it.document, it.backgrounds, it.pdf) }
+                ?.let { SnapshotRead(it.document, it.backgrounds, it.pdf, it.images) }
         } else {
             SnapshotRead(file.inputStream().use(Xopp::open))
         }

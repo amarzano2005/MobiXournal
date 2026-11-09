@@ -46,6 +46,12 @@ interface TabSnapshots {
      */
     fun write(file: File, tab: OpenTab, sources: SnapshotSources)
 
+    /** Mutable payloads such as a running recording must be checkpointed even without a model edit. */
+    fun canReuse(tab: OpenTab): Boolean = true
+
+    /** A compact immutable stamp for payload stores not represented by the document model. */
+    fun reuseToken(tab: OpenTab): Any? = null
+
     /**
      * Parse [file] back into a document, or null when it cannot be read — a truncated snapshot is
      * left **unhydrated** by [TabStore.hydrate] rather than replaced by a blank placeholder, so the
@@ -85,6 +91,7 @@ data class SnapshotRead(
     val backgrounds: BackgroundResolver? = null,
     /** The local copy of the document's background PDF, when the read produced one. */
     val pdf: File? = null,
+    val images: Map<String, File> = emptyMap(),
 )
 
 /**

@@ -1,6 +1,9 @@
 package com.mobixournal.render
 
 import android.graphics.Canvas
+import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.audioRef
 
 /**
  * **A page painted at the audio playhead**: the writing appearing as the recording that was made over
@@ -70,6 +73,19 @@ private fun DrawingSurfaceView.drawKaraokeStroke(
         }
     }
 }
+
+/**
+ * Whether [page] carries any stroke of [recording] at all.
+ *
+ * The paint loop asks this before it gives up the ink cache for a page: a page with none of the clip on
+ * it paints **exactly** as it does with nothing playing (every stroke of it resolves to `Normal`), so
+ * redrawing it stroke by stroke every frame was work with no pixels to show for it — on a lecture
+ * notebook, most of the visible pages.
+ */
+internal fun Page.carriesRecording(recording: String): Boolean =
+    layers.asSequence().flatMap { it.elements.asSequence() }.filterIsInstance<Stroke>().any { stroke ->
+        stroke.audioRef()?.let { KaraokeStrokeAnimator.isMatchingRecording(it.filename, recording) } == true
+    }
 
 /**
  * Center the canvas viewport on [bounds] on page or tile [pageIndex].

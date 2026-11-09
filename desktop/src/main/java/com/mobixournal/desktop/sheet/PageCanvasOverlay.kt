@@ -5,6 +5,7 @@ import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
 import com.mobixournal.desktop.ink.StrokePathCache
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.DraftStrokeCache
 import com.mobixournal.desktop.ink.previewTool
 import com.mobixournal.desktop.ink.shapeFromDrag
 import com.mobixournal.desktop.ink.strokeOf
@@ -141,19 +142,21 @@ private fun DrawScope.paintDraftPreviews(
     val previewInk = if (tool.shapeKind() != null) shapeInk else ink
     for (draft in drafts) {
         if (draft.isEmpty()) continue
-        val samples = runCatching { draft.toList() }.getOrNull() ?: continue
+        val isFigure = tool.shapeKind() != null
+        val samples = runCatching { if (isFigure) draft.toList() else draft }.getOrNull() ?: continue
         if (samples.size < 2) continue
-        strokeOf(
+        (if (!isFigure) runCatching {
+            DraftStrokeCache.stroke(draft, samples, previewTool, previewInk.colour, previewInk.width, previewInk.lineStyle)
+        }.getOrNull() else strokeOf(
             previewTool,
             previewInk.colour,
             previewInk.width,
             samples,
             previewInk.lineStyle,
-        )?.let { draftStroke ->
+        ))?.let { draftStroke ->
             // The draft is a stroke growing by a few samples per frame: its geometry is cached by the
             // list it lives in and the length it has reached, so a frame that only redraws (a scroll, a
             // hover, a selection moving) does not rebuild the whole outline again.
-            val isFigure = tool.shapeKind() != null
             val shapes = StrokePathCache.draft(
                 identity = draft,
                 size = draft.size,

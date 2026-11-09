@@ -19,6 +19,7 @@ class StyleFillLayerNameRoundTripTest {
         <stroke tool="pen" color="#000000ff" width="1.5" fill="128" style="dashdot">0 0 10 0 10 10</stroke>
         <stroke tool="pen" color="#000000ff" width="1.5">0 0 5 5</stroke>
         </layer>
+        </page>
         </xournal>
     """.trimIndent()
 

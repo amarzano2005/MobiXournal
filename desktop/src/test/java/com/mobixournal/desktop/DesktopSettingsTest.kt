@@ -251,7 +251,7 @@ class DesktopSettingsTest {
     fun `the search narrows the sections by a word the reader knows`() {
         val policy = DesktopSettingsState(store())
         policy.openAt()
-        assertEquals(DesktopSettingSection.entries, policy.sections)
+        assertEquals(DesktopSettingSection.ORDERED, policy.sections)
 
         policy.typing = true
         policy.search("wintab")
@@ -282,7 +282,7 @@ class DesktopSettingsTest {
 
         // Clearing query restores all sections
         policy.search("")
-        assertEquals(DesktopSettingSection.entries, policy.sections)
+        assertEquals(DesktopSettingSection.ORDERED, policy.sections)
     }
 
     @Test

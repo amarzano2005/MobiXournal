@@ -47,7 +47,7 @@ internal fun SettingsSearchField(
     Row(
         modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)
-            .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
+            .background(DesktopTheme.panelField, PropertyControlShape)
             .pointerHoverIcon(PointerIcon.Default)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

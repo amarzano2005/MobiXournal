@@ -44,6 +44,8 @@ import java.io.File
  * leaving an empty stub in the strip.
  */
 internal fun MainActivity.openDocument(uri: Uri) {
+    val openingPane = pane
+    val sourceName = displayName(uri)
     snapshotActiveTab()
     // `opening = true` until the bytes land: the tab's blank stand-in must never be snapshotted while
     // the canvas still shows the previous document — on a slow remote/cloud fetch that is exactly how
@@ -60,15 +62,31 @@ internal fun MainActivity.openDocument(uri: Uri) {
     rememberRecentNotebook(uri, displayName(uri))
     // The bytes may be coming off a network share, so fetch them on a worker and only touch the
     // canvas once they have landed. A failure takes the half-built tab back down with it.
-    inBackground("Opening ${displayName(uri)}…", { io.stageIn(uri, "open") }) { result ->
+    inBackground("Opening $sourceName.", {
+        val staged = io.stageIn(uri, "open")
+        try { staged to io.read(staged, sourceName, uri) } catch (failure: Throwable) {
+            staged.delete()
+            throw failure
+        }
+    }) { result ->
+        val focus = activePane.value
+        activePane.value = panes.indexOf(openingPane)
+        try {
         // Staging names are unique per open, so the copy has to be swept once it has been read
         // or the cache would grow a file per document opened.
-        result.mapCatching { staged -> try { loadDocument(staged, uri, placeholder, created) } finally { staged.delete() } }
+        result.mapCatching { (staged, loaded) ->
+            try {
+                check(tabs.active?.id == placeholder.id) { "The opening tab is no longer selected" }
+                loadDocument(loaded, uri, placeholder, created)
+            } finally { if (!io.retainsStaged(staged)) staged.delete() }
+        }
             .onSuccess {
                 // If the open was intercepted by a newer-app consent prompt, opening stays true until
                 // the user accepts or declines. Otherwise the fetch landed normally.
                 if (pendingNewerAppConsent.value == null) {
                     tabs.updateActive { if (it.id == placeholder.id) it.copy(opening = false) else it }
+                    // The document that just landed *is* the archive it came from, so its snapshot is
+                    // that copy rather than an encode of the whole container (see `MobixTabSnapshots`).
                     snapshotActiveTab()
                     // The card's face, from the pages already in hand: the entry screen reads a PNG
                     // instead of parsing this document again.
@@ -77,11 +95,12 @@ internal fun MainActivity.openDocument(uri: Uri) {
             }
             .onFailure {
                 toast("Open failed: ${it.message}")
-                tabs.close(created)
+                tabs.tabs.indexOfFirst { it.id == placeholder.id }.takeIf { it >= 0 }?.let(tabs::close)
                 tabs.active?.let { show(it) }
             }
         tabsTick.value++
         persistTabs()
+        } finally { activePane.value = focus }
     }
 }
 
@@ -188,12 +207,12 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
 
 /** Put a staged local copy of the document onto the canvas ([DocumentIo] decided what it is). */
 internal fun MainActivity.loadDocument(
-    staged: File,
+    loaded: LoadedFile,
     source: Uri,
     placeholder: OpenTab? = null,
     created: Int = -1,
 ) {
-    when (val loaded = io.read(staged, displayName(source), source)) {
+    when (loaded) {
         // A raw PDF isn't a document to parse — it becomes a fresh annotatable one over its pages.
         is LoadedFile.Pdf -> {
             // A PDF we typeset from a text file lives only in the prunable cache, so there is no
@@ -461,239 +480,9 @@ internal fun MainActivity.analyzePdfInBackground(file: File, into: DrawingSurfac
         PdfTextIndexCache.put(file, text)
         PdfOutlineCache.put(file, outline)
         view.post {
+            if (view.pdfSourceFile()?.absoluteFile != file.absoluteFile) return@post
             view.setPdfTextIndex(text)
             view.setPdfOutline(outline)
         }
     }.start()
-}
-
-/** Flatten the current document to a PDF at the chosen location (backgrounds + annotations). */
-internal fun MainActivity.exportPdf(uri: Uri) = runCatching {
-    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
-        toast("Document is read-only")
-        return@runCatching
-    }
-    staging.writeTo(uri) { output: java.io.OutputStream -> surface?.exportPdf(output) }
-}.onFailure { toast("PDF export failed: ${it.message}") }
-
-/** Export the active page alone as a high-resolution PNG at the chosen location. */
-internal fun MainActivity.exportPagePng(uri: Uri) = runCatching {
-    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
-        toast("Document is read-only")
-        return@runCatching
-    }
-    val view = surface
-    val index = view?.currentPageIndex() ?: 0
-    staging.writeTo(uri) { output: java.io.OutputStream -> view?.exportPagePng(index, output) }
-}.onFailure { toast("PNG export failed: ${it.message}") }
-
-/** Export the active page alone as an SVG vector file at the chosen location. */
-internal fun MainActivity.exportPageSvg(uri: Uri) = runCatching {
-    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
-        toast("Document is read-only")
-        return@runCatching
-    }
-    val view = surface
-    val index = view?.currentPageIndex() ?: 0
-    staging.writeTo(uri) { output: java.io.OutputStream -> view?.exportPageSvg(index, output) }
-}.onFailure { toast("SVG export failed: ${it.message}") }
-
-/** Suggested file name for a single-page PNG/SVG export, from the document's own name. */
-internal fun MainActivity.suggestedPageImageName(extension: String): String =
-    suggestedPdfName().removeSuffix(".pdf") + "." + extension
-
-/** Read the picked image's bytes and place it at the tap that started the pick. */
-internal fun MainActivity.insertPickedImage(uri: Uri) = runCatching {
-    val placement = pendingImagePlacement ?: return@runCatching
-    pendingImagePlacement = null
-    val bytes = staging.readBytes(uri)
-    surface?.insertImage(placement, bytes)
-}.onFailure { toast("Image insert failed: ${it.message}") }
-
-/**
- * Handle a URI returned from the system document picker. If tabs are still restoring or the active
- * tab is not yet hydrated, defer saving until the active tab has finished loading onto the canvas.
- */
-internal fun MainActivity.handleSaveResult(uri: Uri) {
-    if (isRestoringTabs || tabs.isEmpty || tabs.active?.hydrated == false || tabs.active?.opening == true) {
-        pendingSaveUri = uri
-    } else {
-        saveDocument(uri)
-    }
-}
-
-/** Execute a deferred save once tabs restoration and active tab hydration have completed. */
-internal fun MainActivity.flushPendingSave() {
-    val uri = pendingSaveUri ?: return
-    pendingSaveUri = null
-    saveDocument(uri)
-}
-
-/**
- * Write the current document to [uri] in the sticky [saveFormat]. Both formats are single files,
- * so both go through the plain CreateDocument picker:
- * - [SaveFormat.ORIGINAL] — gzip XML, PDF background left linked by path/URI (interchange-safe).
- * - [SaveFormat.ZIPPED] — a ZIP package with the PDF embedded (`domain="attach"`, `bg.pdf`).
- */
-internal fun MainActivity.saveDocument(uri: Uri) {
-    if (busy.value != null && busy.value?.startsWith("Saving") == true) return
-    if (tabs.isEmpty || tabs.active == null || tabs.active?.hydrated == false || tabs.active?.opening == true) {
-        if (isRestoringTabs) pendingSaveUri = uri
-        return
-    }
-    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
-        toast("Document is read-only")
-        return
-    }
-    val view = surface ?: return
-    // Snapshot the document here, on the UI thread (the canvas isn't thread-safe) — [toDocument] is
-    // just a reference to the immutable model, so it is instant. The *encoding*, by contrast, is
-    // real work (XML + gzip) and used to run inline before the wait overlay appeared, so a large
-    // document froze the app silently and then showed the note only for the final write. Both steps
-    // now run on the worker: tapping Save raises "Saving …" immediately and it stays up until the
-    // bytes have actually landed.
-    val snapshot = view.toDocument()
-    // Safety net: if the live surface lost its state (e.g. freshly inflated) but the tab holds ink,
-    // recover the document from the tab rather than overwriting disk with a blank sheet.
-    val activeDoc = tabs.active?.document
-    val docHasContent = activeDoc != null && activeDoc.pages.any { p -> p.layers.any { l -> l.elements.isNotEmpty() } }
-    val viewHasContent = snapshot.pages.any { p -> p.layers.any { l -> l.elements.isNotEmpty() } }
-    val effectiveSnapshot = if (!viewHasContent && docHasContent) {
-        view.load(activeDoc!!)
-        activeDoc
-    } else {
-        snapshot
-    }
-    // A `.mobix` names its pages and elements, so the ids have to be the *model's* own before the bytes
-    // are written (see [DocumentIo.encode]): minting them inside the writer leaves the open document
-    // unidentified, and the next save hands out a fresh set — which a merge or a sync client reads as
-    // the whole page replaced. Adopting here, on the UI thread and before the snapshot, is what keeps
-    // model and file in step; every save after the first finds nothing to adopt and costs nothing.
-    val document = if (saveFormat == SaveFormat.MOBIX) {
-        view.adoptIdentity(io.identifyForSave(effectiveSnapshot, uri))
-    } else {
-        effectiveSnapshot
-    }
-    val pdf = view.pdfSourceFile()
-    val images = view.imageSources()
-    inBackground(
-        label = "Saving ${displayName(uri)}…",
-        work = {
-            // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
-            // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
-            // The recordings travel inside a `.mobix` the way its backgrounds do, as **files** the
-            // archive streams in ([AudioSession.recordingFile]) — a long lecture is never materialised
-            // to be saved.
-            val encoded = io.encode(
-                document, pdf, saveFormat, uri, images, audio::recordingFile,
-            )
-            try {
-                io.stageOut(encoded.file, uri)
-            } finally {
-                encoded.file.delete()
-            }
-            // Out of the worker with the result, so the report below is shown for exactly this write.
-            encoded.uncompiled
-        },
-    ) { result ->
-        result.onFailure { toast("Save failed: ${it.message}") }
-            .onSuccess { uncompiled ->
-                afterSaved(view, uri, saveFormat)
-                if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
-            }
-    }
-}
-
-/** Book-keeping for a document that has just landed on disk at [uri]. */
-internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri, format: SaveFormat = saveFormat) {
-    // Hold the grant so the next plain Save can write back here without asking again.
-    io.persist(uri)
-    // The tab now belongs to the file it was just written to: relabel it and remember where it
-    // lives, so the strip shows the real name and a restored session points at the same document.
-    tabs.updateActive { it.copy(title = displayName(uri), uri = uri.toString()) }
-    pendingSaveName = displayName(uri)
-    snapshotActiveTab()
-    tabsTick.value++
-    persistTabs()
-    // A .xopp never carries its audio — the sidecars have to land beside it or playback breaks. A
-    // .mobix carries the recording inside itself, so there is nothing to push out and no folder to ask
-    // for: the whole point of the format is that the file is self-contained
-    // (`docs/audio.md`). Reading the document for the check is also a walk of every page,
-    // which a save no longer owes.
-    if (format != SaveFormat.MOBIX) {
-        pushAudioSidecars()
-        if (audioFolder == null && audio.missingFor(view.toDocument()).isEmpty() &&
-            documentHasAudio(view)
-        ) {
-            toast("Choose an audio folder so recordings are saved beside this file")
-        }
-    }
-}
-
-/**
- * Plain Save: write straight back to the file this tab came from when we still hold a write
- * grant on it (the normal case for a document opened from local storage *or* a mounted remote
- * share), and only fall back to asking for a location when we don't.
- */
-internal fun MainActivity.saveActiveTab() {
-    if (busy.value != null && busy.value?.startsWith("Saving") == true) return
-    if (tabs.isEmpty || tabs.active == null || tabs.active?.hydrated == false || tabs.active?.opening == true) return
-    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
-        toast("Document is read-only")
-        return
-    }
-    snapshotActiveTab()
-    val target = tabs.active?.uri?.let(Uri::parse)?.takeIf(io::isWritable)
-    if (target != null) saveDocument(target) else launchSavePicker()
-}
-
-/**
- * Ask the system where to write the open document, with the picker that matches the sticky format:
- * the suggested name and the declared type both come from it, so a document that lives as a `.mobix`
- * is proposed as `notes.mobix` and typed as one, instead of being offered to desktop Xournal++ as a
- * file it cannot open.
- *
- * Both pickers write through [saveDocument], which is what makes the format the *document's* sticky
- * choice rather than the picker's: the launcher only decides the name and the type the system sees.
- */
-internal fun MainActivity.launchSavePicker() {
-    snapshotActiveTab()
-    pane.persist()
-    val name = suggestedSaveName()
-    if (saveFormat == SaveFormat.MOBIX) saveMobixLauncher.launch(name) else saveLauncher.launch(name)
-}
-
-/**
- * The name a Save should propose for the open document: whatever it is called, forced to end in the
- * suffix of the format it is saved in.
- *
- * The name is not always a well-formed one — a document can be opened under a name with no extension
- * at all, or with someone else's (a plain-text file typeset into a document arrives as `notes.txt`)
- * — and asking the picker for that name verbatim writes a file neither the system nor desktop
- * Xournal++ recognises as one.
- */
-internal fun MainActivity.suggestedSaveName(): String = saveNameFor(pendingSaveName, saveFormat)
-
-/**
- * The name a PDF export should propose: the open document's own name with `.pdf` in its place, so an
- * export lands beside the document it came from instead of under a generic name.
- */
-internal fun MainActivity.suggestedPdfName(): String = pdfNameFor(pendingSaveName)
-
-/** True when the open document references any recording at all. */
-internal fun MainActivity.documentHasAudio(view: DrawingSurfaceView): Boolean =
-    documentAudioFiles(view.toDocument()).isNotEmpty()
-
-/**
- * Apply a Save As choice: make [format] the sticky format (so later plain Saves reuse it),
- * remember the file name, and open the single-file picker. Both formats write one file.
- */
-internal fun MainActivity.beginSaveAs(filename: String, format: SaveFormat) {
-    snapshotActiveTab()
-    pane.persist()
-    saveFormat = format
-    // The name field is free text, so whatever was typed goes through the same rule as a suggested
-    // one: what lands on disk carries the suffix of the format the user just chose.
-    pendingSaveName = saveNameFor(filename, format)
-    launchSavePicker()
 }

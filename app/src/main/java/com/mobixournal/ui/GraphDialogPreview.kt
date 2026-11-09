@@ -1,6 +1,5 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
@@ -31,6 +31,7 @@ import com.mobixournal.render.LivingInk
 import com.mobixournal.render.PlotBox
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
+import com.mobixournal.render.PlotPreviewPalette
 
 /** The box the preview draws a plot in, in its own canvas's points. */
 private val PREVIEW_BOX = PlotBox(left = 10.0, top = 10.0, width = 360.0, height = 160.0)
@@ -127,8 +128,11 @@ private fun FunctionPlotPreviewBox(
     showCriticalPoints: Boolean,
     includeDerivative: Boolean,
 ) {
-    val axisColor = PREVIEW_AXIS_COLOR
-    val previewInk = remember(curves, xMin, xMax, showCriticalPoints, includeDerivative, axisColor) {
+    val axisColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val background = MaterialTheme.colorScheme.surface.toArgb()
+    val accent = MaterialTheme.colorScheme.primary.toArgb()
+    val grid = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+    val previewInk = remember(curves, xMin, xMax, showCriticalPoints, includeDerivative, axisColor, background, accent) {
         val element = PlotElementFactory.plotElementIn(
             box = PREVIEW_BOX,
             curves = curves,
@@ -139,21 +143,31 @@ private fun FunctionPlotPreviewBox(
             strokeWidthPt = 1.0,
             axisColor = axisColor,
         )
-        LivingInk.of(element).elements.filterIsInstance<InkStroke>()
+        LivingInk.of(PlotPreviewPalette.adapt(element, background, axisColor, accent)).elements.filterIsInstance<InkStroke>()
     }
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(160.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = Color.Transparent,
     ) {
         Box(modifier = Modifier.padding(8.dp)) {
             Canvas(modifier = Modifier.matchParentSize()) {
                 val scaleX = size.width / PREVIEW_WIDTH_PT.toFloat()
                 val scaleY = size.height / PREVIEW_HEIGHT_PT.toFloat()
+                val left = PREVIEW_BOX.left.toFloat() * scaleX
+                val top = PREVIEW_BOX.top.toFloat() * scaleY
+                val width = PREVIEW_BOX.width.toFloat() * scaleX
+                val height = PREVIEW_BOX.height.toFloat() * scaleY
+                for (step in 1 until 8) {
+                    val x = left + width * step / 8f
+                    drawLine(grid, Offset(x, top), Offset(x, top + height), 1f)
+                }
+                for (step in 1 until 4) {
+                    val y = top + height * step / 4f
+                    drawLine(grid, Offset(left, y), Offset(left + width, y), 1f)
+                }
                 for (ink in previewInk) {
                     val points = ink.points
                     if (points.size < 2) continue
@@ -179,6 +193,3 @@ private fun FunctionPlotPreviewBox(
         }
     }
 }
-
-/** The ink the preview's frame and axes are drawn in: the near-black the dialog has always shown. */
-private val PREVIEW_AXIS_COLOR = 0xFF2A2A2A.toInt()
