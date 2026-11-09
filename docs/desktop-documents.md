@@ -66,11 +66,14 @@ while the file already holds the document.
 While a tab is dirty the window also writes a **crash snapshot**: a self-contained `.mobix` in
 `%APPDATA%\MobiXournal\recovery\`, keyed by a digest of the file's path, with a two-line `.origin` sidecar
 naming the tab and the file. It is written once per quiet burst of edits (three seconds), not per stroke,
-with a full baseline followed by native deltas as described below. A start that finds one opens it as `… (recovered)`, dirty, standing
-for the original path: `loadRecovered` keeps the **origin** as the save target and the **snapshot** as the
-repack source, so a save rebuilds the pages from the recovered copy instead of copying the file's older ones
-back over them, and it is encoded on a background thread — a whole notebook on the UI thread froze the window
-in the middle of a pause. Saving, discarding or closing the tab deletes the snapshot; nothing in `recovery/`
+with a full baseline followed by native deltas as described below. A start that finds one **offers** it on
+the entry screen — a badged card, and *Restore last session* under *New sheet* — instead of adopting it
+behind the reader's back (`DesktopEntryCards.kt`). Restoring it, or opening that file at all, lands on
+`… (recovered)`, dirty, standing for the original path: `loadRecovered` keeps the **origin** as the save
+target and the **snapshot** as the repack source, so a save rebuilds the pages from the recovered copy
+instead of copying the file's older ones back over them, and it is encoded on a background thread — a whole
+notebook on the UI thread froze the window in the middle of a pause. The card's **×** and *New sheet* drop
+the offer with the snapshot; saving, discarding or closing the tab deletes it too. Nothing in `recovery/`
 is a save.
 
 Save As to the current path uses the same stage/close/replace/reopen sequence as an ordinary Save,

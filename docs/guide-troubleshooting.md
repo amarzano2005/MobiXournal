@@ -72,7 +72,9 @@ quiet burst of edits rather than once per stroke:
 %APPDATA%\MobiXournal\recovery\
 ```
 
-A start that finds one opens it as a tab named `… (recovered)`, marked as unsaved. It stands for the
+A start that finds one offers it on the entry screen: its card wears the restore badge, and **Restore last
+session** opens it as a tab named `… (recovered)`, marked as unsaved — opening that file from the recents
+does the same. It stands for the
 original file: **Save** writes to the original path, rebuilding its pages from the recovered copy rather
 than from the older bytes on disk. Saving, discarding or closing the tab deletes the snapshot; nothing in
 that folder is ever a save of its own. If you want to keep a recovered version without touching the

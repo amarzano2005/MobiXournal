@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopDocument
+import com.mobixournal.desktop.io.DesktopRecovery
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.io.describeOpenFailure
 import java.io.File
@@ -59,11 +60,33 @@ internal fun DesktopShellState.openInBackground(
     load: (File) -> DesktopDocument = DocumentLoader::load,
 ) {
     if (DocumentLoader.isPdf(file)) { open(file); return }
+    // A snapshot is newer than the file it stands for: a notebook the last run left dirty must land on
+    // its recovered edits, never on a second view of the older bytes beside work that is not lost yet.
+    recovery?.entryFor(file)?.let { pending ->
+        restoreInBackground(pending, scope)
+        return
+    }
     DesktopOpens.opening = file.name
     scope.launch {
         val loaded = withContext(Dispatchers.IO) { runCatching { load(file) } }
         DesktopOpens.opening = null
         loaded.onSuccess { document -> opened(document, file) }.onFailure { failure = describeOpenFailure(it) }
+    }
+}
+
+/**
+ * A **previous-session** document, read off the frame thread — the badged card's door on the entry
+ * screen. The tab is built back on the composing thread, like every other open.
+ */
+internal fun DesktopShellState.restoreInBackground(entry: DesktopRecovery.Entry, scope: CoroutineScope) {
+    DesktopOpens.opening = entry.title
+    scope.launch {
+        val loaded = withContext(Dispatchers.IO) {
+            runCatching { DocumentLoader.loadRecovered(entry.snapshot, entry.origin) }
+        }
+        DesktopOpens.opening = null
+        loaded.onSuccess { document -> adoptRecovered(document, entry) }
+            .onFailure { failure = describeOpenFailure(it) }
     }
 }
 

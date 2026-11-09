@@ -179,6 +179,15 @@ class DesktopRecovery(val dir: File = defaultDir()) {
         }
     }
 
+    /**
+     * The snapshot kept for [origin], if the last run left one — the entry screen's badged card, and
+     * the reason opening the file itself lands on its recovered edits.
+     */
+    fun entryFor(origin: File): Entry? {
+        val snapshot = snapshotFor(origin)
+        return if (snapshot.isFile) entryOf(snapshot) else null
+    }
+
     private fun entryOf(snapshot: File): Entry? {
         val lines = runCatching { sidecarForSnapshot(snapshot).readLines() }.getOrNull() ?: return null
         val title = lines.firstOrNull()?.takeIf { it.isNotBlank() } ?: return null

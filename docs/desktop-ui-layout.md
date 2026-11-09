@@ -59,7 +59,10 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 page list uses), the **Open** command beside it, and the six notebooks opened lately as cards whose face is
 their document's first page — one click reopens one (`EntryScreen.kt`). A notebook whose file has gone leaves
 no card, opening the same one twice leaves one entry, and the list is `recent.files` in the settings file, so
-a restart keeps it. The cards are the **sheet's own rectangle**, not a capsule — a rounded chip around
+a restart keeps it. Each card's **×**, on the paper's corner, forgets it. A document the last run left
+**unsaved** is offered here too: its card comes first wearing the restore badge and showing the page those
+edits left, and **Restore last session** stands under *New sheet* — while *New sheet*, like the card's ×,
+drops that offer instead of opening it. The cards are the **sheet's own rectangle**, not a capsule — a rounded chip around
 rectangular paper misreads the shape of the thing it shows — and carry **no rim and no fill**: only a lift,
 drawn in the theme's ink rather than the page's near-black shadow, because a shadow cannot be darker than the
 near-black floor under it and a thumbnail has no white edge of its own to lift itself. Its reach is a share of

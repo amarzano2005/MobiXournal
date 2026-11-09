@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
+import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopRecovery
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.io.describeSaveFailure
@@ -120,23 +121,29 @@ fun DesktopShellState.cancelClose() {
  * is the recovered one — the edits are newer than the file, and activating a second view of it would show
  * the older bytes.
  */
-fun DesktopShellState.recover(): Int {
-    val store = recovery ?: return 0
-    var adopted = 0
-    for (entry in store.entries()) {
-        val document = runCatching { DocumentLoader.loadRecovered(entry.snapshot, entry.origin) }
-            .getOrNull() ?: continue
-        val tab = DesktopTab(
-            document,
-            title = "${entry.title} (recovered)",
-            recoveredFrom = entry.snapshot,
-        )
-        if (tabs.adopt(tab) === tab) {
-            DesktopAudioSession.adopt(document)
-            adopted++
-        }
-    }
-    return adopted
+fun DesktopShellState.recover(): Int = recovery?.entries().orEmpty().count { adoptRecovered(it) }
+
+/**
+ * Adopt one snapshot as a **recovered** tab: the edits are newer than the file, so the tab starts dirty
+ * and saves back to [DesktopRecovery.Entry.origin]. False when the snapshot cannot be read.
+ */
+internal fun DesktopShellState.adoptRecovered(entry: DesktopRecovery.Entry): Boolean {
+    val document = runCatching { DocumentLoader.loadRecovered(entry.snapshot, entry.origin) }
+        .getOrNull() ?: return false
+    return adoptRecovered(document, entry) != null
+}
+
+/** The tab half of that adoption, for a document a background read already decoded. */
+internal fun DesktopShellState.adoptRecovered(document: DesktopDocument, entry: DesktopRecovery.Entry): DesktopTab? {
+    val tab = DesktopTab(
+        document,
+        title = "${entry.title} (recovered)",
+        recoveredFrom = entry.snapshot,
+    )
+    if (tabs.adopt(tab) !== tab) return null
+    DesktopAudioSession.adopt(document)
+    failure = null
+    return tab
 }
 
 /** A committed edit: restarts the shell's quiet period for the crash snapshot. */

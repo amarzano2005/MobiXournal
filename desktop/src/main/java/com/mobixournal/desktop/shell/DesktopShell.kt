@@ -473,12 +473,11 @@ class DesktopShellState(
     }
 
     /**
-     * What the window shows at startup: recovered edits first, then the file named on the command line, and
-     * otherwise **the entry screen** ([EntryScreen]) — a new sheet with its preview, the Open command and the
-     * notebooks opened lately, rather than a blank page that pretends the reader has already decided.
+     * What the window shows at startup: the file named on the command line, on its recovered edits when the
+     * last run left any, and otherwise **the entry screen** ([EntryScreen]) — a new sheet with its preview,
+     * the Open command, the notebooks opened lately and the last run's unsaved documents offered as cards.
      */
     fun start(initial: File?) {
-        recover()
         if (initial != null) open(initial)
     }
 
@@ -489,11 +488,11 @@ class DesktopShellState(
      */
     fun open(file: File) {
         if (DocumentLoader.isPdf(file)) { askImportPdf(file, chooseMode = false); return }
+        recovery?.entryFor(file)?.let { pending -> if (adoptRecovered(pending)) return }
         runCatching { DocumentLoader.load(file) }
             .onSuccess { document -> opened(document, file) }
             .onFailure { failure = describeOpenFailure(it) }
     }
-
 
     /** Close the active tab, activating its neighbour. A dirty tab must go through [requestCloseActive]. */
     fun closeActive() = closeActiveTab()

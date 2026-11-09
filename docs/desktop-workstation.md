@@ -207,9 +207,9 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   things share one word. Page as PNG is absent because the window has no such command yet, not because it
   has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by
   the panel's own metrics). The tab
-  strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
-  that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
-  on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
+  strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`); the document is
+  dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes. A window that starts
+  with no file named on the command line opens on the **entry screen**, offering the last run's unsaved work.
 - **The band owns the page, from one section**: left of the search field, one **Pages** button wearing the
   tablet's ruled sheet (`ChromeGlyph.DESCRIPTION`) opens the phone's menu — **Add/Remove page**, the two page
   steps, **Page background** and **Page format** (A4/A5/Letter/Legal, mm/in/pt, **Default**, **Set as default**),

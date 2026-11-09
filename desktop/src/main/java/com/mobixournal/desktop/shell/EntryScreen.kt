@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,7 +47,6 @@ import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.tools.hoverFill
-import java.io.File
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,7 +70,10 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
     // The recents live in the settings file, which is not Compose state: the counter a landed open bumps is
     // what tells this screen that the list it remembers has changed.
     val revision = DesktopOpens.recentsRevision
-    val recents = remember(revision, state) { state.settings.recents.files }
+    val cards = remember(revision, state) { state.entryCards() }
+    // The last run's unsaved documents are **offered**, never adopted behind the reader's back: one
+    // badged card each, and *Restore last session* under the button that starts a fresh sheet.
+    val pendingSession = cards.any { it.fromPreviousSession }
     val sheet = remember(state) {
         DesktopDocuments.blankPage(state.settings.pageWidthPt, state.settings.pageHeightPt)
     }
@@ -92,8 +96,9 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
             ) {
                 StartColumn(
                     widthDp = if (wide) WIDE_START_COLUMN_DP else START_COLUMN_WIDTH_DP,
-                    onNew = { state.newDocument() },
+                    onNew = { state.startFreshSession() },
                     onOpen = onOpen,
+                    onRestore = if (pendingSession) ({ state.restoreLastSession() }) else null,
                 )
                 Spacer(Modifier.width(gap.dp))
                 SheetCard(
@@ -101,14 +106,15 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
                     widthDp = hero,
                     caption = "New sheet",
                     load = { renderPageBitmap(sheet, hero / sheet.width.toFloat()) },
-                    onClick = { state.newDocument() },
+                    onClick = { state.startFreshSession() },
                 )
                 Spacer(Modifier.width(gap.dp))
-                RecentColumn(
-                    recents,
+                EntryColumn(
+                    cards,
                     cardWidthDp = recent,
                     columns = if (wide) WIDE_RECENT_COLUMNS else RECENT_COLUMNS,
-                    onOpenRecent = { file -> state.openInBackground(file, scope) },
+                    onOpenCard = { card -> state.openEntry(card, scope) },
+                    onRemoveCard = { card -> state.forgetEntry(card) },
                 )
             }
         }
@@ -117,7 +123,13 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
 
 /** The first column: what the reader can do, above the keys that do it. */
 @Composable
-private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit) {
+private fun StartColumn(
+    widthDp: Float,
+    onNew: () -> Unit,
+    onOpen: () -> Unit,
+    /** *Restore last session* when the last run left work unsaved, null when there is nothing to offer. */
+    onRestore: (() -> Unit)?,
+) {
     Column(Modifier.width(widthDp.dp)) {
         Text("Nothing open yet", color = DesktopTheme.ink, style = DesktopTheme.title)
         Spacer(Modifier.height(8.dp))
@@ -128,6 +140,12 @@ private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit) {
         )
         Spacer(Modifier.height(18.dp))
         EntryButton("New sheet", ChromeGlyph.NEW, primary = true, onClick = onNew)
+        // Directly under *New sheet*, because it is the same decision: start here, or carry on with the
+        // documents the last run left unsaved. Absent when there is nothing to restore.
+        if (onRestore != null) {
+            Spacer(Modifier.height(10.dp))
+            EntryButton("Restore last session", ChromeGlyph.RESTORE, primary = false, onClick = onRestore)
+        }
         Spacer(Modifier.height(10.dp))
         EntryButton("Open…", ChromeGlyph.OPEN, primary = false, onClick = onOpen)
         Spacer(Modifier.height(10.dp))
@@ -136,21 +154,25 @@ private fun StartColumn(widthDp: Float, onNew: () -> Unit, onOpen: () -> Unit) {
 }
 
 /**
- * The third column: the notebooks opened lately, three to a line.
+ * The third column: the documents the last run left unsaved, then the notebooks opened lately, three to a
+ * line.
  *
- * With none, the column is one sentence rather than an empty grid: a heading over nothing reads as a list
- * that failed to load, and the reader's next move is the Open button either way.
+ * The session's cards come **first** because they carry the newest work there is, and a recent the same
+ * snapshot already stands for is left out ([entryCards]). With none, the column is one sentence rather
+ * than an empty grid: a heading over nothing reads as a list that failed to load, and the reader's next
+ * move is the Open button either way.
  */
 @Composable
-private fun RecentColumn(
-    recents: List<File>,
+private fun EntryColumn(
+    cards: List<EntryCard>,
     cardWidthDp: Float,
     columns: Int,
-    onOpenRecent: (File) -> Unit,
+    onOpenCard: (EntryCard) -> Unit,
+    onRemoveCard: (EntryCard) -> Unit,
 ) {
     // The grid is as wide as the cards it actually has: reserving four columns for two notebooks left the
     // block off-centre by the width of the two empty ones, which read as a mistake rather than as a grid.
-    val perLine = minOf(columns, recents.size).coerceAtLeast(1)
+    val perLine = minOf(columns, cards.size).coerceAtLeast(1)
     Column(Modifier.width((cardWidthDp * perLine + RECENT_GAP_DP * (perLine - 1)).dp)) {
         // The block's subtitle, not a caption: the section heading's face, one step up from the labels under
         // the cards, and its first letter on the first card's **paper** — the card's box begins a halo's
@@ -164,7 +186,7 @@ private fun RecentColumn(
         // Four, not ten: at the subtitle's size the heading already stands apart from the cards, and ten left
         // it floating over the grid instead of introducing it.
         Spacer(Modifier.height(4.dp))
-        if (recents.isEmpty()) {
+        if (cards.isEmpty()) {
             Text(
                 "No notebook yet — Open… finds a .xopp or .mobix file.",
                 color = DesktopTheme.inkMuted,
@@ -172,15 +194,17 @@ private fun RecentColumn(
             )
             return@Column
         }
-        recents.chunked(perLine).forEach { line ->
+        cards.chunked(perLine).forEach { line ->
             Row(horizontalArrangement = Arrangement.spacedBy(RECENT_GAP_DP.dp)) {
-                line.forEach { file ->
+                line.forEach { card ->
                     SheetCard(
-                        key = "recent:${file.absolutePath}:${file.lastModified()}:$cardWidthDp",
+                        key = "${card.id}:${card.file.lastModified()}:$cardWidthDp",
                         widthDp = cardWidthDp,
-                        caption = file.nameWithoutExtension,
-                        load = { firstPageOf(file, cardWidthDp) },
-                        onClick = { onOpenRecent(file) },
+                        caption = card.title,
+                        fromSession = card.fromPreviousSession,
+                        onRemove = { onRemoveCard(card) },
+                        load = { firstPageOf(card, cardWidthDp) },
+                        onClick = { onOpenCard(card) },
                     )
                 }
             }
@@ -201,6 +225,10 @@ private fun SheetCard(
     key: String,
     widthDp: Float,
     caption: String,
+    /** A document the last run left unsaved: it wears the restore badge in its top-left corner. */
+    fromSession: Boolean = false,
+    /** The card's `×`, or null for the sheet to start — there is nothing to remove there. */
+    onRemove: (() -> Unit)? = null,
     load: suspend () -> ImageBitmap?,
     onClick: () -> Unit,
 ) {
@@ -263,6 +291,16 @@ private fun SheetCard(
                     }
                 }
             }
+            // The two marks that sit **on** the card, in the paper's own inset so they clear the halo: the
+            // session badge at the top-left, the remove mark at the top-right.
+            if (fromSession) {
+                SessionBadge(Modifier.align(Alignment.TopStart).padding(DesktopTheme.pageShadow))
+            }
+            onRemove?.let { remove ->
+                // Centred on the paper's own corner, not laid inside it: half the disc hangs over the desk.
+                val offset = (REMOVE_TOUCH_DP.dp - DesktopTheme.pageShadow * 2) / 2f
+                RemoveButton(remove, Modifier.align(Alignment.TopEnd).offset(x = offset, y = -offset))
+            }
         }
         // Two, not eight: the caption belongs to the sheet it names, and the card's box already carries the
         // halo's spread under the paper — eight made the gap read as a line of its own.
@@ -277,6 +315,54 @@ private fun SheetCard(
             // every side, so a label flush with the card began a halo's width before the sheet it names.
             modifier = Modifier.width(widthDp.dp).padding(start = DesktopTheme.pageShadow),
         )
+    }
+}
+
+/**
+ * The mark on a document the last run left unsaved: a clock turned back in floating glass, in the card's
+ * top-left corner. It is the picture *Restore last session* wears — one mark, one idea.
+ */
+@Composable
+private fun SessionBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(SESSION_BADGE_DP.dp)
+            .background(DesktopTheme.floating, CircleShape)
+            .border(1.dp, DesktopTheme.hairline, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(SESSION_BADGE_GLYPH_DP.dp)) {
+            drawChromeGlyph(ChromeGlyph.RESTORE, DesktopTheme.ink)
+        }
+    }
+}
+
+/**
+ * A card's `×` on the sheet's top-right corner: the notebook leaves the entry screen.
+ *
+ * The disc is the window's danger red on glass, and the pointer gets the whole 36 dp target around it.
+ * The target is centred on the **paper's** corner rather than laid inside it, so half the disc hangs over
+ * the desk and the paper is never drawn through it.
+ */
+@Composable
+private fun RemoveButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(REMOVE_TOUCH_DP.dp)
+            .pointerInput(onClick) { detectTapGestures { onClick() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(REMOVE_DISC_DP.dp)
+                .background(DesktopTheme.floating, CircleShape)
+                .border(1.dp, DesktopTheme.hairline, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.size(REMOVE_GLYPH_DP.dp)) {
+                drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.danger)
+            }
+        }
     }
 }
 
@@ -308,9 +394,16 @@ private fun EntryButton(label: String, glyph: ChromeGlyph, primary: Boolean, onC
     }
 }
 
-/** The first page of [file], at [widthDp] wide — the archive is opened, rendered and closed again. */
-private suspend fun firstPageOf(file: File, widthDp: Float): ImageBitmap? {
-    val document = runCatching { DocumentLoader.load(file) }.getOrNull() ?: return null
+/**
+ * The card's first page, at [widthDp] wide — the **snapshot** for a document the last run left unsaved,
+ * so the card shows the page as those edits left it. The archive is opened, rendered and closed again.
+ */
+private suspend fun firstPageOf(card: EntryCard, widthDp: Float): ImageBitmap? {
+    val pending = card.recovery
+    val document = runCatching {
+        if (pending != null) DocumentLoader.loadRecovered(pending.snapshot, pending.origin)
+        else DocumentLoader.load(card.file)
+    }.getOrNull() ?: return null
     return try {
         val page = runCatching { document.page(0) }.getOrNull() ?: return null
         if (page.width <= 0.0) return null
@@ -337,6 +430,22 @@ private val PREVIEWS = java.util.concurrent.ConcurrentHashMap<String, ImageBitma
  * that keeps the rim from looking cut with a knife, and it is a rectangle at any size.
  */
 private const val SHEET_CORNER_DP = 3f
+
+/** The badge a previous-session card carries, and the mark inside it. */
+private const val SESSION_BADGE_DP = 20f
+
+private const val SESSION_BADGE_GLYPH_DP = 12f
+
+/** A card's remove mark: the disc on the paper's corner, its glyph, and the target around them. */
+private const val REMOVE_DISC_DP = 22f
+
+private const val REMOVE_GLYPH_DP = 12f
+
+/**
+ * A pointer, not a finger: 36 dp is a whole tool slot, and it is what keeps two neighbouring cards'
+ * targets from reaching into each other across the grid's 12 dp gap.
+ */
+private const val REMOVE_TOUCH_DP = 36f
 
 /**
  * The lift under a card: a ring of four rectangles per step, falling off outward — the shape of the page's own

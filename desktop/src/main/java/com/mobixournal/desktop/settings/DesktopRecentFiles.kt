@@ -52,6 +52,16 @@ internal class RecentFilesStore(
         files = listOf(absolute) + files.filter { it.absolutePath != absolute.absolutePath }
     }
 
+    /**
+     * Drop [file] — a card the reader took off the entry screen with its `×`.
+     *
+     * Only the list forgets it: the notebook is untouched, and opening it again puts it back in front.
+     */
+    fun forget(file: File) {
+        val path = file.absoluteFile.absolutePath
+        files = files.filterNot { it.absolutePath == path }
+    }
+
     companion object {
 
         /** The list's own key in `desktop.properties`. */

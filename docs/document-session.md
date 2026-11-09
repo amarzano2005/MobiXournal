@@ -177,7 +177,8 @@ Consequences worth knowing:
 - Tabs opened from a file keep its `content://` URI, so **Save** after a restart still writes back there.
 - **The desktop window keeps its own crash snapshots.** While a tab is dirty, `desktop/` writes a
   self-contained `.mobix` into `%APPDATA%\MobiXournal\recovery\` beside an `.origin` sidecar naming the
-  file; a start adopts it as a `… (recovered)` tab, and a save or a discard deletes it.
+  file; a start **offers** it on the entry screen and *Restore last session* adopts it as a `… (recovered)`
+  tab, while a save, a discard, the card's × or *New sheet* deletes the snapshot.
 - **The tab overview draws previews from the same snapshots.** The top bar's grid button
   (`ui/TabOverviewPopup.kt`) shows one card per tab, each the page that tab was left on, rasterised by
   `render/PageThumbnail.kt` — `BackgroundRenderer` + `PageRenderer` into a small bitmap, so a preview
