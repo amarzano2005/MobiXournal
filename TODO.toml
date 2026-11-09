@@ -22,34 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "surface-the-merge-report-on-the-second-shell"
-title = "Surface the merge report on the second shell"
-description = "MobixMergeEngine runs a three-way merge when a document opens beside a conflicting copy, and its report reaches no screen: docs/xopp-bridge.md records the gap and the status row in docs/guide-limitations.md says Not supported. Show the outcome where the document opens — a dismissible notice naming what was reconciled and what could not be — using the counts the engine already produces, on the shell that owns the open path and then on the other. Cover the outcome in a JVM test beside the engine, and in the same commit delete the gap sentence from docs/xopp-bridge.md and re-point the limitations row at the surface, because the doc fix and the fix land together."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 10
-created = 2026-11-08
-tags = ["merge", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "sign-the-published-windows-installer"
-title = "Sign the published Windows installer"
-description = "The published installer carries no Authenticode signature: the 1.0.1 MSI from desktop-v1.0.1 was opened on 2026-11-08 and is an OLE container with no DigitalSignature stream, so Windows reports an unknown publisher and SmartScreen asks before it runs. Wire signing into the packaging step that produces the file (the variables are listed under The packaged build in docs/tools.md) and into the release workflow, add a step that verifies the produced MSI instead of trusting the build, and fail the release when a published asset is unsigned. In the same commit flip the matrix row MSI signed by a known publisher in docs/guide-limitations.md from Not supported to Supported with the check that proves it, and drop the unsigned-installer section from docs/guide-install-windows.md. The certificate itself is the owner's to obtain; until it exists the row stays as it is."
-status = "active"
-level = "task"
-category = "chore"
-urgency = "normal"
-order = 20
-created = 2026-11-08
-tags = ["signing", "release", "desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "audit-release-signing"
 title = "Require a persistent identity for published Android builds"
 description = "CI tag signing now requires persistent keystore, alias/password secrets and a verified certificate SHA256 in scripts/release-apk.sh and .github/workflows/build.yml; mismatch removes the publishable APK. Remaining: run scripts/test-release-signing.py on a POSIX runner (Git Bash cannot initialize in this sandbox), configure the existing release certificate secrets/fingerprint, and verify a signed release. Local debug signing stays available; docs/tools.md and docs/guide-install-android.md describe setup. No key generated or release published."
@@ -58,34 +30,6 @@ level = "task"
 category = "bug"
 urgency = "high"
 order = 70
-created = 2026-11-08
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "audit-lifecycle-reproduction"
-title = "Reproduce document jobs across Activity recreation"
-description = "Investigate MainActivity.inBackground and EditorPane writer lifetime across Activity recreation with overlapping opens/saves. Reproduce stale callback or cross-instance session overwrite with deterministic lifecycle tests before selecting cancellation/service ownership changes; produce atomic tasks with explicit reproduction and verification."
-status = "active"
-level = "scope"
-category = "bug"
-urgency = "normal"
-order = 80
-created = 2026-11-08
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "audit-decompression-budgets"
-title = "Determine safe decompression budgets for document readers"
-description = "Measure Xopp.open, XoppZip and MobixEntrySource readBytes on highly compressed XML/page/image payloads. Distinguish legitimate large notebooks from bounded hostile entries; design total/entry/element budgets and controlled failure with atomic implementation tasks, preserving streaming behavior and format compatibility."
-status = "active"
-level = "scope"
-category = "bug"
-urgency = "normal"
-order = 90
 created = 2026-11-08
 tags = []
 rebuild = false
