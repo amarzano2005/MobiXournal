@@ -38,13 +38,22 @@ internal class StripOrderState(private val store: DesktopSettings) {
      * arrangement said again. The order is stored as the whole list, so the next launch draws exactly what
      * this window shows.
      */
-    fun moveSlot(index: Int, direction: Int) {
+    fun moveSlot(index: Int, direction: Int) = moveSlotTo(index, index + direction)
+
+    /**
+     * Move the slot at [from] straight to [to] — the Toolbar section's **drag**, which lands several
+     * places away in one gesture.
+     *
+     * One write, exactly as a chevron's step is: the arrangement is stored as the whole list, so the
+     * strips can only redraw the order the reader just saw. An index past either end, or a drop back
+     * where it started, writes nothing.
+     */
+    fun moveSlotTo(from: Int, to: Int) {
         val groups = groups
-        val target = index + direction
-        if (index !in groups.indices || target !in groups.indices) return
+        if (from !in groups.indices || to !in groups.indices || from == to) return
         val moved = groups.toMutableList()
-        val slot = moved.removeAt(index)
-        moved.add(target, slot)
+        val slot = moved.removeAt(from)
+        moved.add(to, slot)
         toolOrder = moved.map { it.face.name }
         store.toolOrder = toolOrder
     }

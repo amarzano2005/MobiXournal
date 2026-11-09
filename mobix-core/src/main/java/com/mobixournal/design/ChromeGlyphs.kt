@@ -167,6 +167,14 @@ enum class ChromeGlyph {
     CHEVRON_DOWN,
 
     /**
+     * The grip a row is carried by — the Toolbar section's tool slots, dragged into a new order.
+     *
+     * Material's `drag_handle`: two bars, the same picture the phone's `Icons.Outlined.DragHandle`
+     * draws, so a reorder reads as one gesture on both shells.
+     */
+    DRAG_HANDLE,
+
+    /**
      * The gear: the window's Settings, and the tablet's — the menu row that opens the page of controls.
      *
      * It is the one mark the two shells used to answer differently (the phone took Material's `Settings`,
@@ -295,6 +303,7 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.DISTRIBUTE_V -> "M22 2v2H2V2H22ZM7 10.5v3h10v-3H7ZM2 20v2h20v-2H2Z"
         ChromeGlyph.CHEVRON_UP -> "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"
         ChromeGlyph.CHEVRON_DOWN -> "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
+        ChromeGlyph.DRAG_HANDLE -> "M20 9H4v2h16V9zM4 15h16v-2H4v2z"
         ChromeGlyph.RESTORE ->
             "M13 3c-4.97 0 -9 4.03 -9 9H1l3.89 3.89 0.07 0.14L9 12H6c0 -3.87 3.13 -7 7 -7s7 3.13 " +
                 "7 7 -3.13 7 -7 7c-1.93 0 -3.68 -0.79 -4.94 -2.06l-1.42 1.42C8.27 19.99 10.51 21 13 " +

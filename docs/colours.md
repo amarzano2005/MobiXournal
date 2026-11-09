@@ -45,9 +45,14 @@ app's `ui/` and reads `AppSettings`.
 **The palette itself is editable from the window's Settings**, under **Drawing → Colors** — the phone's own
 four verbs, over the same rules: a row per swatch, the row picks it, **Edit** redefines the entry in its
 place, **Delete** removes it, **Add colour** appends, and **Restore default palette** writes the factory
-eight back; the panel opens in the page under the row it edits and is scrolled into view (the last swatch cannot be deleted, and the ceiling is `PenPalette.MAX_COLORS`). The page's
-subject is a `PaletteActions` reading the window's live palette, so a swatch changed there is changed in the
-strip's stroke panel and in the pen-tip ring the moment it is committed — never a second list. The factory
+eight back; the panel opens in the page under the row it edits and is scrolled into view (the last swatch cannot be deleted, and the ceiling is `PenPalette.MAX_COLORS`).The page's subject is a `PaletteActions` reading the window's live palette, so a swatch changed there is changed in the
+strip's stroke panel and in the pen-tip ring the moment it is committed — never a second list.
+
+**The order is the reader's too, on both shells.** Each swatch row carries a drag handle; the carried row is
+lifted over the list on its shadow and the row it would land on wears the accent along its top edge — the page
+list's own drag, at one measured row's pitch. A drop writes the whole palette through `movePaletteColor`, so
+every picker, the pen-tip ring, the tablet's `ColorPaletteRows`/`CustomColorPickerDialog` and the colour-shortcut
+rows that `ShortcutsSection.kt` derives from the palette follow the new order at once. The factory
 ternas are shared with the tablet as well: `PenPalette.PEN_FAVOURITES` (black, red, green) and
 `PenPalette.HIGHLIGHTER_FAVOURITES` (yellow, green, blue) are what both `AppSettings`' defaults and the
 window's settings file read, so a fresh shell on either platform offers the same six.

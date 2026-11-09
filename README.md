@@ -36,9 +36,9 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 
 ### Think and write
 
-- **Ink that answers the pen.** Width follows the pressure the tablet reports, through the same filter desktop Xournal++ uses: a thin fast stroke and a bold pressed one are one gesture.
+- **Ink that answers the pen.** Width follows the tablet's pressure through the same filter desktop Xournal++ uses: a thin fast stroke and a bold pressed one are one gesture.
 - **The pen outranks the toolbar.** A palm that landed first is abandoned when the stylus arrives, a flipped eraser erases, and the barrel button runs the action you pick.
-- **Shapes from ink.** Rest the tip for a third of a second and a line, circle or arrow snaps clean; a closed triangle or rectangle stays a shape with movable corners.
+- **Shapes from ink.** Rest the tip and a line, circle or arrow snaps clean; a closed triangle or rectangle keeps movable corners.
 - **Paper belongs to the page.** Plain, ruled, dotted, graph or isometric ruling, with the sheet's size chosen separately.
 
 ### Mathematics, engineering and science
@@ -64,10 +64,11 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 
 ### One workspace, two shells
 
-- **The same notebook, two surfaces.** One file and one core behind two working surfaces: the tablet built around a pen in hand, the window around tabs, panels and export; where the tools differ, [the limitations page](docs/guide-limitations.md) says so.
+- **The same notebook, two surfaces.** One file and one core behind two surfaces: the tablet built around a pen in hand, the window around tabs, panels and export; [the limitations page](docs/guide-limitations.md) says where the tools differ.
 - **The window is a workstation.** Tabs that keep their own page and zoom, a sidebar of thumbnails and layers, and export to PDF, PNG or SVG.
 - **The tablet is the paper.** Split view, the Ring at the pen, palm rejection, and pages sized for a hand.
 - **Nothing converts behind your back.** A document keeps the format it was opened in; nothing needs an account or a connection.
+- **Arrange it your way.** Drag a swatch's handle to reorder the palette, or a tool slot to reorder the rail and the ribbon.
 
 ## Screens from the real app
 
@@ -100,7 +101,7 @@ first, which is deliberate rather than a false identity.
 | Format | What it is for |
 |---|---|
 | **`.mobix`** | MobiXournal's own container: one self-contained file that keeps plots, tables, circuits, formulas, audio and full stylus telemetry editable, and opens a long notebook page by page. |
-| **`.xopp`** | The interchange format desktop Xournal++ reads and writes. On export a plot, table or circuit becomes standard ink, with a metadata block that lets MobiXournal restore it while that ink is unchanged. |
+| **`.xopp`** | The interchange format desktop Xournal++ reads and writes. On export a plot, table or circuit becomes standard ink, with metadata that restores it while that ink is unchanged. |
 
 Opening preserves the format. **Save As** changes it after a successful save; cancelling leaves the original unchanged.
 An untouched file returns the same XML; interchange limits affect telemetry and flattened objects' editability. The Windows window **refuses**

@@ -11,9 +11,7 @@ import com.mobixournal.desktop.shell.displayRefreshHz
 import com.mobixournal.desktop.shell.frameLabel
 import com.mobixournal.desktop.shell.refreshLabel
 import com.mobixournal.desktop.tools.FiguresSettings
-import com.mobixournal.desktop.tools.StripItem
 import com.mobixournal.desktop.tools.formatNumber
-import com.mobixournal.desktop.tools.stripItems
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -355,8 +353,8 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
  *
  * One row of three places — the rail on either edge, or the ribbon under the header — because the side is
  * part of the placement, not a second question. The order below it is the tablet's own *Buttons* idea: each
- * slot of the strip is a row with a pair of chevrons, and the strips read the arrangement the moment it
- * changes ([DesktopSettingsState.toolGroups]).
+ * slot of the strip is a row a reader can **drag by its handle** or step with a pair of chevrons, and the
+ * strips read the arrangement the moment it changes ([DesktopSettingsState.toolGroups]).
  */
 @Composable
 private fun ToolbarSettings(policy: DesktopSettingsState) {
@@ -370,38 +368,10 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
             onPick = policy::chooseStripPlacement,
         )
     }
-    val groups = policy.toolGroups
     SettingsGroup("Buttons") {
-        // The rows are the strip's own contents in the strip's own order ([stripItems]): the list said
-        // "bottom of the strip" while the strip drew Insert image under Text.
-        for (item in stripItems(groups, policy.imageAfter)) when (item) {
-            // The stroke's settings travel with the highlighter; they are not a button, so they get no row.
-            StripItem.Stroke -> Unit
-            is StripItem.Tools -> SettingsRow(
-                label = item.group.face.label,
-                // Only a slot holding more than one tool says what it holds: "Pen — Pen" teaches nothing.
-                note = item.group.members.takeIf { it.size > 1 }?.joinToString(" · ") { it.label }.orEmpty(),
-            ) {
-                SettingsStepButtons(
-                    upEnabled = item.index > 0,
-                    downEnabled = item.index < groups.lastIndex,
-                    onUp = { policy.moveToolSlot(item.index, -1) },
-                    onDown = { policy.moveToolSlot(item.index, 1) },
-                )
-            }
-            StripItem.Image -> SettingsRow(
-                label = "Insert image",
-                note = "Follows the tool slot directly above it.",
-            ) {
-                val anchor = groups.indexOfFirst { it.face.name == policy.imageAfter }
-                SettingsStepButtons(
-                    upEnabled = anchor > 0,
-                    downEnabled = anchor in 0 until groups.lastIndex,
-                    onUp = { policy.moveImageSlot(-1) },
-                    onDown = { policy.moveImageSlot(1) },
-                )
-            }
-        }
+        // The rows are the strip's own contents in the strip's own order ([stripItems]), and each tool
+        // slot carries the drag handle beside its chevrons (`ToolbarOrderRows`).
+        ToolbarOrderRows(policy)
         if (policy.toolOrder.isNotEmpty()) {
             SettingsCommand(
                 label = "Reset to defaults",

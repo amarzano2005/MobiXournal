@@ -1,14 +1,19 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -19,10 +24,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.rememberClosingArgument
 
@@ -44,15 +59,11 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
 
     SettingsGroup("Pen palette") {
-        SettingsNote("Color swatches available across all color pickers. Tap to edit or delete.")
-        settings.penColors.forEachIndexed { i, color ->
-            PaletteRow(
-                color = color,
-                canDelete = settings.penColors.size > 1,
-                onEdit = { editing = i },
-                onDelete = { deletePenColor(settings, color, onChange) },
-            )
-        }
+        SettingsNote(
+            "Color swatches available across all color pickers. Drag the handle to reorder them; " +
+                "tap a swatch to edit or delete.",
+        )
+        PenPaletteRows(settings, onChange, onEdit = { editing = it })
 
         OutlinedButton(
             onClick = { editing = settings.penColors.size },
@@ -152,18 +163,107 @@ private fun FavoriteRow(label: String, colors: List<Int>, onEdit: (Int) -> Unit)
     }
 }
 
+/**
+ * The pen palette's rows, with the drag that arranges them.
+ *
+ * It is the page list's drag in miniature ([PageListDrag]): a row is carried by its **handle**, the
+ * carried row is lifted over the list on its shadow and follows the finger, and the row it would land
+ * on wears the accent along its top edge. One measured row is the pitch, so a drop lands on the row the
+ * eye saw the swatch over. Releasing writes the whole palette through [movePaletteColor], and every
+ * picker, the pen-tip ring and the colour-shortcut list read the user's new order at once — the
+ * palette *is* that list.
+ *
+ * A cancel clears the drag without writing anything: a gesture taken away from us (a system swipe, the
+ * page leaving composition) must never leave a colour somewhere the finger never put it.
+ */
+@Composable
+private fun PenPaletteRows(
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    onEdit: (Int) -> Unit,
+) {
+    val colors = settings.penColors
+    var dragFrom by remember { mutableStateOf(-1) }
+    var dragOffset by remember { mutableStateOf(0f) }
+    var rowHeightPx by remember { mutableStateOf(0) }
+    val landing = paletteDropTarget(dragFrom, dragOffset, rowHeightPx, colors.size)
+
+    fun clearDrag() {
+        dragFrom = -1
+        dragOffset = 0f
+    }
+
+    fun dropDrag() {
+        val to = paletteDropTarget(dragFrom, dragOffset, rowHeightPx, colors.size)
+        if (dragFrom in colors.indices && to != dragFrom) {
+            onChange(settings.copy(penColors = movePaletteColor(colors, dragFrom, to)))
+        }
+        clearDrag()
+    }
+
+    colors.forEachIndexed { index, color ->
+        PaletteRow(
+            color = color,
+            canDelete = colors.size > 1,
+            dragging = index == dragFrom,
+            landing = dragFrom >= 0 && landing == index && landing != dragFrom,
+            dragOffset = if (index == dragFrom) dragOffset else 0f,
+            onHeight = { height -> if (rowHeightPx == 0) rowHeightPx = height },
+            onDragStart = { dragFrom = index; dragOffset = 0f },
+            onDrag = { dragOffset += it },
+            onDragEnd = { dropDrag() },
+            onDragCancel = { clearDrag() },
+            onEdit = { onEdit(index) },
+            onDelete = { deletePenColor(settings, color, onChange) },
+        )
+    }
+}
+
 @Composable
 private fun PaletteRow(
     color: Int,
     canDelete: Boolean,
+    dragging: Boolean,
+    landing: Boolean,
+    dragOffset: Float,
+    onHeight: (Int) -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val label = colorDisplayName(color)
+    val accent = MaterialTheme.colorScheme.primary
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .zIndex(if (dragging) 1f else 0f)
+            .graphicsLayer {
+                translationY = dragOffset
+                shadowElevation = if (dragging) PALETTE_DRAG_LIFT.toPx() else 0f
+            }
+            .background(
+                if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
+            )
+            // The row the swatch would land on wears the accent along its **top edge**, as in the page
+            // list: one line in the chrome's accent, so where the colour will go is readable in flight.
+            .drawBehind {
+                if (landing) drawRect(accent, size = Size(size.width, PALETTE_LANDING_LINE.toPx()))
+            }
+            .onSizeChanged { onHeight(it.height) }
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        PaletteDragHandle(
+            color = color,
+            label = label,
+            onDragStart = onDragStart,
+            onDrag = onDrag,
+            onDragEnd = onDragEnd,
+            onDragCancel = onDragCancel,
+        )
         ColorSwatch(color = color, selected = false, onClick = onEdit)
         Spacer(Modifier.width(12.dp))
         Text(
@@ -177,6 +277,58 @@ private fun PaletteRow(
         IconButton(onClick = onDelete, enabled = canDelete) {
             Icon(Icons.Filled.Delete, contentDescription = "Delete $label")
         }
+    }
+}
+
+/** How far a carried swatch sits off the rows, matching the page list's ghost. */
+private val PALETTE_DRAG_LIFT = 12.dp
+
+/** The landing line's thickness: the accent that says where a dragged swatch will go. */
+private val PALETTE_LANDING_LINE = 2.dp
+
+/**
+ * The grabbable glyph at a palette row's start, and the only place a reorder starts.
+ *
+ * A dedicated target rather than a drag on the row itself: the swatch is a tap (it opens the editor), and
+ * a row that also started a drag on any press could not be tapped without guessing. The gesture is read
+ * here, on the row that owns it; the list's arithmetic does not depend on where the finger is.
+ */
+@Composable
+private fun PaletteDragHandle(
+    color: Int,
+    label: String,
+    onDragStart: () -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
+) {
+    val start = rememberUpdatedState(onDragStart)
+    val move = rememberUpdatedState(onDrag)
+    val end = rememberUpdatedState(onDragEnd)
+    val cancel = rememberUpdatedState(onDragCancel)
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .semantics { contentDescription = "Drag to reorder $label" }
+            .pointerInput(color) {
+                detectDragGestures(
+                    onDragStart = { start.value() },
+                    onDrag = { change, amount ->
+                        change.consume()
+                        move.value(amount.y)
+                    },
+                    onDragEnd = { end.value() },
+                    onDragCancel = { cancel.value() },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Outlined.DragHandle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

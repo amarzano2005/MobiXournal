@@ -39,6 +39,11 @@ palette and favourite colours, the ring, audio, import and export, the cache, a 
 licence. The groups are the same areas the window calls sections — a setting you know on one shell is
 findable on the other by its subject, not by its name.
 
+Two lists are arranged by hand. On either shell, drag a swatch's handle in the Colors page to change the
+palette's order — every picker, the Ring and the colour shortcuts follow it. In the window's Toolbar page,
+drag a tool slot by its handle to move it in both the rail and the ribbon; the chevrons beside it step one
+place for the keyboard.
+
 ## The window's keys
 
 | Command | Key | | Command | Key |
