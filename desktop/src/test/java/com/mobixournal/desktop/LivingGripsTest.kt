@@ -54,18 +54,29 @@ class LivingGripsTest {
     @Test
     fun `a table offers its interior dividers, not its outer edges`() {
         val grips = livingGripsOf(table())
-        assertEquals("three columns and three rows leave two dividers each", 4, grips.size)
+        // The fixture asks for three data rows; `hasHeader` is on by default, so the grid has four
+        // rows — two column dividers and three row ones (`TableElementFactory.tableElementFor`).
+        assertEquals("three columns and four rows leave two and three dividers", 5, grips.size)
         val columns = grips.filter { it.grip is LivingGrip.ColumnEdge }
         val rows = grips.filter { it.grip is LivingGrip.RowEdge }
         assertEquals(2, columns.size)
-        assertEquals(2, rows.size)
+        assertEquals(3, rows.size)
         // The first divider sits one column in, halfway down the grid.
         val width = 240.0 / 3
         assertEquals(100.0 + width, columns[0].x, 1e-6)
         assertEquals(160.0, columns[0].y, 1e-6)
         assertEquals(100.0 + width * 2, columns[1].x, 1e-6)
         assertEquals("a divider runs across the middle of the grid", 220.0, rows[0].x, 1e-6)
-        assertEquals(100.0 + 120.0 / 3, rows[0].y, 1e-6)
+        assertEquals("one row of thirty points below the top", 100.0 + 120.0 / 4, rows[0].y, 1e-6)
+    }
+
+    @Test
+    fun `a table without a header offers only the dividers of the rows it asked for`() {
+        val plain = LivingPlacement.table(Bounds(100.0, 100.0, 340.0, 220.0), rows = 3, cols = 3, hasHeader = false)
+        val grips = livingGripsOf(plain)
+        assertEquals("three columns and three rows leave two dividers each", 4, grips.size)
+        assertEquals(2, grips.filter { it.grip is LivingGrip.ColumnEdge }.size)
+        assertEquals(2, grips.filter { it.grip is LivingGrip.RowEdge }.size)
     }
 
     @Test
@@ -132,7 +143,12 @@ class LivingGripsTest {
         val table = table()
         val moved = dragGrip(table, LivingGrip.RowEdge(1), dx = 0.0, dy = 10_000.0) as TableElement
         assertEquals("the lower row keeps a readable height", GRIP_MIN_CELL_PT, moved.rowHeights[1], 1e-9)
-        assertEquals(72.0, moved.rowHeights[0], 1e-9)
+        assertEquals(
+            "the row above gives up only what the neighbour needs, not its own height",
+            table.rowHeights[0] + table.rowHeights[1] - GRIP_MIN_CELL_PT,
+            moved.rowHeights[0],
+            1e-9,
+        )
         assertEquals("the grid is still as high", table.height, moved.height, 1e-9)
         val other = dragGrip(table, LivingGrip.RowEdge(1), dx = 0.0, dy = -10_000.0) as TableElement
         assertEquals(GRIP_MIN_CELL_PT, other.rowHeights[0], 1e-9)
