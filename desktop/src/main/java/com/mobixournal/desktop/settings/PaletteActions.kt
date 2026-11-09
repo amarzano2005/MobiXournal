@@ -21,6 +21,8 @@ internal class PaletteActions(
     val define: (index: Int, colour: Int) -> Unit = { _, _ -> },
     val add: (Int) -> Unit = {},
     val remove: (index: Int) -> Unit = {},
+    /** Move the swatch at `from` to `to` — the page's drag, which lands several places away. */
+    val move: (from: Int, to: Int) -> Unit = { _, _ -> },
     val restore: () -> Unit = {},
 ) {
 
@@ -33,6 +35,7 @@ internal class PaletteActions(
             define = ink::definePaletteColour,
             add = ink::addPaletteColour,
             remove = ink::removePaletteColour,
+            move = ink::movePaletteColour,
             restore = ink::resetPalette,
         )
     }

@@ -223,7 +223,9 @@ two different questions:
   the canvas is handed what is left.
 - **Buttons**: one row per **slot**, its members listed underneath (the eraser holds partial and
   whole-stroke, the Text slot prose and formula), with a **drag handle** that carries it anywhere in the
-  list and a pair of chevrons that step it one place — and, in the
+  list — the rows between glide open on a short tween, so the gap is where the slot will land, and the
+  focused handle steps it one place with an arrow key, which is the list's keyboard path now that a slot
+  row draws no chevrons — and, in the
   same list and at its own place in it, the row for **Insert image** (`interface.imageAfter`), the strip's only
   non-ink command: the rows are the strip's contents (`stripItems`), so that row sits where the rail draws it. The arrangement is `DesktopSettingsState.toolGroups` and both strips read it,
   so a button moved here moves in the rail and in the ribbon. **Reset to defaults** puts every slot back;

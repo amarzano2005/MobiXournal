@@ -122,6 +122,23 @@ class PaletteSettingsTest {
     }
 
     @Test
+    fun `a dropped swatch keeps the reader's order in the file`() {
+        val settings = store()
+        val state = ink(settings)
+        val page = PaletteActions.of(state)
+
+        page.move(0, 2)
+
+        val expected = listOf(PenPalette.RED, PenPalette.GREEN, PenPalette.BLACK) + PenPalette.COLORS.drop(3)
+        assertEquals(expected, state.palette)
+        assertEquals("the next window reads it back", expected, store().paletteColours)
+
+        page.move(0, 0)
+        page.move(1, 99)
+        assertEquals("a drop that moves nothing writes nothing", expected, state.palette)
+    }
+
+    @Test
     fun `a swatch is named by the factory word, and a reader's own by its hex`() {
         assertEquals("Green", paletteColourName(PenPalette.GREEN))
         assertEquals("Magenta", paletteColourName(PenPalette.MAGENTA))

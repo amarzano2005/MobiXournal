@@ -248,6 +248,20 @@ internal class DesktopInkState(
         settings.paletteColours = palette
     }
 
+    /**
+     * Move palette entry [from] to [to] — the Colors page's **drag**, which lands several places away
+     * in one gesture.
+     *
+     * One write, exactly as redefining a swatch in its place is: the whole list is stored, so every
+     * picker, the pen-tip ring and the strip's stroke panel redraw the order the reader just saw. An
+     * index past either end, or a drop back where it started, writes nothing.
+     */
+    fun movePaletteColour(from: Int, to: Int) {
+        if (from !in palette.indices || to !in palette.indices || from == to) return
+        palette = palette.toMutableList().also { it.add(to, it.removeAt(from)) }
+        settings.paletteColours = palette
+    }
+
     /** The factory eight back, in the tablet's published order ([PenPalette.COLORS]). */
     fun resetPalette() {
         palette = PenPalette.COLORS

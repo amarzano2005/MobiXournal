@@ -42,24 +42,35 @@ import com.mobixournal.design.PenPalette
  * words that act on the entry at its end. The picker opens **in the page**, under the row it edits, rather
  * than as a floating panel: the settings surface already covers the sheet, and a second surface over it
  * would be a question about which one a key belongs to.
+ *
+ * The order is the reader's too, exactly as the toolbar's slots are: each row's **handle** carries it
+ * through the list, the rows between glide open on a short tween, and a drop writes the whole palette — so
+ * every picker, the pen-tip ring and the colour-shortcut rows follow the arrangement at once.
  */
 @Composable
 internal fun ColorsSettings(palette: PaletteActions) {
     val colours = palette.palette()
     // Which entry the picker is editing: an index, or `colours.size` for a colour not yet in the list.
     var editing by remember { mutableStateOf<Int?>(null) }
+    val drag = remember { ReorderState() }
     SettingsGroup("Pen palette") {
         colours.forEachIndexed { index, colour ->
-            PaletteRow(
-                colour = colour,
-                canDelete = colours.size > 1,
-                onPick = { palette.pick(colour) },
-                onEdit = { editing = index },
-                onDelete = {
-                    palette.remove(index)
-                    editing = null
-                },
-            )
+            ReorderRow(drag, index, colours.size) {
+                PaletteRow(
+                    colour = colour,
+                    canDelete = colours.size > 1,
+                    drag = drag,
+                    index = index,
+                    count = colours.size,
+                    onMove = palette.move,
+                    onPick = { palette.pick(colour) },
+                    onEdit = { editing = index },
+                    onDelete = {
+                        palette.remove(index)
+                        editing = null
+                    },
+                )
+            }
             // The panel opens **under the row it edits**. Appended to the foot of the group it opened
             // below every other swatch, so a reader who clicked Edit on Black went looking for it past
             // White — and on a short page its Set button was under the panel's own edge.
@@ -122,21 +133,34 @@ private fun InlinePicker(palette: PaletteActions, colours: List<Int>, target: In
     )
 }
 
-/** One swatch, as a row: its name, the row picking it, and the two words that act on the entry. */
+/** One swatch, as a row: its drag handle, its name, the row picking it, and the two words that act on it. */
 @Composable
 private fun PaletteRow(
     colour: Int,
     canDelete: Boolean,
+    drag: ReorderState,
+    index: Int,
+    count: Int,
+    onMove: (from: Int, to: Int) -> Unit,
     onPick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     SettingsRow(
         label = paletteColourName(colour),
-        note = "Pick it by clicking the row; Edit redefines the swatch in its place.",
+        note = "Drag the handle to move it; a click picks it, Edit redefines the swatch in its place.",
         onClick = onPick,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            DragGrip(
+                label = paletteColourName(colour),
+                onDragStart = { drag.start(index) },
+                onDrag = drag::by,
+                onDragEnd = { drag.drop(count)?.let { to -> onMove(index, to) } },
+                onDragCancel = drag::clear,
+                onStep = { direction -> onMove(index, index + direction) },
+            )
+            Spacer(Modifier.width(6.dp))
             Box(
                 Modifier
                     .size(18.dp)

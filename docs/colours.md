@@ -50,8 +50,10 @@ strip's stroke panel and in the pen-tip ring the moment it is committed — neve
 
 **The order is the reader's too, on both shells.** Each swatch row carries a drag handle; the carried row is
 lifted over the list on its shadow and the row it would land on wears the accent along its top edge — the page
-list's own drag, at one measured row's pitch. A drop writes the whole palette through `movePaletteColor`, so
-every picker, the pen-tip ring, the tablet's `ColorPaletteRows`/`CustomColorPickerDialog` and the colour-shortcut
+list's own drag, at one measured row's pitch; the rows between glide open on a short tween, so the gap the
+swatch will land in is the one the eye already sees. A drop writes the whole palette — `movePaletteColor` on the
+tablet, `movePaletteColour` in the window — so every picker, the pen-tip ring, the tablet's
+`ColorPaletteRows`/`CustomColorPickerDialog` and the colour-shortcut
 rows that `ShortcutsSection.kt` derives from the palette follow the new order at once. The list also walks
 with the finger: held in the page's top or bottom strip, the settings page scrolls under the carried swatch,
 so a palette longer than the screen is still arranged in one gesture. The factory
