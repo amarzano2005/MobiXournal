@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "audit-release-signing"
+title = "Require a persistent identity for published Android builds"
+description = "Tag builds now fail closed until signing is configured: scripts/release-apk.sh requires MOBIX_ANDROID_KEYSTORE_BASE64, MOBIX_ANDROID_KEY_ALIAS, MOBIX_ANDROID_STORE_PASSWORD, MOBIX_ANDROID_KEY_PASSWORD and a 64-digit MOBIX_ANDROID_CERT_SHA256 before it builds, and deletes the signed APK when apksigner reports a different certificate digest; .github/workflows/build.yml sets MOBIX_REQUIRE_RELEASE_SIGNING on v* tags and passes those names (the fingerprint as a repository variable). scripts/test-release-signing.py covers the preflight, invalid base64, malformed fingerprint, mismatch and success paths with fake SDK tools and now runs on this host: 5/5 green. The repository is configured with the certificate the installed APKs already carry — the debug keystore, SHA-256 9c5048957dabb9da542d7a75ebafb3cddffad219c43ccc50ee965c945ea32aff — so a published tag upgrades those installs in place rather than demanding a reinstall; the strict path was exercised locally with that real key and the real SDK (verified signing identity, exit 0). No release was published, so the stored secret is proven only by the next tag build."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-08
+completed = 2026-11-09
+tags = []
+design = "none: CI-only change to signing material, workflow gating and docs — no UI element or state"
+
+[[task]]
 id = "android-audio-chrome-jank"
 title = "Keep bundled audio work off Android UI frames"
 description = "Moved Android bundled audio discovery, extraction, waveform processing and sidecar synchronization off UI callbacks with independent archive readers, incremental metadata, cancellation and throttled chrome. Fixed hidden-player discovery deadlock and detached waveform work from document edits. Added regression coverage and updated audio docs. All 1519 app JVM tests passed including guards, with earlier 711 core and 989 desktop tests. APK rebuilt and desktop distributable checked. Tables unchanged. Device playback and frame-time improvement remain unverified."
