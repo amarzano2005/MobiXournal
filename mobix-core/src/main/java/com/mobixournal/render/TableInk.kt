@@ -24,6 +24,12 @@ object TableInk {
     /** Space between a cell's edge and its text, so a label never sits on the rule beside it. */
     private const val CELL_PAD_PT = 2.0
 
+    /** A bold face is a little wider than the regular one the advances were measured on. */
+    private const val BOLD_WIDEN = 1.05
+
+    /** The narrowest line a fit is computed for: an empty line must not divide by zero. */
+    private const val MIN_LINE_EM = 0.1
+
     /**
      * [table] as ink: its grid, then its cells' text. A table with no columns draws nothing.
      *
@@ -160,7 +166,10 @@ object TableInk {
      * Computes an auto-fitted font size in pt for text inside a cell of size [width] x [height].
      *
      * The size scales with cell height for comfortable proportion, but adapts down gracefully
-     * if the text width or line count would overflow the available cell bounds.
+     * if the text width or line count would overflow the available cell bounds. The width is the
+     * **measured** one ([TextAdvance]), not a character count: `iii` and `MMM` are the same length and
+     * nearly four times apart, so counting characters either clipped the wide word or fitted the
+     * narrow one at half the size its cell had room for.
      */
     fun autoFontSizePt(
         text: String,
@@ -173,17 +182,17 @@ object TableInk {
         val availW = (width - pad).coerceAtLeast(1.0)
         val availH = (height - pad).coerceAtLeast(1.0)
         val lines = text.split("\n")
-        val maxChars = lines.maxOfOrNull { it.length }?.coerceAtLeast(1) ?: 1
         val numLines = lines.size.coerceAtLeast(1)
+        val widestEm = (lines.maxOfOrNull { TextAdvance.em(it) } ?: 0.0)
+            .coerceAtLeast(MIN_LINE_EM) * (if (isBold) BOLD_WIDEN else 1.0)
 
-        val charW = if (isBold) 0.65 else 0.60
-        val lineH = 1.30
+        val lineH = InkTokens.FIGURE_LABEL_LINE_H
 
         // Preferred font size proportional to cell height (e.g. ~38% of available height per line).
         val preferred = ((availH / numLines) * 0.38).coerceIn(8.0, 18.0)
 
         // Geometric limits so text fits within cell borders without clipping
-        val maxFittingW = availW / (maxChars * charW)
+        val maxFittingW = availW / widestEm
         val maxFittingH = availH / (numLines * lineH)
 
         return minOf(preferred, maxFittingW, maxFittingH).coerceIn(5.0, 24.0)

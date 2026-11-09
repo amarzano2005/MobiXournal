@@ -57,6 +57,27 @@ class TextAdvanceTest {
     }
 
     /**
+     * The same table chooses a cell's font size (`TableInk.autoFontSizePt`): equal-length words of
+     * different glyphs are no longer fitted at one size, which either clipped the wide one or shrank
+     * the narrow one for room it had.
+     */
+    @Test
+    fun aCellFitsItsFontToTheMeasuredWidth() {
+        val narrow = TableInk.autoFontSizePt("iiiiiiiiiiii", width = 60.0, height = 60.0)
+        val wide = TableInk.autoFontSizePt("MMMMMMMMMMMM", width = 60.0, height = 60.0)
+        assertTrue("the narrow word gets more room than the wide one ($narrow vs $wide)", narrow > wide * 2.0)
+
+        // What it chose fits the cell's own width, both paddings included.
+        assertTrue("narrow fits", TextAdvance.pt("iiiiiiiiiiii", narrow) <= 56.0 + 1e-6)
+        assertTrue("wide fits", TextAdvance.pt("MMMMMMMMMMMM", wide) <= 56.0 + 1e-6)
+
+        // A bold face is wider, so at the same width it is fitted smaller than the regular one.
+        val regular = TableInk.autoFontSizePt("Frequenza", width = 60.0, height = 60.0)
+        val bold = TableInk.autoFontSizePt("Frequenza", width = 60.0, height = 60.0, isBold = true)
+        assertTrue("bold is fitted smaller ($bold vs $regular)", bold < regular)
+    }
+
+    /**
      * The export path end to end: with no font engine, a centred cell is centred on the *estimated*
      * width — so the estimate being measured is what puts the text on the midline.
      */

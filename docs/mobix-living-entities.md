@@ -123,6 +123,8 @@ exports have no glyphs to measure, so they lay the text out from `TextAdvance`: 
 read from the three faces the shells draw with — Android's `Sans`, the window's Inter, the bundled
 DejaVu the PDF embeds — and averaged. That per-glyph table is what a flat per-character guess got
 wrong: it made `iii` 2.4 times its drawn width, and an exported cell centred on it sat off the midline.
+It chooses a cell's **font size** too (`TableInk.autoFontSizePt`), so a column of `iii` is no longer
+shrunk to the size a character count reserved for `MMM`.
 
 The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialog.kt`) — the
 anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app
