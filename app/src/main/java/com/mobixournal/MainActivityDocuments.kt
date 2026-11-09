@@ -215,17 +215,22 @@ internal fun MainActivity.loadDocument(
     when (loaded) {
         // A raw PDF isn't a document to parse — it becomes a fresh annotatable one over its pages.
         is LoadedFile.Pdf -> {
+            // A PDF opened from outside becomes a **new document**, so it is born in the format new
+            // documents are born in (Settings → App & data), never in `.xopp` behind the reader's
+            // back: the default is `.mobix`, which bundles the PDF beside its ink as it bundles audio.
             // A PDF we typeset from a text file lives only in the prunable cache, so there is no
-            // stable path to link: save it as a ZIP package with the bytes embedded instead.
-            saveFormat = if (loaded.generated) SaveFormat.ZIPPED else SaveFormat.ORIGINAL
+            // stable path to link: that one goes out as the package which embeds its bytes.
+            saveFormat = if (loaded.generated) SaveFormat.ZIPPED else newDocumentFormat
             surface?.isReadOnly = false
             adoptPdf(loaded.file, ImportPdfMode.REPLACE, source.toString(), inStore = loaded.generated)
             // The tab came from a PDF, so it has no `.xopp` on disk yet: drop the source URI so
             // plain Save asks for a destination instead of writing document bytes over the PDF,
             // and suggest the PDF's own name with the extension swapped. The PDF itself stays on
             // as the page background, so the saved file still opens over it in desktop Xournal++.
-            pendingSaveName = xoppNameFor(displayName(source))
-            tabs.updateActive { it.copy(title = pendingSaveName, uri = null, isReadOnly = false) }
+            pendingSaveName = saveNameFor(displayName(source), saveFormat)
+            tabs.updateActive {
+                it.copy(title = pendingSaveName, uri = null, isReadOnly = false, format = saveFormat)
+            }
             tabsTick.value++
             return
         }
@@ -284,7 +289,7 @@ internal fun MainActivity.loadDocument(
 }
 
 /**
- * Import a PDF as annotatable pages — one `.xopp` page per PDF page, rendered as backgrounds.
+ * Import a PDF as annotatable pages — one page per PDF page, rendered as backgrounds.
  *
  * [ImportPdfMode.REPLACE] makes the PDF the whole document; [ImportPdfMode.APPEND] keeps the open
  * document and adds the PDF's pages after it (one undoable edit).

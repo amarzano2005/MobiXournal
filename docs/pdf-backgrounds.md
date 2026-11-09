@@ -74,6 +74,8 @@ with the `filename`+`domain` on the first of them only and `pageno` thereafter (
 convention). Both shells ask the same question **after** the file has been read — which pages, as a
 `PageRanges` run typed into `PdfImportPrompt`'s card (the tablet) or the window's `ImportPdfDialog` —
 and an `ImportPdfMode` picked there decides where they land:
+A PDF **opened** from outside is a new document, so it is born in the new-document format
+(`newDocumentFormat` — `.mobix` by default) rather than in `.xopp`.
 `REPLACE` makes them the whole `Document` (`PdfImport.documentFor` → `load`), `APPEND` adds them after
 the open document's pages as one undoable edit (`PageOps.appendPages` → `DrawingSurfaceView.appendPages`,
 which also drops a lone untouched blank sheet so it isn't stranded in front of the PDF). Because the
