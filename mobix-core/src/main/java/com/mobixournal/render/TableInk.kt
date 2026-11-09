@@ -99,30 +99,35 @@ object TableInk {
     private fun cellTexts(table: TableElement, measure: TextWidth?): List<Element> {
         val out = mutableListOf<Element>()
         forEachCell(table) { cell, left, top, width, height, rowIdx ->
-            if (cell.text.isNotEmpty()) out += textIn(cell, table, left, top, width, height, rowIdx, measure)
+            if (cell.text.isNotEmpty()) out += textsIn(cell, table, left, top, width, height, measure)
         }
         return out
     }
 
     /**
-     * A cell's text, placed inside its cell.
+     * A cell's text, **one drawn line at a time**, placed inside its cell.
      *
-     * Alignment needs the text's width. When [measure] is supplied that is the drawn advance; without
-     * one — an export, the format's own layer — it is the app's estimate ([ElementBounds], the same
-     * per-character approximation every hit test and selection outline uses), which keeps this
-     * compilable and testable on the JVM. A cell too short for its text still gets the text — clipped
-     * by the reader, not dropped by the exporter.
+     * Alignment needs the text's width, and it is per line: a centred cell whose second line is
+     * shorter puts that line on the column's midline too, which one multi-line box can only ever do
+     * for its longest line. So each line is its own text element, and the lines are spaced by the
+     * height the shell draws them with ([TextWidth.lineHeightOf]) so the block keeps the leading it
+     * had as a single box.
+     *
+     * When [measure] is supplied the width is the drawn advance; without one — an export, the
+     * format's own layer — it is the app's estimate ([ElementBounds], the same per-character
+     * approximation every hit test and selection outline uses), which keeps this compilable and
+     * testable on the JVM. A cell too short for its text still gets the text — clipped by the reader,
+     * not dropped by the exporter.
      */
-    private fun textIn(
+    private fun textsIn(
         cell: TableCell,
         table: TableElement,
         left: Double,
         top: Double,
         width: Double,
         height: Double,
-        rowIdx: Int,
         measure: TextWidth?,
-    ): TextElement {
+    ): List<TextElement> {
         val fontSize = autoFontSizePt(cell.text, width, height, cell.bold)
         val probe = InkPrimitives.text(
             content = cell.text,
@@ -132,15 +137,23 @@ object TableInk {
             bold = cell.bold,
             sizePt = fontSize,
         )
-        val box = ElementBounds.of(probe)
-        val advance = measure?.of(cell.text, fontSize, cell.bold) ?: box.width
-        val x = when (cell.align) {
-            TableAlign.LEFT -> left + CELL_PAD_PT
-            TableAlign.CENTER -> (left + (width - advance) / 2.0).coerceAtLeast(left + CELL_PAD_PT)
-            TableAlign.RIGHT -> (left + width - advance - CELL_PAD_PT).coerceAtLeast(left + CELL_PAD_PT)
+        // The block's own top is the estimate's, exactly as it was when the cell was one element: the
+        // cell is vertically centred on the text's box, not on the font engine's line box.
+        val blockTop = (top + (height - ElementBounds.of(probe).height) / 2.0).coerceAtLeast(top + CELL_PAD_PT)
+        val lineHeight = measure?.lineHeightOf(fontSize, cell.bold)
+            ?: fontSize * InkTokens.FIGURE_LABEL_LINE_H
+        return TextBlock.lines(cell.text).mapIndexed { index, line ->
+            val one = probe.copy(content = line)
+            val advance = measure?.of(line, fontSize, cell.bold) ?: ElementBounds.of(one).width
+            one.copy(x = lineX(cell.align, left, width, advance), y = blockTop + index * lineHeight)
         }
-        val y = (top + (height - box.height) / 2.0).coerceAtLeast(top + CELL_PAD_PT)
-        return probe.copy(x = x, y = y)
+    }
+
+    /** Where one line starts in a cell [width] wide, given its [advance]. */
+    private fun lineX(align: TableAlign, left: Double, width: Double, advance: Double): Double = when (align) {
+        TableAlign.LEFT -> left + CELL_PAD_PT
+        TableAlign.CENTER -> (left + (width - advance) / 2.0).coerceAtLeast(left + CELL_PAD_PT)
+        TableAlign.RIGHT -> (left + width - advance - CELL_PAD_PT).coerceAtLeast(left + CELL_PAD_PT)
     }
 
     /**

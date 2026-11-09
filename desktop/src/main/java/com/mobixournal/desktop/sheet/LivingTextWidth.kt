@@ -25,15 +25,23 @@ import com.mobixournal.render.TextWidth
  */
 internal fun livingTextWidth(measurer: TextMeasurer, pxPerPt: Float, density: Density): TextWidth {
     val face = textFace(InkTokens.FIGURE_LABEL_FONT)
-    return TextWidth { text, sizePt, bold ->
-        val style = with(density) {
-            TextStyle(
-                fontSize = (sizePt * pxPerPt).toFloat().toSp(),
-                fontFamily = face.family,
-                fontWeight = if (bold) FontWeight.Bold else face.weight,
-                fontStyle = face.style,
-            )
+    fun styleFor(sizePt: Double, bold: Boolean): TextStyle = with(density) {
+        TextStyle(
+            fontSize = (sizePt * pxPerPt).toFloat().toSp(),
+            fontFamily = face.family,
+            fontWeight = if (bold) FontWeight.Bold else face.weight,
+            fontStyle = face.style,
+        )
+    }
+    return object : TextWidth {
+        override fun of(text: String, sizePt: Double, bold: Boolean): Double =
+            measurer.measure(text = text, style = styleFor(sizePt, bold)).multiParagraph.width.toDouble() / pxPerPt
+
+        /** Two lines of the same style, so their baselines state the leading the cell is drawn with. */
+        override fun lineHeightOf(sizePt: Double, bold: Boolean): Double {
+            val layout = measurer.measure(text = "Ag\nAg", style = styleFor(sizePt, bold))
+            if (layout.lineCount < 2) return sizePt * InkTokens.FIGURE_LABEL_LINE_H
+            return (layout.getLineBaseline(1) - layout.getLineBaseline(0)).toDouble() / pxPerPt
         }
-        measurer.measure(text = text, style = style).multiParagraph.width.toDouble() / pxPerPt
     }
 }

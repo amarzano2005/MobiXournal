@@ -114,11 +114,12 @@ the one box that has a stored half and a derived half.
 **A new table's *Rows* asks for data rows.** The tablet's table tool creates the asked-for data rows
 and, with the header switch on, one **extra** bold row above them — the same arithmetic the drag's
 preview draws — so the grid under the finger and the grid committed on release are one and the same.
-**A cell's text is centred on what is drawn**: each shell compiles its cell text with its own font
-engine through `TextWidth` — the tablet's `Paint` (`render/ElementRenderer.kt`), the window's
-`TextMeasurer` (`sheet/LivingTextWidth.kt`) — so `CENTER` lands on the column's midline on both,
-while the `.xopp`, PDF and SVG exports fall back to the per-character estimate because they have no
-glyphs to measure.
+**A cell's text is centred on what is drawn, one line at a time**: each shell compiles its cell text
+with its own font engine through `TextWidth` — the tablet's `Paint` (`render/ElementRenderer.kt`), the
+window's `TextMeasurer` (`sheet/LivingTextWidth.kt`) — so `CENTER` lands on the column's midline on
+both, and every drawn line of a cell is its own text element, so a shorter second line sits on the
+midline too, spaced by the engine's leading (`TextWidth.lineHeightOf`). The `.xopp`, PDF and SVG
+exports fall back to the per-character estimate because they have no glyphs to measure.
 
 The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialog.kt`) — the
 anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app

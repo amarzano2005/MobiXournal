@@ -97,6 +97,29 @@ class TableElementFactoryTest {
     }
 
     @Test
+    fun eachLineOfAMultiLineCellIsCentredOnItsOwnAdvance() {
+        val table = TableElement(
+            left = 50.0,
+            top = 50.0,
+            colWidths = listOf(120.0),
+            rowHeights = listOf(40.0),
+            cells = listOf(listOf(TableCell("longer\nshort", TableAlign.CENTER))),
+        )
+        // Ten points a character, and a leading the table has to borrow from the engine.
+        val engine = object : TextWidth {
+            override fun of(text: String, sizePt: Double, bold: Boolean): Double = text.length * 10.0
+            override fun lineHeightOf(sizePt: Double, bold: Boolean): Double = 12.0
+        }
+
+        val lines = TableInk.ink(table, engine).filterIsInstance<TextElement>()
+        assertEquals("one element per drawn line", 2, lines.size)
+        assertEquals("the long line sits on the midline", 50.0 + (120.0 - 60.0) / 2.0, lines[0].x, 1e-4)
+        assertEquals("and the short one on its own width", 50.0 + (120.0 - 50.0) / 2.0, lines[1].x, 1e-4)
+        assertEquals("the engine's leading spaces them", 12.0, lines[1].y - lines[0].y, 1e-4)
+        assertEquals("the lines keep their text", listOf("longer", "short"), lines.map { it.content })
+    }
+
+    @Test
     fun reversedDragNormalizesOriginAndPositiveDimensions() {
         val table = TableElementFactory.tableElementFor(
             startX = 250.0,

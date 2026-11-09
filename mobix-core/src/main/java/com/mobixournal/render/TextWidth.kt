@@ -18,4 +18,11 @@ fun interface TextWidth {
 
     /** The advance of [text] at [sizePt], in points; [bold] picks the heavier face the ink carries. */
     fun of(text: String, sizePt: Double, bold: Boolean): Double
+
+    /**
+     * Baseline-to-baseline distance the shell draws at [sizePt], in points — what one drawn line of a
+     * cell is placed after the one above it, so splitting a cell into its lines keeps the leading the
+     * whole text box had. Only a shell with a font engine answers it; everyone else gets the estimate.
+     */
+    fun lineHeightOf(sizePt: Double, bold: Boolean): Double = sizePt * InkTokens.FIGURE_LABEL_LINE_H
 }

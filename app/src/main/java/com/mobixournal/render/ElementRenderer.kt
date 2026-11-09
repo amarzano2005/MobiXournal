@@ -125,6 +125,19 @@ class ElementRenderer(
     }
 
     /**
+     * The distance [drawText] puts between two lines at [sizePt], in points — the real font metrics,
+     * not the estimate — so a cell split into its lines keeps the leading it is drawn with.
+     */
+    override fun lineHeightOf(sizePt: Double, bold: Boolean): Double {
+        textPaint.typeface = typefaceFor(
+            FontDescription(InkTokens.FIGURE_LABEL_FONT, bold = bold, italic = false).compose(),
+        )
+        textPaint.textSize = sizePt.toFloat()
+        val metrics = textPaint.fontMetrics
+        return (metrics.descent - metrics.ascent).toDouble()
+    }
+
+    /**
      * Resolve a `.xopp` font description into an Android [Typeface]. The Pango-style bold/italic
      * tokens become a [Typeface] style, and the desktop family names Xournal++ uses map onto the
      * generic Android families (unknown families fall back to Android's own resolution).
