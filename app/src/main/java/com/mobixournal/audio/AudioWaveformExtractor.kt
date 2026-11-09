@@ -27,8 +27,9 @@ object AudioWaveformExtractor {
 
     /**
      * Extracts [targetSamples] normalized amplitude points from [audioFile].
-     * If the file is a 16-bit PCM WAV, reads the actual sample bytes;
-     * otherwise, produces an interpolated pseudo-waveform derived from file chunks.
+     * If the file is a 16-bit PCM WAV, reads the actual sample bytes; otherwise it is decoded
+     * ([CompressedWaveform]). An envelope already computed for this exact file is answered from its
+     * sidecar ([WaveformSidecar]), and a fresh decode is kept there for the next listen.
      */
     fun extract(audioFile: File, targetSamples: Int = DEFAULT_SAMPLE_COUNT, checkCancelled: () -> Unit = {}): List<Float> {
         require(targetSamples > 0)
@@ -39,7 +40,14 @@ object AudioWaveformExtractor {
             return defaultWaveform(targetSamples)
         }
 
-        val result = if (audioFile.extension.equals("wav", ignoreCase = true)) {
+        // The envelope of this exact file, if one was already computed: what makes a lecture's bars
+        // appear with the sound instead of a decode after it (`docs/audio.md`).
+        WaveformSidecar.read(audioFile, targetSamples)?.let { stored ->
+            synchronized(cache) { cache[cacheKey] = stored }
+            return stored
+        }
+
+        val decoded = if (audioFile.extension.equals("wav", ignoreCase = true)) {
             extractWavAmplitudes(audioFile, targetSamples, checkCancelled)
         } else {
             // A compressed recording (the Opus/Ogg a `.mobix` bundles, or the AAC fallback) is **decoded**:
@@ -51,15 +59,19 @@ object AudioWaveformExtractor {
         }
 
         checkCancelled()
+        val result = decoded ?: defaultWaveform(targetSamples)
+        // Only a real decode is kept: a stand-in shape is not this recording, and storing it would make
+        // the guess permanent.
+        if (decoded != null) WaveformSidecar.write(audioFile, decoded)
         synchronized(cache) { cache[cacheKey] = result }
         return result
     }
 
     /** The loudest sample of each block of a canonical 16-bit PCM WAV, streamed block by block. */
-    private fun extractWavAmplitudes(file: File, targetSamples: Int, checkCancelled: () -> Unit): List<Float> {
+    private fun extractWavAmplitudes(file: File, targetSamples: Int, checkCancelled: () -> Unit): List<Float>? {
         return runCatching {
             val dataBytes = file.length() - WavWriter.HEADER_BYTES
-            if (dataBytes <= 0L) return defaultWaveform(targetSamples)
+            if (dataBytes <= 0L) return null
             val sampleCount = dataBytes / 2
             val blockSamples = max(1L, sampleCount / targetSamples)
             val loudest = IntArray(targetSamples)
@@ -92,14 +104,14 @@ object AudioWaveformExtractor {
                 }
             }
             loudest.map { (abs(it).toFloat() / 32768f).coerceIn(0.12f, 1.0f) }
-        }.getOrElse { if (it is java.util.concurrent.CancellationException) throw it; defaultWaveform(targetSamples) }
+        }.getOrElse { if (it is java.util.concurrent.CancellationException) throw it; null }
     }
 
     /** The mean byte level of each block of an unknown (compressed) container, streamed the same way. */
-    private fun extractGenericAmplitudes(file: File, targetSamples: Int, checkCancelled: () -> Unit): List<Float> {
+    private fun extractGenericAmplitudes(file: File, targetSamples: Int, checkCancelled: () -> Unit): List<Float>? {
         return runCatching {
             val total = file.length()
-            if (total <= 0L) return defaultWaveform(targetSamples)
+            if (total <= 0L) return null
             val blockBytes = max(1L, total / targetSamples)
             val sums = LongArray(targetSamples)
             val counts = LongArray(targetSamples)
@@ -123,7 +135,7 @@ object AudioWaveformExtractor {
                 val avg = if (counts[i] > 0) (sums[i] / counts[i]).toFloat() else 30f
                 (avg / 128f).coerceIn(0.15f, 1.0f)
             }
-        }.getOrElse { if (it is java.util.concurrent.CancellationException) throw it; defaultWaveform(targetSamples) }
+        }.getOrElse { if (it is java.util.concurrent.CancellationException) throw it; null }
     }
 
     private fun record(loudest: IntArray, sample: Long, blockSamples: Long, value: Int) {
