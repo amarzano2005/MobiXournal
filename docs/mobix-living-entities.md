@@ -275,7 +275,9 @@ a build that does not know a symbol cannot draw it, and says so rather than inve
 
 `MathBlockElement` is the living formula: its `source` in `flavor` (`LATEX`/`TYPST`), colour and box, and
 **no rendered bytes** — the drawing is a function of the source. `MobixMathCodec` spells it; the canvas
-typesets it with `LatexRenderer`, the window and the PDF plan through `LatexLayout` (`TexPainter`), and the
+typesets it with `LatexRenderer`, the window and the PDF plan through `LatexLayout` (`TexPainter`), which
+places every glyph on its own measured advance (`TextAdvance`) so a narrow formula takes the width it is
+drawn at, and the
 `.xopp` bridge compiles it to a `<teximage>` (`MathBlockInk`), the ink `LivingInk` produces. **The window writes
 one too**: the Text slot's Formula member (`Shift+T`) asks for the source, previews it and writes it on **Place**
 (`PendingPlacement.mathSource`, `MathPreview`), and an unknown type stays verbatim (rule 1).

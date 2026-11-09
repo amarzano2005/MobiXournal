@@ -9,9 +9,12 @@ import kotlin.math.min
  *
  * The canvas draws formulas through the LaTeX renderer, which is Android-bound; the PDF plan has to
  * stay platform-free. This is that shared arithmetic, in the smallest form that keeps a formula
- * legible: a fixed advance per glyph, scripts at a smaller size on a raised or lowered baseline, a
- * fraction stacked over a rule, a radical with its overline. No font file and no measured metrics are
- * involved, which is why it can compile in `mobix-core` and run on either shell.
+ * legible: a glyph's own advance, scripts at a smaller size on a raised or lowered baseline, a
+ * fraction stacked over a rule, a radical with its overline. No font file is involved — the advance
+ * comes from [TextAdvance], the table measured from the faces the shells draw with — which is why it
+ * can compile in `mobix-core` and run on either shell. A fixed advance used to stand in for it, and it
+ * made `i` as wide as `M`: a narrow formula was laid out wider than it is drawn, and a wide one was
+ * squeezed.
  *
  * Coordinates are a **top-left page frame in points** (y down, like the model), with [MathGlyph.y]
  * the baseline. The page plan flips them into PDF space through [PdfPageTransform]. The layout is
@@ -40,9 +43,6 @@ data class MathLayout(
 )
 
 object LatexLayout {
-
-    /** The width of one glyph as a fraction of its size — a monospace approximation. */
-    const val ADVANCE_RATIO = 0.6
 
     /** A script's size, relative to its base. */
     const val SCRIPT_RATIO = 0.72
@@ -131,13 +131,20 @@ object LatexLayout {
             return Box(x, ascent, descent, glyphs, rules)
         }
 
-        /** One glyph per character, at the current size's baseline. */
+        /**
+         * One glyph per character, at the current size's baseline, each placed on its **own** advance:
+         * the glyphs are drawn by a real font, so the layout's width has to be the drawn one — a run of
+         * `i`s is a quarter the width of the same number of `M`s.
+         */
         private fun symbols(text: String): Box {
             if (text.isEmpty()) return empty()
-            val glyphs = text.mapIndexed { index, ch ->
-                MathGlyph(ch.toString(), index * size * ADVANCE_RATIO, size * 0.75, size)
+            val glyphs = ArrayList<MathGlyph>(text.length)
+            var x = 0.0
+            for (ch in text) {
+                glyphs += MathGlyph(ch.toString(), x, size * 0.75, size)
+                x += TextAdvance.emOf(ch) * size
             }
-            return Box(text.length * size * ADVANCE_RATIO, size * 0.75, size * 0.25, glyphs, emptyList())
+            return Box(x, size * 0.75, size * 0.25, glyphs, emptyList())
         }
 
         private fun scripted(base: Box, sup: Box?, sub: Box?): Box {
