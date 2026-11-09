@@ -72,15 +72,15 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 ## Screens from the real app
 
 <div align="center">
-  <img src="docs/assets/preview-plot.png" alt="The Android editor with a sin(x) plot on a ruled page" width="880" />
+  <img src="docs/assets/preview-plot.jpg" alt="The Android editor with a sin(x) plot on a ruled page" width="880" />
 
   *A function placed on the page, still an editable object.*
 
-  <img src="docs/assets/preview-pdf.png" alt="A PDF page in the Android editor with its title highlighted" width="880" />
+  <img src="docs/assets/preview-pdf.jpg" alt="A PDF page in the Android editor with its title highlighted" width="880" />
 
   *An imported PDF, highlighted line by line.*
 
-  <img src="docs/assets/preview-desktop.png" alt="The MobiXournal window on Windows 11 showing handwritten derivations" width="640" />
+  <img src="docs/assets/preview-desktop.png" alt="The MobiXournal window on Windows 11 with a blank page" width="640" />
 
   *Handwritten derivations in the Windows 11 window.*
 </div>
