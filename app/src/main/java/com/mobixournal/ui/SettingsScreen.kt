@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -341,17 +341,21 @@ private fun TwoPaneSettings(
             )
             // A hairline rule rather than a Material divider: the two panes are one screen, not two cards.
             Box(Modifier.fillMaxHeight().width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            val viewport = rememberSettingsScrollViewport()
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .verticalScroll(rememberScrollState())
+                    .settingsViewport(viewport)
+                    .verticalScroll(viewport.state)
                     .padding(16.dp),
             ) {
-                when {
-                    section != null -> SectionBody(section, settings, onChange)
-                    query.isNotEmpty() -> SearchResultRows(query, results, onSection)
-                    else -> SectionRows(shownArea, settings, onChange, onSection)
+                CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
+                    when {
+                        section != null -> SectionBody(section, settings, onChange)
+                        query.isNotEmpty() -> SearchResultRows(query, results, onSection)
+                        else -> SectionRows(shownArea, settings, onChange, onSection)
+                    }
                 }
             }
         }
@@ -389,26 +393,30 @@ private fun StackedSettings(
             }
         },
     ) { padding ->
+        val viewport = rememberSettingsScrollViewport()
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .settingsViewport(viewport)
+                .verticalScroll(viewport.state),
         ) {
-            when {
-                openSection != null -> SectionBody(openSection, settings, onChange)
-                openArea != null -> SectionRows(openArea, settings, onChange, onSection)
-                else -> {
-                    // The search lives on the index: it is the one page both shapes share, and the
-                    // answer to "where is this setting" is a section, not an area.
-                    SettingsSearchField(query, onQuery, Modifier.padding(bottom = 12.dp))
-                    if (query.isNotEmpty()) {
-                        SearchResultRows(query, results, onSection)
-                    } else {
-                        SettingsCard {
-                            val areas = SettingsArea.values()
-                            areas.forEachIndexed { index, entry ->
-                                SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
-                                if (index < areas.size - 1) {
-                                    SettingsDivider()
+            CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
+                when {
+                    openSection != null -> SectionBody(openSection, settings, onChange)
+                    openArea != null -> SectionRows(openArea, settings, onChange, onSection)
+                    else -> {
+                        // The search lives on the index: it is the one page both shapes share, and the
+                        // answer to "where is this setting" is a section, not an area.
+                        SettingsSearchField(query, onQuery, Modifier.padding(bottom = 12.dp))
+                        if (query.isNotEmpty()) {
+                            SearchResultRows(query, results, onSection)
+                        } else {
+                            SettingsCard {
+                                val areas = SettingsArea.values()
+                                areas.forEachIndexed { index, entry ->
+                                    SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
+                                    if (index < areas.size - 1) {
+                                        SettingsDivider()
+                                    }
                                 }
                             }
                         }

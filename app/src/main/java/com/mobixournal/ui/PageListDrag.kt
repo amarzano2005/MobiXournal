@@ -13,11 +13,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-/** How close to the list's top or bottom a dragged page starts pulling the list along. */
-private val AUTO_SCROLL_EDGE = 56.dp
+/** How close to a list's top or bottom a dragged row starts pulling it along. */
+internal val AUTO_SCROLL_EDGE = 56.dp
 
-/** The fastest the list walks under a dragged page: roughly nine rows a second. */
-private val AUTO_SCROLL_SPEED = 600.dp
+/** The fastest a list walks under a dragged row: roughly nine rows a second. */
+internal val AUTO_SCROLL_SPEED = 600.dp
 
 /**
  * The drag of one page in the lateral list: the row it came from, how far the finger has carried it, and

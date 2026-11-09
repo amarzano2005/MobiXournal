@@ -40,6 +40,16 @@ class PaletteReorderTest {
     }
 
     @Test
+    fun `a resting finger still moves the swatch as the page scrolls under it`() {
+        val drag = PaletteDragState()
+        drag.rowHeightPx = 40f
+        drag.paletteTopPx = 200f
+        drag.start(index = 1, scrollPx = 100f)
+        assertEquals("the carried swatch stays under the finger", 140f, drag.liftedTop(index = 1), 0.01f)
+        assertEquals("two rows of page walked under it", 3, drag.landing(scrollPx = 180f, count = 6))
+    }
+
+    @Test
     fun `a drop where it started writes nothing`() {
         val colors = listOf(10, 20, 30)
         assertSame(colors, movePaletteColor(colors, from = 1, to = 1))

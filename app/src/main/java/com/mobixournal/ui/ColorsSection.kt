@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +34,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -173,6 +176,9 @@ private fun FavoriteRow(label: String, colors: List<Int>, onEdit: (Int) -> Unit)
  * picker, the pen-tip ring and the colour-shortcut list read the user's new order at once — the
  * palette *is* that list.
  *
+ * A palette longer than the screen is still one gesture: the settings page walks under the swatch while it
+ * sits in either end strip ([PaletteAutoScroll]), and the drop counts that travel as well as the finger's.
+ *
  * A cancel clears the drag without writing anything: a gesture taken away from us (a system swipe, the
  * page leaving composition) must never leave a colour somewhere the finger never put it.
  */
@@ -183,39 +189,42 @@ private fun PenPaletteRows(
     onEdit: (Int) -> Unit,
 ) {
     val colors = settings.penColors
-    var dragFrom by remember { mutableStateOf(-1) }
-    var dragOffset by remember { mutableStateOf(0f) }
-    var rowHeightPx by remember { mutableStateOf(0) }
-    val landing = paletteDropTarget(dragFrom, dragOffset, rowHeightPx, colors.size)
-
-    fun clearDrag() {
-        dragFrom = -1
-        dragOffset = 0f
-    }
+    val viewport = LocalSettingsScrollViewport.current
+    val drag = remember { PaletteDragState() }
+    val scrollPx = (viewport?.state?.value ?: 0).toFloat()
+    val landing = drag.landing(scrollPx, colors.size)
+    PaletteAutoScroll(drag = drag, viewport = viewport)
 
     fun dropDrag() {
-        val to = paletteDropTarget(dragFrom, dragOffset, rowHeightPx, colors.size)
-        if (dragFrom in colors.indices && to != dragFrom) {
-            onChange(settings.copy(penColors = movePaletteColor(colors, dragFrom, to)))
+        val to = drag.landing((viewport?.state?.value ?: 0).toFloat(), colors.size)
+        if (drag.from in colors.indices && to != drag.from) {
+            onChange(settings.copy(penColors = movePaletteColor(colors, drag.from, to)))
         }
-        clearDrag()
+        drag.clear()
     }
 
-    colors.forEachIndexed { index, color ->
-        PaletteRow(
-            color = color,
-            canDelete = colors.size > 1,
-            dragging = index == dragFrom,
-            landing = dragFrom >= 0 && landing == index && landing != dragFrom,
-            dragOffset = if (index == dragFrom) dragOffset else 0f,
-            onHeight = { height -> if (rowHeightPx == 0) rowHeightPx = height },
-            onDragStart = { dragFrom = index; dragOffset = 0f },
-            onDrag = { dragOffset += it },
-            onDragEnd = { dropDrag() },
-            onDragCancel = { clearDrag() },
-            onEdit = { onEdit(index) },
-            onDelete = { deletePenColor(settings, color, onChange) },
-        )
+    Column(
+        modifier = Modifier.onGloballyPositioned { coordinates ->
+            // Content px, so the row's place on screen keeps answering the page's own scroll.
+            drag.paletteTopPx = coordinates.positionInWindow().y + (viewport?.state?.value ?: 0)
+        },
+    ) {
+        colors.forEachIndexed { index, color ->
+            PaletteRow(
+                color = color,
+                canDelete = colors.size > 1,
+                dragging = index == drag.from,
+                landing = drag.from >= 0 && landing == index && landing != drag.from,
+                dragOffset = if (index == drag.from) drag.offset else 0f,
+                onHeight = { height -> drag.rowHeightPx = height.toFloat() },
+                onDragStart = { drag.start(index, (viewport?.state?.value ?: 0).toFloat()) },
+                onDrag = { drag.by(it) },
+                onDragEnd = { dropDrag() },
+                onDragCancel = { drag.clear() },
+                onEdit = { onEdit(index) },
+                onDelete = { deletePenColor(settings, color, onChange) },
+            )
+        }
     }
 }
 

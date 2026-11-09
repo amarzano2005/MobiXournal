@@ -52,7 +52,9 @@ strip's stroke panel and in the pen-tip ring the moment it is committed — neve
 lifted over the list on its shadow and the row it would land on wears the accent along its top edge — the page
 list's own drag, at one measured row's pitch. A drop writes the whole palette through `movePaletteColor`, so
 every picker, the pen-tip ring, the tablet's `ColorPaletteRows`/`CustomColorPickerDialog` and the colour-shortcut
-rows that `ShortcutsSection.kt` derives from the palette follow the new order at once. The factory
+rows that `ShortcutsSection.kt` derives from the palette follow the new order at once. The list also walks
+with the finger: held in the page's top or bottom strip, the settings page scrolls under the carried swatch,
+so a palette longer than the screen is still arranged in one gesture. The factory
 ternas are shared with the tablet as well: `PenPalette.PEN_FAVOURITES` (black, red, green) and
 `PenPalette.HIGHLIGHTER_FAVOURITES` (yellow, green, blue) are what both `AppSettings`' defaults and the
 window's settings file read, so a fresh shell on either platform offers the same six.
