@@ -130,7 +130,7 @@ object AppUpdates {
 
     /** The one line About prints under its command. */
     fun statusLine(): String = when (phase) {
-        UpdatePhase.IDLE -> "Checks the project's releases for a newer build."
+        UpdatePhase.IDLE -> "Tap to check for updates."
         UpdatePhase.CHECKING -> "Checking for updates…"
         UpdatePhase.UP_TO_DATE -> "MobiXournal ${BuildConfig.VERSION_NAME} is the latest version."
         UpdatePhase.AVAILABLE -> release?.let { "Version ${it.version} is available." } ?: ""

@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -19,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.BuildConfig
 import com.mobixournal.design.ProjectLinks
 import com.mobixournal.update.AppUpdates
+import com.mobixournal.update.UpdatePhase
 
 /** Where the About page sends people; the repository's address has one home, `ProjectLinks` (mobix-core). */
 object AboutLinks {
@@ -44,8 +52,22 @@ fun AboutSection() {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
+    // The version line **is** the update check: the number is the one row the command answers about, so a
+    // tap on it asks GitHub and the sentence under it is the state — there is no separate "Updates" group
+    // to find. "Already the latest" also raises a notification at the bottom, because an answer printed
+    // only inside the card is an answer the reader may never see (`docs/updates.md`).
+    var askedHere by remember { mutableStateOf(false) }
+    LaunchedEffect(AppUpdates.phase) {
+        if (askedHere && AppUpdates.phase == UpdatePhase.UP_TO_DATE) {
+            Toast.makeText(context, latestSentence(), Toast.LENGTH_SHORT).show()
+        }
+        if (askedHere && AppUpdates.phase != UpdatePhase.CHECKING) askedHere = false
+    }
     SettingsGroup("MobiXournal") {
-        InfoRow("Version", BuildConfig.VERSION_NAME)
+        VersionRow(BuildConfig.VERSION_NAME, AppUpdates.statusLine()) {
+            askedHere = true
+            AppUpdates.offerOrCheck(context)
+        }
         // The **door out**, where a row naming the *other* shell's version used to stand: a reader who wants
         // the Windows build wants its releases, and the repository is where both shells' work lives.
         LinkRow(
@@ -70,12 +92,6 @@ fun AboutSection() {
         LinkRow("Xournal++ desktop app", AboutLinks.XOURNALPP, open)
     }
 
-    SettingsGroup("Updates") {
-        ActionRow("Check for updates", AppUpdates.statusLine()) {
-            AppUpdates.offerOrCheck(context)
-        }
-    }
-
     SettingsGroup("License") {
         SettingsNote("Free software licensed under GNU General Public License v2 or later. Provided without warranty.")
         LinkRow("Read the GPL v2 License", AboutLinks.LICENSE, open)
@@ -83,44 +99,44 @@ fun AboutSection() {
 
 }
 
-/** A read-only "label … value" line, for facts about the build. */
-@Composable
-private fun InfoRow(label: String, value: String) {
-    // A **block**, not a row: the card keeps no vertical air of its own (so its rows can wear its
-    // corners), so a line that opens a group carries the air that keeps it off the top edge.
-    Row(modifier = Modifier.fillMaxWidth().settingsBlockInset()) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Spacer(Modifier.width(12.dp))
-        Text(value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End)
-    }
-}
+/** The sentence the bottom notification repeats when the check finds nothing newer. */
+private fun latestSentence(): String =
+    "MobiXournal ${BuildConfig.VERSION_NAME} is the latest version."
 
 /**
- * A tappable line that **runs a command** — About's update check — with its state as the subtitle.
+ * The build's number, and **the button** that asks GitHub whether it is still current.
  *
- * It wears the link row's geometry rather than a button's because it is the same thing to the reader: a line
- * that opens something. What it opens here is the release check, and the sentence under it is the answer.
+ * The value is drawn in the accent because the whole line is the command: the reader asked where *Check for
+ * updates* had gone, and the honest place for it is the row that names the version it answers about. The
+ * sentence underneath is the state ([com.mobixournal.update.AppUpdates.statusLine]) — "Tap to check for
+ * updates", then "Checking…", then the answer, which stays readable after a tap.
  */
 @Composable
-private fun ActionRow(label: String, note: String, onClick: () -> Unit) {
+private fun VersionRow(version: String, status: String, onClick: () -> Unit) {
     val reach = LocalSettingsCardInset.current
-    Column(
+    Row(
         modifier = Modifier
             .fullBleedRow(reach)
             .fillMaxWidth()
             .clickable { onClick() }
             .padding(horizontal = reach, vertical = settingsCellInset(reach)),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Version", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                status,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
         Text(
-            label,
+            version,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            note,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp),
+            textAlign = TextAlign.End,
         )
     }
 }
