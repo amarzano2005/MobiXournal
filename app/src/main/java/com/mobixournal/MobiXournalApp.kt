@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import com.mobixournal.ui.SettingsStore
+import com.mobixournal.update.AppUpdates
 import com.mobixournal.ui.ThemeMode
 
 /**
@@ -29,6 +30,9 @@ class MobiXournalApp : Application() {
     override fun onCreate() {
         super.onCreate()
         applyNightMode(this, SettingsStore(this).load().themeMode)
+        // The launch check: one quiet question to the project's releases, so a newer build is offered
+        // while the reader is already in the app rather than only when they go looking (`docs/updates.md`).
+        AppUpdates.checkOnLaunch(this)
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
             override fun onActivityStarted(activity: Activity) = Unit

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mobixournal.BuildConfig
 import com.mobixournal.design.ProjectLinks
+import com.mobixournal.update.AppUpdates
 
 /** Where the About page sends people; the repository's address has one home, `ProjectLinks` (mobix-core). */
 object AboutLinks {
@@ -69,6 +70,12 @@ fun AboutSection() {
         LinkRow("Xournal++ desktop app", AboutLinks.XOURNALPP, open)
     }
 
+    SettingsGroup("Updates") {
+        ActionRow("Check for updates", AppUpdates.statusLine()) {
+            AppUpdates.offerOrCheck(context)
+        }
+    }
+
     SettingsGroup("License") {
         SettingsNote("Free software licensed under GNU General Public License v2 or later. Provided without warranty.")
         LinkRow("Read the GPL v2 License", AboutLinks.LICENSE, open)
@@ -85,6 +92,36 @@ private fun InfoRow(label: String, value: String) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
         Text(value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End)
+    }
+}
+
+/**
+ * A tappable line that **runs a command** — About's update check — with its state as the subtitle.
+ *
+ * It wears the link row's geometry rather than a button's because it is the same thing to the reader: a line
+ * that opens something. What it opens here is the release check, and the sentence under it is the answer.
+ */
+@Composable
+private fun ActionRow(label: String, note: String, onClick: () -> Unit) {
+    val reach = LocalSettingsCardInset.current
+    Column(
+        modifier = Modifier
+            .fullBleedRow(reach)
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = reach, vertical = settingsCellInset(reach)),
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            note,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
 }
 

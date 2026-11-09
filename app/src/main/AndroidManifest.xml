@@ -5,6 +5,9 @@
          at runtime the first time the user hits Record; the app is fully usable without it. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The update dialog's Update now hands a downloaded APK to Android's installer. The permission
+         only lets this app *ask*: the system still shows its own prompt, and the reader answers it. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

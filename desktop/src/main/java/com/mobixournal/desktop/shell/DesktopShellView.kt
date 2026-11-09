@@ -12,6 +12,7 @@ import com.mobixournal.desktop.io.ImportPdfDialog
 import com.mobixournal.desktop.io.ImportPdfHost
 import com.mobixournal.desktop.io.OpenFailureCard
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.settings.DesktopUpdatesHost
 import com.mobixournal.desktop.settings.FirstRunFormatHost
 import com.mobixournal.desktop.settings.SettingsSurface
 import com.mobixournal.desktop.tools.CloseDialogHost
@@ -189,6 +190,9 @@ private fun BoxScope.WorkspaceBody(
     PageSetupHost(state)
     ImportPdfHost(state)
     FirstRunFormatHost(state.prefs)
+    // The launch check's answer, and the door out for a newer MSI: hosted by the shell, not by the settings
+    // panel, because it arrives whether or not the reader is looking at Settings (`docs/updates.md`).
+    DesktopUpdatesHost()
     PageRangeHost(state)
     // The rename card: the layer menu's one question that needs the keyboard.
     LayerRenameHost(state)

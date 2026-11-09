@@ -71,6 +71,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`doc-governance.md`](doc-governance.md) | who updates which page: the rule, the per-change impact matrix, the review checklist, the periodic sweep and the local doc check | a change may invalidate a page, or a page and the code have started to disagree |
 | [`benchmarks.md`](benchmarks.md) | the measurements: what a run records, how a result is aggregated, and when two of them may be compared | you quote a timing or a byte count, or re-run one |
 | [`tools-emulator.md`](tools-emulator.md) | the device loop: boot the emulator, install, drive the screen, run `androidTest` | you run or change an instrumented test |
+| [`updates.md`](updates.md) | the release both shells check, the popup, and the installer each hands off to | you change how a newer build is found, offered or installed |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, [`writing-docs.md`](writing-docs.md) how a doc is written and reviewed, and

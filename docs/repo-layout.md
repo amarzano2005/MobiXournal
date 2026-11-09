@@ -37,6 +37,7 @@ it, so it no longer tries.
 - `app/src/main/java/com/mobixournal/ui`
 - `app/src/main/java/com/mobixournal/ui/entry`
 - `app/src/main/java/com/mobixournal/ui/theme`
+- `app/src/main/java/com/mobixournal/update`
 
 ### `mobix-core/src/main` — the platform-free core
 
@@ -51,6 +52,7 @@ it, so it no longer tries.
 - `mobix-core/src/main/java/com/mobixournal/format/xml`
 - `mobix-core/src/main/java/com/mobixournal/io`
 - `mobix-core/src/main/java/com/mobixournal/render`
+- `mobix-core/src/main/java/com/mobixournal/update`
 
 ### `desktop/src/main` — the window
 

@@ -94,7 +94,7 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 | **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build that needs no install. |
 
 The shells number separately; [the release index](docs/releases/index.md) records both. The installer is **unsigned**: Windows reports an unknown publisher and SmartScreen may ask
-first, which is deliberate rather than a false identity.
+first; that is deliberate. Both shells check those releases and offer a newer build in About.
 
 ## The two file formats
 
@@ -123,7 +123,7 @@ in](docs/guide-formats-and-conversion.md).
 2. Confirm the SmartScreen prompt if one appears, and keep or decline the associations and shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
-Desktop settings use task groups; graph previews follow the theme. Windows saves briefly suspend editing while running in the background.
+Desktop settings use task groups; graph previews follow the theme.
 
 A new tab is empty until saved: **Save As** names it and fixes its format; **Save** writes back there.
 Recents show what you opened — **×** drops one — and **Restore last session** reopens an unfinished session.

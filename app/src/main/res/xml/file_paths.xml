@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The cache the selection's PNG clipboard flavour is rendered into. Only that one folder is
-     exposed, and only through the app's own FileProvider, so a copy cannot hand out anything else
-     the app has cached. -->
+<!-- What the app's own FileProvider exposes, and nothing else: the cache the selection's PNG clipboard
+     flavour is rendered into, and the folder an update's APK is downloaded to. Both are written by this
+     app and handed out one file at a time with a read grant, so a copy or an installer cannot reach
+     anything else the app has cached. -->
 <paths>
     <cache-path name="clipboard" path="clipboard/" />
+    <cache-path name="updates" path="updates/" />
 </paths>

@@ -1,5 +1,7 @@
 package com.mobixournal.ui
 
+import com.mobixournal.update.UpdateAvailableDialog
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -343,6 +345,9 @@ fun EditorScreen(
 
     // Back peels the editor's transient layers off one at a time before it ever exits.
     EditorBackHandler(ui = ui, pane = pane, busy = busy != null, onExit = onExit)
+
+    // The launch check's answer: the popup belongs to the whole screen, not to About.
+    UpdateAvailableDialog()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(

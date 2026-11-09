@@ -15,7 +15,15 @@ import java.net.URI
  * take the page down with it — a link that cannot open is a link that does nothing.
  */
 internal fun openProjectPage() {
+    openPage(ProjectLinks.GITHUB)
+}
+
+/**
+ * Open [url] in the machine's browser — the update dialog's **what changed** door, and the project page's
+ * own. The same guard: a headless JVM has no browser, and a handler that refuses must not take the page down.
+ */
+internal fun openPage(url: String) {
     runCatching {
-        if (Desktop.isDesktopSupported()) Desktop.getDesktop().browse(URI(ProjectLinks.GITHUB))
+        if (Desktop.isDesktopSupported()) Desktop.getDesktop().browse(URI(url))
     }
 }
