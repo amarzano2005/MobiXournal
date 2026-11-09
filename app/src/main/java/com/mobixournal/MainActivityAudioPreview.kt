@@ -65,7 +65,14 @@ internal class AudioPreview(val owner: String?, val document: Document?, val cli
     // stroke, the archive's asset entry in the store — and withholding the bars when they disagree is
     // exactly how the waveform came to be missing on documents whose audio was bundled elsewhere.
     val waveformClip = playing ?: metadata.clip
-    val shown = visible || playing != null
+    // A recording that is **already on disk** is read as soon as the page names it, not when the player
+    // opens: the bars are then on screen on the frame `play` starts, instead of arriving a decode after
+    // the sound (`docs/audio.md`). A bundled one is still resolved only by a player that is showing.
+    // One stat per clip, never per frame: this composable re-reads the session at 10 Hz while a clip plays.
+    val local = remember(waveformClip) {
+        waveformClip != null && audio.localRecording(waveformClip) != null
+    }
+    val shown = visible || playing != null || local
     val waveform by produceState<List<Float>>(emptyList(), owner, waveformClip, shown) {
         value = emptyList()
         val clip = waveformClip

@@ -38,6 +38,12 @@ class AudioSession(
 
     fun hasRecording(name: String): Boolean = deferred.known(name)
 
+    /**
+     * The recording [name] names when it is **already on disk** — resolving no payload and copying
+     * nothing. What lets a waveform be prepared while the reader is still on the page.
+     */
+    fun localRecording(name: String): File? = store.local(name).takeIf(File::isFile)
+
     /** The bare file name of the recording in progress, or null when idle. */
     var currentFile: String? = null
         private set
