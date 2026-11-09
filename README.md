@@ -81,9 +81,9 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 
   *An imported PDF, highlighted line by line.*
 
-  <img src="docs/assets/preview-desktop.png" alt="The MobiXournal window on Windows 11 with a blank page" width="640" />
+  <img src="docs/assets/preview-desktop.png" alt="The MobiXournal window on Windows 11 on a blank page" width="880" />
 
-  *Handwritten derivations in the Windows 11 window.*
+  *The MobiXournal window on Windows 11 on a blank page.*
 </div>
 
 ## Platforms, and what each one needs
