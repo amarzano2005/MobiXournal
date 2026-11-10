@@ -22,27 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-current-performance-baseline"
-title = "Measure the real open/save/streaming chain before optimising any of it"
-description = """
-`docs/benchmarks.md` defines what a number must carry, and three reports exist, but the matrix the plan needs (paged open, no-op save, one-page edit, large-asset read, peak heap) is not measured as one comparable set, so any optimisation would be unarguable.
-
-Extend the existing benchmark fixtures and reports rather than inventing a second harness. Use `BenchmarkEnvironment.kt` (in `mobix-core/src/testFixtures`) so every figure carries machine, build SHA, JVM and warmup. Measure at 1, 50, 200 and 1000 pages with light and heavy ink: open-to-manifest, open-to-first-page, pages materialised, peak heap; a save with no changes and a save with exactly one modified page, recording elapsed time, bytes rewritten, raw entries copied and unchanged digests (`MobixIncrementalSave` counters such as `streamedEntries`/`rewrittenEntries`); and a document with image/PDF assets plus 1/20/120-minute audio for heap, streamed bytes, time to first frame and whether audio is opened at all.
-
-Record p50/p95 cold and warm, never a single run, and never write a speedup claim - this task establishes the baseline only. Keep JVM benchmarks explicitly separate from Android/desktop frame time; if UI frame-time measurement is wanted, add it as its own child task instead of blurring the two. Publish the report through `docs/benchmarks.md` and the release-notes rule there.
-
-DoD: a reproducible baseline report linked from `docs/benchmarks.md`, with the exact command to re-run it. No production code change. Dependency: the fixture corpus (audio and large documents)."""
-status = "active"
-level = "task"
-category = "test"
-urgency = "high"
-order = 60
-created = 2026-11-10
-tags = ["mobix", "performance", "p0"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-numeric-doc-code-audit"
 title = "Reconcile docs/math-engine.md with FunctionAnalysis.kt and pin the limits in tests"
 description = """

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-current-performance-baseline"
+title = "Measure the real open/save/streaming chain before optimising any of it"
+description = "Added MobixBaselineBenchmarkTest: open at 1, 50, 200 and 1000 pages in light and heavy ink, reported as a cold run plus p50/p95 to a usable first page with pages materialised and the JVM peak heap; save with nothing changed against one edited page with the saver's rewritten/streamed counters at 50, 200 and 1000 pages; a bundled 1 MiB picture, 2 MiB PDF and 1- and 20-minute recordings proving a save streams those payloads without inflating them. SyntheticNotebook gained dense pages and background/audio payload providers. docs/benchmarks.md now states the p50/p95 aggregation rule and its minimum sample, lists the new command, and publishes the measured baseline with its two deliberate gaps (UI frame time, 120-minute recording). No production code changed."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "performance", "p0"]
+design = "none: a test-side measurement and the numbers it publishes, with no user-facing surface."
+
+[[task]]
 id = "mobix-spec-conformance"
 title = "Make every conformance row executable"
 description = "Turned the checklist from a table into a procedure a third party runs. spec/CONFORMANCE.md now opens with a How to run it block - use the corpus rather than a file of your own, assert the expected outcome (a refusal for a different reason is a failure of the row, not a pass), save and reopen an accepted document and compare what the chapter says must survive, validate the envelope first through the schemas, and finish on one document the implementer produced themselves - and the table gained two columns, The smallest sample and Expected. Every one of the 38 rows now names a file and an outcome: the committed corpus wherever it holds the case (fixtures 01-17, one per construct, and the nine hostile files, one per threat), and the test file that builds the case where no stored document can express it (a ZIP declaring no type, a page naming an asset it lacks, a malformed capability identifier, a merge or paste union), so 'every row names a file' stays true without starting a second corpus. The outcome column separates accepted, accepted-and-preserved and refuse-write/refused-with-named-rule, which the old evidence column could not: rows 12, 13, 16, 24 and 27 look like rejections to a reader who assumes a foreign value fails the document, and are accepted-and-preserved in fact. The closing paragraph says what the evidence is in this repository, and docs/testing.md links the procedure from its v1-corpus paragraph by folding three words into an existing sentence, so that page stays at its 300-line budget. Verified: :mobix-core:test and :app:testDebugUnitTest green with the doc guards. Deliberately not done: no new fixtures, because the corpus already covers every case a single file can express and the rest are cross-document or constructed; and no desktop executable or emulator pass, since rebuild and emulator_debug are false."

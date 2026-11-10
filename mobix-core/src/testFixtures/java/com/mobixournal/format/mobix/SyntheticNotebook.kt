@@ -35,6 +35,41 @@ object SyntheticNotebook {
         id = id,
     )
 
+    /**
+     * [count] pages of **dense ink**: [strokes] strokes a page, [points] points a stroke, with the
+     * telemetry a real stylus reports. The light corpus is [pages]; this is the other half of a
+     * baseline, because a page count alone does not say how much a reader had to decode.
+     */
+    fun densePages(count: Int, strokes: Int, points: Int): List<Page> = List(count) { index ->
+        Page(
+            width = WIDTH_PT,
+            height = HEIGHT_PT,
+            background = Background.Solid(0xFFFFFFFF.toInt(), "plain"),
+            layers = listOf(
+                Layer(
+                    List(strokes) { strokeIndex ->
+                        Stroke(
+                            tool = Tool.PEN,
+                            color = 0xFF000000.toInt(),
+                            capStyle = "round",
+                            uniformWidth = false,
+                            points = List(points) { pointIndex ->
+                                StrokePoint(
+                                    x = 1.5 * pointIndex,
+                                    y = 2.0 * strokeIndex + pointIndex,
+                                    width = 1.0,
+                                    pressure = 0.5f,
+                                )
+                            },
+                            id = "${strokeIdOf(index)}_$strokeIndex",
+                        )
+                    },
+                ),
+            ),
+            id = idOf(index),
+        )
+    }
+
     /** [count] pages, page `i` holding one stroke and the id the manifest will name it by. */
     fun pages(count: Int): List<Page> = List(count) { index ->
         Page(
@@ -59,14 +94,27 @@ object SyntheticNotebook {
      */
     fun entryOf(index: Int): String = MobixFormat.pageEntry(index + 1)
 
-    /** Write [pages] to [file] as a real `.mobix`, with the page order the manifest fixes. */
-    fun write(file: File, pages: List<Page>) {
+    /**
+     * Write [pages] to [file] as a real `.mobix`, with the page order the manifest fixes.
+     *
+     * [backgrounds] and [audio] are the payload providers a page codec takes: a PDF background or a
+     * stroke's recording is bundled only when one answers for it, which is what lets a benchmark build
+     * a document that carries bytes instead of a name. The asset sink is shared by every page, so two
+     * pages naming the same picture write one entry.
+     */
+    fun write(
+        file: File,
+        pages: List<Page>,
+        backgrounds: (Background) -> MobixPayload? = { null },
+        audio: (String) -> MobixPayload? = { null },
+    ) {
         val now = 1700000000000L
         val entries = mutableListOf<MobixContainer.Entry>()
         val parts = mutableListOf<MobixPart>()
+        val sink = MobixAssetSink()
         pages.forEachIndexed { index, page ->
             val entry = entryOf(index)
-            val json = JsonWriter.write(MobixPageCodec.encode(page, MobixAssetSink())).toByteArray(Charsets.UTF_8)
+            val json = JsonWriter.write(MobixPageCodec.encode(page, sink, backgrounds, audio)).toByteArray(Charsets.UTF_8)
             entries += MobixContainer.Entry(entry, json)
             parts += MobixPart(
                 id = page.id ?: idOf(index),
@@ -88,6 +136,6 @@ object SyntheticNotebook {
             MobixContainer.Entry(MobixFormat.MANIFEST_ENTRY, manifest.encode().toByteArray(Charsets.UTF_8)),
             MobixContainer.Entry(MobixFormat.CANVAS_ENTRY, canvas.encode().toByteArray(Charsets.UTF_8)),
         )
-        FileOutputStream(file).use { MobixContainer.save(envelope + entries, it) }
+        FileOutputStream(file).use { MobixContainer.save(envelope + sink.entries() + entries, it) }
     }
 }
