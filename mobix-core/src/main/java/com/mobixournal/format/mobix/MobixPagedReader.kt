@@ -167,6 +167,8 @@ class MobixPagedReader(
     val assetSource: MobixAssetSource = MobixAssetSource { name ->
         val path = if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
         caps.read(source, path, caps.maxAssetBytes)?.also {
+            // An asset is addressed by its content, so its own name is the digest to check.
+            MobixDigests.verifyAsset(path, it)
             caps.refuseBeyondAssetBytes(assetBytes + it.size)
             assetBytes += it.size
         }
@@ -259,6 +261,8 @@ class MobixPagedReader(
         val part = parts[pageIndex]
         val bytes = caps.read(source, part.entry)
             ?: throw MobixContainer.MalformedMobixException("page entry ${part.entry} is missing from archive")
+        // Checked on materialisation, which is once per page turned — not when the archive is listed.
+        MobixDigests.verifyPart(part.entry, part.sha256, bytes)
         val node = MobixJson.parseJson(bytes.toString(Charsets.UTF_8), part.entry) as? JsonNode.Obj
             ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
 

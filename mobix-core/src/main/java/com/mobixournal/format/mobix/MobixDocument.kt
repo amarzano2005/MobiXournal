@@ -98,7 +98,7 @@ class MobixDocument(
 
     private fun readDeferred(name: String): ByteArray? {
         val entry = if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
-        return assetEntries?.readBytes(entry)
+        return assetEntries?.readBytes(entry)?.also { MobixDigests.verifyAsset(entry, it) }
     }
 
 
@@ -592,6 +592,7 @@ class MobixDocument(
         ): Page {
             val bytes = source.readBytes(part.entry)
                 ?: throw MobixContainer.MalformedMobixException("page entry ${part.entry} is missing from the archive")
+            MobixDigests.verifyPart(part.entry, part.sha256, bytes)
             val node = MobixJson.parseJson(bytes.toString(Charsets.UTF_8), "a page") as? JsonNode.Obj
                 ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
             return MobixPageCodec.decode(node, assets).copy(id = part.id)
@@ -636,6 +637,7 @@ class MobixDocument(
             source: MobixAssetSource,
         ): Page {
             val bytes = archive.require(part.entry).bytes
+            MobixDigests.verifyPart(part.entry, part.sha256, bytes)
             val node = MobixJson.parseJson(bytes.toString(Charsets.UTF_8), "a page") as? JsonNode.Obj
                 ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
             return MobixPageCodec.decode(node, source).copy(id = part.id)

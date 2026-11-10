@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-safety-digests"
+title = "Verify a part's digest when it is read"
+description = "New `MobixDigests` checks both claims the format makes about bytes, on **materialisation** rather than on listing: `verifyPart` compares a page's or chunk's bytes with the SHA-256 the manifest records (a part that records none is read as before, so a file from a writer that omits it is not refused), and `verifyAsset` compares an asset's bytes with the digest its own name carries. It is wired into `MobixPagedReader` (getPage and the asset resolver, which is also where the asset budget is spent), both `pageIn` paths in `MobixDocument` (eager archive and streaming source), `readDeferred` for deferred assets and `decodeChunk` in `MobixChunkWriting` — so pages, chunks and assets are covered by one rule on both of the reader's roads. A mismatch names the entry, the recorded digest and the found one, and says the file was edited or damaged after it was written. Cost decision, measured not guessed: SHA-256 runs at 0.78 ms per MiB on this host (100 timed runs after warmup), a fraction of the inflation that precedes it, and the check happens once per page materialised — a 200-page notebook pays for the pages it shows, never for the 200 it does not. Tests: `MobixDigestVerificationTest` refuses a page whose recorded digest is wrong on both the paged and the eager path, refuses an asset whose name is not its content, and proves a clean synthetic notebook still opens and streams. Docs: `docs/mobix-format.md`'s limits table moves the digest row to enforced with the measured cost, and the remaining list is down to the hostile corpus."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-10
+completed = 2026-11-10
+tags = []
+design = "none: digest verification inside mobix-core's read paths, with no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-safety-caps"
 title = "One cap policy, enforced by the container and the paged reader"
 description = "New `MobixSafetyCaps` is the one cap policy the read path enforces, as a value so a test can exercise the same mechanism at buildable sizes: 20 000 entries, 256 MiB per entry, 1 GiB of inflated payload, 1000× expansion per entry (deflate's own ceiling is ~1032:1, and a legitimate 64 KiB fixture in this repo measures 113×), 50 000 elements a page, 500 000 points a stroke and a 1 GiB asset budget, each with the document that motivated it written beside the constant. `MobixContainer.open` counts names as it walks the directory and reads every entry through `readBounded`, refusing one byte past a cap; `mimetypeOf` reads its probe under a 256-byte cap; `MobixPagedReader` counts the directory, reads the envelope, pages and assets through the policy and tracks the cumulative asset budget; `MobixPageCodec`/`MobixChunkCodec` count declared elements before decoding them and `MobixElementCodec` counts a stroke's points before building one. Deflate bombs are refused before inflating: `MobixEntrySource.storedSizes` answers from the ZIP directory as a question, never as a counted read, and `MobixSafetyCapsTest` exercises every threshold with a document just under and just past it, including a real archive holding a picture. Docs: `docs/mobix-format.md`'s limits table moves the entry-count, element/point and asset rows from 'gap' to enforced with the numbers, and the remaining list shrinks to the digest and hostile-corpus tasks."

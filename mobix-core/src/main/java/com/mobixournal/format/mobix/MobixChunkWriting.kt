@@ -121,6 +121,8 @@ internal fun chunkIn(
  * them is read at the tile its name says rather than at the origin.
  */
 private fun decodeChunk(part: MobixPart, bytes: ByteArray, assets: MobixAssetSource): MobixChunk {
+    // Both read paths land here, so the digest rule is enforced once for the tile half too.
+    MobixDigests.verifyPart(part.entry, part.sha256, bytes)
     val node = MobixJson.parseJson(bytes.toString(Charsets.UTF_8), "a chunk") as? JsonNode.Obj
         ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
     val coords = MobixFormat.parseChunkEntry(part.entry) ?: (0 to 0)

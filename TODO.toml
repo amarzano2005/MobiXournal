@@ -257,25 +257,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-safety-digests"
-title = "Verify a part's digest when it is read"
-description = """
-`pages[].sha256` is recorded by the writer and compared by the merge and the incremental save, but the reader never checks it: a truncated or edited page decodes as whatever it happens to contain.
-
-Verify the digest when a part is materialised (the paged reader's `getPage`, `MobixDocument.open`, and the asset path for `assets/`), and report a mismatch as a `MalformedMobixException` naming the entry and both digests. Decide and record the cost: the reader hashes nothing today, so measure the impact on the 200-page benchmark and, if full verification is too slow on every page turn, verify on first materialisation only and say so.
-
-Verification: a test corrupts one byte of a page (and one asset) and asserts the refusal, a test asserts a clean document still opens and streams, and `docs/mobix-format.md`'s limits table records the rule and the measured cost."""
-status = "active"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 54
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-safety-fuzz-corpus"
 title = "Commit a hostile corpus and prove the reader stays bounded"
 description = """

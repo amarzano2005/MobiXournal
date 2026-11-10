@@ -205,7 +205,7 @@ bounded while the reader is not:
 | duplicate or ambiguous entry names | `open` refuses a duplicate, a `.`/`..` segment, an absolute path, a backslash and a control character, naming the entry | enforced |
 | `../`, absolute or backslashed entry names | never extracted by this reader, and now refused at open rather than carried, so a tool that unpacked the archive cannot inherit one | enforced |
 | a page with a million elements, or a stroke with a million points | 50 000 elements a page and 500 000 points a stroke, counted from the JSON before one model object is built; a document's assets add up to at most 1 GiB | enforced |
-| a part whose bytes disagree with `pages[].sha256` | the digest is compared by the merge and the incremental save, never by the reader | gap |
+| a part whose bytes disagree with `pages[].sha256` | a page, chunk or asset is hashed when it is materialised (never when the archive is listed) and refused when it disagrees with the manifest's record or with the digest its own name claims; SHA-256 measures ~0.8 ms per MiB here, a fraction of the inflation it follows | enforced |
 | an encrypted entry, an unsupported method, a bad CRC, a truncated archive | the JDK's ZIP and end-of-file exceptions are caught at the container boundary and reported as a malformed document, with the original kept as the cause | enforced |
 | code execution or a network fetch driven by content | nothing in a document is evaluated, and an `attrs` reference is a string the app resolves against its own stores | hardened |
 | a document too large to write | `ClassicZipLimits` refuses the incremental writer's ZIP64 boundaries, and a save that would cross them fails instead of writing a broken archive | hardened (writer) |
@@ -215,9 +215,8 @@ a legitimate 200-page notebook with recordings is large by design. Entry count, 
 per archive, expansion ratio, JSON nesting depth, elements per page, points per stroke and cumulative
 asset bytes each get a threshold with the document that motivated it; a hostile file is **rejected
 explicitly** (a malformed-document error naming the entry and the rule), never partially read, and a
-rejected document is never written over in a degraded form. The caps, the depth cap, the entry-name rules
-and the single error type have landed; what remains is `mobix-safety-digests` and
-`mobix-safety-fuzz-corpus`. The row-by-row checklist a third-party reader runs is
+rejected document is never written over in a degraded form. The caps, the depth cap, the entry-name rules, the digest check
+and the single error type have landed; what remains is `mobix-safety-fuzz-corpus`. The row-by-row checklist a third-party reader runs is
 [`spec/CONFORMANCE.md`](../spec/CONFORMANCE.md).
 
 ## Engine optimizations enabled by the format
