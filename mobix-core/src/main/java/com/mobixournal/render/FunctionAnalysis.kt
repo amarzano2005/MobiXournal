@@ -266,7 +266,12 @@ object FunctionAnalysis {
     }
 
     /**
-     * Formats a compact multi-line analysis report for the given curves and their critical points.
+     * Formats the multi-line analysis report drawn under a plot: one block per subject, so the reader
+     * scans a list of *findings* instead of a run of near-identical sentences.
+     *
+     * Critical points are **grouped by kind** and their coordinates listed once (`• Local Min:
+     * (-1.571, -1), (4.712, -1)`), which is what makes a plot with many roots readable; the old format
+     * repeated the type, the coordinate and the same coordinate again on every line.
      *
      * [integrals] are the definite integrals to report, one `label to value` per curve — a null value
      * marks one that could not be evaluated, so the summary says so instead of printing a number.
@@ -290,8 +295,27 @@ object FunctionAnalysis {
             val label = c.label.ifEmpty { "f${i + 1}(x)" }
             sb.append("• $label = ${c.source}\n")
         }
+        if (points.isEmpty()) {
+            sb.append("\nNo critical points detected in this range.\n")
+        } else {
+            sb.append("\nCritical Points\n")
+            for (type in CriticalPointType.values()) {
+                val found = points.filter { it.type == type }.sortedBy { it.x }
+                if (found.isEmpty()) continue
+                val values = found.joinToString(", ") { point ->
+                    // A root's y is zero by definition and an asymptote has no y: printing a coordinate
+                    // pair for either would add noise, not information.
+                    when {
+                        type == CriticalPointType.ZERO -> fmt(point.x)
+                        point.y.isFinite() -> "(${fmt(point.x)}, ${fmt(point.y)})"
+                        else -> "x = ${fmt(point.x)}"
+                    }
+                }
+                sb.append("• ${sectionLabel(type)}: $values\n")
+            }
+        }
         if (integrals.isNotEmpty()) {
-            sb.append("Definite integrals over [${fmt(integralFrom)}, ${fmt(integralTo)}]:\n")
+            sb.append("\nDefinite integrals over [${fmt(integralFrom)}, ${fmt(integralTo)}]\n")
             integrals.forEach { (label, value) ->
                 sb.append(
                     if (value == null) "• ∫ $label dx: not finite over the range\n"
@@ -299,16 +323,17 @@ object FunctionAnalysis {
                 )
             }
         }
-        if (points.isEmpty()) {
-            sb.append("No critical points detected in this range.")
-        } else {
-            sb.append("Critical Points:\n")
-            points.forEach { p ->
-                val coord = if (p.y.isFinite()) "(${fmt(p.x)}, ${fmt(p.y)})" else "x ≈ ${fmt(p.x)}"
-                sb.append("• [${p.type.label}] $coord: ${p.description}\n")
-            }
-        }
         return sb.toString().trimEnd()
+    }
+
+    /** The heading a group of [type] points is listed under — plural, because the line lists them all. */
+    private fun sectionLabel(type: CriticalPointType): String = when (type) {
+        CriticalPointType.ZERO -> "Roots / Zeros at x"
+        CriticalPointType.Y_INTERCEPT -> "y-Intercept"
+        CriticalPointType.LOCAL_MIN -> "Local Minima"
+        CriticalPointType.LOCAL_MAX -> "Local Maxima"
+        CriticalPointType.INTERSECTION -> "Intersections"
+        CriticalPointType.ASYMPTOTE -> "Vertical Asymptotes"
     }
 
     /** Helper to generate marker dot circles for critical points as StrokePoint loops. */

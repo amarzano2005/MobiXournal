@@ -118,5 +118,9 @@ re-entered after a save: the curve `kind` (Cartesian / parametric / polar) with 
 (`showCriticalPoints`, `includeDerivative`) and the integral bounds when the area is shaded. The
 engine's *results* (roots, extrema, inflections) are written as `summaryText` — a rendering cache,
 not the model: recomputed whenever a curve, a range or a parameter changes, and ignored by a reader
-that would rather compute. The field-by-field schema is the `PlotElement` in
+that would rather compute. The report is also a **display switch**: turning *Summary* off in the graph
+dialog or the live plot inspector drops `summaryText`, so the text under the graph goes with it instead
+of lingering as a stale cache. Its layout groups the findings by kind — roots, extrema, intersections,
+asymptotes, then the integrals — so a graph with many points stays scannable. The field-by-field schema
+is the `PlotElement` in
 [mobix-schema-spec.md](mobix-schema-spec.md); what the engine promises about it is this file.

@@ -326,7 +326,7 @@ class PlotElementFactoryTest {
         // Original strokeWidth preserved
         assertEquals(2.0, updated.curves[0].strokeWidth, 1e-9)
 
-        // Non-dialog fields survive untouched
+        // Non-dialog fields survive untouched (summaryText is the Summary switch's own field)
         assertEquals(50.0, updated.left, 1e-9)
         assertEquals(60.0, updated.top, 1e-9)
         assertEquals(350.0, updated.right, 1e-9)
@@ -335,9 +335,27 @@ class PlotElementFactoryTest {
         assertEquals(initialPlot.shadeIntegral, updated.shadeIntegral)
         assertEquals(initialPlot.parameters, updated.parameters)
         assertEquals(initialPlot.axisColor, updated.axisColor)
-        assertEquals(initialPlot.summaryText, updated.summaryText)
+        assertNull("the summary switch is off, so its cached report is dropped", updated.summaryText)
         assertEquals(initialPlot.extraAttrs, updated.extraAttrs)
         assertEquals("plt_custom_123", updated.id)
+    }
+
+    @Test
+    fun switchingTheSummaryOffRemovesTheReportDrawnUnderTheGraph() {
+        val withSummary = element(includeSummary = true)
+        assertNotNull("the plot starts with a report", withSummary.summaryText)
+
+        val off = PlotElementFactory.applyPlotEdit(
+            original = withSummary,
+            editedCurves = curves(),
+            xMin = withSummary.xMin,
+            xMax = withSummary.xMax,
+            showCriticalPoints = withSummary.showCriticalPoints,
+            includeDerivative = withSummary.includeDerivative,
+            includeSummary = false,
+        )
+
+        assertNull("the switch the user turned off drops the text on the graph", off.summaryText)
     }
 
     /** The filled polygons a plot compiles to — the shaded integral area is drawn as one wash. */

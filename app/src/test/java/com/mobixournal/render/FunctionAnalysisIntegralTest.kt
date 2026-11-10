@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.LineStyle
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -91,6 +92,33 @@ class FunctionAnalysisIntegralTest {
         assertTrue(
             "summary should refuse rather than print a number, was:\n${result.summaryText}",
             result.summaryText.contains("∫ g dx: not finite over the range"),
+        )
+    }
+
+    @Test
+    fun `the report groups findings by kind instead of repeating one sentence per point`() {
+        val result = MultiFunctionPlotter.plot(
+            curves = listOf(PlotCurve("sin(x)", color = 0xFF0000FF.toInt(), lineStyle = LineStyle.PLAIN, label = "f")),
+            xMin = -Math.PI,
+            xMax = Math.PI,
+            leftPt = 0.0,
+            topPt = 0.0,
+            widthPt = 100.0,
+            heightPt = 100.0,
+            strokeWidthPt = 1.0,
+            showCriticalPoints = true,
+            includeSummary = true,
+        )
+        val lines = result.summaryText.lines()
+
+        assertTrue(
+            "every zero is listed once on its own line: ${result.summaryText}",
+            lines.any { it.startsWith("• Roots / Zeros at x:") },
+        )
+        assertEquals("one line per kind of extremum", 2, lines.count { it.startsWith("• Local ") })
+        assertFalse(
+            "no line repeats its coordinate after the type: ${result.summaryText}",
+            lines.any { it.contains("Zero: (") },
         )
     }
 

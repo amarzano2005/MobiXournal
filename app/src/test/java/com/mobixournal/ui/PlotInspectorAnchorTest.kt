@@ -17,6 +17,7 @@ import com.mobixournal.render.PlotElementFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -275,6 +276,44 @@ class PlotInspectorAnchorTest {
         assertEquals(updated.parameters, nonNullDecoded.parameters)
         assertEquals(updated.axisColor, nonNullDecoded.axisColor)
         assertEquals(updated.id, nonNullDecoded.id)
+    }
+
+    @Test
+    fun switchingTheSummaryOffInTheInspectorRemovesTheGraphText() {
+        val original = PlotElement(
+            left = 100.0,
+            top = 100.0,
+            right = 420.0,
+            bottom = 292.0,
+            curves = listOf(
+                ModelPlotCurve(kind = PlotKind.CARTESIAN, source = "sin(x)", color = 0xFF1976D2.toInt(), lineStyle = LineStyle.PLAIN),
+            ),
+            xMin = -6.28,
+            xMax = 6.28,
+        )
+
+        val withSummary = PlotElementFactory.applyPlotEdit(
+            original = original,
+            editedCurves = listOf(PlotCurve("sin(x)", 0xFF1976D2.toInt(), LineStyle.PLAIN)),
+            xMin = -6.28,
+            xMax = 6.28,
+            showCriticalPoints = false,
+            includeDerivative = false,
+            includeSummary = true,
+        )
+        assertNotNull("turning Summary on computes the report", withSummary.summaryText)
+
+        val off = PlotElementFactory.applyPlotEdit(
+            original = withSummary,
+            editedCurves = listOf(PlotCurve("sin(x)", 0xFF1976D2.toInt(), LineStyle.PLAIN)),
+            xMin = -6.28,
+            xMax = 6.28,
+            showCriticalPoints = false,
+            includeDerivative = false,
+            includeSummary = false,
+        )
+
+        assertNull("turning it off removes the info written on the graph", off.summaryText)
     }
 
     @Test

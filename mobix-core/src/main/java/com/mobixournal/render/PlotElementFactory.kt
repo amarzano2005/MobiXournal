@@ -292,7 +292,9 @@ object PlotElementFactory {
      * [PlotElement.samples], [PlotElement.parameters], [PlotElement.axisColor],
      * [PlotElement.extraAttrs], and [PlotElement.id] — **survive the edit**
      * via [PlotElement.copy] rather than being reset to factory defaults. [PlotElement.summaryText] is
-     * recomputed if [includeSummary] is true, or preserved from [original] otherwise.
+     * the analysis *display* switch's field: recomputed when [includeSummary] is true, and **dropped**
+     * when it is false, so turning the summary off actually removes the text drawn under the graph
+     * instead of leaving the cached report behind.
      *
      * [shadeIntegral] is the one field the dialog **does** own now (the Shade integral area control): it
      * is written through here so the wash the canvas draws, the integral the summary reports and the ink
@@ -340,11 +342,14 @@ object PlotElementFactory {
                 includeDerivative = includeDerivative,
                 includeSummary = true,
                 axisColor = original.axisColor,
+                // A parameterised plot's report is about the curve the sliders produce, not about a
+                // copy of it evaluated with the parameters erased.
+                parameters = original.parameters,
                 integralFrom = shadeIntegral?.from ?: xMin,
                 integralTo = shadeIntegral?.to ?: xMax,
             )
         } else {
-            original.summaryText
+            null
         }
         return original.copy(
             curves = elementCurves,
