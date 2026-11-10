@@ -22,50 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "stem-physical-units"
-title = "Physical quantities, SI dimensions and unit conversion (F02)"
-description = """
-No quantity model exists: `5 kg * 3 m/s^2` can only be drawn. Every later feature - calibrated measurements, dataset columns, table units, simulations - needs the same canonical representation, so it must be designed once and not per feature.
-
-User story: write `v=10 m/s` and obtain `36 km/h` on request; define `m=5 kg` and `a=3 m/s^2` and read `F=m*a` as `15 N`; type `3 m + 2 s` and get 'incompatible units' while the expression stays intact.
-
-Specify: the seven SI base dimensions, linear and affine unit transforms (an absolute °C is not a metro, and a temperature delta has no offset), a parser for units separate from the expression parser, locale-independent stable unit identifiers (never display labels or `java.util.Locale` in the data), and the error taxonomy. Reuse the evaluator contract from `stem-page-calculations`; watch precision, overflow and equivalent symbols.
-
-Child tasks: U1 the unit table plus a conversion suite; U2 quantity/evaluator with the limit cases; U3 the 'Convert unit' UI action on both shells; U4 codec, spec entry and external fixtures; U5 formatting in PDF/CSV. Acceptance: `10 m/s = 36 km/h`, `N` and `kg·m/s²` agree, `m+s` is rejected without deleting the source, absolute vs delta temperature correct, and a third-party reader can convert using only the published table. Dependency: `stem-page-calculations` evaluator contract, `mobix-spec-v1` for the published unit identifiers."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 160
-created = 2026-11-10
-tags = ["stem", "units", "math", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-reactive-variables"
-title = "Page-scoped variables with a real dependency graph (F03)"
-description = """
-`PlotElement` already has parameters driven by sliders, but they are local to one plot: there is no way to define `a=2` once and have a calculation, a table and a plot read the same value. Nothing in the model expresses 'this result depends on that definition', so nothing can go stale.
-
-User story: define `a = 2` and `m = 5 kg` in the notebook, reference them from a result and a plot, change `a` once and see exactly which results are affected; distinguish a live reference, a frozen value and a dangling reference.
-
-Model decision to make in this scope: bind by stable `variableId`, never by the display name alone; the name belongs in the formula text, the id survives rename and move. First phase is page scope only - document-wide definitions are `stem-document-wide-definitions`, because they need an authoritative registry and must not scan every page on each interaction. Runtime: directed definition-to-consumer graph, cycle detection, topological evaluation, revisions, local invalidation; throttle during a slider drag and commit one undo entry per gesture; a deleted definition becomes `UNRESOLVED` and keeps its source and last cache for diagnosis. Never silently rebind an ambiguous name.
-
-Files: `Living.kt` and new pure models, the page index, `PlotElement.parameters`, `PlotInk`, `MobixManifest`/`MobixDocument` for any document-level registry, merge by id, and both shells' inspectors. Child tasks: V1 definitions and page-scoped bindings; V2 graph with cycle diagnostics and revisions; V3 wiring into calculations and plots; V4 define/rename UI; V5 round-trip, merge and drift guard.
-
-Acceptance: chain `a -> b -> c` evaluates once per revision; `a -> b -> a` is diagnosed, not hung; rename keeps bindings; reopening the file is identical; the independent validator can enumerate the dependencies. Dependency: F01, F02, the reference-preservation policy from `mobix-known-type-unknown-fields`."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 170
-created = 2026-11-10
-tags = ["stem", "dependency", "variables", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-scientific-tables"
 title = "Tables with cell formulas, ranges and references (F04)"
 description = """
@@ -905,6 +861,146 @@ level = "task"
 category = "feature"
 urgency = "normal"
 order = 670
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-unit-table"
+title = "A published SI unit table with dimensions, affine transforms and a conversion suite"
+description = "The one table every later quantity feature reads. Seven base dimensions (length, mass, time, electric current, thermodynamic temperature, amount, luminous intensity) as an integer vector, and a Dimension serialised as one canonical ASCII string (kg.m.s^-2) so a third party can convert using only the published data. Units carry a stable identifier that is never a display label and never produced by java.util.Locale (metre, second, newton, kilogram_per_cubic_metre), a factor to the base unit and an offset only where the unit is affine. Cover the SI derived set (N, J, W, Pa, Hz, V, ohm, C, F, T, H, S, Wb, lx, lm, Bq, Gy, Sv, kat) and the accepted non-SI ones this app might meet (minute, hour, day, litre, tonne, degree Celsius, degree Fahrenheit, electronvolt, bar, angstrom, hectare), with an explicit rule for ambiguous symbols: m is metre and min is minute, and an ambiguous token is rejected rather than guessed. Ship the table as data a test can enumerate, so every entry round-trips through its own identifier, and a conversion suite asserts 10 m/s = 36 km/h, that newton and kilogram metre per second squared agree, that 0 degC = 273.15 K, and that a temperature delta has no offset (1 degC of difference = 1 K). Register the identifiers in mobix-schema-spec.md, which owns what a reader can rely on."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 680
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-quantity-evaluator"
+title = "Quantity arithmetic over the F01 scalar evaluator, with an explicit error taxonomy"
+description = "A quantity layer on top of the bounded scalar evaluator contract that stem-scalar-evaluator establishes, not a second expression parser: units get their own parser and are attached to literals and results, while the grammar, the budgets and the typed outcomes stay the evaluator's. Multiplication and division combine dimensions, addition and subtraction require identical dimensions, and a power takes a dimensionless exponent with integer or rational dimension handling. Functions with a dimension requirement state it: sin, cos, ln and exp take a dimensionless argument, sqrt halves the exponents. Errors are typed and named (unknown unit, incompatible units, ambiguous symbol, non-finite result), never a number, and an incompatible expression keeps its source intact so the user sees what was rejected. Unit-free input stays dimensionless, so every existing expression keeps its meaning. Tests: 5 kg * 3 m/s^2 = 15 N, 3 m + 2 s rejected with its cause, sqrt(4 m^2) = 2 m, a dimensionless sin, overflow, and the operation budget still enforced."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 690
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-unit-conversion-action"
+title = "Convert a quantity on both shells, as one undoable edit"
+description = "The user story of F02, wired: select a result or a quantity and ask for another unit of the same dimension. Android offers it in the selection actions, the window in its inspector; both filter the target list by the source's dimension, so an incompatible target is never offered, and both write the converted value as one undo step on the existing element rather than a second card. Copy is English and names the unit symbol, not the identifier. A target the table does not share a dimension with is impossible to pick, and a source with no unit offers no conversion at all. The same input must produce the same element on both shells, compared as encoded JSON in a shared test."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 700
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-quantity-codec"
+title = "Quantities in the model and the codec, with a golden fixture and an old-reader fallback"
+description = "A quantity is {value, unitId, display} where unitId is the stable identifier from the published table and display never carries a locale. Encode and decode it in MobixElementCodec with the unknown-field discipline the other living entities follow, keep an older reader's copy verbatim rather than dropping it, and add a golden .mobix fixture carrying a quantity in a calculation and a unit column in a table. A test parses the archive and asserts the JSON holds an identifier rather than a symbol, so a display string can never become the data. Publish the element and the unit identifiers in mobix-schema-spec.md and mobix-elements.md, and ship the table as an external fixture a third-party reader can load without this code."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 710
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-quantity-formatting"
+title = "Print a quantity the same way on the card, in the PDF and in the SVG"
+description = "One formatter for every surface that prints a quantity: the calculation card, the PDF export through PdfPagePlan text ops and the SVG export. It renders the unit symbol from the table, applies the element's display precision and significant digits, and never reads a locale from the archive or writes one into it. A quantity with a dimension but no chosen display prints its canonical form. Tests: a PDF export of 36 km/h extracts as text with its symbol, an SVG carries the same string, the card and the export agree character for character, and the same document renders identically on a JVM with a different default locale. There is no table CSV export today; if one lands it uses this formatter rather than a fourth implementation."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 720
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-variable-definitions"
+title = "Page-scoped variable definitions, bound by a stable id rather than by name"
+description = "A definition is a page-scoped element living beside the existing ones: variableId (minted like ElementId and stable across rename and move), name (display only), source, optional unit, and its own frame when it prints on the page. A pure page index resolves id to definition and name to id, and reports a name that resolves to more than one definition instead of picking one. Nothing binds by display name alone: the name belongs in the formula text, the id in the binding. Encode and decode it unknown-safe like the other living types, with a test that an older reader preserves it verbatim. Document that this is page scope only, and that document-wide definitions are stem-document-wide-definitions, so nothing here scans every page on an interaction."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 730
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-dependency-graph"
+title = "A dependency graph with cycle diagnostics, revisions and local invalidation"
+description = "A directed graph from definition to consumer over the page model, computed once per revision: cycle detection that diagnoses a -> b -> a rather than looping, a topological order for evaluation, and a revision stamp on each definition so a consumer knows whether its cache is current. Invalidation is local: changing a invalidates only what reaches it, and a chain a -> b -> c evaluates once per revision, not once per node per render. A slider drag throttles recomputation and commits one undo entry per gesture, following the PlotElement parameter sliders. A deleted definition leaves its consumers UNRESOLVED, keeping their source and last cache so the page is diagnosable instead of blank. Tests: the three-node chain, the cycle, deletion, rename, and a revision counter that does not advance when nothing changed."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 740
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-variable-wiring"
+title = "Wire definitions into calculations and plots, and show live, frozen and dangling"
+description = "Consumers read a definition by id through the graph: a calculation's inputRefs point at definition ids, and a plot's parameters may name a definition instead of carrying a literal, without changing the shape of PlotElement.parameters for a document that defines nothing. The three states are visible and distinct: live (follows the definition), frozen (the value is pinned and says so), dangling (the definition is gone, the consumer is UNRESOLVED and keeps its last value for diagnosis). Editing a definition refreshes every live consumer in one undo step per gesture. Tests: a calculation and a plot reading the same definition, a change reaching both, a freeze surviving the change, and a delete marking the consumer rather than deleting it."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 750
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-variable-ui"
+title = "Define and rename a variable from the page, on both shells"
+description = "Android and the window both offer Define variable from the selection actions and the inspector, with English copy, the same fields and the same defaults. Rename edits the display name and never the id, so every binding survives; a rename that collides with another definition on the page is refused with the name it collides with. Deleting a definition is its own undoable step and marks its consumers, and a card or plot that reads it shows UNRESOLVED with its last value. Both shells build the same element for the same input, compared as encoded JSON, and the five interface states of docs/interface-contract.md are covered for the definition chip."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 760
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-variable-roundtrip"
+title = "Reopen, merge and validate page variables, with a guard against binding by name"
+description = "Prove the model survives its own container: a page with definitions and consumers reopened is identical, and a merge of two copies of the same document reconciles definitions by variableId rather than by name, keeping both when ids differ. The independent validator enumerates the dependencies of a document without a UI, printing id, name and revision, so a third party can check the graph. A guard test fails the build if a consumer is bound to a display name anywhere in the model or the codec, and another asserts that a document from a newer writer carrying unknown variable keys reopens byte-identical. Document the round-trip guarantee in mobix-format.md and the merge-by-id rule where the merge policy lives."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 770
 created = 2026-11-10
 tags = ["mobix"]
 rebuild = false
