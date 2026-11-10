@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stem-numeric-doc-code-audit"
+title = "Reconcile docs/math-engine.md with FunctionAnalysis.kt and pin the limits in tests"
+description = "Audited FunctionAnalysis.kt end to end and found the doc describing an engine that is not there: derivatives are a two-point central difference at a fixed h=1e-5 rather than a 5-point adaptive stencil, roots and extrema are bisected by a local bisectRoot with 24 iterations and no Brent step, and there is no second derivative or inflection detection at all. Added FunctionAnalysisCharacterizationTest, eleven tests recording sin, x^2, (x-0.5005)^2, x*(x-0.03), 1/x, abs, sqrt, sin(400x) and exp, including the failures the scheme has: a tangent root no sample lands on is missed, two roots inside 0.05 merge, a pole is reported twice at half a sample step and never refined, sqrt's domain edge is called an asymptote, and a root next to a NaN sample is not reported. docs/math-engine.md now describes the implemented algorithm with a measured-limits table linking each row to its test, and README no longer claims inflections. No algorithm changed."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["stem", "math", "p0"]
+design = "none: a numerical audit with its characterization tests and the doc that describes them"
+
+[[task]]
 id = "mobix-current-performance-baseline"
 title = "Measure the real open/save/streaming chain before optimising any of it"
 description = "Added MobixBaselineBenchmarkTest: open at 1, 50, 200 and 1000 pages in light and heavy ink, reported as a cold run plus p50/p95 to a usable first page with pages materialised and the JVM peak heap; save with nothing changed against one edited page with the saver's rewritten/streamed counters at 50, 200 and 1000 pages; a bundled 1 MiB picture, 2 MiB PDF and 1- and 20-minute recordings proving a save streams those payloads without inflating them. SyntheticNotebook gained dense pages and background/audio payload providers. docs/benchmarks.md now states the p50/p95 aggregation rule and its minimum sample, lists the new command, and publishes the measured baseline with its two deliberate gaps (UI frame time, 120-minute recording). No production code changed."

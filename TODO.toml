@@ -22,27 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "stem-numeric-doc-code-audit"
-title = "Reconcile docs/math-engine.md with FunctionAnalysis.kt and pin the limits in tests"
-description = """
-`docs/math-engine.md` states that derivatives use a 5-point central-difference stencil with an automatic step h = cbrt(eps) * max(|x|,1) and that roots are refined with Brent's method to 1e-7. The code disagrees: `mobix-core/src/main/java/com/mobixournal/render/FunctionAnalysis.kt` has a fixed `private const val H = 1e-5` and refines roots and extrema with its own `bisectRoot` (maxIter default 24). The document is therefore describing an algorithm that is not there.
-
-Do the audit, do not re-engineer: read `FunctionAnalysis.kt` end to end (derivative, second derivative, root and extremum finding, integrator, singularity detection) and write down what it actually computes. Add JVM characterization tests in `mobix-core/src/test/.../render/` that record the real behaviour within a stated tolerance for: `sin`, `x^2` with a tangent root at 0, `1/x` across the pole, `abs(x)` at a non-differentiable point, `sqrt` at its domain edge, a rapidly oscillating function, and an overflow case. These tests characterize today's numbers; they must fail loudly if the algorithm is later changed on purpose.
-
-Then fix the false statements in `docs/math-engine.md` so it describes the implemented algorithm and its measured limits, linking the new tests. Do not change the algorithm here - that belongs to `stem-numeric-reliability`, which depends on this audit.
-
-DoD: the doc and the code agree, limits are proven by tests, and a list of known numerical weaknesses is handed to the numeric scope. Dependency: none."""
-status = "active"
-level = "task"
-category = "test"
-urgency = "high"
-order = 70
-created = 2026-11-10
-tags = ["stem", "math", "p0"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-portable-assets"
 title = "Prove which documents are genuinely self-contained"
 description = """
