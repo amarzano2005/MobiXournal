@@ -201,12 +201,12 @@ bounded while the reader is not:
 | Threat | What happens today | State |
 |---|---|---|
 | a manifest declaring thousands of parts, or one entry inflating to gigabytes | `open` inflates every entry into memory with no count, per-entry or total cap; `mimetypeOf` reads the entry it finds unbounded | gap |
-| a page whose JSON nests deeply | `JsonParser` recurses once per level with no depth limit, so a deep file overflows the stack instead of failing the open | gap |
-| duplicate or ambiguous entry names | `open` keeps both and answers the first for a name, so one part can shadow another | gap |
-| `../`, absolute or backslashed entry names | never extracted by this reader, so no traversal here — but anything that did unpack the archive would inherit one | latent |
+| a page whose JSON nests deeply | `JsonParser` refuses nesting past 64 levels, and every document boundary turns that into a malformed document instead of a stack overflow | enforced |
+| duplicate or ambiguous entry names | `open` refuses a duplicate, a `.`/`..` segment, an absolute path, a backslash and a control character, naming the entry | enforced |
+| `../`, absolute or backslashed entry names | never extracted by this reader, and now refused at open rather than carried, so a tool that unpacked the archive cannot inherit one | enforced |
 | a page with a million elements, or a stroke with a million points | no cap; decoding allocates what the file asks for | gap |
 | a part whose bytes disagree with `pages[].sha256` | the digest is compared by the merge and the incremental save, never by the reader | gap |
-| an encrypted entry, an unsupported method, a bad CRC | the JDK raises `ZipException` out of the open, so a corrupt file surfaces as an I/O error rather than as a rejected document | hardened, wrong type |
+| an encrypted entry, an unsupported method, a bad CRC, a truncated archive | the JDK's ZIP and end-of-file exceptions are caught at the container boundary and reported as a malformed document, with the original kept as the cause | enforced |
 | code execution or a network fetch driven by content | nothing in a document is evaluated, and an `attrs` reference is a string the app resolves against its own stores | hardened |
 | a document too large to write | `ClassicZipLimits` refuses the incremental writer's ZIP64 boundaries, and a save that would cross them fails instead of writing a broken archive | hardened (writer) |
 
@@ -215,10 +215,10 @@ a legitimate 200-page notebook with recordings is large by design. Entry count, 
 per archive, expansion ratio, JSON nesting depth, elements per page, points per stroke and cumulative
 asset bytes each get a threshold with the document that motivated it; a hostile file is **rejected
 explicitly** (a malformed-document error naming the entry and the rule), never partially read, and a
-rejected document is never written over in a degraded form. The enforcement, the hostile corpus and the
-error-reporting rule are `mobix-safety-caps`, `mobix-safety-json-depth`, `mobix-safety-entry-names`,
-`mobix-safety-digests`, `mobix-safety-fuzz-corpus` and `mobix-safety-error-reporting`; the row-by-row
-checklist a third-party reader runs is [`spec/CONFORMANCE.md`](../spec/CONFORMANCE.md).
+rejected document is never written over in a degraded form. The depth cap, the entry-name rules and the
+single error type have landed; what remains is `mobix-safety-caps`, `mobix-safety-digests` and
+`mobix-safety-fuzz-corpus`. The row-by-row checklist a third-party reader runs is
+[`spec/CONFORMANCE.md`](../spec/CONFORMANCE.md).
 
 ## Engine optimizations enabled by the format
 

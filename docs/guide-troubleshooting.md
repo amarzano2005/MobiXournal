@@ -41,6 +41,20 @@ does this.
 The catch-all. The second line carries the technical reason; if it names a class and a detail you do not
 recognise, that is the sentence to quote when you report the problem.
 
+#### A damaged notebook
+
+A `.mobix` whose archive no longer matches its own promises is refused rather than opened halfway: a
+truncated download, an entry marked encrypted, a part whose bytes fail the checksum the archive recorded,
+a part whose SHA-256 is not the one the manifest listed, an entry name that appears twice or tries to leave
+the archive, a page nested deeper than the reader will follow. The detail under the heading names the part
+and the rule in plain words — *this archive is not a readable ZIP: invalid entry CRC*, *archive entry
+"pages/page-0001.json" appears twice*, *manifest.json nests deeper than 64 levels*.
+
+**Nothing is written over.** A refused document is never saved, never rewritten in a reduced form, and the
+file on disk stays byte-for-byte as it was, so the failure cannot turn into data loss. Copy it somewhere
+safe first, then recover the notebook from a backup or from the `.xopp` or PDF export you made earlier;
+reopening the same file fails the same way.
+
 ## A save that does not happen
 
 The window writes the whole document beside the target first and only then moves it into place. That is

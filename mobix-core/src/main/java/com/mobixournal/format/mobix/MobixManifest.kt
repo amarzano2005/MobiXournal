@@ -102,7 +102,7 @@ data class MobixManifest(
          *   unusable (`canvasMode` naming a mode this build does not know).
          */
         fun decode(text: String, assets: MobixAssetSource = MobixAssetSource { null }): MobixManifest {
-            val root = JsonParser.parse(text) as? JsonNode.Obj
+            val root = MobixJson.parseJson(text, "manifest.json") as? JsonNode.Obj
                 ?: throw MobixContainer.MalformedMobixException("manifest.json is not a JSON object")
             fun required(key: String): JsonNode = root.value(key)
                 ?: throw MobixContainer.MalformedMobixException("manifest.json has no $key")

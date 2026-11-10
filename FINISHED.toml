@@ -25,6 +25,42 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-safety-error-reporting"
+title = "Reject with one error type, never a raw JDK exception"
+description = "`MalformedMobixException` now carries a `cause` and is the only way the read path rejects a file: `MobixContainer.open` catches `ZipException` and `EOFException` at the container boundary and re-throws them as this format's own error with the entry named, `mimetypeOf` answers null instead of throwing when its probe hits a corrupt archive, and `MobixJson.parseJson` converts the depth cap the same way. Messages stay English and free of class names ('this archive is not a readable ZIP: invalid entry CRC', 'this archive ends before its directory does: the file is truncated') while the JDK exception travels as the cause for a bug report. Tests: `MobixArchiveSafetyTest` builds an entry marked encrypted (general-purpose flag bit 0) and a stored entry with a lying CRC by rewriting the local header, asserts the malformed-document type, the message and the `ZipException` cause, plus the truncated archive and the clean one; the missing-entry and deep-JSON shapes are already asserted in `MobixContainerTest.requireNamesTheMissingEntry` and `JsonDepthLimitTest`. Docs: `docs/guide-troubleshooting.md` gains *A damaged notebook* — the refusal the user sees, the shapes it covers, and the rule that a refused document is never written over, so a refusal cannot become data loss; `docs/mobix-format.md`'s limits table moves the corrupt-container row to enforced."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-10
+tags = []
+design = "none: the container reader's error contract and the troubleshooting page, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-safety-entry-names"
+title = "Reject duplicate, traversing and unnormalised entry names"
+description = "New `MobixEntryNames.validate` runs over every non-directory entry name before anything is decoded (`mimetype` included, so the file's type cannot depend on which duplicate was seen first) and refuses rather than normalises: an empty name, a backslash, a POSIX or `C:` absolute path, a `..` or `.` segment, a control character, and a name that appears twice. Each refusal is a `MalformedMobixException` naming the entry and the broken rule, the check is one pass over strings already in memory and touches no filesystem API. Tests: `MobixArchiveSafetyTest` covers each shape plus the clean archive that still opens; the duplicate case is asserted on the validator because `ZipOutputStream` will not write a duplicate entry. Docs: `docs/mobix-format.md`'s limits table moves both entry-name rows to 'enforced' and states why a name is refused instead of repaired."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-10
+completed = 2026-11-10
+tags = []
+design = "none: archive entry validation inside mobix-core's container reader, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-safety-json-depth"
+title = "Bound JSON nesting instead of overflowing the stack"
+description = "Bounded JSON nesting in `JsonParser`: a MAX_DEPTH of 64 threaded through the existing recursion as a depth counter, counted per container so a scalar does not spend a level, and refused before the children are allocated. `JsonParser.TooDeepException` carries the cap; `MobixJson.parseJson(text, what)` turns it into `MobixContainer.MalformedMobixException` naming the part, and every document boundary (manifest, canvas, page, chunk, bridge, paged reader) now parses through that seam. Tests: `JsonDepthLimitTest` parses at the cap (accepted) and one past it (refused with the rule named), and `MobixArchiveSafetyTest` proves a page carrying such a document fails the open as a malformed document rather than a stack overflow. Docs: `docs/mobix-format.md`'s limits table moves this row from 'gap' to 'enforced'."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-10
+completed = 2026-11-10
+tags = []
+design = "none: mobix-core's JSON parser and the document boundaries that call it, with no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-archive-safety"
 title = "Bound what an untrusted .mobix archive can make the reader do"
 description = "The audit is recorded as a findings table plus the cap policy in `docs/mobix-format.md` (*What a reader must refuse*), covering `MobixContainer.open`, `mimetypeOf`, `MobixPagedReader`, `JsonParser`, the ZIP rewrite and the asset path. Confirmed gaps, each with the code that shows it: no entry-count, per-entry, total or expansion-ratio cap (every entry is inflated with `zip.readBytes()`); a recursive JSON parser with no depth limit; duplicate entry names accepted on read while only the writer rejects them; no cap on elements per page or points per stroke; `pages[].sha256` never verified by the reader. Confirmed hardened or latent: `../` and absolute names are never extracted here (latent, not exploitable in this reader); nothing is evaluated and no content triggers a fetch; the writer is bounded by `ClassicZipLimits`; corrupt archives surface as raw `ZipException` (bounded, wrong error type). Six child tasks split by reader, parser, names, digests, corpus and error reporting; the hostile corpus the DoD asks for is `mobix-safety-fuzz-corpus`, because a corpus without the caps it proves would assert nothing."

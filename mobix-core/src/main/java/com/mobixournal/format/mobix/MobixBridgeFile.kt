@@ -52,7 +52,7 @@ data class MobixBridgeFile(
          *   source's identity on the next write.
          */
         fun decode(text: String): MobixBridgeFile {
-            val root = JsonParser.parse(text) as? JsonNode.Obj
+            val root = MobixJson.parseJson(text, "the bridge metadata") as? JsonNode.Obj
                 ?: throw MobixContainer.MalformedMobixException("xopp-bridge metadata is not a JSON object")
             return MobixBridgeFile(
                 creator = root.getStrOrNull("creator"),

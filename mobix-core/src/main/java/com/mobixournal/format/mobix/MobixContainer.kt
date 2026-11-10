@@ -4,6 +4,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
+import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
@@ -34,8 +35,14 @@ import java.util.zip.ZipOutputStream
  */
 object MobixContainer {
 
-    /** Thrown when an archive is not a readable `.mobix`: wrong type, or a required part missing. */
-    class MalformedMobixException(message: String) : IllegalArgumentException(message)
+    /**
+     * Thrown when an archive is not a readable `.mobix`: wrong type, a required part missing, a name
+     * the rules refuse, or a corrupt container. One error type for every rejection is what lets a
+     * shell show the message instead of an I/O stack trace, and the JDK's own exception travels as
+     * the [cause] so a bug report still carries it.
+     */
+    class MalformedMobixException(message: String, cause: Throwable? = null) :
+        IllegalArgumentException(message, cause)
 
     /**
      * One part of the archive: its entry [name] and the [payload] its bytes come from.
@@ -113,14 +120,24 @@ object MobixContainer {
      * (to hand it to [open]) must rewind it.
      */
     fun mimetypeOf(input: InputStream): String? {
-        ZipInputStream(input).let { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: return null
+        val zip = ZipInputStream(input)
+        return try {
+            var declared: String? = null
+            while (declared == null) {
+                val entry = zip.nextEntry ?: break
                 if (entry.name == MobixFormat.MIMETYPE_ENTRY) {
-                    return zip.readBytes().toString(Charsets.UTF_8).trim()
+                    declared = zip.readBytes().toString(Charsets.UTF_8).trim()
+                } else {
+                    zip.closeEntry()
                 }
-                zip.closeEntry()
             }
+            declared
+        } catch (corrupt: ZipException) {
+            // This is a probe, so it answers "not a .mobix" rather than throwing: the caller's next step
+            // is [open], which reports the corruption and keeps the JDK exception as its cause.
+            null
+        } catch (truncated: java.io.EOFException) {
+            null
         }
     }
 
@@ -140,20 +157,39 @@ object MobixContainer {
     fun open(input: InputStream): Archive {
         var mimetype: String? = null
         val entries = mutableListOf<Entry>()
-        ZipInputStream(input).let { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: break
-                when {
-                    // Directory entries carry no bytes and the writer never needs them; skipping one
-                    // loses nothing, since a ZIP's directory list is optional metadata.
-                    entry.isDirectory -> Unit
-                    entry.name == MobixFormat.MIMETYPE_ENTRY ->
-                        mimetype = zip.readBytes().toString(Charsets.UTF_8).trim()
-                    else -> entries += Entry(entry.name, zip.readBytes())
+        // Every non-directory name, `mimetype` included: the container's own entry is a name too, and
+        // two of them would make the type of the file depend on which one the reader happened to see.
+        val names = mutableListOf<String>()
+        try {
+            ZipInputStream(input).let { zip ->
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    if (!entry.isDirectory) names += entry.name
+                    when {
+                        // Directory entries carry no bytes and the writer never needs them; skipping one
+                        // loses nothing, since a ZIP's directory list is optional metadata.
+                        entry.isDirectory -> Unit
+                        entry.name == MobixFormat.MIMETYPE_ENTRY ->
+                            mimetype = zip.readBytes().toString(Charsets.UTF_8).trim()
+                        else -> entries += Entry(entry.name, zip.readBytes())
+                    }
+                    zip.closeEntry()
                 }
-                zip.closeEntry()
             }
+        } catch (corrupt: ZipException) {
+            // A truncated, encrypted or otherwise unreadable container is a malformed document, not an
+            // I/O failure the shell has to translate: one error type for one fact.
+            throw MalformedMobixException(
+                "this archive is not a readable ZIP: ${corrupt.message ?: corrupt.javaClass.simpleName}",
+                corrupt,
+            )
+        } catch (truncated: java.io.EOFException) {
+            throw MalformedMobixException(
+                "this archive ends before its directory does: the file is truncated",
+                truncated,
+            )
         }
+        MobixEntryNames.validate(names)
         val declared = mimetype ?: throw MalformedMobixException(
             "not a .mobix archive: it declares no ${MobixFormat.MIMETYPE_ENTRY} entry" +
                 " (a ZIP-package .xopp is a ZIP too — see MobixContainer.mimetypeOf)",

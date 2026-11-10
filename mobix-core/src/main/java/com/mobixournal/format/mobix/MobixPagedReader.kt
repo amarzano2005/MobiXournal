@@ -232,7 +232,7 @@ class MobixPagedReader(
         val part = parts[pageIndex]
         val bytes = source.readBytes(part.entry)
             ?: throw MobixContainer.MalformedMobixException("page entry ${part.entry} is missing from archive")
-        val node = JsonParser.parse(bytes.toString(Charsets.UTF_8)) as? JsonNode.Obj
+        val node = MobixJson.parseJson(bytes.toString(Charsets.UTF_8), part.entry) as? JsonNode.Obj
             ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
 
         val page = pageOf(part, node)

@@ -278,46 +278,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-safety-json-depth"
-title = "Bound JSON nesting instead of overflowing the stack"
-description = """
-`JsonParser.parseValue` recurses once per nesting level with no limit, so a deeply nested page overflows the stack and the app dies with a `StackOverflowError` instead of refusing the file.
-
-Add a depth parameter with a documented cap (deep enough for every construct the format has, shallow enough to be far from the JVM stack limit), surface a parse failure the caller can turn into `MalformedMobixException`, and state the cap in `docs/mobix-format.md`'s limits table. Prefer the smallest change: a depth counter threaded through the existing recursion beats a rewrite, and the tolerant-where-harmless behaviour for values must not change.
-
-Verification: a unit test parses a document at the cap (accepted) and one past it (rejected with the rule named), a page carrying such a document fails the open with `MalformedMobixException`, and the settings-backup caller keeps working."""
-status = "active"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 52
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-safety-entry-names"
-title = "Reject duplicate, traversing and unnormalised entry names"
-description = """
-An archive can carry two entries with one name (the reader answers the first), names with `../` or absolute paths, backslashes, NUL or control characters, and names that differ only by case.
-
-Decide the rule per case and enforce it in `MobixContainer.open` (and the paged reader's listing): a duplicate name is a corrupt document, a traversing or absolute name is refused, a backslash is refused rather than normalised, control characters are refused. State why each is refused rather than repaired: a name is an identity here, and rewriting one would make two different documents.
-
-Keep the check allocation-free (no path resolution against the filesystem) and make the error name the offending entry.
-
-Verification: `MobixContainerTest` cases for each shape, a fixture or generated archive per case, and a row in `docs/mobix-format.md`'s limits table."""
-status = "active"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 53
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-safety-digests"
 title = "Verify a part's digest when it is read"
 description = """
@@ -352,27 +312,6 @@ level = "task"
 category = "test"
 urgency = "high"
 order = 55
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-safety-error-reporting"
-title = "Reject with one error type, never a raw JDK exception"
-description = """
-A corrupt archive currently surfaces as `ZipException`, a deep one as `StackOverflowError`, a missing entry as this format's own exception: three shapes for one fact, and only one of them is a message a shell can show.
-
-Route every rejection in the read path through `MobixContainer.MalformedMobixException`, catching the JDK's ZIP exceptions at the container boundary and adding the entry name and the rule that failed. Keep the original exception as the `cause` so a bug report still carries it, and keep the message English and free of class names.
-
-Also state the non-destructive rule the shells rely on: a document that failed to open is never written over, so a refusal cannot become data loss.
-
-Verification: tests assert the exception type and message for each corrupt shape (encrypted, bad CRC, truncated, deep JSON, missing entry), and `docs/guide-troubleshooting.md` names the refusal the user sees."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 56
 created = 2026-11-10
 tags = []
 rebuild = false

@@ -53,7 +53,7 @@ data class MobixCanvasFile(
          *   not carry a `mode` this build knows — the one thing here a reader cannot invent.
          */
         fun decode(text: String): MobixCanvasFile {
-            val root = JsonParser.parse(text) as? JsonNode.Obj
+            val root = MobixJson.parseJson(text, "canvas.json") as? JsonNode.Obj
                 ?: throw MobixContainer.MalformedMobixException("canvas.json is not a JSON object")
             val modeName = root.getStrOrNull("mode")
                 ?: throw MobixContainer.MalformedMobixException("canvas.json has no mode")

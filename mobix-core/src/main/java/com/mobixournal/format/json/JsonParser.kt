@@ -12,7 +12,23 @@ package com.mobixournal.format.json
  * Object keys keep their source order, which the `.mobix` writer depends on for preserved fields.
  */
 object JsonParser {
-    fun parse(input: String): JsonNode {
+
+    /**
+     * How deeply a document may nest before it is refused.
+     *
+     * The deepest shape the format has is a page → layer → element → point → preserved value, so 64
+     * leaves room for a decade of additive fields while staying far from the JVM stack limit: the
+     * parser recurses once per level, and without a cap a 20 kB file of `{` characters ends the
+     * process with a `StackOverflowError` instead of refusing the document
+     * (`docs/mobix-format.md`, *What a reader must refuse*).
+     */
+    const val MAX_DEPTH: Int = 64
+
+    /** Thrown when a document nests deeper than [maxDepth]; the callers turn it into a refusal. */
+    class TooDeepException(val maxDepth: Int) :
+        IllegalArgumentException("JSON nests deeper than $maxDepth levels")
+
+    fun parse(input: String, maxDepth: Int = MAX_DEPTH): JsonNode {
         var pos = 0
         val len = input.length
 
@@ -52,11 +68,15 @@ object JsonParser {
             return sb.toString()
         }
 
-        fun parseValue(): JsonNode {
+        fun parseValue(depth: Int = 1): JsonNode {
             skipWhitespace()
             if (pos >= len) return JsonNode.Null
             return when (val c = input[pos]) {
                 '{' -> {
+                    // Checked before the object's children are read, so the refusal costs no allocation
+                    // proportional to the file and arrives at the level that crossed the line. A scalar
+                    // does not nest, so it is not counted: the depth is "how many containers deep".
+                    if (depth > maxDepth) throw TooDeepException(maxDepth)
                     pos++
                     val map = LinkedHashMap<String, JsonNode>()
                     skipWhitespace()
@@ -70,7 +90,7 @@ object JsonParser {
                             val key = parseString()
                             skipWhitespace()
                             if (pos < len && input[pos] == ':') pos++
-                            val value = parseValue()
+                            val value = parseValue(depth + 1)
                             map[key] = value
                             skipWhitespace()
                             if (pos < len && input[pos] == ',') {
@@ -86,6 +106,7 @@ object JsonParser {
                     }
                 }
                 '[' -> {
+                    if (depth > maxDepth) throw TooDeepException(maxDepth)
                     pos++
                     val list = mutableListOf<JsonNode>()
                     skipWhitespace()
@@ -94,7 +115,7 @@ object JsonParser {
                         JsonNode.Arr(list)
                     } else {
                         while (pos < len) {
-                            list += parseValue()
+                            list += parseValue(depth + 1)
                             skipWhitespace()
                             if (pos < len && input[pos] == ',') {
                                 pos++

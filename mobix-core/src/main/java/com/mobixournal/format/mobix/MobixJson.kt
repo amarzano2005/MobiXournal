@@ -76,6 +76,23 @@ object MobixJson {
         )
     }
 
+    /**
+     * Parse [text] as a document part, turning a file that nests deeper than
+     * [com.mobixournal.format.json.JsonParser.MAX_DEPTH] into a rejection that names [what].
+     *
+     * The parser caps depth to keep a 20 kB hostile file from ending the process with a stack
+     * overflow; this is the seam where that cap becomes the format's own error, so every document
+     * boundary reports one type (`docs/mobix-format.md`, *What a reader must refuse*).
+     */
+    fun parseJson(text: String, what: String): JsonNode = try {
+        com.mobixournal.format.json.JsonParser.parse(text)
+    } catch (tooDeep: com.mobixournal.format.json.JsonParser.TooDeepException) {
+        throw MobixContainer.MalformedMobixException(
+            "$what nests deeper than ${tooDeep.maxDepth} levels",
+            tooDeep,
+        )
+    }
+
     /** The `attrs` object holding the `.xopp` attributes the bridge must not lose. */
     fun attrsNode(attrs: Map<String, String>): JsonNode = obj { out ->
         attrs.forEach { (key, value) -> out[key] = JsonNode.of(value) }
