@@ -8,6 +8,7 @@ import java.io.File
 import java.io.InputStream
 import java.util.Collections
 import java.util.LinkedHashMap
+import java.util.zip.ZipException
 import java.util.zip.ZipFile
 
 /**
@@ -49,7 +50,21 @@ interface MobixEntrySource : AutoCloseable {
          * Create an entry source from a physical [File] using [ZipFile].
          * [ZipFile] reads the central directory at the end of the archive and only inflates entries on demand.
          */
-        fun fromFile(file: File): MobixEntrySource = ZipFileEntrySource(ZipFile(file), file)
+        fun fromFile(file: File): MobixEntrySource = try {
+            ZipFileEntrySource(ZipFile(file), file)
+        } catch (corrupt: ZipException) {
+            // A file whose central directory is missing or unreadable is a malformed document, not an
+            // I/O failure a shell has to translate: one error type, as the streaming road already does.
+            throw MobixContainer.MalformedMobixException(
+                "this archive is not a readable ZIP: ${corrupt.message ?: corrupt.javaClass.simpleName}",
+                corrupt,
+            )
+        } catch (truncated: java.io.EOFException) {
+            throw MobixContainer.MalformedMobixException(
+                "this archive ends before its directory does: the file is truncated",
+                truncated,
+            )
+        }
 
         /**
          * In-memory entry source for tests or synthetic fixtures.

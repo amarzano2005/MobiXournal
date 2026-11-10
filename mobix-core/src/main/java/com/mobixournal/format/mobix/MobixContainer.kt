@@ -168,6 +168,9 @@ object MobixContainer {
         try {
             ZipInputStream(input).let { zip ->
                 var total = 0L
+                // One chunk for every entry: a per-entry buffer is what turned a megabyte of headers
+                // into gigabytes of allocation on the hostile corpus's many-entry file.
+                val buffer = caps.newReadBuffer()
                 while (true) {
                     val entry = zip.nextEntry ?: break
                     if (!entry.isDirectory) {
@@ -181,10 +184,10 @@ object MobixContainer {
                         // loses nothing, since a ZIP's directory list is optional metadata.
                         entry.isDirectory -> Unit
                         entry.name == MobixFormat.MIMETYPE_ENTRY ->
-                            mimetype = caps.readBounded(zip, entry.name, caps.maxMimetypeBytes)
+                            mimetype = caps.readBounded(zip, entry.name, caps.maxMimetypeBytes, buffer)
                                 .toString(Charsets.UTF_8).trim()
                         else -> {
-                            val bytes = caps.readBounded(zip, entry.name)
+                            val bytes = caps.readBounded(zip, entry.name, caps.maxEntryBytes, buffer)
                             caps.refuseBeyondExpansion(entry.name, entry.compressedSize, bytes.size.toLong())
                             caps.refuseBeyondArchiveBytes(total + bytes.size)
                             total += bytes.size

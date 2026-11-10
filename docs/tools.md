@@ -20,6 +20,7 @@ The vendored design skill and the design declaration that closes a UI change are
 | Desktop shell | Run, test and package the Compose Multiplatform window (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [below](#cutting-a-release) |
 | UI/UX Pro Max | Design data, its search script, and the declaration that closes a UI change | [below](design-workflow.md) |
+| Mobix corpora | Regenerate the golden and hostile `.mobix` fixture corpora | [below](#mobix-corpora) |
 
 ---
 
@@ -276,3 +277,16 @@ pixel** (the sheet appears) and the **settled** page (the ink has stopped arrivi
 second: `paints/s`, the worst gap between paints, and the paint's own cost) — a large `worst` with a
 one-millisecond `paint` is a blocked UI thread, not a slow painter, which is the distinction a headless
 render cannot make.
+
+## Mobix corpora
+
+Two generators, both dependency-free and deterministic (fixed ZIP timestamps, no clock or locale), so a
+re-run reproduces the same bytes and a fixture can be reviewed as a diff:
+
+- `scripts/make-mobix-fixtures.py` → the golden v1 corpus under
+  `mobix-core/src/test/resources/fixtures/mobix-v1/`, driven by `MobixV1FixturesTest`.
+- `scripts/make-mobix-hostile-corpus.py` → the hostile corpus under
+  `mobix-core/src/test/resources/fixtures/mobix-hostile/`: one file per threat in the limits table of
+  [mobix-format.md](mobix-format.md), plus the smallest legal document (`MobixHostileCorpusTest`).
+  Re-run it after changing a cap — the many-entry file is sized to the entry cap and the bomb's ratio
+  follows the ratio cap — or the corpus stops testing the policy it is meant to.

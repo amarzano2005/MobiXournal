@@ -257,27 +257,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-safety-fuzz-corpus"
-title = "Commit a hostile corpus and prove the reader stays bounded"
-description = """
-The audit's DoD: no silent hang and no memory blow-up on a hostile corpus, with the corpus committed.
-
-Build the corpus from a deterministic generator (the fixture script's style: no clock, no locale) with one file per threat in the limits table — a many-entry archive, a high-ratio deflate bomb, a deeply nested page, duplicate and traversing names, a page whose digest is wrong, an encrypted entry, a truncated central directory — plus the smallest legal document, so the test can tell "refused for the right reason" from "refused because everything is".
-
-The test asserts, per file, the exception type, the rule named in the message, and a wall-clock/allocation ceiling: a refusal must arrive in bounded time without exhausting the heap, and the clean file must still open.
-
-Verification: the generator script is referenced from `docs/tools.md`, the corpus from `docs/testing.md`, and the test runs in `:mobix-core:test` in a few seconds."""
-status = "active"
-level = "task"
-category = "test"
-urgency = "high"
-order = 55
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-current-performance-baseline"
 title = "Measure the real open/save/streaming chain before optimising any of it"
 description = """

@@ -159,9 +159,18 @@ data class MobixSafetyCaps(
      * [stream] read whole, refusing as soon as it passes [cap] — read in chunks, so a hostile entry costs
      * the buffered prefix and no more than the cap, never its declared size.
      */
-    fun readBounded(stream: InputStream, name: String, cap: Long = maxEntryBytes): ByteArray {
+    fun readBounded(stream: InputStream, name: String, cap: Long = maxEntryBytes): ByteArray =
+        readBounded(stream, name, cap, newReadBuffer())
+
+    /**
+     * [readBounded] recycling [buffer], the chunk it reads through.
+     *
+     * A caller that reads **many** entries passes one buffer for all of them: an entry count is capped
+     * in the tens of thousands, so a fresh 64 KiB chunk per entry would allocate gigabytes to read an
+     * archive that is a megabyte (the committed many-entry file measured 1.25 GiB before this).
+     */
+    internal fun readBounded(stream: InputStream, name: String, cap: Long, buffer: ByteArray): ByteArray {
         val out = ByteArrayOutputStream()
-        val buffer = ByteArray(READ_BUFFER_BYTES)
         var total = 0L
         while (true) {
             val n = stream.read(buffer)
@@ -186,6 +195,9 @@ data class MobixSafetyCaps(
         source.storedSizes(name)?.let { refuseBeyondExpansion(name, it.compressed, it.inflated) }
         return source.openEntry(name)?.use { readBounded(it, name, cap) }
     }
+
+    /** A fresh read chunk, for a caller that has no buffer of its own to recycle. */
+    internal fun newReadBuffer(): ByteArray = ByteArray(READ_BUFFER_BYTES)
 
     private fun refuse(why: String): Nothing = throw MobixContainer.MalformedMobixException(why)
 
