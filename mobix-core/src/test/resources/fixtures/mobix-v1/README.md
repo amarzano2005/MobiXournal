@@ -5,6 +5,9 @@ compatibility construct; `MobixV1FixturesTest` drives every file through the
 container, the paged reader, the document layer, a save to a new file and an
 incremental save.
 
+These files are dedicated to the public domain under CC0 1.0 Universal — `spec/LICENSE` at the
+repository root, which also records why that is compatible with the application's GPL licence.
+
 Regenerate with `python3 scripts/make-mobix-fixtures.py` (dependency-free and
 deterministic: fixed ZIP timestamps, no clock, no locale). The script is the
 source of truth for the bytes — a fixture and this table are changed together.

@@ -64,25 +64,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-spec-licence"
-title = "Dedicate the spec artefacts and the fixture corpus to the public domain"
-description = """
-The licence decision recorded in `docs/mobix-schema-spec.md` needs to land in the tree: the `spec/` documents and the golden fixture corpus must be usable by an independent implementer without taking on this application's licence.
-
-Add `spec/LICENSE` with the CC0-1.0 dedication and its SPDX identifier, a `NOTICE` row that separates the artefact licence from the application's GPL-2.0-or-later, and a `README.md` sentence saying which files it covers. Check that the dedication is compatible with the GPL for the repository as a whole (CC0 content can be redistributed inside a GPL work) and record the reasoning in the spec README so the choice is not re-litigated.
-
-Verification: the licence files exist, `NOTICE` and `README.md` agree with them, and no document claims a licence the tree does not carry."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 48
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-current-performance-baseline"
 title = "Measure the real open/save/streaming chain before optimising any of it"
 description = """

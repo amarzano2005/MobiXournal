@@ -176,11 +176,11 @@ what is published. Three decisions make that the case, and none of them is a sec
   and each known element family, kept honest by a drift guard. The schemas state where they stop: a
   digest of bytes in another entry, a cross-entry reference, and geometry that is the sum of fields are
   checks only code can make.
-- **The artefacts are meant to be reusable.** The `spec/` documents and the golden fixture corpus are to
-  be dedicated to the public domain (CC0-1.0) so an independent reader can embed them without taking on
-  this application's licence; the application source stays GPL-2.0-or-later, and `NOTICE` records the
-  split. `mobix-spec-licence` lands the licence files and the `NOTICE` row together, so the promise is
-  never stated in prose before it is stated in the tree.
+- **The artefacts are reusable.** The `spec/` documents and the golden fixture corpus are dedicated to
+  the public domain (CC0-1.0, [`spec/LICENSE`](../spec/LICENSE)) so an independent reader can embed them
+  without taking on this application's licence; the application source stays GPL-2.0-or-later, and
+  `NOTICE` records the split. What the dedication covers, and why it is compatible with the repository
+  as a whole, are [`spec/README.md`](../spec/README.md)'s.
 
 The child tasks split the remaining prose by protocol area (`mobix-spec-container`,
 `mobix-spec-data-model`, `mobix-spec-elements`, `mobix-spec-assets`, `mobix-spec-capabilities`), the

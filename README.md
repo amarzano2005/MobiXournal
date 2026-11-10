@@ -154,7 +154,7 @@ chemistry palette is gone. Shell differences: [what works, and what is not there
 
 ## Licence, credit and lineage
 
-**GPL-2.0-or-later** — [LICENSE](LICENSE), with third-party notices in [NOTICE](NOTICE). MobiXournal continues
-Brian Monroe's [NeXopp](https://github.com/bamonroe/NeXopp) and shares its formats with
-[Xournal++](https://github.com/xournalpp/xournalpp). It is independent, not affiliated with or endorsed by the
-Xournal++ authors.
+**GPL-2.0-or-later** — [LICENSE](LICENSE), notices in [NOTICE](NOTICE); the format spec and fixtures
+are **CC0-1.0** ([spec](spec/README.md)). MobiXournal continues Brian Monroe's
+[NeXopp](https://github.com/bamonroe/NeXopp) and shares formats with
+[Xournal++](https://github.com/xournalpp/xournalpp), and is not affiliated with either.

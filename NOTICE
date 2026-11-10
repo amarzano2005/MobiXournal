@@ -154,6 +154,23 @@ This project is **not** affiliated with, endorsed by, or maintained by the Xourn
 it uses no upstream logo or trademark: the launcher icon is this project's own artwork.
 
 ===============================================================================
+THE SPECIFICATION ARTEFACTS — CC0-1.0
+===============================================================================
+
+The files in `spec/` and the golden fixture corpus in
+`mobix-core/src/test/resources/fixtures/mobix-v1/` are dedicated to the public domain under
+**CC0 1.0 Universal** — [`spec/LICENSE`](spec/LICENSE), SPDX `CC0-1.0` — so that an independent
+implementer can embed the specification and its samples without taking on this application's
+licence.
+
+That dedication is compatible with the repository as a whole: public-domain material may be
+redistributed inside a GPL-2.0-or-later work, because the GPL's copyleft reaches the program and its
+derivative works rather than the CC0 data shipped beside them. Bundling those files here does not
+relicense the application, and embedding them elsewhere does not put anyone under the GPL. The split
+is therefore by file: the specification and its samples are CC0-1.0, the code that reads them is
+GPL-2.0-or-later. Each file remains under its own terms; nothing here relicenses anything else.
+
+===============================================================================
 THIRD-PARTY COMPONENTS
 ===============================================================================
 

@@ -39,6 +39,28 @@ short form: open every file in the golden corpus, run the conformance rows again
 produced from each, then open and re-save one file written by this app and compare the constructs the
 capability table says must survive.
 
+## Licence — public domain, on purpose
+
+Everything in this directory ([`README.md`](README.md), [`CONFORMANCE.md`](CONFORMANCE.md), the JSON
+Schema documents when they land, and the [`LICENSE`](LICENSE) beside them) and the golden fixture
+corpus in `mobix-core/src/test/resources/fixtures/mobix-v1/` are dedicated to the public domain under
+**CC0 1.0 Universal** — SPDX `CC0-1.0`. The application's source stays **GPL-2.0-or-later**, and
+[`NOTICE`](../NOTICE) records the split.
+
+The reason is the reader this directory exists for. A specification an implementer cannot copy into a
+wiki, a test suite or a non-GPL product without first answering a licence question is a specification
+that gets re-read and mis-remembered instead of used. CC0 makes the text and the fixture files
+themselves freely embeddable, with no attribution obligation to satisfy and no compatibility question
+to answer first.
+
+The choice is also compatible with the repository as a whole, which matters because these files ship
+inside it. A public-domain work may be redistributed inside a GPL-licensed collection without changing
+that collection's terms: the GPL's copyleft attaches to the program and its derivative works, while
+these artefacts are data the program ships beside. Bundling them here does not relicense the
+application, and embedding them elsewhere does not put anyone under the GPL. That is why the split is
+by file rather than by feature — the specification and its samples are CC0, the code that reads them
+is GPL.
+
 ## What this is not
 
 It is not a second architecture index, it does not describe the app's policies (which format a document
