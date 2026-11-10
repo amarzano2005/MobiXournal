@@ -1038,7 +1038,17 @@ class DocsGuardTest {
      * Backticked prose that has a task id's shape without being one. Deliberate, the way the source-size
      * ceilings are: adding a line here is a decision to state, not a way round the check.
      */
-    private val proseThatLooksLikeATaskId = emptySet<String>()
+    private val proseThatLooksLikeATaskId = setOf(
+        // Corpus fixture names, written in `mobix-elements.md` to point at the file that keeps each
+        // construct: they share the `NN-slug` shape of a task id without being one.
+        "08-unknown-top-level-field",
+        "09-unknown-nested-fields",
+        "11-unknown-vocabulary-values",
+        "12-unknown-background-type",
+        // An outcome name from the capability contract, which `mobix-schema-spec.md` writes in backticks
+        // exactly as `MobixOpenOutcome` spells it — prose, not a task.
+        "preserved-but-not-drawn",
+    )
 
     /** Every task id in `TODO.toml` and `FINISHED.toml`: the two files a doc may reference. */
     private fun taskIds(): Set<String> {

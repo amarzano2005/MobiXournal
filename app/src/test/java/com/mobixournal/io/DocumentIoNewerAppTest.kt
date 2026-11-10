@@ -5,6 +5,7 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.XoppZip
 import com.mobixournal.format.mobix.MobixDocument
+import com.mobixournal.format.mobix.MobixOpenOutcome
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.tabs.OpenTab
@@ -103,6 +104,10 @@ class DocumentIoNewerAppTest {
         val doc = loaded as LoadedFile.Doc
         assertEquals(SaveFormat.MOBIX, doc.format)
         assertTrue("needsNewerApp must be true for minAppVersion 2.0.0 vs 1.3.0", doc.needsNewerApp)
+        assertEquals("the open gate decides read-only, once", MobixOpenOutcome.READ_ONLY, doc.verdict.outcome)
+        assertFalse("and nothing may be written back", doc.verdict.mayWrite)
+        assertFalse("nor drawn on", doc.verdict.mayEdit)
+        assertTrue("the notice says which version was required", "2.0.0" in doc.verdict.reason)
     }
 
     @Test
@@ -115,6 +120,8 @@ class DocumentIoNewerAppTest {
         assertTrue("expected Doc result", loaded is LoadedFile.Doc)
         val doc = loaded as LoadedFile.Doc
         assertFalse("needsNewerApp must be false for same minAppVersion", doc.needsNewerApp)
+        assertEquals("a floor this build meets is a full edit", MobixOpenOutcome.FULL_EDIT, doc.verdict.outcome)
+        assertTrue("which may be written", doc.verdict.mayWrite)
     }
 
     @Test
@@ -152,6 +159,7 @@ class DocumentIoNewerAppTest {
         val doc = loaded as LoadedFile.Doc
         assertEquals(SaveFormat.ORIGINAL, doc.format)
         assertFalse("needsNewerApp must be false for gzip .xopp", doc.needsNewerApp)
+        assertEquals("a .xopp declares no capabilities, so it is a full edit", MobixOpenOutcome.FULL_EDIT, doc.verdict.outcome)
     }
 
     @Test

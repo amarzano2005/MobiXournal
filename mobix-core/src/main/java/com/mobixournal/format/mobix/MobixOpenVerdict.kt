@@ -36,7 +36,13 @@ data class MobixOpenVerdict(
     /** The required capabilities this build does not implement; empty for [MobixOpenOutcome.FULL_EDIT]. */
     val unsatisfiedRequired: List<MobixCapability> = emptyList(),
 
-    /** The optional capabilities this build does not implement; the constructs they name are preserved. */
+    /**
+     * The optional capabilities this build does not implement; the constructs they name are preserved.
+     *
+     * Always empty for [MobixOpenOutcome.REFUSE_WRITE]: a document that may not be written back keeps
+     * nothing, so reporting an optional construct as preserved there would be a promise the outcome has
+     * already broken.
+     */
     val unknownOptional: List<MobixCapability> = emptyList(),
 
     /** What decided the outcome, for the notice [reason] summarises: a version, or a capability. */
@@ -47,9 +53,16 @@ data class MobixOpenVerdict(
     val mayWrite: Boolean
         get() = outcome == MobixOpenOutcome.FULL_EDIT || outcome == MobixOpenOutcome.PRESERVED
 
-    /** Whether this verdict lets a page be changed — separate from writing, because a preserved file may be saved. */
+    /**
+     * Whether this verdict lets a page be changed.
+     *
+     * The same answer as [mayWrite], because a document whose unmodelled constructs are preserved *is*
+     * editable everywhere else: what this build must not do is rewrite those constructs, and the
+     * retention channel enforces that rather than a disabled canvas. Only [MobixOpenOutcome.READ_ONLY]
+     * and [MobixOpenOutcome.REFUSE_WRITE] turn editing off.
+     */
     val mayEdit: Boolean
-        get() = outcome == MobixOpenOutcome.FULL_EDIT
+        get() = outcome == MobixOpenOutcome.FULL_EDIT || outcome == MobixOpenOutcome.PRESERVED
 
     /** The sentence a notice shows: what the file needs, and what this build therefore does not allow. */
     val reason: String

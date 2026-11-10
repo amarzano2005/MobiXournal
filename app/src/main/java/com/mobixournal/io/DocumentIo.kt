@@ -14,6 +14,7 @@ import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.mobix.MobixMergeEngine
+import com.mobixournal.format.mobix.MobixOpenOutcome
 import com.mobixournal.format.mobix.MobixPageReuse
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.MobixPayload
@@ -296,12 +297,16 @@ class DocumentIo(
             // …and that the reader backing it has to stay open for as long as the session holds it.
             openSessions.keep(mobixDoc.manifest.documentId, reader)
 
+            // One verdict for this open, decided by the gate and carried by the document: a notice and a
+            // disabled action are two readings of this answer, never two comparisons of the manifest.
+            val verdict = mobixDoc.verdict(appVersion)
             LoadedFile.Doc(
                 document = mobixDoc.toDocument().also { openSessions.opened(it) },
                 pdf = backgrounds.pdf,
                 format = SaveFormat.MOBIX,
                 images = backgrounds.images,
-                needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion),
+                needsNewerApp = verdict.outcome == MobixOpenOutcome.READ_ONLY,
+                verdict = verdict,
                 conflictNotification = conflictNote,
                 backgrounds = backgrounds,
             )

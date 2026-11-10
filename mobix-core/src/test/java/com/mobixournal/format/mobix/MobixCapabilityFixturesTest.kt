@@ -62,7 +62,7 @@ class MobixCapabilityFixturesTest {
 
         assertEquals(MobixOpenOutcome.PRESERVED, verdict.outcome)
         assertTrue("the document is still saved", verdict.mayWrite)
-        assertFalse("but not edited into what this build cannot draw", verdict.mayEdit)
+        assertTrue("editable everywhere: only the constructs this build cannot draw are left alone", verdict.mayEdit)
         assertTrue("the notice names the feature", "example.org/stem.connector:1" in verdict.reason)
 
         // The construct itself is kept: the save writes the element back as it arrived.

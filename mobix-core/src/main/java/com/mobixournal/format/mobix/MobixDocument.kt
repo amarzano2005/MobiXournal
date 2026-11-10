@@ -205,6 +205,11 @@ class MobixDocument(
      * owner had ([MobixBridgeFile]) — and **this document's own identity**, which is what lets a save of
      * it be an edit rather than a duplicate ([Document.documentId]).
      */
+    /** The open gate's answer for this document against [appVersion], computed once so a shell carries it
+     *  instead of deriving one: a notice and a disabled action are two readings of one answer. */
+    fun verdict(appVersion: String): MobixOpenVerdict =
+        MobixCapabilities.evaluate(manifest, MobixFormat.declaredCapabilities, appVersion)
+
     fun toDocument(): Document = Document(
         creator = bridge?.creator ?: DEFAULT_CREATOR,
         fileVersion = bridge?.fileVersion ?: "4",

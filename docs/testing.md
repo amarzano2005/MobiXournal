@@ -47,7 +47,10 @@ that no test names. Every construct in it is a **preservation claim**: an unknow
 envelope fields, an unknown element type, an unknown field on a known type (top level and nested), an
 unknown vocabulary value, an unknown background type, content-addressed payloads, manifest page order, a
 chunked document, and the declared-capability files 13-17, which `MobixCapabilityFixturesTest` drives
-through the gate. What each one keeps is the table in [mobix-format.md](mobix-format.md); the per-family
+through the gate. `MobixCapabilityGateTest` covers the space between those files — every combination of
+required known, required unknown and required-at-a-higher-version against known and unknown optional
+features and a floor below, at and above this build — and `DocumentIoNewerAppTest` pins that the app's
+open path carries the gate's verdict rather than asking the manifest again. What each one keeps is the table in [mobix-format.md](mobix-format.md); the per-family
 rule behind it is [mobix-elements.md](mobix-elements.md)'s.
 
 **The hostile corpus.** `MobixHostileCorpusTest` drives the nine committed files under

@@ -22,6 +22,21 @@ object MobixFormat {
     /** The suffix the app suggests for a `.mobix` save. A hint only — classification never uses it. */
     const val EXTENSION = ".mobix"
 
+    /**
+     * The capabilities **this build implements** — what a manifest's declaration is compared with when
+     * a file is opened ([MobixCapabilities.evaluate]).
+     *
+     * Empty in v1, and that is the honest declaration rather than an omission: no v1 construct needs a
+     * capability to be written correctly, because every family this format models is modelled here, and
+     * anything a newer writer adds is carried by the retention channel rather than dropped. A capability
+     * a file declares is therefore a feature from outside v1, and the gate answers it as one.
+     *
+     * Adding a feature a reader must understand **in order to write** a file means adding its identifier
+     * here in the same change. This set is the build's own claim about itself; it is never a list copied
+     * from a document, and a capability is not declared here because a test wants one satisfied.
+     */
+    val declaredCapabilities: Set<MobixCapability> = emptySet()
+
     /** The first entry, STORED uncompressed: what a reader that only wants to *identify* the file reads. */
     const val MIMETYPE_ENTRY = "mimetype"
 

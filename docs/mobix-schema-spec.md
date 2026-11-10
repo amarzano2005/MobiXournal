@@ -184,10 +184,16 @@ elements it now holds, or is refused: a document that cannot keep an element mus
 trim it.
 
 The manifest half is implemented (`MobixCapability`, and the two lists in `MobixManifest`), and the
-gate's decision lives in `MobixCapabilities.evaluate`; fixtures 13-17 in the golden corpus are one file
-per outcome and are driven by `MobixCapabilityFixturesTest`. Still to build: the gate's shell wiring and
-notice (`mobix-capability-reader-gate`, `mobix-capability-warning-surface`) and the merge/paste union
-(`mobix-capability-merge-copy`).
+gate's decision lives in `MobixCapabilities.evaluate`. The answer travels with the opened document —
+the verdict is computed **once**, from the manifest and the capabilities this build declares
+(`MobixFormat.declaredCapabilities`, empty in v1 because no v1 construct needs permission to be
+written) — so a notice and a disabled action are two readings of one answer instead of two
+comparisons that can disagree. Fixtures 13-17 in the golden corpus are one file per outcome and are
+driven by `MobixCapabilityFixturesTest`; the space between them is the matrix of
+`MobixCapabilityGateTest`.
+
+Still to build: the notice on the two shells (`mobix-capability-warning-surface`) and the merge/paste
+union (`mobix-capability-merge-copy`).
 
 ## Page schema (`pages/page-N.json`, `chunks/chunk_x_y.json`)
 

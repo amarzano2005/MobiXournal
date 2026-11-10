@@ -1,6 +1,8 @@
 package com.mobixournal.io
 
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.format.mobix.MobixOpenOutcome
+import com.mobixournal.format.mobix.MobixOpenVerdict
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.BackgroundResolver
 import java.io.File
@@ -45,6 +47,13 @@ sealed interface LoadedFile {
         val missingImage: Boolean = false,
         /** True when a .mobix manifest requires a newer app version than this build (minAppVersion). */
         val needsNewerApp: Boolean = false,
+        /**
+         * What this build may do with the document, decided once at open
+         * (`MobixCapabilities.evaluate`) — the shell presents this instead of asking the manifest again.
+         * A `.xopp` can declare nothing, so it is a full edit; so is a `.mobix` whose declaration this
+         * build satisfies.
+         */
+        val verdict: MobixOpenVerdict = MobixOpenVerdict(MobixOpenOutcome.FULL_EDIT),
         /** Non-null message when a sync conflict sibling was detected and merged into this document. */
         val conflictNotification: String? = null,
         /**

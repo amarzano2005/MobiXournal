@@ -22,31 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-capability-reader-gate"
-title = "Evaluate declared capabilities at open and produce one verdict"
-description = """
-The gate half of the capability contract in `docs/mobix-schema-spec.md` (*Declared capabilities*): turn a manifest plus what this build implements into exactly one outcome, with the documented precedence.
-
-Files: new `mobix-core/src/main/java/com/mobixournal/format/mobix/MobixOpenVerdict.kt`, `MobixFormat.kt` (a `declaredCapabilities: Set<MobixCapability>` the build advertises; start with the capabilities v1 actually keeps whole), `MobixDocument.kt`, and the app's open path (`app/src/main/java/com/mobixournal/io/DocumentIo.kt`, `LoadedFile`) so the verdict travels with the opened document instead of being recomputed.
-
-Behaviour:
-1. `MobixOpenVerdict` is a sealed/enum value with `FullEdit`, `PreservedButNotDrawn(optional: Set)`, `ReadOnlyDisplay(reason)`, `RefuseWrite(reason)` plus a human-readable `reason` the UI can show (English, what happened and what is disabled — never a class name).
-2. `MobixCapabilities.evaluate(manifest, declared): MobixOpenVerdict` implements: unknown required capability that cannot be preserved → `RefuseWrite`; `minAppVersion` above this build, or an unknown required capability whose constructs are displayable → `ReadOnlyDisplay`; unknown required capability whose constructs *can* be preserved → `PreservedButNotDrawn`; otherwise `FullEdit`. An unknown optional capability only downgrades when it names a construct this build cannot keep — which, until the retention tasks land, means `ReadOnlyDisplay` (state that in the code and the doc).
-3. Precedence is exactly the doc's: refuse-write > read-only > preserved-but-not-drawn > full edit, the strictest among several unknown requirements wins, and an unknown required capability always beats a permissive `minAppVersion`.
-4. Do not change `MobixManifest.requiresAppNewerThan`; the gate calls it. Do not enforce the verdict in the UI yet — that is `mobix-capability-warning-surface`.
-
-Verification: `MobixCapabilityGateTest` as a table-driven matrix over every combination of (required known/unknown-preservable/unknown-unpreservable × optional known/unknown × minAppVersion below/above), asserting the outcome and the precedence rules named in the doc; one case per row of the outcome table. Add the verdict to the app open path with a JVM test in `app/src/test` that a newer-`minAppVersion` file comes back `ReadOnlyDisplay`. Run `./gradlew :mobix-core:test :app:testDebugUnitTest` and update `docs/testing.md`."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 32
-created = 2026-11-10
-tags = ["mobix", "versioning"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-capability-warning-surface"
 title = "Tell the reader what a file requires, on both shells"
 description = """
