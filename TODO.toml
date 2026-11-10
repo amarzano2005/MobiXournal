@@ -20,3 +20,830 @@ remove_dropped_items = "Remove dropped items with a one-line why."
 finish_work = "When a task is fully finished (built, tested, documented), run `todo.py done <id> --shipped` to move it to FINISHED.toml; the archive records what the task delivered (files, behaviour, tests, docs, and what it deliberately did not do), not the plan it was picked up from."
 documentation_is_part_of_the_task = "Every task that writes code also writes its documentation, in the same task and the same commit. Never add a separate follow-up task for documenting work that a task already did — a task whose docs are not updated is not finished, and no `done` until they are. The writing rules are `docs/writing-docs.md`'s, and its Definition of Done is the bar."
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
+
+[[task]]
+id = "mobix-v1-compatibility-fixtures"
+title = "Golden v1 .mobix fixture corpus with an honest capability matrix"
+description = """
+No versioned corpus of `.mobix` files exists in the repository, so no test can prove that a new release still opens old documents or that an unknown construct survives a save. Build one.
+
+Collect and commit fixtures under `mobix-core/src/test/resources/fixtures/mobix-v1/`, each with a README line saying what it exercises: (1) minimal single-page document; (2) multi-page document with ordered pages; (3) image, PDF-background and audio assets; (4) a document whose page was edited and saved incrementally; (5) a ZIP carrying an unknown entry (e.g. `future/thing.bin`); (6) a manifest with an unknown top-level field; (7) a page holding an unknown element `type`; (8) a known `type` carrying an unknown top-level field; (9) a known `type` carrying an unknown nested field inside a sub-object and inside an array item; (10) a chunked (`chunks/`) document.
+
+Add JVM tests in `mobix-core/src/test/java/com/mobixournal/format/mobix/` that drive each fixture through `MobixContainer.open`, `MobixPagedReader` (open, first page, arbitrary page, close), `MobixDocument`, `MobixIncrementalSave`/`MobixIncrementalSaver` and a save-to-new-file, asserting stable element ids, page order, asset digests and zero loss on everything the format already supports. Cases 7-9 must be written as *characterization* tests that currently fail or assert the known gap, never as a green assertion claiming preservation works.
+
+Record the resulting truth in a capability table (Supported / Partially supported / Not supported) in the owning spoke, `docs/mobix-format.md`, and link the fixtures from `docs/testing.md`.
+
+DoD: fixtures versioned, every one exercised by a named test, the matrix matches what the tests actually prove, and `:mobix-core:test` runs them in CI (see `CiCoverageTest`).
+Dependency: none - this is the prerequisite of every other format item."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "high"
+order = 10
+created = 2026-11-10
+tags = ["mobix", "compatibility", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-known-type-unknown-fields"
+title = "Stop losing unknown fields inside a known element type"
+description = """
+Verified gap, not a suspicion: `MobixElementCodec.kt` documents in its own header that an unknown *element type* survives (as `RawElement`) but an unknown *field* inside a known `type` does not, and that adding fields to an existing type is treated as potentially breaking. `attrs`/`extraAttrs` only capture what the codec already knows how to read. A newer writer's field is therefore silently dropped the first time this build saves the page - the worst failure mode for an open format.
+
+Investigate every decoder/encoder: `MobixElementCodec`, `MobixPageCodec`, `MobixManifest`, `MobixCanvas`, `MobixTableCodec`, `MobixPlotCodec`, `MobixCircuitCodec`, `MobixMathCodec`, `MobixShapeCodec`, `Living.kt` and the `Element` hierarchy. For each known family, inventory exactly which shapes are lost: unknown top-level keys, unknown keys inside a known sub-object, unknown keys inside array items, unknown enum constants (that must never be replaced by a plausible default and written back as the user's choice), and unknown fields on `attrs`/`extraAttrs`.
+
+Propose two strategies and pick one with reasons: (A) a transitional raw-safe guard - refuse to edit and open read-only when a known element carries fields the model cannot reproduce; (B) lossless edit-known-preserve-unknown - keep the unknown JSON subtree (or original node plus a patch of known fields) on the element and re-emit it on encode, with an explicit rule forbidding collisions between known and unknown keys. Distinguish semantic preservation from byte-identical preservation, and never claim byte identity for an element the writer actually modified.
+
+Then break the work into small per-family tasks: model change, codec change, fixture from `mobix-v1-compatibility-fixtures`, and a test proving the invariant that unknown `type`, unknown top-level field, unknown nested field, unknown enum all survive open -> save, open -> edit *another* page -> save, and merge/copy/undo. Keep `docs/mobix-format.md` and `docs/mobix-elements.md` as the owners of the resulting rule.
+
+DoD of the scope: a written decision, a per-family loss inventory, and child tasks at `task` level. No schema change in this scope. Dependency: `mobix-v1-compatibility-fixtures`."""
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "high"
+order = 20
+created = 2026-11-10
+tags = ["mobix", "compatibility", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-capability-contract"
+title = "Declare required and optional capabilities independently of the app version"
+description = """
+Today the only evolution signal is `formatVersion` + `minAppVersion`, which speaks MobiXournal version numbers and therefore cannot express an independent writer's requirements; this forces a choice between bumping `formatVersion` for every feature (breaking v1 readers for no structural reason) and shipping features nobody declared. Design the missing middle layer.
+
+Decide and document: the exact manifest shape for `requiredCapabilities` and `optionalCapabilities` (stable namespaced strings such as `org.mobixournal/stem.connector:1`), who validates them, and the four reader outcomes - full edit, read-only display, preserved-but-not-drawn, refuse-write - with precedence rules when several capabilities are unknown. Decide whether a per-type `schemaVersion` inside new element objects is needed, and what a legacy type looks like without it. Keep `minAppVersion` as the legacy MobiXournal guard and say explicitly in the spec that editability backwards is not promised for unknown features: a newer file opened by an older app may be shown read-only or preserved verbatim, never silently trimmed.
+
+Cross-cutting checks: unknown capabilities must never make an old reader write a document it cannot represent; a third-party writer must be able to satisfy the contract without knowing MobiXournal's version numbers; merge and copy must carry capabilities with the elements they describe.
+
+Owners to update: `docs/mobix-format.md`, `docs/mobix-schema-spec.md`. Break out child tasks for the manifest codec, the reader gate, the warnings surfaced in the UI, and the fixtures. DoD: one written, testable contract plus child tasks. No `formatVersion` bump in this scope. Dependency: `mobix-known-type-unknown-fields` decision, `mobix-spec-v1`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 30
+created = 2026-11-10
+tags = ["mobix", "versioning", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-spec-v1"
+title = "Publish an implementer-facing .mobix v1 specification"
+description = """
+`docs/mobix-schema-spec.md` and its siblings are written for contributors to this app, not for an outside implementer, and there is no machine-checkable schema in the repository (no `*.schema.json` file exists). A third party cannot build a reader from what is published today, so the format is not open in practice.
+
+Design the structure, the location and the licence story for an implementer-facing v1 spec: whether it is one new spoke above the 300-line `DocsGuardTest` budget or a small family of pages, whether the fixtures and examples carry their own licence, and how to avoid forking the internal docs - either the internal pages become the spec (and are rewritten for that audience) or the spec references them as normative and the duplicates are deleted. Respect `DocsGuardTest`, `docs/doc-governance.md` and `docs/writing-docs.md`.
+
+Content the spec must define, each as its own child task: ZIP protocol (magic, `mimetype` first and `STORED`, allowed compression methods, entry naming and path normalisation, unknown entries); `manifest.json` and `canvas.json` (required fields, defaults, versions, canvas mode, page and chunk ordering, coordinates, units, z-order, timestamps); every v1 element type with its sub-fields, units and semantic examples; assets (SHA-256 over which bytes, naming, missing-asset semantics, dedup); capabilities, unknown handling, `minAppVersion`; the `.xopp` bridge as display-plus-metadata with its documented losses; and safety limits a reader must enforce.
+
+Add JSON Schema Draft 2020-12 documents for manifest, canvas, page and the known element families, and state plainly where the schema stops (digests, cross-entry references, geometry sums need code). Keep schemas as a mirror of the codecs with a drift guard so they cannot rot.
+
+DoD: a written structure decision, child tasks per protocol area, and a stated validation path for a third-party reader. Dependency: `mobix-v1-compatibility-fixtures`; coordinate with `mobix-known-type-unknown-fields` so the preservation rule is stated once."""
+status = "active"
+level = "scope"
+category = "docs"
+urgency = "high"
+order = 40
+created = 2026-11-10
+tags = ["mobix", "open-format", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-archive-safety"
+title = "Bound what an untrusted .mobix archive can make the reader do"
+description = """
+`ClassicZipLimits` guards the incremental *writer* against classic-ZIP limits; that is not proof that the *reader* survives a hostile archive, and the two have never been audited as one threat model. No fuzz or property-testing corpus of malformed documents exists.
+
+Audit both paths against a written threat model: `MobixContainer.open` (eager), `MobixPagedReader` (lazy), `mimetypeOf`, `MobixZip`/`MobixZipRewrite`, `MobixIncrementalSaver` and the JSON parsers. Check for: missing caps on entry count, compressed and uncompressed size per entry and per archive, expansion ratio, JSON page size, nesting depth, elements per page, points per stroke and cumulative asset bytes; duplicate or ambiguous entry names; `../` and absolute paths; inconsistent central directory; unsupported methods and encryption; unbounded `readBytes()` reachable from a hostile `manifest`; CRC and SHA-256 verification with entry-level error reporting; and the cost of maths/font parsing driven by file content. Confirm no content can cause code execution or an implicit network fetch, including `attrs`-borne references.
+
+Policy to design: motivated thresholds, hard caps for hostile input, and per-notebook budgets so a legitimately large document is not truncated. Failure must be explicit and non-destructive - a rejected document never gets overwritten with a crippled copy.
+
+Deliver: a findings table (confirmed vulnerability / hardened already / gap), child tasks split by reader, writer, validator and fuzz corpus, and an owner doc (`docs/mobix-format.md`) section stating the enforced limits. DoD: no silent hang or memory blow-up on the hostile corpus, with the corpus committed. Dependency: `mobix-v1-compatibility-fixtures`; feeds the independent CLI validator."""
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "high"
+order = 50
+created = 2026-11-10
+tags = ["mobix", "security", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-current-performance-baseline"
+title = "Measure the real open/save/streaming chain before optimising any of it"
+description = """
+`docs/benchmarks.md` defines what a number must carry, and three reports exist, but the matrix the plan needs (paged open, no-op save, one-page edit, large-asset read, peak heap) is not measured as one comparable set, so any optimisation would be unarguable.
+
+Extend the existing benchmark fixtures and reports rather than inventing a second harness. Use `BenchmarkEnvironment.kt` (in `mobix-core/src/testFixtures`) so every figure carries machine, build SHA, JVM and warmup. Measure at 1, 50, 200 and 1000 pages with light and heavy ink: open-to-manifest, open-to-first-page, pages materialised, peak heap; a save with no changes and a save with exactly one modified page, recording elapsed time, bytes rewritten, raw entries copied and unchanged digests (`MobixIncrementalSave` counters such as `streamedEntries`/`rewrittenEntries`); and a document with image/PDF assets plus 1/20/120-minute audio for heap, streamed bytes, time to first frame and whether audio is opened at all.
+
+Record p50/p95 cold and warm, never a single run, and never write a speedup claim - this task establishes the baseline only. Keep JVM benchmarks explicitly separate from Android/desktop frame time; if UI frame-time measurement is wanted, add it as its own child task instead of blurring the two. Publish the report through `docs/benchmarks.md` and the release-notes rule there.
+
+DoD: a reproducible baseline report linked from `docs/benchmarks.md`, with the exact command to re-run it. No production code change. Dependency: the fixture corpus (audio and large documents)."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "high"
+order = 60
+created = 2026-11-10
+tags = ["mobix", "performance", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-numeric-doc-code-audit"
+title = "Reconcile docs/math-engine.md with FunctionAnalysis.kt and pin the limits in tests"
+description = """
+`docs/math-engine.md` states that derivatives use a 5-point central-difference stencil with an automatic step h = cbrt(eps) * max(|x|,1) and that roots are refined with Brent's method to 1e-7. The code disagrees: `mobix-core/src/main/java/com/mobixournal/render/FunctionAnalysis.kt` has a fixed `private const val H = 1e-5` and refines roots and extrema with its own `bisectRoot` (maxIter default 24). The document is therefore describing an algorithm that is not there.
+
+Do the audit, do not re-engineer: read `FunctionAnalysis.kt` end to end (derivative, second derivative, root and extremum finding, integrator, singularity detection) and write down what it actually computes. Add JVM characterization tests in `mobix-core/src/test/.../render/` that record the real behaviour within a stated tolerance for: `sin`, `x^2` with a tangent root at 0, `1/x` across the pole, `abs(x)` at a non-differentiable point, `sqrt` at its domain edge, a rapidly oscillating function, and an overflow case. These tests characterize today's numbers; they must fail loudly if the algorithm is later changed on purpose.
+
+Then fix the false statements in `docs/math-engine.md` so it describes the implemented algorithm and its measured limits, linking the new tests. Do not change the algorithm here - that belongs to `stem-numeric-reliability`, which depends on this audit.
+
+DoD: the doc and the code agree, limits are proven by tests, and a list of known numerical weaknesses is handed to the numeric scope. Dependency: none."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "high"
+order = 70
+created = 2026-11-10
+tags = ["stem", "math", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-portable-assets"
+title = "Prove which documents are genuinely self-contained"
+description = """
+The README calls a `.mobix` self-contained, but the codec admits external references when the bytes are unavailable (image `fn`/`ts`-style references exist in the model, PDF backgrounds may point at a URI, fonts are never bundled), so a file can open here and display nothing on another machine with no warning. There is no portability audit and no validator for asset naming and digests.
+
+Walk every resource a document can reference: page images, PDF backgrounds, audio recordings, embedded font/metric dependencies, dataset and other future payloads, and external URI/SAF paths. Classify each as embedded-and-verified (hash matches), referenced-but-absent (must be an explicit warning with an option to embed when the bytes and the permission exist), or unrecoverable (must block the claim of portability while keeping the original reference). Never download anything implicitly, in the app or in a third-party reader.
+
+Read `MobixAssets`, `MobixPayload`, `BundledPayloads`, `MobixPageCodec`, `MobixElementCodec`, `MobixDocument` and `docs/data-path.md`. Design the diagnostic surface (a per-document report a person can read) and the future 'Save a portable copy' action, which must still produce a valid `.mobix` - never a second container type. Break out child tasks: audit, warning model, embed action, validator rules, doc updates.
+
+Owners: `docs/data-path.md`, `docs/mobix-format.md`, `docs/guide-formats-and-conversion.md`. DoD: a findings table and child tasks; no new archive format. Dependency: `mobix-spec-v1` (asset rules) and `mobix-archive-safety` (limits)."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 80
+created = 2026-11-10
+tags = ["mobix", "portability", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-independent-cli"
+title = "Ship a reader/validator that does not depend on mobix-core or the app"
+description = """
+Nothing outside this repository can read a `.mobix` today: every reader path lives in `mobix-core`, and there is no validator, so 'the format is open' is an intention rather than a fact. A third-party reader is also the only honest test of the published spec.
+
+Decide the stack (a small Python CLI on the standard library plus an optional JSON-Schema dependency is the reference proposal; Rust would follow the repository's server-language default if it grows a server surface), where it lives, and how it is licensed and tested. Design the minimum interface: `inspect` (manifest, sizes, versions, capabilities), `validate` (structure, references, SHA-256, bounds), `list` (pages/chunks/assets without loading audio), `extract` (safe, no path traversal), `export-json`. It must not import `com.mobixournal.*`, Kotlin or Gradle.
+
+Second stage, as its own child task: a minimal writer that creates a one-page document with one stroke and one asset, or changes a title, while preserving everything it does not understand. Prove both directions: a file generated by the CLI opens in MobiXournal, and a file saved by MobiXournal validates in the CLI. State which element families the tool can only preserve versus actually draw - a ZIP parser is not a STEM renderer.
+
+Add a CI job running the tool against the fixture corpus so cross-implementation drift fails the build. DoD: written stack/licence decision, child tasks, and the acceptance test named above. Dependency: `mobix-spec-v1`, `mobix-v1-compatibility-fixtures`, `mobix-archive-safety`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 90
+created = 2026-11-10
+tags = ["mobix", "open-format", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-migrations"
+title = "Make format migrations explicit, repeatable and reversible"
+description = """
+There is no documented migration mechanism: no `fromVersion`/`toVersion` plan, no golden migration tests, and no written guarantee that a structural save is atomic on SAF (Android) and on Windows file APIs. The existing read-only path for newer documents is the only protection.
+
+Distinguish the four operations that are currently conflated and design each: format migration (changes the schema, may justify a new `formatVersion`), writer upgrade (better compression or an added derived index, no semantic change), compaction (drops unused assets only after references from unknown areas are resolved - an explicit, conservative action), and external conversion (PDF/SVG/`.xopp`/JSON export, which never mutates the original).
+
+Decide: no in-place migration on open; write to a temp file, validate it fully, then publish it by replacement; keep a recoverable backup; specify what happens if the process dies mid-write on each platform, verified rather than assumed. Define the migration plan shape (`fromVersion`, `toVersion`, preconditions, diagnostics, checkpoints) and the golden tests that pin it. State the conditions under which `formatVersion=2` is genuinely required.
+
+Owners: `docs/mobix-format.md`, `docs/document-session.md`, `docs/tools.md`. DoD: written policy plus child tasks (plan format, atomic publish, backup/restore, golden tests). Dependency: `mobix-capability-contract`, `mobix-archive-safety`, the fixture corpus."""
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "normal"
+order = 100
+created = 2026-11-10
+tags = ["mobix", "compatibility", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-compression-review"
+title = "Decide STORED vs DEFLATE per entry from measurements, not taste"
+description = """
+The ordinary writer DEFLATEs every entry except `mimetype`, which spends CPU on media that is already compressed (PNG, JPEG, WebP, Opus, PDF) and recompresses payloads it could have copied raw. Nobody has measured whether a selective STORED policy would help, and changing the default without evidence would be a compatibility gamble.
+
+Using the baseline from `mobix-current-performance-baseline`, compare STORED and DEFLATED per content class: page JSON, chunk JSON, small assets, already-compressed media, and large audio. Measure save CPU, resulting document size, cold-open time and the raw-copy path (`MobixZipRewrite`, `MobixIncrementalSaver`), and confirm that every reader this project cares about - including a third-party one - accepts the chosen methods. Respect the current invariant that unmodified entries are copied raw and never recompressed.
+
+Deliver a per-entry policy proposal with the numbers behind it, plus child tasks for `MobixContainer`, `MobixZipRewrite` and `MobixIncrementalSaver` if the policy is worth adopting, and the spec text that documents it. DoD: a measured recommendation, including an explicit 'keep the current default' outcome if the data does not justify a change. Dependency: the baseline."""
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "normal"
+order = 110
+created = 2026-11-10
+tags = ["mobix", "performance", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-derived-index-review"
+title = "Assess an optional derived index/ only where a profile shows a bottleneck"
+description = """
+The plan proposes optional `index/` and `previews/` entries. Neither exists, and adding them without a measured reason would be a fixed cost on every save plus a second source of truth. This scope exists to keep the idea honest rather than to build it.
+
+Using the baseline report, identify whether any real workload (search across 1000 pages, thumbnail grid, asset lookup during a lazy open) is actually bottlenecked by rescanning. If it is, design an entry that is strictly derived: content-addressed or digest-invalidated, rebuildable from the canonical JSON, never the only home of any datum, ignored by readers that do not know it, and cheap to skip on save. Design the preview policy the same way: a non-authoritative cache with a source hash, never a substitute for rendering, and never a claim that an older Mobixournal can show a new element.
+
+DoD: a written go/no-go with the profile that motivates it, and child tasks only in the 'go' case. Dependency: `mobix-current-performance-baseline`, `mobix-spec-v1` (extension rules)."""
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "low"
+order = 120
+created = 2026-11-10
+tags = ["mobix", "performance", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-zip64-review"
+title = "Decide whether ZIP64 is needed now or stays deferred"
+description = """
+The incremental raw writer is deliberately limited to classic ZIP (no ZIP64) and only supports STORED/DEFLATED for raw copy; the standard path may fall back. Whether a real document can hit those limits is unknown, so the current behaviour on a very large file is neither documented nor tested.
+
+Establish the real numbers first: page counts, entry counts and total sizes reachable with 120-minute audio, large PDF backgrounds and heavy multi-page notebooks. Then determine what actually happens today at the boundary - clean fallback, refusal, or silent truncation - and test it. If ZIP64 is needed, scope the raw-copy writer extension, reader support, and interop with the third-party CLI; if it is not, record the deferral with the size budget that would trigger it.
+
+DoD: a written decision with the size evidence and a regression test at the boundary; child tasks only if a real workload needs them. Dependency: the baseline and large-file fixtures."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 130
+created = 2026-11-10
+tags = ["mobix", "zip", "performance", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-unicode-pdf-review"
+title = "Fix the non-WinAnsi character loss in PDF export for STEM text"
+description = """
+`mobix-core/src/main/java/com/mobixournal/render/PdfPagePlan.kt` (and the Android/desktop painters around it) contains paths that substitute `?` for characters outside WinAnsi. That is tolerable for today's incidental labels and unacceptable the moment a `codeBlock` or a mixed scientific text box promises copyable Unicode, so it must be resolved before either ships.
+
+Audit which text reaches which PDF path (living-element labels, math blocks, table cells, notes, future code) and reproduce the loss with a fixture containing Greek, Cyrillic, super/subscripts, combining marks and astral-plane characters. Then decide the cross-platform solution: an embedded, properly licensed font subset with ToUnicode mapping, or a documented fallback that degrades visibly instead of silently. Verify text extraction/selection from the produced PDF, not just that glyphs appear, and check Android and desktop agree. Keep the licence rule: never redistribute a font without a compatible licence.
+
+Owners: `docs/pdf.md`, `docs/rendering.md`, `docs/guide-limitations.md`. DoD: a decision, child tasks, and a failing-then-fixed fixture. Dependency: a scientific text corpus; precedes `stem-code-block` and `stem-scientific-text` claiming full Unicode."""
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "normal"
+order = 140
+created = 2026-11-10
+tags = ["stem", "pdf", "unicode", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-page-calculations"
+title = "Compute on the page: evaluable source, typed result, no invented numbers (F01)"
+description = """
+There is no way to evaluate anything on a page: `FunctionPlot.compile` is an evaluator for f(x) plotting, `MathBlockElement` stores a LaTeX source for display, and neither writes a result that a reader can re-check. A student still copies numbers by hand.
+
+User story: write or select `2*(3+4)`, choose Calculate from the context menu, and get a small card showing the normalised input, the value and the precision; `1/0` shows a cause, never a number; the card can be frozen so it stops following its inputs.
+
+Investigate `FunctionPlot`/`FunctionPlot.compile`, `MathBlockElement`, `Living.kt`, `LivingInk`, `MobixElementCodec`, the Android selection actions and the desktop inspector. Then decide the model: a new `calculation` element (not an `attrs` extension of `stroke`/`text`) with `source`, `sourceLanguage`, frame, input references, display options, `mode` (live/frozen) and a `cachedDisplay` that is explicitly derived and ignorable. Separate 'evaluable expression' from 'graphical formula' so the plotting parser is not silently promoted to a general language; never serialize `NaN`/`Infinity` as JSON numbers. The result must be re-computable by a third party from the source alone, and a cached value is never presented as authoritative without verification.
+
+Break out child tasks, in order: C1 a bounded scalar evaluator (no globals, operation/time budget); C2 model + codec + golden `.mobix` fixture, unknown-safe; C3 renderer in `LivingInk` with PDF/SVG/`.xopp` visual fallback; C4 the Calculate action on Android and desktop plus undo; C5 reopen, export and independent-CLI interoperability.
+
+Acceptance: `2*(3+4)=14`; `1/0` is diagnosed; the same expression behaves identically on both shells; a saved and reopened document re-evaluates to the same result; PDF shows source and value. Dependency: the minimum new-type gate (codec, fixture, old-reader fallback), `mobix-known-type-unknown-fields`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 150
+created = 2026-11-10
+tags = ["stem", "calculator", "format", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-physical-units"
+title = "Physical quantities, SI dimensions and unit conversion (F02)"
+description = """
+No quantity model exists: `5 kg * 3 m/s^2` can only be drawn. Every later feature - calibrated measurements, dataset columns, table units, simulations - needs the same canonical representation, so it must be designed once and not per feature.
+
+User story: write `v=10 m/s` and obtain `36 km/h` on request; define `m=5 kg` and `a=3 m/s^2` and read `F=m*a` as `15 N`; type `3 m + 2 s` and get 'incompatible units' while the expression stays intact.
+
+Specify: the seven SI base dimensions, linear and affine unit transforms (an absolute °C is not a metro, and a temperature delta has no offset), a parser for units separate from the expression parser, locale-independent stable unit identifiers (never display labels or `java.util.Locale` in the data), and the error taxonomy. Reuse the evaluator contract from `stem-page-calculations`; watch precision, overflow and equivalent symbols.
+
+Child tasks: U1 the unit table plus a conversion suite; U2 quantity/evaluator with the limit cases; U3 the 'Convert unit' UI action on both shells; U4 codec, spec entry and external fixtures; U5 formatting in PDF/CSV. Acceptance: `10 m/s = 36 km/h`, `N` and `kg·m/s²` agree, `m+s` is rejected without deleting the source, absolute vs delta temperature correct, and a third-party reader can convert using only the published table. Dependency: `stem-page-calculations` evaluator contract, `mobix-spec-v1` for the published unit identifiers."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 160
+created = 2026-11-10
+tags = ["stem", "units", "math", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-reactive-variables"
+title = "Page-scoped variables with a real dependency graph (F03)"
+description = """
+`PlotElement` already has parameters driven by sliders, but they are local to one plot: there is no way to define `a=2` once and have a calculation, a table and a plot read the same value. Nothing in the model expresses 'this result depends on that definition', so nothing can go stale.
+
+User story: define `a = 2` and `m = 5 kg` in the notebook, reference them from a result and a plot, change `a` once and see exactly which results are affected; distinguish a live reference, a frozen value and a dangling reference.
+
+Model decision to make in this scope: bind by stable `variableId`, never by the display name alone; the name belongs in the formula text, the id survives rename and move. First phase is page scope only - document-wide definitions are `stem-document-wide-definitions`, because they need an authoritative registry and must not scan every page on each interaction. Runtime: directed definition-to-consumer graph, cycle detection, topological evaluation, revisions, local invalidation; throttle during a slider drag and commit one undo entry per gesture; a deleted definition becomes `UNRESOLVED` and keeps its source and last cache for diagnosis. Never silently rebind an ambiguous name.
+
+Files: `Living.kt` and new pure models, the page index, `PlotElement.parameters`, `PlotInk`, `MobixManifest`/`MobixDocument` for any document-level registry, merge by id, and both shells' inspectors. Child tasks: V1 definitions and page-scoped bindings; V2 graph with cycle diagnostics and revisions; V3 wiring into calculations and plots; V4 define/rename UI; V5 round-trip, merge and drift guard.
+
+Acceptance: chain `a -> b -> c` evaluates once per revision; `a -> b -> a` is diagnosed, not hung; rename keeps bindings; reopening the file is identical; the independent validator can enumerate the dependencies. Dependency: F01, F02, the reference-preservation policy from `mobix-known-type-unknown-fields`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 170
+created = 2026-11-10
+tags = ["stem", "dependency", "variables", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-scientific-tables"
+title = "Tables with cell formulas, ranges and references (F04)"
+description = """
+`TableElement` has textual cells, a codec, `TableInk` and a cell editor, but a cell cannot hold `=B3/A3`, a range or a unit, so a lab table cannot recompute when a measurement changes. This is the single most requested practical workflow after plain calculation.
+
+User story: build a table with `time (s)`, `distance (m)`, `speed (m/s)`; the third column holds `=B3/A3`; `SUM`, `AVG`, `MIN`, `MAX` work over ranges; changing a measurement updates dependants; the sheet can feed a plot.
+
+Audit `TableElement`, `TableCell`, `MobixTableCodec`, `TableInk`, `TableElementFactory`, `TableCellEditorModel`, `TableCellEditorDialog` and selection/undo. Then make the one decision this scope exists for: extend the known `type` compatibly, or add `type=scientificTable` with stable row and column ids and typed cells (literal / formula / error). Do not rewrite `TableCellEditorDialog` and do not turn every existing table into a spreadsheet: conversion must be an explicit 'Convert to scientific table' action, reversible by copy, and old documents are never converted automatically. `A1` is a user-facing notation; internally prefer stable row/column ids with a documented policy for insert and move.
+
+Child tasks: T1 cell schema and row/column ids; T2 formula parser with cell dependencies, cycle and missing-reference diagnostics, bounded depth; T3 explicit conversion from `TableElement`; T4 a non-invasive editor adaptation; T5 PDF/`.xopp`/CSV and interop; T6 load/save/undo and formula-error states. Keep dates, locale-sensitive parsing and drag-fill semantics out of the MVP and say so.
+
+Acceptance: `=B2*C2`, range sums, divide-by-zero and cycle errors, missing reference, incremental recompute, CSV round-trip, faithful `.xopp`, and untouched legacy tables. Dependency: F01-F03 and the forward-field-preservation policy."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 180
+created = 2026-11-10
+tags = ["stem", "tables", "formulas", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-parametric-authoring-verification"
+title = "Prove the parametric plot path end to end and align the STEM guides"
+description = """
+`app/src/main/java/com/mobixournal/ui/AdvancedFunctionGraphDialog.kt` exposes two tabs - Cartesian f(x) and Parametric {x(t), y(t)} - and creates `PlotCurve(kind=PARAMETRIC)`, while `docs/guide-stem-tools.md` and `docs/guide-limitations.md` still read as if insertion were Cartesian only. Nobody has proven the parametric path survives the whole chain, and the same test is the prerequisite for the polar decision.
+
+Verify the real flow on both shells, with a device pass: dialog tab -> `resolveActiveCurves` -> `DrawingSurfacePlots.insertPlotElement` -> `PlotInk` -> `MobixPlotCodec` -> save and reopen the `.mobix` -> export PDF and `.xopp`, and confirm the curve keeps its parameter range, sample count and style. Capture the actual behaviour (screenshots plus the exported artefacts) rather than inferring it from code.
+
+Then update the two guide pages to state exactly what is supported today, using the guide's status vocabulary, and add the JVM round-trip test the verification exposes if one is missing. Do not add a second plot engine and do not touch polar authoring - that is `stem-polar-authoring`.
+
+DoD: a passing JVM round-trip test for a parametric curve, a documented emulator pass, and guides that match the code. Dependency: none."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 190
+created = 2026-11-10
+tags = ["stem", "plot", "compatibility", "p0"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-polar-authoring"
+title = "Create and edit polar curves r(theta) from the UI (F06)"
+description = """
+`PlotInk` already renders `CARTESIAN`, `PARAMETRIC` and `POLAR`, and the model carries polar curves, but `AdvancedFunctionGraphDialog` offers only the first two tabs, so a polar curve cannot be created from the UI on either shell. (This item reconciles the earlier `stem-plot-polar-completion` proposal - do not create that one as a second item.)
+
+User story: open the plot dialog, pick `r(theta)`, type `2*cos(3*theta)` with an explicit range, see a preview, insert it, reopen the document and export it to PDF and `.xopp` with the same shape.
+
+After `stem-parametric-authoring-verification` establishes the shared path, add only the polar creation/edit route: the third tab, `r(theta)` inputs with default range, preview, insertion, and the inspector fields needed to reopen and edit it. Reuse `PlotKind.POLAR`, `AdvancedCurves`, `PlotInk` and `MobixPlotCodec` - never a new element `type` for polar curves, since they already belong to `PlotElement`. Note that polar is authoring-only for now: ranges outside the default and animation are not part of this scope.
+
+Child tasks: P1 dialog tab and inputs; P2 default range plus preview; P3 inspector edit path; P4 round-trip and export regression tests; P5 guide update. Acceptance: a three-petal rose created from the UI, saved, reopened, exported on Android and Windows, with the parametric path unregressed. Dependency: `stem-parametric-authoring-verification`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 200
+created = 2026-11-10
+tags = ["stem", "plot", "polar", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-inspection"
+title = "Trace, tangent and integral tools on a live plot (F05)"
+description = """
+The plotter can draw, analyse and shade, but reading a value means typing coordinates: there is no cursor that snaps to a curve, no tangent tool and no way to drag integral bounds and watch the value follow. The analysis code exists, the interaction layer does not.
+
+User story: drag a crosshair over `x^2`, read `(x, y)` with scientific precision; drop a tangent at a point and see the slope, with a clear signal at a non-differentiable point; drag two handles to shade an integral and read its value without overwriting the function; compare several curves and read a shared table of values.
+
+Audit `PlotFrame` and `PlotInk` coordinate transforms (math to canvas and back, zoom-safe), `FunctionAnalysis` point evaluation and error states, `AdvancedFunctionGraphDialog`, the gesture router and existing sliders. Design: sampling cache per revision and viewport; no heavy numeric work on the pointer-move path; transient overlays stay UI-only, and persisting a marker becomes a documented `plotAnnotation` element only if it cannot live in a known element without loss.
+
+Child tasks: P1 math crosshair with snapping; P2 tangent/normal with undefined diagnostics; P3 dual integral handles; P4 optional persistent annotation plus codec; P5 precision, zoom and export tests. Acceptance: the tangent of `x^2` at x=2 reads 4 within a stated tolerance; `1/x` never bridges the pole; annotating, zooming and exporting stays coherent; no frame jank while tracing on the baseline device. Dependency: `stem-numeric-doc-code-audit` (what the analysis can honestly promise) and the performance baseline."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 210
+created = 2026-11-10
+tags = ["stem", "plot", "ui", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-semantic-export"
+title = "Export the meaning, not just the picture (F22)"
+description = """
+Exports today are visual: PDF, SVG and `.xopp` render living entities to ink, which is the right fallback but carries no semantics. There is no way to get the LaTeX of a formula, the CSV of a table, the samples of a plot or a netlist out of a document, and no report of what a conversion lost.
+
+Inventory the existing channels - `XoppSynthesis`, `PdfPagePlan`, `PageSvgWriter`, the `.xopp` bridge and the per-family coverage in `XoppExportCoverageTest` - then define a pure `ScientificInterchange` contract plus a `ConversionReport` that says, per object and per target: preserved, editable, displayed, partly lost, unsupported. No export may mutate the original `.mobix`, and no export may claim round-trip fidelity it does not have.
+
+Targets and fallbacks: formula/scientific text -> LaTeX/Markdown/MathML for the supported subset, PDF/SVG/`.xopp` fallback; calculation and variables -> JSON/CSV with source, units and values; scientific table -> CSV plus formulas; plot -> sampled CSV + SVG/PDF + a JSON definition; code -> the original text file; dataset and simulation -> their own scopes' formats.
+
+Child tasks: E1 the report model and UI surfacing; E2 formula/code source export; E3 CSV+JSON data export; E4 Unicode-safe SVG/PDF where `stem-unicode-pdf-review` allows it; E5 delegation points for SPICE and other format owners. Acceptance: a document exports without modification, every loss is declared, and a third-party tool can consume the exported CSV/JSON with the published rules. Dependency: the element families it exports (F01, F09 first) and `mobix-spec-v1` for the JSON shape."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 220
+created = 2026-11-10
+tags = ["stem", "export", "open-format", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-code-block"
+title = "A living code block: source, language, monospace rendering, no execution (F09)"
+description = """
+Code can only be written as ink or as a text element with no language, no line numbers and no monospace guarantee, so it cannot be copied back out or searched meaningfully. A `codeBlock` is also the first new family that stresses Unicode export.
+
+User story: insert a Python block, paste code preserving newlines and indentation, see it monospaced with optional line numbers, search and copy it as text, save and reopen it on both shells, and get a readable PDF - with no code ever executed.
+
+Define `CodeBlockElement`: UTF-8 source, declared language, tab size, wrap, line numbers, box, style. The syntax colouring is a derived view and is never stored as the only source; Tree-sitter is an optional adapter with a plain-text fallback that must work on Android, Windows and in a third-party reader. Explicitly excluded: execution (`stem-code-execution-security` is the only path to it) and any automatic behaviour on file open.
+
+Child tasks: C1 model + public codec + fixture; C2 monospace renderer in `LivingInk` with PDF/SVG/`.xopp` fallback and the `XoppExportCoverageTest` branch; C3 Android/desktop editor with paste, selection and undo; C4 Unicode and search/copy proof; C5 optional highlighting adapter with resource limits. Acceptance: a Python block and a Unicode block survive save/reopen, copy as text, are found by search, render selectably in PDF where the font family allows, and degrade visibly in `.xopp`. Dependency: the new-type gate, `stem-unicode-pdf-review`, `mobix-spec-v1`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 230
+created = 2026-11-10
+tags = ["stem", "code", "schema", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-persistent-connectors"
+title = "Connectors that hold onto pins instead of coordinates (F11)"
+description = """
+`CircuitElement` exposes `CircuitPin(id, relX, relY, connectedTo)` and `CircuitSnapping` matches geometry, including wire ends, so a wire is a drawing rather than a connection: move the component and the electrical meaning is lost, and an incidental crossing is indistinguishable from a junction. No topology exists to check.
+
+User story: place two resistors and a source, drag a wire between pins, move one component and the wire follows and still connects the same pins; a crossing is drawn but is not a junction unless marked; undo restores the whole drag as one step.
+
+Design a new `connector` element: endpoints as `PinRef {elementId, pinId}` with fallback coordinates, route mode, waypoints, style. Keep routing strictly separate from connectivity, keep the net distinct from the drawn wire, define dangling-endpoint and unresolved-pin behaviour, and make the dependency index local so a drag never recomputes a whole page. Copy and merge must remap ids consistently.
+
+Child tasks, in this order: M1 model + codec + JSON Schema + fixture (before any UI); M2 bounded orthogonal router with cache and an explicit junction marker; M3 drag UI on both shells with a single undo; M4 `.xopp` export as geometry with the semantics documented as `.mobix`-only; M5 net export consumed by `stem-netlist-spice-review`. Acceptance: a series R1/R2/V circuit keeps its connections through a component move, copy, reorder and save/reopen, and the file remains readable by a third-party validator. Dependency: `mobix-known-type-unknown-fields` and a minimum `mobix-capability-contract`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 240
+created = 2026-11-10
+tags = ["stem", "circuit", "schema", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-numeric-reliability"
+title = "Choose derivative/root/integral algorithms by accuracy, not by doc text"
+description = """
+The audit `stem-numeric-doc-code-audit` records what `FunctionAnalysis.kt` really does: fixed `H = 1e-5`, `bisectRoot` with a 24-iteration default, no error estimate and no stated accuracy. That is adequate for drawing a tangent and not adequate for a scientific result, and the plotting features about to ship depend on it.
+
+Decide, with measurements: the derivative scheme (fixed vs adaptive step, higher-order stencil, safeguarded secant), the root and extremum solver (keep bisection, or a bracketing method with better convergence), the integrator, and how singularities and non-differentiable points are reported. Define accuracy metrics over a fixture set, error estimates, computational budgets and fallbacks when a result cannot be trusted. Keep the result honest: 'no root found in the scanned interval' is a valid answer, an invented one is not.
+
+Respect the consumers: `PlotElement.summaryText` is derived, the analysis summary is cached, and `stem-plot-inspection` will surface these numbers to users. Never swap an algorithm without a precision/regression benchmark.
+
+Child tasks: precise algorithm decisions per function, test corpus with tolerances, replacement of `FunctionAnalysis` internals behind the same public surface, and doc updates in `docs/math-engine.md`. DoD: a measured accuracy improvement (or a documented decision to keep the current scheme), with the audit's characterization tests updated deliberately. Dependency: `stem-numeric-doc-code-audit`."""
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "normal"
+order = 250
+created = 2026-11-10
+tags = ["stem", "math", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-netlist-spice-review"
+title = "From connectors to a checkable circuit: ERC and an SPICE subset (F12)"
+description = """
+Only worth doing after connectors are real. Once `stem-persistent-connectors` gives pins with identity, the electrical graph becomes derivable, and with it the questions a student actually asks: is anything floating, is ground missing, are two nets shorted, does this symbol even have a mapping?
+
+Design: a deterministic `CircuitNetGraph` compiled from components plus connectors (with explicit junctions and labels), a bounded `CircuitERC` that flags floating pins, missing ground, duplicate net names, obvious shorts and incompatible terminals where the symbol's semantics allow the judgement, and a `SpiceExporter` for a documented subset (R, C, L, ideal sources). A symbol without a mapping must report `UNSUPPORTED` rather than an invented component. An ERC is not a physics validation and must say so. No internal simulator in this scope.
+
+Child tasks: N1 net graph and stable net ids; N2 ERC rules with severities; N3 SPICE export plus fixture verification in an external tool; N4 UI surfacing of diagnostics; N5 spec and interop. Acceptance: the series R1/R2/V circuit exports a netlist that matches the hand-written reference, a floating pin and a missing ground are reported, and reordering/copying elements does not change the nets. Dependency: `stem-persistent-connectors` complete and tested."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 260
+created = 2026-11-10
+tags = ["stem", "circuit", "p3"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-calibrated-measurements"
+title = "Measure with declared scale, units and precision (F08)"
+description = """
+There are geometric readouts on shapes and `MeasurementText` exists for labels, but no measurement is an object: nothing stores the points it was taken between, the calibration it used or its uncertainty, so a number cannot be recomputed or trusted after a rescale.
+
+User story: measure a distance on a drawing, declare `100 pt = 2 m`, and read the real length; measure on a photo or a PDF only after an explicit calibration, with the app never pretending that an uncalibrated PDF yields metres; copy the value into a calculation.
+
+Audit `FigureGeometry`, `ParametricShapes.kt`, `MeasurementText`, `ElementBounds` and the PDF transforms. Design a `measurement` element referencing stable points/anchors and a per-page, per-image or per-figure calibration with provenance and validity, mode `DISTANCE`/`ANGLE`/`AREA`/`SLOPE`, precision, and units from `stem-physical-units`. Store the original points and the scale, never a rounded result alone. Uncertainty (±) and propagation are a later phase and must be stated as such.
+
+Child tasks: M1 uncalibrated page measurements in pt; M2 explicit scales and units; M3 angles/areas and uncertainty; M4 marker/tap/copy UX on both shells; M5 export and fixtures. Acceptance: a measurement on a rotated figure is correct, no SI unit appears without calibration, and the value can flow into `stem-page-calculations`. Dependency: F02, the reference policy."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 270
+created = 2026-11-10
+tags = ["stem", "geometry", "units", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-dynamic-geometry"
+title = "Constrained geometry that survives a drag (F07)"
+description = """
+`ParametricShapeElement`, `ShapeVertex`, `ParametricShapes.kt`, `FigureGeometry.kt` and snapping let a shape be edited, but there is no persistent constraint: 'keep this angle at 90 degrees' cannot be expressed, so dragging a vertex breaks the construction it was meant to represent.
+
+User story: draw a triangle, fix a right angle, drag a vertex and keep the angle at 90 degrees within a stated tolerance, with lengths and angles updating; suspend a constraint; see clearly when the system is over-constrained instead of watching it go wrong.
+
+Design a `geometryConstruction` entity: stable points/lines/segments/circles with ids, and `constraints[]` (`coincident`, `parallel`, `perpendicular`, `distance`, `angle`, `pointOnCurve`, `equalLength`) referencing ids and carrying values with units. Never bind a constraint to absolute coordinates or to a vertex index that can shift. Specify a bounded deterministic solver with iteration caps, states `SATISFIED`/`UNDERCONSTRAINED`/`OVERCONSTRAINED`/`UNSOLVED`, and a rule that a failed solve never irreversibly alters the original drawing. Keep free-form figure editing and constrained construction separate.
+
+Progressive child tasks: G1 entity/constraint model + codec; G2 solver for coincidence/parallel/perpendicular; G3 drag UI, handles and diagnostics; G4 circles and tangencies plus degrees of freedom; G5 cross-platform export and tests. Acceptance: S3 complete, over-constrained shown as an error without corruption, undo and reopen correct. Dependency: the reference/identity policy and the performance baseline."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 280
+created = 2026-11-10
+tags = ["stem", "geometry", "constraints", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-dataset-laboratory"
+title = "CSV in, statistics and a regression plot out (F13)"
+description = """
+There is no dataset concept at all: a table is a page element with textual cells, which cannot hold ten thousand rows, and there is no import path, no column typing, no units per column and no plot fed by data. Every science lab workflow stops here.
+
+User story: import `experiment.csv`, see columns, units, row count and missing values, compute statistics, plot time against distance, fit a line with its equation and R², and re-export the measurements as CSV; changing a value marks dependants stale rather than freezing the pen.
+
+Separate the two cases explicitly: a hand-typed table with a few formulas is `stem-scientific-tables`; a large dataset is a new `datasetView` element referencing a content-addressed asset (`assets/dat_<sha256>.csv`), with a new `AssetKind` only after the spec allows it. Audit `MobixAssets`, `MobixDocument`, `MobixPagedReader`, `PlotElement` and existing CSV routes, and measure memory on large files. Storage keeps hash, delimiter, encoding, header, column types and units, source row count; indices and aggregates are derived caches. An external CSV path is not a portable document and must say so (`mobix-portable-assets`).
+
+Child tasks: D1 streaming CSV import with quoted fields, delimiters and a fixture set; D2 `datasetView` + asset + codec; D3 statistics with diagnostics (count, median, mean, sample variance, min/max); D4 scatter and OLS linear regression through the existing plot engine, with degenerate-case states; D5 CSV export and validator support; D6 UX and a benchmark proving no stall. Acceptance: S2 complete, 10k rows handled without freezing on the baseline device, re-exported CSV coherent, and the plot legible in a reader that knows nothing about the editor. Dependency: F02 for column units; the dataset can land before F04."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 290
+created = 2026-11-10
+tags = ["stem", "data", "csv", "statistics", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-linear-algebra"
+title = "Vectors and matrices as values, not pictures (F14)"
+description = """
+There is no structured matrix value anywhere: matrices can be drawn or written in LaTeX, and nothing can compute their determinant. The evaluator planned in `stem-page-calculations` already needs a `Matrix`/`Vector` case, so the algorithms and their error states must be designed rather than bolted on per button.
+
+User story: type a 3x3 matrix, ask for its determinant, transpose or product, see a readable error for incompatible dimensions, copy the result as LaTeX or CSV, and keep the object editable.
+
+MVP scope: addition, dot product, matrix product, norm, transpose, determinant for small matrices, and linear solving with pivoting and singularity diagnostics. Enforce dimension limits and keep all computation off the UI thread. Prefer pure Kotlin in core over a third-party library; if a library is considered, verify its licence and portability first. Persist source and operation, never a screenshot of the numbers.
+
+Child tasks: L1 value schema and matrix input; L2 product/determinant/norm; L3 solving with pivoting and error states; L4 editor plus LaTeX/CSV export; L5 singular, empty and ragged tests plus interop. Acceptance: every dimension error is explicit, small-matrix results match a reference, round-trip through JSON and PDF is correct. Dependency: the `ScientificEvaluation` contract from F01."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 300
+created = 2026-11-10
+tags = ["stem", "math", "matrix", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-scientific-text"
+title = "A mixed text-and-formula box with shared baseline (F10)"
+description = """
+Text and maths cannot be combined: `MathBlockElement` is a block of LaTeX and `TextElement` is plain text, so 'the energy is E=mc²' is either two objects that drift apart or an image. A mixed run model is the missing piece for scientific notes.
+
+User story: write a paragraph, insert an inline formula, keep selection and baseline coherent, reconvert a formula to its source and back, edit with the on-screen keyboard without it covering the field, and save/reopen with the maths intact.
+
+Design a box with paragraphs of immutable, versioned runs (`text` | `math` with `flavor` LATEX and a preserved Typst source that is only rendered when a typesetter exists), a testable layout engine in core, selection, IME and undo. Reuse `LatexParser`, `LatexLayout` and `MathBlockElement` - no second LaTeX parser and no second PDF renderer for the same formula. Global reflow across pages and inline tables are a later phase, explicitly out of this scope, and so is pretending Typst source means Typst rendering.
+
+Child tasks: S1 run model + codec + fixture; S2 layout and rendering in `LivingInk`; S3 editing, IME and selection; S4 PDF Unicode and `.xopp` fallback; S5 UI entry point on both shells. Acceptance: a paragraph with `E=mc^2` saved and reopened byte-stable, copy/search across runs works, selection and undo behave, PDF selectable where the font family allows, `.xopp` degrades visibly. Dependency: `stem-code-block` (shared text infrastructure), `stem-unicode-pdf-review`, the new-type gate."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 310
+created = 2026-11-10
+tags = ["stem", "text", "math", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-study-cards"
+title = "Review cards whose answers are hidden by interaction, not by black ink (F21)"
+description = """
+There is no study content type: hiding an answer today means covering it with ink, which is a visual trick and not a promise. Physics and maths revision is a plausible daily use for this app, and it needs its own small model.
+
+User story: create a card with a question and an answer that is hidden until tapped, annotate an attempt, link the card to a formula or a calculation, and export questions only or questions with solutions - deliberately, never accidentally.
+
+Design `studyCard`: front, answer as text/formula/reference, `revealPolicy`, ids, and a view state kept outside the document by default; decide explicitly whether saved progress is personal local data or shared document data. State plainly, in the guide, that this is not redaction - anyone holding the file can read the answer - and that PDF/`.xopp` export must offer an explicit choice of questions or questions-and-answers, never assume an opaque rectangle hides anything.
+
+Child tasks: S1 model + codec + fixture; S2 reveal/reset gesture, undo and keyboard; S3 create from selection; S4 export policy and interop; S5 no auto-reveal in any export. Acceptance: study works with nothing lost, and a third-party reader sees a documented, honest representation. Dependency: the new-type gate and the export rules from `stem-semantic-export`."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 320
+created = 2026-11-10
+tags = ["stem", "study", "notes", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-document-wide-definitions"
+title = "Notebook-level variable definitions without scanning every page"
+description = """
+Deliberately deferred out of `stem-reactive-variables`, which is page-scoped. A notebook-wide definition registry is only worth designing once page-scoped bindings are proven, because the naive version - scan all pages on every keystroke - would destroy the paging and memory work the format already does.
+
+Decide the authoritative storage (a dedicated entry referenced by the manifest is the working proposal, e.g. `stem/definitions.json`, which legacy readers preserve raw), the id namespace, how a page resolves a definition without materialising 200 pages, merge and rename/remap semantics, unknown-entry preservation, and the safety limits. Derived indices stay derived and rebuildable.
+
+Child tasks: schema decision; derived index with invalidation; merge-by-revision; document definitions UI; a test proving a notebook of 200 pages opens a shared definition without loading every page. Acceptance: shared definitions work across pages with bounded open cost. Dependency: F03 complete, `mobix-spec-v1`, the performance baseline."""
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 330
+created = 2026-11-10
+tags = ["stem", "variables", "document", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-open-ecosystem"
+title = "Epic: an open, independently implementable .mobix"
+description = """
+Mission: make `.mobix` implementable by a third party without reverse-engineering this app. An honest published specification, machine-checkable schemas, a reference tool that lives outside `mobix-core`, and a proven self-containment story.
+
+Completion means: at least one cross-read and one cross-write verified by shared fixtures, in both directions - a file written here validates in the independent tool, and a file written by the tool opens here.
+
+Children (already registered): `mobix-spec-v1`, `mobix-independent-cli`, `mobix-portable-assets`. Do not implement an epic in one pass: pick its next scope, break it down, ship the tasks."""
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "high"
+order = 340
+created = 2026-11-10
+tags = ["mobix", "open-format", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-safe-evolution"
+title = "Epic: evolution that never loses what this build does not understand"
+description = """
+Mission: guarantee that new or unknown data survives, and that capabilities are declared in a way that protects a reader older than the file - the prerequisite for every new element family in the STEM roadmap.
+
+Completion means: unknown types *and* unknown fields in known types survive an edit elsewhere and a save; capabilities are declared, read and enforced; migrations are explicit, tested and reversible; and no new `type` can ship without a codec, a fixture and a legacy-reader fallback test.
+
+Children (already registered): `mobix-known-type-unknown-fields`, `mobix-capability-contract`, `mobix-migrations`. Do not implement this epic directly."""
+status = "active"
+level = "epic"
+category = "refactor"
+urgency = "high"
+order = 350
+created = 2026-11-10
+tags = ["mobix", "compatibility", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-performance-hardening"
+title = "Epic: measured performance, hostile input, no regressions"
+description = """
+Mission: keep the container fast and bounded. A measurable baseline, a threat model that the reader actually enforces, and optimisations only where a profile justifies them - with the audio and stylus experience never regressing.
+
+Completion means: a reproducible baseline on record; a hostile-archive corpus that fails cleanly within stated limits; compression and ZIP64 decisions taken from measurements; and no optimisation that trades away unknown-data preservation.
+
+Children (already registered): `mobix-current-performance-baseline`, `mobix-archive-safety`, `mobix-compression-review`, `mobix-zip64-review`, `mobix-derived-index-review`. Do not implement this epic directly."""
+status = "active"
+level = "epic"
+category = "refactor"
+urgency = "high"
+order = 360
+created = 2026-11-10
+tags = ["mobix", "performance", "security", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-stem-interactive-notebook"
+title = "Epic: the notebook that calculates, converts and reacts (F01-F05)"
+description = """
+Mission: from ink to a working scientific notebook - calculation with units, variables that invalidate dependants, tables with formulas, and a plot you can interrogate. This is the epic that makes the product recognisable.
+
+Completion means: acceptance scenarios S1 (physics homework with units and a live result) and S2 (CSV to statistics to regression plot) pass end to end on Android and Windows, with save/reopen and PDF/`.xopp` fallbacks.
+
+Children (already registered): `stem-page-calculations`, `stem-physical-units`, `stem-reactive-variables`, `stem-scientific-tables`, `stem-plot-inspection`, `stem-polar-authoring`, `stem-semantic-export`, `stem-dataset-laboratory`. Do not implement this epic directly: work the scopes in the order their descriptions state."""
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "high"
+order = 370
+created = 2026-11-10
+tags = ["stem", "calculator", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-stem-dynamic-engineering"
+title = "Epic: constrained geometry, calibrated measurement and checkable circuits (F07-F12)"
+description = """
+Mission: engineering content that stays true to itself - figures whose constraints survive a drag, measurements with a declared scale, and circuits whose wires mean a connection rather than a line.
+
+Completion means: S3 (right angle held under a drag, over-constraint visible without corruption) and S4 (pins stay connected, ERC finds a floating pin, SPICE netlist matches a reference) pass end to end, with a documented visual fallback in PDF and `.xopp`.
+
+Children (already registered): `stem-persistent-connectors`, `stem-netlist-spice-review`, `stem-dynamic-geometry`, `stem-calibrated-measurements`, `stem-linear-algebra`. Do not implement this epic directly; connectors come first because the circuit track depends on them."""
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "normal"
+order = 380
+created = 2026-11-10
+tags = ["stem", "geometry", "circuit", "p2"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-stem-semantic-core"
+title = "Epic: one semantic core for STEM objects, shared by both shells"
+description = """
+Mission: introduce the shared, pure evaluation/geometry/interchange seams *once*, so the STEM features do not become twenty incompatible implementations. Source of truth stays in the document: sources and references, with results, indices and previews as derived caches.
+
+Completion means: `ScientificSource`, `ScientificReference`, `ScientificResult` (with `OK`/`ERROR`/`UNRESOLVED`/`STALE`/`UNSUPPORTED`/`CANCELLED` and no `NaN` in JSON), `DerivedCache` with a documented key, `EvaluationBudget`, `ConversionReport` and capability-aware opening are each adopted by at least two real consumers - not built speculatively, and never as one mega-superclass replacing `Element`.
+
+Related registered work: `stem-page-calculations`, `stem-physical-units`, `stem-reactive-variables`, `stem-semantic-export`, `stem-numeric-reliability`, `stem-code-block`, `stem-scientific-text`, `stem-unicode-pdf-review`. Do not implement this epic directly."""
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "normal"
+order = 390
+created = 2026-11-10
+tags = ["stem", "architecture", "p1"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-stem-rich-workflows"
+title = "Epic: research lanes - chemistry, handwriting, 3D, sandbox, simulation, CAS (F15-F20)"
+description = """
+Mission: hold the ambitious lanes without turning them into promises. Each needs a licence, safety and demand study before any implementation item exists, and a lane may be deliberately dropped without weakening the rest.
+
+Lanes: structured chemistry atoms/bonds and SMILES subset (F15); handwriting-to-LaTeX recognition with mandatory confirmation and an offline path (F16); 3D surfaces with a saved camera (F17); code execution *only* behind a sandbox threat model and an explicit go/no-go (F18); reproducible simulations built on a validated netlist (F19); symbolic algebra behind a verified adapter (F20).
+
+Rule: no implementation task is created here until an independent scope produces a feasibility study - licence, determinism, resource limits, platform support, and what the file stores as data rather than executable truth. When a lane earns priority, move it out into its own concrete scope. Do not implement this epic directly."""
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "low"
+order = 400
+created = 2026-11-10
+tags = ["stem", "research", "p3"]
+rebuild = false
+emulator_debug = false
