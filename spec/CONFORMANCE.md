@@ -8,6 +8,10 @@ a document. The chapter column names where the rule is stated; the evidence colu
 of this repository uses to prove it. Run every row against every file in the golden corpus
 (`mobix-core/src/test/resources/fixtures/mobix-v1/`) and against one file you produced yourself.
 
+The envelope and element fields are published as JSON Schema Draft 2020-12 in [`schema/`](schema/) —
+row 38 is the one that runs them. Where a row below cites a schema, a stock validator answers it
+mechanically; the rows that cannot be answered that way are the ones whose evidence column names code.
+
 | # | A conforming reader must | Chapter | Evidence here |
 |---|---|---|---|
 | 1 | identify the type from the `mimetype` entry's bytes, not from the file name or suffix | `mobix-schema-spec.md`, container protocol | `MobixContainerTest` (`aZipPackageXoppIsNotAMobix`, `aPlainZipIsRejectedForDeclaringNoType`) |
@@ -47,6 +51,7 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 35 | keep both lists in written order with one entry per capability, an absent list meaning empty | `mobix-capabilities.md`, required is a floor | `MobixCapabilityFixturesTest` (`bothListsKeepTheirWrittenOrderAndNoCapabilityIsDuplicated`); fixtures 13-17 |
 | 36 | decide the four outcomes in precedence order, an unsatisfied requirement above a permissive `minAppVersion` and the floor above the optional list | `mobix-capabilities.md`, four outcomes | `MobixCapabilityGateTest` (`aRequirementOutranksEveryPermissiveFloor`); fixtures 13-17 |
 | 37 | declare the union on a merge or paste, one entry per feature at the higher version, the base's order first | `mobix-capabilities.md`, merge and paste | `unionCapabilities`; fixture 17 |
+| 38 | validate `manifest.json`, `canvas.json`, a page and a chunk against the published schemas before trusting a field table read | [`schema/`](schema/) | `MobixSchemaGuardTest` over every fixture |
 
 A row that fails is a defect in the implementation, not a matter of taste: the chapters state each rule
 once, and the fixtures are files rather than prose so that a disagreement is reproducible.

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/parametricShape.schema.json",
+  "title": "parametricShape element",
+  "$comment": "Where the schema stops: bounds is derived from the vertices, which are the authored geometry, so a stale box is recomputed rather than believed. shape is an open key set, not an enum.",
+  "type": "object",
+  "required": ["type", "shape", "vertices"],
+  "properties": {
+    "type": { "const": "parametricShape" },
+    "id": { "type": "string" },
+    "shape": { "type": "string", "$comment": "open on purpose: a kind from a newer library is still the user's figure" },
+    "bounds": { "$ref": "#/$defs/bounds" },
+    "vertices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["x", "y"],
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "strokeColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
+    "strokeWidth": { "type": "number", "default": 1.0 },
+    "fillColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$" },
+    "showAngles": { "type": "boolean", "default": false },
+    "showSideLengths": { "type": "boolean", "default": false }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/image.schema.json",
+  "title": "image element",
+  "$comment": "Where the schema stops: asset is a reference into assets/ whose payload and digest live in another entry, and bounds is a fact (the placement) that only the codec can read.",
+  "type": "object",
+  "required": ["type", "bounds", "asset"],
+  "properties": {
+    "type": { "const": "image" },
+    "id": { "type": "string" },
+    "bounds": { "$ref": "#/$defs/bounds" },
+    "asset": { "type": "string", "pattern": "^assets/img_[0-9a-f]{64}\\.[A-Za-z0-9]+$" },
+    "attrs": { "type": "object", "additionalProperties": { "type": "string" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

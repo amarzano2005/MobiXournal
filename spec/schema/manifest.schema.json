@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/manifest.schema.json",
+  "title": "manifest.json",
+  "$comment": "Where the schema stops: a part's sha256 is a digest of bytes in another entry, pages[]/chunks[] name entries this document cannot see, and defaultPaper's bundledBytes are not stored here. Checks only code can make.",
+  "type": "object",
+  "required": ["formatVersion", "documentId", "canvasMode"],
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "const": 1,
+      "default": 1
+    },
+    "documentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canvasMode": {
+      "enum": ["PAGINATED", "INFINITE_VERTICAL", "INFINITE_HORIZONTAL", "INFINITE_2D"]
+    },
+    "minAppVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$",
+      "default": "0.0.0"
+    },
+    "created": {
+      "type": "integer",
+      "default": 0
+    },
+    "modified": {
+      "type": "integer",
+      "default": 0
+    },
+    "title": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/part" },
+      "default": []
+    },
+    "chunks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/part" },
+      "default": []
+    },
+    "defaultPaper": {
+      "oneOf": [
+        { "$ref": "page.schema.json#/$defs/solidBackground" },
+        { "$ref": "page.schema.json#/$defs/pixmapBackground" },
+        { "$ref": "page.schema.json#/$defs/pdfBackground" },
+        { "$ref": "page.schema.json#/$defs/foreignBackground" }
+      ]
+    },
+    "requiredCapabilities": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*/[a-z0-9][a-z0-9.-]*:[1-9][0-9]*$" },
+      "default": []
+    },
+    "optionalCapabilities": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*/[a-z0-9][a-z0-9.-]*:[1-9][0-9]*$" },
+      "default": []
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "part": {
+      "title": "a pages[] or chunks[] entry",
+      "$comment": "identity is id; entry is where the bytes are, and sha256 is the digest of those stored bytes (code checks it).",
+      "type": "object",
+      "required": ["id", "entry"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "entry": { "type": "string", "minLength": 1 },
+        "modified": { "type": "integer", "default": 0 },
+        "sha256": { "type": "string", "default": "" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

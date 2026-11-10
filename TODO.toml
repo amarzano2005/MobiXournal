@@ -22,27 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-spec-schema"
-title = "Publish JSON Schema documents, with a drift guard"
-description = """
-The machine-checkable mirror of the codecs: JSON Schema Draft 2020-12 documents for `manifest.json`, `canvas.json`, a page, a chunk and each known element family, in `spec/` beside the checklist.
-
-Each schema declares required fields, the documented defaults as `default` annotations (not validation), the enums the format owns, and `additionalProperties: true` where the retention rule applies, so an additive field never makes a conforming document invalid. Each file states where it stops: a digest of bytes in another entry, a cross-entry reference, and geometry that is a sum of other fields are checks only code can make.
-
-The guard: a JVM test decodes every fixture and a set of hand-written documents, validates them against the schema, and fails when a codec gains a field the schema does not describe (or the reverse).
-
-Verification: the guard runs in `:mobix-core:test`; the schemas are linked from `spec/README.md` and the checklist's schema rows."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 46
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-conformance"
 title = "Make every conformance row executable"
 description = """

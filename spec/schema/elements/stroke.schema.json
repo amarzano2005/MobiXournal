@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/stroke.schema.json",
+  "title": "stroke element",
+  "$comment": "Where the schema stops: bounds is derived (the polyline widened by half the ink), a recording's bytes live in another entry, and an unread key is carried by the retention rule rather than refused.",
+  "type": "object",
+  "required": ["type", "tool"],
+  "properties": {
+    "type": { "const": "stroke" },
+    "id": { "type": "string" },
+    "tool": { "type": "string", "examples": ["PEN", "HIGHLIGHTER", "ERASER"], "$comment": "a closed set: an unrecognised name keeps the element whole, so the page and its document stay valid" },
+    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
+    "lineStyle": { "type": "string", "examples": ["PLAIN", "DASHED", "DASH_DOT", "DOTTED"], "default": "PLAIN", "$comment": "an unrecognised name keeps the element whole rather than failing the page" },
+    "lineWidth": { "type": "number", "$comment": "presence is the fact: present means one width, absent means per-point widths", "default": 1.0 },
+    "capStyle": { "type": "string", "$comment": "the .xopp spelling kept verbatim" },
+    "fill": { "type": "integer", "minimum": 0, "maximum": 255, "deprecated": true, "$comment": "read, no longer written" },
+    "audioRef": {
+      "type": "object",
+      "required": ["filename", "startMs"],
+      "properties": {
+        "filename": { "type": "string", "$comment": "the sidecar name the .xopp bridge re-emits" },
+        "assetId": { "type": "string", "$comment": "the assets/ entry the bytes are in" },
+        "startMs": { "type": "integer", "default": 0 }
+      },
+      "additionalProperties": true
+    },
+    "bounds": { "$ref": "#/$defs/bounds" },
+    "points": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["x", "y"],
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "width": { "type": "number", "default": 1.0 },
+          "pressure": { "type": "number", "minimum": 0, "maximum": 1 },
+          "tilt": { "type": "number", "$comment": "radians" },
+          "azimuth": { "type": "number", "$comment": "radians" },
+          "dtMs": { "type": "integer", "default": 0 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "attrs": { "type": "object", "additionalProperties": { "type": "string" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

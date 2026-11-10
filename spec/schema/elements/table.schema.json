@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/table.schema.json",
+  "title": "table element",
+  "$comment": "Where the schema stops: right/bottom of bounds are derived from the grid the column widths and row heights build, so the box is a cache here rather than the authority.",
+  "type": "object",
+  "required": ["type", "colWidths", "rowHeights", "cells"],
+  "properties": {
+    "type": { "const": "table" },
+    "id": { "type": "string" },
+    "bounds": { "$ref": "#/$defs/bounds" },
+    "colWidths": { "type": "array", "items": { "type": "number" } },
+    "rowHeights": { "type": "array", "items": { "type": "number" } },
+    "cells": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string", "default": "" },
+            "align": { "type": "string", "examples": ["LEFT", "CENTER", "RIGHT"], "default": "CENTER", "$comment": "an unrecognised name keeps the table whole rather than failing the page" },
+            "bold": { "type": "boolean", "default": false },
+            "fillColor": { "type": ["string", "null"], "default": null, "$comment": "written explicitly, never omitted" }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "headerRow": { "type": "boolean", "default": false },
+    "borderColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#212121ff" },
+    "borderWidth": { "type": "number", "default": 1.0 }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

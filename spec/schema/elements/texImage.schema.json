@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/texImage.schema.json",
+  "title": "texImage element",
+  "$comment": "Where the schema stops: the rendered PNG's bytes are in another entry, and asset is optional because the LaTeX alone is still a formula. latexInAttribute records a .xopp spelling rather than a meaning.",
+  "type": "object",
+  "required": ["type", "bounds", "latex"],
+  "properties": {
+    "type": { "const": "texImage" },
+    "id": { "type": "string" },
+    "bounds": { "$ref": "#/$defs/bounds" },
+    "latex": { "type": "string" },
+    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
+    "asset": { "type": "string", "pattern": "^assets/img_[0-9a-f]{64}\\.[A-Za-z0-9]+$" },
+    "latexInAttribute": { "type": "boolean", "default": true },
+    "attrs": { "type": "object", "additionalProperties": { "type": "string" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

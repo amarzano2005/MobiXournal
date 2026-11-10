@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/canvas.schema.json",
+  "title": "canvas.json",
+  "$comment": "Where the schema stops: whether mode agrees with the manifest's canvasMode is a cross-entry check, and a chunkSizePt of zero or below is a documented default rather than an invalid value.",
+  "type": "object",
+  "required": ["mode"],
+  "properties": {
+    "mode": {
+      "enum": ["PAGINATED", "INFINITE_VERTICAL", "INFINITE_HORIZONTAL", "INFINITE_2D"]
+    },
+    "widthPt": {
+      "type": "number",
+      "default": 0.0
+    },
+    "heightPt": {
+      "type": "number",
+      "default": 0.0
+    },
+    "chunkSizePt": {
+      "type": "number",
+      "default": 1024.0,
+      "$comment": "zero or below reads as the default, never as an error"
+    },
+    "origin": {
+      "type": "object",
+      "properties": {
+        "pageNo": { "type": "integer", "minimum": 1, "default": 1 },
+        "offsetPt": { "type": "number", "default": 0.0 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

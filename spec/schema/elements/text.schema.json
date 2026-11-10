@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/text.schema.json",
+  "title": "text element",
+  "$comment": "Where the schema stops: a text element has no bounds on purpose, because its extent depends on the font and only a renderer knows it; nothing here measures that.",
+  "type": "object",
+  "required": ["type"],
+  "properties": {
+    "type": { "const": "text" },
+    "id": { "type": "string" },
+    "font": { "type": "string", "default": "", "$comment": "a Pango description kept verbatim" },
+    "size": { "type": "number", "default": 0.0 },
+    "x": { "type": "number", "default": 0.0 },
+    "y": { "type": "number", "default": 0.0 },
+    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
+    "content": { "type": "string", "default": "" },
+    "attrs": { "type": "object", "additionalProperties": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

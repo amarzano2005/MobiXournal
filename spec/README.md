@@ -24,6 +24,22 @@ an outside implementation it is stated as a rule, not as a description of a Kotl
 of the format here would be a fork, and a fork is a document that will disagree with the reader it
 describes.
 
+## The schemas
+
+[`schema/`](schema/) holds the machine-checkable mirror of the codecs, Draft 2020-12 and self-contained
+per file: [`manifest.schema.json`](schema/manifest.schema.json), [`canvas.schema.json`](schema/canvas.schema.json),
+[`page.schema.json`](schema/page.schema.json), [`chunk.schema.json`](schema/chunk.schema.json) and one
+document per element family in [`schema/elements/`](schema/elements/). Each declares the required fields,
+the documented defaults as `default` annotations rather than validation, the enums the format owns, and
+`additionalProperties: true` wherever the retention rule applies, so an additive field never makes a
+conforming document invalid.
+
+Every file's `$comment` says where it stops: a digest of bytes held in another entry, a reference from
+one entry to another, and geometry that is the sum of other fields are checks only code can make.
+`MobixSchemaGuardTest` runs in `:mobix-core:test`: it validates the whole golden corpus against these
+files, and it re-encodes one fully populated element per family and compares the keys the writer emits
+with the properties a schema declares, so a field added on either side alone fails the build.
+
 ## Where the machine-checkable part lives
 
 A prose rule is necessary and not sufficient: the schema layer beside this file will describe

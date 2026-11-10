@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/plot.schema.json",
+  "title": "plot element",
+  "$comment": "Where the schema stops: summaryText is a cache of what was computed and is recomputed on any change; a curve's geometry is a function of source, not of the fields here.",
+  "type": "object",
+  "required": ["type", "bounds"],
+  "properties": {
+    "type": { "const": "plot" },
+    "id": { "type": "string" },
+    "bounds": { "$ref": "#/$defs/bounds" },
+    "xMin": { "type": "number", "default": -10.0 },
+    "xMax": { "type": "number", "default": 10.0 },
+    "samples": { "type": "integer", "default": 300 },
+    "showCriticalPoints": { "type": "boolean", "default": false },
+    "includeDerivative": { "type": "boolean", "default": false },
+    "shadeIntegral": {
+      "type": "object",
+      "properties": {
+        "from": { "type": "number", "default": 0.0 },
+        "to": { "type": "number", "default": 0.0 }
+      },
+      "additionalProperties": true
+    },
+    "curves": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["kind", "source"],
+        "properties": {
+          "kind": { "type": "string", "examples": ["CARTESIAN", "PARAMETRIC", "POLAR"], "$comment": "an unrecognised kind keeps the plot whole rather than failing the page" },
+          "source": { "type": "string" },
+          "sourceY": { "type": "string", "x-conditional": true, "$comment": "written for a PARAMETRIC curve" },
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
+          "strokeWidth": { "type": "number", "default": 1.0 },
+          "lineStyle": { "type": "string", "examples": ["PLAIN", "DASHED", "DASH_DOT", "DOTTED"], "default": "PLAIN" },
+          "tMin": { "type": "number", "x-conditional": true, "$comment": "written for a PARAMETRIC curve" },
+          "tMax": { "type": "number", "x-conditional": true, "$comment": "written for a PARAMETRIC curve" },
+          "thetaMin": { "type": "number", "x-conditional": true, "$comment": "written for a POLAR curve" },
+          "thetaMax": { "type": "number", "x-conditional": true, "$comment": "written for a POLAR curve" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "parameters": { "type": "object", "additionalProperties": { "type": "number" } },
+    "axisColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#37474fff" },
+    "summaryText": { "type": "string" },
+    "infoSide": { "type": "string", "examples": ["BELOW", "ABOVE", "RIGHT", "LEFT"], "default": "BELOW", "x-conditional": true, "$comment": "written only when it is not the default; an unrecognised side leaves the plot whole" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

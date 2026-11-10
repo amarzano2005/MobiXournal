@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/circuit.schema.json",
+  "title": "circuit element",
+  "$comment": "Where the schema stops: a component has no bounds, because its outline belongs to the symbol library; pin coordinates are relative to position and before rotation, which only the codec resolves.",
+  "type": "object",
+  "required": ["type", "symbol", "position"],
+  "properties": {
+    "type": { "const": "circuit" },
+    "id": { "type": "string" },
+    "symbol": { "type": "string", "$comment": "open key set, like a shape's shape" },
+    "value": { "type": "string" },
+    "labelSide": { "type": "string", "examples": ["above", "below", "left", "right", "ABOVE", "BELOW", "LEFT", "RIGHT"], "default": "above", "x-conditional": true, "$comment": "read case-insensitively, written only when it is not the default" },
+    "labelBelow": { "type": "boolean", "deprecated": true, "$comment": "older spelling of the same choice, read and no longer written" },
+    "position": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "rotation": { "type": "number", "default": 0.0, "$comment": "degrees" },
+    "strokeColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
+    "strokeWidth": { "type": "number", "default": 1.0 },
+    "pins": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "relX": { "type": "number", "default": 0.0 },
+          "relY": { "type": "number", "default": 0.0 },
+          "connectedTo": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/elements/mathBlock.schema.json",
+  "title": "mathBlock element",
+  "$comment": "Where the schema stops: no rendered bytes are stored, because the drawing is a function of source; nothing here can check that source typesets.",
+  "type": "object",
+  "required": ["type", "source", "bounds"],
+  "properties": {
+    "type": { "const": "mathBlock" },
+    "id": { "type": "string" },
+    "source": { "type": "string", "$comment": "the formula, and the only authority for what is drawn" },
+    "flavor": { "type": "string", "examples": ["LATEX", "TYPST"], "default": "LATEX", "x-conditional": true, "$comment": "omitted for LaTeX and written for Typst; an unrecognised flavor keeps the block whole" },
+    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
+    "bounds": { "$ref": "#/$defs/bounds" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number" },
+        "top": { "type": "number" },
+        "right": { "type": "number" },
+        "bottom": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

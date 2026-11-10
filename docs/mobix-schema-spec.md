@@ -172,8 +172,8 @@ what is published. Three decisions make that the case, and none of them is a sec
   spec document would be a fork of the one thing this project cannot afford to describe twice.
 - **The machine-checkable half lives in [`spec/`](../spec/README.md).** That directory carries the
   reading order, the [conformance checklist](../spec/CONFORMANCE.md) a third party runs row by row, and
-  — from `mobix-spec-schema` — JSON Schema Draft 2020-12 documents for the manifest, the canvas, a page
-  and each known element family, kept honest by a drift guard. The schemas state where they stop: a
+  the [JSON Schema documents](../spec/schema/manifest.schema.json) for the manifest, the canvas, a page,
+  a chunk and each known element family, kept honest by a drift guard (`MobixSchemaGuardTest`). The schemas state where they stop: a
   digest of bytes in another entry, a cross-entry reference, and geometry that is the sum of fields are
   checks only code can make.
 - **The artefacts are reusable.** The `spec/` documents and the golden fixture corpus are dedicated to

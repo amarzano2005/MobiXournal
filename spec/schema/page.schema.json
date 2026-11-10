@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/page.schema.json",
+  "title": "pages/page-N.json",
+  "$comment": "Where the schema stops: an element's asset is a reference into assets/, z-order is layer then element order (nothing to validate), and geometry that is derived from other fields is the codec's answer. Every object allows additionalProperties, because the retention rule carries an unread field through a rewrite.",
+  "type": "object",
+  "properties": {
+    "widthPt": { "type": "number", "default": 0.0 },
+    "heightPt": { "type": "number", "default": 0.0 },
+    "attrs": { "$ref": "#/$defs/attrs" },
+    "background": {
+      "oneOf": [
+        { "$ref": "#/$defs/solidBackground" },
+        { "$ref": "#/$defs/pixmapBackground" },
+        { "$ref": "#/$defs/pdfBackground" },
+        { "$ref": "#/$defs/foreignBackground" }
+      ]
+    },
+    "layers": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "attrs": { "$ref": "#/$defs/attrs" },
+          "elements": { "type": "array", "default": [] }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "attrs": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "solidBackground": {
+      "type": "object",
+      "required": ["type", "color"],
+      "properties": {
+        "type": { "const": "solid" },
+        "color": { "$ref": "#/$defs/colour", "default": "#ffffffff" },
+        "style": { "type": "string", "default": "plain" },
+        "config": { "type": "string" },
+        "attrs": { "$ref": "#/$defs/attrs" }
+      },
+      "additionalProperties": true
+    },
+    "pixmapBackground": {
+      "type": "object",
+      "required": ["type", "domain", "filename"],
+      "properties": {
+        "type": { "const": "pixmap" },
+        "domain": { "type": "string" },
+        "filename": { "type": "string" },
+        "asset": { "type": "string" },
+        "attrs": { "$ref": "#/$defs/attrs" }
+      },
+      "additionalProperties": true
+    },
+    "pdfBackground": {
+      "type": "object",
+      "required": ["type", "pageNo"],
+      "properties": {
+        "type": { "const": "pdf" },
+        "filename": { "type": "string" },
+        "domain": { "type": "string" },
+        "pageNo": { "type": "integer", "minimum": 0 },
+        "asset": { "type": "string" },
+        "attrs": { "$ref": "#/$defs/attrs" }
+      },
+      "additionalProperties": true
+    },
+    "foreignBackground": {
+      "$comment": "a background type this build has no model for is drawn as a plain sheet and kept whole, so it is a legal page rather than an invalid one",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "not": { "enum": ["solid", "pixmap", "pdf"] } }
+      },
+      "additionalProperties": true
+    },
+    "colour": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{8}$"
+    }
+  }
+}

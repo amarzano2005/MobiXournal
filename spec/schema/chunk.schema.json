@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mobixournal.com/spec/schema/chunk.schema.json",
+  "title": "chunks/chunk_x_y.json",
+  "$comment": "Where the schema stops: a chunk is a page object in every respect, and what differs comes from where it lives — its tile coordinates are its entry name, a cross-entry reference only code can resolve, and widthPt/heightPt describe the tile rather than the board.",
+  "$ref": "page.schema.json"
+}
