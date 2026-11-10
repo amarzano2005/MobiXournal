@@ -1,7 +1,7 @@
 # PDF: backgrounds, export, text and the outline
 
 > Read when you change what the app writes into a PDF or reads out of one: base-14 fonts in generated PDFs, text selection, the magnetic highlighter, or the Contents outline.
-> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md), [Which format your notebook is in](guide-formats-and-conversion.md).
+> For the task: [Annotating a PDF, and recording](guide-pdf-and-audio.md), [Which format your notebook is in](guide-formats-and-conversion.md), [What works, and what is not there](guide-limitations.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
@@ -10,10 +10,11 @@ A page's PDF **background** — the renderer, its caches, and the portable refer
 ## Fonts in generated PDFs
 
 **Fonts in generated PDFs.** A PDF's built-in **base-14** fonts (`PDType1Font.HELVETICA` and friends) only
-encode WinAnsi, so any codepoint outside `0x20..0xFF` is lost wherever text is typeset **into** a PDF —
-which is now only the **text import**'s generated background (the export paints text as part of the
-page image, so a `.xopp` `<text>` element keeps every codepoint it holds), where the source is arbitrary
-UTF-8 and the glyphs only exist in the generated PDF. So the text-import path draws with fonts
+encode WinAnsi, so any codepoint outside it is lost wherever text is typeset **into** a PDF. Two paths
+do that: the **text import**'s generated background, where the source is arbitrary UTF-8 and the glyphs
+only exist in the generated PDF, and the **page export itself**, which replays `PdfPagePlan`'s `PdfText`
+ops as text rather than painting glyphs into an image — so a `<text>` element's codepoints leave through
+the same sanitiser. So the text-import path draws with fonts
 **bundled as app assets** and embedded per document by `PdfFonts`
 (`PDType0Font.load(doc, stream, subset = true)`): PDFBox subsets them into the output, so a CJK or
 Cyrillic import renders identically everywhere without bloating the file with a whole face.
@@ -32,6 +33,30 @@ Markdown needs the same guarantee across *five* faces at once, so `MarkdownPdfWr
 `RunStyle` to an `Embedded` up front and exposes that map both as the layout's `SizedMeasurer` and as
 the draw-time font lookup — one table, so a line can never be wider on the page than the width it was
 wrapped to.
+
+### Unicode in exported text, and the decision
+
+`PdfTextEncodingAuditTest` pushes a text box through the plan and records what comes out:
+
+| Input | Today | Why |
+|---|---|---|
+| `café ñ ½ ²` | unchanged | inside `0x20..0xFF` |
+| `α`, `Ж`, `H₂`, `e` + U+0301 | `?`, `?`, `H?`, `e?` | the guard is a code range, not an encoding |
+| `… – — ‘ ’ “ ” € ™ Š ž ƒ ‹ › † ‡ • ‰` | 18 × `?` | WinAnsi **does** encode all of these |
+| `\u0080` | passes through | WinAnsi's `0x80` is `€`: a control character becomes a currency sign, or `showText` throws |
+| `😀` | `??` | a surrogate pair, one substitute per half |
+
+The guard is therefore both too strict and too permissive, and it is **silent**: the page exports and
+the text is gone or wrong. The decision is to **reuse the faces already bundled for the text import** —
+DejaVu Sans through `PDType0Font.load(doc, stream, subset = true)`, which also writes a `ToUnicode` map,
+so the text is drawn *and* selectable *and* extractable. A run whose characters all encode in WinAnsi
+keeps its base-14 face, so an ordinary export stays small and familiar; a run with anything else is
+typeset in the bundled face. The licence question is already settled and shipped
+(`app/src/main/assets/fonts/LICENSE.txt`). Where even DejaVu has no glyph, the fallback must be
+**visible** — U+FFFD from `GlyphSanitizer` — never a silent `?`. Broken out as `pdf-unicode-text-ops`,
+`desktop-pdf-unicode-fonts` and `pdf-unicode-extraction-test`; until the first lands, the table above is
+what the export does. Sanitising now keeps one bad emoji from failing an export while the same page
+draws fine on screen.
 
 ## PDF text selection
 

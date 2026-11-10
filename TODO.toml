@@ -22,48 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "stem-unicode-pdf-review"
-title = "Fix the non-WinAnsi character loss in PDF export for STEM text"
-description = """
-`mobix-core/src/main/java/com/mobixournal/render/PdfPagePlan.kt` (and the Android/desktop painters around it) contains paths that substitute `?` for characters outside WinAnsi. That is tolerable for today's incidental labels and unacceptable the moment a `codeBlock` or a mixed scientific text box promises copyable Unicode, so it must be resolved before either ships.
-
-Audit which text reaches which PDF path (living-element labels, math blocks, table cells, notes, future code) and reproduce the loss with a fixture containing Greek, Cyrillic, super/subscripts, combining marks and astral-plane characters. Then decide the cross-platform solution: an embedded, properly licensed font subset with ToUnicode mapping, or a documented fallback that degrades visibly instead of silently. Verify text extraction/selection from the produced PDF, not just that glyphs appear, and check Android and desktop agree. Keep the licence rule: never redistribute a font without a compatible licence.
-
-Owners: `docs/pdf.md`, `docs/rendering.md`, `docs/guide-limitations.md`. DoD: a decision, child tasks, and a failing-then-fixed fixture. Dependency: a scientific text corpus; precedes `stem-code-block` and `stem-scientific-text` claiming full Unicode."""
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "normal"
-order = 140
-created = 2026-11-10
-tags = ["stem", "pdf", "unicode", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-page-calculations"
-title = "Compute on the page: evaluable source, typed result, no invented numbers (F01)"
-description = """
-There is no way to evaluate anything on a page: `FunctionPlot.compile` is an evaluator for f(x) plotting, `MathBlockElement` stores a LaTeX source for display, and neither writes a result that a reader can re-check. A student still copies numbers by hand.
-
-User story: write or select `2*(3+4)`, choose Calculate from the context menu, and get a small card showing the normalised input, the value and the precision; `1/0` shows a cause, never a number; the card can be frozen so it stops following its inputs.
-
-Investigate `FunctionPlot`/`FunctionPlot.compile`, `MathBlockElement`, `Living.kt`, `LivingInk`, `MobixElementCodec`, the Android selection actions and the desktop inspector. Then decide the model: a new `calculation` element (not an `attrs` extension of `stroke`/`text`) with `source`, `sourceLanguage`, frame, input references, display options, `mode` (live/frozen) and a `cachedDisplay` that is explicitly derived and ignorable. Separate 'evaluable expression' from 'graphical formula' so the plotting parser is not silently promoted to a general language; never serialize `NaN`/`Infinity` as JSON numbers. The result must be re-computable by a third party from the source alone, and a cached value is never presented as authoritative without verification.
-
-Break out child tasks, in order: C1 a bounded scalar evaluator (no globals, operation/time budget); C2 model + codec + golden `.mobix` fixture, unknown-safe; C3 renderer in `LivingInk` with PDF/SVG/`.xopp` visual fallback; C4 the Calculate action on Android and desktop plus undo; C5 reopen, export and independent-CLI interoperability.
-
-Acceptance: `2*(3+4)=14`; `1/0` is diagnosed; the same expression behaves identically on both shells; a saved and reopened document re-evaluates to the same result; PDF shows source and value. Dependency: the minimum new-type gate (codec, fixture, old-reader fallback), `mobix-known-type-unknown-fields`."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 150
-created = 2026-11-10
-tags = ["stem", "calculator", "format", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-physical-units"
 title = "Physical quantities, SI dimensions and unit conversion (F02)"
 description = """
@@ -837,5 +795,117 @@ urgency = "normal"
 order = 590
 created = 2026-11-10
 tags = ["mobix", "performance"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "pdf-unicode-text-ops"
+title = "Typeset an exported text run in the bundled DejaVu face when WinAnsi cannot encode it"
+description = "PdfPagePlan carries a PdfText whose face is one of the base-14 families, and winAnsi decides what survives by code range. Replace the range with an encoding: a CP1252 table for the base-14 path, so ... - quotes, euro, trademark and the rest of WinAnsi punctuation survive instead of becoming ?, and a font reference on the op (base14 or a bundled asset path) chosen per run, so a line holding any character outside WinAnsi is typeset in DejaVu Sans rather than sanitised. The plan stays platform-free: it names the asset; the app emitter loads it through PdfFonts, which already caches PDType0Font per document with subset = true and therefore writes the ToUnicode map. Keep GlyphSanitizer as the last resort for a codepoint even DejaVu lacks, with U+FFFD as the substitute, never ?. Turn PdfTextEncodingAuditTest into round-trip assertions over the produced PDF in the emitter tests, and keep one test proving a pure-WinAnsi export is byte-for-byte what it is today."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 600
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-unicode-fonts"
+title = "Embed the same DejaVu faces in the window's PDF export"
+description = "DesktopPdfPainter replays PdfPagePlan through org.apache.pdfbox, but the DejaVu faces live only in the app's assets/fonts, so the window cannot typeset a Greek or Cyrillic run. Ship the same four proportional faces and the monospace face under desktop/src/main/resources/fonts (they are already in the repository: Bitstream Vera + Arev, DejaVu changes in the public domain), carry LICENSE.txt beside them, load per document with PDType0Font.load(doc, stream, true), cache by face, and resolve the plan's font reference exactly as PdfFonts does on Android. Assert that the window's export of a text box holding Greek, Cyrillic, H with a subscript, e + U+0301, an astral emoji and the CP1252 punctuation set produces the same characters the app's export does: one fixture, both emitters. Record the asset path and the licence in docs/pdf.md, which owns the font story."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 610
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "pdf-unicode-extraction-test"
+title = "Prove exported Greek, Cyrillic, subscripts and emoji round-trip through extraction"
+description = "Make the audit a round trip. Produce a PDF from one fixture page holding accented Latin, a vulgar fraction, Greek, Cyrillic, a subscript, a combining accent, an astral emoji and the CP1252 punctuation set, then read it back with PDFTextStripper (the desktop test module has org.apache.pdfbox) and assert the extracted text equals what was written, character for character, with the emoji either preserved or consistently U+FFFD and never ?. Cover the four cases today's guard gets wrong: a character WinAnsi encodes above U+00FF, a control character in 0x80..0x9F, a surrogate pair, and a combining mark. Also assert the document embeds subsets with a ToUnicode map, because text that draws but cannot be copied is not the promise this scope made. This is the failing-then-fixed fixture the scope required: it must fail against today's plan and pass once the two font tasks land."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 620
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-scalar-evaluator"
+title = "A bounded scalar evaluator with no globals and a hard operation budget"
+description = "A pure scalar evaluator in mobix-core, used by the calculation element and by nothing else. Grammar: decimal and scientific literals, + - * / ^, unary minus, parentheses, a whitelist of functions (sqrt, abs, sin, cos, tan, ln, log, exp, min, max, round, floor, ceil) and the constants pi and e. No variables, no assignments, no user-defined functions: a name that is not a known constant or function is an error, never a global. Bound it with an operation budget per evaluation, a wall-clock budget, a nesting limit and a limit on the source length, so a hostile or fat-fingered string cannot hang a save or a repaint. Results are a typed outcome - a Double, a division-by-zero cause, a domain error (sqrt(-1), ln(0)), an overflow - never NaN or Infinity, with the display rounding and the precision it rounded to. Report the normalised source so a reader sees exactly what was evaluated. Unit-test the matrix, including 2*(3+4)=14, 1/0 diagnosed, 0^0, (-8)^(1/3) and both budgets."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 630
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-calculation-element"
+title = "A calculation element: source, result, mode and a derived cached display"
+description = "Add CalculationElement to format/model: source, sourceLanguage (expr now, a field so LaTeX or Typst can never be guessed), frame, inputRefs (ids of the elements whose values the source reads, empty while the evaluator takes no variables), mode (live/frozen), display options (decimals, significant digits) and cachedDisplay, explicitly derived, ignorable and never authoritative. Encode and decode it in MobixElementCodec with the unknown-field discipline the other living entities follow, so a newer writer's keys survive a round trip, and make a reader without the type keep it verbatim as an unknown element instead of dropping it. Add a golden .mobix fixture with one live and one frozen calculation, plus the fallback test that a document carrying an unrecognised calculation reopens byte-identical. Never serialise NaN or Infinity: a non-finite result is written as a cause string, and a test parses the archive to prove no such literal appears. Document the element in mobix-schema-spec.md and mobix-elements.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 640
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-calculation-renderer"
+title = "Render a calculation card as living ink, with an SVG, PDF and .xopp fallback"
+description = "Draw a calculation through LivingInk.of, so the canvas, the SVG export and the PDF export agree with no second renderer: a small card showing the normalised source, the value at its precision, and a marker when the card is frozen or when the value is a cause rather than a number (1/0 says why). A live card follows its inputs, a frozen one does not, and both stay legible at the smallest text size the app allows. Cache the compiled ink as plots cache theirs, invalidating on source, display or input change. The .xopp bridge has no calculation type, so it writes the card as text, following MathBlockInk's precedent; the SVG and PDF emitters print source and value as text ops, never as an image. Tests: a compiled card's text and geometry, a frozen card that does not move when an input changes, and an unreadable source that still prints as its own text instead of an empty box."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 650
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-calculation-action"
+title = "Calculate from the selection on both shells, as one undo step"
+description = "Wire Calculate into the two shells as one action with one meaning. On Android a text selection offers Calculate in the context menu (selection-actions.md owns the copy, English only); in the window the inspector or the Edit menu does the same for the current selection. Both create one CalculationElement anchored to the selection, evaluate once, and record a single undo step: the card and its value are one edit, never two. Copy the failures: an unparsable selection names the character that broke it, 1/0 shows its cause, and a selection longer than the source limit is refused before evaluation. A Freeze toggle flips mode as its own undoable edit and Recalculate re-runs the source. The same selection must produce the same element on both shells: a shared test builds it from 2*(3+4) through each shell's action and compares the encoded JSON."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 660
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-calculation-interop"
+title = "A saved calculation re-evaluates from its source alone, on both shells and the CLI"
+description = "Prove a calculation survives the world it is saved into. A document written on Android opens in the window, exports to PDF and SVG with source and value visible, and re-evaluates to the same result; the independent CLI, with no Android and no UI, reads the element, re-runs the source through the same mobix-core evaluator and prints the value without reading cachedDisplay. A verification path compares cachedDisplay with a fresh evaluation and reports a mismatch instead of trusting the cache. Cover a frozen card whose input changed under it (the cache is stale by design and the report must say so rather than silently recompute), a document from a newer writer carrying unknown calculation keys, and an older build's fallback that preserves the element verbatim. Add the CLI command to docs/tools.md and the round-trip guarantee to docs/mobix-format.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 670
+created = 2026-11-10
+tags = ["mobix"]
 rebuild = false
 emulator_debug = false

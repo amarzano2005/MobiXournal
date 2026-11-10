@@ -171,3 +171,15 @@ of lingering as a stale cache. Its layout groups the findings by kind — roots,
 asymptotes, then the integrals — so a graph with many points stays scannable. The field-by-field schema
 is the `PlotElement` in
 [mobix-schema-spec.md](mobix-schema-spec.md); what the engine promises about it is this file.
+
+## What is not an evaluator
+
+`FunctionPlot.compile` is an evaluator **for plotting**: one free variable, a parameter map, and just
+enough arithmetic to sample a curve and run the numerical report. `MathBlockElement.source` is LaTeX
+kept for display. Neither writes a result a reader can check, and neither is promoted into a general
+expression language: calculating `2*(3+4)` on a page is a **separate element** (`calculation`) with its
+own bounded evaluator, its own source language and a cached display that is always re-computable from
+the source alone. A cached value is never authoritative, and `NaN`/`Infinity` are never written as JSON
+numbers. The work is broken out as `stem-scalar-evaluator`, `stem-calculation-element`,
+`stem-calculation-renderer`, `stem-calculation-action` and `stem-calculation-interop`; until those land,
+nothing in this engine evaluates anything on the page.

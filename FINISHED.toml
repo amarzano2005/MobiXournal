@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stem-page-calculations"
+title = "Compute on the page: evaluable source, typed result, no invented numbers (F01)"
+description = "Scope closed as a model decision plus five ordered children, with no code, because the evaluator does not exist and the element has to be designed before it is written. What exists today: FunctionPlot.compile is an evaluator for plotting (one free variable, a parameter map, enough arithmetic to sample a curve and run the numerical report) and MathBlockElement.source is LaTeX kept for display; neither writes a result a reader can re-check, so a student still copies numbers by hand. Decisions: a separate calculation element, never an attrs extension of stroke or text; it carries source, sourceLanguage, frame, inputRefs, mode (live/frozen), display options and a cachedDisplay that is explicitly derived, ignorable and never authoritative; the plotting parser is not promoted to a general expression language; NaN and Infinity are never serialised as JSON numbers; a third party must be able to recompute the value from the source alone. Children in order: stem-scalar-evaluator (bounded, no globals, typed outcomes, operation and time budgets), stem-calculation-element (model, unknown-safe codec, golden fixture, old-reader fallback), stem-calculation-renderer (living-ink card with SVG, PDF and .xopp fallback), stem-calculation-action (Calculate and Freeze on both shells, one undo step, identical JSON), stem-calculation-interop (reopen, export, CLI recomputation, stale-cache reporting). Docs: math-engine.md now states the boundary, so the plotting parser cannot drift into being a general evaluator, and claims nothing that is not built. The chain's acceptance stays 2*(3+4)=14, 1/0 diagnosed, both shells identical, reopen re-evaluates, PDF shows source and value."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["stem", "calculator", "format", "p1"]
+design = "none: a model decision for a feature that does not exist yet, broken into children"
+
+[[task]]
+id = "stem-unicode-pdf-review"
+title = "Fix the non-WinAnsi character loss in PDF export for STEM text"
+description = "Scope closed with the audit that was missing and one decision both shells can share. The stale belief, recorded in docs/pdf.md, was that the export paints text into the page image: it does not. PdfPagePlan emits PdfText ops and both emitters typeset them, so every exported text box passes through winAnsi. PdfTextEncodingAuditTest (6 tests, mobix-core) measures what that guard does: accented Latin, the vulgar fraction and the superscript survive; Greek and Cyrillic become ?; H with a subscript becomes H?; e plus U+0301 becomes e?; an astral emoji becomes ?? (one substitute per surrogate half); all 18 CP1252 characters WinAnsi does encode above U+00FF (ellipsis, dashes, curly quotes, euro, trademark, S-caron, z-caron, florin, single guillemets, dagger, double dagger, bullet, per mille) are dropped, so the guard is too strict; and U+0080 passes straight through although WinAnsi's 0x80 is the euro sign, so it is also too permissive, and silently wrong in both directions. Decision: reuse the DejaVu faces already bundled for text import through PDType0Font with subset = true, which also writes the ToUnicode map, so exported text draws, copies and extracts; keep base-14 for runs that are pure WinAnsi; make the fallback visible (U+FFFD) rather than ?; the licence already ships beside the assets. Children: pdf-unicode-text-ops (CP1252 table, font reference on the op, app emitter), desktop-pdf-unicode-fonts (the window's own copy of the faces), pdf-unicode-extraction-test (the failing-then-fixed fixture, asserting extraction and not just glyphs). Docs: pdf.md corrected and given the decision and the measurement table, guide-limitations.md gains the row a user meets today. No painter or emitter was changed by this task."
+status = "finished"
+level = "scope"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["stem", "pdf", "unicode", "p1"]
+design = "none: an audit and a font decision for the PDF export, decided before any painter changes"
+
+[[task]]
 id = "mobix-zip64-review"
 title = "Decide whether ZIP64 is needed now or stays deferred"
 description = "Established the real boundary instead of assuming one, with MobixArchivePolicyBenchmarkTest. Reading: 20 000 entries open and 20 001 are refused by MobixSafetyCaps.maxEntries, naming the limit. Writing: ClassicZipLimits emits 65 534 entries (21 341 591 B in 2 016 ms) and throws ZIP entry limit on the 65 535th; ClassicZipLimits.field throws ZIP size limit at 4 GiB - 1 and accepts 4 GiB - 2. The 20 000-entry archive opens, the 65 534-entry one is written and then refused by the cap, so the binding limits are the 256 MiB entry and 1 GiB archive caps, an order of magnitude below classic ZIP's 4 GiB. A 4 GiB archive was not materialised and the report says so rather than implying it. Decision: ZIP64 stays deferred, with the trigger written down - the first legitimate document needing a single entry or a total past 1 GiB - and the caps move before the container does. No child tasks."
