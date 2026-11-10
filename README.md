@@ -46,7 +46,7 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 #### Mathematics
 
 - **Functions you can feel.** A plot keeps its formula live: its named parameters get sliders, and dragging one re-evaluates curve, derivative and summary.
-- **Analysis in the same place.** Critical points, inflections, a shaded integral and a written summary belong to the plot, not a separated calculator.
+- **Analysis in the same place.** Critical points, extrema, a shaded integral and a written summary belong to the plot, not a separated calculator.
 - **Formulas and curves.** LaTeX takes a live typeset preview; a parametric or polar curve is stored, drawn and exported, though the plot tool places Cartesian curves only.
 
 #### Engineering and logic
