@@ -57,6 +57,10 @@ internal fun pagePartFor(
         entry = name,
         modified = if (before?.sha256 == sha256) before.modified else nowMillis,
         sha256 = sha256,
+        // A field a newer writer put on this part comes back with it (container rule 4, and the
+        // envelope rule in `docs/mobix-schema-spec.md`): the part is identified by its page's id, so
+        // its own extras are the page's bookkeeping and not something this build can drop.
+        extra = before?.extra.orEmpty(),
     )
 }
 
@@ -79,6 +83,8 @@ internal fun chunkPartFor(
         entry = name,
         modified = if (before?.sha256 == sha256) before.modified else nowMillis,
         sha256 = sha256,
+        // A chunk's unknown fields travel with it for the same reason a page's do.
+        extra = before?.extra.orEmpty(),
     )
 }
 
