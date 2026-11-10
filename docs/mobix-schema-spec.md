@@ -38,9 +38,10 @@ document.mobix
 ```
 
 **Every binary is content-addressed in `assets/`**, including a page's background PDF — one rule, so a
-name can never go stale and the same picture on ten pages is one entry. A fixed `background/` name was
-the alternative and is wrong: a document may cite several PDFs, one per page, and a name not derived
-from the content would let the last one silently replace the others.
+name can never go stale and the same picture on ten pages is one entry; the naming grammar, what may
+reference a payload and what a missing one means are [mobix-assets.md](mobix-assets.md)'s. A fixed
+`background/` name was the alternative and is wrong: a document may cite several PDFs, one per page, and
+a name not derived from the content would let the last one silently replace the others.
 
 ### The container protocol, in rules a reader can be wrong about
 

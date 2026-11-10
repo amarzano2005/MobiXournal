@@ -22,25 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-spec-assets"
-title = "Write the asset rules: naming, digests, dedup and missing payloads"
-description = """
-The `assets/` contract, precisely enough to interoperate: which bytes the SHA-256 is taken over (the stored payload, not the decoded image), the name shape per kind (`img_<sha256>.<ext>`, `aud_<sha256>.<ext>`), what the suffix may be, how deduplication follows from content addressing rather than being a separate rule, and what a reader does when an `asset` names an entry that is not there.
-
-Cover the two bundled backgrounds (`pixmap`, `pdf`) and the recording reference on a stroke, including the difference between the entry a payload lives in and the sidecar name the `.xopp` bridge re-emits.
-
-Verification: `spec/CONFORMANCE.md` rows, fixture 03 as the sample, and a new case in `MobixContainerTest` for a missing `asset` (a corrupt document, not a blank element)."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 44
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-capabilities"
 title = "Make the declared-capability contract normative"
 description = """

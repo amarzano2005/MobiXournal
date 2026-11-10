@@ -3,6 +3,10 @@ package com.mobixournal.format.mobix
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.XoppZip
 import com.mobixournal.format.mobix.MobixContainer.Entry
+import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.Page
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
@@ -246,6 +250,34 @@ class MobixContainerTest {
             MobixContainer.open(ByteArrayInputStream(bytes))
         }
         assertTrue(failure.message.orEmpty(), "has no name" in failure.message.orEmpty())
+    }
+
+    /**
+     * The one absence that is a defect: the page names an entry and the archive does not carry it. The
+     * reader must refuse the page (`docs/mobix-assets.md`), because a blank picture at the right
+     * coordinates turns a damaged file into a document the user believes is intact.
+     */
+    @Test
+    fun anImageWhoseAssetTheArchiveDoesNotCarryIsACorruptDocument() {
+        val sink = MobixAssetSink()
+        val picture = byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte(), 1, 2, 3)
+        val page = Page(
+            width = 595.275591,
+            height = 841.889764,
+            background = Background.Solid(0xFFFFFFFF.toInt(), "plain"),
+            layers = listOf(Layer(elements = listOf(ImageElement(10.0, 10.0, 60.0, 60.0, picture)))),
+        )
+        val node = MobixPageCodec.encode(page, sink)
+        assertEquals("the write named the picture by its bytes", 1, sink.count)
+
+        val failure = assertThrows(MobixContainer.MalformedMobixException::class.java) {
+            // This archive's view of its assets: no `assets/` entry at all, so the name resolves to null.
+            MobixPageCodec.decode(node, MobixAssetSource { null })
+        }
+        assertTrue(
+            "the failure names what is missing: ${failure.message}",
+            failure.message.orEmpty().contains("asset is missing"),
+        )
     }
 
     @Test

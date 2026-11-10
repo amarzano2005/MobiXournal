@@ -34,7 +34,7 @@ pressed; everything else in the app works without it.
 ### Bundled audio (`assets/`)
 
 - A recording the app's stores hold is **bundled** into the archive by content hash
-  (`assets/aud_<sha256>.<ext>`, [mobix-schema-spec.md](mobix-schema-spec.md)), so the same recording
+  (`assets/aud_<sha256>.<ext>`, [mobix-assets.md](mobix-assets.md)), so the same recording
   referenced twice is stored once: a save and an open go through
   `MobixAssetSink.add(bytes, AssetKind.AUDIO)` and `io/BundledPageAssets.kt` respectively.
 - Page reads register bundled audio without copying it (`io/BundledPageAssets.kt`). Workers resolve independent payloads through `DeferredRecordings` before playback/export, retaining sidecar names, and **the archive they read is the session's**: `io/MobixOpenSessions.kt` keeps the staged copy until the document is released, because sweeping it with the open left every bundled recording unplayable and every repack save without its entries. Atomic publication preserves an old file if extraction fails and allows retry.

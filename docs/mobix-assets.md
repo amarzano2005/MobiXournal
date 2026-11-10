@@ -1,0 +1,91 @@
+# `.mobix` assets
+
+> Read when you read or write an `assets/` entry — a picture, a bundled PDF or a recording — or when one
+> is named and missing and you have to decide whether that is an empty element or a corrupt document.
+
+Every binary a `.mobix` carries lives in `assets/` and nowhere else: a JSON part names one, and the
+archive holds the bytes under a name it derives from them. That is the whole design, and it buys three
+things at once — the same picture referenced twice is stored once, a name cannot go stale, and a file is
+self-contained when it is shared without the folders it came from. The container layout is
+[mobix-schema-spec.md](mobix-schema-spec.md)'s; this chapter is the `assets/` contract an outside reader
+or writer implements.
+
+## The name is the content
+
+An entry is named `assets/<prefix>_<sha256>.<suffix>`:
+
+| Part | What it is |
+|---|---|
+| `prefix` | the kind, and the only thing that tells the two apart: `img` for a picture, `aud` for a recording |
+| `sha256` | the **lowercase** hex digest, 64 characters, of the bytes *as they are stored in the entry* |
+| `suffix` | the container the bytes arrived in, letters and digits only, no dot (`webp`, `png`, `jpeg`, `pdf`, `ogg`, `wav`, `m4a`) |
+
+Two consequences follow, and both are rules rather than preferences:
+
+- **The digest is taken over the stored payload, not over the decoded picture or the audio.** A reader
+  verifies an entry by hashing what the archive gives it and comparing with the name; that check is only
+  possible because the name is the payload's own hash, and it is why a payload edited or damaged after
+  the write is refused instead of drawn.
+- **Nothing is transcoded on the way in, so the suffix tells the truth.** A PNG stays a PNG and a WAV
+  stays a WAV: re-encoding the user's picture to save bytes would change the pixels they pasted. A
+  recording keeps the codec it was made in — Ogg/Opus is the default in a `.mobix`, while a document
+  whose format was `.xopp` when the recording started bundles its WAV ([audio.md](audio.md)).
+
+Deduplication is not a separate feature with bookkeeping of its own: two payloads with the same bytes
+have the same digest, so they have the same name and there is one entry. Fixture 03 in the golden corpus
+is the worked case — one picture behind an `image` and a `texImage` on the first page and another
+`image` on the second, and one entry in the archive for all three.
+
+The default suffix per kind lives in the code's mirror of this vocabulary (`MobixFormat.assetEntry`,
+`MobixFormat.AssetKind`), which also enforces the grammar: 64 lowercase hex characters after the prefix,
+then a dot and a non-empty suffix of letters and digits.
+
+## What may point at a payload
+
+| Part | Field | Optional |
+|---|---|---|
+| `image` element | `asset` | no — a picture with no bytes is not a picture |
+| `texImage` element | `asset` | yes — the LaTeX alone is still a formula |
+| `pixmap` / `pdf` background | `asset` | yes — the file reference stands alone |
+| `stroke` recording | `audioRef.assetId` | yes — a stroke may carry no audio, or name it only as a sidecar file |
+
+A background keeps `filename`/`domain`/`pageNo` **even when its bytes are bundled**, and the `.xopp`
+bridge re-emits that reference: the bundled entry and the file reference are two names for one picture,
+and renaming one never renames the other. A recording has the same two names — the entry under its hash
+and the sidecar file the bridge writes when the document leaves as `.xopp` ([audio.md](audio.md)).
+
+An element may also name an asset through its `.xopp` `fn` attribute, the shape this app wrote before it
+kept the two apart; a name in `assets/` shape is a bundled entry whichever field carries it.
+
+## A reader's obligations
+
+- **Resolve the exact entry name.** No suffix guessing and no normalisation: a name the archive does not
+  hold is not there, and "the same hash in another container" is a different entry.
+- **Verify the digest before the bytes are used**, as part of reading: an entry's name is a claim about
+  its content, and a payload that does not hash to it is a corrupt document.
+- **A named payload the archive does not carry is a corrupt document** — one error naming the failing
+  entry, and no element built out of nothing. A blank picture is the one answer that is wrong, because
+  it turns a damaged file into a document the user believes is intact.
+- **An absent `asset` field is not that case.** A `texImage` or a background may reference a file without
+  bundling it; that is a reference with no bytes to resolve, which the field tables allow, and it is a
+  different thing from a name whose entry is missing.
+- The size budget imposed before anything is allocated is [mobix-format.md](mobix-format.md)'s.
+
+## A writer's obligations
+
+- **Name an entry from the hash of the bytes you wrote**, never from a counter, a timestamp or the file
+  it came from: two writers producing the same picture then converge on the same entry without
+  coordinating, and no name can go stale.
+- **Write an entry for every payload a part names.** A name no entry satisfies is a corrupt document, so
+  a writer that cannot supply the bytes reports that to the user instead of writing the reference anyway.
+- **Carry forward what you did not write.** A Save As builds a fresh archive from the model, which keeps
+  the names it was read with, so the rewrite streams the still-referenced entries out of the original
+  (`carriedPayloads`) rather than orphaning them. An entry this build has no model for at all is kept by
+  the container's own preserve-unknown rule ([mobix-schema-spec.md](mobix-schema-spec.md)).
+
+## Where the rule is checked
+
+`MobixContainerTest` holds the missing-payload case at page level: a page whose `image` names an entry the
+archive does not carry comes back as the container's malformed-document error rather than as a blank
+element. Fixture 03 is the positive case, and `MobixV1FixturesTest` checks that its names are the hashes
+of their own bytes and that they survive a save.

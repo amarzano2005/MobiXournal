@@ -148,13 +148,10 @@ none.
   "asset": "assets/img_e5f6g7h8.png" }
 ```
 
-`asset` names an entry under `assets/` — **never an inline base64 blob**. The same picture pasted on
-ten pages is stored once and referenced ten times; that is the point of the container. The name is the
-SHA-256 of the bytes, so two elements carrying the same picture converge on the same entry without
-anyone coordinating, and a name derived from content cannot go stale.
+`asset` names an entry under `assets/` — **never an inline base64 blob** — and the naming, digest and
+missing-payload rules are [mobix-assets.md](mobix-assets.md)'s. What belongs to the element is which of
+its fields may carry a payload: required on `image`, because a picture with no bytes is not a picture.
 
-- The container is the one the bytes arrived in (a PNG stays a PNG), named from the hash plus that
-  suffix — re-encoding the user's picture to save a few bytes would change the pixels they pasted.
 - `texImage.asset` is the **rendered PNG** the `.xopp` carried, and is optional: a document may carry
   only the LaTeX. `latexInAttribute` records which of `.xopp`'s two on-disk shapes
   the source used, so a legacy file is not silently rewritten into the modern one.

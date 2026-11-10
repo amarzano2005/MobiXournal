@@ -23,7 +23,7 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 11 | preserve a field of a known type it did not read, at the level it was written | `mobix-elements.md`, retention rule | fixtures 08, 09 |
 | 12 | refuse a value it would misread, and keep the element whole rather than the page failing | `mobix-elements.md`, vocabulary | fixture 11 |
 | 13 | draw an unknown background as a plain sheet and write the object back unchanged | `mobix-format.md`, capability table | fixture 12 |
-| 14 | resolve an `asset` by the entry named, and treat a missing one as a corrupt document | `mobix-elements.md`, image | fixture 03 |
+| 14 | resolve an `asset` by the entry named, and treat a missing one as a corrupt document rather than a blank element | `mobix-assets.md` | `MobixContainerTest` (`anImageWhoseAssetTheArchiveDoesNotCarryIsACorruptDocument`); fixture 03 |
 | 15 | read a chunked document as tiles at their own coordinates, without inventing pages | `docs/chunked-documents.md` | fixture 10 |
 | 16 | compare declared capabilities as the contract states, and refuse to write a file whose required set it does not satisfy | `mobix-schema-spec.md`, declared capabilities | fixtures 13-17 |
 | 17 | impose the limits `mobix-format.md` states before allocating from a hostile file | `mobix-format.md`, what a reader must refuse | `MobixHostileCorpusTest` over `fixtures/mobix-hostile/` |
@@ -35,7 +35,7 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 23 | read lengths as points, times as UTC epoch milliseconds, colours as `#RRGGBBAA`, and a non-positive `chunkSizePt` as its default | data model, units and `canvas.json` | `MobixManifestTest`; fixtures 01, 10 |
 | 24 | model a `stroke` with its tool, its style, its per-point widths and its telemetry, and refuse one whose tool or style has no name here | `mobix-element-fields.md`, stroke | `MobixElementCodecTest`; fixture 07 |
 | 25 | place a `text` by its anchor and never invent a box for it | element fields, text | `MobixElementCodecTest` (`aTextElementCarriesItsFontAndContent`) |
-| 26 | resolve `image` and `texImage` through `assets/`, treat a missing payload as a corrupt document, and read a formula with no rendering as still a formula | element fields, image | `MobixElementCodecTest` (`anImageWhoseAssetIsMissingIsRefused`, `aFormulaWithNoRenderingIsStillAFormula`); fixture 03 |
+| 26 | resolve `image` and `texImage` through `assets/`, treat a missing payload as a corrupt document, and read a formula with no rendering as still a formula | `mobix-assets.md`, element fields | `MobixElementCodecTest` (`anImageWhoseAssetIsMissingIsRefused`, `aFormulaWithNoRenderingIsStillAFormula`); fixture 03 |
 | 27 | rebuild a `table`'s box from `colWidths`/`rowHeights`, read a short row as empty cells, and keep an unreadable `align` by preserving the table whole | element fields, table | `MobixLivingCodecTest` |
 | 28 | draw a `plot` from its curves and range, and keep `summaryText` as the cache it is | element fields, plot | `MobixLivingCodecTest` |
 | 29 | recompute a `parametricShape`'s bounds from its vertices, and accept a `shape` name this build does not know | element fields, parametricShape | `MobixLivingCodecTest` |
