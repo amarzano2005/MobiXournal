@@ -1,11 +1,13 @@
 package com.mobixournal.format.mobix
 
+import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayInputStream
 import java.io.File
 
 /**
@@ -134,6 +136,62 @@ class MobixMergeManifestPartsTest {
                 assertEquals(1, reads(remote, 200))
             }
         }
+    }
+
+    /** A notebook whose document declares [required] and [optional], written as a real `.mobix`. */
+    private fun declared(
+        file: File,
+        required: List<String> = emptyList(),
+        optional: List<String> = emptyList(),
+    ): File {
+        val document = Document(
+            pages = SyntheticNotebook.pages(2),
+            requiredCapabilities = required.map { requireNotNull(MobixCapability.parse(it)) },
+            optionalCapabilities = optional.map { requireNotNull(MobixCapability.parse(it)) },
+        )
+        file.writeBytes(MobixDocument.of(document, appVersion = "2.0.0", nowMillis = 42L).toBytes(42L))
+        return file
+    }
+
+    @Test
+    fun theMergedManifestDeclaresBothSidesRequirements() {
+        val localFile = declared(
+            temp.newFile("local.mobix"),
+            required = listOf("org.mobixournal/stem.connector:1", "org.mobixournal/audio.opus:1"),
+            optional = listOf("org.mobixournal/paper.isometric:2"),
+        )
+        val remoteFile = declared(
+            temp.newFile("remote.mobix"),
+            required = listOf("org.mobixournal/audio.opus:2", "example.org/lab.notebook:1"),
+            optional = listOf("example.org/future.notes:1"),
+        )
+
+        val local = localFile.inputStream().use { MobixDocument.open(MobixContainer.open(it.buffered())) }
+        val remote = remoteFile.inputStream().use { MobixDocument.open(MobixContainer.open(it.buffered())) }
+        val merged = MobixMergeEngine.merge(local = local, remote = remote, nowMillis = 100L).mergedDocument
+
+        assertEquals(
+            "the base's order first, then what the other side adds, one entry per feature at the higher version",
+            listOf(
+                "org.mobixournal/stem.connector:1",
+                "org.mobixournal/audio.opus:2",
+                "example.org/lab.notebook:1",
+            ),
+            merged.manifest.requiredCapabilities.map { it.toString() },
+        )
+        assertEquals(
+            listOf("org.mobixournal/paper.isometric:2", "example.org/future.notes:1"),
+            merged.manifest.optionalCapabilities.map { it.toString() },
+        )
+        assertTrue("no capability is lost", merged.manifest.requiredCapabilities.size == 3)
+
+        // And the claim survives the file: reopening the merged archive reads the same union back.
+        val saved = MobixContainer.open(ByteArrayInputStream(merged.toBytes(100L)))
+        val savedManifest = MobixManifest.decode(
+            saved.require(MobixFormat.MANIFEST_ENTRY).bytes.toString(Charsets.UTF_8),
+        )
+        assertEquals(merged.manifest.requiredCapabilities, savedManifest.requiredCapabilities)
+        assertEquals(merged.manifest.optionalCapabilities, savedManifest.optionalCapabilities)
     }
 
     /** The merge as it reads its sides from fully materialised documents — the reference result. */

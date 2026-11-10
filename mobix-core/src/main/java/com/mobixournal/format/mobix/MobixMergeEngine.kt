@@ -153,6 +153,17 @@ object MobixMergeEngine {
             manifest = local.manifest.copy(
                 title = local.manifest.title ?: remote.manifest.title,
                 modified = nowMillis,
+                // The result declares what it now contains (`docs/mobix-schema-spec.md`, *Cross-cutting*):
+                // a capability either side required is required by the merge, or the next older reader
+                // would quietly trim the pages this merge just brought together.
+                requiredCapabilities = unionCapabilities(
+                    local.manifest.requiredCapabilities,
+                    remote.manifest.requiredCapabilities,
+                ),
+                optionalCapabilities = unionCapabilities(
+                    local.manifest.optionalCapabilities,
+                    remote.manifest.optionalCapabilities,
+                ),
             ),
             canvas = local.canvas,
             pages = pagePlan.pages,

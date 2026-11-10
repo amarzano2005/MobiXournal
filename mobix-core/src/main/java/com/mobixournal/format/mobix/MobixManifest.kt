@@ -176,6 +176,8 @@ data class MobixManifest(
             title: String? = null,
             defaultPaper: Background? = null,
             appVersion: String = "0.0.0",
+            requiredCapabilities: List<MobixCapability> = emptyList(),
+            optionalCapabilities: List<MobixCapability> = emptyList(),
         ): MobixManifest = MobixManifest(
             formatVersion = CURRENT_FORMAT_VERSION,
             minAppVersion = appVersion,
@@ -185,6 +187,8 @@ data class MobixManifest(
             modified = nowMillis,
             title = title,
             defaultPaper = defaultPaper,
+            requiredCapabilities = requiredCapabilities,
+            optionalCapabilities = optionalCapabilities,
         )
 
         /**

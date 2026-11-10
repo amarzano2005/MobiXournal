@@ -181,7 +181,11 @@ remains the structural gate, and a change no additive field can express still bu
 **Cross-cutting.** A merge result declares the union of both sides' required and optional sets. A copy or
 paste into another document raises the destination's required set to include the capabilities of the
 elements it now holds, or is refused: a document that cannot keep an element must not accept it and then
-trim it.
+trim it. Both halves follow one function, `unionCapabilities` — the base's order first, one entry per
+feature at the higher version — because a merge and a paste ask the same question of different pairs.
+The raised set lives on the document (`Document.requiredCapabilities`), grows during a session and is
+written by the save, so the file the user ends up with says what it holds and the next older reader
+knows not to trim it.
 
 The manifest half is implemented (`MobixCapability`, and the two lists in `MobixManifest`), and the
 gate's decision lives in `MobixCapabilities.evaluate`. The answer travels with the opened document —
@@ -192,8 +196,7 @@ comparisons that can disagree. Fixtures 13-17 in the golden corpus are one file 
 driven by `MobixCapabilityFixturesTest`; the space between them is the matrix of
 `MobixCapabilityGateTest`.
 
-Still to build: the notice on the two shells (`mobix-capability-warning-surface`) and the merge/paste
-union (`mobix-capability-merge-copy`).
+Still to build: the notice on the two shells (`mobix-capability-warning-surface`).
 
 ## Page schema (`pages/page-N.json`, `chunks/chunk_x_y.json`)
 

@@ -1,5 +1,7 @@
 package com.mobixournal.format.model
 
+import com.mobixournal.format.mobix.MobixCapability
+
 /**
  * What this app writes into the root `<xournal>` element's `creator` attribute, and what it reports
  * for a file that carried none.
@@ -53,6 +55,23 @@ data class Document(
      * saved as a `.mobix`.
      */
     val documentId: String? = null,
+
+    /**
+     * What a `.mobix` file for this document must **declare** (`MobixCapability`): the capabilities a
+     * reader must implement to write it back correctly. Raised when a merge or a paste brings in
+     * constructs the document now holds, never lowered during a session, and written into the manifest
+     * by the document layer ([com.mobixournal.format.mobix.MobixDocument.of]).
+     *
+     * Empty for a v1 document: the baseline needs nothing beyond `formatVersion`, and a set raised to
+     * claim something this build does not do would make every other reader refuse a file it could keep.
+     */
+    val requiredCapabilities: List<MobixCapability> = emptyList(),
+
+    /**
+     * What a `.mobix` file for this document merely **suggests**: a reader that does not implement one
+     * may still edit and save, and must carry the construct it names untouched.
+     */
+    val optionalCapabilities: List<MobixCapability> = emptyList(),
 )
 
 /**

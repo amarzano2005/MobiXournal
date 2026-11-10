@@ -13,6 +13,30 @@ package com.mobixournal.format.mobix
  * before it. That is why [satisfies] compares versions instead of matching them: a reader that handles
  * `…:2` can read `…:1` correctly, and a reader that handles only `…:1` must not claim `…:2`.
  */
+/**
+ * The union of two capability lists — `base` first, in its own order, then anything `other` adds.
+ *
+ * Two versions of one feature are **one** capability and the higher wins: a later version is a superset
+ * of the earlier one, so a document that holds both must state the stronger claim. The winner keeps the
+ * position its feature first appeared at, so a writer's own priority is not reshuffled. Comparison is
+ * per feature, never across two feature names.
+ *
+ * This is the rule a merge ([com.mobixournal.format.mobix.MobixMergeEngine]) and a paste
+ * ([MobixCapabilityPaste]) both follow: the result declares what it now contains.
+ */
+fun unionCapabilities(
+    base: List<MobixCapability>,
+    other: List<MobixCapability>,
+): List<MobixCapability> {
+    val byFeature = LinkedHashMap<String, MobixCapability>()
+    for (capability in base + other) {
+        val key = "${capability.namespace}/${capability.feature}"
+        val seen = byFeature[key]
+        if (seen == null || capability.version > seen.version) byFeature[key] = capability
+    }
+    return byFeature.values.toList()
+}
+
 data class MobixCapability(
     /** The reverse-DNS namespace: who owns the feature's meaning. */
     val namespace: String,

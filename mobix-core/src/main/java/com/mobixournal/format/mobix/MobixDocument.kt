@@ -205,8 +205,7 @@ class MobixDocument(
      * owner had ([MobixBridgeFile]) — and **this document's own identity**, which is what lets a save of
      * it be an edit rather than a duplicate ([Document.documentId]).
      */
-    /** The open gate's answer for this document against [appVersion], computed once so a shell carries it
-     *  instead of deriving one: a notice and a disabled action are two readings of one answer. */
+    /** The open gate's answer for this document against [appVersion], computed once: a shell carries it. */
     fun verdict(appVersion: String): MobixOpenVerdict =
         MobixCapabilities.evaluate(manifest, MobixFormat.declaredCapabilities, appVersion)
 
@@ -507,6 +506,9 @@ class MobixDocument(
                     modified = nowMillis,
                     title = document.title,
                     minAppVersion = if (compareVersions(it.minAppVersion, appVersion) >= 0) it.minAppVersion else appVersion,
+                    // The document's own set only grows; a save writes it (`MobixCapabilityPaste`).
+                    requiredCapabilities = unionCapabilities(it.requiredCapabilities, document.requiredCapabilities),
+                    optionalCapabilities = unionCapabilities(it.optionalCapabilities, document.optionalCapabilities),
                 )
             } ?: MobixManifest.forNewDocument(
                 documentId = documentId,
@@ -515,6 +517,8 @@ class MobixDocument(
                 title = document.title,
                 defaultPaper = first?.background,
                 appVersion = appVersion,
+                requiredCapabilities = document.requiredCapabilities,
+                optionalCapabilities = document.optionalCapabilities,
             ),
             canvas = if (isPaginated) {
                 MobixCanvasFile(

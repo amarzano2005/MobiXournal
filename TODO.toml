@@ -47,31 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-capability-merge-copy"
-title = "Carry declared capabilities through merge, copy and paste"
-description = """
-The cross-cutting half of the capability contract: a merge's result and a paste's destination must declare what they now contain, or the next older reader will quietly trim it.
-
-Files: `format/mobix/MobixMergeEngine.kt`, `format/model/Document.kt` (or wherever a copied element lands), and the capability value type from `mobix-capability-manifest-codec`.
-
-Behaviour:
-1. `MobixMergeEngine`'s resulting manifest declares the **union** of both sides' `requiredCapabilities` and of their `optionalCapabilities`; order is the base's first, then anything new from the other side. A test asserts no capability is lost and none is duplicated.
-2. Copy/paste of elements between documents raises the destination document's `requiredCapabilities` to include the capabilities those elements name, or refuses the paste with a message naming the feature. The destination's set only ever grows during a session; a save writes it.
-3. When the destination cannot satisfy a capability that a source element *requires*, the paste is refused rather than accepted-and-trimmed. Give the refusal an English message and a test.
-4. Elements without a declared capability behave as today (v1 baseline).
-
-Verification: `MobixMergeManifestPartsTest` gains the union cases (both sides declare, one side only, conflicting versions of one feature — the higher version wins); a new `MobixCapabilityCopyTest` covers paste raising the set, paste refused, and a plain v1 copy leaving the set empty. Update `docs/mobix-schema-spec.md`'s *Cross-cutting* paragraph if the implementation needed a decision it did not state. Run `./gradlew :mobix-core:test`."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 34
-created = 2026-11-10
-tags = ["mobix", "versioning"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-assets"
 title = "Write the asset rules: naming, digests, dedup and missing payloads"
 description = """
