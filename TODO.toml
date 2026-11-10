@@ -22,31 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-capability-warning-surface"
-title = "Tell the reader what a file requires, on both shells"
-description = """
-Surface the verdict from `mobix-capability-reader-gate` in the two shells. This is the task that makes the contract visible; the outcome itself is decided in `mobix-core`, never in the UI.
-
-Files: `mobix-core`'s `MobixOpenVerdict` reason string; the Android open path beside `app/src/main/java/com/mobixournal/ui/NewerAppConsentDialog.kt` (it already handles the `minAppVersion` case) and the desktop window's open-failure/notice surface in `desktop/src/main`.
-
-Behaviour:
-1. `RefuseWrite` and `ReadOnlyDisplay` show one notice naming the feature(s) the file requires and exactly what is disabled ("This notebook needs … It opens read-only: drawing, Save and Save As are unavailable."). English copy, no class names. `RefuseWrite` may show the pages but must disable every write affordance.
-2. `PreservedButNotDrawn` is a one-line status, not a dialog: the document is editable and the affected elements are untouched.
-3. Bind the disables to the verdict itself (one source), so a promise in the copy cannot drift from the state.
-4. Follow `docs/interface-contract.md` in full — material class, tokens only, a catalogue glyph, all five states, both shells agreeing — and record the declaration with `todo.py done --design` when the task closes.
-
-Verification: JVM tests for the copy and for the disabled actions driven by a fake verdict (both shells' existing dialog/settings tests are the model); a Compose test asserting the notice's text changes nothing about a document's model. Update `docs/guide-troubleshooting.md` (the reader-facing failure path) and the owning spoke in the same commit. Run `./gradlew :mobix-core:test :app:testDebugUnitTest :desktop:test`."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 33
-created = 2026-11-10
-tags = ["mobix", "versioning"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-assets"
 title = "Write the asset rules: naming, digests, dedup and missing payloads"
 description = """

@@ -131,6 +131,9 @@ internal class PageInkGesture(
     private val eraser = EraseBatch()
 
     fun down(change: PointerInputChange, buttons: Int) {
+        // A read-only document takes no press: nothing is drawn, so nothing has to be thrown away on the
+        // lift, and the page stays exactly what the file says it is.
+        if (tab.document.readOnly) return
         recorded = false
         feed(change, InkPointerPhase.DOWN, buttons)
     }
@@ -152,6 +155,7 @@ internal class PageInkGesture(
      * have sent for the same contact.
      */
     fun down(pointer: InkPointer) {
+        if (tab.document.readOnly) return
         recorded = false
         handle(router.onPointer(pointer.copy(phase = InkPointerPhase.DOWN)))
     }

@@ -1,4 +1,7 @@
 package com.mobixournal.desktop.io
+
+import com.mobixournal.format.mobix.MobixOpenOutcome
+import com.mobixournal.format.mobix.MobixOpenVerdict
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.PageBackdrop
 import com.mobixournal.desktop.shell.DesktopTab
@@ -69,7 +72,18 @@ class DesktopDocument(
      * the recovered edit; this is the field that keeps the repack source and the destination apart.
      */
     val pageSource: File = file,
+    /**
+     * What the manifest declared, decided **once** at open by `MobixCapabilities.evaluate` — null for a
+     * `.xopp`, a recovered tab, or a file this build wrote itself.
+     */
+    val gate: MobixOpenVerdict? = null,
 ) : AutoCloseable {
+
+    /** True when the gate forbids writing this file back: the pages may be read, nothing written. */
+    val readOnly: Boolean get() = gate?.mayWrite == false
+
+    /** The gate's own sentence for the window, or null when the document is edited and saved normally. */
+    val gateNote: String? get() = gate?.takeIf { it.outcome != MobixOpenOutcome.FULL_EDIT }?.reason
     /** Recordings are namespaced by document; a rehome retains this store for a running take. */
     var audioStore: DesktopAudioStore = DesktopAudioStore.forDocument(file)
 
@@ -143,6 +157,9 @@ class DesktopDocument(
      *   that changed nothing), in which case neither the model nor the edit count moved.
      */
     @Synchronized fun editPage(index: Int, transform: (Page) -> Page): Page? {
+        // Every edit in the window funnels through here — ink, layers, the page setup, an insert — so the
+        // gate's answer disables them all from one place instead of an affordance at a time.
+        if (readOnly) return null
         val edited = window.edit(index, transform) ?: return null
         model = model.withPage(index, edited)
         pageRevisions[index] = ++nextPageRevision
@@ -404,6 +421,8 @@ object DocumentLoader {
         val reader = MobixPagedReader(entries)
         return try {
             val mobix = MobixDocument.openPaged(reader)
+            // Decided here, once: the band's sentence and the disabled Save are two readings of this.
+            val gate = mobix.verdict(DesktopSaves.APP_VERSION)
             val model = mobix.toDocument()
             val cells = mobix.chunks.map { MobixChunk(it.cx, it.cy) }
             DesktopDocument(
@@ -429,6 +448,7 @@ object DocumentLoader {
                 // A native document bundles its pictures, and still carries the `.xopp` reference they came
                 // from: the bundle is tried first so the file stands alone, the folder is the fallback.
                 backdrop = PageBackdrop(bundled = reader.assetSource::bytes, documentDir = file.parentFile),
+                gate = gate,
             )
         } catch (failure: Throwable) {
             // The reader owns the file handle; a rejected archive must not keep it open.

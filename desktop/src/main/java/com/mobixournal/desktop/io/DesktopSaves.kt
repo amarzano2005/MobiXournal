@@ -123,6 +123,13 @@ object DesktopSaves {
          */
         audio: DesktopAudioStore = document.audioStore,
     ): Staged {
+        // Every write in the window funnels through a staged save, so the gate's refusal lands here once
+        // and Save, Save As and the header's own button cannot drift apart.
+        if (document.readOnly) {
+            throw SaveRefused(
+                document.gateNote ?: "This notebook opens read-only, so there is nothing to write.",
+            )
+        }
         if (format == SaveFormat.ZIPPED && hasAttachments(document)) {
             throw SaveRefused(
                 "This document's background is attached inside its package, and this window cannot " +

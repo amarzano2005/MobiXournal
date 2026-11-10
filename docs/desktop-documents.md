@@ -24,6 +24,17 @@ canvas, dismissed with a click or `Esc`, while the page, the tab and the sidebar
 fill is opaque rather than the floating family's 0.88, because it straddles the desk and the sheet — at
 0.88 the part over the page read a tone lighter, as two materials split down the middle.
 
+A **read-only** open is a tab, not a card: `DocumentLoader.openMobix` computes the gate's verdict once
+(`MobixDocument.verdict(DesktopSaves.APP_VERSION)`) and the document carries it, so the band's `read-only`
+reading with its whole sentence under the pointer, the canvas that takes no press and the Save and Save As
+commands that answer *unavailable* are all that one answer. That works because every edit in the window
+funnels through one method (`DesktopDocument.editPage`) and every write through one (`DesktopSaves.stage`),
+instead of an affordance being disabled at a time. A document whose **optional** capability this build
+does not implement reads `kept as written` and stays editable, because the elements it cannot model are
+preserved verbatim rather than dropped. `DesktopReadOnlyGateTest` pins both: a required capability leaves
+the pages readable and answers no to an edit and to a save, an optional one still takes edits, and a file
+this build wrote shows no note at all.
+
 ## Saving, and what a refused save says
 
 A save can be refused before anything is written, and the sentence says which case it is

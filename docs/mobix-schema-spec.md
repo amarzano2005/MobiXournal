@@ -196,10 +196,10 @@ comparisons that can disagree. Fixtures 13-17 in the golden corpus are one file 
 driven by `MobixCapabilityFixturesTest`; the space between them is the matrix of
 `MobixCapabilityGateTest`.
 
-The tablet shows that answer: a card before it disables writing, one line when the document stays
-editable, and the disabled actions read off the same verdict (`openVerdictNotice`). Still to build: the
-window's half of the notice, which needs a read-only tab before it can honestly show the pages it
-refuses to let anyone edit (`mobix-capability-warning-surface`).
+Both shells show that answer. The tablet asks with a card before it disables writing, and says one line
+when the document stays editable (`openVerdictNotice`). The window opens a read-only document's pages
+in a tab, and turns off every write with the same verdict: the band names what the file needs, the ink
+takes no press, and Save and Save As are unavailable.
 
 ## Page schema (`pages/page-N.json`, `chunks/chunk_x_y.json`)
 

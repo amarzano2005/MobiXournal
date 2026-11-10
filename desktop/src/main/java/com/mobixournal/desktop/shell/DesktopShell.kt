@@ -622,7 +622,8 @@ class DesktopShellState(
             }
             // Both ask the window where the file goes: this class has no dialog to open.
             ShellCommand.SAVE_AS, ShellCommand.EXPORT_PDF -> {
-                if (tabs.active == null) return false
+                // A read-only tab is there to look at: writing it is what the gate's answer forbids.
+                val open = tabs.active?.takeUnless { it.document.readOnly } ?: return false
                 if (command == ShellCommand.SAVE_AS) onSavePicker() else onExportPicker()
                 return true
             }
@@ -631,7 +632,7 @@ class DesktopShellState(
             // header control greys out on). Save As stays available — a clean document can still be
             // written somewhere else.
             ShellCommand.SAVE -> {
-                val tab = tabs.active ?: return false
+                val tab = tabs.active?.takeUnless { it.document.readOnly } ?: return false
                 if (!tab.isDirty) return false
                 if (tab.unsaved) onSavePicker() else if (saveState.uiBound) requestSave() else save()
                 return true

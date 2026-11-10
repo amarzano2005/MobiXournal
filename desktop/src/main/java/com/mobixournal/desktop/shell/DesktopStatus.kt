@@ -189,6 +189,12 @@ internal fun StatusBar(
         val fit = page?.let { tab.fitFor(it.width.toFloat(), it.height.toFloat()) } ?: tab.fit
         BandReading(pageLabel(tab.page, tab.pageCount), "The page in view", "PageDown / PageUp", numeric = true)
         SearchCount(tab)
+        // A document the gate would not let this build write says so on the band, with the whole sentence
+        // under the pointer: drawing, Save and Save As are off, and this is the answer that turned them off.
+        tab.document.gateNote?.let { note ->
+            BandGap()
+            BandReading(if (tab.document.readOnly) "read-only" else "kept as written", note)
+        }
         // A refused command says what happened and what to do, and sits here until the next command
         // replaces it (`docs/ui-modernization.md` — the error-copy rule).
         refusal?.let { sentence ->
