@@ -193,6 +193,8 @@ class LivingLabelClearanceTest {
             curves = listOf(PlotCurve(PlotKind.CARTESIAN, "sin(x)", 0xFF000000.toInt())),
             xMin = -10.0,
             xMax = 10.0,
+            // Markers on, so the marker key is held to the same rule as the tick numbers and summary.
+            showCriticalPoints = true,
             summaryText = "roots: -6.28, 0, 6.28",
             id = "plot_clearance",
         )

@@ -42,10 +42,12 @@ private val PREVIEW_BOX = PlotBox(left = 10.0, top = 10.0, width = 360.0, height
 
 /** The point size the preview canvas is laid out for, margins included. */
 private const val PREVIEW_WIDTH_PT = 380.0
-private const val PREVIEW_HEIGHT_PT = 180.0
 
-/** How far below the frame's bottom a text element may start and still be a tick number. */
-private const val LABEL_SLACK_PT = 12.0
+/** Tall enough for the frame plus the marker key under it. */
+private const val PREVIEW_HEIGHT_PT = 200.0
+
+/** How far below the frame's bottom text may start and still belong to the graph: ticks, then the key. */
+private const val LABEL_SLACK_PT = 40.0
 
 /**
  * The graph dialog's right-hand column: the **live preview** of the plot being asked for, and the three
@@ -159,7 +161,7 @@ private fun FunctionPlotPreviewBox(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp),
+            .height(190.dp),
         color = Color.Transparent,
     ) {
         Box(modifier = Modifier.padding(8.dp)) {
@@ -201,8 +203,9 @@ private fun FunctionPlotPreviewBox(
                 }
                 // The numbers the plot writes are the ink's own text elements, at the coordinates the
                 // compiler gave them — its measured advances, the same ones the page and every export
-                // place them on, so a tick in this card is a tick on the sheet. The analysis summary is
-                // prose below the frame, not a tick, and is left out.
+                // place them on, so a tick or a key in this card is the same on the sheet. The analysis
+                // summary is prose below the frame and is left out of this preview entirely (the element
+                // is built without one), while the marker key underneath is part of the graph.
                 for (number in numbers) {
                     if (number.y > PREVIEW_BOX.bottom + LABEL_SLACK_PT) continue
                     val layout = textMeasurer.measure(

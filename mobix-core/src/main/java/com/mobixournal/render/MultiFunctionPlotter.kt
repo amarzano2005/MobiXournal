@@ -68,8 +68,27 @@ object MultiFunctionPlotter {
             if (strokes.isNotEmpty()) pathGroups.add(PlotPathGroup(strokes, curve.color, curve.lineStyle))
         }
 
+        var legendHeightPt = 0.0
         val criticalPoints = if (showCriticalPoints) {
-            detectAllCriticalPoints(curves, xMin, xMax, yMin, yMax, toX, toY, strokeWidthPt, pathGroups, parameters)
+            val detection = detectAllCriticalPoints(
+                curves = curves,
+                xMin = xMin,
+                xMax = xMax,
+                yMin = yMin,
+                yMax = yMax,
+                toX = toX,
+                toY = toY,
+                strokeWidthPt = strokeWidthPt,
+                leftPt = leftPt,
+                topPt = topPt,
+                widthPt = widthPt,
+                heightPt = heightPt,
+                labels = labels,
+                pathGroups = pathGroups,
+                parameters = parameters,
+            )
+            legendHeightPt = detection.legendHeightPt
+            detection.points
         } else emptyList()
 
         val summary = if (includeSummary) {
@@ -83,7 +102,14 @@ object MultiFunctionPlotter {
                 integralTo = integralTo,
             )
         } else ""
-        return MultiPlotResult(pathGroups, labels, criticalPoints, summary, PlotFrame(xMin, xMax, yMin, yMax, leftPt, topPt, widthPt, heightPt))
+        return MultiPlotResult(
+            pathGroups = pathGroups,
+            labels = labels,
+            criticalPoints = criticalPoints,
+            summaryText = summary,
+            frame = PlotFrame(xMin, xMax, yMin, yMax, leftPt, topPt, widthPt, heightPt),
+            legendHeightPt = legendHeightPt,
+        )
     }
 
     /**
@@ -171,9 +197,11 @@ object MultiFunctionPlotter {
         xMin: Double, xMax: Double, yMin: Double, yMax: Double,
         toX: (Double) -> Double, toY: (Double) -> Double,
         strokeWidthPt: Double,
+        leftPt: Double, topPt: Double, widthPt: Double, heightPt: Double,
+        labels: MutableList<PlotLabel>,
         pathGroups: MutableList<PlotPathGroup>,
         parameters: Map<String, Double> = emptyMap(),
-    ): List<CriticalPoint> {
+    ): CriticalDetection {
         val points = mutableListOf<CriticalPoint>()
         curves.forEachIndexed { i, c ->
             val f = FunctionPlot.compile(c.source, parameters) ?: return@forEachIndexed
@@ -189,11 +217,102 @@ object MultiFunctionPlotter {
             }
         }
         val inRange = points.filter { p -> p.x in xMin..xMax && p.y in yMin..yMax }
-        val markerStrokes = FunctionAnalysis.generateMarkerStrokes(inRange, toX, toY, radiusPt = 3.0, strokeWidthPt = strokeWidthPt * 1.2)
-        if (markerStrokes.isNotEmpty()) {
-            pathGroups.add(PlotPathGroup(markerStrokes, 0xFFD32F2F.toInt(), LineStyle.PLAIN))
+        val markers = FunctionAnalysis.generateMarkers(inRange, toX, toY, radiusPt = 3.0, strokeWidthPt = strokeWidthPt * 1.2)
+        // A group per kind, so the dot's colour is the legend's colour; iterating the enum keeps the
+        // drawing order stable rather than following discovery order.
+        val present = mutableListOf<CriticalPointType>()
+        for (type in CriticalPointType.values()) {
+            val ofType = markers.filter { it.type == type }
+            if (ofType.isEmpty()) continue
+            present += type
+            pathGroups.add(PlotPathGroup(ofType.map { it.glyph }, FunctionAnalysis.markerColor(type), LineStyle.PLAIN))
         }
-        return points
+        val legendHeight = if (present.isEmpty()) {
+            0.0
+        } else {
+            markerLegend(
+                types = present,
+                leftPt = leftPt,
+                topPt = topPt,
+                widthPt = widthPt,
+                heightPt = heightPt,
+                strokeWidthPt = strokeWidthPt,
+                labels = labels,
+                pathGroups = pathGroups,
+            )
+        }
+        return CriticalDetection(points, legendHeight)
+    }
+
+    /** What detecting the markers produced: every point for the summary, and the legend's own height. */
+    private data class CriticalDetection(val points: List<CriticalPoint>, val legendHeightPt: Double)
+
+    /**
+     * The **marker legend** under the frame: the glyph and name of every kind of point that was
+     * marked, laid out in one or more rows inside the plot's width.
+     *
+     * It starts below the x tick numbers (which own the first line under the frame) and returns the
+     * distance it reaches below the frame, so [plot] can hand the summary a place under it. A legend
+     * names *this* plot's marks only — a plot of `sin(x)` has no “intersection” key until a second
+     * curve crosses it.
+     */
+    private fun markerLegend(
+        types: List<CriticalPointType>,
+        leftPt: Double,
+        topPt: Double,
+        widthPt: Double,
+        heightPt: Double,
+        strokeWidthPt: Double,
+        labels: MutableList<PlotLabel>,
+        pathGroups: MutableList<PlotPathGroup>,
+    ): Double {
+        val size = InkTokens.FIGURE_LABEL_SIZE_PT
+        val lineHeight = size * InkTokens.FIGURE_LABEL_LINE_H
+        val radius = 3.0
+        val glyphTextGap = 3.0
+        val entryGap = 9.0
+        val top = topPt + heightPt + 4.0 + lineHeight + 3.0
+        val right = leftPt + widthPt
+        var x = leftPt
+        var row = 0
+        for (type in types) {
+            val name = type.legendName()
+            val entryWidth = radius * 2 + glyphTextGap + TextAdvance.pt(name, size)
+            if (x > leftPt && x + entryWidth > right) {
+                row++
+                x = leftPt
+            }
+            val centreY = top + row * lineHeight + lineHeight / 2.0
+            pathGroups.add(
+                PlotPathGroup(
+                    strokes = listOf(
+                        FunctionAnalysis.markerGlyph(
+                            type = type,
+                            cx = x + radius,
+                            cy = centreY,
+                            radiusPt = radius,
+                            strokeWidthPt = strokeWidthPt * 1.2,
+                        ),
+                    ),
+                    color = FunctionAnalysis.markerColor(type),
+                    lineStyle = LineStyle.PLAIN,
+                ),
+            )
+            labels.add(PlotLabel(name, x + radius * 2 + glyphTextGap, top + row * lineHeight))
+            x += entryWidth + entryGap
+        }
+        val rows = row + 1
+        return (top - (topPt + heightPt)) + rows * lineHeight
+    }
+
+    /** The word the legend keys a kind of point under. */
+    private fun CriticalPointType.legendName(): String = when (this) {
+        CriticalPointType.ZERO -> "root"
+        CriticalPointType.Y_INTERCEPT -> "y-intercept"
+        CriticalPointType.LOCAL_MIN -> "min"
+        CriticalPointType.LOCAL_MAX -> "max"
+        CriticalPointType.INTERSECTION -> "intersection"
+        CriticalPointType.ASYMPTOTE -> "asymptote"
     }
 
     private fun frame(leftPt: Double, topPt: Double, widthPt: Double, heightPt: Double, strokeWidthPt: Double): List<StrokePoint> {

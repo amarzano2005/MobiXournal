@@ -112,7 +112,9 @@ object PlotInk {
             out += InkPrimitives.text(
                 content = result.summaryText,
                 x = plot.left,
-                y = plot.bottom + SUMMARY_GAP_PT,
+                // Below the marker legend when the plot drew one, so the key and the prose never share
+                // a line.
+                y = plot.bottom + SUMMARY_GAP_PT + result.legendHeightPt,
                 color = plot.axisColor,
             )
         }

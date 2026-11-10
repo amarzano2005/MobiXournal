@@ -93,7 +93,16 @@ fun DrawingSurfaceView.insertMultiPlot(
         TextElement(FIGURE_LABEL_FONT, FIGURE_LABEL_SIZE_PT, x, y, defaultColor, text)
     }
     val summaryElements = if (result.summaryText.isNotEmpty()) {
-        listOf(TextElement(FIGURE_LABEL_FONT, FIGURE_LABEL_SIZE_PT, leftPt, topPt + heightPt + 20.0, defaultColor, result.summaryText))
+        listOf(
+            TextElement(
+                FIGURE_LABEL_FONT,
+                FIGURE_LABEL_SIZE_PT,
+                leftPt,
+                topPt + heightPt + 20.0 + result.legendHeightPt,
+                defaultColor,
+                result.summaryText,
+            ),
+        )
     } else emptyList()
     val allNewElements = newStrokes + newLabels + summaryElements
 

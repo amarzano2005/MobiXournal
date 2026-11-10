@@ -48,6 +48,9 @@ data class CriticalPoint(
     val description: String,
 )
 
+/** One marker's ink: the kind it stands for, and the closed glyph drawn at its point. */
+data class CriticalMarker(val type: CriticalPointType, val glyph: List<StrokePoint>)
+
 /** A group of stroke paths sharing the same color and line style (e.g. axes, a curve, or point markers). */
 data class PlotPathGroup(
     val strokes: List<List<StrokePoint>>,
@@ -61,6 +64,9 @@ data class PlotPathGroup(
  * [frame] is the fitted mapping the strokes were placed in (see [PlotFrame]); it is null when nothing
  * was drawn, so a caller that has to place something in the plot's own coordinates knows there is no
  * frame to place it in rather than inventing one.
+ *
+ * [legendHeightPt] is how far below the frame the marker legend reaches, so whoever draws the summary
+ * puts it under the key rather than through it. Zero when no markers were drawn.
  */
 data class MultiPlotResult(
     val pathGroups: List<PlotPathGroup>,
@@ -68,6 +74,7 @@ data class MultiPlotResult(
     val criticalPoints: List<CriticalPoint>,
     val summaryText: String = "",
     val frame: PlotFrame? = null,
+    val legendHeightPt: Double = 0.0,
 )
 
 /**
@@ -336,30 +343,81 @@ object FunctionAnalysis {
         CriticalPointType.ASYMPTOTE -> "Vertical Asymptotes"
     }
 
-    /** Helper to generate marker dot circles for critical points as StrokePoint loops. */
-    fun generateMarkerStrokes(
+    /**
+     * The markers for [points] that stand on the plane: one glyph per point, shaped and coloured by
+     * its [CriticalPointType].
+     *
+     * A glyph rather than only a dot, because a single red circle says nothing about *which* finding
+     * it is; `MultiFunctionPlotter` draws these and adds the legend that names them. A vertical
+     * asymptote has no finite y and so no dot (the line itself already shows the break).
+     */
+    fun generateMarkers(
         points: List<CriticalPoint>,
         toX: (Double) -> Double,
         toY: (Double) -> Double,
-        radiusPt: Double = 3.5,
+        radiusPt: Double = 3.0,
         strokeWidthPt: Double = 1.0,
-    ): List<List<StrokePoint>> {
-        val out = mutableListOf<List<StrokePoint>>()
-        for (p in points) {
-            if (!p.y.isFinite()) continue
-            val cx = toX(p.x)
-            val cy = toY(p.y)
-            val circle = mutableListOf<StrokePoint>()
-            val steps = 16
-            for (step in 0..steps) {
-                val angle = 2.0 * Math.PI * step / steps
-                val px = cx + radiusPt * cos(angle)
-                val py = cy + radiusPt * sin(angle)
-                circle.add(StrokePoint(px, py, strokeWidthPt))
-            }
-            out.add(circle)
+    ): List<CriticalMarker> = points.mapNotNull { point ->
+        if (!point.y.isFinite()) {
+            null
+        } else {
+            CriticalMarker(point.type, markerGlyph(point.type, toX(point.x), toY(point.y), radiusPt, strokeWidthPt))
         }
-        return out
+    }
+
+    /** The colour a kind of critical point is marked in; the legend uses the same value. */
+    fun markerColor(type: CriticalPointType): Int = when (type) {
+        CriticalPointType.ZERO -> 0xFFD32F2F.toInt()
+        CriticalPointType.Y_INTERCEPT -> 0xFF7B1FA2.toInt()
+        CriticalPointType.LOCAL_MIN -> 0xFF1976D2.toInt()
+        CriticalPointType.LOCAL_MAX -> 0xFF2E7D32.toInt()
+        CriticalPointType.INTERSECTION -> 0xFFF57C00.toInt()
+        CriticalPointType.ASYMPTOTE -> 0xFF616161.toInt()
+    }
+
+    /**
+     * One closed marker glyph centred on ([cx], [cy]): a circle for a root, a square for the
+     * y-intercept, a down/up triangle for a minimum/maximum and a diamond for an intersection, so the
+     * shape itself says what the point is even where colour is hard to tell apart.
+     */
+    fun markerGlyph(
+        type: CriticalPointType,
+        cx: Double,
+        cy: Double,
+        radiusPt: Double = 3.0,
+        strokeWidthPt: Double = 1.0,
+    ): List<StrokePoint> {
+        fun p(x: Double, y: Double) = StrokePoint(x, y, strokeWidthPt)
+        return when (type) {
+            CriticalPointType.ZERO -> (0..16).map { step ->
+                val angle = 2.0 * Math.PI * step / 16
+                p(cx + radiusPt * cos(angle), cy + radiusPt * sin(angle))
+            }
+            CriticalPointType.Y_INTERCEPT -> {
+                val half = radiusPt * 0.85
+                listOf(
+                    p(cx - half, cy - half), p(cx + half, cy - half),
+                    p(cx + half, cy + half), p(cx - half, cy + half), p(cx - half, cy - half),
+                )
+            }
+            CriticalPointType.LOCAL_MIN -> listOf(
+                p(cx - radiusPt * 0.95, cy - radiusPt * 0.8),
+                p(cx + radiusPt * 0.95, cy - radiusPt * 0.8),
+                p(cx, cy + radiusPt),
+                p(cx - radiusPt * 0.95, cy - radiusPt * 0.8),
+            )
+            CriticalPointType.LOCAL_MAX -> listOf(
+                p(cx, cy - radiusPt),
+                p(cx + radiusPt * 0.95, cy + radiusPt * 0.8),
+                p(cx - radiusPt * 0.95, cy + radiusPt * 0.8),
+                p(cx, cy - radiusPt),
+            )
+            CriticalPointType.INTERSECTION -> listOf(
+                p(cx, cy - radiusPt), p(cx + radiusPt, cy),
+                p(cx, cy + radiusPt), p(cx - radiusPt, cy), p(cx, cy - radiusPt),
+            )
+            CriticalPointType.ASYMPTOTE -> listOf(p(cx, cy - radiusPt), p(cx, cy + radiusPt))
+        }
     }
 
     private fun addUniquePoint(list: MutableList<CriticalPoint>, pt: CriticalPoint) {

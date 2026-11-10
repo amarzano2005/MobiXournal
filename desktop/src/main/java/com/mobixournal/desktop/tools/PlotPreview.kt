@@ -100,7 +100,7 @@ internal fun PlotInkPreview(plot: PlotElement?, placeholder: String) {
                 modifier = Modifier.align(Alignment.Center),
             )
         } else {
-            Canvas(Modifier.fillMaxSize()) { drawPreviewInk(strokes, numbers, textMeasurer) }
+            Canvas(Modifier.fillMaxSize()) { drawPreviewInk(strokes, numbers, textMeasurer, plot?.summaryText) }
         }
     }
 }
@@ -118,6 +118,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewInk(
     strokes: List<InkStroke>,
     numbers: List<TextElement>,
     textMeasurer: TextMeasurer,
+    summaryText: String?,
 ) {
     // A plot's ink is in page points, wherever the graph sits: its strokes start at its own `left`/`top`,
     // so the preview shifts them to the card's corner before scaling. A pending graph is built in a box at
@@ -166,9 +167,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewInk(
             ),
         )
     }
-    // The tick numbers, in the preview's own transform. The analysis summary is prose below the frame,
-    // not a number beside an axis, and would run out of the card.
+    // The tick numbers and the marker key, in the preview's own transform. The analysis summary is
+    // prose below the frame and would run out of the card, so it is skipped by its own content — a key
+    // under the graph starts in the same band and must not be mistaken for it.
     for (number in numbers) {
+        if (number.content == summaryText) continue
         if (number.y > PREVIEW_BOX.bottom + LABEL_SLACK_PT) continue
         val face = textFace(number.font)
         val layout = textMeasurer.measure(
@@ -200,5 +203,5 @@ private val PREVIEW_HEIGHT = 128.dp
 /** One point, so the preview reads a thin curve without turning it into a blob. */
 private const val PREVIEW_STROKE_PT = 1.0
 
-/** How far below the frame's bottom a text element may start and still be a tick number. */
-private const val LABEL_SLACK_PT = 12.0
+/** How far below the frame's bottom text may start and still belong to the graph: ticks, then the key. */
+private const val LABEL_SLACK_PT = 40.0
