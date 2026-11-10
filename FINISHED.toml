@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-portable-assets"
+title = "Prove which documents are genuinely self-contained"
+description = "Audited every resource a .mobix can reference and found the self-contained claim true for some and false for others. Always embedded and digest-verified: image bytes (asset is required and the writer must supply it), texImage pictures when present, bundled pixmap and PDF payloads, bundled recordings under assets/aud_<sha256>, and all living-element data. Referenceable without bytes: a pixmap or PDF background carrying only filename/domain (both shells draw a bare sheet and the app reports the reference once, per page, in a toast), a recording kept as an fn sidecar, and a texImage with LaTeX but no picture. Never bundled: the font face a text element names, which reflows silently on a machine lacking it. Gaps found: no document-level portability report (missing references are reported per page, only on Android, and an absent audio sidecar is silent), no way to embed a resolvable-but-external resource into a copy, no validator surface a third-party reader can call, no rule keeping a future payload kind out of the classification, and README/docs claiming self-containment unconditionally. Broke that into six tasks: the report model, the warning surface on both shells, the portable-copy action, the asset validator, the font policy with an exhaustive-classification guard, and the doc-claims correction."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "portability", "p1"]
+design = "none: an audit of what the container can reference plus the tasks it produced"
+
+[[task]]
 id = "stem-numeric-doc-code-audit"
 title = "Reconcile docs/math-engine.md with FunctionAnalysis.kt and pin the limits in tests"
 description = "Audited FunctionAnalysis.kt end to end and found the doc describing an engine that is not there: derivatives are a two-point central difference at a fixed h=1e-5 rather than a 5-point adaptive stencil, roots and extrema are bisected by a local bisectRoot with 24 iterations and no Brent step, and there is no second derivative or inflection detection at all. Added FunctionAnalysisCharacterizationTest, eleven tests recording sin, x^2, (x-0.5005)^2, x*(x-0.03), 1/x, abs, sqrt, sin(400x) and exp, including the failures the scheme has: a tangent root no sample lands on is missed, two roots inside 0.05 merge, a pole is reported twice at half a sample step and never refined, sqrt's domain edge is called an asymptote, and a root next to a NaN sample is not reported. docs/math-engine.md now describes the implemented algorithm with a measured-limits table linking each row to its test, and README no longer claims inflections. No algorithm changed."
