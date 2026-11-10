@@ -27,7 +27,7 @@ anchored to the page the gesture started on — and elements are addressed by po
 the refs stay valid across a live drag. The picking is pure and JVM-tested — **`ElementBounds` is the
 single owner of "what rectangle does this element occupy"**: `ElementBounds.of` gives each element's pt
 bounding box (strokes grown by half-width, images/teximages are their box, text a rough content-extent
-metric) and `ElementBounds.TAP_PAD` is the one hit-test margin. Every consumer routes through it —
+metric, a plot its frame plus the analysis report when that report is written beside or above the frame) and `ElementBounds.TAP_PAD` is the one hit-test margin. Every consumer routes through it —
 `SelectionTester` (picking), `PageRenderer` (viewport cull), `VerticalSpaceOps` (the grab line) and
 `ElementEdits.hitsText` (tap-to-edit) — so selection handles, culling and vertical-space insertion agree
 by construction rather than by coincidence; nothing re-derives a box locally. The box is a **frame, not

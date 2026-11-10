@@ -6,6 +6,7 @@ import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
@@ -133,10 +134,33 @@ object ElementBounds {
         return Bounds(t.left - half, t.top - half, t.left + t.width + half, t.top + t.height + half)
     }
 
+    /**
+     * A plot's box: its frame, grown by half the curve's width — plus, when the analysis report was put
+     * **beside or above** the frame, the block of text that report occupies.
+     *
+     * The report is drawn at the element's own side ([PlotInfoPlacement]), so on those three sides it is
+     * part of the element: the selection outline encloses it, a tap anywhere on it picks the graph it
+     * belongs to, and a move carries it along with the frame. Leaving it out made the report ink the
+     * selection could not see — move the graph and the report stayed behind.
+     *
+     * The band **under** the frame stays outside the box, and so does a report written there: that band
+     * already belongs to the x tick numbers and the marker key, whose height only the plotter knows, and a
+     * box that guessed it would cut through the text it is meant to enclose.
+     */
     private fun plotBounds(p: PlotElement): Bounds {
         val strokeW = p.curves.firstOrNull()?.strokeWidth ?: 1.0
         val half = strokeW / 2.0
-        return Bounds(p.left - half, p.top - half, p.right + half, p.bottom + half)
+        val frame = Bounds(p.left - half, p.top - half, p.right + half, p.bottom + half)
+        val summary = p.summaryText?.takeIf { it.isNotEmpty() && p.infoSide != PlotInfoSide.BELOW }
+            ?: return frame
+        val at = PlotInfoPlacement.origin(p.infoSide, summary, p.left, p.top, p.right, p.bottom)
+        val report = Bounds(
+            at.x,
+            at.y,
+            at.x + PlotInfoPlacement.width(summary),
+            at.y + PlotInfoPlacement.height(summary),
+        )
+        return frame.union(report)
     }
 
     private fun strokeBounds(s: Stroke): Bounds {

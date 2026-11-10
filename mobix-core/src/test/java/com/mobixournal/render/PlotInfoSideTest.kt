@@ -116,6 +116,32 @@ class PlotInfoSideTest {
     }
 
     @Test
+    fun aReportBesideOrAboveTheFrameIsPartOfTheElementsBox() {
+        val right = ElementBounds.of(plot(PlotInfoSide.RIGHT))
+        val left = ElementBounds.of(plot(PlotInfoSide.LEFT))
+        val above = ElementBounds.of(plot(PlotInfoSide.ABOVE))
+
+        assertTrue("a right-hand report widens the box past the frame", right.right > 400.5)
+        assertTrue("a left-hand report widens it before the frame", left.left < 99.5)
+        assertTrue("a report over the frame raises the box", above.top < 199.5)
+
+        // The frame is still inside every one of those boxes: enlarging never loses the graph.
+        for (box in listOf(right, left, above)) {
+            assertTrue(box.left <= 99.5 && box.right >= 400.5 && box.top <= 199.5 && box.bottom >= 380.5)
+        }
+    }
+
+    @Test
+    fun aReportUnderTheFrameKeepsTheFrameOnlyBox() {
+        // The band under the frame is the tick numbers' and the marker key's, and its height is the
+        // plotter's to measure; the box stops at the frame rather than guessing through the text.
+        val below = ElementBounds.of(plot(PlotInfoSide.BELOW))
+
+        assertEquals(ElementBounds.of(plot(PlotInfoSide.BELOW).copy(summaryText = null)), below)
+        assertEquals(380.5, below.bottom, 1e-9)
+    }
+
+    @Test
     fun theSideSurvivesASaveAndAReopen() {
         for (side in PlotInfoSide.entries) {
             assertEquals(side, reopen(plot(side)).infoSide)
