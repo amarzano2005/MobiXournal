@@ -365,11 +365,18 @@ object FunctionAnalysis {
         }
     }
 
-    /** The colour a kind of critical point is marked in; the legend uses the same value. */
+    /**
+     * The colour a kind of critical point is marked in; the legend uses the same value.
+     *
+     * None of these is a colour a curve is drawn in (`PenPalette`), because a mark in the curve's own
+     * blue reads as part of the graph rather than as a finding — the minimum used to be that blue, and
+     * a valley simply made its marker disappear into the line through it. Every kind keeps a hue of its
+     * own beside its own glyph shape, so a dot is identifiable by shape *or* by colour.
+     */
     fun markerColor(type: CriticalPointType): Int = when (type) {
         CriticalPointType.ZERO -> 0xFFD32F2F.toInt()
         CriticalPointType.Y_INTERCEPT -> 0xFF7B1FA2.toInt()
-        CriticalPointType.LOCAL_MIN -> 0xFF1976D2.toInt()
+        CriticalPointType.LOCAL_MIN -> 0xFF00838F.toInt()
         CriticalPointType.LOCAL_MAX -> 0xFF2E7D32.toInt()
         CriticalPointType.INTERSECTION -> 0xFFF57C00.toInt()
         CriticalPointType.ASYMPTOTE -> 0xFF616161.toInt()

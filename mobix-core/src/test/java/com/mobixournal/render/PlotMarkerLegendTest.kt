@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.TextElement
 import org.junit.Assert.assertEquals
@@ -45,6 +46,21 @@ class PlotMarkerLegendTest {
         assertEquals("one marker per point", points.size, markers.size)
         assertEquals("a different glyph per kind", points.size, markers.map { it.glyph }.toSet().size)
         assertEquals("a different colour per kind", points.size, points.map { FunctionAnalysis.markerColor(it.type) }.toSet().size)
+    }
+
+    /**
+     * A mark must not wear a curve's colour. The minimum was drawn in the palette's blue, so a valley's
+     * marker sat in the line running through it and read as part of the graph; the user saw exactly that.
+     */
+    @Test
+    fun `no marker is drawn in a colour a curve is drawn in`() {
+        for (type in CriticalPointType.values()) {
+            val colour = FunctionAnalysis.markerColor(type)
+            assertTrue(
+                "${type.label} is marked in ${Integer.toHexString(colour)}, which is a curve palette colour",
+                PenPalette.COLORS.none { it == colour },
+            )
+        }
     }
 
     @Test
