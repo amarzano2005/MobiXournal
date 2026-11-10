@@ -280,8 +280,8 @@ fun EditorScreen(
     /** What the last `.xopp` export could not draw, reported rather than dropped. Empty is normal. */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
-    /** The document name waiting on consent to open read-only (written by a newer app version). */
-    pendingNewerAppConsentName: String? = null,
+    /** The open gate's notice waiting on an answer, or null when there is nothing to ask. */
+    pendingOpenNotice: OpenVerdictNotice? = null,
     onConfirmNewerAppConsent: () -> Unit = {},
     onDismissNewerAppConsent: () -> Unit = {},
     /** Existing audio clip waiting on consent to overwrite before starting a new recording. */
@@ -464,7 +464,7 @@ fun EditorScreen(
             onSaveAs = onSaveAs,
             exportGaps = exportGaps,
             onDismissExportGaps = onDismissExportGaps,
-            pendingNewerAppConsentName = pendingNewerAppConsentName,
+            pendingOpenNotice = pendingOpenNotice,
             onConfirmNewerAppConsent = onConfirmNewerAppConsent,
             onDismissNewerAppConsent = onDismissNewerAppConsent,
         )

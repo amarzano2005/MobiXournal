@@ -10,34 +10,35 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.FloatingDialog
 
 /**
- * Consent dialog shown when opening a .mobix document that requires a newer version of MobiXournal
- * (`minAppVersion > appVersion`). Explains that the document was written by a newer version and offers
- * to open it in read-only mode so existing data is preserved without corruption, or cancel.
+ * The card an open shows before it disables writing: a file written for a newer build
+ * (`minAppVersion`) or one requiring a feature this build cannot keep whole.
+ *
+ * It shows the **verdict's own sentence** ([body]) and names the document, because the alternative —
+ * copy written here — is a second account of the same decision, free to disagree with the actions the
+ * shell disables ([openVerdictNotice] is where that sentence and those actions are decided together).
+ * The two outcomes differ in [title] and [confirmLabel]; the rest is the contract's wording.
  */
 @Composable
 fun NewerAppConsentDialog(
     name: String,
+    title: String,
+    body: String,
+    confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     FloatingDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Newer version document") },
+        title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "\"$name\" was written by a newer version of MobiXournal and may contain features this version cannot safely save without losing data.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    "Open read-only to view the document? Drawing, saving, and exporting will be disabled.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text("\"$name\"", style = MaterialTheme.typography.bodyMedium)
+                Text(body, style = MaterialTheme.typography.bodyMedium)
             }
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Open read-only")
+                Text(confirmLabel)
             }
         },
         dismissButton = {

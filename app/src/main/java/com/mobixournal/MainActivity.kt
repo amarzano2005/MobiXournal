@@ -1,5 +1,7 @@
 package com.mobixournal
 
+import com.mobixournal.ui.OpenVerdictNotice
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -497,7 +499,7 @@ class MainActivity : ComponentActivity() {
                     onExportPdf = { exportPdfLauncher.launch(suggestedPdfName()) },
                     exportGaps = exportGaps.value,
                     onDismissExportGaps = { exportGaps.value = emptyList() },
-                    pendingNewerAppConsentName = pendingNewerAppConsent.value?.name,
+                    pendingOpenNotice = pendingNewerAppConsent.value?.notice,
                     onConfirmNewerAppConsent = {
                         val pending = pendingNewerAppConsent.value
                         pendingNewerAppConsent.value = null
@@ -691,7 +693,8 @@ class MainActivity : ComponentActivity() {
 
 /** A pending user consent dialog before proceeding with a document action. */
 internal data class PendingConsent(
-    val name: String,
+    /** The gate's notice: its copy, and the writing it disables (`openVerdictNotice`). */
+    val notice: OpenVerdictNotice,
     val onConfirm: () -> Unit,
     val onDismiss: () -> Unit,
 )

@@ -1,5 +1,7 @@
 package com.mobixournal
 
+import com.mobixournal.ui.openVerdictNotice
+
 import android.content.Intent
 import android.net.Uri
 import com.mobixournal.audio.documentAudioFiles
@@ -251,15 +253,16 @@ internal fun MainActivity.loadDocument(
             return
         }
         is LoadedFile.Doc -> {
-            if (loaded.needsNewerApp) {
-                // docs/mobix-schema-spec.md rule 4: a document requiring a newer app version than
-                // ours offers a read-only open instead of corrupting or losing newer data structures.
+            // The gate decided at open (`MobixCapabilities`); the notice and the state it disables are
+            // two readings of that one verdict (docs/mobix-schema-spec.md, *Declared capabilities*).
+            val notice = openVerdictNotice(displayName(source), loaded.verdict)
+            if (notice != null && notice.asksForAnswer) {
                 pendingNewerAppConsent.value = PendingConsent(
-                    name = displayName(source),
+                    notice = notice,
                     onConfirm = {
-                        applyLoadedDoc(loaded, source, isReadOnly = true)
+                        applyLoadedDoc(loaded, source, isReadOnly = notice.readOnly)
                         placeholder?.let { p ->
-                            tabs.updateActive { if (it.id == p.id) it.copy(opening = false, isReadOnly = true) else it }
+                            tabs.updateActive { if (it.id == p.id) it.copy(opening = false, isReadOnly = notice.readOnly) else it }
                         }
                         snapshotActiveTab()
                         tabsTick.value++
@@ -281,7 +284,10 @@ internal fun MainActivity.loadDocument(
                 )
                 return
             }
-            applyLoadedDoc(loaded, source, isReadOnly = false)
+            // A document whose unmodelled constructs are preserved opens for editing with one line to
+            // read, not a question: it is fully editable everywhere the app can draw.
+            notice?.let { toast(it.body) }
+            applyLoadedDoc(loaded, source, isReadOnly = notice?.readOnly == true)
         }
     }
     // The document may reference recordings made elsewhere; fetch them so its strokes replay.

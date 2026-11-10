@@ -51,9 +51,9 @@ through the gate. `MobixCapabilityGateTest` covers the space between those files
 required known, required unknown and required-at-a-higher-version against known and unknown optional
 features and a floor below, at and above this build — and `DocumentIoNewerAppTest` pins that the app's
 open path carries the gate's verdict rather than asking the manifest again. The cross-cutting half is
-pinned twice: `MobixMergeManifestPartsTest` proves a merged manifest declares both sides' requirements
-with one entry per feature at the higher version, and `MobixCapabilityCopyTest` proves a paste raises the
-destination, refuses a selection this build cannot keep, and that a raised set reaches the archive. What each one keeps is the table in [mobix-format.md](mobix-format.md); the per-family
+pinned twice — `MobixMergeManifestPartsTest` for the merged manifest's union, `MobixCapabilityCopyTest` for
+a paste raising the destination, refusing one it cannot keep, and reaching the archive — and
+`OpenVerdictNoticeTest` for what the tablet tells the reader, read off one verdict. What each one keeps is the table in [mobix-format.md](mobix-format.md); the per-family
 rule behind it is [mobix-elements.md](mobix-elements.md)'s.
 
 **The hostile corpus.** `MobixHostileCorpusTest` drives the nine committed files under

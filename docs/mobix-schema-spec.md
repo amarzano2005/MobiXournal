@@ -196,7 +196,10 @@ comparisons that can disagree. Fixtures 13-17 in the golden corpus are one file 
 driven by `MobixCapabilityFixturesTest`; the space between them is the matrix of
 `MobixCapabilityGateTest`.
 
-Still to build: the notice on the two shells (`mobix-capability-warning-surface`).
+The tablet shows that answer: a card before it disables writing, one line when the document stays
+editable, and the disabled actions read off the same verdict (`openVerdictNotice`). Still to build: the
+window's half of the notice, which needs a read-only tab before it can honestly show the pages it
+refuses to let anyone edit (`mobix-capability-warning-surface`).
 
 ## Page schema (`pages/page-N.json`, `chunks/chunk_x_y.json`)
 

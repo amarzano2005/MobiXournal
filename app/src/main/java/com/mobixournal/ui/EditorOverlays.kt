@@ -62,8 +62,8 @@ fun BoxScope.EditorOverlays(
     /** What the last `.xopp` export could not draw; empty is the normal case (see [ExportGapsDialog]). */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
-    /** The document name waiting on consent to open read-only (written by a newer app version). */
-    pendingNewerAppConsentName: String? = null,
+    /** The open gate's notice waiting on an answer, or null when there is nothing to ask. */
+    pendingOpenNotice: OpenVerdictNotice? = null,
     onConfirmNewerAppConsent: () -> Unit = {},
     onDismissNewerAppConsent: () -> Unit = {},
 ) {
@@ -127,13 +127,16 @@ fun BoxScope.EditorOverlays(
         val gaps = rememberClosingArgument(exportGaps.takeIf { it.isNotEmpty() }) ?: return@DialogPresence
         ExportGapsDialog(gaps = gaps, onDismiss = onDismissExportGaps)
     }
-    DialogPresence(pendingNewerAppConsentName != null) {
+    DialogPresence(pendingOpenNotice != null) {
         // Held so the dialog keeps its subject while it closes: the flag clears on the answer, and the
         // window is still playing its way out.
-        val name = rememberClosingArgument(pendingNewerAppConsentName)
-        if (name != null) {
+        val notice = rememberClosingArgument(pendingOpenNotice)
+        if (notice != null) {
             NewerAppConsentDialog(
-                name = name,
+                name = notice.name,
+                title = notice.title,
+                body = notice.body,
+                confirmLabel = notice.confirmLabel,
                 onConfirm = onConfirmNewerAppConsent,
                 onDismiss = onDismissNewerAppConsent,
             )
