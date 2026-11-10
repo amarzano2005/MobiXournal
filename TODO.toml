@@ -22,63 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-compression-review"
-title = "Decide STORED vs DEFLATE per entry from measurements, not taste"
-description = """
-The ordinary writer DEFLATEs every entry except `mimetype`, which spends CPU on media that is already compressed (PNG, JPEG, WebP, Opus, PDF) and recompresses payloads it could have copied raw. Nobody has measured whether a selective STORED policy would help, and changing the default without evidence would be a compatibility gamble.
-
-Using the baseline from `mobix-current-performance-baseline`, compare STORED and DEFLATED per content class: page JSON, chunk JSON, small assets, already-compressed media, and large audio. Measure save CPU, resulting document size, cold-open time and the raw-copy path (`MobixZipRewrite`, `MobixIncrementalSaver`), and confirm that every reader this project cares about - including a third-party one - accepts the chosen methods. Respect the current invariant that unmodified entries are copied raw and never recompressed.
-
-Deliver a per-entry policy proposal with the numbers behind it, plus child tasks for `MobixContainer`, `MobixZipRewrite` and `MobixIncrementalSaver` if the policy is worth adopting, and the spec text that documents it. DoD: a measured recommendation, including an explicit 'keep the current default' outcome if the data does not justify a change. Dependency: the baseline."""
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "normal"
-order = 110
-created = 2026-11-10
-tags = ["mobix", "performance", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-derived-index-review"
-title = "Assess an optional derived index/ only where a profile shows a bottleneck"
-description = """
-The plan proposes optional `index/` and `previews/` entries. Neither exists, and adding them without a measured reason would be a fixed cost on every save plus a second source of truth. This scope exists to keep the idea honest rather than to build it.
-
-Using the baseline report, identify whether any real workload (search across 1000 pages, thumbnail grid, asset lookup during a lazy open) is actually bottlenecked by rescanning. If it is, design an entry that is strictly derived: content-addressed or digest-invalidated, rebuildable from the canonical JSON, never the only home of any datum, ignored by readers that do not know it, and cheap to skip on save. Design the preview policy the same way: a non-authoritative cache with a source hash, never a substitute for rendering, and never a claim that an older Mobixournal can show a new element.
-
-DoD: a written go/no-go with the profile that motivates it, and child tasks only in the 'go' case. Dependency: `mobix-current-performance-baseline`, `mobix-spec-v1` (extension rules)."""
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "low"
-order = 120
-created = 2026-11-10
-tags = ["mobix", "performance", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-zip64-review"
-title = "Decide whether ZIP64 is needed now or stays deferred"
-description = """
-The incremental raw writer is deliberately limited to classic ZIP (no ZIP64) and only supports STORED/DEFLATED for raw copy; the standard path may fall back. Whether a real document can hit those limits is unknown, so the current behaviour on a very large file is neither documented nor tested.
-
-Establish the real numbers first: page counts, entry counts and total sizes reachable with 120-minute audio, large PDF backgrounds and heavy multi-page notebooks. Then determine what actually happens today at the boundary - clean fallback, refusal, or silent truncation - and test it. If ZIP64 is needed, scope the raw-copy writer extension, reader support, and interop with the third-party CLI; if it is not, record the deferral with the size budget that would trigger it.
-
-DoD: a written decision with the size evidence and a regression test at the boundary; child tasks only if a real workload needs them. Dependency: the baseline and large-file fixtures."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 130
-created = 2026-11-10
-tags = ["mobix", "zip", "performance", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-unicode-pdf-review"
 title = "Fix the non-WinAnsi character loss in PDF export for STEM text"
 description = """
@@ -880,5 +823,19 @@ urgency = "high"
 order = 580
 created = 2026-11-10
 tags = ["mobix", "migration"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-stored-assets-policy"
+title = "Store already-compressed assets instead of deflating them again"
+description = "The container policy campaign measured, on one run each, that a save of a 200-page notebook carrying 5.3 MB of incompressible media drops from 175 ms to 18 ms when assets are STORED instead of DEFLATED, and that the archive is 1 620 bytes smaller. The page JSON must keep DEFLATE (storing that half costs 1.6x its size). Re-measure first with at least nine runs and report p50/p95, because one run is not a distribution. If the CPU saving holds, make the writer choose STORED for entries whose bytes are already compressed — by suffix (png, jpeg, webp, pdf, ogg, wav, m4a) and never by trying to compress and comparing — keep DEFLATE for page, chunk and envelope JSON, and keep the mimetype STORED and first. The reader must accept both methods for an asset entry (it already reads the archive's recorded method) and / must keep copying unmodified entries raw. Document the per-entry rule in docs/mobix-format.md, add a golden fixture with a STORED asset that reopens with its digest verified, and state the measured numbers in docs/benchmarks.md beside the campaign that motivated it."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 590
+created = 2026-11-10
+tags = ["mobix", "performance"]
 rebuild = false
 emulator_debug = false

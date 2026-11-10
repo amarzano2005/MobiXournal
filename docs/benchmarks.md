@@ -80,6 +80,9 @@ the ones in the metadata block is not averaged with it.
 
 # the baseline: open, save and streaming across 1 to 1000 pages, with assets and audio
 ./gradlew :mobix-core:test --tests "com.mobixournal.format.mobix.MobixBaselineBenchmarkTest"
+
+# the container's knobs: compression per content class, the archive boundary, a 1000-page search
+./gradlew :mobix-core:test --tests "com.mobixournal.format.mobix.MobixArchivePolicyBenchmarkTest"
 ```
 
 Each writes its report under the module's `build/reports/` and prints it, so `--info` shows the same text.
@@ -138,6 +141,48 @@ Not measured here, on purpose: **UI frame time**, because no benchmark drives a 
 recording**, because a mono 44.1 kHz 16-bit WAV of that length is ~635 MB and this corpus carries no such
 file. The twenty-minute case is the evidence that the path streams rather than holds, and no figure is
 extrapolated from it.
+
+## The container's own knobs
+
+Three decisions were waiting on numbers rather than arguments — whether the writer should stop
+DEFLATE-ing media, where an archive really stops, and whether a derived `index/` would earn its
+save-time cost. [MobixArchivePolicyBenchmarkTest.kt](../mobix-core/src/test/java/com/mobixournal/format/mobix/MobixArchivePolicyBenchmarkTest.kt)
+answers all three in one run and writes `mobix-compression-policy.txt`, `mobix-archive-boundary.txt` and
+`mobix-index-profile.txt` under `mobix-core/build/reports/`. Measured on the host the baseline above
+records, `-Xmx512m`.
+
+**Compression**, the same 200-page notebook plus a 64 KiB picture, a 1 MiB photo and a 4 MiB recording:
+
+| Policy | File (B) | vs today | Write (ms) | Cold open (ms) |
+|---|---|---|---|---|
+| everything DEFLATED (today) | 5 386 782 | — | 175 | 6 |
+| page JSON DEFLATED, `assets/` STORED | 5 385 162 | −1 620 | 18 | 6 |
+| everything STORED | 5 433 819 | +47 037 | 13 | 5 |
+
+The 5.3 MB of incompressible media hide the JSON, so the same comparison over the compressible half alone:
+DEFLATE takes it from 124 699 B to 76 042 B — **1.6×**, not an order of magnitude, because page JSON is
+mostly ids and numbers. The conclusion is therefore about CPU, not size: DEFLATE is worth its cost on page
+JSON and does nothing for media, where the selective policy saves 1 620 bytes and drops the write from
+175 ms to 18 ms. That is one run each, so it justifies a candidate task, not a change to the default.
+
+**The boundary.** The caps, not ZIP, are what stop a document:
+
+| Bound | Value | What happens |
+|---|---|---|
+| Entries, read | 20 000 (`MobixSafetyCaps.maxEntries`) | 20 000 opens (19 999 payload entries plus the mimetype); 20 001 refused, naming the limit |
+| Entries, written | 65 534 (`ClassicZipLimits.entry`) | 65 534 written; the 65 535th throws `ZIP entry limit` |
+| One entry / the archive | 256 MiB / 1 GiB | refused while reading, before allocation |
+| Any ZIP field | 4 GiB − 1 | throws `ZIP size limit`; no truncated field is published |
+
+A 4 GiB archive was not materialised — only its guard was exercised, and the report says so. The binding
+limits sit an order of magnitude below classic ZIP's 4 GiB, so **ZIP64 stays deferred** with a stated
+trigger: the first legitimate document needing a single entry or a total past 1 GiB. The caps move first.
+
+**A derived index.** A thousand-page document, 8 000 text boxes, searched through the reader's own surface:
+every page is decoded once, the hit is found on page 500, and the first search takes 261 ms against 83 ms
+for the second (71 ms when nothing matches). Laying out all 1 000 pages from `pageSize` decodes **none** and
+costs under a millisecond. A search index or a page-size index would add a second source of truth and a
+save-time cost for a wait nobody perceives, so the answer is **no**.
 
 ## When two runs may be compared
 
