@@ -4,8 +4,10 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-This file owns **what a living element is** on disk, per family, and the one rule they share. The
-element envelope and the geometry elements are [mobix-elements.md](mobix-elements.md); the code is one
+This file owns **what a living element is** on disk, per family, and the one rule they share; each
+family's fields, units and defaults are tabulated in
+[mobix-element-fields.md](mobix-element-fields.md). The element envelope and the geometry elements are
+[mobix-elements.md](mobix-elements.md); the code is one
 codec per family — `MobixTableCodec`, `MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec`,
 `MobixMathCodec` — reached by `type`, over the JSON builders they share in `MobixJson.kt`.
 

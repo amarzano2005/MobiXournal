@@ -97,25 +97,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-spec-elements"
-title = "Write the element chapter for an outside implementer"
-description = """
-Every v1 element type, spelled for someone with no access to this repository: `stroke` (including the constant-width vs per-point-width rule, telemetry units and their absence), `text`, `image`, `texImage`, and the living families `table`, `plot`, `parametricShape`, `circuit`, `mathBlock`.
-
-Per family: a semantic example, a field table with units and defaults, which `bounds` are facts and which are derived caches, and which values a reader must interpret versus treat as an open key set. The retention rule (a known type keeps what it did not read; an unknown type is kept whole) is stated once here and linked from the other chapters, so it cannot drift into two versions.
-
-Verification: each family's example is a document that `MobixElementCodecTest` round-trips, `spec/CONFORMANCE.md` gains a row per family, and the chapter links to `mobix-living-entities.md` rather than restating it."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 43
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-assets"
 title = "Write the asset rules: naming, digests, dedup and missing payloads"
 description = """

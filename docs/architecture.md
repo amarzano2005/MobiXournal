@@ -31,6 +31,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`mobix-format.md`](mobix-format.md) | native `.mobix`: why it exists, what it adds, where it sits in the app, engine work | you work on the native format or the streaming engine |
 | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` envelope: mimetype, manifest, `canvas.json`, pages | you read or write the container or the page/background shape |
 | [`mobix-data-model.md`](mobix-data-model.md) | the field tables of the envelope parts: types, requiredness, defaults, units | you need the exact field of the manifest, canvas, a page or a chunk |
+| [`mobix-element-fields.md`](mobix-element-fields.md) | the field tables of the nine v1 element families, and which `bounds` are facts | you need the exact field or default of an element, or must know whether its box is stored or derived |
 | [`mobix-streaming-api.md`](mobix-streaming-api.md) | the published `.mobix` contract a second shell opens, reads and writes with | you call `mobix-core` from outside the engine |
 | [`mobix-elements.md`](mobix-elements.md) | the element schema's four rules and the geometry elements: stroke, text, image, LaTeX | you add or change a geometry element |
 | [`mobix-living-entities.md`](mobix-living-entities.md) | the living entities: table, plot, parametric shape, circuit, math block | you add or change a re-editable element |

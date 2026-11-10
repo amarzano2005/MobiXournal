@@ -6,8 +6,10 @@
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
 This file owns **what a geometry element is** on disk, and the four rules every element obeys. The
-container, the manifest and the page envelope are [mobix-schema-spec.md](mobix-schema-spec.md); why the
-format exists at all is [mobix-format.md](mobix-format.md); the living families are
+field-by-field tables of all nine families — types, units, defaults, and which `bounds` are stored facts
+rather than derived caches — are [mobix-element-fields.md](mobix-element-fields.md)'s. The container, the
+manifest and the page envelope are [mobix-schema-spec.md](mobix-schema-spec.md); why the format exists at
+all is [mobix-format.md](mobix-format.md); the living families are
 [mobix-living-entities.md](mobix-living-entities.md). The code is `format/mobix/MobixElementCodec.kt` —
 the element envelope and the four `.xopp`-shaped elements.
 

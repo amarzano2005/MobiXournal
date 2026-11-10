@@ -33,6 +33,15 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 21 | require `formatVersion`, `documentId` and `canvasMode`, and fill the documented default for every other manifest field | `mobix-data-model.md`, manifest | `MobixManifestTest`; fixture 01 |
 | 22 | read page order from `pages[]`, tile set from `chunks[]`, and treat the two lists as exclusive with `canvasMode` | data model, cross-field rule 3 | `MobixManifestTest`; fixtures 02, 10 |
 | 23 | read lengths as points, times as UTC epoch milliseconds, colours as `#RRGGBBAA`, and a non-positive `chunkSizePt` as its default | data model, units and `canvas.json` | `MobixManifestTest`; fixtures 01, 10 |
+| 24 | model a `stroke` with its tool, its style, its per-point widths and its telemetry, and refuse one whose tool or style has no name here | `mobix-element-fields.md`, stroke | `MobixElementCodecTest`; fixture 07 |
+| 25 | place a `text` by its anchor and never invent a box for it | element fields, text | `MobixElementCodecTest` (`aTextElementCarriesItsFontAndContent`) |
+| 26 | resolve `image` and `texImage` through `assets/`, treat a missing payload as a corrupt document, and read a formula with no rendering as still a formula | element fields, image | `MobixElementCodecTest` (`anImageWhoseAssetIsMissingIsRefused`, `aFormulaWithNoRenderingIsStillAFormula`); fixture 03 |
+| 27 | rebuild a `table`'s box from `colWidths`/`rowHeights`, read a short row as empty cells, and keep an unreadable `align` by preserving the table whole | element fields, table | `MobixLivingCodecTest` |
+| 28 | draw a `plot` from its curves and range, and keep `summaryText` as the cache it is | element fields, plot | `MobixLivingCodecTest` |
+| 29 | recompute a `parametricShape`'s bounds from its vertices, and accept a `shape` name this build does not know | element fields, parametricShape | `MobixLivingCodecTest` |
+| 30 | place a `circuit` by `position` then `rotation`, with its pins relative to the position and before the rotation | element fields, circuit | `MobixLivingCodecTest` |
+| 31 | typeset a `mathBlock` from its `source` alone, in the `flavor` it names | element fields, mathBlock | `MathBlockCodecTest` |
+| 32 | model every family's documented example without falling back to verbatim preservation | `mobix-element-fields.md` | `MobixElementExampleTest` |
 
 A row that fails is a defect in the implementation, not a matter of taste: the chapters state each rule
 once, and the fixtures are files rather than prose so that a disagreement is reproducible.
