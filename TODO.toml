@@ -22,27 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-migrations"
-title = "Make format migrations explicit, repeatable and reversible"
-description = """
-There is no documented migration mechanism: no `fromVersion`/`toVersion` plan, no golden migration tests, and no written guarantee that a structural save is atomic on SAF (Android) and on Windows file APIs. The existing read-only path for newer documents is the only protection.
-
-Distinguish the four operations that are currently conflated and design each: format migration (changes the schema, may justify a new `formatVersion`), writer upgrade (better compression or an added derived index, no semantic change), compaction (drops unused assets only after references from unknown areas are resolved - an explicit, conservative action), and external conversion (PDF/SVG/`.xopp`/JSON export, which never mutates the original).
-
-Decide: no in-place migration on open; write to a temp file, validate it fully, then publish it by replacement; keep a recoverable backup; specify what happens if the process dies mid-write on each platform, verified rather than assumed. Define the migration plan shape (`fromVersion`, `toVersion`, preconditions, diagnostics, checkpoints) and the golden tests that pin it. State the conditions under which `formatVersion=2` is genuinely required.
-
-Owners: `docs/mobix-format.md`, `docs/document-session.md`, `docs/tools.md`. DoD: written policy plus child tasks (plan format, atomic publish, backup/restore, golden tests). Dependency: `mobix-capability-contract`, `mobix-archive-safety`, the fixture corpus."""
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "normal"
-order = 100
-created = 2026-11-10
-tags = ["mobix", "compatibility", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-compression-review"
 title = "Decide STORED vs DEFLATE per entry from measurements, not taste"
 description = """
@@ -817,5 +796,89 @@ urgency = "high"
 order = 520
 created = 2026-11-10
 tags = ["mobix", "cli"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-migration-plan-model"
+title = "A migration is a plan with preconditions, checkpoints and a stated revert"
+description = "Add a pure `FormatMigration` model in `mobix-core/src/main/java/com/mobixournal/format/mobix/migration/` — `fromVersion`, `toVersion`, preconditions (the capabilities the source must satisfy and the constructs it must not contain), an ordered list of steps with a checkpoint after each, a diagnostic per refused precondition, and whether the result is revertible. A `MigrationRegistry` answers `plan(from, to)` and returns null when no path exists, which is the honest answer for a v1 file today: `CURRENT_FORMAT_VERSION` is 1 and nothing migrates. The plan never runs itself and never touches a file. KDoc states the rule this task is the home of: `formatVersion` is bumped only by a change an older reader cannot preserve — a renamed or removed required field, changed entry naming, a compression baseline v1 readers reject, or a change to an existing family's meaning — while an additive optional field, a new element family, a new asset kind, a derived entry or a writer upgrade never qualifies, because v1's preserve rules already cover them. Tests: `plan(1, 1)` is null (nothing to do), `plan(1, 2)` is null while no migration is registered, a registered fake migration exposes its steps in order, and a missing precondition produces one diagnostic naming it rather than an exception."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 530
+created = 2026-11-10
+tags = ["mobix", "migration"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-migration-atomic-publish"
+title = "Publish a written document by replacement, and never leave a truncated notebook"
+description = "One publish primitive both shells use, in `mobix-core` beside the encoder: write the bytes into a temp file in the destination's own folder, validate them by reopening (container opens, `formatVersion` parses, every part digest matches, capabilities are satisfiable), then replace the target in one step; on any failure the original stays untouched and the temp file is removed. The desktop already does exactly this (`DesktopSaves.stage` → `commit()` → `replace`), so the task is to lift that shape into the shared layer and make the Android path hand its finished bytes through it instead of `UriStaging.stageOut`'s truncate-and-copy: a SAF `OutputStream` cannot be replaced atomically by contract, so on Android the primitive must (a) verify the copy by reading it back where the provider allows, (b) keep the backup this scope's backup task writes, and (c) report \"the save may be incomplete\" instead of claiming success when it cannot verify. Tests: an injected failure after staging leaves the target byte-identical; a successful publish reopens the new bytes; a publish to a read-only folder fails before writing anything. The Android read-back path and the Windows lock-release path (`DesktopTab.saveBack`) are manual passes on those machines, stated as such."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 540
+created = 2026-11-10
+tags = ["mobix", "migration"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "mobix-migration-backup-restore"
+title = "Keep a recoverable copy before a replace, and a way back"
+description = "Add the backup the atomic publish needs: before a replace, the current target is copied beside it under a stated name (`<name>.mobix.bak`, one per document), and the copy is kept until the next successful publish replaces it. Define the retention rule in the owning doc rather than in code comments, remove the backup only on explicit user action, and add a restore path: an action that puts the backup back through the same atomic publish, with the same validation, so a bad restore cannot overwrite a good file with a truncated one. Android owns a second case — the SAF provider copy that cannot be replaced atomically — where the backup is the only recovery, so it is written there unconditionally. Tests: a failed publish leaves the backup in place and the target untouched; a successful one leaves the backup of the previous bytes; a restore reopens the backup's content; a second publish replaces rather than accumulates backups."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 550
+created = 2026-11-10
+tags = ["mobix", "migration"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "mobix-migration-golden-tests"
+title = "Pin migrations with golden files, and prove that no migration is a no-op"
+description = "Build the golden migration corpus the plan model needs before a real migration exists: a v1 fixture and the file the identity migration produces (same document, written by today's writer), compared element by element, with the only permitted differences being the manifest's timestamps and the source record. The suite must also prove the negative: a document with no migration available is saved byte-for-byte apart from those timestamps, so a writer change that quietly rewrites a construct is caught. Add the fixture generator next to `scripts/make-mobix-fixtures.py` (deterministic, no dependency) and a test that the generated files are committed as generated. Tests live in `mobix-core/src/test/java/com/mobixournal/format/mobix/migration/` and name, per case, the construct that must survive: a `teximage`, a plot, a table, a circuit, an unknown entry and an unknown JSON key."
+status = "active"
+level = "task"
+category = "test"
+urgency = "high"
+order = 560
+created = 2026-11-10
+tags = ["mobix", "migration"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-migration-compaction"
+title = "Drop only what nothing refers to, and say what was dropped"
+description = "Add an explicit compaction action — never automatic on save — that removes `assets/` entries no reference reaches. The reference walk must include preserved and unknown areas (`extraAttrs`, `fn`, unknown JSON keys, an entry this build does not model), because an asset named only there is still referenced; the rule is that a doubtful reference keeps the bytes. Report the names dropped, the bytes reclaimed and the ones kept because a reference could not be resolved, and refuse to compact a document whose gate is read-only. Tests: an orphan asset is dropped; an asset referenced only by an unknown key is kept; a document with an unresolved reference keeps every asset and reports why; the compacted file reopens with every remaining reference resolving."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 570
+created = 2026-11-10
+tags = ["mobix", "migration"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-migration-docs"
+title = "Write the four operations down, and the conditions for formatVersion 2"
+description = "Own the policy in the pages that describe the save path: `docs/mobix-format.md` gets the four operations the codebase conflates today — format migration (schema, may bump `formatVersion`), writer upgrade (compression or a derived entry, no semantic change, no bump), compaction (explicit, conservative, never on save), external conversion (PDF/SVG/`.xopp`/JSON, never mutates the original) — with the criteria that genuinely require `formatVersion = 2` and the ones that never do. `docs/document-session.md` states that opening never migrates, what the publish/backup/restore sequence is, and what each platform guarantees: desktop replaces atomically, a SAF provider copy does not and is verified or reported. `docs/tools.md` names the desktop command and the backup file. Add `DocClaimsTest` lines for the sentences that were false before (\"opening never rewrites\", \"a save never leaves a truncated notebook\"). Run `DocsGuardTest` and `DocClaimsTest`."
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 580
+created = 2026-11-10
+tags = ["mobix", "migration"]
 rebuild = false
 emulator_debug = false
