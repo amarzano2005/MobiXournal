@@ -16,6 +16,15 @@ import java.io.OutputStream
  * contract is therefore part of [MobixEntrySource] rather than an optional side channel, so the type
  * system asks the question at the place it matters.
  */
+/**
+ * How an entry is stored: the size it inflates to and the size it occupies in the archive.
+ *
+ * This is the pair the cap policy compares for a deflate bomb — and it is a **question**, not a read:
+ * a file-backed source answers it from the ZIP central directory, so asking about an entry does not
+ * count as having read it (`MobixEntrySource.storedSizes`).
+ */
+data class MobixStoredSize(val inflated: Long, val compressed: Long)
+
 interface MobixRawEntry {
 
     /** The entry's uncompressed size, in bytes. */

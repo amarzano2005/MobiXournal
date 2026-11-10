@@ -119,19 +119,24 @@ object MobixContainer {
      * the current position and does not close [input]; a caller that needs the stream afterwards
      * (to hand it to [open]) must rewind it.
      */
-    fun mimetypeOf(input: InputStream): String? {
+    fun mimetypeOf(input: InputStream, caps: MobixSafetyCaps = MobixSafetyCaps.Default): String? {
         val zip = ZipInputStream(input)
         return try {
             var declared: String? = null
             while (declared == null) {
                 val entry = zip.nextEntry ?: break
                 if (entry.name == MobixFormat.MIMETYPE_ENTRY) {
-                    declared = zip.readBytes().toString(Charsets.UTF_8).trim()
+                    declared = caps.readBounded(zip, entry.name, caps.maxMimetypeBytes)
+                        .toString(Charsets.UTF_8).trim()
                 } else {
                     zip.closeEntry()
                 }
             }
             declared
+        } catch (tooBig: MalformedMobixException) {
+            // An entry called "mimetype" that is not a short type token is not a type this reader can
+            // trust; like any other unusable probe it answers "not a .mobix" rather than throwing.
+            null
         } catch (corrupt: ZipException) {
             // This is a probe, so it answers "not a .mobix" rather than throwing: the caller's next step
             // is [open], which reports the corruption and keeps the JDK exception as its cause.
@@ -154,7 +159,7 @@ object MobixContainer {
      *   (i.e. it is some other ZIP — a ZIP-package `.xopp` fails here, which is the point), or when
      *   it declares the right type but carries no `manifest.json`.
      */
-    fun open(input: InputStream): Archive {
+    fun open(input: InputStream, caps: MobixSafetyCaps = MobixSafetyCaps.Default): Archive {
         var mimetype: String? = null
         val entries = mutableListOf<Entry>()
         // Every non-directory name, `mimetype` included: the container's own entry is a name too, and
@@ -162,16 +167,29 @@ object MobixContainer {
         val names = mutableListOf<String>()
         try {
             ZipInputStream(input).let { zip ->
+                var total = 0L
                 while (true) {
                     val entry = zip.nextEntry ?: break
-                    if (!entry.isDirectory) names += entry.name
+                    if (!entry.isDirectory) {
+                        names += entry.name
+                        // Refused the moment the count crosses the line: the rest of the directory is
+                        // never walked, let alone inflated (`MobixSafetyCaps`).
+                        caps.refuseBeyondEntryCount(names.size)
+                    }
                     when {
                         // Directory entries carry no bytes and the writer never needs them; skipping one
                         // loses nothing, since a ZIP's directory list is optional metadata.
                         entry.isDirectory -> Unit
                         entry.name == MobixFormat.MIMETYPE_ENTRY ->
-                            mimetype = zip.readBytes().toString(Charsets.UTF_8).trim()
-                        else -> entries += Entry(entry.name, zip.readBytes())
+                            mimetype = caps.readBounded(zip, entry.name, caps.maxMimetypeBytes)
+                                .toString(Charsets.UTF_8).trim()
+                        else -> {
+                            val bytes = caps.readBounded(zip, entry.name)
+                            caps.refuseBeyondExpansion(entry.name, entry.compressedSize, bytes.size.toLong())
+                            caps.refuseBeyondArchiveBytes(total + bytes.size)
+                            total += bytes.size
+                            entries += Entry(entry.name, bytes)
+                        }
                     }
                     zip.closeEntry()
                 }

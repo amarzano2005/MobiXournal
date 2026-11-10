@@ -245,6 +245,7 @@ object MobixElementCodec {
         node: JsonNode.Obj,
         assets: MobixAssetSource,
         mint: (String) -> String = ElementId::mint,
+        caps: MobixSafetyCaps = MobixSafetyCaps.Default,
     ): Element? {
         val type = node.getStrOrNull(TYPE) ?: return null
         // The marker is checked first: an element carried over from `.xopp` is not "an element whose
@@ -253,7 +254,7 @@ object MobixElementCodec {
         return when (type) {
             // A stroke whose vocabulary this build cannot read is kept whole rather than refused: the
             // page it sits on is still the user's page.
-            STROKE -> decodeStroke(node, mint) ?: preserve(type, node)
+            STROKE -> decodeStroke(node, mint, caps) ?: preserve(type, node)
             TEXT -> decodeText(node, mint)
             IMAGE -> decodeImage(node, assets, mint)
             TEX_IMAGE -> decodeTexImage(node, assets, mint)
@@ -284,7 +285,11 @@ object MobixElementCodec {
      * has no name for: a `tool` or `lineStyle` from a newer build is not a pen stroke drawn as an
      * eraser, so the caller keeps the element verbatim instead.
      */
-    private fun decodeStroke(node: JsonNode.Obj, mint: (String) -> String): Stroke? {
+    private fun decodeStroke(
+        node: JsonNode.Obj,
+        mint: (String) -> String,
+        caps: MobixSafetyCaps,
+    ): Stroke? {
         val toolName = node.getStrOrNull("tool") ?: STROKE
         val tool = Tool.entries.firstOrNull { it.name == toolName } ?: return null
         val styleName = node.getStr("lineStyle", LineStyle.PLAIN.name)
@@ -309,11 +314,16 @@ object MobixElementCodec {
                 it != reference && MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO)
             }
         }
+        val points = node.getArr("points")?.list.orEmpty()
+        // Refused before one point becomes a model object: the JSON array is already parsed, so this is
+        // what bounds the model — and a fresh stroke that large is a file, not a drawing
+        // (`MobixSafetyCaps.maxPointsPerStroke`).
+        caps.refuseBeyondStrokePoints(points.size)
         return Stroke(
             tool = tool,
             color = XoppColor.parse(node.getStrOrNull("color")),
             capStyle = node.getStrOrNull("capStyle"),
-            points = node.getArr("points")?.list.orEmpty().mapNotNull { decodePoint(it) },
+            points = points.mapNotNull { decodePoint(it) },
             uniformWidth = node.has("lineWidth"),
             lineStyle = style,
             fill = node.getIntOrNull("fill"),

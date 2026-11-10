@@ -257,27 +257,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-safety-caps"
-title = "One cap policy, enforced by the container and the paged reader"
-description = """
-Give the reader the limits the writer already has: one policy object with a motivated threshold for entry count, bytes per entry, bytes per archive, expansion ratio, elements per page, points per stroke and cumulative asset bytes, enforced by `MobixContainer.open`, `mimetypeOf` and `MobixPagedReader` before they allocate.
-
-Each threshold is derived from the largest legitimate document the app is expected to open (a 200-page notebook with bundled recordings), not guessed: state the derivation beside the constant, and let a document under the caps behave exactly as it does today.
-
-Rejection is explicit: a `MalformedMobixException` naming the entry and the rule, never an `OutOfMemoryError`, never a partial page. A refused document is never written over.
-
-Verification: new `MobixSafetyCapsTest` with a document just under and just over each cap, asserting the outcome and that the error names the rule; `docs/mobix-format.md`'s limits table updated from 'gap' to the enforced number."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 51
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-safety-digests"
 title = "Verify a part's digest when it is read"
 description = """

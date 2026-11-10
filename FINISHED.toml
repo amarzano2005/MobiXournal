@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-safety-caps"
+title = "One cap policy, enforced by the container and the paged reader"
+description = "New `MobixSafetyCaps` is the one cap policy the read path enforces, as a value so a test can exercise the same mechanism at buildable sizes: 20 000 entries, 256 MiB per entry, 1 GiB of inflated payload, 1000× expansion per entry (deflate's own ceiling is ~1032:1, and a legitimate 64 KiB fixture in this repo measures 113×), 50 000 elements a page, 500 000 points a stroke and a 1 GiB asset budget, each with the document that motivated it written beside the constant. `MobixContainer.open` counts names as it walks the directory and reads every entry through `readBounded`, refusing one byte past a cap; `mimetypeOf` reads its probe under a 256-byte cap; `MobixPagedReader` counts the directory, reads the envelope, pages and assets through the policy and tracks the cumulative asset budget; `MobixPageCodec`/`MobixChunkCodec` count declared elements before decoding them and `MobixElementCodec` counts a stroke's points before building one. Deflate bombs are refused before inflating: `MobixEntrySource.storedSizes` answers from the ZIP directory as a question, never as a counted read, and `MobixSafetyCapsTest` exercises every threshold with a document just under and just past it, including a real archive holding a picture. Docs: `docs/mobix-format.md`'s limits table moves the entry-count, element/point and asset rows from 'gap' to enforced with the numbers, and the remaining list shrinks to the digest and hostile-corpus tasks."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-10
+tags = []
+design = "none: the container and paged reader's allocation policy, with no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-safety-error-reporting"
 title = "Reject with one error type, never a raw JDK exception"
 description = "`MalformedMobixException` now carries a `cause` and is the only way the read path rejects a file: `MobixContainer.open` catches `ZipException` and `EOFException` at the container boundary and re-throws them as this format's own error with the entry named, `mimetypeOf` answers null instead of throwing when its probe hits a corrupt archive, and `MobixJson.parseJson` converts the depth cap the same way. Messages stay English and free of class names ('this archive is not a readable ZIP: invalid entry CRC', 'this archive ends before its directory does: the file is truncated') while the JDK exception travels as the cause for a bug report. Tests: `MobixArchiveSafetyTest` builds an entry marked encrypted (general-purpose flag bit 0) and a stored entry with a lying CRC by rewriting the local header, asserts the malformed-document type, the message and the `ZipException` cause, plus the truncated archive and the clean one; the missing-entry and deep-JSON shapes are already asserted in `MobixContainerTest.requireNamesTheMissingEntry` and `JsonDepthLimitTest`. Docs: `docs/guide-troubleshooting.md` gains *A damaged notebook* — the refusal the user sees, the shapes it covers, and the rule that a refused document is never written over, so a refusal cannot become data loss; `docs/mobix-format.md`'s limits table moves the corrupt-container row to enforced."

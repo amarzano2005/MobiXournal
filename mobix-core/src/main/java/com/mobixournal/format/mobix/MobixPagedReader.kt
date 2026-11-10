@@ -34,6 +34,16 @@ interface MobixEntrySource : AutoCloseable {
      */
     fun rawEntry(name: String): MobixRawEntry? = null
 
+    /**
+     * How entry [name] is stored, or null when this source cannot say without reading it.
+     *
+     * Asked **before** an entry is inflated, so a deflate bomb is refused without allocating it
+     * ([MobixSafetyCaps]). A file-backed source answers from the central directory; a decorator must
+     * forward it, and forwarding must **not** count as a read — it is a question about the entry, not
+     * an inflation of it.
+     */
+    fun storedSizes(name: String): MobixStoredSize? = null
+
     companion object {
         /**
          * Create an entry source from a physical [File] using [ZipFile].
@@ -63,6 +73,10 @@ private class ZipFileEntrySource(private val zip: ZipFile, file: File) : MobixEn
 
     /** The file's own bytes, for a caller that wants an entry the way the archive stores it. */
     override fun rawEntry(name: String): MobixRawEntry? = raw.rawEntry(name)
+
+    /** From the directory this source already holds: asking costs no read and no inflation. */
+    override fun storedSizes(name: String): MobixStoredSize? =
+        zip.getEntry(name)?.let { MobixStoredSize(inflated = it.size, compressed = it.compressedSize) }
 
     override fun close() {
         zip.close()
@@ -110,6 +124,9 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
     /** How many times [name] was **inflated** — a read that decoded it, not a byte copy. */
     fun inflateCount(name: String): Int = inflates[name] ?: 0
 
+    /** A question about the entry, not a read of it: forwarded without touching the counters. */
+    override fun storedSizes(name: String): MobixStoredSize? = delegate.storedSizes(name)
+
     override fun close() = delegate.close()
 }
 
@@ -137,15 +154,22 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
 class MobixPagedReader(
     val source: MobixEntrySource,
     val cacheBudget: Int = DEFAULT_CACHE_BUDGET,
+    val caps: MobixSafetyCaps = MobixSafetyCaps.Default,
 ) : AutoCloseable {
 
     val manifest: MobixManifest
     val canvas: MobixCanvasFile
 
+    /** What this document's assets have added up to, so many page turns cannot spend the heap twice. */
+    private var assetBytes = 0L
+
     /** The asset resolver for binary payloads bundled in `assets/`. */
     val assetSource: MobixAssetSource = MobixAssetSource { name ->
         val path = if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
-        source.readBytes(path)
+        caps.read(source, path, caps.maxAssetBytes)?.also {
+            caps.refuseBeyondAssetBytes(assetBytes + it.size)
+            assetBytes += it.size
+        }
     }
 
     private val cache = object : LinkedHashMap<Int, Page>(cacheBudget, 0.75f, true) {
@@ -154,7 +178,10 @@ class MobixPagedReader(
     }
 
     init {
-        val mimetype = source.readBytes(MobixFormat.MIMETYPE_ENTRY)?.toString(Charsets.UTF_8)?.trim()
+        // The directory is the first thing a hostile archive spends: counted before an entry is read.
+        caps.refuseBeyondEntryCount(source.entryNames.size)
+        val mimetype = caps.read(source, MobixFormat.MIMETYPE_ENTRY, caps.maxMimetypeBytes)
+            ?.toString(Charsets.UTF_8)?.trim()
             ?: throw MobixContainer.MalformedMobixException("not a .mobix archive: missing mimetype entry")
         if (mimetype != MobixFormat.MIMETYPE) {
             throw MobixContainer.MalformedMobixException(
@@ -162,7 +189,7 @@ class MobixPagedReader(
             )
         }
 
-        val manifestBytes = source.readBytes(MobixFormat.MANIFEST_ENTRY)
+        val manifestBytes = caps.read(source, MobixFormat.MANIFEST_ENTRY)
             ?: throw MobixContainer.MalformedMobixException("missing ${MobixFormat.MANIFEST_ENTRY}")
         manifest = MobixManifest.decode(manifestBytes.toString(Charsets.UTF_8), assetSource)
 
@@ -184,7 +211,7 @@ class MobixPagedReader(
             )
         }
 
-        val canvasBytes = source.readBytes(MobixFormat.CANVAS_ENTRY)
+        val canvasBytes = caps.read(source, MobixFormat.CANVAS_ENTRY)
         canvas = if (canvasBytes != null) {
             MobixCanvasFile.decode(canvasBytes.toString(Charsets.UTF_8))
         } else {
@@ -230,7 +257,7 @@ class MobixPagedReader(
         cache[pageIndex]?.let { return it }
 
         val part = parts[pageIndex]
-        val bytes = source.readBytes(part.entry)
+        val bytes = caps.read(source, part.entry)
             ?: throw MobixContainer.MalformedMobixException("page entry ${part.entry} is missing from archive")
         val node = MobixJson.parseJson(bytes.toString(Charsets.UTF_8), part.entry) as? JsonNode.Obj
             ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
@@ -247,10 +274,11 @@ class MobixPagedReader(
      * no invented coordinates.
      */
     private fun pageOf(part: MobixPart, node: JsonNode.Obj): Page = if (isPaginated) {
-        MobixPageCodec.decode(node, assetSource).copy(id = part.id)
+        MobixPageCodec.decode(node, assetSource, caps).copy(id = part.id)
     } else {
         val (cx, cy) = MobixFormat.parseChunkEntry(part.entry) ?: (0 to 0)
-        MobixChunkCodec.decode(node, assetSource, fallbackCx = cx, fallbackCy = cy).toPage().copy(id = part.id)
+        MobixChunkCodec.decode(node, assetSource, fallbackCx = cx, fallbackCy = cy, caps = caps)
+            .toPage().copy(id = part.id)
     }
 
     /**

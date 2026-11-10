@@ -54,15 +54,24 @@ object MobixPageCodec {
     }
 
     /** The page [node] describes. */
-    fun decode(node: JsonNode.Obj, assets: MobixAssetSource): Page = Page(
-        width = node.getDouble("widthPt", 0.0),
-        height = node.getDouble("heightPt", 0.0),
-        background = node.getObj("background")?.let { decodeBackground(it, assets) }
-            ?: Background.Solid(0xFFFFFFFF.toInt(), "plain"),
-        layers = node.getArr("layers")?.list.orEmpty()
-            .mapNotNull { (it as? JsonNode.Obj)?.let { l -> decodeLayer(l, assets) } },
-        extraAttrs = MobixJson.readAttrs(node),
-    )
+    fun decode(
+        node: JsonNode.Obj,
+        assets: MobixAssetSource,
+        caps: MobixSafetyCaps = MobixSafetyCaps.Default,
+    ): Page {
+        val layers = node.getArr("layers")?.list.orEmpty()
+        // Counted before anything becomes an element: a page that declares a million of them is
+        // refused without building one (`MobixSafetyCaps.maxElementsPerPage`).
+        caps.refuseBeyondPageElements(layers.sumOf { (it as? JsonNode.Obj)?.getArr("elements")?.list?.size ?: 0 })
+        return Page(
+            width = node.getDouble("widthPt", 0.0),
+            height = node.getDouble("heightPt", 0.0),
+            background = node.getObj("background")?.let { decodeBackground(it, assets) }
+                ?: Background.Solid(0xFFFFFFFF.toInt(), "plain"),
+            layers = layers.mapNotNull { (it as? JsonNode.Obj)?.let { l -> decodeLayer(l, assets, caps) } },
+            extraAttrs = MobixJson.readAttrs(node),
+        )
+    }
 
     // ---- layers ---------------------------------------------------------------------------------
  
@@ -76,9 +85,13 @@ object MobixPageCodec {
         if (layer.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(layer.extraAttrs)
     }
 
-    internal fun decodeLayer(node: JsonNode.Obj, assets: MobixAssetSource): Layer = Layer(
+    internal fun decodeLayer(
+        node: JsonNode.Obj,
+        assets: MobixAssetSource,
+        caps: MobixSafetyCaps = MobixSafetyCaps.Default,
+    ): Layer = Layer(
         elements = node.getArr("elements")?.list.orEmpty()
-            .mapNotNull { (it as? JsonNode.Obj)?.let { e -> MobixElementCodec.decode(e, assets) } }
+            .mapNotNull { (it as? JsonNode.Obj)?.let { e -> MobixElementCodec.decode(e, assets, caps = caps) } }
             .filterIsInstance<Element>(),
         name = node.getStrOrNull("name"),
         extraAttrs = MobixJson.readAttrs(node),

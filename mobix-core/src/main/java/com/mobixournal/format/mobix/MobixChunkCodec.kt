@@ -83,6 +83,7 @@ internal object MobixChunkCodec {
         assets: MobixAssetSource,
         fallbackCx: Int = 0,
         fallbackCy: Int = 0,
+        caps: MobixSafetyCaps = MobixSafetyCaps.Default,
     ): MobixChunk {
         val cx = node.getDoubleOrNull("cx")?.toInt() ?: fallbackCx
         val cy = node.getDoubleOrNull("cy")?.toInt() ?: fallbackCy
@@ -90,12 +91,15 @@ internal object MobixChunkCodec {
         val heightPt = node.getDouble("heightPt", MobixCanvasFile.DEFAULT_CHUNK_SIZE_PT)
         val background = node.getObj("background")?.let { MobixPageCodec.decodeBackground(it, assets) }
         val layers = node.getArr("layers")?.list.orEmpty()
-            .mapNotNull { (it as? JsonNode.Obj)?.let { l -> MobixPageCodec.decodeLayer(l, assets) } }
+        // A chunk is a page for this rule: the count is refused before an element is built.
+        caps.refuseBeyondPageElements(layers.sumOf { (it as? JsonNode.Obj)?.getArr("elements")?.list?.size ?: 0 })
+        val decodedLayers = layers
+            .mapNotNull { (it as? JsonNode.Obj)?.let { l -> MobixPageCodec.decodeLayer(l, assets, caps) } }
         val extraAttrs = MobixJson.readAttrs(node)
         return MobixChunk(
             cx = cx,
             cy = cy,
-            layers = layers,
+            layers = decodedLayers,
             background = background,
             widthPt = widthPt,
             heightPt = heightPt,
