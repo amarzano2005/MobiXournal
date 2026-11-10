@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-independent-cli"
+title = "Ship a reader/validator that does not depend on mobix-core or the app"
+description = "Decided the stack and broke the work into six tasks. Stack: Python 3 standard library in tools/mobix-cli/, runnable as python3 -m mobix_cli from a checkout and installable with pipx, importing nothing from com.mobixournal, Kotlin, Gradle or Android; JSON-Schema validation stays optional so the tool runs with no dependency at all, and Rust would only enter as a second implementation if a server surface appeared. Location tools/mobix-cli/, licence GPL-2.0-or-later like the rest of the code while spec/ and the fixture corpus stay CC0, so a third party can implement from the spec without this code. Feasibility is already demonstrated: scripts/make-mobix-fixtures.py and make-mobix-hostile-corpus.py write and corrupt real .mobix archives from the published rules with no project dependency. Interface: inspect, validate (one finding per conformance row id), list, extract (destination-confined, capped, never downloading), export-json; the second-stage writer creates a one-page document with a stroke and an asset and can change a title while preserving every unknown entry, key and byte. Acceptance named: a file the CLI writes opens in MobiXournal and a file MobiXournal saves validates clean in the CLI, plus a CI job that fails on any Kotlin-versus-Python disagreement over the corpus."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "open-format", "p1"]
+design = "none: a stack and interface decision plus the tasks it produced"
+
+[[task]]
 id = "mobix-portable-assets"
 title = "Prove which documents are genuinely self-contained"
 description = "Audited every resource a .mobix can reference and found the self-contained claim true for some and false for others. Always embedded and digest-verified: image bytes (asset is required and the writer must supply it), texImage pictures when present, bundled pixmap and PDF payloads, bundled recordings under assets/aud_<sha256>, and all living-element data. Referenceable without bytes: a pixmap or PDF background carrying only filename/domain (both shells draw a bare sheet and the app reports the reference once, per page, in a toast), a recording kept as an fn sidecar, and a texImage with LaTeX but no picture. Never bundled: the font face a text element names, which reflows silently on a machine lacking it. Gaps found: no document-level portability report (missing references are reported per page, only on Android, and an absent audio sidecar is silent), no way to embed a resolvable-but-external resource into a copy, no validator surface a third-party reader can call, no rule keeping a future payload kind out of the classification, and README/docs claiming self-containment unconditionally. Broke that into six tasks: the report model, the warning surface on both shells, the portable-copy action, the asset validator, the font policy with an exhaustive-classification guard, and the doc-claims correction."
