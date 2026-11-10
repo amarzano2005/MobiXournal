@@ -10,9 +10,9 @@ of this repository uses to prove it. Run every row against every file in the gol
 
 | # | A conforming reader must | Chapter | Evidence here |
 |---|---|---|---|
-| 1 | identify the type from the `mimetype` entry's bytes, not from the file name or suffix | `mobix-schema-spec.md`, container rule 2 | `MobixContainerTest`, `MobixContainer.mimetypeOf` |
-| 2 | refuse an archive whose `mimetype` is not `application/vnd.mobixournal+zip` | container rule 2 | `MobixContainerTest` |
-| 3 | refuse an archive without `manifest.json` | container rule 3 | `MobixContainerTest` |
+| 1 | identify the type from the `mimetype` entry's bytes, not from the file name or suffix | `mobix-schema-spec.md`, container protocol | `MobixContainerTest` (`aZipPackageXoppIsNotAMobix`, `aPlainZipIsRejectedForDeclaringNoType`) |
+| 2 | refuse an archive whose `mimetype` is not `application/vnd.mobixournal+zip` | container protocol | `MobixContainerTest`; fixture 17 |
+| 3 | refuse an archive without `manifest.json` | container protocol | `MobixContainerTest` (`anArchiveWithoutAManifestIsNotADocument`) |
 | 4 | read `pages[]`/`chunks[]` in manifest order, never by entry name | `mobix-schema-spec.md`, manifest | `MobixV1FixturesTest` fixture 02 |
 | 5 | take a part's identity from `id`, and its bytes from `entry` | manifest | fixture 02 |
 | 6 | fill a documented default for an absent optional field, and refuse a missing required one | manifest, canvas | `MobixManifestTest` |
@@ -26,7 +26,10 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 14 | resolve an `asset` by the entry named, and treat a missing one as a corrupt document | `mobix-elements.md`, image | fixture 03 |
 | 15 | read a chunked document as tiles at their own coordinates, without inventing pages | `docs/chunked-documents.md` | fixture 10 |
 | 16 | compare declared capabilities as the contract states, and refuse to write a file whose required set it does not satisfy | `mobix-schema-spec.md`, declared capabilities | fixtures 13-17 |
-| 17 | impose the limits `mobix-format.md` states before allocating from a hostile file | `mobix-format.md`, what a reader must refuse | the safety corpus task |
+| 17 | impose the limits `mobix-format.md` states before allocating from a hostile file | `mobix-format.md`, what a reader must refuse | `MobixHostileCorpusTest` over `fixtures/mobix-hostile/` |
+| 18 | refuse a duplicate, `..`/`.`-segment, absolute, backslashed or control-character entry name rather than normalising it | container protocol | `MobixArchiveSafetyTest`, `MobixContainerTest` |
+| 19 | treat `mimetype` and `manifest.json` as required and every other entry as optional, distinguishing absent from empty | container protocol | `MobixManifestTest`; fixture 01 |
+| 20 | report a corrupt container as one malformed-document error carrying the underlying failure as its cause, never a partial read | container protocol | `MobixArchiveSafetyTest` (encrypted entry, bad CRC, truncated file) |
 
 A row that fails is a defect in the implementation, not a matter of taste: the chapters state each rule
 once, and the fixtures are files rather than prose so that a disagreement is reproducible.

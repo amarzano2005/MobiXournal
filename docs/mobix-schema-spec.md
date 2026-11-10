@@ -41,30 +41,39 @@ name can never go stale and the same picture on ten pages is one entry. A fixed 
 the alternative and is wrong: a document may cite several PDFs, one per page, and a name not derived
 from the content would let the last one silently replace the others.
 
-### The rules that make it a format (not just a ZIP)
+### The container protocol, in rules a reader can be wrong about
 
-These are the parts an implementation must get right; the rest is payload. All five are enforced in
-`format/mobix/MobixContainer.kt` and pinned by `MobixContainerTest`.
+A **reader MUST** follow these; the rest of this chapter is explanation of why each one exists. The
+limits it must impose before allocating are [mobix-format.md](mobix-format.md)'s, not repeated here.
 
-1. **`mimetype` is the first entry, and it is STORED.** Same reasoning as ODF: a reader that only
-   wants to know what the file *is* must be able to read it from the first bytes without inflating
-   anything. Every other entry is DEFLATED.
-2. **A `.mobix` is told from a ZIP-package `.xopp` by that entry, not by the file name.** Both are
-   ZIP archives and both begin `PK\x03\x04`, so `FileKind`'s byte sniff only reaches "it is a ZIP"
-   (see [data-path.md](data-path.md)); the discriminator is the `mimetype` entry's content, and the
-   `.mobix` suffix is a hint at most (a SAF `content://` URI often has no usable name). A reader
-   opens the archive, reads `mimetype`, and dispatches on it. A *writer* refuses a caller-supplied
-   `mimetype` entry outright: it is the container's own, and a copy could only mislabel the file.
-3. **`manifest.json` is always present**, and a file without it is not a valid `.mobix` — refused on
-   read and on write.
-4. **Unknown entries are preserved on rewrite.** A file written by a newer app can carry entries this
-   build does not understand (`chunks/`, a future `index/`); rewriting the document carries them
-   through untouched, exactly like an unknown XML element in the `.xopp` path (see
-   [xopp-format.md](xopp-format.md)). This is what makes "open in v2.1, save in v2.0" non-destructive.
-5. **Page names are `page-%04d.json`, one-based, and the *manifest* fixes the order.** Reading a
-   document never sorts file names — a page list that was reordered or spliced would come back in
-   the wrong order. Names past `page-9999` keep counting (`page-10000.json`); the width is padding,
-   not a limit.
+- **MUST read the type from the `mimetype` entry, not from the name or suffix.** Both a `.mobix` and a
+  ZIP-package `.xopp` are ZIPs beginning `PK\x03\x04`, so a byte sniff reaches "it is a ZIP" and no
+  further ([data-path.md](data-path.md)); the suffix is a hint at most, because a `content://` URI often
+  has none. A file whose entry does not hold `application/vnd.mobixournal+zip` is not this format.
+- **MUST NOT trust `mimetype` to be first or STORED.** A writer MUST put it first and stored, so that a
+  reader asking only "what is this?" inflates nothing (the reasoning ODF uses); a reader MUST scan for
+  it and inflate it anyway, because refusing a valid document written by another tool is the worse
+  error. Every other entry MUST be DEFLATED by a writer.
+- **MUST require `manifest.json`,** on read and on write alike: an archive without it is not a document.
+- **MUST treat an entry name as an identity, not a path.** Names are `/`-separated (`pages/page-0001.json`,
+  `chunks/chunk_-3_2.json`, `assets/img_<sha256>.webp`), and a reader MUST NOT normalise one: a name with
+  a `..` or `.` segment, an absolute path (POSIX or `C:`), a backslash or a control character is
+  **refused**, and so is a name that appears twice — two entries answering to one name make which part
+  wins depend on archive order.
+- **MUST take page order from `pages[]`** and tile coordinates from `chunks[]`, never from names.
+  Page entries are `page-%04d.json`, one-based, and the width is padding rather than a limit: past
+  `page-9999` a writer keeps counting (`page-10000.json`).
+- **MUST preserve an unknown entry** through a rewrite, byte for byte. A newer writer may add `chunks/`,
+  an `index/`, a field this reader has no model for; carrying it untouched is what makes "open in v2.1,
+  save in v2.0" non-destructive, and it is the container's half of the retention rule in
+  [mobix-elements.md](mobix-elements.md).
+- **MUST distinguish absent from empty.** `mimetype` and `manifest.json` are required; `canvas.json`,
+  `pages/`, `chunks/`, `assets/` and `xopp-bridge/` are optional, and a document that carries none of
+  the content directories is a document with no content rather than an unreadable file.
+- **MUST reject, not repair.** A corrupt container is a malformed document reported as one error with
+  the underlying failure kept as its cause: an unreadable or encrypted entry, a checksum that does not
+  match, a file that ends before its directory, a duplicate or unusable name, a missing `mimetype` or
+  `manifest.json`. Nothing is partially read, and a rejected file is never written over.
 
 ---
 

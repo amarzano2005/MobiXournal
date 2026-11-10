@@ -215,8 +215,9 @@ a legitimate 200-page notebook with recordings is large by design. Entry count, 
 per archive, expansion ratio, JSON nesting depth, elements per page, points per stroke and cumulative
 asset bytes each get a threshold with the document that motivated it; a hostile file is **rejected
 explicitly** (a malformed-document error naming the entry and the rule), never partially read, and a
-rejected document is never written over in a degraded form. The caps, the depth cap, the entry-name rules, the digest check
-and the single error type have landed; what remains is `mobix-safety-fuzz-corpus`. The row-by-row checklist a third-party reader runs is
+rejected document is never written over in a degraded form. Every row above has a committed file behind it in
+`mobix-core/src/test/resources/fixtures/mobix-hostile/`, refused for its own reason in bounded time and
+allocation; the row-by-row checklist a third-party reader runs is
 [`spec/CONFORMANCE.md`](../spec/CONFORMANCE.md).
 
 ## Engine optimizations enabled by the format

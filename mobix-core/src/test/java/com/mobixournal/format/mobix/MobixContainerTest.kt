@@ -223,6 +223,31 @@ class MobixContainerTest {
         assertTrue(failure.message.orEmpty(), "pages/page-0009.json" in failure.message.orEmpty())
     }
 
+    /**
+     * A `.` segment is ordinary on a filesystem and dangerous as an identity: normalising it would make
+     * two names one, so the container refuses what it would otherwise have to repair.
+     */
+    @Test
+    fun aDotSegmentIsRefusedRatherThanNormalised() {
+        val bytes = archiveOf(manifest(), Entry("pages/./page-0001.json", ByteArray(0)))
+
+        val failure = assertThrows(MobixContainer.MalformedMobixException::class.java) {
+            MobixContainer.open(ByteArrayInputStream(bytes))
+        }
+        assertTrue(failure.message.orEmpty(), "path segment" in failure.message.orEmpty())
+    }
+
+    /** An entry with no name at all answers to no identity and cannot be reported in an error. */
+    @Test
+    fun anEmptyEntryNameIsRefused() {
+        val bytes = archiveOf(manifest(), Entry("", ByteArray(0)))
+
+        val failure = assertThrows(MobixContainer.MalformedMobixException::class.java) {
+            MobixContainer.open(ByteArrayInputStream(bytes))
+        }
+        assertTrue(failure.message.orEmpty(), "has no name" in failure.message.orEmpty())
+    }
+
     @Test
     fun theContainerVocabularyIsTheFormats() {
         // One home for these strings: the writer, the reader and the docs all read them from here.

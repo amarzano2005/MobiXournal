@@ -97,27 +97,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-spec-container"
-title = "Write the container chapter for an outside implementer"
-description = """
-Rewrite the container half of `docs/mobix-schema-spec.md` as normative prose, addressed to someone writing a reader from scratch.
-
-Cover, each as a rule rather than a description of this code: the ZIP protocol (local header, `mimetype` first and STORED, the allowed compression methods, and why the type is decided by the `mimetype` bytes rather than the suffix); entry naming and path normalisation (`manifest.json`, `canvas.json`, `pages/page-N.json`, `chunks/chunk_x_y.json`, `assets/{img,aud}_<sha256>.<ext>`, `mimetype` itself); which entries are required and which optional; unknown-entry semantics; and what a reader must reject. Use MUST / MUST NOT / MAY where a rule binds a reader, and keep Kotlin names out of the normative sentences.
-
-Budget: stay under the 300-line spoke limit by handing the page/chunk shape to `mobix-spec-data-model` if the chapter grows.
-
-Verification: every rule gets a row in `spec/CONFORMANCE.md` naming the fixture or test that witnesses it; `MobixContainerTest` gains a case for each rejection the prose names."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 41
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-data-model"
 title = "Write the manifest, canvas, page and chunk chapter"
 description = """
