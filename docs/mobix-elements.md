@@ -28,12 +28,39 @@ the element envelope and the four `.xopp`-shaped elements.
    lose (`ts`, `fn`, anything a newer desktop writes), and an **element that only exists in `.xopp`** is
    marked with `"syntax": "xml"` so it is written back as the XML element it came from.
 
-**What is *not* preserved, deliberately:** an unknown *field* inside a known element type. The model
-has no room for one, and inventing a channel would put a second, ambiguous copy of the schema inside
-`attrs`. `formatVersion` is the tool for a breaking addition — a version a reader does not know is
-refused rather than half-read (see the compatibility rules in
-[mobix-schema-spec.md](mobix-schema-spec.md)). The **envelope** (manifest, canvas, part entries) does
-preserve unknown fields; the element layer does not.
+### A known type keeps the fields it did not read
+
+An unknown *field* inside a known element type is the layer's one remaining loss, and it has a decided
+answer rather than an open question: **keep it**. The element gains an `unknown` channel holding exactly
+the JSON fields its codec did not consume, and the encoder writes the known fields first and that channel
+after them, in the order it was read. A name the codec *does* own is never taken from the channel — the
+known key wins, and the channel carries only skipped keys — so one fact cannot be written twice and a
+new field never forces a `formatVersion` bump.
+
+The rule is about **semantics, not bytes**: an element the writer modified comes back with its unknown
+fields intact and its known fields as the edit left them; byte identity is promised only for an element
+nothing touched. `attrs` stays the `.xopp` attribute channel, because a second copy of the schema inside
+it would be ambiguous to both readers.
+
+The build does not implement the channel yet, and the gap is measured rather than assumed:
+`08-unknown-top-level-field.mobix`, `09-unknown-nested-fields.mobix` and
+`12-unknown-background-type.mobix` are asserted as gaps by `MobixV1FixturesTest`, and the table in
+[mobix-format.md](mobix-format.md) records the same outcome per construct. The work is split per family
+so none is left behind:
+
+| Family | What is lost today | Closed by |
+|---|---|---|
+| `stroke`, `text` | unknown top-level keys, and inside `bounds` | `mobix-preserve-unknown-element-fields` |
+| `image`, `texImage` | unknown keys on the element and inside `bounds` | `mobix-preserve-unknown-element-fields` |
+| `table` | unknown keys on a cell, and on a cell's own objects | `mobix-preserve-unknown-living-fields` |
+| `plot` | unknown keys on a curve in the `curves` array, and inside `shadeIntegral` | `mobix-preserve-unknown-living-fields` |
+| `shape`, `circuit`, `math` | unknown keys in each family's sub-objects and arrays | `mobix-preserve-unknown-living-fields` |
+| any background | an unknown `type` becomes a plain sheet instead of being preserved | `mobix-unknown-vocabulary-preserves-element` |
+| any family | an unknown enum constant in a geometry element refuses the page; a living family already preserves it | `mobix-unknown-vocabulary-preserves-element` |
+
+The invariants — open then save, edit *another* page then save, merge, copy and undo — are
+`mobix-preserve-unknowns-through-edit-merge`, which is what makes the channel a property of the document
+rather than of one happy path.
 
 ### Vocabulary the schema uses
 

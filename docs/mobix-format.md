@@ -71,6 +71,33 @@ rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec
   writing the manifest and the pages that moved, and copying every other entry as the bytes the archive
   already holds ([data-path.md](data-path.md)).
 
+## What an open-and-save does to a v1 file
+
+The compatibility promise is a claim about a *file*, not about a version of the app, so it is measured
+against a versioned corpus of real documents instead of argued in prose. `MobixV1FixturesTest` drives
+every fixture under `mobix-core/src/test/resources/fixtures/mobix-v1/` through the container, the paged
+reader, the document layer, a save to a new file and an incremental save, and
+`scripts/make-mobix-fixtures.py` regenerates the corpus deterministically. Each fixture's own README says
+which construct it exercises.
+
+| Construct in the file | What opening and saving it does | Fixture |
+|---|---|---|
+| an archive entry this build does not model | kept, byte for byte, on both save paths | `05-unknown-entry.mobix` |
+| an unknown field on `manifest.json`, a page part, `canvas.json` or its `origin` | kept, value and position included | `06-unknown-envelope-fields.mobix` |
+| an element `type` this build does not model, and a `.xopp`-carried element | kept whole, as its own JSON | `07-unknown-element-type.mobix` |
+| an unknown top-level field on a known element type | **dropped** by the next save | `08-unknown-top-level-field.mobix` |
+| an unknown field inside a known element's sub-object or array item | **dropped**, one level deeper | `09-unknown-nested-fields.mobix` |
+| an unknown vocabulary value on a geometry element (`tool`, `lineStyle`) | the **page** is refused, not just the element | `11-unknown-vocabulary-values.mobix` |
+| an unknown vocabulary value inside a living family (`align`, `kind`) | the element is preserved whole | `11-unknown-vocabulary-values.mobix` |
+| an unknown background `type` | read as a plain sheet and **written back as one** | `12-unknown-background-type.mobix` |
+| a `pages[]` order that differs from the entry names | kept — a save renumbers the entries by position | `02-multi-page-order.mobix` |
+| a chunked document | read page by page and written back as chunks at their own coordinates | `10-chunked-document.mobix` |
+
+The dropped rows are v1's measured state, not a promise that was kept. The retention rule that closes
+them, with the per-family inventory, is [mobix-elements.md](mobix-elements.md)'s; what a reader may do
+with a file whose declared requirements it cannot meet is the capability contract in
+[mobix-schema-spec.md](mobix-schema-spec.md).
+
 ### Measured: `.mobix` against `.xopp` on one document
 
 The size case is a number, not a claim. `MobixXoppSizeBenchmarkTest` writes one document through

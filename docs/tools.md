@@ -83,6 +83,11 @@ signing identity agree; a shared application id alone does not make debug and pu
 `scripts/test-release-signing.py` tests preflight and fingerprint enforcement with fake SDK tools:
 run it with Python, without a device, keystore or Android SDK. CI runs it before the APK build.
 
+`scripts/make-mobix-fixtures.py` regenerates the golden `.mobix` v1 corpus under
+`mobix-core/src/test/resources/fixtures/mobix-v1/`: dependency-free and deterministic, so a re-run
+reproduces the same bytes and a fixture change is a diff a reviewer can read. [testing.md](testing.md)
+owns which test drives the corpus and what each file asserts.
+
 ### Host fallback — no `/data/android`, no Docker
 
 `/data/android` is a **machine-local path**. On a host that doesn't have it, `scripts/build.sh`

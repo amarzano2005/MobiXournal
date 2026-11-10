@@ -22,70 +22,228 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-v1-compatibility-fixtures"
-title = "Golden v1 .mobix fixture corpus with an honest capability matrix"
+id = "mobix-preserve-unknown-element-fields"
+title = "Keep unknown fields on the four geometry element families"
 description = """
-No versioned corpus of `.mobix` files exists in the repository, so no test can prove that a new release still opens old documents or that an unknown construct survives a save. Build one.
+The retention rule is decided (docs/mobix-elements.md, *A known type keeps the fields it did not read*): a known element keeps the JSON fields its codec did not consume and re-emits them. This task builds it for the geometry families, which is where fixtures 08, 09 and 12 fail today.
 
-Collect and commit fixtures under `mobix-core/src/test/resources/fixtures/mobix-v1/`, each with a README line saying what it exercises: (1) minimal single-page document; (2) multi-page document with ordered pages; (3) image, PDF-background and audio assets; (4) a document whose page was edited and saved incrementally; (5) a ZIP carrying an unknown entry (e.g. `future/thing.bin`); (6) a manifest with an unknown top-level field; (7) a page holding an unknown element `type`; (8) a known `type` carrying an unknown top-level field; (9) a known `type` carrying an unknown nested field inside a sub-object and inside an array item; (10) a chunked (`chunks/`) document.
+Files: `mobix-core/src/main/java/com/mobixournal/format/model/Element.kt` (the sealed `Element` interface and the `Stroke`, `TextElement`, `ImageElement`, `TexImageElement` classes), `format/mobix/MobixElementCodec.kt`, `format/mobix/MobixJson.kt` and `format/mobix/MobixBox` (the `bounds` object).
 
-Add JVM tests in `mobix-core/src/test/java/com/mobixournal/format/mobix/` that drive each fixture through `MobixContainer.open`, `MobixPagedReader` (open, first page, arbitrary page, close), `MobixDocument`, `MobixIncrementalSave`/`MobixIncrementalSaver` and a save-to-new-file, asserting stable element ids, page order, asset digests and zero loss on everything the format already supports. Cases 7-9 must be written as *characterization* tests that currently fail or assert the known gap, never as a green assertion claiming preservation works.
+Behaviour, exactly:
+1. Add `unknownFields: Map<String, JsonNode>` to the interface and to each of the four classes as a constructor parameter defaulting to `emptyMap()`; walk every construction site the compiler reports (`app/src/main`, `desktop/src/main`, `mobix-core/src/main`, tests) and default it.
+2. On decode, collect exactly the keys the codec did **not** consume, in source order, into a `LinkedHashMap`. Keep the consumed-key set as one named constant per type next to the codec (stroke: `type,id,tool,color,lineStyle,capStyle,lineWidth,fill,bounds,points,attrs`; text, image and texImage likewise), and collect the same way for a point object. For `bounds`, carry the keys the codec did not read in the box's own `extra` map rather than flattening them onto the element.
+3. On encode, write the known fields in today's order, then each unknown key in its recorded order, skipping any key the codec already wrote (the known key always wins). Re-emit the value exactly as parsed (`JsonNode`), never re-typed, and never re-encode a number through `Double`.
+4. `attrs` is unchanged: it remains the `.xopp` attribute channel and is not a second home for these keys.
 
-Record the resulting truth in a capability table (Supported / Partially supported / Not supported) in the owning spoke, `docs/mobix-format.md`, and link the fixtures from `docs/testing.md`.
+Out of scope: the living families (`mobix-preserve-unknown-living-fields`), unknown enum values and backgrounds (`mobix-unknown-vocabulary-preserves-element`).
 
-DoD: fixtures versioned, every one exercised by a named test, the matrix matches what the tests actually prove, and `:mobix-core:test` runs them in CI (see `CiCoverageTest`).
-Dependency: none - this is the prerequisite of every other format item."""
+Verification: in `MobixV1FixturesTest`, replace `anUnknownTopLevelFieldOnAKnownTypeIsDroppedByTheNextSave` with a preservation assertion over fixture 08 (`pressureSeed`, `tiltCurve`, `lineHeight`, `hyphenation` all survive a save to a new file and an incremental save) and rename it accordingly; extend `MobixElementCodecTest` with (a) a known key cannot appear twice when the unknown map happens to hold it, (b) an element nobody edited re-encodes to the same JSON, (c) unknown keys inside `bounds` survive. Run `./gradlew :mobix-core:test` and update the capability table in `docs/mobix-format.md` plus the inventory in `docs/mobix-elements.md`, in the same commit."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 21
+created = 2026-11-10
+tags = ["mobix", "compatibility"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-preserve-unknown-living-fields"
+title = "Keep unknown fields on the living element families"
+description = """
+The same retention rule as `mobix-preserve-unknown-element-fields`, applied to the five living families. Fixture 09 proves the loss today: a cell's `fontFamily`, the plot's `shadeIntegral.hatch` and a curve's `dashPattern`/`label` are dropped by the next save.
+
+Files: `format/mobix/MobixTableCodec.kt`, `MobixPlotCodec.kt`, `MobixShapeCodec.kt`, `MobixCircuitCodec.kt`, `MobixMathCodec.kt`, their model classes in `format/model/`, and `MobixJson.kt` if a shared helper is needed.
+
+Behaviour:
+1. Each family gets the `unknownFields` channel on its model class, defaulting to `emptyMap()`, and each codec gains one consumed-key constant covering the whole subtree it reads: element top-level keys, every sub-object it decodes (`shadeIntegral`, a table `cell`, a `parameters` map, circuit pins, shape parameters, math block fields…) and every array item's own keys (`curves[]`, `cells[][]`, `pins[]`, `parameters[]`). Where a nested object is modelled by its own data class (`PlotCurve`, `TableCell`, `PlotShading`, `CircuitPin`…), that class carries its own `unknown` map so the shape is preserved at the level it was written.
+2. Encode writes known fields first, then unknown keys in recorded order, skipping keys the codec owns; a preserved value is re-emitted from its `JsonNode`.
+3. The existing "model it or preserve it whole" rule stays: a value the codec cannot *interpret* (an unknown `align`, an unknown `kind`) still sends the whole element to `RawElement`. This task is about fields the codec ignores, not values it rejects — that split is what `mobix-unknown-vocabulary-preserves-element` changes.
+4. `parameters` is a free-form map of numbers today; keep it that way and do not put its entries in the unknown channel.
+
+Verification: turn `MobixV1FixturesTest.unknownNestedFieldsInsideAKnownTypeAreDroppedToday` into a preservation assertion over fixture 09; add `MobixLivingCodecTest` cases for a table cell, a plot curve, `shadeIntegral`, and one sub-object per remaining family, each asserting the unknown key survives open→save and that a known key wins a name collision. Run `./gradlew :mobix-core:test`, update `docs/mobix-elements.md`'s inventory table and `docs/mobix-living-entities.md` if it states the old rule, and the capability table in `docs/mobix-format.md`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 22
+created = 2026-11-10
+tags = ["mobix", "compatibility"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-unknown-vocabulary-preserves-element"
+title = "An unknown vocabulary value preserves the element instead of refusing the page"
+description = """
+Two measured gaps, both in `MobixElementCodec.kt` / `MobixPageCodec.kt`, both proven by fixtures 11 and 12:
+
+(a) A geometry element with an unknown enum throws: `decodeStroke` raises `MalformedMobixException` for an unknown `tool` or `lineStyle`, and because `MobixPageCodec.decodeLayer` does not catch it, the **whole page** — and with it `MobixDocument.open` — fails. A living family already does the right thing: its codec returns null and the element is preserved verbatim. Make the geometry families match: `decodeStroke`/`decodeText` (and any other value-validating geometry decode) return null on an unknown value, `MobixElementCodec.decode` falls through to `preserve(type, node)`, and the document opens with a `RawElement` the app draws nothing for but writes back untouched.
+
+(b) An unknown background `type` is silently replaced: `MobixPageCodec.decodeBackground`'s `else` branch builds `Background.Solid`, so a `gradient` page is drawn plain and *saved* as a plain sheet. Add a preserved background variant to the `Background` model (e.g. `Background.Preserved(node: JsonNode.Obj)`), return it for an unknown `type`, draw it as the plain sheet it already falls back to, and encode its original node verbatim (including its own `type` and every field). The same path must cover the manifest's `defaultPaper`. While there, stop stringifying a known background's unknown fields through `attrs`: carry them as JSON so a nested value survives (the envelope rule in `docs/mobix-schema-spec.md`).
+
+Verification: fixture 11 page 0 no longer throws — `MobixV1FixturesTest.anUnknownVocabularyValueRefusesAPageOrPreservesItsElement` becomes an assertion that the unknown `tool` yields a `RawElement` whose body still says `FOUNTAIN_PEN`; fixture 12 keeps `gradient` and its `from`/`to`/`angle` on both save paths. Add a case to `MobixManifestTest` for a preserved `defaultPaper`. Update the capability table in `docs/mobix-format.md`, the inventory in `docs/mobix-elements.md`, and `docs/mobix-schema-spec.md`'s background note. Run `./gradlew :mobix-core:test`."""
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 23
+created = 2026-11-10
+tags = ["mobix", "compatibility"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-preserve-unknowns-through-edit-merge"
+title = "Prove unknown fields survive edits, merges, copies and undo"
+description = """
+The retention channel is only worth having if it is a property of the *document*, not of the one open→save path. Add the invariant suite once the model and codec halves exist (`mobix-preserve-unknown-element-fields`, `mobix-preserve-unknown-living-fields`, `mobix-unknown-vocabulary-preserves-element`).
+
+New test class `mobix-core/src/test/java/com/mobixournal/format/mobix/MobixUnknownFieldInvariantsTest.kt`, driven by fixtures 08, 09 and 12 and by a synthetic document built in the test:
+1. open → save: every unknown key is present with its original value.
+2. open → edit **another** page → save: the unknown keys on the untouched page are unchanged, and the edited page keeps its own.
+3. open → edit the **same** element (move a stroke, change a cell's text) → save: the element's known fields show the edit and its unknown keys are still there. State in the assertion that this is semantic preservation, not byte identity.
+4. copy an element (`Element` copy with a fresh id) and an undo/redo of an edit: the unknown keys travel with the copy and come back after undo.
+5. merge two copies (`MobixMergeEngine`): the merged page's unknown keys survive from whichever side won the page, and a conflict does not duplicate them.
+6. `.xopp` export (`Xopp.toXml`): the unknown JSON never leaks into markup.
+
+Also assert the asymmetry is gone: an element preserved because of an unknown *enum* re-exports to `.xopp` as the raw XML/JSON path it already uses, and reopens unchanged.
+
+DoD: the suite is in `:mobix-core:test`, `docs/testing.md` names it, and fixture 07's unknown-type assertion is reused rather than duplicated. Run the full `./gradlew :mobix-core:test`."""
 status = "active"
 level = "task"
 category = "test"
 urgency = "high"
-order = 10
+order = 24
 created = 2026-11-10
-tags = ["mobix", "compatibility", "p0"]
+tags = ["mobix", "compatibility"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-known-type-unknown-fields"
-title = "Stop losing unknown fields inside a known element type"
+id = "mobix-capability-manifest-codec"
+title = "Read and write declared capabilities in manifest.json"
 description = """
-Verified gap, not a suspicion: `MobixElementCodec.kt` documents in its own header that an unknown *element type* survives (as `RawElement`) but an unknown *field* inside a known `type` does not, and that adding fields to an existing type is treated as potentially breaking. `attrs`/`extraAttrs` only capture what the codec already knows how to read. A newer writer's field is therefore silently dropped the first time this build saves the page - the worst failure mode for an open format.
+Implements the contract written in `docs/mobix-schema-spec.md` (*Declared capabilities*) — the manifest half only.
 
-Investigate every decoder/encoder: `MobixElementCodec`, `MobixPageCodec`, `MobixManifest`, `MobixCanvas`, `MobixTableCodec`, `MobixPlotCodec`, `MobixCircuitCodec`, `MobixMathCodec`, `MobixShapeCodec`, `Living.kt` and the `Element` hierarchy. For each known family, inventory exactly which shapes are lost: unknown top-level keys, unknown keys inside a known sub-object, unknown keys inside array items, unknown enum constants (that must never be replaced by a plausible default and written back as the user's choice), and unknown fields on `attrs`/`extraAttrs`.
+Files: new `mobix-core/src/main/java/com/mobixournal/format/mobix/MobixCapability.kt`, `format/mobix/MobixManifest.kt`.
 
-Propose two strategies and pick one with reasons: (A) a transitional raw-safe guard - refuse to edit and open read-only when a known element carries fields the model cannot reproduce; (B) lossless edit-known-preserve-unknown - keep the unknown JSON subtree (or original node plus a patch of known fields) on the element and re-emit it on encode, with an explicit rule forbidding collisions between known and unknown keys. Distinguish semantic preservation from byte-identical preservation, and never claim byte identity for an element the writer actually modified.
+Behaviour:
+1. `MobixCapability` is a value type: `namespace`, `feature`, `version: Int`, `parse(text): MobixCapability?` implementing exactly the grammar in the doc (`<reverse-DNS namespace>/<feature>:<positive integer>`, lower-case feature with dots/dashes), `toString()` back to the canonical spelling, and `satisfies(declared: Set<MobixCapability>): Boolean` — same namespace+feature with a declared version `>=` this one; nothing else matches.
+2. `MobixManifest` gains `requiredCapabilities: List<MobixCapability>` and `optionalCapabilities: List<MobixCapability>`, both defaulting to empty and removed from `extra`'s known-keys gap (add them to `KNOWN_KEYS`).
+3. `decode` reads both arrays in file order, fails with `MalformedMobixException` on a malformed identifier, a non-positive version, a duplicate within one list, or a value that is not a string. `encode` writes `requiredCapabilities` and `optionalCapabilities` after `defaultPaper` and before `extra` — only when non-empty — in their original order.
+4. `MobixPart.encode`/`decode` are untouched.
 
-Then break the work into small per-family tasks: model change, codec change, fixture from `mobix-v1-compatibility-fixtures`, and a test proving the invariant that unknown `type`, unknown top-level field, unknown nested field, unknown enum all survive open -> save, open -> edit *another* page -> save, and merge/copy/undo. Keep `docs/mobix-format.md` and `docs/mobix-elements.md` as the owners of the resulting rule.
-
-DoD of the scope: a written decision, a per-family loss inventory, and child tasks at `task` level. No schema change in this scope. Dependency: `mobix-v1-compatibility-fixtures`."""
+Verification: new `MobixCapabilityTest` for the grammar (accepts `org.mobixournal/stem.connector:1`, rejects `Stem/Connector`, `x:0`, `x`, `a/b/c:1`, a non-integer version) and for `satisfies` (2 satisfies 1, 1 does not satisfy 2, a different feature never matches); add cases to `MobixManifestTest` for round-trip order, defaults when absent, a malformed value failing the open, and the fields not reappearing in `extra`. Update `docs/mobix-schema-spec.md` only if the implementation reveals a wording gap. Run `./gradlew :mobix-core:test`."""
 status = "active"
-level = "scope"
-category = "refactor"
-urgency = "high"
-order = 20
-created = 2026-11-10
-tags = ["mobix", "compatibility", "p0"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-capability-contract"
-title = "Declare required and optional capabilities independently of the app version"
-description = """
-Today the only evolution signal is `formatVersion` + `minAppVersion`, which speaks MobiXournal version numbers and therefore cannot express an independent writer's requirements; this forces a choice between bumping `formatVersion` for every feature (breaking v1 readers for no structural reason) and shipping features nobody declared. Design the missing middle layer.
-
-Decide and document: the exact manifest shape for `requiredCapabilities` and `optionalCapabilities` (stable namespaced strings such as `org.mobixournal/stem.connector:1`), who validates them, and the four reader outcomes - full edit, read-only display, preserved-but-not-drawn, refuse-write - with precedence rules when several capabilities are unknown. Decide whether a per-type `schemaVersion` inside new element objects is needed, and what a legacy type looks like without it. Keep `minAppVersion` as the legacy MobiXournal guard and say explicitly in the spec that editability backwards is not promised for unknown features: a newer file opened by an older app may be shown read-only or preserved verbatim, never silently trimmed.
-
-Cross-cutting checks: unknown capabilities must never make an old reader write a document it cannot represent; a third-party writer must be able to satisfy the contract without knowing MobiXournal's version numbers; merge and copy must carry capabilities with the elements they describe.
-
-Owners to update: `docs/mobix-format.md`, `docs/mobix-schema-spec.md`. Break out child tasks for the manifest codec, the reader gate, the warnings surfaced in the UI, and the fixtures. DoD: one written, testable contract plus child tasks. No `formatVersion` bump in this scope. Dependency: `mobix-known-type-unknown-fields` decision, `mobix-spec-v1`."""
-status = "active"
-level = "scope"
+level = "task"
 category = "feature"
 urgency = "high"
-order = 30
+order = 31
 created = 2026-11-10
-tags = ["mobix", "versioning", "p0"]
+tags = ["mobix", "versioning"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-capability-reader-gate"
+title = "Evaluate declared capabilities at open and produce one verdict"
+description = """
+The gate half of the capability contract in `docs/mobix-schema-spec.md` (*Declared capabilities*): turn a manifest plus what this build implements into exactly one outcome, with the documented precedence.
+
+Files: new `mobix-core/src/main/java/com/mobixournal/format/mobix/MobixOpenVerdict.kt`, `MobixFormat.kt` (a `declaredCapabilities: Set<MobixCapability>` the build advertises; start with the capabilities v1 actually keeps whole), `MobixDocument.kt`, and the app's open path (`app/src/main/java/com/mobixournal/io/DocumentIo.kt`, `LoadedFile`) so the verdict travels with the opened document instead of being recomputed.
+
+Behaviour:
+1. `MobixOpenVerdict` is a sealed/enum value with `FullEdit`, `PreservedButNotDrawn(optional: Set)`, `ReadOnlyDisplay(reason)`, `RefuseWrite(reason)` plus a human-readable `reason` the UI can show (English, what happened and what is disabled — never a class name).
+2. `MobixCapabilities.evaluate(manifest, declared): MobixOpenVerdict` implements: unknown required capability that cannot be preserved → `RefuseWrite`; `minAppVersion` above this build, or an unknown required capability whose constructs are displayable → `ReadOnlyDisplay`; unknown required capability whose constructs *can* be preserved → `PreservedButNotDrawn`; otherwise `FullEdit`. An unknown optional capability only downgrades when it names a construct this build cannot keep — which, until the retention tasks land, means `ReadOnlyDisplay` (state that in the code and the doc).
+3. Precedence is exactly the doc's: refuse-write > read-only > preserved-but-not-drawn > full edit, the strictest among several unknown requirements wins, and an unknown required capability always beats a permissive `minAppVersion`.
+4. Do not change `MobixManifest.requiresAppNewerThan`; the gate calls it. Do not enforce the verdict in the UI yet — that is `mobix-capability-warning-surface`.
+
+Verification: `MobixCapabilityGateTest` as a table-driven matrix over every combination of (required known/unknown-preservable/unknown-unpreservable × optional known/unknown × minAppVersion below/above), asserting the outcome and the precedence rules named in the doc; one case per row of the outcome table. Add the verdict to the app open path with a JVM test in `app/src/test` that a newer-`minAppVersion` file comes back `ReadOnlyDisplay`. Run `./gradlew :mobix-core:test :app:testDebugUnitTest` and update `docs/testing.md`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 32
+created = 2026-11-10
+tags = ["mobix", "versioning"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-capability-warning-surface"
+title = "Tell the reader what a file requires, on both shells"
+description = """
+Surface the verdict from `mobix-capability-reader-gate` in the two shells. This is the task that makes the contract visible; the outcome itself is decided in `mobix-core`, never in the UI.
+
+Files: `mobix-core`'s `MobixOpenVerdict` reason string; the Android open path beside `app/src/main/java/com/mobixournal/ui/NewerAppConsentDialog.kt` (it already handles the `minAppVersion` case) and the desktop window's open-failure/notice surface in `desktop/src/main`.
+
+Behaviour:
+1. `RefuseWrite` and `ReadOnlyDisplay` show one notice naming the feature(s) the file requires and exactly what is disabled ("This notebook needs … It opens read-only: drawing, Save and Save As are unavailable."). English copy, no class names. `RefuseWrite` may show the pages but must disable every write affordance.
+2. `PreservedButNotDrawn` is a one-line status, not a dialog: the document is editable and the affected elements are untouched.
+3. Bind the disables to the verdict itself (one source), so a promise in the copy cannot drift from the state.
+4. Follow `docs/interface-contract.md` in full — material class, tokens only, a catalogue glyph, all five states, both shells agreeing — and record the declaration with `todo.py done --design` when the task closes.
+
+Verification: JVM tests for the copy and for the disabled actions driven by a fake verdict (both shells' existing dialog/settings tests are the model); a Compose test asserting the notice's text changes nothing about a document's model. Update `docs/guide-troubleshooting.md` (the reader-facing failure path) and the owning spoke in the same commit. Run `./gradlew :mobix-core:test :app:testDebugUnitTest :desktop:test`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 33
+created = 2026-11-10
+tags = ["mobix", "versioning"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-capability-merge-copy"
+title = "Carry declared capabilities through merge, copy and paste"
+description = """
+The cross-cutting half of the capability contract: a merge's result and a paste's destination must declare what they now contain, or the next older reader will quietly trim it.
+
+Files: `format/mobix/MobixMergeEngine.kt`, `format/model/Document.kt` (or wherever a copied element lands), and the capability value type from `mobix-capability-manifest-codec`.
+
+Behaviour:
+1. `MobixMergeEngine`'s resulting manifest declares the **union** of both sides' `requiredCapabilities` and of their `optionalCapabilities`; order is the base's first, then anything new from the other side. A test asserts no capability is lost and none is duplicated.
+2. Copy/paste of elements between documents raises the destination document's `requiredCapabilities` to include the capabilities those elements name, or refuses the paste with a message naming the feature. The destination's set only ever grows during a session; a save writes it.
+3. When the destination cannot satisfy a capability that a source element *requires*, the paste is refused rather than accepted-and-trimmed. Give the refusal an English message and a test.
+4. Elements without a declared capability behave as today (v1 baseline).
+
+Verification: `MobixMergeManifestPartsTest` gains the union cases (both sides declare, one side only, conflicting versions of one feature — the higher version wins); a new `MobixCapabilityCopyTest` covers paste raising the set, paste refused, and a plain v1 copy leaving the set empty. Update `docs/mobix-schema-spec.md`'s *Cross-cutting* paragraph if the implementation needed a decision it did not state. Run `./gradlew :mobix-core:test`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 34
+created = 2026-11-10
+tags = ["mobix", "versioning"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-capability-fixtures"
+title = "Extend the golden corpus to the declared-capability outcomes"
+description = """
+The capability contract needs files that prove it, in the corpus `mobix-v1-compatibility-fixtures` established.
+
+Files: `scripts/make-mobix-fixtures.py`, `mobix-core/src/test/resources/fixtures/mobix-v1/` and its README, `MobixV1FixturesTest` (or a sibling `MobixCapabilityFixturesTest`), `docs/testing.md`.
+
+Add fixtures, one per outcome of the table in `docs/mobix-schema-spec.md`:
+1. `13-required-capability-unknown.mobix` — `requiredCapabilities: ["example.org/stem.connector:1"]`, a document this build can display but not keep: the gate must return `RefuseWrite`.
+2. `14-optional-capability-unknown.mobix` — the same feature under `optionalCapabilities` with a construct this build keeps whole: `PreservedButNotDrawn`, and a save leaves the element untouched.
+3. `15-capability-higher-version.mobix` — `…:2` required and `…:1` declared: the gate must not treat it as satisfied.
+4. `16-capability-additive-order.mobix` — both lists in a writer's own order, with a duplicate-free mix of known and unknown identifiers, asserting the order is preserved on save.
+5. One fixture written as a third-party writer would, with no `minAppVersion` and a capability namespace that is not `org.mobixournal`, so the contract is shown to be satisfiable without knowing MobiXournal's version numbers.
+
+Each fixture gets a README row and its own named test asserting the exact outcome and the reason text's shape (not its prose). Extend `MobixV1FixturesTest.theCorpusIsTheOneThisTestDrives`. A new capability also gets a row in `docs/guide-limitations.md`'s matrix only if it differs by shell; otherwise the evidence stays in `docs/mobix-schema-spec.md`. Run `./gradlew :mobix-core:test` and `python3 scripts/todo/todo.py validate`."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 35
+created = 2026-11-10
+tags = ["mobix", "versioning"]
 rebuild = false
 emulator_debug = false
 

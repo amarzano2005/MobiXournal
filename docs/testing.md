@@ -40,6 +40,17 @@ gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/re
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.
 
+**The v1 compatibility corpus.** `MobixV1FixturesTest` drives the twelve committed files under
+`mobix-core/src/test/resources/fixtures/mobix-v1/` through the container, the paged reader, the document
+layer, a save to a new file and an incremental save, and it fails when a fixture sits in the directory
+that no test names. Six of them assert preservation that works — an unknown archive entry, unknown
+envelope fields, an unknown element type, content-addressed payloads, manifest page order, a chunked
+document — while the rest assert the *gaps* on purpose: an unknown field on a known type, an unknown
+nested field, an unknown background type, and an unknown vocabulary value that refuses a page. A gap test
+failing means the fix landed and the table in [mobix-format.md](mobix-format.md) has to record it.
+`scripts/make-mobix-fixtures.py` regenerates the corpus deterministically, so a fixture change is a
+readable diff and not a binary surprise.
+
 **The two root fixtures.** `RealFileRoundTripTest` round-trips a real desktop-generated `udiff.xopp`
 end to end, read from the **repo root** (the builder mounts the project's parent dir, so the file
 resolves inside the container); `bhm_prior.pdf`, beside it, is what the PDF-background and desktop-save
