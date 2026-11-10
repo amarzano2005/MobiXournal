@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -260,11 +261,13 @@ internal fun DialogBodyContent(
     activeCurves: List<PlotCurve>,
     xMin: Double?,
     xMax: Double?,
+    /** How tall the body may grow; the chrome chooses it for the screen it is opening on. */
+    maxBodyHeight: Dp = 420.dp,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 370.dp),
+            .heightIn(max = maxBodyHeight),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         DialogInputsColumn(

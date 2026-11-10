@@ -268,6 +268,14 @@ fun PlotInspectorAnchor(
     val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
     val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
 
+    // The panel is never drawn taller than the canvas it floats in. Without this cap the panel's
+    // height came only from its content, so on a phone — where the room beside the plot is short —
+    // the bottom of it (the report-side chips, then Apply) simply fell past the canvas edge and
+    // could not be reached at all, while the body's own fixed ceiling hid the overflow.
+    val maxPanelHeight = with(LocalDensity.current) {
+        (canvasSizePx.height - 2 * marginPx).coerceAtLeast(0).toDp()
+    }
+
     // The anchor is read **once per open**: the panel belongs beside the plot the editor was opened on,
     // not wherever the selection happens to have wandered since.
     val anchorRect = remember(ui.plotInspectorSession) { rect }
@@ -294,46 +302,32 @@ fun PlotInspectorAnchor(
                     .offset { placement.offset ?: IntOffset.Zero }
                     .onSizeChanged(placement.measured)
                     .widthIn(min = 320.dp, max = 360.dp)
+                    .heightIn(max = maxPanelHeight)
                     .padding(4.dp),
             ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    PlotInspectorHeader(
-                        onDismiss = onDismiss,
-                        modifier = Modifier.pointerInput(canvasSizePx) {
-                            detectDragGestures { change, dragAmount ->
-                                change.consume()
-                                placement.dragBy(dragAmount)
-                            }
-                        },
-                    )
-
-                    PlotInspectorBody(state = state)
-
-                    PlotInspectorActions(
-                        canApply = state.canApply,
-                        onDismiss = onDismiss,
-                        onApply = {
-                            val xMin = state.xMin ?: return@PlotInspectorActions
-                            val xMax = state.xMax ?: return@PlotInspectorActions
-                            val updated = PlotElementFactory.applyPlotEdit(
-                                original = plot,
-                                editedCurves = state.activeCurves,
-                                xMin = xMin,
-                                xMax = xMax,
-                                showCriticalPoints = state.showCriticalPoints,
-                                includeDerivative = state.includeDerivative,
-                                includeSummary = state.includeSummary,
-                                infoSide = state.infoSide,
-                                shadeIntegral = state.shade.value,
-                            )
-                            surface?.replacePlotElement(plot, updated)
-                            ui.editingPlot = updated
-                        },
-                    )
-                }
+                PlotInspectorPanel(
+                    state = state,
+                    placement = placement,
+                    canvasSizePx = canvasSizePx,
+                    onDismiss = onDismiss,
+                    onApply = {
+                        val xMin = state.xMin ?: return@PlotInspectorPanel
+                        val xMax = state.xMax ?: return@PlotInspectorPanel
+                        val updated = PlotElementFactory.applyPlotEdit(
+                            original = plot,
+                            editedCurves = state.activeCurves,
+                            xMin = xMin,
+                            xMax = xMax,
+                            showCriticalPoints = state.showCriticalPoints,
+                            includeDerivative = state.includeDerivative,
+                            includeSummary = state.includeSummary,
+                            infoSide = state.infoSide,
+                            shadeIntegral = state.shade.value,
+                        )
+                        surface?.replacePlotElement(plot, updated)
+                        ui.editingPlot = updated
+                    },
+                )
             }
         }
 
@@ -343,6 +337,44 @@ fun PlotInspectorAnchor(
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         )
+    }
+}
+
+/**
+ * The panel's own content: its draggable header, the body, and the two commands that close it.
+ *
+ * The body takes the height the header and the buttons leave; inside it the report-side options are
+ * measured before the inputs, so the chips are never the row that gets squeezed — the inputs scroll
+ * instead, and the panel never grows past the canvas it floats in.
+ */
+@Composable
+private fun PlotInspectorPanel(
+    state: PlotInspectorState,
+    placement: InspectorPlacement,
+    canvasSizePx: IntSize,
+    onDismiss: () -> Unit,
+    onApply: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        PlotInspectorHeader(
+            onDismiss = onDismiss,
+            modifier = Modifier.pointerInput(canvasSizePx) {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    placement.dragBy(dragAmount)
+                }
+            },
+        )
+
+        PlotInspectorBody(
+            state = state,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+
+        PlotInspectorActions(canApply = state.canApply, onDismiss = onDismiss, onApply = onApply)
     }
 }
 
@@ -381,10 +413,12 @@ private fun PlotInspectorHeader(
 }
 
 @Composable
-private fun PlotInspectorBody(state: PlotInspectorState) {
+private fun PlotInspectorBody(state: PlotInspectorState, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            // A comfortable ceiling on a tall canvas; the weight above is what bounds it on a short
+            // one, so this is never the constraint that clips the chips.
             .heightIn(max = 420.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

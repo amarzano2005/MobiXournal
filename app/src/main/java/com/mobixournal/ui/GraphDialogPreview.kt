@@ -137,7 +137,7 @@ internal fun OptionsRow(
             // the last chip ("Left") off at the edge. A flow line wraps, so the choice is whole at any
             // width, and the label reads as the heading of the choices under it.
             Column(
-                modifier = Modifier.padding(start = 16.dp),
+                modifier = Modifier.padding(start = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
@@ -145,7 +145,7 @@ internal fun OptionsRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     for (side in PlotInfoSide.entries) {
                         FilterChip(
                             selected = side == infoSide,
