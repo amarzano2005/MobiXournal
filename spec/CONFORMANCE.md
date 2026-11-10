@@ -30,6 +30,9 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 18 | refuse a duplicate, `..`/`.`-segment, absolute, backslashed or control-character entry name rather than normalising it | container protocol | `MobixArchiveSafetyTest`, `MobixContainerTest` |
 | 19 | treat `mimetype` and `manifest.json` as required and every other entry as optional, distinguishing absent from empty | container protocol | `MobixManifestTest`; fixture 01 |
 | 20 | report a corrupt container as one malformed-document error carrying the underlying failure as its cause, never a partial read | container protocol | `MobixArchiveSafetyTest` (encrypted entry, bad CRC, truncated file) |
+| 21 | require `formatVersion`, `documentId` and `canvasMode`, and fill the documented default for every other manifest field | `mobix-data-model.md`, manifest | `MobixManifestTest`; fixture 01 |
+| 22 | read page order from `pages[]`, tile set from `chunks[]`, and treat the two lists as exclusive with `canvasMode` | data model, cross-field rule 3 | `MobixManifestTest`; fixtures 02, 10 |
+| 23 | read lengths as points, times as UTC epoch milliseconds, colours as `#RRGGBBAA`, and a non-positive `chunkSizePt` as its default | data model, units and `canvas.json` | `MobixManifestTest`; fixtures 01, 10 |
 
 A row that fails is a defect in the implementation, not a matter of taste: the chapters state each rule
 once, and the fixtures are files rather than prose so that a disagreement is reproducible.

@@ -4,10 +4,11 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-This file owns the **container and the document envelope**; the elements inside a page are
-[mobix-elements.md](mobix-elements.md), and the motivation, the `.xopp` bridge and the app-level
-policy are [mobix-format.md](mobix-format.md). The container is canonical here — do not re-draw the
-tree in the other spoke.
+This file owns the **container** and the rules that follow from it; the field-by-field tables of the
+envelope parts — types, requiredness, defaults, units — are [mobix-data-model.md](mobix-data-model.md)'s,
+the elements inside a page are [mobix-elements.md](mobix-elements.md), and the motivation, the `.xopp`
+bridge and the app-level policy are [mobix-format.md](mobix-format.md). The container is canonical here —
+do not re-draw the tree in the other spoke.
 
 The JSON below is **excerpted**: `…` marks elided content, so a block is a shape to read, not a file to
 paste. Where a field's rules matter they are stated in prose under the block, not implied by the sample.
@@ -100,22 +101,11 @@ write; the required app-version floor is never lowered (`ManifestSaveIntegrityTe
 }
 ```
 
-- **Required: `formatVersion`, `documentId`, `canvasMode`.** Those are the three a reader cannot
-  invent — which schema this is, which document it is, and whether the parts are `pages/` or
-  `chunks/`. Every other field has a documented default, so a minimal hand-written manifest opens.
-- `pages[]` **is** the page order, and the bookkeeping a merge needs
-  ([mobix-format.md](mobix-format.md) → *Merging two copies is library code*): `sha256` is the digest of the page entry's *stored*
-  bytes and `modified` its last-write time, so a merge can tell which side of a conflict moved. A
-  page whose `entry` is absent from the archive is a corrupt file — fail the open, don't skip quietly.
-- Documents in an infinite mode use `chunks[]` (same shape, entries under `chunks/`) instead of
-  `pages[]`; the mode decides which list is authoritative, and the other is empty.
-- `defaultPaper` is **a background object**, exactly the shape a page carries — what a new page starts
-  on and what this page is on cannot drift apart. A ruling's own parameters ride verbatim in `config`,
-  the comma-separated string desktop Xournal++ writes, rather than being parsed into fields and
-  re-serialised into a spellings mismatch.
-- Timestamps are Unix epoch milliseconds, UTC.
-- **Unknown fields are preserved**: a manifest written by a newer build keeps its extra keys, values
-  and nested structure across a rewrite, and they are written last, in the order they were read.
+The field tables, with each type, requiredness, default and unit, are
+[mobix-data-model.md](mobix-data-model.md)'s. Two consequences belong here because the container is what
+enforces them: a `pages[]` entry whose `entry` names nothing in the archive is a **corrupt file** — fail
+the open instead of skipping quietly — and a manifest field this build does not model is preserved on
+rewrite, which is compatibility rule 2 below at the envelope's level.
 
 `canvas.json` — the geometry mode and its dimensions — is owned by
 [chunked-documents.md](chunked-documents.md), which carries its schema.
@@ -214,14 +204,11 @@ notice (`mobix-capability-reader-gate`, `mobix-capability-warning-surface`) and 
 }
 ```
 
-- The page's **identity is not here**: it is the `id` in the manifest's `pages[]` entry, which already
-  names the file. Repeating it would give the document two places to disagree about which page this is.
-- `layers[]` is z-order, first bottom, last top, and each `elements[]` is the page's own z-order —
-  exactly the model's ([data-path.md](data-path.md)). `name` is optional, as in `.xopp`.
-- A layer's `elements` may hold anything [mobix-elements.md](mobix-elements.md) specifies, including
-  an element type this build does not model.
-- `attrs` on any of these objects carries the `.xopp` attributes the bridge must not lose, the same
-  channel elements use.
+The page's fields and defaults are [mobix-data-model.md](mobix-data-model.md)'s; the shape above is here
+because the page is what the container's entry names point at. Two things a reader will get wrong
+without being told: a layer's `elements` may hold anything [mobix-elements.md](mobix-elements.md)
+specifies, including a type this build has no model for, and `attrs` on any of these objects carries the
+`.xopp` attributes the bridge must not lose, the same channel elements use.
 
 ### Backgrounds
 

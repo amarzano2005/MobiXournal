@@ -97,27 +97,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-spec-data-model"
-title = "Write the manifest, canvas, page and chunk chapter"
-description = """
-The data model an outside reader implements: `manifest.json`, `canvas.json`, a page and a chunk.
-
-For each field: its type, whether it is required, its documented default, its unit (points, milliseconds, `#RRGGBBAA` colours, ARGB ints where the model holds one) and its meaning. Then the rules that are not field-local: `pages[]` is the document order, `chunks[]` is the occupied tiles keyed by signed coordinates, the two lists are exclusive with `canvasMode`, part identity is `id` and not the entry name, `modified`/`created` are UTC epoch milliseconds, and z-order is layer order then element order.
-
-State the defaults a minimal hand-written manifest may rely on, and the three fields a reader cannot invent (`formatVersion`, `documentId`, `canvasMode`).
-
-Verification: a table of defaults checked against `MobixManifestTest`/`MobixCanvasFile`, a row per rule in `spec/CONFORMANCE.md`, and fixture 01 (minimal) plus 10 (chunked) named as the samples."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 42
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-elements"
 title = "Write the element chapter for an outside implementer"
 description = """
