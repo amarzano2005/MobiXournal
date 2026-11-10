@@ -231,6 +231,34 @@ stores is the document layer's job ([data-path.md](data-path.md)).
 
 ---
 
+## Publishing v1 for an outside implementer
+
+The `.mobix` format is only open if someone who has never seen this repository can write a reader from
+what is published. Three decisions make that the case, and none of them is a second copy of the format:
+
+- **The pages above are the specification.** `mobix-schema-spec.md` (container, manifest, canvas, page),
+  `mobix-elements.md` (rules and geometry), `mobix-living-entities.md` (living families),
+  `mobix-format.md` (limits and the capability table) and `xopp-bridge.md` (the bridge and its losses)
+  are written for an implementer, not for a contributor: a rule that an outside reader must follow is
+  stated as a rule, and code names appear only where they help locate the rule's tests. A parallel
+  spec document would be a fork of the one thing this project cannot afford to describe twice.
+- **The machine-checkable half lives in [`spec/`](../spec/README.md).** That directory carries the
+  reading order, the [conformance checklist](../spec/CONFORMANCE.md) a third party runs row by row, and
+  — from `mobix-spec-schema` — JSON Schema Draft 2020-12 documents for the manifest, the canvas, a page
+  and each known element family, kept honest by a drift guard. The schemas state where they stop: a
+  digest of bytes in another entry, a cross-entry reference, and geometry that is the sum of fields are
+  checks only code can make.
+- **The artefacts are meant to be reusable.** The `spec/` documents and the golden fixture corpus are to
+  be dedicated to the public domain (CC0-1.0) so an independent reader can embed them without taking on
+  this application's licence; the application source stays GPL-2.0-or-later, and `NOTICE` records the
+  split. `mobix-spec-licence` lands the licence files and the `NOTICE` row together, so the promise is
+  never stated in prose before it is stated in the tree.
+
+The child tasks split the remaining prose by protocol area (`mobix-spec-container`,
+`mobix-spec-data-model`, `mobix-spec-elements`, `mobix-spec-assets`, `mobix-spec-capabilities`), the
+artefacts by kind (`mobix-spec-schema`, `mobix-spec-conformance`, `mobix-spec-licence`), and the proof by
+`mobix-spec-conformance`: a checklist row with no sample behind it is a claim, not a check.
+
 ## Backward and forward compatibility rules
 
 1. **Unknown element preservation**: an element `type` this build does not model is kept whole and

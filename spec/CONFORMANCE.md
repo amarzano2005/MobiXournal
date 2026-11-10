@@ -1,0 +1,32 @@
+# `.mobix` v1 conformance checklist
+
+> Read when you want to prove a reader or writer you built conforms, row by row, instead of trusting a
+> successful open on one file.
+
+Each row is a rule an implementation can be wrong about while still producing something that looks like
+a document. The chapter column names where the rule is stated; the evidence column names what a reader
+of this repository uses to prove it. Run every row against every file in the golden corpus
+(`mobix-core/src/test/resources/fixtures/mobix-v1/`) and against one file you produced yourself.
+
+| # | A conforming reader must | Chapter | Evidence here |
+|---|---|---|---|
+| 1 | identify the type from the `mimetype` entry's bytes, not from the file name or suffix | `mobix-schema-spec.md`, container rule 2 | `MobixContainerTest`, `MobixContainer.mimetypeOf` |
+| 2 | refuse an archive whose `mimetype` is not `application/vnd.mobixournal+zip` | container rule 2 | `MobixContainerTest` |
+| 3 | refuse an archive without `manifest.json` | container rule 3 | `MobixContainerTest` |
+| 4 | read `pages[]`/`chunks[]` in manifest order, never by entry name | `mobix-schema-spec.md`, manifest | `MobixV1FixturesTest` fixture 02 |
+| 5 | take a part's identity from `id`, and its bytes from `entry` | manifest | fixture 02 |
+| 6 | fill a documented default for an absent optional field, and refuse a missing required one | manifest, canvas | `MobixManifestTest` |
+| 7 | accept a document that carries neither `pages` nor `chunks` as having no content | manifest | `MobixManifestTest` fixture 01 |
+| 8 | keep an unknown manifest, page, part or `canvas.json` field, value and order included | compatibility rule 2 | fixtures 06 |
+| 9 | keep an unknown archive entry byte for byte on a rewrite | container rule 4 | fixture 05 |
+| 10 | preserve an element `type` it has no model for, whole, and write it back | `mobix-elements.md`, rule 1 | fixture 07 |
+| 11 | preserve a field of a known type it did not read, at the level it was written | `mobix-elements.md`, retention rule | fixtures 08, 09 |
+| 12 | refuse a value it would misread, and keep the element whole rather than the page failing | `mobix-elements.md`, vocabulary | fixture 11 |
+| 13 | draw an unknown background as a plain sheet and write the object back unchanged | `mobix-format.md`, capability table | fixture 12 |
+| 14 | resolve an `asset` by the entry named, and treat a missing one as a corrupt document | `mobix-elements.md`, image | fixture 03 |
+| 15 | read a chunked document as tiles at their own coordinates, without inventing pages | `docs/chunked-documents.md` | fixture 10 |
+| 16 | compare declared capabilities as the contract states, and refuse to write a file whose required set it does not satisfy | `mobix-schema-spec.md`, declared capabilities | fixtures 13-17 |
+| 17 | impose the limits `mobix-format.md` states before allocating from a hostile file | `mobix-format.md`, what a reader must refuse | the safety corpus task |
+
+A row that fails is a defect in the implementation, not a matter of taste: the chapters state each rule
+once, and the fixtures are files rather than prose so that a disagreement is reproducible.

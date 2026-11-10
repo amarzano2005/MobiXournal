@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-archive-safety"
+title = "Bound what an untrusted .mobix archive can make the reader do"
+description = "The audit is recorded as a findings table plus the cap policy in `docs/mobix-format.md` (*What a reader must refuse*), covering `MobixContainer.open`, `mimetypeOf`, `MobixPagedReader`, `JsonParser`, the ZIP rewrite and the asset path. Confirmed gaps, each with the code that shows it: no entry-count, per-entry, total or expansion-ratio cap (every entry is inflated with `zip.readBytes()`); a recursive JSON parser with no depth limit; duplicate entry names accepted on read while only the writer rejects them; no cap on elements per page or points per stroke; `pages[].sha256` never verified by the reader. Confirmed hardened or latent: `../` and absolute names are never extracted here (latent, not exploitable in this reader); nothing is evaluated and no content triggers a fetch; the writer is bounded by `ClassicZipLimits`; corrupt archives surface as raw `ZipException` (bounded, wrong error type). Six child tasks split by reader, parser, names, digests, corpus and error reporting; the hostile corpus the DoD asks for is `mobix-safety-fuzz-corpus`, because a corpus without the caps it proves would assert nothing."
+status = "finished"
+level = "scope"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "security", "p0"]
+design = "none: audit, owner-doc section and task breakdown only, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-spec-v1"
+title = "Publish an implementer-facing .mobix v1 specification"
+description = "The structure decision is recorded in `docs/mobix-schema-spec.md` (*Publishing v1 for an outside implementer*): the existing spokes are the specification and are rewritten for an implementer audience rather than forked into a parallel document; the machine-checkable half lives in `spec/`, with the reading order and a conformance checklist; and the `spec/` artefacts plus the fixture corpus are to be dedicated to the public domain (CC0-1.0) while the application stays GPL-2.0-or-later. Added `spec/README.md` (normative sources in reading order, what the schema layer will and will not check, the third-party validation path) and `spec/CONFORMANCE.md` (17 rows, each naming a fixture or test that witnesses it). The remaining work is split into eight child tasks by protocol area (container, data model, elements, assets, capabilities), artefact (JSON Schema + drift guard, executable conformance, licence)."
+status = "finished"
+level = "scope"
+category = "docs"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "open-format", "p0"]
+design = "none: specification, audit and task breakdown only, with no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-capability-fixtures"
 title = "Extend the golden corpus to the declared-capability outcomes"
 description = "Five capability fixtures in the golden corpus, one per outcome of the contract plus the two shapes a shell must not assume: `13-required-capability-unknown` (RefuseWrite), `14-optional-capability-unknown` (Preserved, still saved, the unmodelled element intact), `15-capability-higher-version` (:1 declared, :2 required, not satisfied), `16-capability-additive-order` (both lists in the writer's order, mixed namespaces, order kept on save) and `17-third-party-writer` (no `minAppVersion`, foreign namespace). The generator script and the corpus README carry them, `MobixV1FixturesTest` names all 17 files and fails on an unlisted one, and `MobixCapabilityFixturesTest` (6 tests) asserts each outcome plus the reason's shape. `docs/testing.md` describes the corpus as preservation claims and `docs/mobix-schema-spec.md` says which half of the contract is implemented."

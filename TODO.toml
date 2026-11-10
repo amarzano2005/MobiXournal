@@ -97,46 +97,284 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-spec-v1"
-title = "Publish an implementer-facing .mobix v1 specification"
+id = "mobix-spec-container"
+title = "Write the container chapter for an outside implementer"
 description = """
-`docs/mobix-schema-spec.md` and its siblings are written for contributors to this app, not for an outside implementer, and there is no machine-checkable schema in the repository (no `*.schema.json` file exists). A third party cannot build a reader from what is published today, so the format is not open in practice.
+Rewrite the container half of `docs/mobix-schema-spec.md` as normative prose, addressed to someone writing a reader from scratch.
 
-Design the structure, the location and the licence story for an implementer-facing v1 spec: whether it is one new spoke above the 300-line `DocsGuardTest` budget or a small family of pages, whether the fixtures and examples carry their own licence, and how to avoid forking the internal docs - either the internal pages become the spec (and are rewritten for that audience) or the spec references them as normative and the duplicates are deleted. Respect `DocsGuardTest`, `docs/doc-governance.md` and `docs/writing-docs.md`.
+Cover, each as a rule rather than a description of this code: the ZIP protocol (local header, `mimetype` first and STORED, the allowed compression methods, and why the type is decided by the `mimetype` bytes rather than the suffix); entry naming and path normalisation (`manifest.json`, `canvas.json`, `pages/page-N.json`, `chunks/chunk_x_y.json`, `assets/{img,aud}_<sha256>.<ext>`, `mimetype` itself); which entries are required and which optional; unknown-entry semantics; and what a reader must reject. Use MUST / MUST NOT / MAY where a rule binds a reader, and keep Kotlin names out of the normative sentences.
 
-Content the spec must define, each as its own child task: ZIP protocol (magic, `mimetype` first and `STORED`, allowed compression methods, entry naming and path normalisation, unknown entries); `manifest.json` and `canvas.json` (required fields, defaults, versions, canvas mode, page and chunk ordering, coordinates, units, z-order, timestamps); every v1 element type with its sub-fields, units and semantic examples; assets (SHA-256 over which bytes, naming, missing-asset semantics, dedup); capabilities, unknown handling, `minAppVersion`; the `.xopp` bridge as display-plus-metadata with its documented losses; and safety limits a reader must enforce.
+Budget: stay under the 300-line spoke limit by handing the page/chunk shape to `mobix-spec-data-model` if the chapter grows.
 
-Add JSON Schema Draft 2020-12 documents for manifest, canvas, page and the known element families, and state plainly where the schema stops (digests, cross-entry references, geometry sums need code). Keep schemas as a mirror of the codecs with a drift guard so they cannot rot.
-
-DoD: a written structure decision, child tasks per protocol area, and a stated validation path for a third-party reader. Dependency: `mobix-v1-compatibility-fixtures`; coordinate with `mobix-known-type-unknown-fields` so the preservation rule is stated once."""
+Verification: every rule gets a row in `spec/CONFORMANCE.md` naming the fixture or test that witnesses it; `MobixContainerTest` gains a case for each rejection the prose names."""
 status = "active"
-level = "scope"
+level = "task"
 category = "docs"
 urgency = "high"
-order = 40
+order = 41
 created = 2026-11-10
-tags = ["mobix", "open-format", "p0"]
+tags = []
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-archive-safety"
-title = "Bound what an untrusted .mobix archive can make the reader do"
+id = "mobix-spec-data-model"
+title = "Write the manifest, canvas, page and chunk chapter"
 description = """
-`ClassicZipLimits` guards the incremental *writer* against classic-ZIP limits; that is not proof that the *reader* survives a hostile archive, and the two have never been audited as one threat model. No fuzz or property-testing corpus of malformed documents exists.
+The data model an outside reader implements: `manifest.json`, `canvas.json`, a page and a chunk.
 
-Audit both paths against a written threat model: `MobixContainer.open` (eager), `MobixPagedReader` (lazy), `mimetypeOf`, `MobixZip`/`MobixZipRewrite`, `MobixIncrementalSaver` and the JSON parsers. Check for: missing caps on entry count, compressed and uncompressed size per entry and per archive, expansion ratio, JSON page size, nesting depth, elements per page, points per stroke and cumulative asset bytes; duplicate or ambiguous entry names; `../` and absolute paths; inconsistent central directory; unsupported methods and encryption; unbounded `readBytes()` reachable from a hostile `manifest`; CRC and SHA-256 verification with entry-level error reporting; and the cost of maths/font parsing driven by file content. Confirm no content can cause code execution or an implicit network fetch, including `attrs`-borne references.
+For each field: its type, whether it is required, its documented default, its unit (points, milliseconds, `#RRGGBBAA` colours, ARGB ints where the model holds one) and its meaning. Then the rules that are not field-local: `pages[]` is the document order, `chunks[]` is the occupied tiles keyed by signed coordinates, the two lists are exclusive with `canvasMode`, part identity is `id` and not the entry name, `modified`/`created` are UTC epoch milliseconds, and z-order is layer order then element order.
 
-Policy to design: motivated thresholds, hard caps for hostile input, and per-notebook budgets so a legitimately large document is not truncated. Failure must be explicit and non-destructive - a rejected document never gets overwritten with a crippled copy.
+State the defaults a minimal hand-written manifest may rely on, and the three fields a reader cannot invent (`formatVersion`, `documentId`, `canvasMode`).
 
-Deliver: a findings table (confirmed vulnerability / hardened already / gap), child tasks split by reader, writer, validator and fuzz corpus, and an owner doc (`docs/mobix-format.md`) section stating the enforced limits. DoD: no silent hang or memory blow-up on the hostile corpus, with the corpus committed. Dependency: `mobix-v1-compatibility-fixtures`; feeds the independent CLI validator."""
+Verification: a table of defaults checked against `MobixManifestTest`/`MobixCanvasFile`, a row per rule in `spec/CONFORMANCE.md`, and fixture 01 (minimal) plus 10 (chunked) named as the samples."""
 status = "active"
-level = "scope"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 42
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-spec-elements"
+title = "Write the element chapter for an outside implementer"
+description = """
+Every v1 element type, spelled for someone with no access to this repository: `stroke` (including the constant-width vs per-point-width rule, telemetry units and their absence), `text`, `image`, `texImage`, and the living families `table`, `plot`, `parametricShape`, `circuit`, `mathBlock`.
+
+Per family: a semantic example, a field table with units and defaults, which `bounds` are facts and which are derived caches, and which values a reader must interpret versus treat as an open key set. The retention rule (a known type keeps what it did not read; an unknown type is kept whole) is stated once here and linked from the other chapters, so it cannot drift into two versions.
+
+Verification: each family's example is a document that `MobixElementCodecTest` round-trips, `spec/CONFORMANCE.md` gains a row per family, and the chapter links to `mobix-living-entities.md` rather than restating it."""
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 43
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-spec-assets"
+title = "Write the asset rules: naming, digests, dedup and missing payloads"
+description = """
+The `assets/` contract, precisely enough to interoperate: which bytes the SHA-256 is taken over (the stored payload, not the decoded image), the name shape per kind (`img_<sha256>.<ext>`, `aud_<sha256>.<ext>`), what the suffix may be, how deduplication follows from content addressing rather than being a separate rule, and what a reader does when an `asset` names an entry that is not there.
+
+Cover the two bundled backgrounds (`pixmap`, `pdf`) and the recording reference on a stroke, including the difference between the entry a payload lives in and the sidecar name the `.xopp` bridge re-emits.
+
+Verification: `spec/CONFORMANCE.md` rows, fixture 03 as the sample, and a new case in `MobixContainerTest` for a missing `asset` (a corrupt document, not a blank element)."""
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 44
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-spec-capabilities"
+title = "Make the declared-capability contract normative"
+description = """
+Turn the *Declared capabilities* section of `docs/mobix-schema-spec.md` into prose an outside writer can implement and test against.
+
+It must state: the identifier grammar (namespace, feature, positive integer version) with the reason each part exists; the superset rule for versions and the fact that comparison never crosses a feature name; `requiredCapabilities` as a write floor and `optionalCapabilities` as a display hint; the four outcomes with their precedence, including that an unknown required capability beats a permissive `minAppVersion`; the interaction with the retention rule (what makes `preserved-but-not-drawn` honest); and the merge/paste union rule.
+
+Verification: checklist rows 16 and 17 expanded into one row per rule; fixtures 13-17 named as the samples; `MobixCapabilityTest` named as the grammar's evidence."""
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 45
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-spec-schema"
+title = "Publish JSON Schema documents, with a drift guard"
+description = """
+The machine-checkable mirror of the codecs: JSON Schema Draft 2020-12 documents for `manifest.json`, `canvas.json`, a page, a chunk and each known element family, in `spec/` beside the checklist.
+
+Each schema declares required fields, the documented defaults as `default` annotations (not validation), the enums the format owns, and `additionalProperties: true` where the retention rule applies, so an additive field never makes a conforming document invalid. Each file states where it stops: a digest of bytes in another entry, a cross-entry reference, and geometry that is a sum of other fields are checks only code can make.
+
+The guard: a JVM test decodes every fixture and a set of hand-written documents, validates them against the schema, and fails when a codec gains a field the schema does not describe (or the reverse).
+
+Verification: the guard runs in `:mobix-core:test`; the schemas are linked from `spec/README.md` and the checklist's schema rows."""
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 46
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-spec-conformance"
+title = "Make every conformance row executable"
+description = """
+`spec/CONFORMANCE.md` is a table today; this task gives each row a sample and a procedure, so a third party can run the checklist instead of reading it.
+
+For each row, name the smallest document that exercises it (reusing the golden corpus where one exists), the expected outcome (accepted, or rejected with which rule), and the steps: open the fixture, assert the outcome, then open-and-save one document this app produced and compare the constructs the capability table says survive.
+
+Deliver a short procedure at the top of the checklist and reuse `mobix-core/src/test/resources/fixtures/mobix-v1/` explicitly rather than starting a second corpus.
+
+Verification: every row names a file; no row is a claim without a sample; `docs/testing.md` links the procedure."""
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 47
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-spec-licence"
+title = "Dedicate the spec artefacts and the fixture corpus to the public domain"
+description = """
+The licence decision recorded in `docs/mobix-schema-spec.md` needs to land in the tree: the `spec/` documents and the golden fixture corpus must be usable by an independent implementer without taking on this application's licence.
+
+Add `spec/LICENSE` with the CC0-1.0 dedication and its SPDX identifier, a `NOTICE` row that separates the artefact licence from the application's GPL-2.0-or-later, and a `README.md` sentence saying which files it covers. Check that the dedication is compatible with the GPL for the repository as a whole (CC0 content can be redistributed inside a GPL work) and record the reasoning in the spec README so the choice is not re-litigated.
+
+Verification: the licence files exist, `NOTICE` and `README.md` agree with them, and no document claims a licence the tree does not carry."""
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 48
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-safety-caps"
+title = "One cap policy, enforced by the container and the paged reader"
+description = """
+Give the reader the limits the writer already has: one policy object with a motivated threshold for entry count, bytes per entry, bytes per archive, expansion ratio, elements per page, points per stroke and cumulative asset bytes, enforced by `MobixContainer.open`, `mimetypeOf` and `MobixPagedReader` before they allocate.
+
+Each threshold is derived from the largest legitimate document the app is expected to open (a 200-page notebook with bundled recordings), not guessed: state the derivation beside the constant, and let a document under the caps behave exactly as it does today.
+
+Rejection is explicit: a `MalformedMobixException` naming the entry and the rule, never an `OutOfMemoryError`, never a partial page. A refused document is never written over.
+
+Verification: new `MobixSafetyCapsTest` with a document just under and just over each cap, asserting the outcome and that the error names the rule; `docs/mobix-format.md`'s limits table updated from 'gap' to the enforced number."""
+status = "active"
+level = "task"
 category = "refactor"
 urgency = "high"
-order = 50
+order = 51
 created = 2026-11-10
-tags = ["mobix", "security", "p0"]
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-safety-json-depth"
+title = "Bound JSON nesting instead of overflowing the stack"
+description = """
+`JsonParser.parseValue` recurses once per nesting level with no limit, so a deeply nested page overflows the stack and the app dies with a `StackOverflowError` instead of refusing the file.
+
+Add a depth parameter with a documented cap (deep enough for every construct the format has, shallow enough to be far from the JVM stack limit), surface a parse failure the caller can turn into `MalformedMobixException`, and state the cap in `docs/mobix-format.md`'s limits table. Prefer the smallest change: a depth counter threaded through the existing recursion beats a rewrite, and the tolerant-where-harmless behaviour for values must not change.
+
+Verification: a unit test parses a document at the cap (accepted) and one past it (rejected with the rule named), a page carrying such a document fails the open with `MalformedMobixException`, and the settings-backup caller keeps working."""
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 52
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-safety-entry-names"
+title = "Reject duplicate, traversing and unnormalised entry names"
+description = """
+An archive can carry two entries with one name (the reader answers the first), names with `../` or absolute paths, backslashes, NUL or control characters, and names that differ only by case.
+
+Decide the rule per case and enforce it in `MobixContainer.open` (and the paged reader's listing): a duplicate name is a corrupt document, a traversing or absolute name is refused, a backslash is refused rather than normalised, control characters are refused. State why each is refused rather than repaired: a name is an identity here, and rewriting one would make two different documents.
+
+Keep the check allocation-free (no path resolution against the filesystem) and make the error name the offending entry.
+
+Verification: `MobixContainerTest` cases for each shape, a fixture or generated archive per case, and a row in `docs/mobix-format.md`'s limits table."""
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 53
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-safety-digests"
+title = "Verify a part's digest when it is read"
+description = """
+`pages[].sha256` is recorded by the writer and compared by the merge and the incremental save, but the reader never checks it: a truncated or edited page decodes as whatever it happens to contain.
+
+Verify the digest when a part is materialised (the paged reader's `getPage`, `MobixDocument.open`, and the asset path for `assets/`), and report a mismatch as a `MalformedMobixException` naming the entry and both digests. Decide and record the cost: the reader hashes nothing today, so measure the impact on the 200-page benchmark and, if full verification is too slow on every page turn, verify on first materialisation only and say so.
+
+Verification: a test corrupts one byte of a page (and one asset) and asserts the refusal, a test asserts a clean document still opens and streams, and `docs/mobix-format.md`'s limits table records the rule and the measured cost."""
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 54
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-safety-fuzz-corpus"
+title = "Commit a hostile corpus and prove the reader stays bounded"
+description = """
+The audit's DoD: no silent hang and no memory blow-up on a hostile corpus, with the corpus committed.
+
+Build the corpus from a deterministic generator (the fixture script's style: no clock, no locale) with one file per threat in the limits table — a many-entry archive, a high-ratio deflate bomb, a deeply nested page, duplicate and traversing names, a page whose digest is wrong, an encrypted entry, a truncated central directory — plus the smallest legal document, so the test can tell "refused for the right reason" from "refused because everything is".
+
+The test asserts, per file, the exception type, the rule named in the message, and a wall-clock/allocation ceiling: a refusal must arrive in bounded time without exhausting the heap, and the clean file must still open.
+
+Verification: the generator script is referenced from `docs/tools.md`, the corpus from `docs/testing.md`, and the test runs in `:mobix-core:test` in a few seconds."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "high"
+order = 55
+created = 2026-11-10
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-safety-error-reporting"
+title = "Reject with one error type, never a raw JDK exception"
+description = """
+A corrupt archive currently surfaces as `ZipException`, a deep one as `StackOverflowError`, a missing entry as this format's own exception: three shapes for one fact, and only one of them is a message a shell can show.
+
+Route every rejection in the read path through `MobixContainer.MalformedMobixException`, catching the JDK's ZIP exceptions at the container boundary and adding the entry name and the rule that failed. Keep the original exception as the `cause` so a bug report still carries it, and keep the message English and free of class names.
+
+Also state the non-destructive rule the shells rely on: a document that failed to open is never written over, so a refusal cannot become data loss.
+
+Verification: tests assert the exception type and message for each corrupt shape (encrypted, bad CRC, truncated, deep JSON, missing entry), and `docs/guide-troubleshooting.md` names the refusal the user sees."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 56
+created = 2026-11-10
+tags = []
 rebuild = false
 emulator_debug = false
 
