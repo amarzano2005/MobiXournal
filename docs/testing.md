@@ -43,7 +43,8 @@ attached.
 **The v1 compatibility corpus.** `MobixV1FixturesTest` drives the seventeen committed files under
 `mobix-core/src/test/resources/fixtures/mobix-v1/` through the container, the paged reader, the document
 layer, a save to a new file and an incremental save, and it fails when a fixture sits in the directory
-that no test names. Every construct in it is a **preservation claim**: an unknown archive entry, unknown
+that no test names; [`spec/CONFORMANCE.md`](../spec/CONFORMANCE.md) is the row-by-row procedure a third
+party runs against them. Every construct in it is a **preservation claim**: an unknown archive entry, unknown
 envelope fields, an unknown element type, an unknown field on a known type (top level and nested), an
 unknown vocabulary value, an unknown background type, content-addressed payloads, manifest page order, a
 chunked document, and the declared-capability files 13-17, which `MobixCapabilityFixturesTest` drives

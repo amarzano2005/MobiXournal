@@ -22,27 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-spec-conformance"
-title = "Make every conformance row executable"
-description = """
-`spec/CONFORMANCE.md` is a table today; this task gives each row a sample and a procedure, so a third party can run the checklist instead of reading it.
-
-For each row, name the smallest document that exercises it (reusing the golden corpus where one exists), the expected outcome (accepted, or rejected with which rule), and the steps: open the fixture, assert the outcome, then open-and-save one document this app produced and compare the constructs the capability table says survive.
-
-Deliver a short procedure at the top of the checklist and reuse `mobix-core/src/test/resources/fixtures/mobix-v1/` explicitly rather than starting a second corpus.
-
-Verification: every row names a file; no row is a claim without a sample; `docs/testing.md` links the procedure."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 47
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-current-performance-baseline"
 title = "Measure the real open/save/streaming chain before optimising any of it"
 description = """
