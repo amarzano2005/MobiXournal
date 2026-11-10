@@ -4,6 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -102,6 +104,7 @@ internal fun DialogPreviewColumn(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun OptionsRow(
     showCriticalPoints: Boolean,
@@ -129,22 +132,27 @@ internal fun OptionsRow(
         // Which side the report is written on. It only means something while the report is on, so the
         // chips appear with it rather than sitting there as a choice about nothing.
         if (includeSummary) {
-            Row(
+            // The four sides wrap (`FlowRow`), and the label sits above them: on a phone the four chips
+            // and their label together are wider than the inspector's column, and a `Row` silently cut
+            // the last chip ("Left") off at the edge. A flow line wraps, so the choice is whole at any
+            // width, and the label reads as the heading of the choices under it.
+            Column(
                 modifier = Modifier.padding(start = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     "Report on",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                for (side in PlotInfoSide.entries) {
-                    FilterChip(
-                        selected = side == infoSide,
-                        onClick = { onInfoSideChange(side) },
-                        label = { Text(side.label, style = MaterialTheme.typography.bodySmall) },
-                    )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (side in PlotInfoSide.entries) {
+                        FilterChip(
+                            selected = side == infoSide,
+                            onClick = { onInfoSideChange(side) },
+                            label = { Text(side.label, style = MaterialTheme.typography.bodySmall) },
+                        )
+                    }
                 }
             }
         }
