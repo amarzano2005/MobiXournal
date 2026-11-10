@@ -22,25 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "mobix-spec-capabilities"
-title = "Make the declared-capability contract normative"
-description = """
-Turn the *Declared capabilities* section of `docs/mobix-schema-spec.md` into prose an outside writer can implement and test against.
-
-It must state: the identifier grammar (namespace, feature, positive integer version) with the reason each part exists; the superset rule for versions and the fact that comparison never crosses a feature name; `requiredCapabilities` as a write floor and `optionalCapabilities` as a display hint; the four outcomes with their precedence, including that an unknown required capability beats a permissive `minAppVersion`; the interaction with the retention rule (what makes `preserved-but-not-drawn` honest); and the merge/paste union rule.
-
-Verification: checklist rows 16 and 17 expanded into one row per rule; fixtures 13-17 named as the samples; `MobixCapabilityTest` named as the grammar's evidence."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 45
-created = 2026-11-10
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-spec-schema"
 title = "Publish JSON Schema documents, with a drift guard"
 description = """

@@ -116,91 +116,10 @@ rewrite, which is compatibility rule 2 below at the envelope's level.
 ### Declared capabilities
 
 `formatVersion` answers "can I parse this shape?" and `minAppVersion` answers "can this app keep the
-file intact?" — both in MobiXournal's own version numbers. The third question has no home unless the file
-answers it: *which features must a reader understand to keep this document?* An independent writer
-cannot express that in app versions, and bumping `formatVersion` for a feature no v1 reader needs to
-know about would break every v1 reader for no structural reason. The manifest therefore declares
-capabilities.
-
-```json
-{
-  "requiredCapabilities": ["org.mobixournal/stem.connector:1"],
-  "optionalCapabilities": ["org.mobixournal/paper.isometric:2"]
-}
-```
-
-- **The identifier** is `<namespace>/<feature>:<version>`: a reverse-DNS namespace the declaring writer
-owns, a lower-case dot-or-dash feature name, and a positive integer version. The namespace keeps two
-writers from colliding on one word, and is not a URL — nothing is fetched.
-- **A version promises the shape, and a later version is a superset** of the one before it for the same
-feature. A reader that handles `…:2` therefore satisfies `…:1`; a reader handling only `…:1` does not
-satisfy `…:2`. Comparison never crosses two feature names.
-- **Both lists are additive and optional in the file**: absent means empty, and their order is kept as
-written, because a writer's own priority is not this format's to sort.
-- **`requiredCapabilities` is a write floor**: a reader that does not satisfy one may not write the
-document. **`optionalCapabilities` is a display hint**: not implementing one is allowed, and the construct
-it names must then be preserved verbatim rather than edited.
-
-**Who validates.** The manifest codec checks the grammar (identifier shape, positive version, no
-duplicates) and preserves both lists in order; it decides nothing about the running app. The reader gate
-at open compares them with the capabilities this build declares and produces one verdict, which the UI
-only presents. A malformed identifier is a corrupt manifest and fails the open, like a malformed
-`canvasMode`.
-
-**The four outcomes**, in precedence order — the first that applies wins:
-
-| Outcome | When | What the document allows |
-|---|---|---|
-| **refuse-write** | a required capability this build cannot satisfy *and* cannot preserve, so its elements would be lost | the pages may be looked at, and nothing may be written back |
-| **read-only display** | `minAppVersion` above this build, or a required capability whose constructs are all displayable but not representable | every page shown; edits, Save and Save As disabled |
-| **preserved-but-not-drawn** | an optional capability this build does not implement but can keep whole | editing elsewhere allowed; the affected elements carried through untouched |
-| **full edit** | every required capability satisfied and no optional construct affected | edited and saved normally |
-
-Two precedence rules are stated because they are easy to get backwards: an **unknown required
-capability outranks a permissive `minAppVersion`** (the file says it needs something, so a version number
-cannot talk it out of that), and **`minAppVersion` outranks the optional list** (a reader that cannot keep
-the document intact at all cannot honestly claim to preserve the parts it does not draw). Among several
-unknown required capabilities the strictest outcome wins; refusing to write is never weakened by another
-capability being understood.
-
-`preserved-but-not-drawn` depends on the retention rule in [mobix-elements.md](mobix-elements.md) — a
-build that drops a field it did not read cannot claim to have preserved an optional construct. That rule
-holds for every family the format models: an unread field on a known type is carried, and an element
-type with no model at all is kept whole, so a construct this build cannot draw can still be handed back
-untouched. A capability whose construct has **no model and no preservation channel** — one the reader
-would have to interpret to keep — is the case that stays **read-only display**.
-
-`minAppVersion` stays the legacy MobiXournal guard, still enforced and still compared numerically per
-dotted component. **Editability backwards is not promised**: a newer file opened by an older build may be
-shown read-only or preserved verbatim, never silently trimmed.
-
-**Per-type versioning.** An element type does not carry its own `schemaVersion`. Two version numbers for
-one shape are two answers to one question, and the capability list already says which shapes a reader
-must understand; a legacy type with no declared capability is a v1 type by definition. `formatVersion`
-remains the structural gate, and a change no additive field can express still bumps it.
-
-**Cross-cutting.** A merge result declares the union of both sides' required and optional sets. A copy or
-paste into another document raises the destination's required set to include the capabilities of the
-elements it now holds, or is refused: a document that cannot keep an element must not accept it and then
-trim it. Both halves follow one function, `unionCapabilities` — the base's order first, one entry per
-feature at the higher version — because a merge and a paste ask the same question of different pairs.
-The raised set lives on the document (`Document.requiredCapabilities`), grows during a session and is
-written by the save, so the file the user ends up with says what it holds and the next older reader
-knows not to trim it.
-
-The manifest half is implemented (`MobixCapability`, and the two lists in `MobixManifest`), and the
-gate's decision lives in `MobixCapabilities.evaluate`. The answer travels with the opened document —
-the verdict is computed **once**, from the manifest and the capabilities this build declares
-(`MobixFormat.declaredCapabilities`, empty in v1 because no v1 construct needs permission to be
-written) — so a notice and a disabled action are two readings of one answer instead of two
-comparisons that can disagree. Fixtures 13-17 in the golden corpus are one file per outcome and are
-driven by `MobixCapabilityFixturesTest`; the space between them is the matrix of
-`MobixCapabilityGateTest`.
-
-Both shells show that answer. The tablet asks with a card before it disables writing, and says one line
-when the document stays editable (`openVerdictNotice`). The window opens a read-only document's pages
-in a tab, and turns off every write with the same verdict: the band names what the file needs, the ink
-takes no press, and Save and Save As are unavailable.
+file intact?" — both in MobiXournal's own version numbers. What a file needs *understood* is declared
+instead, in `requiredCapabilities` and `optionalCapabilities`: [mobix-capabilities.md](mobix-capabilities.md)
+owns that contract — the identifier's grammar, the superset rule, what each list means, the four
+outcomes with their precedence, and the union a merge or paste declares.
 
 ## Page schema (`pages/page-N.json`, `chunks/chunk_x_y.json`)
 

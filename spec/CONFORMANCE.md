@@ -25,7 +25,7 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 13 | draw an unknown background as a plain sheet and write the object back unchanged | `mobix-format.md`, capability table | fixture 12 |
 | 14 | resolve an `asset` by the entry named, and treat a missing one as a corrupt document rather than a blank element | `mobix-assets.md` | `MobixContainerTest` (`anImageWhoseAssetTheArchiveDoesNotCarryIsACorruptDocument`); fixture 03 |
 | 15 | read a chunked document as tiles at their own coordinates, without inventing pages | `docs/chunked-documents.md` | fixture 10 |
-| 16 | compare declared capabilities as the contract states, and refuse to write a file whose required set it does not satisfy | `mobix-schema-spec.md`, declared capabilities | fixtures 13-17 |
+| 16 | compare declared capabilities as the contract states, and refuse to write a file whose required set it does not satisfy | `mobix-capabilities.md` | `MobixCapabilityGateTest`; fixtures 13-17 |
 | 17 | impose the limits `mobix-format.md` states before allocating from a hostile file | `mobix-format.md`, what a reader must refuse | `MobixHostileCorpusTest` over `fixtures/mobix-hostile/` |
 | 18 | refuse a duplicate, `..`/`.`-segment, absolute, backslashed or control-character entry name rather than normalising it | container protocol | `MobixArchiveSafetyTest`, `MobixContainerTest` |
 | 19 | treat `mimetype` and `manifest.json` as required and every other entry as optional, distinguishing absent from empty | container protocol | `MobixManifestTest`; fixture 01 |
@@ -42,6 +42,11 @@ of this repository uses to prove it. Run every row against every file in the gol
 | 30 | place a `circuit` by `position` then `rotation`, with its pins relative to the position and before the rotation | element fields, circuit | `MobixLivingCodecTest` |
 | 31 | typeset a `mathBlock` from its `source` alone, in the `flavor` it names | element fields, mathBlock | `MathBlockCodecTest` |
 | 32 | model every family's documented example without falling back to verbatim preservation | `mobix-element-fields.md` | `MobixElementExampleTest` |
+| 33 | parse an identifier against the grammar, and fail the open on one that does not parse instead of reading it as an unknown feature | `mobix-capabilities.md`, the identifier's grammar | `MobixCapabilityTest` (`anythingOutsideTheGrammarIsRefused`); fixture 17 |
+| 34 | satisfy a capability only from the same namespace and feature at an equal or higher version, never across two features | `mobix-capabilities.md`, a later version is a superset | `MobixCapabilityTest` (`aLaterVersionSatisfiesAnEarlierOne`, `aDifferentFeatureOrNamespaceNeverMatchesHoweverHighItsVersion`) |
+| 35 | keep both lists in written order with one entry per capability, an absent list meaning empty | `mobix-capabilities.md`, required is a floor | `MobixCapabilityFixturesTest` (`bothListsKeepTheirWrittenOrderAndNoCapabilityIsDuplicated`); fixtures 13-17 |
+| 36 | decide the four outcomes in precedence order, an unsatisfied requirement above a permissive `minAppVersion` and the floor above the optional list | `mobix-capabilities.md`, four outcomes | `MobixCapabilityGateTest` (`aRequirementOutranksEveryPermissiveFloor`); fixtures 13-17 |
+| 37 | declare the union on a merge or paste, one entry per feature at the higher version, the base's order first | `mobix-capabilities.md`, merge and paste | `unionCapabilities`; fixture 17 |
 
 A row that fails is a defect in the implementation, not a matter of taste: the chapters state each rule
 once, and the fixtures are files rather than prose so that a disagreement is reproducible.

@@ -27,7 +27,7 @@ format stores device pixels.
 | `pages` | array of parts | no | `[]` | the pages, **in document order** |
 | `chunks` | array of parts | no | `[]` | the occupied tiles of an infinite mode |
 | `defaultPaper` | background object | no | `null` | what a new page starts on, in the same shape a page's `background` has ([mobix-schema-spec.md](mobix-schema-spec.md) → *Backgrounds*) |
-| `requiredCapabilities` | array of strings | no | `[]` | see [mobix-capability contract](mobix-schema-spec.md#declared-capabilities) |
+| `requiredCapabilities` | array of strings | no | `[]` | see [mobix-capabilities.md](mobix-capabilities.md) |
 | `optionalCapabilities` | array of strings | no | `[]` | the same grammar, a weaker promise |
 
 `defaultPaper` being a full background object rather than a paper name is deliberate: what a new page
