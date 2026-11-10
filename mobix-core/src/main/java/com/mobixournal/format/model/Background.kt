@@ -1,5 +1,7 @@
 package com.mobixournal.format.model
 
+import com.mobixournal.format.json.JsonNode
+
 /**
  * A page background. Mirrors `<background type=…>`; the three concrete types map to the
  * `solid` / `pixmap` / `pdf` values. Styles and domains are kept as raw strings so unknown
@@ -11,6 +13,13 @@ sealed interface Background {
 
     /** Attributes on the `<background>` element we don't interpret, preserved for round-trip. */
     val extraAttrs: Map<String, String>
+
+    /**
+     * JSON keys a newer writer put on this background and this build did not read, re-emitted in
+     * order — including on a paper whose `type` this build does not know, where they are part of the
+     * object [Solid.preserved] already carries whole.
+     */
+    val unknown: Map<String, JsonNode>
 
     /**
      * `type="solid"`: a ruled/graph/plain sheet in a single colour.
@@ -27,6 +36,17 @@ sealed interface Background {
         val style: String,
         val config: String? = null,
         override val extraAttrs: Map<String, String> = emptyMap(),
+        /**
+         * The background object a newer writer wrote, when its `type` is not one this build knows.
+         *
+         * The page is still *drawn* as the plain sheet the fallback always was, but a save writes
+         * this object back as it arrived instead of turning the user's paper into a white page
+         * (`docs/mobix-format.md`, the capability table). Null for every background this build read
+         * as itself.
+         */
+        val preserved: JsonNode? = null,
+        /** JSON keys a newer writer put on a known background and this build did not read. */
+        override val unknown: Map<String, JsonNode> = emptyMap(),
     ) : Background
 
     /**
@@ -40,6 +60,8 @@ sealed interface Background {
         val domain: String,
         val filename: String,
         override val extraAttrs: Map<String, String> = emptyMap(),
+        /** JSON keys a newer writer put on this background and this build did not read. */
+        override val unknown: Map<String, JsonNode> = emptyMap(),
         /**
          * The `.mobix` entry the picture's bytes are bundled under, or null when the background is
          * an external reference like a gzip `.xopp`'s. See [Pdf.bundledAsset] for why the reference
@@ -61,6 +83,8 @@ sealed interface Background {
         val pageNo: Int,
         val domain: String?,
         override val extraAttrs: Map<String, String> = emptyMap(),
+        /** JSON keys a newer writer put on this background and this build did not read. */
+        override val unknown: Map<String, JsonNode> = emptyMap(),
         /**
          * The `.mobix` entry this PDF's bytes are bundled under (`background/background.pdf`), or
          * null when it is an external reference.

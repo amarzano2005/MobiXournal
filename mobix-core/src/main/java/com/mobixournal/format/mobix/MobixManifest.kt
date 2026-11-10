@@ -62,6 +62,21 @@ data class MobixManifest(
      */
     val defaultPaper: Background? = null,
 
+    /**
+     * The capabilities a reader must satisfy before it may **write** this file (`MobixCapability`).
+     *
+     * Absent means empty, and the order is the writer's own priority, kept as written — this format
+     * does not sort another writer's requirements. Whether the running build satisfies them is the
+     * open gate's question ([MobixCapabilities]), never the codec's.
+     */
+    val requiredCapabilities: List<MobixCapability> = emptyList(),
+
+    /**
+     * Capabilities this file uses that a reader may not implement: not implementing one is allowed, and
+     * the construct it names must then be preserved rather than edited.
+     */
+    val optionalCapabilities: List<MobixCapability> = emptyList(),
+
     /** Fields this build does not model, in source order, re-emitted unchanged. */
     val extra: Map<String, JsonNode> = emptyMap(),
 ) {
@@ -74,6 +89,7 @@ data class MobixManifest(
         private val KNOWN_KEYS = setOf(
             "formatVersion", "minAppVersion", "documentId", "canvasMode",
             "created", "modified", "title", "pages", "chunks", "defaultPaper",
+            "requiredCapabilities", "optionalCapabilities",
         )
 
         /**
@@ -112,8 +128,41 @@ data class MobixManifest(
                 pages = partsOf(root.getArr("pages")),
                 chunks = partsOf(root.getArr("chunks")),
                 defaultPaper = root.getObj("defaultPaper")?.let { MobixPageCodec.decodeBackground(it, assets) },
+                requiredCapabilities = capabilitiesOf(root, "requiredCapabilities"),
+                optionalCapabilities = capabilitiesOf(root, "optionalCapabilities"),
                 extra = root.map.filterKeys { it !in KNOWN_KEYS },
             )
+        }
+
+        /**
+         * The capability list at [key], in file order — empty when the key is absent.
+         *
+         * A list that is not an array of strings, an identifier that does not parse, and the same
+         * capability written twice **within one list** are all corrupt declarations and fail the
+         * open, naming the offending text. Duplicates across the two lists are not an error: a
+         * writer may require what it also merely suggests.
+         */
+        private fun capabilitiesOf(root: JsonNode.Obj, key: String): List<MobixCapability> {
+            if (!root.has(key)) return emptyList()
+            val list = root.getArr(key)?.list
+                ?: throw MobixContainer.MalformedMobixException("manifest.json: $key is not an array")
+            val out = ArrayList<MobixCapability>(list.size)
+            for (item in list) {
+                val text = (item as? JsonNode.Str)?.value
+                    ?: throw MobixContainer.MalformedMobixException(
+                        "manifest.json: $key must hold capability identifiers, not values",
+                    )
+                val capability = MobixCapability.parse(text)
+                    ?: throw MobixContainer.MalformedMobixException(
+                        "manifest.json: \"$text\" in $key is not a capability identifier" +
+                            " (expected <namespace>/<feature>:<version>)",
+                    )
+                if (capability in out) {
+                    throw MobixContainer.MalformedMobixException("manifest.json: $key lists $capability twice")
+                }
+                out += capability
+            }
+            return out
         }
 
         private fun partsOf(list: JsonNode.Arr?): List<MobixPart> =
@@ -183,6 +232,14 @@ data class MobixManifest(
                         MobixAssetSink(),
                         backgrounds = { null },
                     )
+                }
+                // Only when present: "no requirements" and "an empty requirement list" are one fact,
+                // and a file should say it once. Written in the order the writer gave them.
+                if (requiredCapabilities.isNotEmpty()) {
+                    out["requiredCapabilities"] = JsonNode.arr(requiredCapabilities.map { JsonNode.of(it.toString()) })
+                }
+                if (optionalCapabilities.isNotEmpty()) {
+                    out["optionalCapabilities"] = JsonNode.arr(optionalCapabilities.map { JsonNode.of(it.toString()) })
                 }
                 out.putAll(extra)
             },

@@ -43,11 +43,11 @@ import com.mobixournal.format.model.audioRef
  *     carries an `asset` reference, never base64.
  *  4. **What we cannot interpret is kept.** `attrs` holds the `.xopp` attributes the bridge must not
  *     lose (`ts`, `fn`, anything a newer desktop writes), so a `.xopp` through a phone, or through a
- *     `.mobix`, comes back with them. What is **not** preserved is an unknown *field* inside a known
- *     element type: the model has no room for one, and inventing a channel for it would put a second,
- *     ambiguous copy of the schema in `attrs`. That is what `formatVersion` is for — a breaking
- *     addition is a version bump, and the version is refused rather than half-read. The envelope
- *     (manifest, canvas, parts) does preserve unknown fields; see those codecs.
+ *     `.mobix`, comes back with them. A *field* of a known type that this build did not read is kept
+ *     too, in the element's `unknown` map and re-emitted after the fields it does write — a newer
+ *     writer's key is not an error to refuse the document over (`docs/mobix-elements.md`). The
+ *     difference between this and rule 2 is the one that matters: a **key** we do not know is carried,
+ *     a **value** we cannot interpret is refused, because misreading it would change what is drawn.
  *
  * `bounds` is written when the element's geometry determines it (a stroke's extents, an image's box)
  * and is **never read back**: it is a cache for a reader that does not want to parse the element, so
@@ -71,6 +71,22 @@ object MobixElementCodec {
     private const val SYNTAX_XML = "xml"
     private const val BOUNDS = "bounds"
     private const val ATTRS = "attrs"
+
+    /** The keys a `bounds` object owns; anything else inside one is carried ([MobixJson.readBox]). */
+    private val BOUNDS_KEYS = setOf("left", "top", "right", "bottom")
+
+    // ---- the keys each codec consumes, and therefore the ones an `unknown` map may not hold --------
+
+    private val POINT_KEYS = setOf("x", "y", "width", "pressure", "tilt", "azimuth", "dtMs")
+    private val STROKE_KEYS = setOf(
+        TYPE, ID, "tool", "color", "lineStyle", "lineWidth", "capStyle", "fill", "audioRef",
+        BOUNDS, "points", ATTRS,
+    )
+    private val TEXT_KEYS = setOf(TYPE, ID, "font", "size", "x", "y", "color", "content", ATTRS)
+    private val IMAGE_KEYS = setOf(TYPE, ID, BOUNDS, "asset", ATTRS)
+    private val TEX_IMAGE_KEYS = setOf(
+        TYPE, ID, BOUNDS, "latex", "color", "asset", "latexInAttribute", ATTRS,
+    )
 
     // ---- encode ---------------------------------------------------------------------------------
 
@@ -140,6 +156,7 @@ object MobixElementCodec {
             s.extraAttrs
         }
         if (attrsToWrite.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(attrsToWrite)
+        MobixJson.putUnknown(out, s.unknown)
     }
 
     private fun encodePoint(p: StrokePoint): JsonNode = MobixJson.obj { out ->
@@ -150,6 +167,7 @@ object MobixElementCodec {
         p.tilt?.let { out["tilt"] = JsonNode.of(it.toDouble()) }
         p.azimuth?.let { out["azimuth"] = JsonNode.of(it.toDouble()) }
         p.dtMs?.let { out["dtMs"] = JsonNode.of(it) }
+        MobixJson.putUnknown(out, p.unknown)
     }
 
     private fun encodeText(t: TextElement): JsonNode.Obj = MobixJson.obj { out ->
@@ -162,22 +180,24 @@ object MobixElementCodec {
         out["color"] = JsonNode.of(XoppColor.format(t.color))
         out["content"] = JsonNode.of(t.content)
         if (t.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(t.extraAttrs)
+        MobixJson.putUnknown(out, t.unknown)
     }
 
     private fun encodeImage(image: ImageElement, assets: MobixAssetSink): JsonNode.Obj =
         MobixJson.obj { out ->
             out[TYPE] = JsonNode.of(IMAGE)
             image.id?.let { out[ID] = JsonNode.of(it) }
-            out[BOUNDS] = MobixJson.box(image.left, image.top, image.right, image.bottom)
+            out[BOUNDS] = MobixJson.box(image.left, image.top, image.right, image.bottom, image.boundsExtra)
             out["asset"] = JsonNode.of(assets.add(image.data, MobixFormat.AssetKind.IMAGE))
             if (image.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(image.extraAttrs)
+            MobixJson.putUnknown(out, image.unknown)
         }
 
     private fun encodeTexImage(tex: TexImageElement, assets: MobixAssetSink): JsonNode.Obj =
         MobixJson.obj { out ->
             out[TYPE] = JsonNode.of(TEX_IMAGE)
             tex.id?.let { out[ID] = JsonNode.of(it) }
-            out[BOUNDS] = MobixJson.box(tex.left, tex.top, tex.right, tex.bottom)
+            out[BOUNDS] = MobixJson.box(tex.left, tex.top, tex.right, tex.bottom, tex.boundsExtra)
             out["latex"] = JsonNode.of(tex.latex)
             out["color"] = JsonNode.of(XoppColor.format(tex.color))
             // The rendered PNG is optional (a source may carry only the LaTeX), and so is where the
@@ -186,6 +206,7 @@ object MobixElementCodec {
             tex.data?.let { out["asset"] = JsonNode.of(assets.add(it, MobixFormat.AssetKind.IMAGE, "png")) }
             if (!tex.latexInAttribute) out["latexInAttribute"] = JsonNode.of(false)
             if (tex.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(tex.extraAttrs)
+            MobixJson.putUnknown(out, tex.unknown)
         }
 
     /** Re-emit an element we don't model exactly as it was read (see [RawElement]). */
@@ -230,7 +251,9 @@ object MobixElementCodec {
         // type is called xoppElement", it is one whose *body* is a different language.
         if (node.getStrOrNull(SYNTAX) == SYNTAX_XML) return decodeXmlCarried(node, type)
         return when (type) {
-            STROKE -> decodeStroke(node, mint)
+            // A stroke whose vocabulary this build cannot read is kept whole rather than refused: the
+            // page it sits on is still the user's page.
+            STROKE -> decodeStroke(node, mint) ?: preserve(type, node)
             TEXT -> decodeText(node, mint)
             IMAGE -> decodeImage(node, assets, mint)
             TEX_IMAGE -> decodeTexImage(node, assets, mint)
@@ -256,13 +279,16 @@ object MobixElementCodec {
         syntax = RawElement.Syntax.XML,
     )
 
-    private fun decodeStroke(node: JsonNode.Obj, mint: (String) -> String): Stroke {
+    /**
+     * The stroke [node] describes, or null when a value this build *does* interpret means something it
+     * has no name for: a `tool` or `lineStyle` from a newer build is not a pen stroke drawn as an
+     * eraser, so the caller keeps the element verbatim instead.
+     */
+    private fun decodeStroke(node: JsonNode.Obj, mint: (String) -> String): Stroke? {
         val toolName = node.getStrOrNull("tool") ?: STROKE
-        val tool = Tool.entries.firstOrNull { it.name == toolName }
-            ?: throw MobixContainer.MalformedMobixException("stroke tool \"$toolName\" is not one this build knows")
+        val tool = Tool.entries.firstOrNull { it.name == toolName } ?: return null
         val styleName = node.getStr("lineStyle", LineStyle.PLAIN.name)
-        val style = LineStyle.entries.firstOrNull { it.name == styleName }
-            ?: throw MobixContainer.MalformedMobixException("stroke lineStyle \"$styleName\" is not one this build knows")
+        val style = LineStyle.entries.firstOrNull { it.name == styleName } ?: return null
         val extraAttrs = MobixJson.readAttrs(node).toMutableMap()
         // A recording the container carries: the entry it lives in, plus — when the writer kept one —
         // the sidecar name the stroke replayed from. A file that names only an asset (the shape this
@@ -294,6 +320,7 @@ object MobixElementCodec {
             extraAttrs = extraAttrs,
             id = node.getStrOrNull(ID) ?: mint(ElementId.STROKE),
             bundledAudio = bundledAudio,
+            unknown = MobixJson.unknownFields(node, STROKE_KEYS),
         )
     }
 
@@ -311,6 +338,7 @@ object MobixElementCodec {
             tilt = obj.getFloatOrNull("tilt"),
             azimuth = obj.getFloatOrNull("azimuth"),
             dtMs = obj.getIntOrNull("dtMs"),
+            unknown = MobixJson.unknownFields(obj, POINT_KEYS),
         )
     }
 
@@ -323,6 +351,7 @@ object MobixElementCodec {
         content = node.getStr("content", ""),
         extraAttrs = MobixJson.readAttrs(node),
         id = node.getStrOrNull(ID) ?: mint(ElementId.TEXT),
+        unknown = MobixJson.unknownFields(node, TEXT_KEYS),
     )
 
     private fun decodeImage(node: JsonNode.Obj, assets: MobixAssetSource, mint: (String) -> String): ImageElement {
@@ -337,6 +366,8 @@ object MobixElementCodec {
                 ?: throw MobixContainer.MalformedMobixException("an image element's asset is missing from the archive"),
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull(ID) ?: mint(ElementId.IMAGE),
+            boundsExtra = MobixJson.unknownFields(box, BOUNDS_KEYS),
+            unknown = MobixJson.unknownFields(node, IMAGE_KEYS),
         )
     }
 
@@ -357,6 +388,8 @@ object MobixElementCodec {
             latexInAttribute = node.getBool("latexInAttribute", true),
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull(ID) ?: mint(ElementId.LATEX),
+            boundsExtra = MobixJson.unknownFields(box, BOUNDS_KEYS),
+            unknown = MobixJson.unknownFields(node, TEX_IMAGE_KEYS),
         )
     }
 

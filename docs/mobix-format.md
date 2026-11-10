@@ -85,18 +85,18 @@ which construct it exercises.
 | an archive entry this build does not model | kept, byte for byte, on both save paths | `05-unknown-entry.mobix` |
 | an unknown field on `manifest.json`, a page part, `canvas.json` or its `origin` | kept, value and position included | `06-unknown-envelope-fields.mobix` |
 | an element `type` this build does not model, and a `.xopp`-carried element | kept whole, as its own JSON | `07-unknown-element-type.mobix` |
-| an unknown top-level field on a known element type | **dropped** by the next save | `08-unknown-top-level-field.mobix` |
-| an unknown field inside a known element's sub-object or array item | **dropped**, one level deeper | `09-unknown-nested-fields.mobix` |
-| an unknown vocabulary value on a geometry element (`tool`, `lineStyle`) | the **page** is refused, not just the element | `11-unknown-vocabulary-values.mobix` |
+| an unknown top-level field on a known element type | kept on the element, written back after the fields this build spells | `08-unknown-top-level-field.mobix` |
+| an unknown field inside a known element's sub-object or array item | kept by the codec that owns that object, at that level | `09-unknown-nested-fields.mobix` |
+| an unknown vocabulary value on a geometry element (`tool`, `lineStyle`) | the element is preserved whole and the page still opens | `11-unknown-vocabulary-values.mobix` |
 | an unknown vocabulary value inside a living family (`align`, `kind`) | the element is preserved whole | `11-unknown-vocabulary-values.mobix` |
-| an unknown background `type` | read as a plain sheet and **written back as one** | `12-unknown-background-type.mobix` |
+| an unknown background `type` | drawn as the plain sheet it falls back to, written back field for field including its `type` | `12-unknown-background-type.mobix` |
 | a `pages[]` order that differs from the entry names | kept — a save renumbers the entries by position | `02-multi-page-order.mobix` |
 | a chunked document | read page by page and written back as chunks at their own coordinates | `10-chunked-document.mobix` |
 
-The dropped rows are v1's measured state, not a promise that was kept. The retention rule that closes
-them, with the per-family inventory, is [mobix-elements.md](mobix-elements.md)'s; what a reader may do
-with a file whose declared requirements it cannot meet is the capability contract in
-[mobix-schema-spec.md](mobix-schema-spec.md).
+No row drops anything: a construct this build cannot draw is still carried, which is the difference
+between an unsupported paper and a lost one. The retention rule, with the per-family inventory, is
+[mobix-elements.md](mobix-elements.md)'s; what a reader may do with a file whose declared requirements
+it cannot meet is the capability contract in [mobix-schema-spec.md](mobix-schema-spec.md).
 
 ### Measured: `.mobix` against `.xopp` on one document
 

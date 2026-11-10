@@ -18,11 +18,17 @@ source of truth for the bytes — a fixture and this table are changed together.
 | `05-unknown-entry.mobix` | Two archive entries this build does not model (`future/thing.bin`, `index/search.idx`); both must survive a save. |
 | `06-unknown-envelope-fields.mobix` | Unknown fields on the manifest, on a page part, on `canvas.json` and inside `canvas.json`'s `origin`; all must keep their value and order. |
 | `07-unknown-element-type.mobix` | An element `type` with no model (`3dPlotElement`) and a `.xopp`-carried element (`"syntax": "xml"`); both must be kept whole. |
-| `08-unknown-top-level-field.mobix` | A `stroke` and a `text` carrying extra top-level keys. **Known gap**: the model has no channel for them, so a save drops them. |
-| `09-unknown-nested-fields.mobix` | A `table` cell and a `plot` curve carrying extra keys, plus an extra key inside `shadeIntegral`. **Known gap**: the same drop, one level deeper. |
+| `08-unknown-top-level-field.mobix` | A `stroke` and a `text` carrying extra top-level keys (`pressureSeed`, `tiltCurve`, `lineHeight`, `hyphenation`); the element's `unknown` map keeps them and writes them back after the known fields. |
+| `09-unknown-nested-fields.mobix` | A `table` cell and a `plot` curve carrying extra keys, plus an extra key inside `shadeIntegral`: every codec that owns an object keeps the keys it did not read. |
 | `10-chunked-document.mobix` | An infinite-canvas document: `chunks[]` with signed coordinates instead of `pages[]`, and a `canvas.json` that declares the tile size. |
-| `11-unknown-vocabulary-values.mobix` | Three pages, one per unknown value: `tool: "FOUNTAIN_PEN"` (the page is refused), a table cell with `align: "JUSTIFY"` and a plot curve with `kind: "FOURIER"` (both elements are preserved whole). |
-| `12-unknown-background-type.mobix` | A page background and a `defaultPaper` of type `gradient`. **Known gap**: the reader falls back to a plain sheet, so the written background is a different one. |
+| `11-unknown-vocabulary-values.mobix` | Three pages, one per unknown value: `tool: "FOUNTAIN_PEN"`, a table cell with `align: "JUSTIFY"` and a plot curve with `kind: "FOURIER"`. All three elements are preserved whole and the page opens — a value this build would misread is not drawn, it is kept. |
+| `12-unknown-background-type.mobix` | A page background and a `defaultPaper` of type `gradient`: drawn as the plain sheet the fallback always was, written back field for field including its `type`. |
+| `13-required-capability-unknown.mobix` | `requiredCapabilities: ["example.org/stem.connector:1"]` — a required feature from a namespace this build knows nothing about, so the gate refuses to write. |
+| `14-optional-capability-unknown.mobix` | The same feature as an `optionalCapabilities` hint over a `3dPlotElement` this build has no model for: the document stays editable elsewhere and the element is preserved. |
+| `15-capability-higher-version.mobix` | `org.mobixournal/stem.connector:2` required while this build implements `:1`: a later version is a superset, so `:1` does not satisfy it. |
+| `16-capability-additive-order.mobix` | Both lists in a writer's own order, mixing `org.mobixournal` with a foreign namespace and carrying no duplicate: the order survives a save. |
+| `17-third-party-writer.mobix` | A file written elsewhere: no `minAppVersion`, a foreign capability namespace, and a construct with no model. |
 
-The gaps are asserted as gaps by the test — never as preservation that works —
-and they are the inputs of the child tasks the format-evolution scopes produced.
+Every construct in this corpus is asserted as **preserved**: the test says what a
+release must keep, and a change of promise changes this table and the capability
+table in `docs/mobix-format.md` together.

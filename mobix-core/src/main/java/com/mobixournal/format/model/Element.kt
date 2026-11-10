@@ -1,5 +1,7 @@
 package com.mobixournal.format.model
 
+import com.mobixournal.format.json.JsonNode
+
 /** A drawable inside a [Layer]: stroke, text, image, or LaTeX image. */
 sealed interface Element
 
@@ -38,6 +40,12 @@ data class StrokePoint(
     val tilt: Float? = null,
     val azimuth: Float? = null,
     val dtMs: Int? = null,
+    /**
+     * JSON keys a newer writer put on this point and this build did not read, re-emitted in order.
+     * `docs/mobix-elements.md` owns the retention rule; `docs/mobix-format.md` the table of what a
+     * v1 file keeps.
+     */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 )
 
 /** A `<stroke>`'s line pattern (`style` attribute); [PLAIN] is a solid line and omits the attr. */
@@ -88,6 +96,8 @@ data class Stroke(
      * re-emitted into `.xopp` verbatim, and a `.xopp` has nowhere to keep this.
      */
     val bundledAudio: String? = null,
+    /** JSON keys a newer writer put on this stroke and this build did not read, re-emitted in order. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element
 
 /**
@@ -105,6 +115,8 @@ data class TextElement(
     val extraAttrs: Map<String, String> = emptyMap(),
     /** The element's stable identity; see [ElementId]. */
     val id: String? = null,
+    /** JSON keys a newer writer put on this text box and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element
 
 /**
@@ -142,6 +154,10 @@ data class ImageElement(
     val extraAttrs: Map<String, String> = emptyMap(),
     /** The element's stable identity; see [ElementId]. */
     val id: String? = null,
+    /** Keys a newer writer put inside this element's `bounds` object, re-emitted there. */
+    val boundsExtra: Map<String, JsonNode> = emptyMap(),
+    /** JSON keys a newer writer put on this element and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element {
     override fun equals(other: Any?): Boolean =
         other is ImageElement &&
@@ -176,6 +192,10 @@ data class TexImageElement(
     val extraAttrs: Map<String, String> = emptyMap(),
     /** The element's stable identity; see [ElementId]. */
     val id: String? = null,
+    /** Keys a newer writer put inside this element's `bounds` object, re-emitted there. */
+    val boundsExtra: Map<String, JsonNode> = emptyMap(),
+    /** JSON keys a newer writer put on this element and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element {
     override fun equals(other: Any?): Boolean =
         other is TexImageElement &&

@@ -87,11 +87,22 @@ object MobixPageCodec {
     // ---- backgrounds ----------------------------------------------------------------------------
 
     /** [background] as JSON, bundling its content through [backgrounds] when the caller can supply it. */
+    private val SOLID_KEYS = setOf("type", "color", "style", "config", ATTRS)
+    private val PIXMAP_KEYS = setOf("type", "domain", "filename", "asset", ATTRS)
+    private val PDF_KEYS = setOf("type", "filename", "domain", "pageNo", "asset", ATTRS)
+
     fun encodeBackground(
         background: Background,
         assets: MobixAssetSink,
         backgrounds: (Background) -> MobixPayload? = { null },
-    ): JsonNode.Obj = MobixJson.obj { out ->
+    ): JsonNode.Obj {
+        // A paper whose `type` this build does not know is written back exactly as it arrived: the page
+        // is still drawn as the plain sheet the fallback always was, but a save must not turn the
+        // user's gradient into that sheet (`docs/mobix-format.md`, the capability table).
+        if (background is Background.Solid) {
+            (background.preserved as? JsonNode.Obj)?.let { return it }
+        }
+        return MobixJson.obj { out ->
         when (background) {
             is Background.Solid -> {
                 out["type"] = JsonNode.of("solid")
@@ -119,6 +130,8 @@ object MobixPageCodec {
             }
         }
         if (background.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(background.extraAttrs)
+        MobixJson.putUnknown(out, background.unknown)
+        }
     }
 
     /**
@@ -138,6 +151,7 @@ object MobixPageCodec {
                 domain = node.getStr("domain", ""),
                 filename = node.getStr("filename", ""),
                 extraAttrs = extra,
+                unknown = MobixJson.unknownFields(node, PIXMAP_KEYS),
                 bundledAsset = bundled,
             )
             "pdf" -> Background.Pdf(
@@ -145,13 +159,24 @@ object MobixPageCodec {
                 pageNo = node.getInt("pageNo", 0),
                 domain = node.getStrOrNull("domain"),
                 extraAttrs = extra,
+                unknown = MobixJson.unknownFields(node, PDF_KEYS),
                 bundledAsset = bundled,
             )
+            "solid" -> Background.Solid(
+                color = XoppColor.parse(node.getStrOrNull("color")),
+                style = node.getStr("style", "plain"),
+                config = node.getStrOrNull("config"),
+                extraAttrs = extra,
+                unknown = MobixJson.unknownFields(node, SOLID_KEYS),
+            )
+            // The paper keeps its whole object: this build cannot draw a gradient, but it can hand one
+            // back unchanged, which is the difference between an unsupported paper and a lost one.
             else -> Background.Solid(
                 color = XoppColor.parse(node.getStrOrNull("color")),
                 style = node.getStr("style", "plain"),
                 config = node.getStrOrNull("config"),
                 extraAttrs = extra,
+                preserved = node,
             )
         }
     }

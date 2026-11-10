@@ -25,6 +25,78 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-capability-fixtures"
+title = "Extend the golden corpus to the declared-capability outcomes"
+description = "Five capability fixtures in the golden corpus, one per outcome of the contract plus the two shapes a shell must not assume: `13-required-capability-unknown` (RefuseWrite), `14-optional-capability-unknown` (Preserved, still saved, the unmodelled element intact), `15-capability-higher-version` (:1 declared, :2 required, not satisfied), `16-capability-additive-order` (both lists in the writer's order, mixed namespaces, order kept on save) and `17-third-party-writer` (no `minAppVersion`, foreign namespace). The generator script and the corpus README carry them, `MobixV1FixturesTest` names all 17 files and fails on an unlisted one, and `MobixCapabilityFixturesTest` (6 tests) asserts each outcome plus the reason's shape. `docs/testing.md` describes the corpus as preservation claims and `docs/mobix-schema-spec.md` says which half of the contract is implemented."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "versioning"]
+design = "none: fixtures, generator and core tests only, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-capability-manifest-codec"
+title = "Read and write declared capabilities in manifest.json"
+description = "`MobixCapability` (grammar, canonical spelling, `satisfies` with the superset rule) and the manifest half of the contract: `MobixManifest` gained `requiredCapabilities`/`optionalCapabilities`, reads both arrays in file order and fails the open on a malformed identifier, a non-positive version, a duplicate within one list or a non-string value, writes them after `defaultPaper` and before the unknown fields only when non-empty, and keeps them out of `extra`. Tests: `MobixCapabilityTest` (13 rejected spellings, version satisfaction, namespace isolation) and four cases in `MobixManifestTest` (order and round trip, no empty lists, malformed/duplicated/not-an-array refusals, a capability in both lists allowed). No doc change was needed: `docs/mobix-schema-spec.md` already stated the grammar the code now enforces."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "versioning"]
+design = "none: mobix-core value type and manifest codec only, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-preserve-unknowns-through-edit-merge"
+title = "Prove unknown fields survive edits, merges, copies and undo"
+description = "`MobixUnknownFieldInvariantsTest` (5 tests) makes retention a property of the document rather than of one open-and-save: an edit to another property keeps the element's and the point's channels; a copy with a new id carries them; a merge that unions two elements keeps both sides' keys; a hand-edited file whose channel claims a key the codec owns writes that key once, with the value this build read; and the channel is never flattened into the `.xopp` `attrs` channel. The app's undo path stores model values, so it rides on the same data-class `copy` guarantee the first test exercises."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "compatibility"]
+design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-unknown-vocabulary-preserves-element"
+title = "An unknown vocabulary value preserves the element instead of refusing the page"
+description = "An unknown vocabulary value no longer costs the page. `MobixElementCodec.decodeStroke` returns null instead of throwing on an unknown `tool`/`lineStyle`, so `decode` falls through to `preserve(type, node)` and the page — and the document — still opens; fixture 11 page 0 now comes back as a `RawElement` whose body still says `FOUNTAIN_PEN`. An unknown background `type` is kept whole in `Background.Solid.preserved` (drawn as the plain sheet the fallback always was, written back field for field, including `type` and its nested values), and a known background's own unknown keys are carried as JSON rather than stringified through `attrs`; the manifest's `defaultPaper` goes through the same codec, so it keeps its gradient too. Tests: fixtures 11 and 12 asserted as preservation, `MobixElementCodecTest` updated. Docs: the vocabulary rule in `docs/mobix-elements.md` now says the element is preserved and the document opens, and the capability table in `docs/mobix-format.md` and rules 2-3 of `docs/mobix-schema-spec.md` say a retained field needs no version bump."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "compatibility"]
+design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-preserve-unknown-living-fields"
+title = "Keep unknown fields on the living element families"
+description = "The living families keep their unknown fields at every level the schema writes them: `TableElement` and `TableCell`, `PlotElement`, `PlotCurve` and `PlotShading`, `ParametricShapeElement` and `ShapeVertex`, `CircuitElement` and `CircuitPin`, `MathBlockElement`. Each family codec owns its known-key set, collects the rest on decode and re-emits it after the fields it spells; a nested key (a cell's `fontFamily`, a curve's `dashPattern`, a shading's `hatch`) is carried by the object that owns it rather than pushed to the element. Fixture 09's five nested keys are now asserted as kept, and the merge case of `MobixUnknownFieldInvariantsTest` proves two merged elements keep both their channels."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "compatibility"]
+design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-preserve-unknown-element-fields"
+title = "Keep unknown fields on the four geometry element families"
+description = "Every geometry family keeps the fields it did not read. `Stroke`, `StrokePoint`, `TextElement`, `ImageElement` (plus `boundsExtra`) and `TexImageElement` (plus `boundsExtra`) gained an `unknown: Map<String, JsonNode>` channel; `MobixJson.unknownFields` / `putUnknown` / `box(..., extra)` are the shared helpers, and `MobixElementCodec` writes the known fields first and the channel after them, never letting it shadow a known key. A stroke's `bounds` is derived and still not carried (rule 3). Tests: fixtures 08 and 09 flipped from asserted gaps to asserted preservation, plus `MobixUnknownFieldInvariantsTest` for edit, copy, merge, no-shadowing and the \"never flattened into `attrs`\" rule. Docs: the retention section of `docs/mobix-elements.md` is now an implemented per-family table, and the capability table in `docs/mobix-format.md` says kept instead of dropped."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-10
+tags = ["mobix", "compatibility"]
+design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-v1-compatibility-fixtures"
 title = "Golden v1 .mobix fixture corpus with an honest capability matrix"
 description = "Delivered the versioned `.mobix` v1 compatibility corpus and the tests that turn it into evidence. What exists now: - `scripts/make-mobix-fixtures.py` generates twelve deterministic fixtures (fixed ZIP timestamps, `mimetype` first and STORED) under `mobix-core/src/test/resources/fixtures/mobix-v1/`, whose README gives one row per file: minimal document, spliced page order, bundled picture/PDF/audio, an incrementally saved file, an unknown archive entry, unknown envelope fields, an unknown element type, an unknown top-level field, unknown nested fields, a chunked document, unknown vocabulary values, an unknown background type. - `MobixV1FixturesTest` (15 tests) drives every fixture through `MobixContainer.open`, `MobixPagedReader` (count, ids, window, close), `MobixDocument.open` on both the archive and streaming paths, a save to a new file and an incremental save, and fails when the fixture directory holds a file no test names. Preservation is asserted green for unknown entries, envelope fields, element types, content-addressed assets, manifest page order and chunked documents. The gaps — an unknown field on a known type, an unknown nested field, an unknown vocabulary value, an unknown background type — are asserted *as gaps*, so fixing one breaks its test on purpose. - One production defect found and fixed: `pagePartFor`/`chunkPartFor` dropped a page part's unknown fields across a save, which `docs/mobix-schema-spec.md` already promised and fixture 06 disproved. The part now carries them, with its page id. - Docs: `docs/mobix-format.md` gained the capability table (kept / dropped / refused per construct, with the fixture behind each row), `docs/testing.md` names the corpus and the test, `docs/tools.md` the generator. The status vocabulary stays in `docs/guide-limitations.md`, so the table uses outcome words instead. Verified: `./gradlew -PdesktopOnly=true :mobix-core:test` — the module's whole suite, including the new class, passes. Deliberately not done: the gaps are not repaired here (they are the four child tasks of `mobix-known-type-unknown-fields`); no APK or emulator pass (the task's `rebuild=false`) and no desktop executable, because the change adds tests, fixtures and docs and no shipped behaviour."

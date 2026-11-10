@@ -19,12 +19,44 @@ object MobixJson {
     fun obj(fill: (LinkedHashMap<String, JsonNode>) -> Unit): JsonNode.Obj =
         JsonNode.Obj(LinkedHashMap<String, JsonNode>().also(fill))
 
-    /** The `bounds` object for a rectangle, in the order the schema writes it. */
-    fun box(left: Double, top: Double, right: Double, bottom: Double): JsonNode = obj { out ->
+    /**
+     * The `bounds` object for a rectangle, in the order the schema writes it.
+     *
+     * [extra] is re-emitted after the four numbers: a box is where the element sits, and a newer
+     * writer's fields inside it are about that placement (`docs/mobix-elements.md`, rule 3).
+     */
+    fun box(
+        left: Double,
+        top: Double,
+        right: Double,
+        bottom: Double,
+        extra: Map<String, JsonNode> = emptyMap(),
+    ): JsonNode = obj { out ->
         out["left"] = JsonNode.of(left)
         out["top"] = JsonNode.of(top)
         out["right"] = JsonNode.of(right)
         out["bottom"] = JsonNode.of(bottom)
+        putUnknown(out, extra)
+    }
+
+    /** The keys of a `bounds` object this format owns. */
+    private val BOX_KEYS = setOf("left", "top", "right", "bottom")
+
+    /**
+     * The fields of [node] this codec did **not** consume, in source order — the retention channel of
+     * `docs/mobix-elements.md`: a known type keeps what it did not read instead of dropping it.
+     */
+    fun unknownFields(node: JsonNode.Obj, known: Set<String>): Map<String, JsonNode> =
+        LinkedHashMap<String, JsonNode>().also { out ->
+            node.map.forEach { (key, value) -> if (key !in known) out[key] = value }
+        }
+
+    /**
+     * Write [unknown] after the known fields, in its recorded order and never over one the codec
+     * already wrote: a known key always wins, so one fact is never written twice.
+     */
+    fun putUnknown(out: LinkedHashMap<String, JsonNode>, unknown: Map<String, JsonNode>) {
+        unknown.forEach { (key, value) -> if (key !in out) out[key] = value }
     }
 
     /**
@@ -40,6 +72,7 @@ object MobixJson {
             top = box.getDouble("top", 0.0),
             right = box.getDouble("right", 0.0),
             bottom = box.getDouble("bottom", 0.0),
+            extra = unknownFields(box, BOX_KEYS),
         )
     }
 
@@ -93,4 +126,11 @@ object MobixJson {
  * reader recomputes those rather than believing the numbers in the file (`docs/mobix-elements.md`,
  * rule 3).
  */
-data class MobixBox(val left: Double, val top: Double, val right: Double, val bottom: Double)
+data class MobixBox(
+    val left: Double,
+    val top: Double,
+    val right: Double,
+    val bottom: Double,
+    /** Keys a newer writer put inside the box, re-emitted there. */
+    val extra: Map<String, JsonNode> = emptyMap(),
+)

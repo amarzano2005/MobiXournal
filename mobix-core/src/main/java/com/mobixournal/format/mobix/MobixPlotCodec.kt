@@ -27,6 +27,10 @@ import com.mobixournal.format.model.PlotShading
  * An unreadable `kind`, a `parameters` object holding something that is not a number, a
  * `shadeIntegral` that is not a box — the element goes back to the caller unmodelled and is kept
  * verbatim, because half-reading a plot would mean saving a document whose formula changed.
+ *
+ * That refusal is about values, not keys: a field this build does not recognise at all (a newer
+ * writer's `samplingPolicy` on the plot, a `strokeDash` on a curve) is kept in that object's
+ * `unknown` map and written back after the fields this codec spells.
  */
 internal object MobixPlotCodec {
 
@@ -35,6 +39,17 @@ internal object MobixPlotCodec {
 
     private const val CURVES = "curves"
     private const val SHADE_INTEGRAL = "shadeIntegral"
+
+    private val PLOT_KEYS = setOf(
+        "type", "id", MobixJson.BOUNDS, "xMin", "xMax", "samples", "showCriticalPoints",
+        "includeDerivative", SHADE_INTEGRAL, CURVES, "parameters", "axisColor", "summaryText",
+        "infoSide", MobixJson.ATTRS,
+    )
+    private val CURVE_KEYS = setOf(
+        "kind", "source", "sourceY", "color", "strokeWidth", "lineStyle", "tMin", "tMax",
+        "thetaMin", "thetaMax",
+    )
+    private val SHADING_KEYS = setOf("from", "to")
 
     /** [plot] as JSON. */
     fun encode(plot: PlotElement): JsonNode.Obj = MobixJson.obj { out ->
@@ -57,11 +72,13 @@ internal object MobixPlotCodec {
         // existed reads back exactly where it used to be drawn.
         if (plot.infoSide != PlotInfoSide.BELOW) out["infoSide"] = JsonNode.of(plot.infoSide.name)
         if (plot.extraAttrs.isNotEmpty()) out[MobixJson.ATTRS] = MobixJson.attrsNode(plot.extraAttrs)
+        MobixJson.putUnknown(out, plot.unknown)
     }
 
     private fun encodeShading(shading: PlotShading): JsonNode = MobixJson.obj { out ->
         out["from"] = JsonNode.of(shading.from)
         out["to"] = JsonNode.of(shading.to)
+        MobixJson.putUnknown(out, shading.unknown)
     }
 
     private fun encodeParameters(parameters: Map<String, Double>): JsonNode = MobixJson.obj { out ->
@@ -83,6 +100,7 @@ internal object MobixPlotCodec {
         curve.tMax?.let { out["tMax"] = JsonNode.of(it) }
         curve.thetaMin?.let { out["thetaMin"] = JsonNode.of(it) }
         curve.thetaMax?.let { out["thetaMax"] = JsonNode.of(it) }
+        MobixJson.putUnknown(out, curve.unknown)
     }
 
     /** The plot [node] describes, or null when this build cannot read it whole. */
@@ -94,7 +112,11 @@ internal object MobixPlotCodec {
         // read — the two cases are different facts and must not collapse into the same empty answer.
         val shading = if (!node.has(SHADE_INTEGRAL)) null else {
             val obj = node.getObj(SHADE_INTEGRAL) ?: return null
-            PlotShading(from = obj.getDouble("from", 0.0), to = obj.getDouble("to", 0.0))
+            PlotShading(
+                from = obj.getDouble("from", 0.0),
+                to = obj.getDouble("to", 0.0),
+                unknown = MobixJson.unknownFields(obj, SHADING_KEYS),
+            )
         }
         // An unknown side is not a side this build can draw: the element goes back unmodelled and is kept
         // verbatim rather than having its report moved to a plausible place.
@@ -119,6 +141,7 @@ internal object MobixPlotCodec {
             infoSide = infoSide,
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.PLOT),
+            unknown = MobixJson.unknownFields(node, PLOT_KEYS),
         )
     }
 
@@ -150,6 +173,7 @@ internal object MobixPlotCodec {
             tMax = node.getDoubleOrNull("tMax"),
             thetaMin = node.getDoubleOrNull("thetaMin"),
             thetaMax = node.getDoubleOrNull("thetaMax"),
+            unknown = MobixJson.unknownFields(node, CURVE_KEYS),
         )
     }
 

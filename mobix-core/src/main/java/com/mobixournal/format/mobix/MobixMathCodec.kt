@@ -25,6 +25,10 @@ object MobixMathCodec {
     private const val FLAVOR = "flavor"
     private const val COLOR = "color"
 
+    private val MATH_KEYS = setOf(
+        "type", "id", SOURCE, FLAVOR, COLOR, MobixJson.BOUNDS, MobixJson.ATTRS,
+    )
+
     fun encode(block: MathBlockElement): JsonNode.Obj = MobixJson.obj { out ->
         out["type"] = JsonNode.of(TYPE)
         block.id?.let { out["id"] = JsonNode.of(it) }
@@ -33,6 +37,7 @@ object MobixMathCodec {
         out[COLOR] = MobixJson.colour(block.color)
         out[MobixJson.BOUNDS] = MobixJson.box(block.left, block.top, block.right, block.bottom)
         if (block.extraAttrs.isNotEmpty()) out[MobixJson.ATTRS] = MobixJson.attrsNode(block.extraAttrs)
+        MobixJson.putUnknown(out, block.unknown)
     }
 
     /**
@@ -57,6 +62,7 @@ object MobixMathCodec {
             flavor = flavor,
             extraAttrs = MobixJson.readAttrs(node),
             id = id,
+            unknown = MobixJson.unknownFields(node, MATH_KEYS),
         )
     }
 }

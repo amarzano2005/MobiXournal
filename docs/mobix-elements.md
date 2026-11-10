@@ -25,8 +25,9 @@ the element envelope and the four `.xopp`-shaped elements.
    believing it, so a stale value in a file cannot become the document's truth. It exists so a reader
    that only wants to cull or hit-test does not have to parse the element.
 4. **What we cannot interpret is kept.** `attrs` carries the attributes the `.xopp` bridge must not
-   lose (`ts`, `fn`, anything a newer desktop writes), and an **element that only exists in `.xopp`** is
-   marked with `"syntax": "xml"` so it is written back as the XML element it came from.
+   lose (`ts`, `fn`, anything a newer desktop writes), a **field** the codec did not read is carried in
+   the element's `unknown` channel (below), and an **element that only exists in `.xopp`** is marked with
+   `"syntax": "xml"` so it is written back as the XML element it came from.
 
 ### A known type keeps the fields it did not read
 
@@ -42,33 +43,35 @@ fields intact and its known fields as the edit left them; byte identity is promi
 nothing touched. `attrs` stays the `.xopp` attribute channel, because a second copy of the schema inside
 it would be ambiguous to both readers.
 
-The build does not implement the channel yet, and the gap is measured rather than assumed:
-`08-unknown-top-level-field.mobix`, `09-unknown-nested-fields.mobix` and
-`12-unknown-background-type.mobix` are asserted as gaps by `MobixV1FixturesTest`, and the table in
-[mobix-format.md](mobix-format.md) records the same outcome per construct. The work is split per family
-so none is left behind:
+The channel is implemented for **every family the format models**, at the level the key was written:
 
-| Family | What is lost today | Closed by |
-|---|---|---|
-| `stroke`, `text` | unknown top-level keys, and inside `bounds` | `mobix-preserve-unknown-element-fields` |
-| `image`, `texImage` | unknown keys on the element and inside `bounds` | `mobix-preserve-unknown-element-fields` |
-| `table` | unknown keys on a cell, and on a cell's own objects | `mobix-preserve-unknown-living-fields` |
-| `plot` | unknown keys on a curve in the `curves` array, and inside `shadeIntegral` | `mobix-preserve-unknown-living-fields` |
-| `shape`, `circuit`, `math` | unknown keys in each family's sub-objects and arrays | `mobix-preserve-unknown-living-fields` |
-| any background | an unknown `type` becomes a plain sheet instead of being preserved | `mobix-unknown-vocabulary-preserves-element` |
-| any family | an unknown enum constant in a geometry element refuses the page; a living family already preserves it | `mobix-unknown-vocabulary-preserves-element` |
+| Family | Where its keys are kept |
+|---|---|
+| `stroke`, `text` | the element, a stroke's `points[]` entries, and a stroke's `bounds` are derived and therefore not carried |
+| `image`, `texImage` | the element, and its `bounds` (that box *is* the placement, so it is read) |
+| `table` | the element, every `cells[][]` entry |
+| `plot` | the element, every `curves[]` entry, `shadeIntegral` |
+| `shape`, `circuit`, `math` | the element, and `vertices[]` / `pins[]` where the family has them |
+| any background | the background object, and — when its `type` is unknown — the whole object, re-emitted as it arrived |
 
-The invariants — open then save, edit *another* page then save, merge, copy and undo — are
-`mobix-preserve-unknowns-through-edit-merge`, which is what makes the channel a property of the document
-rather than of one happy path.
+The codecs that own each object are the ones that carry its keys (`MobixElementCodec`, `MobixTableCodec`,
+`MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec`, `MobixMathCodec`, `MobixPageCodec`), so a new
+sub-object added to a family has one place to teach. `MobixJson.unknownFields`/`putUnknown` are the two
+shared helpers, and the known-key set is what keeps a codec's own field from being shadowed.
+
+The invariants — open then save, edit *another* page, edit the same element, copy, merge — are
+`MobixUnknownFieldInvariantsTest`'s, and the corpus measures the same promise per construct
+(`08-unknown-top-level-field`, `09-unknown-nested-fields`, `11-unknown-vocabulary-values`,
+`12-unknown-background-type`).
 
 ### Vocabulary the schema uses
 
 Values are written as the **names the app uses**, not as desktop XML spellings, and each is checked on
 read: a value this build does not know is **refused** rather than silently defaulted, because a stroke
 whose tool we misread is a rendering bug we want to hear about. "Refused" means the *element* is not
-modelled — it goes back to the preserved channel whole, and the document itself still opens (see the
-rule for the living families in [mobix-living-entities.md](mobix-living-entities.md)).
+modelled — it goes back to the preserved channel whole (`RawElement`, its own JSON intact) and the
+**document still opens**; every family behaves this way, geometry and living alike, so one element from
+a newer build never costs the user the rest of the page.
 
 | Field | Values |
 |---|---|

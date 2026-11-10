@@ -508,6 +508,102 @@ def fixture_12():
     ])
 
 
+# ---- 13-17: the capability contract ----------------------------------------------
+
+
+def table_element(element_id="tbl_01"):
+    """A construct this build can read, used to show that the gate does not care about content."""
+    return {
+        "type": "table", "id": element_id,
+        "bounds": {"left": 72.0, "top": 72.0, "right": 272.0, "bottom": 172.0},
+        "colWidths": [200.0], "rowHeights": [100.0],
+        "cells": [[{"text": "kept", "align": "CENTER", "bold": False,
+                    "fillColor": None}]],
+    }
+
+
+def unknown_element(element_id="threed_01"):
+    """A construct with no model — the case the retention channel exists for."""
+    return {
+        "type": "3dPlotElement", "id": element_id,
+        "surface": "z = sin(x) * cos(y)",
+        "bounds": {"left": 40.0, "top": 40.0, "right": 320.0, "bottom": 280.0},
+    }
+
+
+def capability_fixture(filename, *, title, elements, required=None, optional=None,
+                       min_app="2.0.0", document_id=None):
+    page_bytes = j(page(layers=[layer(elements)]))
+    manifest_json = manifest([part("pg_1", "pages/page-0001.json", page_bytes)],
+                             title=title, min_app=min_app)
+    if document_id is not None:
+        manifest_json["documentId"] = document_id
+    if required:
+        manifest_json["requiredCapabilities"] = required
+    if optional:
+        manifest_json["optionalCapabilities"] = optional
+    if min_app is None:
+        manifest_json.pop("minAppVersion", None)
+    write_mobix(filename, [
+        ("manifest.json", j(manifest_json)),
+        ("canvas.json", j(canvas())),
+        ("pages/page-0001.json", page_bytes),
+    ])
+
+
+def fixture_13():
+    """A required capability from a namespace this build knows nothing about."""
+    capability_fixture(
+        "13-required-capability-unknown.mobix",
+        title="Unknown required capability",
+        elements=[table_element()],
+        required=["example.org/stem.connector:1"],
+    )
+
+
+def fixture_14():
+    """The same capability as an optional hint, over a construct this build keeps whole."""
+    capability_fixture(
+        "14-optional-capability-unknown.mobix",
+        title="Unknown optional capability",
+        elements=[unknown_element()],
+        optional=["example.org/stem.connector:1"],
+    )
+
+
+def fixture_15():
+    """A feature this build knows, at a version above the one it implements."""
+    capability_fixture(
+        "15-capability-higher-version.mobix",
+        title="Capability above this build's version",
+        elements=[table_element()],
+        required=["org.mobixournal/stem.connector:2"],
+    )
+
+
+def fixture_16():
+    """Both lists in a writer's own order, mixing known and unknown namespaces."""
+    capability_fixture(
+        "16-capability-additive-order.mobix",
+        title="Declared in the writer's order",
+        elements=[table_element(), unknown_element()],
+        required=["org.mobixournal/audio.opus:1", "example.org/stem.connector:1"],
+        optional=["example.org/future.notes:3", "org.mobixournal/paper.isometric:2"],
+    )
+
+
+def fixture_17():
+    """A third-party writer: no minAppVersion, and a namespace that is not MobiXournal's."""
+    capability_fixture(
+        "17-third-party-writer.mobix",
+        title="Written elsewhere",
+        elements=[unknown_element()],
+        optional=["com.example/lab.notebook:1"],
+        min_app=None,
+        document_id="5b1d0f4e-2a1c-4d3b-9f0e-7c6a5b4d3e2f",
+    )
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     for stale in os.listdir(OUT):
@@ -516,6 +612,7 @@ def main() -> None:
     for fixture in (
         fixture_01, fixture_02, fixture_03, fixture_04, fixture_05, fixture_06,
         fixture_07, fixture_08, fixture_09, fixture_10, fixture_11, fixture_12,
+        fixture_13, fixture_14, fixture_15, fixture_16, fixture_17,
     ):
         fixture()
 

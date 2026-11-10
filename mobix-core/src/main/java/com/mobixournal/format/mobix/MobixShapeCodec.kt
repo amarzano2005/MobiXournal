@@ -29,6 +29,12 @@ internal object MobixShapeCodec {
 
     private const val VERTICES = "vertices"
 
+    private val SHAPE_KEYS = setOf(
+        "type", "id", "shape", MobixJson.BOUNDS, VERTICES, "strokeColor", "strokeWidth",
+        "fillColor", "showAngles", "showSideLengths", MobixJson.ATTRS,
+    )
+    private val VERTEX_KEYS = setOf("x", "y")
+
     /** [shape] as JSON. */
     fun encode(shape: ParametricShapeElement): JsonNode.Obj = MobixJson.obj { out ->
         out["type"] = JsonNode.of(TYPE)
@@ -42,11 +48,13 @@ internal object MobixShapeCodec {
         out["showAngles"] = JsonNode.of(shape.showAngles)
         out["showSideLengths"] = JsonNode.of(shape.showSideLengths)
         if (shape.extraAttrs.isNotEmpty()) out[MobixJson.ATTRS] = MobixJson.attrsNode(shape.extraAttrs)
+        MobixJson.putUnknown(out, shape.unknown)
     }
 
     private fun encodeVertex(vertex: ShapeVertex): JsonNode = MobixJson.obj { out ->
         out["x"] = JsonNode.of(vertex.x)
         out["y"] = JsonNode.of(vertex.y)
+        MobixJson.putUnknown(out, vertex.unknown)
     }
 
     /** The figure's own extent: the axis-aligned box around its vertices, or null when it has none. */
@@ -77,6 +85,7 @@ internal object MobixShapeCodec {
             showSideLengths = node.getBool("showSideLengths", false),
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.SHAPE),
+            unknown = MobixJson.unknownFields(node, SHAPE_KEYS),
         )
     }
 
@@ -90,6 +99,7 @@ internal object MobixShapeCodec {
             out += ShapeVertex(
                 x = obj.getDoubleOrNull("x") ?: return null,
                 y = obj.getDoubleOrNull("y") ?: return null,
+                unknown = MobixJson.unknownFields(obj, VERTEX_KEYS),
             )
         }
         return out

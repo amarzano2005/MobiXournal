@@ -18,8 +18,7 @@ import java.io.File
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -32,14 +31,11 @@ import org.junit.Test
  * `MobixPagedReader`, `MobixDocument`, a save to a new file and an incremental save — and
  * [theCorpusIsTheOneThisTestDrives] fails when a fixture sits in the directory that no test names.
  *
- * Two kinds of assertion live here, and the difference is the point:
- *
- *  - a **claim** (unknown element types, unknown entries, unknown envelope fields, page order,
- *    assets) — the construct survives, asserted green;
- *  - a **characterization** (`…AreDroppedToday`, `…Refuses…`, `…IsReadAs…`) — the construct that
- *    does *not* survive is asserted to fail the way the capability table in `docs/mobix-format.md`
- *    says it does, so the gap is a documented measurement rather than a suspicion, and fixing it
- *    breaks this test on purpose.
+ * Every assertion here is a **claim**: the construct survives, and the assertion says which part of
+ * the format carries it. A construct this build cannot draw (an unmodelled element, a paper whose
+ * kind is from a newer build) is asserted to be *preserved*, which is the promise the capability
+ * table in `docs/mobix-format.md` makes — so a regression that starts dropping one of them fails
+ * here, and a change of promise has to change the table and this file together.
  */
 class MobixV1FixturesTest {
 
@@ -57,15 +53,19 @@ class MobixV1FixturesTest {
         "10-chunked-document",
         "11-unknown-vocabulary-values",
         "12-unknown-background-type",
+        "13-required-capability-unknown",
+        "14-optional-capability-unknown",
+        "15-capability-higher-version",
+        "16-capability-additive-order",
+        "17-third-party-writer",
     )
 
     /**
-     * The fixtures whose pages this build can model whole. `11` is the exception: its first page
-     * carries a `tool` this build does not know, which refuses the page (see
-     * [anUnknownVocabularyValueRefusesAPageOrPreservesItsElement]), so it is opened through the
-     * container and the paged reader only.
+     * Every fixture is openable now that an unknown vocabulary value preserves its element instead of
+     * refusing the page — including `11`, whose `FOUNTAIN_PEN` stroke comes back as a preserved
+     * element ([anUnknownVocabularyValuePreservesItsElement]).
      */
-    private val openable = corpus - "11-unknown-vocabulary-values"
+    private val openable = corpus
 
     private val now = 1_790_000_000_000L
 
@@ -137,7 +137,7 @@ class MobixV1FixturesTest {
                 onDisk,
             )
         }
-        assertEquals("the corpus the README documents", 12, corpus.size)
+        assertEquals("the corpus the README documents", 17, corpus.size)
         for (name in corpus) {
             assertTrue("$name is a readable archive", bytes(name).size > 200)
         }
@@ -447,38 +447,42 @@ class MobixV1FixturesTest {
     // ---- 08 and 09: the known gaps, asserted as gaps ---------------------------------------------
 
     @Test
-    fun anUnknownTopLevelFieldOnAKnownTypeIsDroppedByTheNextSave() {
+    fun anUnknownTopLevelFieldOnAKnownTypeSurvivesTheNextSave() {
         val name = "08-unknown-top-level-field"
         val elements = MobixDocument.open(archive(name)).pages.single().layers.flatMap(Layer::elements)
         assertTrue("the element itself is modelled", elements[0] is Stroke)
         assertTrue(elements[1] is com.mobixournal.format.model.TextElement)
 
         val saved = pageJsons(MobixDocument.open(archive(name)).toBytes(now)).joinToString("\n")
-        for (lost in listOf("pressureSeed", "tiltCurve", "lineHeight", "hyphenation")) {
-            assertFalse(
-                "KNOWN GAP (mobix-preserve-unknown-element-fields): `$lost` came from a newer writer and " +
-                    "the model has no channel for it, so this save dropped it — if this fails, the fix " +
-                    "landed and docs/mobix-format.md's capability table must be updated with it",
-                lost in saved,
+        for (kept in listOf("pressureSeed", "tiltCurve", "lineHeight", "hyphenation")) {
+            assertTrue(
+                "`$kept` came from a newer writer and is carried in the element's `unknown` map " +
+                    "(docs/mobix-elements.md); it is written back after the fields this build spells",
+                kept in saved,
             )
         }
         assertTrue("the fields this build knows are still there", "\"tool\":\"PEN\"" in saved)
         assertTrue(saved.contains("\"content\":\"line height\""))
+        assertEquals(
+            "a known key is written once, never twice: the unknown map may not shadow one",
+            1,
+            Regex("\\\"tool\\\"").findAll(saved).count(),
+        )
     }
 
     @Test
-    fun unknownNestedFieldsInsideAKnownTypeAreDroppedToday() {
+    fun unknownNestedFieldsInsideAKnownTypeSurviveToo() {
         val name = "09-unknown-nested-fields"
         val elements = MobixDocument.open(archive(name)).pages.single().layers.flatMap(Layer::elements)
         assertTrue("the table is modelled, not preserved", elements[0] is TableElement)
         assertTrue("the plot is modelled too", elements[1] is PlotElement)
 
         val saved = pageJsons(MobixDocument.open(archive(name)).toBytes(now)).joinToString("\n")
-        for (lost in listOf("fontFamily", "paddingPt", "hatch", "dashPattern", "label")) {
-            assertFalse(
-                "KNOWN GAP (mobix-preserve-unknown-element-fields): `$lost` sits in a sub-object or an " +
-                    "array item of a known type and is silently dropped on save",
-                lost in saved,
+        for (kept in listOf("fontFamily", "paddingPt", "hatch", "dashPattern", "label")) {
+            assertTrue(
+                "`$kept` sits in a sub-object or an array item of a known type; the codec that owns " +
+                    "that object carries it (docs/mobix-elements.md, the inventory)",
+                kept in saved,
             )
         }
         assertTrue("the known cell text survives", "\"text\":\"x\"" in saved)
@@ -488,20 +492,21 @@ class MobixV1FixturesTest {
     // ---- 11: unknown vocabulary values -----------------------------------------------------------
 
     @Test
-    fun anUnknownVocabularyValueRefusesAPageOrPreservesItsElement() {
+    fun anUnknownVocabularyValuePreservesItsElement() {
         val file = tempFile("11-unknown-vocabulary-values")
         try {
             MobixPagedReader.open(file).use { reader ->
                 assertEquals(3, reader.pageCount)
 
-                val refused = assertThrows(MobixContainer.MalformedMobixException::class.java) {
-                    reader.getPage(0)
-                }
+                val stroke = reader.getPage(0).layers.single().elements.single()
                 assertTrue(
-                    "KNOWN GAP (mobix-unknown-vocabulary-preserves-element): a geometry element's unknown " +
-                        "`tool` refuses the whole page rather than preserving the element: " +
-                        refused.message,
-                    refused.message!!.contains("FOUNTAIN_PEN"),
+                    "a geometry element's unknown `tool` preserves the element and lets the page open: " +
+                        "refusing the page would throw away the rest of the user's drawing",
+                    stroke is RawElement,
+                )
+                assertTrue(
+                    "including the value this build cannot read",
+                    "FOUNTAIN_PEN" in JsonWriter.write(MobixElementCodec.encode(stroke, MobixAssetSink())),
                 )
 
                 val table = reader.getPage(1).layers.single().elements.single()
@@ -524,25 +529,30 @@ class MobixV1FixturesTest {
     // ---- 12: an unknown background type ----------------------------------------------------------
 
     @Test
-    fun anUnknownBackgroundTypeIsReadAsAPlainSheet() {
+    fun anUnknownBackgroundTypeIsDrawnAsAPlainSheetAndWrittenBackUnchanged() {
         val name = "12-unknown-background-type"
         val archive = archive(name)
         val manifest = manifestOf(archive)
         val document = MobixDocument.open(archive)
 
-        assertNull("the manifest's defaultPaper fell back to nothing", manifest.defaultPaper?.let { it as? Background.Solid }?.extraAttrs?.get("from"))
-        assertTrue("the page's background is read as a solid sheet", document.pages.single().background is Background.Solid)
-
-        val savedCanvas = MobixDocument.open(archive).toBytes(now)
-        val saved = MobixContainer.open(ByteArrayInputStream(savedCanvas))
-        val pageText = saved.text("pages/page-0001.json")!!
-        assertFalse(
-            "KNOWN GAP (mobix-unknown-vocabulary-preserves-element): the gradient is written back as a " +
-                "solid sheet, so a save changes the page's paper",
-            "gradient" in pageText,
+        assertNotNull("the manifest's defaultPaper keeps the paper whole", manifest.defaultPaper?.let { it as? Background.Solid }?.preserved)
+        val background = document.pages.single().background as Background.Solid
+        assertNotNull("the page's background keeps it too", background.preserved)
+        assertEquals(
+            "and drawn with the ruling the object itself declares, as the fallback always did",
+            "isometric",
+            background.style,
         )
-        assertTrue(pageText.contains("\"type\":\"solid\""))
-        assertFalse("and the manifest's defaultPaper lost it too", "gradient" in saved.text(MobixFormat.MANIFEST_ENTRY)!!)
+
+        val saved = MobixContainer.open(ByteArrayInputStream(MobixDocument.open(archive).toBytes(now)))
+        val pageText = saved.text("pages/page-0001.json")!!
+        assertTrue("the gradient survives the save field for field", "gradient" in pageText)
+        assertTrue(pageText.contains("\"from\""))
+        assertFalse(
+            "and is not replaced by the sheet it was drawn as: that would change the user's page",
+            "\"type\":\"solid\"" in pageText,
+        )
+        assertTrue("the manifest's defaultPaper keeps it too", "gradient" in saved.text(MobixFormat.MANIFEST_ENTRY)!!)
     }
 
     // ---- 10: a chunked document ------------------------------------------------------------------

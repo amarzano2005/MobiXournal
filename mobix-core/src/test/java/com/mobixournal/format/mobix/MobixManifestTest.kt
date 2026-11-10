@@ -197,6 +197,73 @@ class MobixManifestTest {
         assertEquals("and survives its own rewrite", manifest, MobixManifest.decode(manifest.encode()))
     }
 
+    // ---- declared capabilities ------------------------------------------------------------------
+
+    @Test
+    fun declaredCapabilitiesRoundTripInTheirWrittenOrder() {
+        val manifest = MobixManifest.decode(
+            """{"formatVersion":1,"documentId":"d","canvasMode":"PAGINATED",
+                "requiredCapabilities":["org.mobixournal/stem.connector:2","org.mobixournal/audio.opus:1"],
+                "optionalCapabilities":["org.mobixournal/paper.isometric:2"]}""",
+        )
+
+        assertEquals(
+            "the writer's own priority, not a sorted one",
+            listOf("org.mobixournal/stem.connector:2", "org.mobixournal/audio.opus:1"),
+            manifest.requiredCapabilities.map { it.toString() },
+        )
+        assertEquals(
+            listOf("org.mobixournal/paper.isometric:2"),
+            manifest.optionalCapabilities.map { it.toString() },
+        )
+
+        val encoded = manifest.encode()
+        assertTrue(
+            "written after defaultPaper and before the unknown fields",
+            encoded.indexOf("\"requiredCapabilities\"") < encoded.indexOf("\"optionalCapabilities\""),
+        )
+        assertEquals("and the file it produces reads back the same", manifest, MobixManifest.decode(encoded))
+        assertFalse("the lists are not unknown fields", manifest.extra.containsKey("requiredCapabilities"))
+    }
+
+    @Test
+    fun aManifestWithoutCapabilitiesDoesNotWriteEmptyLists() {
+        val encoded = MobixManifest.decode(minimal).encode()
+
+        assertFalse("requiredCapabilities" in encoded)
+        assertFalse("optionalCapabilities" in encoded)
+    }
+
+    @Test
+    fun aMalformedOrDuplicatedCapabilityFailsTheOpen() {
+        fun decodeWith(required: String): MobixManifest = MobixManifest.decode(
+            """{"formatVersion":1,"documentId":"d","canvasMode":"PAGINATED","requiredCapabilities":$required}""",
+        )
+
+        for (bad in listOf("\"Stem/Connector:1\"", "\"org.mobixournal/x:0\"", "\"a/b/c:1\"", "\"x\"", "3")) {
+            val failure = assertThrows(MobixContainer.MalformedMobixException::class.java) { decodeWith("[$bad]") }
+            assertTrue(
+                "the message names the list and the offending value ($bad): ${failure.message}",
+                "requiredCapabilities" in failure.message.orEmpty(),
+            )
+        }
+        assertThrows(MobixContainer.MalformedMobixException::class.java) {
+            decodeWith("[\"org.mobixournal/x:1\",\"org.mobixournal/x:1\"]")
+        }
+        assertThrows("a list that is not an array", MobixContainer.MalformedMobixException::class.java) {
+            decodeWith("\"org.mobixournal/x:1\"")
+        }
+        // The same capability in both lists is not an error: a writer may require what it also suggests.
+        assertEquals(
+            1,
+            MobixManifest.decode(
+                """{"formatVersion":1,"documentId":"d","canvasMode":"PAGINATED",
+                    "requiredCapabilities":["org.mobixournal/x:1"],
+                    "optionalCapabilities":["org.mobixournal/x:1"]}""",
+            ).optionalCapabilities.size,
+        )
+    }
+
     // ---- canvas.json -------------------------------------------------------------------------
 
     @Test

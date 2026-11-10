@@ -18,8 +18,10 @@ import com.mobixournal.format.model.TableElement
  * missing `colWidths`, a cell whose `align` is a value this build has no name for, a `cells` entry
  * that is not a row of objects — each of those makes the whole element unreadable, and the caller then
  * keeps it verbatim as raw JSON (`MobixElementCodec.decode`) instead of building a table that would
- * silently write back a *different* table on the next save. That is the element-layer rule: the model
- * has no channel for a field it did not interpret, so half-reading is the one thing that loses data.
+ * silently write back a *different* table on the next save. That is the element-layer rule, and it is
+ * about **values**: a key this build does not know is carried in the element's `unknown` map
+ * (`docs/mobix-elements.md`), while a value it would misread is refused — the two cases used to
+ * collapse into one and no longer do.
  */
 internal object MobixTableCodec {
 
@@ -27,6 +29,12 @@ internal object MobixTableCodec {
     const val TYPE: String = "table"
 
     private const val COL_WIDTHS = "colWidths"
+
+    private val TABLE_KEYS = setOf(
+        "type", "id", MobixJson.BOUNDS, COL_WIDTHS, ROW_HEIGHTS, "headerRow", "borderColor",
+        "borderWidth", CELLS, MobixJson.ATTRS,
+    )
+    private val CELL_KEYS = setOf("text", "align", "bold", "fillColor")
     private const val ROW_HEIGHTS = "rowHeights"
     private const val CELLS = "cells"
 
@@ -48,6 +56,7 @@ internal object MobixTableCodec {
         out["borderWidth"] = JsonNode.of(table.borderWidth)
         out[CELLS] = JsonNode.arr(table.cells.map(::encodeRow))
         if (table.extraAttrs.isNotEmpty()) out[MobixJson.ATTRS] = MobixJson.attrsNode(table.extraAttrs)
+        MobixJson.putUnknown(out, table.unknown)
     }
 
     private fun encodeRow(row: List<TableCell>): JsonNode = JsonNode.arr(row.map(::encodeCell))
@@ -62,6 +71,7 @@ internal object MobixTableCodec {
         out["align"] = JsonNode.of(cell.align.name)
         out["bold"] = JsonNode.of(cell.bold)
         out["fillColor"] = cell.fillColor?.let(MobixJson::colour) ?: JsonNode.Null
+        MobixJson.putUnknown(out, cell.unknown)
     }
 
     /**
@@ -84,6 +94,7 @@ internal object MobixTableCodec {
             borderWidth = node.getDouble("borderWidth", 1.0),
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.TABLE),
+            unknown = MobixJson.unknownFields(node, TABLE_KEYS),
         )
     }
 
@@ -111,6 +122,7 @@ internal object MobixTableCodec {
             align = align,
             bold = node.getBool("bold", false),
             fillColor = MobixJson.colourOrNull(node, "fillColor"),
+            unknown = MobixJson.unknownFields(node, CELL_KEYS),
         )
     }
 }

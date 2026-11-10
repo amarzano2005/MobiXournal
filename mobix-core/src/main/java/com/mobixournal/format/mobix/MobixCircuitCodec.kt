@@ -35,6 +35,12 @@ internal object MobixCircuitCodec {
     private const val PINS = "pins"
     private const val POSITION = "position"
 
+    private val CIRCUIT_KEYS = setOf(
+        "type", "id", "symbol", "value", LABEL_SIDE, LEGACY_LABEL_BELOW, POSITION, "rotation",
+        "strokeColor", "strokeWidth", PINS, MobixJson.ATTRS,
+    )
+    private val PIN_KEYS = setOf("id", "relX", "relY", "connectedTo")
+
     /** Which side of the drawn symbol the value label sits on (`CircuitElement.labelSide`). */
     private const val LABEL_SIDE = "labelSide"
 
@@ -68,6 +74,7 @@ internal object MobixCircuitCodec {
         // "this symbol has no anchors" and "this symbol's anchors are an empty set" are one fact.
         if (circuit.pins.isNotEmpty()) out[PINS] = JsonNode.arr(circuit.pins.map(::encodePin))
         if (circuit.extraAttrs.isNotEmpty()) out[MobixJson.ATTRS] = MobixJson.attrsNode(circuit.extraAttrs)
+        MobixJson.putUnknown(out, circuit.unknown)
     }
 
     private fun encodePin(pin: CircuitPin): JsonNode = MobixJson.obj { out ->
@@ -75,6 +82,7 @@ internal object MobixCircuitCodec {
         out["relX"] = JsonNode.of(pin.relX)
         out["relY"] = JsonNode.of(pin.relY)
         pin.connectedTo?.let { out["connectedTo"] = JsonNode.of(it) }
+        MobixJson.putUnknown(out, pin.unknown)
     }
 
     /** The component [node] describes, or null when this build cannot read it whole. */
@@ -93,6 +101,7 @@ internal object MobixCircuitCodec {
             pins = pins,
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.CIRCUIT),
+            unknown = MobixJson.unknownFields(node, CIRCUIT_KEYS),
         )
     }
 
@@ -115,6 +124,7 @@ internal object MobixCircuitCodec {
                 relX = obj.getDouble("relX", 0.0),
                 relY = obj.getDouble("relY", 0.0),
                 connectedTo = obj.getStrOrNull("connectedTo"),
+                unknown = MobixJson.unknownFields(obj, PIN_KEYS),
             )
         }
         return out

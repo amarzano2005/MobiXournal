@@ -201,21 +201,27 @@ class MobixElementCodecTest {
     }
 
     @Test
-    fun aValueTheBuildDoesNotKnowIsRefusedRatherThanDefaulted() {
+    fun aValueTheBuildDoesNotKnowPreservesTheElementRatherThanDefaultingIt() {
         val badTool = """{"type":"stroke","tool":"CRAYON","points":[]}"""
-        val failure = assertThrows(MobixContainer.MalformedMobixException::class.java) {
-            MobixElementCodec.decode(
-                com.mobixournal.format.json.JsonParser.parse(badTool) as JsonNode.Obj,
-                MobixAssetSource { null },
-            )
-        }
-        assertTrue(failure.message.orEmpty(), "CRAYON" in failure.message.orEmpty())
-        assertThrows(MobixContainer.MalformedMobixException::class.java) {
-            MobixElementCodec.decode(
-                com.mobixournal.format.json.JsonParser.parse("""{"type":"stroke","lineStyle":"WAVY"}""") as JsonNode.Obj,
-                MobixAssetSource { null },
-            )
-        }
+        val preserved = MobixElementCodec.decode(
+            com.mobixournal.format.json.JsonParser.parse(badTool) as JsonNode.Obj,
+            MobixAssetSource { null },
+        )
+        assertTrue(
+            "a `tool` this build cannot read keeps the element whole instead of drawing it as a pen",
+            preserved is com.mobixournal.format.model.RawElement,
+        )
+        assertTrue(
+            "with the value intact",
+            "CRAYON" in com.mobixournal.format.json.JsonWriter.write(
+                MobixElementCodec.encode(preserved!!, MobixAssetSink()),
+            ),
+        )
+        val badStyle = MobixElementCodec.decode(
+            com.mobixournal.format.json.JsonParser.parse("""{"type":"stroke","lineStyle":"WAVY"}""") as JsonNode.Obj,
+            MobixAssetSource { null },
+        )
+        assertTrue("and so does an unknown line style", badStyle is com.mobixournal.format.model.RawElement)
     }
 
     @Test

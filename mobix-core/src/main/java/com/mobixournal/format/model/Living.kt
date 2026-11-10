@@ -1,5 +1,7 @@
 package com.mobixournal.format.model
 
+import com.mobixournal.format.json.JsonNode
+
 /**
  * The **living entities**: the constructs `.xopp` can only bake into dead ink and something a user
  * wants to edit again — a table whose cell text is still text, a plot whose formula is still a
@@ -65,6 +67,8 @@ data class TableCell(
     val align: TableAlign = TableAlign.CENTER,
     val bold: Boolean = false,
     val fillColor: Int? = null,
+    /** JSON keys a newer writer put on this cell and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 )
 
 /**
@@ -98,6 +102,8 @@ data class TableElement(
     val borderWidth: Double = 1.0,
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
+    /** JSON keys a newer writer put on this table and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element {
 
     /** The grid's own width in points — the columns' sum, which is what the element's box is made of. */
@@ -154,10 +160,17 @@ data class PlotCurve(
     val tMax: Double? = null,
     val thetaMin: Double? = null,
     val thetaMax: Double? = null,
+    /** JSON keys a newer writer put on this curve and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 )
 
 /** The bounds of a shaded integral: the area between the curve and the axis from [from] to [to]. */
-data class PlotShading(val from: Double, val to: Double)
+data class PlotShading(
+    val from: Double,
+    val to: Double,
+    /** JSON keys a newer writer put on this shading and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
+)
 
 /**
  * The side of the frame a plot's **analysis report** is written on.
@@ -222,6 +235,8 @@ data class PlotElement(
     val infoSide: PlotInfoSide = PlotInfoSide.BELOW,
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
+    /** JSON keys a newer writer put on this plot and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element {
 
     companion object {
@@ -240,7 +255,12 @@ data class PlotElement(
 }
 
 /** One authored vertex of a [ParametricShapeElement], in page points. */
-data class ShapeVertex(val x: Double, val y: Double)
+data class ShapeVertex(
+    val x: Double,
+    val y: Double,
+    /** JSON keys a newer writer put on this vertex and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
+)
 
 /**
  * A parametric shape: a figure the editor keeps as *geometry* — vertices the handles drag — instead of
@@ -272,6 +292,8 @@ data class ParametricShapeElement(
     val showSideLengths: Boolean = false,
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
+    /** JSON keys a newer writer put on this figure and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element
 
 /**
@@ -292,6 +314,8 @@ data class CircuitPin(
     val relX: Double = 0.0,
     val relY: Double = 0.0,
     val connectedTo: String? = null,
+    /** JSON keys a newer writer put on this pin and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 )
 
 /**
@@ -350,6 +374,8 @@ data class CircuitElement(
     val pins: List<CircuitPin> = emptyList(),
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
+    /** JSON keys a newer writer put on this component and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element {
 
     companion object {
@@ -392,6 +418,8 @@ data class MathBlockElement(
     val flavor: MathFlavor = MathFlavor.LATEX,
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
+    /** JSON keys a newer writer put on this block and this build did not read. */
+    val unknown: Map<String, JsonNode> = emptyMap(),
 ) : Element {
     companion object {
         /** The box a fresh block is placed in, in points — wide enough for a short formula. */

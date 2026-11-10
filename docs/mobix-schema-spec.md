@@ -164,8 +164,11 @@ unknown required capabilities the strictest outcome wins; refusing to write is n
 capability being understood.
 
 `preserved-but-not-drawn` depends on the retention rule in [mobix-elements.md](mobix-elements.md) — a
-build that drops a field it did not read cannot claim to have preserved an optional construct. Until that
-lands, an optional capability this build does not implement is treated as **read-only display**.
+build that drops a field it did not read cannot claim to have preserved an optional construct. That rule
+holds for every family the format models: an unread field on a known type is carried, and an element
+type with no model at all is kept whole, so a construct this build cannot draw can still be handed back
+untouched. A capability whose construct has **no model and no preservation channel** — one the reader
+would have to interpret to keep — is the case that stays **read-only display**.
 
 `minAppVersion` stays the legacy MobiXournal guard, still enforced and still compared numerically per
 dotted component. **Editability backwards is not promised**: a newer file opened by an older build may be
@@ -181,8 +184,11 @@ paste into another document raises the destination's required set to include the
 elements it now holds, or is refused: a document that cannot keep an element must not accept it and then
 trim it.
 
-The work that implements this contract is `mobix-capability-manifest-codec`, `mobix-capability-reader-gate`,
-`mobix-capability-warning-surface`, `mobix-capability-merge-copy` and `mobix-capability-fixtures`.
+The manifest half is implemented (`MobixCapability`, and the two lists in `MobixManifest`), and the
+gate's decision lives in `MobixCapabilities.evaluate`; fixtures 13-17 in the golden corpus are one file
+per outcome and are driven by `MobixCapabilityFixturesTest`. Still to build: the gate's shell wiring and
+notice (`mobix-capability-reader-gate`, `mobix-capability-warning-surface`) and the merge/paste union
+(`mobix-capability-merge-copy`).
 
 ## Page schema (`pages/page-N.json`, `chunks/chunk_x_y.json`)
 
@@ -233,9 +239,10 @@ stores is the document layer's job ([data-path.md](data-path.md)).
 2. **Unknown envelope fields are preserved**: the manifest, `canvas.json`, a part entry and a page have
    their unrecognised fields kept, with their values and order. Unknown *archive entries* too.
 3. **Schema versioning**: `formatVersion` is incremented only for breaking structural changes. Minor
-   features rely on additive fields with standard defaults. An unknown field inside a *modelled
-   element* is the one thing not preserved (see the element spoke): a breaking addition is a version
-   bump, not a field nobody understands.
+   features rely on additive fields with standard defaults, and a field this build did not read is
+   carried in its element's `unknown` channel and written back (see the element spoke), so an additive
+   field needs neither a version bump nor a refusal. A breaking change — one where the *meaning* of an
+existing value changes — is still a `formatVersion` bump.
 4. **`minAppVersion` is a write-time floor, and a reader enforces it**: it is the app version that
    must be present to write this file *safely*. A reader whose own version is lower than
    `minAppVersion` refuses to open the document normally and offers a read-only open via a consent dialog
