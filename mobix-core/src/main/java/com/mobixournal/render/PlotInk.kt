@@ -38,9 +38,6 @@ object PlotInk {
     /** The width a curve is drawn at when the element's own curves do not name one. */
     private const val NOMINAL_WIDTH_PT = 1.0
 
-    /** Gap between the frame and the analysis summary, in points. */
-    private const val SUMMARY_GAP_PT = 14.0
-
     /** Default end of a parametric range the element left unstated. */
     private const val DEFAULT_T_MAX = 2.0 * PI
 
@@ -109,12 +106,21 @@ object PlotInk {
         }
         result.labels.forEach { out += InkPrimitives.text(it.text, it.x, it.y, plot.axisColor) }
         if (result.summaryText.isNotEmpty()) {
+            // On the side the element asks for — below by default, after the marker key — so the report
+            // is placed by the same arithmetic the plain-ink insertion and both previews use.
+            val at = PlotInfoPlacement.origin(
+                side = plot.infoSide,
+                summaryText = result.summaryText,
+                left = plot.left,
+                top = plot.top,
+                right = plot.right,
+                bottom = plot.bottom,
+                legendHeightPt = result.legendHeightPt,
+            )
             out += InkPrimitives.text(
                 content = result.summaryText,
-                x = plot.left,
-                // Below the marker legend when the plot drew one, so the key and the prose never share
-                // a line.
-                y = plot.bottom + SUMMARY_GAP_PT + result.legendHeightPt,
+                x = at.x,
+                y = at.y,
                 color = plot.axisColor,
             )
         }

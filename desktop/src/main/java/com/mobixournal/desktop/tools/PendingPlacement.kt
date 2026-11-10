@@ -13,6 +13,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.MathFlavor
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.Bounds
@@ -103,6 +104,9 @@ class PendingPlacement(
     var includeDerivative by mutableStateOf(false)
     var includeSummary by mutableStateOf(false)
 
+    /** The side the analysis report is written on — the tablet's own choice, in its own words. */
+    var infoSide by mutableStateOf(PlotInfoSide.BELOW)
+
     /** The shaded integral, off by default like the tablet's switch. */
     var shade by mutableStateOf(false)
     var shadeFrom by mutableStateOf("")
@@ -185,6 +189,7 @@ class PendingPlacement(
             includeDerivative = includeDerivative,
             strokeWidthPt = strokeWidthPt,
             includeSummary = includeSummary,
+            infoSide = infoSide,
             shadeIntegral = shading,
         )
     }

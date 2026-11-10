@@ -197,8 +197,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewInk(
 /** The box the preview is compiled in, in page points — the same proportions as the placed graph. */
 private val PREVIEW_BOX = PlotBox(left = 0.0, top = 0.0, width = 320.0, height = 140.0)
 
-/** The preview's height in dp: a graph, not a thumbnail. */
-private val PREVIEW_HEIGHT = 128.dp
+/**
+ * The preview's height in dp: a graph, not a thumbnail — tall enough for the frame, the x tick numbers
+ * and the marker key under them, so the key the plot draws is not cut off by the card.
+ */
+private val PREVIEW_HEIGHT = 168.dp
 
 /** One point, so the preview reads a thin curve without turning it into a blob. */
 private const val PREVIEW_STROKE_PT = 1.0

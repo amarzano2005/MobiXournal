@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.Stroke as InkStroke
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.LivingInk
@@ -70,6 +72,8 @@ internal fun DialogPreviewColumn(
     onIncludeDerivativeChange: (Boolean) -> Unit,
     includeSummary: Boolean,
     onIncludeSummaryChange: (Boolean) -> Unit,
+    infoSide: PlotInfoSide,
+    onInfoSideChange: (PlotInfoSide) -> Unit,
 ) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
@@ -92,6 +96,8 @@ internal fun DialogPreviewColumn(
             onIncludeDerivativeChange = onIncludeDerivativeChange,
             includeSummary = includeSummary,
             onIncludeSummaryChange = onIncludeSummaryChange,
+            infoSide = infoSide,
+            onInfoSideChange = onInfoSideChange,
         )
     }
 }
@@ -104,6 +110,8 @@ internal fun OptionsRow(
     onIncludeDerivativeChange: (Boolean) -> Unit,
     includeSummary: Boolean,
     onIncludeSummaryChange: (Boolean) -> Unit,
+    infoSide: PlotInfoSide,
+    onInfoSideChange: (PlotInfoSide) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -117,6 +125,28 @@ internal fun OptionsRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = includeSummary, onCheckedChange = onIncludeSummaryChange)
             Text("Insert analysis report table next to plot", style = MaterialTheme.typography.bodySmall)
+        }
+        // Which side the report is written on. It only means something while the report is on, so the
+        // chips appear with it rather than sitting there as a choice about nothing.
+        if (includeSummary) {
+            Row(
+                modifier = Modifier.padding(start = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    "Report on",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                for (side in PlotInfoSide.entries) {
+                    FilterChip(
+                        selected = side == infoSide,
+                        onClick = { onInfoSideChange(side) },
+                        label = { Text(side.label, style = MaterialTheme.typography.bodySmall) },
+                    )
+                }
+            }
         }
     }
 }

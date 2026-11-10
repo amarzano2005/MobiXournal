@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.ui.theme.FloatingDialog
@@ -44,6 +45,8 @@ internal fun PlotGraphDialog(
     onIncludeDerivativeChange: (Boolean) -> Unit,
     includeSummary: Boolean,
     onIncludeSummaryChange: (Boolean) -> Unit,
+    infoSide: PlotInfoSide,
+    onInfoSideChange: (PlotInfoSide) -> Unit,
     activeCurves: List<PlotCurve>,
     xMin: Double?,
     xMax: Double?,
@@ -54,6 +57,7 @@ internal fun PlotGraphDialog(
         showCriticalPoints: Boolean,
         includeDerivative: Boolean,
         includeSummary: Boolean,
+        infoSide: PlotInfoSide,
         shadeIntegral: PlotShading?,
     ) -> Unit,
     onDismiss: () -> Unit,
@@ -90,6 +94,8 @@ internal fun PlotGraphDialog(
                 onIncludeDerivativeChange = onIncludeDerivativeChange,
                 includeSummary = includeSummary,
                 onIncludeSummaryChange = onIncludeSummaryChange,
+                infoSide = infoSide,
+                onInfoSideChange = onInfoSideChange,
                 activeCurves = activeCurves,
                 xMin = xMin,
                 xMax = xMax,
@@ -107,6 +113,7 @@ internal fun PlotGraphDialog(
                         showCriticalPoints,
                         includeDerivative,
                         includeSummary,
+                        infoSide,
                         shade.value,
                     )
                 },

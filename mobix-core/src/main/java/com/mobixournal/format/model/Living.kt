@@ -160,6 +160,23 @@ data class PlotCurve(
 data class PlotShading(val from: Double, val to: Double)
 
 /**
+ * The side of the frame a plot's **analysis report** is written on.
+ *
+ * The report is a block of prose, and where it reads best depends on the page: under the graph inside a
+ * margin, beside it in a wide column. The choice travels with the element — [PlotElement.infoSide] — so a
+ * `.mobix` reopened on either shell writes the report where its author put it (`PlotInfoPlacement`).
+ *
+ * [label] is the word both shells offer for it, so a chip on the tablet and a chip in the window cannot
+ * name the same side two ways.
+ */
+enum class PlotInfoSide(val label: String) {
+    BELOW("Below"),
+    RIGHT("Right"),
+    ABOVE("Above"),
+    LEFT("Left"),
+}
+
+/**
  * A function plot: the semantic entity `.xopp` flattens into dead stroke paths plus text labels.
  *
  * Everything the math engine needs to reproduce the drawing is here — the curves with their kinds and
@@ -183,6 +200,7 @@ data class PlotShading(val from: Double, val to: Double)
  * @param parameters The named constants the expressions may reference and the sliders move.
  * @param axisColor The axis/frame colour as an ARGB int.
  * @param summaryText The engine's formatted analysis, a cache only.
+ * @param infoSide The side of the frame [summaryText] is written on.
  * @param extraAttrs Attributes a later schema added, preserved for round-trip.
  * @param id The element's stable identity; see [ElementId].
  */
@@ -201,6 +219,7 @@ data class PlotElement(
     val parameters: Map<String, Double> = emptyMap(),
     val axisColor: Int = DEFAULT_AXIS,
     val summaryText: String? = null,
+    val infoSide: PlotInfoSide = PlotInfoSide.BELOW,
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
 ) : Element {

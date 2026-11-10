@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
@@ -131,6 +132,7 @@ internal class PlotInspectorState(
     initialShowCriticalPoints: Boolean,
     initialIncludeDerivative: Boolean,
     initialIncludeSummary: Boolean,
+    initialInfoSide: PlotInfoSide = PlotInfoSide.BELOW,
     val shade: PlotShadeState,
 ) {
     var modeTab by mutableStateOf(initialModeTab)
@@ -141,6 +143,7 @@ internal class PlotInspectorState(
     var showCriticalPoints by mutableStateOf(initialShowCriticalPoints)
     var includeDerivative by mutableStateOf(initialIncludeDerivative)
     var includeSummary by mutableStateOf(initialIncludeSummary)
+    var infoSide by mutableStateOf(initialInfoSide)
 
     val xMin: Double? get() = xMinText.toDoubleOrNull()
     val xMax: Double? get() = xMaxText.toDoubleOrNull()
@@ -177,6 +180,7 @@ internal fun rememberPlotInspectorState(plot: PlotElement, session: Int = 0): Pl
             initialShowCriticalPoints = plot.showCriticalPoints,
             initialIncludeDerivative = plot.includeDerivative,
             initialIncludeSummary = plot.summaryText != null,
+            initialInfoSide = plot.infoSide,
             shade = shade,
         )
     }
@@ -322,6 +326,7 @@ fun PlotInspectorAnchor(
                                 showCriticalPoints = state.showCriticalPoints,
                                 includeDerivative = state.includeDerivative,
                                 includeSummary = state.includeSummary,
+                                infoSide = state.infoSide,
                                 shadeIntegral = state.shade.value,
                             )
                             surface?.replacePlotElement(plot, updated)
@@ -409,6 +414,8 @@ private fun PlotInspectorBody(state: PlotInspectorState) {
             onIncludeDerivativeChange = { state.includeDerivative = it },
             includeSummary = state.includeSummary,
             onIncludeSummaryChange = { state.includeSummary = it },
+            infoSide = state.infoSide,
+            onInfoSideChange = { state.infoSide = it },
         )
     }
 }

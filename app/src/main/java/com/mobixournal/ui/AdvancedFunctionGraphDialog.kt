@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.CriticalPoint
@@ -108,7 +109,7 @@ internal fun formatRangeNumber(v: Double): String =
  *
  * Can be invoked to create a new plot or to edit an existing one via the optional [initialCurves],
  * [initialXMin], [initialXMax], [initialShowCriticalPoints], [initialIncludeDerivative],
- * [initialIncludeSummary] and [initialShade] parameters.
+ * [initialIncludeSummary], [initialInfoSide] and [initialShade] parameters.
  *
  * The **shaded integral area** is the one thing here that is not a field of the curve editor: a plot
  * either stands for an area or it does not, and the bounds decide both the wash `PlotInk` draws and the
@@ -123,6 +124,7 @@ fun AdvancedFunctionGraphDialog(
     initialShowCriticalPoints: Boolean? = null,
     initialIncludeDerivative: Boolean? = null,
     initialIncludeSummary: Boolean? = null,
+    initialInfoSide: PlotInfoSide? = null,
     initialShade: PlotShading? = null,
     onConfirm: (
         curves: List<PlotCurve>,
@@ -131,6 +133,7 @@ fun AdvancedFunctionGraphDialog(
         showCriticalPoints: Boolean,
         includeDerivative: Boolean,
         includeSummary: Boolean,
+        infoSide: PlotInfoSide,
         shadeIntegral: PlotShading?,
     ) -> Unit,
     onDismiss: () -> Unit,
@@ -153,6 +156,7 @@ fun AdvancedFunctionGraphDialog(
     var showCriticalPoints by remember { mutableStateOf(initialShowCriticalPoints ?: true) }
     var includeDerivative by remember { mutableStateOf(initialIncludeDerivative ?: false) }
     var includeSummary by remember { mutableStateOf(initialIncludeSummary ?: false) }
+    var infoSide by remember { mutableStateOf(initialInfoSide ?: PlotInfoSide.BELOW) }
 
     // The shaded area, in its own holder (PlotShadeEditor.kt): a plot opens with the bounds it carries,
     // or with its own domain once the switch is turned on.
@@ -189,6 +193,8 @@ fun AdvancedFunctionGraphDialog(
         onIncludeDerivativeChange = { includeDerivative = it },
         includeSummary = includeSummary,
         onIncludeSummaryChange = { includeSummary = it },
+        infoSide = infoSide,
+        onInfoSideChange = { infoSide = it },
         activeCurves = activeCurves,
         xMin = xMin,
         xMax = xMax,
@@ -249,6 +255,8 @@ internal fun DialogBodyContent(
     onIncludeDerivativeChange: (Boolean) -> Unit,
     includeSummary: Boolean,
     onIncludeSummaryChange: (Boolean) -> Unit,
+    infoSide: PlotInfoSide,
+    onInfoSideChange: (PlotInfoSide) -> Unit,
     activeCurves: List<PlotCurve>,
     xMin: Double?,
     xMax: Double?,
@@ -295,6 +303,8 @@ internal fun DialogBodyContent(
             onIncludeDerivativeChange = onIncludeDerivativeChange,
             includeSummary = includeSummary,
             onIncludeSummaryChange = onIncludeSummaryChange,
+            infoSide = infoSide,
+            onInfoSideChange = onInfoSideChange,
         )
     }
 }

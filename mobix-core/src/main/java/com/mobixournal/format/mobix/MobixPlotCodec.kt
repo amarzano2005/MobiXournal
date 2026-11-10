@@ -5,6 +5,7 @@ import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.PlotCurve
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
 
@@ -52,6 +53,9 @@ internal object MobixPlotCodec {
         if (plot.parameters.isNotEmpty()) out["parameters"] = encodeParameters(plot.parameters)
         out["axisColor"] = MobixJson.colour(plot.axisColor)
         plot.summaryText?.let { out["summaryText"] = JsonNode.of(it) }
+        // Absent means the default side (below the frame), so every plot written before the choice
+        // existed reads back exactly where it used to be drawn.
+        if (plot.infoSide != PlotInfoSide.BELOW) out["infoSide"] = JsonNode.of(plot.infoSide.name)
         if (plot.extraAttrs.isNotEmpty()) out[MobixJson.ATTRS] = MobixJson.attrsNode(plot.extraAttrs)
     }
 
@@ -92,6 +96,11 @@ internal object MobixPlotCodec {
             val obj = node.getObj(SHADE_INTEGRAL) ?: return null
             PlotShading(from = obj.getDouble("from", 0.0), to = obj.getDouble("to", 0.0))
         }
+        // An unknown side is not a side this build can draw: the element goes back unmodelled and is kept
+        // verbatim rather than having its report moved to a plausible place.
+        val infoSide = node.getStrOrNull("infoSide")?.let { name ->
+            PlotInfoSide.entries.firstOrNull { it.name == name } ?: return null
+        } ?: PlotInfoSide.BELOW
         return PlotElement(
             left = box.left,
             top = box.top,
@@ -107,6 +116,7 @@ internal object MobixPlotCodec {
             parameters = parameters,
             axisColor = MobixJson.colourOrNull(node, "axisColor") ?: PlotElement.DEFAULT_AXIS,
             summaryText = node.getStrOrNull("summaryText"),
+            infoSide = infoSide,
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.PLOT),
         )

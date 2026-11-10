@@ -180,6 +180,9 @@ commit inside the dialog at all.
 - `parameters` holds the named constants an expression may reference; a slider re-evaluates the plot
   rather than editing the formula ([math-engine.md](math-engine.md)).
 - `summaryText` is a **cache of what was computed**, never the source of truth, and recomputed on any change.
+- `infoSide` (optional) is the side of the frame `summaryText` is written on — `BELOW` when absent, else
+  `ABOVE`, `RIGHT` or `LEFT` — so a reopened plot draws its report where its author put it.
+  The placement itself is [function-plots.md](function-plots.md)'s.
 
 ### Parametric shape (`parametricShape`)
 

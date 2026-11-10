@@ -11,6 +11,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
@@ -56,6 +57,7 @@ fun DrawingSurfaceView.insertMultiPlot(
     showCriticalPoints: Boolean = false,
     includeDerivative: Boolean = false,
     includeSummary: Boolean = false,
+    infoSide: PlotInfoSide = PlotInfoSide.BELOW,
 ) {
     val index = visiblePageIndex()
     val page = pageAt(index) ?: return
@@ -92,13 +94,24 @@ fun DrawingSurfaceView.insertMultiPlot(
     val newLabels = result.labels.map { (text, x, y) ->
         TextElement(FIGURE_LABEL_FONT, FIGURE_LABEL_SIZE_PT, x, y, defaultColor, text)
     }
+    // The report goes on the side the dialog asked for, by the same arithmetic the living element uses
+    // (`PlotInfoPlacement`), so the two insertions put the same text in the same place.
+    val summaryAt = PlotInfoPlacement.origin(
+        side = infoSide,
+        summaryText = result.summaryText,
+        left = leftPt,
+        top = topPt,
+        right = leftPt + widthPt,
+        bottom = topPt + heightPt,
+        legendHeightPt = result.legendHeightPt,
+    )
     val summaryElements = if (result.summaryText.isNotEmpty()) {
         listOf(
             TextElement(
                 FIGURE_LABEL_FONT,
                 FIGURE_LABEL_SIZE_PT,
-                leftPt,
-                topPt + heightPt + 20.0 + result.legendHeightPt,
+                summaryAt.x,
+                summaryAt.y,
                 defaultColor,
                 result.summaryText,
             ),
@@ -141,6 +154,7 @@ fun DrawingSurfaceView.insertMultiPlot(
  * @param showCriticalPoints Whether roots, extrema and inflections are marked.
  * @param includeDerivative Whether the first derivative is drawn alongside.
  * @param includeSummary Whether the analysis summary is computed and kept with the element.
+ * @param infoSide The side of the frame that report is written on.
  * @param shadeIntegral The area the plot stands for, or null for none — the wash `PlotInk` draws and
  *   the range the summary's integral is taken over (`docs/math-engine.md`, section 3).
  */
@@ -151,6 +165,7 @@ fun DrawingSurfaceView.insertPlotElement(
     showCriticalPoints: Boolean = false,
     includeDerivative: Boolean = false,
     includeSummary: Boolean = false,
+    infoSide: PlotInfoSide = PlotInfoSide.BELOW,
     shadeIntegral: PlotShading? = null,
 ) {
     if (curves.isEmpty()) return
@@ -170,6 +185,7 @@ fun DrawingSurfaceView.insertPlotElement(
         strokeWidthPt = baseWidthPt.toDouble().coerceAtLeast(0.5),
         axisColor = strokeColor(),
         includeSummary = includeSummary,
+        infoSide = infoSide,
         shadeIntegral = shadeIntegral,
     )
     ElementEdits.addElement(doc, index, element) { resolvedActiveLayer(it) }

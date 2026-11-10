@@ -35,6 +35,8 @@ fallback to the page centre before the canvas has been laid out.
 
 **The marker key.** A marked point is drawn with the glyph of its kind — a circle for a root, a square for the y-intercept, an up/down triangle for a maximum/minimum, a diamond for an intersection — and a compact legend under the frame names every glyph the plot actually used. It sits below the x tick numbers, and the analysis summary is pushed below the key, so a dot is never left unexplained and the key is never crossed by the report.
 
+**The report's side.** The analysis report is written on the side the element asks for — *Below* (under the tick numbers and the key) unless its author picked *Above*, *Right* or *Left* — and the choice is the element's own field (`PlotInfoSide`, `PlotElement.infoSide`), so both shells draw it where it was chosen and a `.mobix` reopened on the other shell keeps it. `PlotInfoPlacement` is the one piece of arithmetic that places it: the compiled ink, the plain-ink insertion and both previews ask the same function, and it measures the block in the tick labels' own metrics, so a side report clears the frame by a gap rather than by a guess. Only the *below* side steps over the marker key; the other three are beside the frame, where there is no key to clear. Both shells offer the four sides in the same English words: the tablet's chips sit under the graph dialog's **analysis report** switch (and in the live plot inspector), the window's row sits under the *Summary* switch in its placement card and in the plot lane.
+
 ## Living figures
 
 **Living figures (`ParametricShapes.kt`, `ShapeEditorDialog.kt`).** A closed polygon drawn freehand is

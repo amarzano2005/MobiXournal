@@ -197,8 +197,9 @@ fun BoxScope.EditorOverlays(
             initialShowCriticalPoints = targetPlot?.showCriticalPoints,
             initialIncludeDerivative = targetPlot?.includeDerivative,
             initialIncludeSummary = targetPlot?.summaryText != null,
+            initialInfoSide = targetPlot?.infoSide,
             initialShade = targetPlot?.shadeIntegral,
-            onConfirm = { curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary, shadeIntegral ->
+            onConfirm = { curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary, infoSide, shadeIntegral ->
                 ui.showGraphDialog = false
                 val editing = ui.editingPlot
                 ui.editingPlot = null
@@ -212,6 +213,7 @@ fun BoxScope.EditorOverlays(
                         includeDerivative = includeDerivative,
                         includeSummary = includeSummary,
                         shadeIntegral = shadeIntegral,
+                        infoSide = infoSide,
                     )
                     surface?.replacePlotElement(editing, updated)
                 } else {
@@ -223,6 +225,7 @@ fun BoxScope.EditorOverlays(
                         includeDerivative = includeDerivative,
                         includeSummary = includeSummary,
                         shadeIntegral = shadeIntegral,
+                        infoSide = infoSide,
                     )
                     if (ui.tool != EditorTool.SELECT && ui.tool != EditorTool.LASSO_SELECT) {
                         surface?.activateTool(EditorTool.SELECT, ui, settings, onSettingsChange)

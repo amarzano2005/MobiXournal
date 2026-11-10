@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.PlotCurve as ElementPlotCurve
@@ -98,6 +99,7 @@ object PlotElementFactory {
      * @param strokeWidthPt The width the plot is drawn at, in points.
      * @param axisColor The frame, axes and label colour as an ARGB int.
      * @param includeSummary Whether the analysis summary is computed and stored in [PlotElement.summaryText].
+     * @param infoSide The side of the frame that summary is written on.
      * @param shadeIntegral The area the plot stands for, or null for none (`docs/math-engine.md`, 3).
      */
     fun plotElementFor(
@@ -112,6 +114,7 @@ object PlotElementFactory {
         strokeWidthPt: Double = 1.0,
         axisColor: Int = PlotElement.DEFAULT_AXIS,
         includeSummary: Boolean = false,
+        infoSide: PlotInfoSide = PlotInfoSide.BELOW,
         shadeIntegral: PlotShading? = null,
     ): PlotElement = plotElementIn(
         box = boxFor(page, centreX, centreY),
@@ -123,6 +126,7 @@ object PlotElementFactory {
         strokeWidthPt = strokeWidthPt,
         axisColor = axisColor,
         includeSummary = includeSummary,
+        infoSide = infoSide,
         shadeIntegral = shadeIntegral,
     )
 
@@ -141,6 +145,7 @@ object PlotElementFactory {
         strokeWidthPt: Double = 1.0,
         axisColor: Int = PlotElement.DEFAULT_AXIS,
         includeSummary: Boolean = false,
+        infoSide: PlotInfoSide = PlotInfoSide.BELOW,
         shadeIntegral: PlotShading? = null,
     ): PlotElement {
         val elementCurves = curves.map { curve ->
@@ -186,6 +191,7 @@ object PlotElementFactory {
                 integralFrom = shadeIntegral?.from ?: xMin,
                 integralTo = shadeIntegral?.to ?: xMax,
             ),
+            infoSide = infoSide,
             shadeIntegral = shadeIntegral,
             id = null,
         )
@@ -304,6 +310,9 @@ object PlotElementFactory {
      *
      * An edited formula that fails to parse is still written to the curve record rather than
      * silently dropped, and will be rendered/reported by [LivingInk] the same way as an export.
+     *
+     * [infoSide] defaults to the element's own side, so a caller that was not asked about the report's
+     * placement leaves it where the author put it.
      */
     fun applyPlotEdit(
         original: PlotElement,
@@ -314,6 +323,7 @@ object PlotElementFactory {
         includeDerivative: Boolean,
         includeSummary: Boolean = false,
         shadeIntegral: PlotShading? = original.shadeIntegral,
+        infoSide: PlotInfoSide = original.infoSide,
     ): PlotElement {
         val elementCurves = editedCurves.mapIndexed { index, curve ->
             val origCurve = original.curves.getOrNull(index)
@@ -358,6 +368,7 @@ object PlotElementFactory {
             showCriticalPoints = showCriticalPoints,
             includeDerivative = includeDerivative,
             summaryText = summary,
+            infoSide = infoSide,
             shadeIntegral = shadeIntegral,
         )
     }

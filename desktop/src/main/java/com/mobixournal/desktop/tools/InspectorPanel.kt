@@ -47,6 +47,7 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.MathFlavor
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
@@ -236,6 +237,13 @@ private fun PlotQuestion(pending: PendingPlacement) {
         SwitchRow("Critical points", pending.showCriticalPoints) { pending.showCriticalPoints = it }
         SwitchRow("Derivative", pending.includeDerivative) { pending.includeDerivative = it }
         SwitchRow("Summary", pending.includeSummary) { pending.includeSummary = it }
+        // Which side the report goes on — the tablet's four answers, in the same words. It only means
+        // something while there is a report, so the row appears with the switch that makes one.
+        if (pending.includeSummary) {
+            Field("Report side") {
+                ReportSideChoice(pending.infoSide) { pending.infoSide = it }
+            }
+        }
         SwitchRow("Shade integral", pending.shade) { pending.shade = it }
         if (pending.shade) {
             NumberRow(
@@ -251,6 +259,22 @@ private fun PlotQuestion(pending: PendingPlacement) {
                 },
             )
         }
+    }
+}
+
+/**
+ * The four sides a report may be written on, as one row of [ChoiceRow] chips.
+ *
+ * The words come from [PlotInfoSide.label] — the same ones the tablet's chips print — so the two shells
+ * cannot end up calling one side two things.
+ */
+@Composable
+private fun ReportSideChoice(picked: PlotInfoSide, onPick: (PlotInfoSide) -> Unit) {
+    ChoiceRow(
+        options = PlotInfoSide.entries.map { it.label },
+        picked = picked.label,
+    ) { label ->
+        PlotInfoSide.entries.firstOrNull { it.label == label }?.let(onPick)
     }
 }
 
@@ -327,6 +351,11 @@ private fun PlotBody(plot: PlotElement, commit: (Element) -> Unit) {
         SwitchRow("Critical points", plot.showCriticalPoints) { on -> commit(withFlags(plot, critical = on)) }
         SwitchRow("Derivative", plot.includeDerivative) { on -> commit(withFlags(plot, derivative = on)) }
         SwitchRow("Summary", plot.summaryText != null) { on -> commit(withFlags(plot, summary = on)) }
+        if (plot.summaryText != null) {
+            Field("Report side") {
+                ReportSideChoice(plot.infoSide) { side -> commit(plot.copy(infoSide = side)) }
+            }
+        }
         SwitchRow("Shade integral", plot.shadeIntegral != null) { on ->
             commit(withFlags(plot, shade = if (on) PlotShading(plot.xMin, plot.xMax) else null))
         }
