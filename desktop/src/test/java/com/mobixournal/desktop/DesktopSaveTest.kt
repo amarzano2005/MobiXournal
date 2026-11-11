@@ -11,7 +11,10 @@ import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.SaveRequest
 import com.mobixournal.desktop.shell.ShellCommand
+import com.mobixournal.desktop.shell.commitSaveRequest
+import com.mobixournal.desktop.shell.stageSaveRequest
 import com.mobixournal.desktop.shell.shellCommand
 
 import androidx.compose.ui.input.key.Key
@@ -449,6 +452,66 @@ class DesktopSaveTest {
             assertEquals("subsequent Save does not open Save As", 1, pickerOpened)
         } finally {
             state.tabs.closeAll()
+        }
+    }
+
+    // ---- a save that does not stop the drawing ------------------------------------------------
+
+    /**
+     * A save writes a **snapshot** — the pages as they were when the command was given — so a stroke that
+     * lands while the bytes go out is not lost and does not block the save. The tab keeps its own document,
+     * stays dirty because the file does not hold that stroke, and the file holds exactly what was asked for.
+     * A `.xopp` is the case this can publish atomically: it holds no file handle, so the move needs nothing
+     * released.
+     */
+    @Test
+    fun anEditMadeWhileTheBytesAreWrittenSurvivesAndTheSaveStillLands() {
+        val file = temp.newFile("busy.xopp").apply { delete(); repoFile("udiff.xopp").copyTo(this) }
+        val loaded = DocumentLoader.load(file)
+        val tab = DesktopTab(loaded)
+        try {
+            val request = SaveRequest(tab, tab.file, SaveFormat.ORIGINAL) {}
+            val staged = stageSaveRequest(request)
+
+            // How many strokes the pages the snapshot holds have, counted before the later one lands.
+            val snapshotStrokes = strokesOf(tab.document.model, 0)
+            // The reader keeps drawing while the bytes are written — recorded first, as the shell records an
+            // edit it is about to make.
+            tab.record(tab.document.snapshot())
+            tab.document.editPage(0) { page ->
+                val layer = page.layers.first()
+                page.copy(
+                    layers = listOf(
+                        layer.copy(elements = layer.elements + SyntheticNotebook.stroke(555.0, "stk_while_saving")),
+                    ) + page.layers.drop(1),
+                )
+            }
+
+            val saved = commitSaveRequest(request, staged)
+            assertTrue("the write landed: ${saved.failure}", saved.failure == null)
+            assertTrue("and the tab kept the document it was drawing on", saved.kept)
+            assertTrue(
+                "the stroke is still on the page",
+                tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
+                    .any { stroke -> stroke.points.first().x == 555.0 },
+            )
+            assertTrue("the tab stays dirty: the file does not hold that stroke", tab.isDirty)
+            assertNoStagedLeftovers(file.parentFile)
+
+            DocumentLoader.load(file).use { onDisk ->
+                assertFalse(
+                    "the file holds the snapshot, not the stroke made after it",
+                    onDisk.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
+                        .any { stroke -> stroke.points.first().x == 555.0 },
+                )
+                assertEquals(
+                    "and it holds exactly the pages the snapshot had",
+                    snapshotStrokes,
+                    strokesOf(onDisk.model, 0),
+                )
+            }
+        } finally {
+            tab.document.close()
         }
     }
 

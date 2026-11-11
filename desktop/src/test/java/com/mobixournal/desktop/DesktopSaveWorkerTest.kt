@@ -22,7 +22,12 @@ class DesktopSaveWorkerTest {
         try {
             val reader = pool.submit { original.withReader { entered.countDown(); release.await(10, TimeUnit.SECONDS) } }
             assertTrue(entered.await(5, TimeUnit.SECONDS))
-            val save = pool.submit<Saved> { writeSaveRequest(SaveRequest(tab, file, SaveFormat.MOBIX) {}) }
+            // The two halves an ordinary Save now runs: the snapshot is encoded under a read lease, then the
+            // commit releases the archive. Only the first one has to wait for the export's lease.
+            val save = pool.submit<Saved> {
+                val request = SaveRequest(tab, file, SaveFormat.MOBIX) {}
+                commitSaveRequest(request, stageSaveRequest(request))
+            }
             try { save.get(100, TimeUnit.MILLISECONDS); fail("save must wait for its reader") } catch (_: TimeoutException) { }
             assertFalse(original.isClosed)
             release.countDown(); reader.get(5, TimeUnit.SECONDS)

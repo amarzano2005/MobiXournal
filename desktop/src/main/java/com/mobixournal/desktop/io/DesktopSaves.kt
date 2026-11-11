@@ -6,6 +6,7 @@ import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.Document
 import com.mobixournal.io.DocumentEncoder
 import com.mobixournal.render.ATTACH_DOMAIN
 import com.mobixournal.render.Uncompilable
@@ -122,15 +123,43 @@ object DesktopSaves {
          * not carry: that omission is what used to delete a document's audio on a PC edit.
          */
         audio: DesktopAudioStore = document.audioStore,
+    ): Staged = stageSnapshot(
+        model = document.model,
+        shape = document.saveShapeFor(target),
+        readOnly = document.readOnly,
+        gateNote = document.gateNote,
+        target = target,
+        format = format,
+        pdf = pdf,
+        audio = audio,
+    )
+
+    /**
+     * The same write, from a **snapshot** instead of a live document — the form a save uses when the canvas
+     * keeps working while the bytes go out (`SaveRequest.snapshot`).
+     *
+     * Everything it needs is a value handed in: the model, the shape, the two refusals' answers, the PDF and
+     * the audio store. Nothing is read from the document on screen, which is the point — a stroke landing
+     * mid-write changes that document, never these.
+     */
+    fun stageSnapshot(
+        model: Document,
+        shape: DocumentEncoder.SaveShape,
+        readOnly: Boolean,
+        gateNote: String?,
+        target: File,
+        format: SaveFormat,
+        pdf: File?,
+        audio: DesktopAudioStore,
     ): Staged {
         // Every write in the window funnels through a staged save, so the gate's refusal lands here once
         // and Save, Save As and the header's own button cannot drift apart.
-        if (document.readOnly) {
+        if (readOnly) {
             throw SaveRefused(
-                document.gateNote ?: "This notebook opens read-only, so there is nothing to write.",
+                gateNote ?: "This notebook opens read-only, so there is nothing to write.",
             )
         }
-        if (format == SaveFormat.ZIPPED && hasAttachments(document)) {
+        if (format == SaveFormat.ZIPPED && hasAttachments(model)) {
             throw SaveRefused(
                 "This document's background is attached inside its package, and this window cannot " +
                     "bundle a picture or a PDF it has no copy of. Save it as a .xopp or a .mobix instead.",
@@ -142,19 +171,19 @@ object DesktopSaves {
         return try {
             val uncompiled = temp.outputStream().use { out ->
                 DocumentEncoder.write(
-                    document = document.model,
+                    document = model,
                     format = format,
                     target = DocumentEncoder.FileSaveTarget(target),
                     out = out,
                     appVersion = APP_VERSION,
-                    shape = document.saveShapeFor(target),
+                    shape = shape,
                     pdf = pdf,
                     audioFiles = audio::file,
                 )
             }
             // The `.xopp` half of the same promise: the sidecars a save names are pushed out beside the
             // file, so the `fn` in the XML resolves to a recording that is actually there.
-            if (format != SaveFormat.MOBIX) audio.exportSidecars(target, document.model)
+            if (format != SaveFormat.MOBIX) audio.exportSidecars(target, model)
             Staged(temp, target, uncompiled)
         } catch (failure: Throwable) {
             temp.delete()
@@ -197,7 +226,7 @@ object DesktopSaves {
      * `domain="attach"` reference the package is expected to hold. A plain path is not an attachment:
      * the `.xopp` points at the picture beside it and the write preserves that pointer.
      */
-    private fun hasAttachments(document: DesktopDocument): Boolean = document.model.pages.any { page ->
+    private fun hasAttachments(model: Document): Boolean = model.pages.any { page ->
         when (val background = page.background) {
             is Background.Pdf -> background.bundledAsset != null ||
                 (background.domain == ATTACH_DOMAIN && !background.filename.isNullOrEmpty())

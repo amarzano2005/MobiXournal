@@ -69,11 +69,11 @@ What it does today:
 - **Writes the document back** (`Ctrl + S`; `Ctrl + Shift + S` is Save As). The bytes are
   `DocumentEncoder.write` from `mobix-core` — the same three format arms the tablet saves through —
   staged into a temp file beside the target and then moved over it, so a crash mid-write cannot leave a
-  truncated notebook. The page stays **drawn** while it runs, with a quiet *Saving...* in the corner: the
-  window used to replace its workspace with a placeholder, which read as a crash. A `.mobix` save over its
-  own file releases the archive and opens it again after the move, because Windows refuses to replace a
-  file the process still holds and a lazy tab holds its own; a `.xopp` is read whole, so the tab keeps the
-  model it just wrote instead of parsing the file back — the re-read that made a save cost an open. The
+  truncated notebook. It encodes a **snapshot** taken when the command was given, so the page stays drawn and
+  keeps taking strokes while the bytes go out; only the commit — the move, and the `.mobix` reopen — holds
+  input, for the length of a rename. A `.mobix` releases its archive first, so an edit that lands during it
+  stays unpublished and the file is left as it was; a `.xopp` holds no handle, so the tab keeps the model it
+  wrote and stays dirty until the next save publishes the rest. The
   **container is the one it was opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only
   place it changes: the save window (`SaveAsPicker.kt`) asks which of the three in its own type box, opened
   on the document's own container, and names the file with the picked suffix (`note` is `note.mobix`). That
