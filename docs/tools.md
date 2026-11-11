@@ -280,8 +280,8 @@ render cannot make.
 
 ## Mobix corpora
 
-Two generators, both dependency-free and deterministic (fixed ZIP timestamps, no clock or locale), so a
-re-run reproduces the same bytes and a fixture can be reviewed as a diff:
+Two generators and a validator, all dependency-free and deterministic (fixed ZIP timestamps, no clock or
+locale), so a re-run reproduces the same bytes and a fixture can be reviewed as a diff:
 
 - `scripts/make-mobix-fixtures.py` → the golden v1 corpus under
   `mobix-core/src/test/resources/fixtures/mobix-v1/`, driven by `MobixV1FixturesTest`.
@@ -290,3 +290,7 @@ re-run reproduces the same bytes and a fixture can be reviewed as a diff:
   [mobix-format.md](mobix-format.md), plus the smallest legal document (`MobixHostileCorpusTest`).
   Re-run it after changing a cap — the many-entry file is sized to the entry cap and the bomb's ratio
   follows the ratio cap — or the corpus stops testing the policy it is meant to.
+- `scripts/verify-mobix.py` → the independent reader: decides the conformance rows a script can decide
+  (`--rows` lists them) and validates the envelope against `spec/schema/` with no dependency on `mobix-core`.
+  It cannot see a rewrite, so the save-and-reopen rows stay manual; run it over the golden corpus, never
+  over the hostile one, which is meant to fail.

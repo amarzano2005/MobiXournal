@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-spec-validator-script"
+title = "Decide the scriptable conformance rows without Kotlin"
+description = "scripts/verify-mobix.py: a dependency-free reader that decides eleven conformance rows of spec/CONFORMANCE.md, validates the envelope against spec/schema/ with the Draft 2020-12 subset the schemas use, prints the rows it owns with --rows, refuses a corrupt archive by row rather than with a traceback, and is documented in docs/tools.md"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-11
+completed = 2026-11-11
+tags = ["mobix", "spec", "interop"]
+design = "none: a script and one doc entry, no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-new-type-gate"
 title = "Make a new type prove it can be read by an older build"
 description = "the corrected audit of the new-type and migration seams and the three tasks it produced: mobix-new-family-gate, mobix-family-corpus, mobix-migration-registry"

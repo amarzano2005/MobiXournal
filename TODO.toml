@@ -2237,25 +2237,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "mobix-spec-validator-script"
-title = "Decide the scriptable conformance rows without Kotlin"
-description = """
-Write `scripts/verify-mobix.py`: a dependency-free Python reader that decides the conformance rows a script can decide, from the published rules alone, without importing, running or reading anything from `mobix-core`.
-Why: the independent side of the pair can today only write. `scripts/make-mobix-fixtures.py` generates the seventeen documents of `mobix-core/src/test/resources/fixtures/mobix-v1/`, and every check on them is Kotlin inside this build, so the epic's 'a file written here validates in the independent tool' has no tool behind it.
-Shape: one or more `.mobix` paths in, one line per failed row out carrying that row's number from `spec/CONFORMANCE.md`, exit 1 if any row fails; `--rows` prints the rows it decides so the checklist can be compared with it.
-Rows it owns, decided from the chapters and never restated: the stored `mimetype` and its exact bytes (rows 1, 2, 19), `manifest.json` presence and its three required fields plus a known `canvasMode` (3, 21), manifest page/tile order against the entries actually present and the digest each `pages[]` part records (4), no entry name duplicated or traversing (18), an unknown entry retained (9), capability identifiers parsed by the documented grammar and split into required and optional in written order (33, 35), and the envelope validated against `spec/schema/` with the minimal Draft 2020-12 subset the guard test already enumerates — `$ref`, `type`, `required`, `properties`, `additionalProperties`, `enum`, `const`, `items`, `minItems`, `minimum`, `maximum`, `pattern`, `oneOf`, `not` (38) — rather than by adding a package.
-Constraints: standard library only, deterministic output order, a module docstring in the style of the two corpus generators saying what it is and how it runs, no rule re-expressed in prose where a row number will do. It must refuse a document it cannot parse with the row that covers it, not a traceback."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1660
-created = 2026-11-11
-tags = ["mobix", "spec", "interop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-app-output-verifies-outside"
 title = "Verify a document this app wrote with the outside script"
 description = """
