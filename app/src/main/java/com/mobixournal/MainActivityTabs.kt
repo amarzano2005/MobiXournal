@@ -135,6 +135,20 @@ internal fun MainActivity.snapshotActiveTab(p: EditorPane = pane) {
 }
 
 /**
+ * The canvas has just recorded an edit: this pane's showing tab is no longer what its file holds.
+ *
+ * The window flips the same flag on the same event, so the dot is there at the **first** stroke rather than
+ * at the next snapshot. The tab's own record is what makes the answer survive a tab switch (a tab hidden in
+ * the strip has no canvas to ask); `tabsTick` is what makes the strip draw it now.
+ */
+internal fun MainActivity.markShowingTabEdited(p: EditorPane) {
+    val tab = p.tabs.active ?: return
+    if (tab.unsavedEdits) return
+    p.tabs.updateMatching({ it.id == tab.id }) { it.copy(unsavedEdits = true) }
+    tabsTick.value++
+}
+
+/**
  * Put [p]'s showing tab on its canvas, parsing its snapshot first if it is still a lazy
  * placeholder from the session index ([TabStore.load]).
  *

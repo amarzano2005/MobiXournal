@@ -523,7 +523,8 @@ class MainActivity : ComponentActivity() {
                         val p = panes[index]
                         p.surface = view
                         view.onReadOnlyBlocked = { toast(getString(R.string.document_read_only)) }
-                        view.onDocumentEdited = { doc -> mirrors.propagate(p, doc) }
+                        // The first stroke marks the tab, so the strip's dot is immediate.
+                        view.onDocumentEdited = { doc -> markShowingTabEdited(p); mirrors.propagate(p, doc) }
                         // A PDF dropped on the page joins the open document (the drop's own gesture is
                         // "put this here", not "replace everything I have").
                         view.onExternalPdf = { uri -> importPdf(uri, ImportPdfMode.APPEND) }
