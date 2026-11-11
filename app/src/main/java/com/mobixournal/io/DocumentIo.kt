@@ -17,6 +17,7 @@ import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.mobix.MobixOpenOutcome
 import com.mobixournal.format.mobix.MobixPageReuse
 import com.mobixournal.format.mobix.MobixPagedReader
+import com.mobixournal.portability.PortabilityAudit
 import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.asAssetSource
@@ -300,6 +301,14 @@ class DocumentIo(
             // One verdict for this open, decided by the gate and carried by the document: a notice and a
             // disabled action are two readings of this answer, never two comparisons of the manifest.
             val verdict = mobixDoc.verdict(appVersion)
+            // …and one document-wide answer to "which of the parts this notebook names are not in it?",
+            // taken here because this is the one place that holds both the entry directory and an open
+            // reader — and on the worker that is already reading the file, so the walk costs a page
+            // inflation each and no frame. It reads pages **without adopting anything**: adoption stays
+            // the lazy, per-page job `BundledPageAssets` does when a page is drawn.
+            val portability = runCatching {
+                PortabilityAudit.audit(PageSource.of(reader), mobixDoc.manifest.documentId, entries.entryNames)
+            }.getOrNull()
             LoadedFile.Doc(
                 document = mobixDoc.toDocument().also { openSessions.opened(it) },
                 pdf = backgrounds.pdf,
@@ -309,6 +318,7 @@ class DocumentIo(
                 verdict = verdict,
                 conflictNotification = conflictNote,
                 backgrounds = backgrounds,
+                portability = portability,
             )
         } catch (e: Throwable) {
             reader.close()

@@ -9,6 +9,7 @@ import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopExportNotice
 import com.mobixournal.desktop.io.DesktopPdfTextNotice
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.portability.PortabilitySummary
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.sheet.pageLabel
@@ -195,6 +196,12 @@ internal fun StatusBar(
             BandGap()
             BandReading(if (tab.document.readOnly) "read-only" else "kept as written", note)
         }
+        // A document that names parts it does not carry says so in one reading, with the references under
+        // the pointer: once per open, not once per page, and never as a card over the page.
+        portabilityLabel(tab.document.portability)?.let { label ->
+            BandGap()
+            BandReading(label, portabilityTip(tab.document.portability))
+        }
         // A refused command says what happened and what to do, and sits here until the next command
         // replaces it (`docs/ui-modernization.md` — the error-copy rule).
         refusal?.let { sentence ->
@@ -323,6 +330,21 @@ private fun PenReading(tablet: DesktopTablet?, frameTime: Boolean) {
 }
 
 /** `free zoom`, `fit width`, `fit page`: the mode the canvas is in, as the band's own three words. */
+/**
+ * The band's word for a document with parts it does not carry: `2 not inside`, or null when there is
+ * nothing to say. Null for a `.xopp` (its [com.mobixournal.desktop.io.DesktopDocument.portability] is null)
+ * and for a portable file, so the band only grows a reading when there is a fact in it.
+ */
+internal fun portabilityLabel(summary: PortabilitySummary?): String? = when {
+    summary == null || summary.isPortable -> null
+    summary.count == 1 -> "1 not inside"
+    else -> "${summary.count} not inside"
+}
+
+/** The sentence behind [portabilityLabel]: one line per missing reference, in page order. */
+internal fun portabilityTip(summary: PortabilitySummary?): String =
+    summary?.takeIf { !it.isPortable }?.sentence().orEmpty()
+
 internal fun fitLabel(fit: FitMode): String = when (fit) {
     FitMode.NONE -> "free zoom"
     FitMode.WIDTH -> "fit width"

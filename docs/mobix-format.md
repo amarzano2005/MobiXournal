@@ -81,8 +81,8 @@ stated fallback ([mobix-elements.md](mobix-elements.md)).
 
 The rules a reader applies to each of those are [mobix-assets.md](mobix-assets.md)'s, and the
 classification of every reference an opened document makes is that page's *Is it inside the file?* —
-a library-only surface today: no open path calls it yet, so a shell reports what it happens to notice
-rather than a document-wide answer.
+and it runs **at open**, on the thread that reads the file: each shell then says one sentence — how many
+parts are missing and which page each comes from — once per open instead of once per page.
 
 ## What an open-and-save does to a v1 file
 

@@ -19,6 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.mobix.PageSource
+import com.mobixournal.portability.PortabilityAudit
+import com.mobixournal.portability.PortabilitySummary
 import java.io.FileNotFoundException
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
@@ -86,6 +88,15 @@ class DesktopDocument(
     val gateNote: String? get() = gate?.takeIf { it.outcome != MobixOpenOutcome.FULL_EDIT }?.reason
     /** Recordings are namespaced by document; a rehome retains this store for a running take. */
     var audioStore: DesktopAudioStore = DesktopAudioStore.forDocument(file)
+
+    /**
+     * What this `.mobix` names but does not carry (`PortabilitySummary`), or null when everything is
+     * inside it — and always null for a `.xopp`, which has no archive directory to check.
+     *
+     * Set once, at open, on the thread that reads the file: the status band reads it, so a shell never
+     * has to walk the document to say which parts are missing (`docs/mobix-assets.md`).
+     */
+    var portability: PortabilitySummary? = null
 
 
 
@@ -410,7 +421,22 @@ object DocumentLoader {
         }
     }
 
-    private fun openMobix(file: File): DesktopDocument = openMobix(file, MobixEntrySource.fromFile(file))
+    /**
+     * A `.mobix` opened from its file, plus the one document-wide answer to "what is not inside it?".
+     *
+     * The check runs here rather than in the shell because this is the one place holding both the entry
+     * directory and an open reader, and because it is already on the reading thread — the walk inflates a
+     * page each and touches no frame. It adopts nothing: a page's background is still copied into the
+     * stores when the page is drawn.
+     */
+    private fun openMobix(file: File): DesktopDocument {
+        val entries = MobixEntrySource.fromFile(file)
+        val document = openMobix(file, entries)
+        document.portability = runCatching {
+            PortabilityAudit.audit(document.source, document.model.documentId, entries.entryNames)
+        }.getOrNull()?.let(PortabilitySummary::of)
+        return document
+    }
 
     /**
      * A `.mobix` opened over [entries] — the file's own channel everywhere except in a test that wraps

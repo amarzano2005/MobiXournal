@@ -13,6 +13,7 @@ import com.mobixournal.io.mobixNameFor
 import com.mobixournal.io.pdfNameFor
 import com.mobixournal.io.saveNameFor
 import com.mobixournal.io.xoppNameFor
+import com.mobixournal.portability.PortabilitySummary
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.resetZoom
 import com.mobixournal.render.ImageImport
@@ -189,22 +190,35 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
     // …and because that adoption happens at the frame that needs the bytes, a background the archive
     // does not hold is discovered there rather than at the open: reported once per reference, in the
     // same words the open uses for a document whose references resolve up front.
+    // …unless the open already produced the document-wide report below: then this per-page notice would
+    // be the same fact said a second time, once per page, which is exactly what the report replaces.
     surface?.onMissingBackground = { references ->
-        toast(
-            if (references.size == 1) {
-                "Background not found: ${references.first()}; that page will be blank"
-            } else {
-                "Backgrounds not found: ${references.joinToString(", ")}; those pages will be blank"
-            },
-        )
+        if (loaded.portability == null) {
+            toast(
+                if (references.size == 1) {
+                    "Background not found: ${references.first()}; that page will be blank"
+                } else {
+                    "Backgrounds not found: ${references.joinToString(", ")}; those pages will be blank"
+                },
+            )
+        }
     }
     surface?.load(loaded.document)
     // A document opens at **100% zoom**, whatever the previous one was left at: opening a file is a
     // fresh look at it, and a remembered 250% from some other document is a zoom nobody asked for.
     surface?.resetZoom()
     if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
-    else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
-    else if (loaded.missingImage) toast("Background image not found; those pages will be blank")
+    val portability = loaded.portability?.let(PortabilitySummary::of)
+    when {
+        // One sentence for the whole file, once per open: the references are in it, so there is no
+        // toast per page and no second sentence for the same fact.
+        portability != null && !portability.isPortable -> toast(portability.sentence())
+        // A `.xopp` has no archive directory to check, so its own two facts keep their own sentences.
+        loaded.portability == null && loaded.pdf == null && loaded.missingPdf ->
+            toast("Background PDF not found; those pages will be blank")
+        loaded.portability == null && loaded.pdf == null && loaded.missingImage ->
+            toast("Background image not found; those pages will be blank")
+    }
 }
 
 /** Put a staged local copy of the document onto the canvas ([DocumentIo] decided what it is). */

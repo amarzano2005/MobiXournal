@@ -63,6 +63,15 @@ sealed interface LoadedFile {
          * resolved at open: a `.xopp`, or a `.mobix` opened whole.
          */
         val backgrounds: BackgroundResolver? = null,
+        /**
+         * What this `.mobix` says about the bytes it names but does not carry (`PortabilityAudit`), or
+         * null for a `.xopp` and for an open whose analysis failed.
+         *
+         * The shell reports it **once per open** — a document-wide sentence instead of a toast per page —
+         * and the per-page notice a lazy background resolution raises is folded into it when this is
+         * present (`MainActivityDocuments.applyLoadedDoc`).
+         */
+        val portability: com.mobixournal.portability.PortabilityReport? = null,
     ) : LoadedFile
 }
 

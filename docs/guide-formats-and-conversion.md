@@ -34,7 +34,8 @@ A `.mobix` carries its pictures, its bundled PDF pages and its recordings inside
 everything you drew. Two things can stay outside: a PDF or a picture used as a page background, when the
 notebook only remembers where that file is, and an audio recording kept beside the document. Open the
 notebook on a machine without them and that page shows its plain sheet — the page is not lost, and the
-app tells you a background was missing. Fonts are never inside either: text set in a face the machine
+app tells you once, when it opens the notebook, how many parts are missing and which pages they are on.
+Fonts are never inside either: text set in a face the machine
 does not have keeps its words and its styles and takes the app's own face instead, so the lines may break
 somewhere else.
 
