@@ -131,6 +131,22 @@ the bytes and not the container they arrived in — a payload written under a di
 that picture. The validator writes nothing, and its signatures take an entry source or a `File`, so the
 independent CLI reuses this code instead of a second implementation of the same rules.
 
+## A portable copy
+
+When the bytes are still reachable, the file can be made portable: `PortableCopy` writes a copy that
+embeds every absent payload it can read — a background's file, a recording's sidecar — and leaves the
+ones it cannot as references. Three properties make it trustworthy rather than merely written:
+
+- it produces a **normal `.mobix`**, never a second container type: the embedded bytes are ordinary
+  `assets/` entries, so anything that opens a notebook opens the copy;
+- it **re-opens what it wrote** and verifies that every entry hashes to the name it carries, deleting a
+  copy that fails — a broken "portable" file is worse than none;
+- it **says what it could not do**: the result lists what was embedded and what is still only a
+  reference, so a copy never claims a portability it does not have.
+
+Nothing is downloaded, and the document it read is untouched. `PortableCopy` is **library only** today:
+the shells' *Save a portable copy* command is not built, so no device reaches it yet.
+
 ## Where the rule is checked
 
 `MobixContainerTest` holds the missing-payload case at page level: a page whose `image` names an entry the
