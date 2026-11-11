@@ -135,6 +135,19 @@ so a round trip never re-derives bold/italic from a family name. A text element 
 its extent depends on the font, which only the renderer knows, and a made-up box would be worse than
 none.
 
+**A font name is a rendering hint, not a payload.** Nothing in a `.mobix` carries font bytes, so a
+document is complete without the face it names — which is why the portability report emits no entry for
+a font ([mobix-assets.md](mobix-assets.md)) instead of calling every page of text incomplete. A reader
+resolves a description in this order:
+
+1. the named family, in the weight and slant the description carries;
+2. the platform's default family, in the same weight and slant.
+
+Text set in a face another machine lacks therefore **reflows**: the words and their styles arrive, the
+author's line breaks do not. Bundling faces is the alternative this build refuses for now — it would
+need a new `AssetKind`, a schema entry and, for each face, a licence — and a rule this file can honour
+today beats one that waits on three decisions.
+
 ### Image and rendered LaTeX
 
 ```json
