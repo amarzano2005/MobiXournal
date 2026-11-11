@@ -43,48 +43,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "stem-dynamic-geometry"
-title = "Constrained geometry that survives a drag (F07)"
-description = """
-`ParametricShapeElement`, `ShapeVertex`, `ParametricShapes.kt`, `FigureGeometry.kt` and snapping let a shape be edited, but there is no persistent constraint: 'keep this angle at 90 degrees' cannot be expressed, so dragging a vertex breaks the construction it was meant to represent.
-
-User story: draw a triangle, fix a right angle, drag a vertex and keep the angle at 90 degrees within a stated tolerance, with lengths and angles updating; suspend a constraint; see clearly when the system is over-constrained instead of watching it go wrong.
-
-Design a `geometryConstruction` entity: stable points/lines/segments/circles with ids, and `constraints[]` (`coincident`, `parallel`, `perpendicular`, `distance`, `angle`, `pointOnCurve`, `equalLength`) referencing ids and carrying values with units. Never bind a constraint to absolute coordinates or to a vertex index that can shift. Specify a bounded deterministic solver with iteration caps, states `SATISFIED`/`UNDERCONSTRAINED`/`OVERCONSTRAINED`/`UNSOLVED`, and a rule that a failed solve never irreversibly alters the original drawing. Keep free-form figure editing and constrained construction separate.
-
-Progressive child tasks: G1 entity/constraint model + codec; G2 solver for coincidence/parallel/perpendicular; G3 drag UI, handles and diagnostics; G4 circles and tangencies plus degrees of freedom; G5 cross-platform export and tests. Acceptance: S3 complete, over-constrained shown as an error without corruption, undo and reopen correct. Dependency: the reference/identity policy and the performance baseline."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 280
-created = 2026-11-10
-tags = ["stem", "geometry", "constraints", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-dataset-laboratory"
-title = "CSV in, statistics and a regression plot out (F13)"
-description = """
-There is no dataset concept at all: a table is a page element with textual cells, which cannot hold ten thousand rows, and there is no import path, no column typing, no units per column and no plot fed by data. Every science lab workflow stops here.
-
-User story: import `experiment.csv`, see columns, units, row count and missing values, compute statistics, plot time against distance, fit a line with its equation and R², and re-export the measurements as CSV; changing a value marks dependants stale rather than freezing the pen.
-
-Separate the two cases explicitly: a hand-typed table with a few formulas is `stem-scientific-tables`; a large dataset is a new `datasetView` element referencing a content-addressed asset (`assets/dat_<sha256>.csv`), with a new `AssetKind` only after the spec allows it. Audit `MobixAssets`, `MobixDocument`, `MobixPagedReader`, `PlotElement` and existing CSV routes, and measure memory on large files. Storage keeps hash, delimiter, encoding, header, column types and units, source row count; indices and aggregates are derived caches. An external CSV path is not a portable document and must say so (`mobix-portable-assets`).
-
-Child tasks: D1 streaming CSV import with quoted fields, delimiters and a fixture set; D2 `datasetView` + asset + codec; D3 statistics with diagnostics (count, median, mean, sample variance, min/max); D4 scatter and OLS linear regression through the existing plot engine, with degenerate-case states; D5 CSV export and validator support; D6 UX and a benchmark proving no stall. Acceptance: S2 complete, 10k rows handled without freezing on the baseline device, re-exported CSV coherent, and the plot legible in a reader that knows nothing about the editor. Dependency: F02 for column units; the dataset can land before F04."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 290
-created = 2026-11-10
-tags = ["stem", "data", "csv", "statistics", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-linear-algebra"
 title = "Vectors and matrices as values, not pictures (F14)"
 description = """
@@ -1677,5 +1635,242 @@ urgency = "normal"
 order = 1260
 created = 2026-11-11
 tags = ["stem", "measurement", "device"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-geometry-construction"
+title = "Model a construction of named points and constraints"
+description = """
+A ParametricShapeElement is a list of ShapeVertex absolute page points with no identity (format/model/Living.kt), and FigureRedraw/ShapeBuilder/ParametricShapes derive everything from positions. That is why a constraint cannot exist: there is nothing for it to name but an index that shifts.
+
+Add the entity (new file format/model/GeometryConstruction.kt): points (id, x, y, fixed flag), segments (id, pointA, pointB), circles (id, centre, radiusPoint) — every reference an id, never a coordinate or an index — and constraints[] of kinds coincident, parallel, perpendicular, distance, angle, pointOnCurve, equalLength, each referencing ids and carrying its value with a unit. Add MobixGeometryCodec and the type in MobixElementCodec, the living-entity rule and a LivingInk arm that draws the construction as its plain geometry (segments and circles plus optional point marks), a sample in XoppExportCoverageTest with elementFamilies raised by one, and the docs/mobix-elements.md entry. State in the code comment that free-form figure editing (ParametricShapeElement) and a constrained construction are separate things and never share a type.
+
+Verify: a triangle with three points, three segments and a perpendicular constraint round-trips with its ids, deleting a point refuses silently to leave a constraint referencing a missing id (the codec keeps it and the solver reports it unsolved), and reordering the points list changes no constraint. Run ./gradlew :mobix-core:test --tests '*Geometry*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1270
+created = 2026-11-11
+tags = ["stem", "geometry", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-geometry-solver"
+title = "Solve coincidence, parallel and perpendicular within a stated budget"
+description = """
+Add the bounded solver behind the construction: residuals per constraint kind (a coincident pair has two, parallel and perpendicular one each, computed in a stable form that does not divide by a near-zero length), a damped least-squares step (Gauss-Newton with a fixed damping constant or a projection iteration), an iteration cap and a convergence tolerance that are recorded constants, and four states — SATISFIED, UNDERCONSTRAINED, OVERCONSTRAINED, UNSOLVED. Degrees of freedom come from counting independent residual rows against movable point coordinates, and an over-constrained system is reported as a conflict naming the constraints that cannot all hold, not merely as a failure.
+
+The rule that matters: a failed solve never irreversibly alters the original drawing. Solve on a copy, commit only on SATISFIED or UNDERCONSTRAINED; a partial solve keeps the dragged point where the user put it and reports which constraints gave way. Deterministic: the same input and the same start values must produce the same output.
+
+Verify with a core test: a right angle built from a perpendicular constraint holds to 1e-9 after moving a point; a triangle with two contradictory distance constraints is OVERCONSTRAINED and names them; a construction with a free point is UNDERCONSTRAINED and still solves; an iteration-capped case returns UNSOLVED with the original untouched; running the same solve twice returns equal coordinates. Run ./gradlew :mobix-core:test --tests '*GeometrySolver*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1280
+created = 2026-11-11
+tags = ["stem", "geometry", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-geometry-drag-ui"
+title = "Drag a constrained point, suspend a constraint, see the state"
+description = """
+Wire the construction to a gesture on both shells: point handles that a drag moves, with the solver run on each move and the geometry redrawn from its solution (one undo entry per drag, committed on release); a per-constraint switch that suspends it without deleting it, so a construction can be explored and restored; and a visible state — a small badge or line naming SATISFIED, UNDERCONSTRAINED (with the free degrees), OVERCONSTRAINED (naming the conflicting constraints) or UNSOLVED — in the panel rather than only in a log.
+
+The drag must not stutter: solve only the affected points (the dependency index from point id to constraints), never the whole page, and cap the work per pointer move with the solver's own budget. English copy, tokens only, all five states, glyphs from the catalogue. The construction joins the STEM tool groups and its desktop lane asks the same questions as the Android panel.
+
+Docs: docs/guide-stem-tools.md gains the construction tool, docs/interface-contract.md only if a new material class or glyph enters. Verify with an app JVM test of the drag reducer (drag start, solve per move, suspension, badge state, one history entry) and the same reducer on the desktop side; the solver's own numbers are covered by its test. Run ./gradlew :app:testDebugUnitTest --tests '*Geometry*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1290
+created = 2026-11-11
+tags = ["stem", "geometry", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-geometry-circles-tangency"
+title = "Circles, tangency and a degree-of-freedom answer"
+description = """
+Extend the construction beyond straight lines: circles with a centre point and a radius point, pointOnCurve for a point constrained to a circle (and to a segment), tangency between a circle and a segment or two circles, and equalLength across segments. Each new constraint kind gets its residual, its contribution to the degree-of-freedom count, and its name in the conflict report; a tangency that no configuration can satisfy is a distinct answer from a system that is merely over-constrained.
+
+Report the degrees of freedom as a number the panel shows (movable coordinates minus independent residuals), so UNDERCONSTRAINED stops being a word and becomes a count. Update docs/math-engine.md's neighbour page for the construction (or docs/guide-stem-tools.md if the geometry has no spoke of its own) with the constraint list and the state vocabulary.
+
+Verify: a circle through a pointOnCurve constraint keeps the point on the circumference to 1e-9 as the radius changes; a segment tangent to a circle stays tangent within 1e-9 under a drag; a tangency with no solution reports UNSOLVED rather than moving the circle arbitrarily; the degree count matches a hand-computed case for a triangle with one fixed point and one distance. Run ./gradlew :mobix-core:test --tests '*Geometry*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1300
+created = 2026-11-11
+tags = ["stem", "geometry", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-geometry-export"
+title = "Export a construction as geometry, semantics native-only"
+description = """
+A construction must leave the native format as the geometry it draws, with its constraints stated as native-only. Add the LivingInk arm's export behaviour to the bridge walk: segments as strokes, circles as polylines at the drawing's own resolution, point marks when they are shown, and the bridge claim the export already writes for living entities, so re-importing this app's own export revives the construction and its constraints while a file edited in Xournal++ imports as the geometry it now is.
+
+State the loss in docs/xopp-bridge.md next to the table/plot/shape statements: a .xopp keeps the drawing and loses the constraints, so a reopened export cannot be re-solved — and say which state a construction with an UNSOLVED constraint exports in (the last committed geometry, never a half-solved one). Add the sample to XoppExportCoverageTest so the family's export is exercised and reported clean.
+
+Verify with a core test: the exported ink's segments equal the solved geometry, a circle becomes the expected polyline point count, the .xopp round trip keeps the strokes plus the claim, and a construction carrying an unsolved constraint exports the committed geometry and no claim for the failed state. Run ./gradlew :mobix-core:test --tests '*XoppSynthesis*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1310
+created = 2026-11-11
+tags = ["stem", "geometry", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-geometry-emulator-pass"
+title = "Drag a constrained triangle on the emulator"
+description = "No constrained construction has been dragged on a device and this host has no adb or AVD. Install the APK, build a triangle, fix a right angle, drag a vertex and confirm the angle stays 90 degrees within the stated tolerance while the side lengths update; suspend the constraint and confirm the vertex moves freely; build a contradictory pair and confirm OVERCONSTRAINED is shown with the conflicting constraints named and the drawing intact; undo one drag; save, reopen and export a PDF. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1320
+created = 2026-11-11
+tags = ["stem", "geometry", "device"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-dataset-csv-import"
+title = "Stream a CSV into rows without a second copy in memory"
+description = """
+There is no CSV import anywhere: the only writer planned is stem-table-csv-export's, and nothing reads a file into rows. Add a streaming reader in mobix-core (new format/csv/CsvReader.kt): RFC 4180 quoting (quotes inside quotes, embedded newlines, CRLF and LF), a delimiter sniffed from the first line with a recorded fallback, header detection, an encoding decision recorded in the class comment (UTF-8 with an optional BOM strip), and a row callback so a caller never holds the whole file as a list of lists.
+
+Bounded by construction: memory proportional to one row plus the caller's own state, a recorded maximum field length and row count that a file may exceed only by reporting it, and counters for rows read, rows skipped and empty cells. A malformed row is reported with its line number and the reader continues or stops according to a declared policy — pick one and write it down. Add a fixture set under mobix-core/src/test/resources (quoted commas, embedded newline, BOM, CRLF, ragged rows, a 10k-row generated file) and a test that the generated 10k-row file parses with the same counters a hand-counted sample yields.
+
+Verify: ./gradlew :mobix-core:test --tests '*CsvReader*' and a memory assertion that a 10k-row file parses without materialising its rows (the reader's own row counter reaches 10k while no collection grows)."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1330
+created = 2026-11-11
+tags = ["stem", "dataset", "csv"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-dataset-element"
+title = "Reference a dataset by hash instead of storing it on the page"
+description = """
+A large dataset cannot be a page element the way a table is: TableElement carries per-row heights and cell records, so ten thousand rows is neither portable nor drawable. Add datasetView: a box on the page, plus a reference to a content-addressed asset written as assets/dat_<sha256>.csv alongside a declaration of its hash, delimiter, encoding, header flag, column types and units, and the source row count; the rows live in the asset and never in the element, and any index or aggregate is a derived cache that can be dropped.
+
+Audit before writing: MobixAssets (MobixAssetSink/MobixAssetSource), the manifest's asset entries, MobixDocument and MobixPagedReader, and the AssetKind the spec allows — a new AssetKind is added only if docs/mobix-spec-v1's rules permit it, otherwise the generic binary kind is used and the class comment says why. Add the codec and the type in MobixElementCodec, the living-entity rule and a LivingInk arm that draws a bounded preview (the first N rows and columns as a grid, its header, its row count), a sample in XoppExportCoverageTest with elementFamilies raised by one, and the docs/mobix-elements.md entry.
+
+Verify: a dataset element round-trips with its hash and declarations, a missing asset is reported as a broken reference instead of an empty dataset, the element survives a copy to another document with its asset bundled (mobix-portable-assets' rule), and save/reopen does not re-read the rows. Run ./gradlew :mobix-core:test --tests '*Dataset*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1340
+created = 2026-11-11
+tags = ["stem", "dataset", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-dataset-statistics"
+title = "Statistics with the diagnostics that make them honest"
+description = """
+Compute the column statistics a lab sheet needs — count, median, mean, sample variance, min and max — over typed columns, streaming from the reader where the statistic allows (mean and variance in one pass; median requires a bounded selection and must state the memory it uses). Missing or unparsable values are excluded and counted, not silently treated as zero; a column with fewer than two values has no sample variance and says so; a column whose type is text reports no numeric statistics rather than failing.
+
+Every result is a value plus its diagnostics (n used, n excluded, unit) and is a derived cache of the element, recomputed when the asset hash changes and never written as the only source. Reuse stem-numeric-result-contract's result type where a statistic has an error, so a later uncertainty phase has one place to put it.
+
+Verify with a core test: a known sample (with an even count, a missing value and a text cell) yields exact mean, median and sample variance to 1e-12; variance of one value is undefined rather than 0; the excluded count matches the fixture; a 10k-row column computes in a bounded time recorded in docs/benchmarks.md. Run ./gradlew :mobix-core:test --tests '*DatasetStatistics*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1350
+created = 2026-11-11
+tags = ["stem", "dataset", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-dataset-regression-plot"
+title = "Plot the data and fit a line without inventing a model"
+description = """
+Feed the existing plot engine instead of writing a second one: a scatter of two typed columns as sampled points, and an ordinary-least-squares fit with its slope, intercept, R², and n — drawn as the line through the scatter plus a readable equation in the plot's report. Decide and record how the data rides the plot model (a new PlotKind value added compatibly, so a reader that does not know it still draws nothing rather than the wrong curve, versus a dedicated element); the preferred answer is the compatible extension, and the decision belongs in a comment and in docs/function-plots.md.
+
+Degenerate cases are states, not numbers: fewer than two points, a constant x (no finite slope), a perfect fit (R² = 1 reported as such), a vertical relation. Each is a label the plot carries and a value the report omits, never a NaN printed as a result. Column units travel into the axis labels when a calibration or unit is declared.
+
+Verify with a core test: a known linear sample (y = 3x + 2 plus noise) returns slope 3 and intercept 2 within 1e-9 on the noise-free fixture and its R² is 1; a constant-x column reports no fit; the scatter's points equal the parsed rows. Run ./gradlew :mobix-core:test --tests '*Dataset*' --tests '*Regression*' and update docs/function-plots.md."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1360
+created = 2026-11-11
+tags = ["stem", "dataset", "plot"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-dataset-export-validate"
+title = "Re-export the dataset and let a validator check it"
+description = """
+Re-export the dataset as CSV through the export plumbing stem-table-csv-export establishes, writing the declared delimiter, header and encoding, and producing the report entry that says what the export preserved (values, units and types are not in the CSV; the column declarations are not either, so the report says the file is data-only). Then add the validator's half: a check a third party can run against a .mobix holding a datasetView, verifying that the declared hash matches the asset bytes, the row count matches, and the declared column count matches the header — exposed as a function and as a test helper, not as a hidden privilege.
+
+The import side must accept its own export: re-importing the CSV it wrote yields the same column declarations and the same row count on the fixtures. State the boundary in docs/mobix-elements.md and docs/guide-formats-and-conversion.md: an external CSV path is not part of the document, so a document moved without its asset is broken and says so (mobix-portable-assets).
+
+Verify: a dataset exported and re-imported is equal on values, headers and row count; a tampered asset fails the validator with the hash named; a dataset with a missing asset fails with a reference error rather than an empty table. Run ./gradlew :mobix-core:test --tests '*Dataset*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1370
+created = 2026-11-11
+tags = ["stem", "dataset", "export", "csv"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-dataset-ux"
+title = "Import, inspect and plot from both shells"
+description = """
+The workflow needs a surface: an import entry point on both shells (a file picker that runs stem-dataset-csv-import and then places a datasetView), a column inspector showing name, inferred type, unit, non-empty and missing counts, and the row count; a statistics panel reading stem-dataset-statistics; and a control that creates the scatter plus fit of two chosen columns. Changing a value or re-importing the file marks dependants stale (their cached statistics and fit) instead of freezing the pen: the element's hash changes, the caches are dropped and recomputed on demand.
+
+Bind the dataset to page units where a unit is declared, English copy, tokens only, all five states, and a progress state for the import that a 10k-row file cannot make look frozen. The desktop lane asks the same questions as the Android panel.
+
+Docs: docs/guide-stem-tools.md gains the workflow, docs/interface-contract.md only if a material class or glyph enters. Verify with an app JVM test of the import-and-place reducer and the column inspector's state (types, units, missing counts, stale marking) and the same reducer on the desktop side. Run ./gradlew :app:testDebugUnitTest --tests '*Dataset*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1380
+created = 2026-11-11
+tags = ["stem", "dataset", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-dataset-benchmark-pass"
+title = "Prove a 10k-row dataset does not freeze the baseline device"
+description = "The acceptance claim is a runtime one and this host has no adb or AVD. Install the APK, import a generated 10k-row CSV, and record import time, the time to draw the page, and the time to open the column inspector and the statistics panel; scroll and zoom with the dataset on screen and note dropped frames from logcat's choreographer output. Edit one value, confirm dependants are marked stale rather than frozen, then re-plot and export. Record screenshots and the measured numbers, and write them into docs/benchmarks.md and the archive entry. If a measurement misses the budget, fix it on the device and record what the JVM test could not see. Follow docs/tools.md's host fallback and record the commands."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1390
+created = 2026-11-11
+tags = ["stem", "dataset", "device", "benchmark"]
 rebuild = true
 emulator_debug = true
