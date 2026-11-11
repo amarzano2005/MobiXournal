@@ -2235,21 +2235,3 @@ created = 2026-11-11
 tags = ["stem", "definitions", "performance"]
 rebuild = true
 emulator_debug = false
-
-[[task]]
-id = "mobix-migration-registry"
-title = "Enforce the migration seam while there is nothing to migrate"
-description = """
-Make migrations being explicit, tested and reversible a property of the build while the format is still at version 1.
-`MobixManifest.CURRENT_FORMAT_VERSION` is 1; a higher `formatVersion` is refused in both read paths (`MobixPagedReader`, `MobixDocument`) and the writer always stamps the current version; `MobixDocumentTest` pins the refusal of a version 2 manifest. But there is no registry a step would be added to, and no test that would notice the constant bumped without one — `grep -r Migration mobix-core/src` finds nothing, which stays honest only while something enforces the rule.
-Add a registry with one entry per step from version n to n+1: a forward function and its inverse, an empty list today, and an assertion that the highest registered step equals `CURRENT_FORMAT_VERSION`, so a bump without a step fails the build. Test it over the golden corpus: every fixture at the current version passes through untouched and is byte-identical after a save; where a step exists, forward then inverse is the identity on the sample it was written for; a version above the registry is refused by name rather than silently downgraded; and a document below it is upgraded instead of refused.
-Do not invent a version 2 to have a step to write: the deliverable is that the empty registry is enforced and the seam is obvious to the next person. `docs/mobix-format.md` states the rule beside its version paragraph in the same commit, in one or two sentences."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "normal"
-order = 1710
-created = 2026-11-11
-tags = ["mobix", "schema", "evolution"]
-rebuild = false
-emulator_debug = false

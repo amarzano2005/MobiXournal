@@ -215,3 +215,11 @@ existing value changes — is still a `formatVersion` bump.
    | App version | `formatVersion` written | `minAppVersion` written |
    |---|---|---|
    | 2.0.x | 1 | `2.0.0` |
+
+## Bumping the version
+
+`formatVersion` moves only together with a step in `MobixMigrations`: a pair of functions that upgrades a
+`manifest.json` from one version to the next and undoes itself, so a document can be written back at a
+version an older build reads. `MobixMigrationsTest` fails when the highest registered step and
+`MobixManifest.CURRENT_FORMAT_VERSION` disagree, which is what makes "migrations are explicit, tested and
+reversible" a property of the build rather than a promise in this paragraph.
