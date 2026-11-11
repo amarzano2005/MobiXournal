@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stem-code-block"
+title = "A living code block: source, language, monospace rendering, no execution (F09)"
+description = "Broke the code block into six atomic tasks: the element and its codec, the monospaced ink with the PDF/SVG/.xopp fallback, the editor on both shells, search and copy, the optional highlighting adapter with its budget and the no-execution boundary, and the device pass. What the audit found is that adding a family is mechanical here rather than open-ended: Element is a sealed interface in format/model/Element.kt, MobixElementCodec dispatches on a type field with MobixMathCodec as the closest precedent, LivingInk.compile is the one dispatch the canvas and every export read, and XoppExportCoverageTest records ten families with an exhaustive when — so the build itself refuses a family that cannot leave the native format. Monospace is already half in place: PdfPagePlan maps monospace, mono and courier to PdfFamily.MONO, PageSvgWriter writes font-family per text element, and the app bundles DejaVu Sans Mono, so the renderer reuses a face instead of adding one. The real work is text infrastructure: LivingSlot has four placement slots and a code block needs a fifth on both shells, and search and copy read TextElement today, which is why the family would be invisible to DocumentSearch until its own task — the same shared layer stem-scientific-text is waiting on. No document changed: the family does not exist yet."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "code", "schema", "p1"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
+id = "stem-semantic-export"
+title = "Export the meaning, not just the picture (F22)"
+description = "Broke the semantic export into five atomic tasks: stem-conversion-report-model (one report of what each target preserved, kept editable, only displayed, partly lost or refused), stem-formula-source-export (LaTeX, Markdown and a proved MathML subset from a MathBlockElement's stored source), stem-table-csv-export (a quoting rule, one file per table, formulas as their own fields once the scientific-table schema lands), stem-plot-samples-export (the exact points the drawing uses, plus a JSON definition shaped after mobix-spec-v1) and stem-interchange-delegation (a seam a format owner implements, so an unowned target is reported by name instead of being faked). What the inventory found: the only loss report in the build is a flat Uncompilable(type, reason) list produced by the .xopp synthesis and shown by ui/ExportGapsDialog.kt on Android and through the window's staged save, while PDF, SVG and PNG report nothing and there is no CSV, JSON or source export anywhere — so the report model is a prerequisite for the rest rather than a wrapper around them. The dependencies the plan named are settled: mobix-spec-v1 and stem-unicode-pdf-review are finished, so the JSON shape has an owner and the Unicode limit is a recorded decision rather than an open question; calculations and physical units are still separate scopes, so the JSON target is specified against PlotElement.parameters, which exists today, and says out loud which values it cannot export yet. No document changed: the capability does not exist, so each child names the page it must update in its own commit."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "export", "open-format", "p1"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
 id = "stem-plot-inspection"
 title = "Trace, tangent and integral tools on a live plot (F05)"
 description = "Broke the inspection of a live plot into seven atomic tasks: stem-plot-trace-sampling-cache (an inverse PlotFrame transform and one sample list per curve), stem-plot-crosshair-readout (a transient crosshair on both shells, no element and no undo entry), stem-plot-tangent-tool (FunctionAnalysis.derivative is unused by any surface; a tangent with an explicit no-tangent answer at a pole), stem-plot-integral-handles (dragging the shade bounds instead of typing them, committed through applyPlotEdit so undo and the summary follow), stem-plot-annotation-persistence (a marker may be stored only if a known element can carry it in data coordinates — the frame is fitted at render time, so page points would move), stem-plot-trace-precision-tests and stem-plot-trace-emulator-pass. What the audit found: the analysis is complete and unused — derivative, definiteIntegral, findCriticalPoints and buildSummaryReport are covered by tests, PlotInk.shade already draws one shadeIntegral for the canvas and every export, the inspector opens through EditorUiState.openPlotInspector and PlotInspectorAnchor already reads the selection rect — while there is no inverse frame transform, no sample cache and no gesture that reads a value from the canvas. The plan therefore adds an interaction layer on top of finished maths, not new analysis, and the only candidate for a schema change is the optional marker, which one child settles in writing before any code is written for it. No document changed here: no new surface exists yet, so the owning spoke would only be describing code that has not been written."

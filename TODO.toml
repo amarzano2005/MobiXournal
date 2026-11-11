@@ -22,48 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "stem-semantic-export"
-title = "Export the meaning, not just the picture (F22)"
-description = """
-Exports today are visual: PDF, SVG and `.xopp` render living entities to ink, which is the right fallback but carries no semantics. There is no way to get the LaTeX of a formula, the CSV of a table, the samples of a plot or a netlist out of a document, and no report of what a conversion lost.
-
-Inventory the existing channels - `XoppSynthesis`, `PdfPagePlan`, `PageSvgWriter`, the `.xopp` bridge and the per-family coverage in `XoppExportCoverageTest` - then define a pure `ScientificInterchange` contract plus a `ConversionReport` that says, per object and per target: preserved, editable, displayed, partly lost, unsupported. No export may mutate the original `.mobix`, and no export may claim round-trip fidelity it does not have.
-
-Targets and fallbacks: formula/scientific text -> LaTeX/Markdown/MathML for the supported subset, PDF/SVG/`.xopp` fallback; calculation and variables -> JSON/CSV with source, units and values; scientific table -> CSV plus formulas; plot -> sampled CSV + SVG/PDF + a JSON definition; code -> the original text file; dataset and simulation -> their own scopes' formats.
-
-Child tasks: E1 the report model and UI surfacing; E2 formula/code source export; E3 CSV+JSON data export; E4 Unicode-safe SVG/PDF where `stem-unicode-pdf-review` allows it; E5 delegation points for SPICE and other format owners. Acceptance: a document exports without modification, every loss is declared, and a third-party tool can consume the exported CSV/JSON with the published rules. Dependency: the element families it exports (F01, F09 first) and `mobix-spec-v1` for the JSON shape."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 220
-created = 2026-11-10
-tags = ["stem", "export", "open-format", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-code-block"
-title = "A living code block: source, language, monospace rendering, no execution (F09)"
-description = """
-Code can only be written as ink or as a text element with no language, no line numbers and no monospace guarantee, so it cannot be copied back out or searched meaningfully. A `codeBlock` is also the first new family that stresses Unicode export.
-
-User story: insert a Python block, paste code preserving newlines and indentation, see it monospaced with optional line numbers, search and copy it as text, save and reopen it on both shells, and get a readable PDF - with no code ever executed.
-
-Define `CodeBlockElement`: UTF-8 source, declared language, tab size, wrap, line numbers, box, style. The syntax colouring is a derived view and is never stored as the only source; Tree-sitter is an optional adapter with a plain-text fallback that must work on Android, Windows and in a third-party reader. Explicitly excluded: execution (`stem-code-execution-security` is the only path to it) and any automatic behaviour on file open.
-
-Child tasks: C1 model + public codec + fixture; C2 monospace renderer in `LivingInk` with PDF/SVG/`.xopp` fallback and the `XoppExportCoverageTest` branch; C3 Android/desktop editor with paste, selection and undo; C4 Unicode and search/copy proof; C5 optional highlighting adapter with resource limits. Acceptance: a Python block and a Unicode block survive save/reopen, copy as text, are found by search, render selectably in PDF where the font family allows, and degrade visibly in `.xopp`. Dependency: the new-type gate, `stem-unicode-pdf-review`, `mobix-spec-v1`."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 230
-created = 2026-11-10
-tags = ["stem", "code", "schema", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-persistent-connectors"
 title = "Connectors that hold onto pins instead of coordinates (F11)"
 description = """
@@ -1244,5 +1202,207 @@ urgency = "normal"
 order = 970
 created = 2026-11-11
 tags = ["stem", "plot", "trace", "device"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-conversion-report-model"
+title = "One report of what a conversion preserved, lost or refused"
+description = """
+Every export in this build reports its losses differently or not at all: XoppSynthesis.synthesize returns SynthesisResult.uncompiled as a flat Uncompilable(type, reason) list, app/src/main/java/com/mobixournal/ui/ExportGapsDialog.kt shows it on Android, desktop/src/main/java/com/mobixournal/desktop/io/DesktopSaves.kt carries it through a staged save, and PDF, SVG and PNG (PdfPagePlan, PageSvgWriter, DesktopExportCommands) report nothing at all.
+
+Add the model the rest of the feature needs, in mobix-core: a new render/ConversionReport.kt holding, per object (element id, family, the user's own wording) and per target (MOBIX, XOPP, PDF, SVG, PNG, CSV, JSON), one verdict from exactly five words — preserved, editable, displayed, partlyLost, unsupported — with a reason for anything below preserved and a note of what survived. It is a pure value: no I/O, no formatting policy. XoppSynthesis maps its Uncompilable list into it without changing the synthesis itself, so the .xopp path keeps one behaviour and gains a richer statement; a stroke with telemetry is partlyLost on XOPP (the drawing is displayed, tilt/azimuth/dtMs are gone) and preserved on MOBIX; an unparsable curve is unsupported with the curve's source in the reason; an untouched ink document reports nothing lost and its export stays byte-identical.
+
+Then read it where losses are shown today: ExportGapsDialog prints the report's non-preserved entries grouped by object, and the desktop's staged save does the same in the window's existing notice rather than a second dialog. English copy, tokens only, no new material class. Docs: docs/xopp-bridge.md's loss section keeps owning the bridge's own losses and links to the model; docs/guide-formats-and-conversion.md gains one sentence that an export states what it kept. Verify with mobix-core/src/test/java/com/mobixournal/render/ConversionReportTest.kt (the three verdict cases above, plus every target present for every family) and ./gradlew :mobix-core:test --tests '*ConversionReportTest*' :app:testDebugUnitTest."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 980
+created = 2026-11-11
+tags = ["stem", "export", "open-format"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-formula-source-export"
+title = "Export a formula's source, not only the picture of it"
+description = """
+A formula is stored as MathBlockElement with its source and its MathFlavor (LaTeX or Typst) in format/model/Living.kt, and MobixMathCodec writes both; the only way out of the document is MathBlockInk's teximage, which carries the source as a rendering target, not as an export a person or a third-party tool can read.
+
+Add the source export: a pure core function (new mobix-core/src/main/java/com/mobixournal/render/SourceExport.kt) that turns a MathBlockElement into Markdown (inline and block), LaTeX (the source verbatim, Typst kept as Typst rather than translated) and MathML only for the subset the parser can prove; anything outside that subset is reported unsupported by the report model added in stem-conversion-report-model, never re-rendered or guessed. The function returns the text plus its ConversionReport entries.
+
+Wire one entry point per shell, reusing the existing export plumbing rather than a second one: on Android the share/Save-As path that already routes through app/src/main/java/com/mobixournal/io/DocumentIo.kt, and on the window a new item in DesktopExportCommands' ExportRequest family; both write UTF-8 and state the language in the file's first line comment. Docs: docs/mobix-elements.md's formula entry gains the export statement, docs/guide-formats-and-conversion.md names the new target. Verify with a core test: LaTeX source round-trips verbatim, a Typst block is not silently translated, an unsupported construct is reported, and no export mutates the source document. Run ./gradlew :mobix-core:test --tests '*SourceExport*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 990
+created = 2026-11-11
+tags = ["stem", "export", "latex"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-table-csv-export"
+title = "Export a table as CSV with a documented quoting rule"
+description = """
+Tables are stored as TableElement (colWidths/rowHeights are the authority, cells are TableCell records in format/model/Living.kt) and leave the app only as ink through TableInk, so the numbers in a table cannot reach a spreadsheet.
+
+Add CSV export next to the report model: a pure core writer (new mobix-core/src/main/java/com/mobixournal/render/TableCsvExport.kt) that writes one row per table row, one column per cell in colWidths order, quoting a field only when it contains the delimiter, a quote or a newline, doubling embedded quotes, and emitting no BOM unless a test shows a consumer needs one (record the decision in the class comment). Empty cells are empty fields, not the string "null". The header row is written as it stands. Once the scientific-table schema lands (stem-table-cell-schema), a cell that carries a formula gets its formula and its value as two fields; until then the text field alone is exported and the report says the formula was not available.
+
+Entry points on both shells follow stem-formula-source-export's wiring, one file per table named after it, and every exported table contributes a preserved entry to the ConversionReport. Docs: docs/mobix-elements.md's table entry and docs/guide-formats-and-conversion.md. Verify with a core test containing commas, double quotes, a newline inside a cell, an empty cell, a Unicode cell and a ragged row: the output re-reads to the same grid through a strict parser, and a table the report calls preserved has no marker in the file. Run ./gradlew :mobix-core:test --tests '*TableCsv*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1000
+created = 2026-11-11
+tags = ["stem", "export", "csv"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-samples-export"
+title = "Export a plot as sampled CSV plus its JSON definition"
+description = """
+A plot leaves the app only as drawn ink (PlotInk through LivingInk), so the samples behind a curve cannot be reused by anything else. Export both halves: a CSV of (x, y) samples that are exactly the points the drawing uses — the same sampling as PlotInk.sample for the three kinds, so a Cartesian curve follows xMin..xMax, a parametric pair its tMin..tMax and a polar curve its thetaMin..thetaMax, with a non-finite point written as an empty pair and the break kept — and a JSON definition with the curve sources, kinds, ranges, colours, line styles, sample count and the named parameters, shaped after the finished mobix-spec-v1's element spelling rather than a second schema. A multi-curve plot writes one CSV per curve plus the shared JSON, and PlotElement.parameters (name, value) are part of the JSON because they exist today; calculation results are not invented and the report names them as unavailable until stem-page-calculations lands.
+
+Wire it through the same two entry points as the other targets and through the export report. Docs: docs/function-plots.md owns what a sample means, docs/guide-formats-and-conversion.md names the target. Verify with a core test: the CSV's first and last x equal the range ends within one step, a polar rose's points satisfy r = 2*cos(3*theta) within 1e-9 at the sampled angles, a pole produces one empty pair and no bridged segment, and the JSON re-parses to the same sources and ranges. Run ./gradlew :mobix-core:test --tests '*PlotSamples*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1010
+created = 2026-11-11
+tags = ["stem", "export", "csv", "json"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-interchange-delegation"
+title = "Give a format owner a seam instead of a fake exporter"
+description = """
+The semantic export must not grow a writer for a domain it does not own: a circuit's netlist belongs to the electronics format owner, and a simulation has no format yet. Add the seam rather than a placeholder: in mobix-core a small interface (one method: given a document, produce its entries for this target and a ConversionReport) plus a registry that maps a target name to its implementer, with every unimplemented target declared unsupported by name — so a SPICE export asked for today answers "unsupported: no netlist writer in this build" in the report instead of writing a file that is not a netlist.
+
+Register the targets that exist (CSV, JSON, Markdown/LaTeX source, SVG, PDF, .xopp) and leave the electronics one unregistered but named, and make the registry the only place a shell asks which targets are available, so the Android and desktop menus cannot disagree with the report. Decide in the class comment whether a later implementation registers itself or is linked from a table, and write the choice down in the doc that owns interchange, linking it from docs/architecture.md if it becomes its own page.
+
+Verify with a core test: asking for an unregistered target yields an unsupported report entry naming it, asking for a registered one delegates to the implementer, the registry's available-target list equals the targets a shell menu can offer, and no target writes a file when it reports unsupported. Run ./gradlew :mobix-core:test --tests '*Interchange*' and python3 scripts/todo/todo.py validate."""
+status = "active"
+level = "task"
+category = "chore"
+urgency = "normal"
+order = 1020
+created = 2026-11-11
+tags = ["stem", "export", "open-format", "spice"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-code-block-model"
+title = "Model a code block and let it leave the native format"
+description = """
+A code block is the first new family after the current ten, and the build already knows how to refuse a family that cannot leave: Element is a sealed interface (format/model/Element.kt), MobixElementCodec dispatches on a type field with MobixMathCodec as the closest precedent (source + flavour + box), LivingInk.compile is the single dispatch every surface reads, and XoppExportCoverageTest records elementFamilies = 10 with an exhaustive when.
+
+Add CodeBlockElement in format/model/ (its own file, not Living.kt: it has its own subject): UTF-8 source, a language string (open, like a shape's kind, so a language this build has never heard of is still the user's code), tabSize, wrap, lineNumbers, the box, font size and colour, plus the usual unknown-key preservation. Add MobixCodeBlockCodec with its own type name, register it in MobixElementCodec's exhaustive when, add the element to isLivingEntity's rule (its source is a recipe and its ink is a rendering of it, exactly like MathBlockElement) and therefore to LivingInk.compile, and add the sample to XoppExportCoverageTest with elementFamilies raised to 11. Update FormatDriftTest's fixture if it enumerates types, and add the schema entry to docs/mobix-elements.md (fields, defaults, the no-execution rule).
+
+Verify: a code block with a Python body and a Tab indentation survives encode/decode byte for byte, a language this build does not know round-trips unchanged, the unknown-key rule still holds for an extra JSON field, and the export coverage walk now exercises 11 families. Run ./gradlew :mobix-core:test --tests '*MobixElementCodec*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*' --tests '*FormatDriftTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1030
+created = 2026-11-11
+tags = ["stem", "code", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-code-block-ink"
+title = "Draw a code block monospaced and flatten it honestly into .xopp"
+description = """
+With the element modelled (stem-code-block-model), give it one drawing: a new mobix-core/src/main/java/com/mobixournal/render/CodeBlockInk.kt that expands tabs to tabSize columns, lays the source out line by line in a monospaced face sized from the box, draws optional line numbers in a gutter, wraps only when the element asks for it (a wrapped line is a layout decision, never a change to the stored source), and returns the same Element ink every other family returns. Add its arm to LivingInk.compile's exhaustive when.
+
+The exports then follow the shared path rather than a second one: PDF draws through PdfPagePlan, whose PdfFamily.MONO already maps "monospace"/"mono"/"courier"; SVG draws through PageSvgWriter.emitText, which already writes font-family per element, so the block is text elements with font-family="monospace" and no invented glyph. The .xopp fallback is text elements in reading order plus the mobix:meta claim the bridge already writes for living entities, so a reader that does not know code blocks still sees the source and this app revives the element. XoppExportCoverageTest's walk proves the family reaches a real file and reports no loss.
+
+Docs: docs/xopp-bridge.md's loss section gains the code block's one loss (no syntax colour in .xopp, because a stroke cannot carry a language), and docs/mobix-elements.md's entry states the rendering. Verify: a 200-line block lays out inside its box without a line escaping it, tabs expand to the declared width, a Unicode line keeps its characters through PDF and SVG, and the .xopp export contains one text element per line with the source unchanged. Run ./gradlew :mobix-core:test --tests '*CodeBlockInk*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1040
+created = 2026-11-11
+tags = ["stem", "code", "render"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-code-block-editor"
+title = "Insert and edit a code block on both shells"
+description = """
+A code block is only usable once it can be placed and edited. LivingPlacement's LivingSlot has four entries (PLOT, TABLE, CIRCUIT, MATH) and both shells place from that enum: add CODE, a default size in LivingPlacement.defaultSize, and the placement arm in app/src/main/java/com/mobixournal/ui/EditorOverlays.kt and desktop/src/main/java/com/mobixournal/desktop/tools/PendingPlacement.kt.
+
+The editor: on Android a dialog with a multi-line monospace field (paste preserves newlines and indentation), a language field, and tab size, wrap and line numbers toggles, growing with the keyboard through the IME handling the plot dialog already uses; on the window the same card in the inspector lane. Apply writes the element through the same replace path the other living entities use, so undo covers the edit and the canvas re-compiles only the changed element (LivingInk memoises by identity). English copy, one material class, tokens only, all five states for each control, glyphs from the catalogue only.
+
+Docs: docs/guide-stem-tools.md gains the tool's user-facing description; docs/interface-contract.md only if a new material class or glyph enters (it should not). Verify with an app JVM test of the editor state (paste with CRLF, tab expansion on apply, validation that an empty block cannot be placed, snapshot/undo through the existing history) and the same reducer on the desktop side. Run ./gradlew :app:testDebugUnitTest --tests '*CodeBlockEditor*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1050
+created = 2026-11-11
+tags = ["stem", "code", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-code-block-find-copy"
+title = "Make a code block findable and copyable as text"
+description = """
+A new family is invisible to search and to the clipboard until it is taught: PageTextIndex and DocumentSearch read TextElement today, and SelectionTransfer (app/src/main/java/com/mobixournal/render/SelectionTransfer.kt) builds its ClipData from the element's own text. A code block that cannot be found or copied is a picture of code, which is the thing this family exists to avoid.
+
+Add the text projection: PageTextIndex indexes a CodeBlockElement's source line by line (so a hit names the block and the line), DocumentSearch's result handling points at the block, and the copy path puts the source on the clipboard as plain text with its newlines and tabs intact — one block copies as one string, several copy in reading order — while the existing SVG/PNG clipboard forms keep working for a picture. No execution, no reformatting: what is copied is the stored source byte for byte.
+
+Docs: the search page that owns how a document is searched gains one sentence for the family, docs/mobix-elements.md states the text projection. Verify: a Unicode identifier inside a block is found by search and its hit opens the block; copying a block with mixed tabs, CRLF and Unicode returns the identical string; an empty block yields no hit. Run ./gradlew :mobix-core:test --tests '*DocumentSearch*' :app:testDebugUnitTest --tests '*CodeBlock*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1060
+created = 2026-11-11
+tags = ["stem", "code", "search"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-code-block-highlight"
+title = "Colour code syntax as a derived view with a strict budget"
+description = """
+Syntax colouring is a derived view and must never become the only source: the stored element is text, and the colouring is recomputed. Add an adapter with a plain-text fallback and resource limits: a pure core tokeniser (no Tree-sitter dependency for the first cut; an interface with one implementation for a handful of languages and null for everything else) that returns at most a recorded number of tokens per line and refuses a block over a recorded budget (source length and line count), stated in the class comment and enforced by a test. If highlighting is off, unknown, or over budget, the ink is the monospace text of stem-code-block-ink with its one colour — the fallback path is the default, not an error state.
+
+The colouring rides the ink only: no token is written to the document, the codec does not change, and the .xopp export keeps plain text (a .xopp stroke cannot carry a language), which the report statement already covers. Highlighting is off by default and per element (a flag), and turning it on never changes the source. Docs: docs/mobix-elements.md's entry gains the rule (derived view, budget, never stored) and docs/guide-stem-tools.md says highlighting is optional.
+
+Verify with a core test: a tokeniser run on a Python block produces the same line count and character count as the source, an over-budget block returns no tokens and the plain ink, an unknown language falls back without an exception, and a saved/reopened block is identical with highlighting on and off. Run ./gradlew :mobix-core:test --tests '*CodeHighlight*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1070
+created = 2026-11-11
+tags = ["stem", "code", "render"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-code-block-emulator-pass"
+title = "Edit a code block on the emulator and read it in the PDF"
+description = "The code block has not been seen on a device, and this host has no adb or AVD. Install the APK, insert a code block, paste a Python body with indentation, tab characters and a Unicode identifier, toggle line numbers and highlighting, apply, then reopen the document: the source must come back identical. Search for the identifier and copy the block to the clipboard, then export a PDF and open it: the block must be selectable text in a monospaced face where the font family allows it. Record screenshots of the editor with the keyboard open, the placed block, the search hit and the PDF page, keep logcat clean, and write down anything the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1080
+created = 2026-11-11
+tags = ["stem", "code", "device"]
 rebuild = true
 emulator_debug = true
