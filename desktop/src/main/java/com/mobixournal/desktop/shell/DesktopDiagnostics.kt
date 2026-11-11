@@ -99,6 +99,18 @@ internal object DesktopDiagnostics {
         if (enabled) write("watching: one line per second of painting")
     }
 
+    /**
+     * A draft whose painted geometry disagrees with a **full rebuild** of the same samples.
+     *
+     * Written the moment it happens rather than folded into the per-second line, because the defect it
+     * watches for lasts one frame: "the stroke warps by itself for an instant and comes back" is not a
+     * stutter and not a missing paint, and its numbers — how far, at how many points — are what says
+     * whether the geometry or the transform was wrong.
+     */
+    fun draftMismatch(detail: String) {
+        if (enabled) write("draft-mismatch: $detail")
+    }
+
     fun packet() {
         if (!enabled) return
         if (packetThread == null) packetThread = Thread.currentThread().name

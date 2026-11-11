@@ -3,6 +3,7 @@ import com.mobixournal.desktop.sheet.PageInk
 import com.mobixournal.desktop.sheet.number
 
 import androidx.compose.ui.graphics.Path
+import com.mobixournal.desktop.shell.DesktopDiagnostics
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
@@ -156,6 +157,51 @@ internal object StrokePathCache {
     private fun geometryWeight(points: List<StrokePoint>, shapes: Shapes): Long =
         points.size.toLong() * if (shapes.taper == null) 1 else 2
 
+    /**
+     * Diagnose-only: the draft's incremental geometry against a **full rebuild** of the same samples.
+     *
+     * Both halves are checked, because a stroke is two shapes here: the smoothed points the outline is
+     * fanned around, and the contour itself. A disagreement is not a slow frame — it is a line drawn in a
+     * shape the hand did not make, which is the report this probe answers. It writes one line per
+     * disagreement, at the moment it happens, and it mutates nothing (the comparison builds its own
+     * smoothing and its own projection).
+     */
+    private fun auditDraft(sampled: IncrementalSmoothing, incremental: FloatArray, scale: Float) {
+        val fresh = IncrementalSmoothing().also { it.update(sampled.points.toList()) }
+        if (fresh.points.size != sampled.points.size) {
+            DesktopDiagnostics.draftMismatch(
+                "smoothed points ${sampled.points.size} incremental vs ${fresh.points.size} full",
+            )
+            return
+        }
+        var worstPoint = 0.0
+        for (i in 0 until fresh.points.size) {
+            val a = sampled.points[i]
+            val b = fresh.points[i]
+            val d = kotlin.math.hypot(a.x - b.x, a.y - b.y)
+            if (d > worstPoint) worstPoint = d
+        }
+        val full = InkGeometry.taperOutline(fresh.points, scale, 0f, 0f)
+        if (full.size != incremental.size) {
+            DesktopDiagnostics.draftMismatch(
+                "outline ${incremental.size} values incremental vs ${full.size} full at ${fresh.points.size} points",
+            )
+            return
+        }
+        var worstOutline = 0f
+        for (i in full.indices) {
+            val d = kotlin.math.abs(incremental[i] - full[i])
+            if (d > worstOutline) worstOutline = d
+        }
+        if (worstPoint > 0.01 || worstOutline > 0.5f) {
+            DesktopDiagnostics.draftMismatch(
+                "points off " + String.format(java.util.Locale.ROOT, "%.3f", worstPoint) +
+                    " pt, outline off " + String.format(java.util.Locale.ROOT, "%.2f", worstOutline) +
+                    " px at ${fresh.points.size} points",
+            )
+        }
+    }
+
     private fun build(
         points: List<StrokePoint>,
         tool: Tool,
@@ -170,9 +216,14 @@ internal object StrokePathCache {
         // Only a **pressure** stroke needs its outline filled; a band or a uniform line is the polyline
         // with a width, and building an outline for it would be a path nobody draws.
         val taper = if (tool != Tool.HIGHLIGHTER && !InkGeometry.uniformWidth(points)) {
-            if (sampled != null && numeric != null) PageInk.outlinePath(
-                numeric.outline(sampled.points, scale, 0f, 0f, sampled.stablePrefix)
-            ) else PageInk.taperPath(points, scale, smooth = smooth)
+            if (sampled != null && numeric != null) {
+                val outline = numeric.outline(sampled.points, scale, 0f, 0f, sampled.stablePrefix)
+                // Asked only when the window keeps the record: a draft's outline is the one geometry that
+                // can differ from its own full rebuild, and a report of "it warps for an instant" needs the
+                // difference in pixels, not a theory (`--diagnose`).
+                if (DesktopDiagnostics.enabled) auditDraft(sampled, outline, scale)
+                PageInk.outlinePath(outline)
+            } else PageInk.taperPath(points, scale, smooth = smooth)
         } else {
             null
         }
