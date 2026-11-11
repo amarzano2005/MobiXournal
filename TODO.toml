@@ -2113,31 +2113,3 @@ created = 2026-11-11
 tags = ["stem", "definitions", "performance"]
 rebuild = true
 emulator_debug = false
-
-[[task]]
-id = "portable-copy-shell-action"
-title = "Offer Save a portable copy in both shells"
-description = "PortableCopy (mobix-core, task mobix-portability-embed-action) writes and verifies the copy; nothing offers it yet, so the feature has no door. Android: add a 'Save a portable copy' row beside Save As in the open document's menu (MainActivitySaves.kt / EditorDialogs.kt), launch the SAF create-document picker for a .mobix named <name>-portable.mobix, resolve each REFERENCED_ABSENT reference the way the renderer resolves it (the pdf/image store copy for a background, the sidecar beside the staged document for a recording), run PortableCopy.write on the save worker, and report the result with the sentence PortabilitySummary produces — including the references that stayed outside. Desktop: the same command in DesktopMenu.kt beside Save As, with the window's own save destination picker, run off the frame thread. Both shells must leave the open document untouched, keep the copy a normal .mobix, and never claim portability the copy does not have. Tests: a JVM test of the shell-side reference resolver (a background resolves to its store copy, an absent sidecar resolves to null) and a desktop test that the menu row is enabled only when the open document's report has something missing. Manual: save a copy from the tablet, delete the folder's PDF, reopen the copy and confirm the page still draws."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1640
-created = 2026-11-11
-tags = ["mobix", "portability"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "the-tablet-s-save-a-portable-copy-row"
-title = "The tablet's Save a portable copy row"
-description = "Give the tablet the desktop's new command: a row beside Save As in app/src/main/java/com/mobixournal/ui/EditorOverflowMenu.kt, a CreateDocument launcher in MainActivity whose result calls a new MainActivity.savePortableCopy(uri) that snapshots the tab, resolves each absent reference the way the renderer does (a PDF or picture against the document's folder, a recording through the audio store), calls PortableCopy.write off the UI thread with carriedPayloads from the opened archive, and reports how many references are still outside. DesktopPortableCopyTest is the desktop twin. Verify with :app:testDebugUnitTest, then on the Pixel_Tablet AVD only when asked."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1650
-created = 2026-11-11
-tags = ["android", "portability"]
-rebuild = true
-emulator_debug = false
