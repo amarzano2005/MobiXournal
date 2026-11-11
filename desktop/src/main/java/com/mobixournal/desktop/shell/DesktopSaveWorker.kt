@@ -95,6 +95,8 @@ internal class Saved(
      * was written are still only in memory — so the tab is **dirty**, which is the truth about the file.
      */
     val kept: Boolean = false,
+    /** An edit landed after the snapshot: the file does not hold it, so the tab stays dirty. */
+    val stillDirty: Boolean = false,
 )
 
 /**
@@ -119,23 +121,17 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
     return try {
         original.withExclusive { synchronized(original) {
             val newer = original.edits != request.revision
-            val moved = newer && original.model.pages.size != request.pageCount
-            if (same && moved) {
-                staged.close()
-                error("The document changed while saving. Save again.")
-            }
-            if (same && newer && holdsNoHandle) {
+            if (same) {
+                // Nothing has to be released: a `.xopp` holds no file, and a `.mobix` reads a copy in the
+                // cache (DesktopReadCopies), so the file just written is not the one the tab is reading. The
+                // move lands and the tab keeps the document it was drawing on — dirty if an edit arrived
+                // after the snapshot, because the file does not hold that one yet.
                 staged.commit()
-                return@withExclusive Saved(null, null, kept = true)
+                return@withExclusive Saved(null, null, kept = true, stillDirty = newer)
             }
-            if (same && newer) {
-                staged.close()
-                error("The document changed while saving. Save again.")
-            }
-            if (same) original.close()
             staged.commit()
             val loaded = DocumentLoader.load(request.target).also { it.audioStore = request.audio }
-            if (!same) original.close()
+            original.close()
             staged.close()
             original.pageSource.takeIf { it.absoluteFile != original.file.absoluteFile }?.delete()
             DesktopPdfIndexCache.forgetAll()
@@ -169,9 +165,19 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
                 onFailure = { Saved(null, it) },
             )
             val ownsResult = request.tab.document === request.document
-            if (result.failure == null && ownsResult && !result.kept) state.noteSaved(request.tab)
-            result.document?.let {
-                if (ownsResult) request.tab.adoptSaved(it, result.failure != null) else it.close()
+            if (ownsResult) {
+                when {
+                    result.document != null -> {
+                        state.noteSaved(request.tab)
+                        request.tab.adoptSaved(result.document, result.failure != null)
+                    }
+                    result.failure == null && result.kept -> {
+                        if (!result.stillDirty) state.noteSaved(request.tab)
+                        request.tab.notePublished(dirty = result.stillDirty)
+                    }
+                }
+            } else {
+                result.document?.close()
             }
             state.saveState.request = null
             state.failure = result.failure?.let(::describeSaveFailure)

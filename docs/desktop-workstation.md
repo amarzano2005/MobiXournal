@@ -70,10 +70,10 @@ What it does today:
   `DocumentEncoder.write` from `mobix-core` — the same three format arms the tablet saves through —
   staged into a temp file beside the target and then moved over it, so a crash mid-write cannot leave a
   truncated notebook. It encodes a **snapshot** taken when the command was given, so the page stays drawn and
-  keeps taking strokes while the bytes go out; only the commit — the move, and the `.mobix` reopen — holds
-  input, for the length of a rename. A `.mobix` releases its archive first, so an edit that lands during it
-  stays unpublished and the file is left as it was; a `.xopp` holds no handle, so the tab keeps the model it
-  wrote and stays dirty until the next save publishes the rest. The
+  keeps taking strokes while the bytes go out; the commit is a rename, and the canvas is still for exactly
+  that. A `.mobix` is read from a **copy** in the cache, so the file itself is never held open and a save
+  never closes the reader; a `.xopp` holds no handle at all. Either way the tab keeps the model it wrote and
+  stays dirty until the next save publishes the rest. The
   **container is the one it was opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only
   place it changes: the save window (`SaveAsPicker.kt`) asks which of the three in its own type box, opened
   on the document's own container, and names the file with the picked suffix (`note` is `note.mobix`). That

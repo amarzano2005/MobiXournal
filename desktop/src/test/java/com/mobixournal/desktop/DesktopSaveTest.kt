@@ -34,6 +34,7 @@ import java.security.MessageDigest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -513,6 +514,72 @@ class DesktopSaveTest {
         } finally {
             tab.document.close()
         }
+    }
+
+    /**
+     * A `.mobix` save is non-blocking too: the tab reads its pages from a **copy** in the cache, so the file
+     * the user keeps is never held open and a save never has to close the reader. An edit that lands while the
+     * bytes are written stays on the page, the tab says the file does not hold it, and the untouched pages
+     * still read — they come from the copy.
+     */
+    @Test
+    fun aMobixSaveLandsWhileTheReaderKeepsDrawingOnItsReadCopy() {
+        val file = temp.newFile("busy.mobix").apply { delete() }
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(6))
+        val loaded = DocumentLoader.load(file)
+        val tab = DesktopTab(loaded)
+        try {
+            val request = SaveRequest(tab, tab.file, SaveFormat.MOBIX) {}
+            val staged = stageSaveRequest(request)
+            val snapshotStrokes = strokesOf(tab.document.model, 0)
+
+            tab.record(tab.document.snapshot())
+            tab.document.editPage(0) { page ->
+                val layer = page.layers.first()
+                page.copy(
+                    layers = listOf(
+                        layer.copy(elements = layer.elements + SyntheticNotebook.stroke(777.0, "stk_after_snapshot")),
+                    ) + page.layers.drop(1),
+                )
+            }
+
+            val saved = commitSaveRequest(request, staged)
+            assertNull("the write landed: ${saved.failure}", saved.failure)
+            assertTrue("the tab kept the document it was drawing on", saved.kept)
+            assertTrue("and says the file does not hold the newer stroke", saved.stillDirty)
+            assertTrue(
+                "the stroke drawn during the write is still there",
+                tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
+                    .any { stroke -> stroke.points.first().x == 777.0 },
+            )
+            // The pages nothing inflated yet are still readable: they come from the cache copy.
+            assertEquals(
+                "an untouched page still reads its own ink",
+                3.0,
+                (tab.document.page(3).layers.single().elements.single() as Stroke).points.first().x,
+                0.0,
+            )
+            assertTrue(
+                "the bytes it reads live in a cache copy: ${tab.document.pageSource.path}",
+                tab.document.pageSource.path.contains("mobixournal-reading"),
+            )
+
+            DocumentLoader.load(file).use { onDisk ->
+                assertFalse(
+                    "the file holds the snapshot, not the stroke made after it",
+                    onDisk.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
+                        .any { stroke -> stroke.points.first().x == 777.0 },
+                )
+                assertEquals(
+                    "with exactly the pages the snapshot had",
+                    snapshotStrokes,
+                    strokesOf(onDisk.model, 0),
+                )
+            }
+        } finally {
+            tab.document.close()
+        }
+        assertNoStagedLeftovers(file.parentFile)
     }
 
     // ---- fixtures ----------------------------------------------------------------------------

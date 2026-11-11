@@ -33,11 +33,12 @@ class DesktopSaveWorkerTest {
             release.countDown(); reader.get(5, TimeUnit.SECONDS)
             val outcome = save.get(10, TimeUnit.SECONDS)
             assertNull(outcome.failure)
-            val loaded = requireNotNull(outcome.document)
-            tab.adoptSaved(loaded, false)
-            assertTrue(original.isClosed)
-            assertEquals(3, loaded.pageCount)
-            loaded.close()
+            // The commit no longer releases the archive: a `.mobix` reads a copy in the cache, so the move
+            // lands with the reader still open and the tab keeps the document it was drawing on.
+            assertTrue("the save landed without closing the reader", outcome.kept)
+            assertFalse("so the canvas keeps its pages", original.isClosed)
+            assertNull("and nothing had to be reopened", outcome.document)
+            assertEquals("the file holds the pages", 3, DocumentLoader.load(file).use { it.pageCount })
         } finally { release.countDown(); pool.shutdownNow(); original.close() }
     }
     @Test fun closeSaveCapturesTheRequestedTabEvenWhenAnotherTabIsActive() {

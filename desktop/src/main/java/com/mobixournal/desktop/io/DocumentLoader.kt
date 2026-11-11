@@ -73,7 +73,16 @@ class DesktopDocument(
      * With the two confused, a recovered tab's save would copy the *origin's* untouched-looking page over
      * the recovered edit; this is the field that keeps the repack source and the destination apart.
      */
-    val pageSource: File = file,
+    var pageSource: File = file,
+    /**
+     * The file the tab's **own** bytes are in when that is not [file]: the read copy a `.mobix` is opened
+     * from, or the staged copy a failed save adopted.
+     *
+     * It is a field of its own rather than "any page source that is not the file" because a recovered tab
+     * reads from its crash snapshot, and that snapshot is not this document's to delete. What is in here is
+     * litter the moment the document closes, so [close] deletes it.
+     */
+    internal var aside: File? = null,
     /**
      * What the manifest declared, decided **once** at open by `MobixCapabilities.evaluate` — null for a
      * `.xopp`, a recovered tab, or a file this build wrote itself.
@@ -288,7 +297,13 @@ class DesktopDocument(
         private set
 
     override fun close() = withExclusive {
-        if (!isClosed) { isClosed = true; source.close() }
+        if (!isClosed) {
+            isClosed = true
+            source.close()
+            // The read copy this tab was opened from: the handle is released now, so the file can go.
+            aside?.delete()
+            aside = null
+        }
     }
 }
 
@@ -443,8 +458,15 @@ object DocumentLoader {
      * stores when the page is drawn.
      */
     private fun openMobix(file: File): DesktopDocument {
-        val entries = MobixEntrySource.fromFile(file)
-        val document = openMobix(file, entries)
+        // Read from a **copy** in the cache (`DesktopReadCopies`): a `ZipFile` holds its file open for the
+        // session, Windows refuses to replace or rename a file held that way, and closing the reader to save
+        // is what made a save stop the canvas. The copy is the tab's; [file] is only ever written.
+        val readCopy = DesktopReadCopies.of(file)
+        val entries = MobixEntrySource.fromFile(readCopy)
+        val document = openMobix(file, entries).also {
+            it.pageSource = readCopy
+            it.aside = readCopy
+        }
         document.portability = runCatching {
             PortabilityAudit.audit(document.source, document.model.documentId, entries.entryNames)
         }.getOrNull()?.let(PortabilitySummary::of)

@@ -403,6 +403,16 @@ class DesktopTab(
         forgetHistory(dirty)
     }
 
+    /**
+     * The file now holds this tab's pages, and the tab **keeps** the document it was drawing on — the save
+     * that never had to close the reader (`DesktopReadCopies`). [dirty] says an edit landed after the
+     * snapshot: the file does not hold it, so the tab stays dirty rather than losing the truth.
+     */
+    internal fun notePublished(dirty: Boolean) {
+        if (!dirty) unsaved = false
+        forgetHistory(dirty)
+    }
+
     /** The identity two opens of the same document share — the absolute path, not the label. */
     val key: String get() = DesktopTabs.keyOf(document.file)
 
