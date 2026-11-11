@@ -38,7 +38,6 @@ internal object StrokePathCache {
     class Shapes(val polyline: Path, val taper: Path?, val bandWidthPx: Float?)
 
     private val smoothing = IdentityLruCache<Any, IncrementalSmoothing>(32, 200_000) { it.points.size.toLong() }
-    private val tapers = IdentityLruCache<Any, com.mobixournal.render.IncrementalTaper>(32, 200_000) { it.retainedPoints.toLong() }
     private class Cached(val shapes: Shapes, val weight: Long)
     private val byStroke = IdentityLruCache<Stroke, Map<Float, Cached>>(4096, 250_000) { values ->
         values.values.sumOf { it.weight }
@@ -146,9 +145,7 @@ internal object StrokePathCache {
             it.update(points)
             smoothing.put(identity, it)
         } else null
-        val numeric = if (sampled != null) tapers[identity] ?: com.mobixournal.render.IncrementalTaper() else null
-        val shapes = build(points, tool, lineStyle, scale, smooth, sampled, numeric)
-        if (numeric != null) tapers.put(identity, numeric)
+        val shapes = build(points, tool, lineStyle, scale, smooth, sampled)
         val retained = if (perDraft.size >= 4) emptyMap() else perDraft
         byDraft.put(identity, retained + (key to Cached(shapes, geometryWeight(points, shapes))))
         return shapes
@@ -169,8 +166,6 @@ internal object StrokePathCache {
     private fun auditDraft(
         samples: List<StrokePoint>,
         sampled: IncrementalSmoothing,
-        incremental: FloatArray,
-        scale: Float,
     ) {
         // Fed the **samples**, not the smoothed output: this compares the incremental path with a full
         // rebuild of the same input, which is the invariant the draft has to hold. Feeding it the smoothed
@@ -191,23 +186,13 @@ internal object StrokePathCache {
             val d = kotlin.math.hypot(a.x - b.x, a.y - b.y)
             if (d > worstPoint) worstPoint = d
         }
-        val full = InkGeometry.taperOutline(fresh.points, scale, 0f, 0f)
-        if (full.size != incremental.size) {
-            DesktopDiagnostics.draftMismatch(
-                "outline ${incremental.size} values incremental vs ${full.size} full at ${fresh.points.size} points",
-            )
-            return
-        }
-        var worstOutline = 0f
-        for (i in full.indices) {
-            val d = kotlin.math.abs(incremental[i] - full[i])
-            if (d > worstOutline) worstOutline = d
-        }
-        if (worstPoint > 0.01 || worstOutline > 0.5f) {
+        // The contour is no longer compared: it is built by the same pure function on both sides, so the
+        // only thing an incremental path can still make wrong is the **points** — and this is exactly the
+        // invariant `IncrementalSmoothingTest` pins, checked here against live samples.
+        if (worstPoint > 0.01) {
             DesktopDiagnostics.draftMismatch(
                 "points off " + String.format(java.util.Locale.ROOT, "%.3f", worstPoint) +
-                    " pt, outline off " + String.format(java.util.Locale.ROOT, "%.2f", worstOutline) +
-                    " px at ${fresh.points.size} points",
+                    " pt at ${fresh.points.size} points",
             )
         }
     }
@@ -219,19 +204,21 @@ internal object StrokePathCache {
         scale: Float,
         smooth: Boolean = true,
         sampled: IncrementalSmoothing? = null,
-        numeric: com.mobixournal.render.IncrementalTaper? = null,
     ): Shapes {
         builds++
         val polyline = PageInk.polyline(points, scale, smooth = smooth, curves = sampled?.curves)
         // Only a **pressure** stroke needs its outline filled; a band or a uniform line is the polyline
         // with a width, and building an outline for it would be a path nobody draws.
         val taper = if (tool != Tool.HIGHLIGHTER && !InkGeometry.uniformWidth(points)) {
-            if (sampled != null && numeric != null) {
-                val outline = numeric.outline(sampled.points, scale, 0f, 0f, sampled.stablePrefix)
-                // Asked only when the window keeps the record: a draft's outline is the one geometry that
-                // can differ from its own full rebuild, and a report of "it warps for an instant" needs the
-                // difference in pixels, not a theory (`--diagnose`).
-                if (DesktopDiagnostics.enabled) auditDraft(points, sampled, outline, scale)
+            if (sampled != null) {
+                // The draft's contour is built by the **same pure function the commit uses**, every frame,
+                // from the smoothed points. It used to be `IncrementalTaper`'s retained state, and the
+                // window's own `--diagnose` probe measured what that cost: points equal to the digit, a
+                // contour off by **69.54 px at the worst vertex, on every frame of a stroke** — the line
+                // drawn in a shape the hand never made. An outline over a few hundred points is a few
+                // hundred microseconds; a stroke that is wrong is not a budget question.
+                val outline = InkGeometry.taperOutline(sampled.points, scale, 0f, 0f)
+                if (DesktopDiagnostics.enabled) auditDraft(points, sampled)
                 PageInk.outlinePath(outline)
             } else PageInk.taperPath(points, scale, smooth = smooth)
         } else {
@@ -251,7 +238,6 @@ internal object StrokePathCache {
         byStroke.clear()
         byDraft.clear()
         smoothing.clear()
-        tapers.clear()
         builds = 0
     }
 }
