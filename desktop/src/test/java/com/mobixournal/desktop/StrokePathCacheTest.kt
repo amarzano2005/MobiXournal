@@ -36,7 +36,6 @@ class StrokePathCacheTest {
     /** A draft's shapes, asked for the way `PageCanvasOverlay` asks. */
     private fun shapes(points: List<StrokePoint>) = StrokePathCache.draft(
         identity = DRAFT,
-        size = points.size,
         tool = Tool.PEN,
         lineStyle = LineStyle.PLAIN,
         points = points,

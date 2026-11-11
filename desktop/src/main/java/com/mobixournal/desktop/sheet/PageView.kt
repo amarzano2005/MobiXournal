@@ -296,7 +296,6 @@ private fun DrawScope.drawKaraokeInk(
             if (visible.size >= 2) {
                 val shapes = StrokePathCache.draft(
                     identity = stroke,
-                    size = visible.size,
                     tool = stroke.tool,
                     lineStyle = stroke.lineStyle,
                     points = visible,

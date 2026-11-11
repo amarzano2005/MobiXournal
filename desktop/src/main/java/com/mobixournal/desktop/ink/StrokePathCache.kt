@@ -107,13 +107,13 @@ internal object StrokePathCache {
      * The shapes of a **draft** in progress.
      *
      * [identity] is the list the draft lives in (the canvas's two state lists), so the cache entry follows
-     * the one stroke being drawn and is dropped the moment another begins. The size is in the key because
-     * every batch makes the shape longer. [smooth] is false for geometric shapes so edges stay crisp and straight.
+     * the one stroke being drawn and is dropped the moment another begins. The length is in the key because
+     * every batch makes the shape longer — read from [points] itself, so the key cannot describe a shape the
+     * cache does not hold. [smooth] is false for geometric shapes so edges stay crisp and straight.
      */
     @Synchronized
     fun draft(
         identity: Any,
-        size: Int,
         tool: Tool,
         lineStyle: LineStyle,
         points: List<StrokePoint>,
@@ -134,7 +134,11 @@ internal object StrokePathCache {
             if (y < top) top = y
             if (y > bottom) bottom = y
         }
-        val key = DraftKey(size, scale, tool, lineStyle, left, top, right, bottom, smooth)
+        // The key's length is the geometry's own length, never a number the caller read elsewhere: a
+        // caller that asked with a stale count (a draft list read once for its points and once for its
+        // size, while the pen appended between the two) got a key describing a stroke it did not store,
+        // and one frame painted a deformed draft before the next repaired it.
+        val key = DraftKey(points.size, scale, tool, lineStyle, left, top, right, bottom, smooth)
         val perDraft = byDraft[identity].orEmpty()
         perDraft[key]?.let { return it.shapes }
         val sampled = if (smooth) (smoothing[identity] ?: IncrementalSmoothing()).also {

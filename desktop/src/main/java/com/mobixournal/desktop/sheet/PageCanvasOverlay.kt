@@ -143,7 +143,15 @@ private fun DrawScope.paintDraftPreviews(
     for (draft in drafts) {
         if (draft.isEmpty()) continue
         val isFigure = tool.shapeKind() != null
-        val samples = runCatching { if (isFigure) draft.toList() else draft }.getOrNull() ?: continue
+        // **One read of the draft per frame.** The list is the pen's own state and its coroutine appends
+        // to it while a frame paints it, so reading it twice — once for the points the geometry is built
+        // from, once more for the length the cache key is built with — could take a point set from one
+        // moment and a length from the next. That frame painted a stroke deformed at its head and the next
+        // frame painted it correctly, which is the "it warps by itself for an instant" a hand sees. A copy
+        // is taken once, here, and everything below reads that copy: the geometry, the key's length and the
+        // draft's identity stay one consistent view (the copy holds the same sample objects, so the
+        // incremental caches still recognise the stroke).
+        val samples = runCatching { draft.toList() }.getOrNull() ?: continue
         if (samples.size < 2) continue
         (if (!isFigure) runCatching {
             DraftStrokeCache.stroke(draft, samples, previewTool, previewInk.colour, previewInk.width, previewInk.lineStyle)
@@ -159,7 +167,6 @@ private fun DrawScope.paintDraftPreviews(
             // hover, a selection moving) does not rebuild the whole outline again.
             val shapes = StrokePathCache.draft(
                 identity = draft,
-                size = draft.size,
                 tool = draftStroke.tool,
                 lineStyle = draftStroke.lineStyle,
                 points = draftStroke.points,
