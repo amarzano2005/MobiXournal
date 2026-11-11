@@ -43,48 +43,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "stem-linear-algebra"
-title = "Vectors and matrices as values, not pictures (F14)"
-description = """
-There is no structured matrix value anywhere: matrices can be drawn or written in LaTeX, and nothing can compute their determinant. The evaluator planned in `stem-page-calculations` already needs a `Matrix`/`Vector` case, so the algorithms and their error states must be designed rather than bolted on per button.
-
-User story: type a 3x3 matrix, ask for its determinant, transpose or product, see a readable error for incompatible dimensions, copy the result as LaTeX or CSV, and keep the object editable.
-
-MVP scope: addition, dot product, matrix product, norm, transpose, determinant for small matrices, and linear solving with pivoting and singularity diagnostics. Enforce dimension limits and keep all computation off the UI thread. Prefer pure Kotlin in core over a third-party library; if a library is considered, verify its licence and portability first. Persist source and operation, never a screenshot of the numbers.
-
-Child tasks: L1 value schema and matrix input; L2 product/determinant/norm; L3 solving with pivoting and error states; L4 editor plus LaTeX/CSV export; L5 singular, empty and ragged tests plus interop. Acceptance: every dimension error is explicit, small-matrix results match a reference, round-trip through JSON and PDF is correct. Dependency: the `ScientificEvaluation` contract from F01."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 300
-created = 2026-11-10
-tags = ["stem", "math", "matrix", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-scientific-text"
-title = "A mixed text-and-formula box with shared baseline (F10)"
-description = """
-Text and maths cannot be combined: `MathBlockElement` is a block of LaTeX and `TextElement` is plain text, so 'the energy is E=mc²' is either two objects that drift apart or an image. A mixed run model is the missing piece for scientific notes.
-
-User story: write a paragraph, insert an inline formula, keep selection and baseline coherent, reconvert a formula to its source and back, edit with the on-screen keyboard without it covering the field, and save/reopen with the maths intact.
-
-Design a box with paragraphs of immutable, versioned runs (`text` | `math` with `flavor` LATEX and a preserved Typst source that is only rendered when a typesetter exists), a testable layout engine in core, selection, IME and undo. Reuse `LatexParser`, `LatexLayout` and `MathBlockElement` - no second LaTeX parser and no second PDF renderer for the same formula. Global reflow across pages and inline tables are a later phase, explicitly out of this scope, and so is pretending Typst source means Typst rendering.
-
-Child tasks: S1 run model + codec + fixture; S2 layout and rendering in `LivingInk`; S3 editing, IME and selection; S4 PDF Unicode and `.xopp` fallback; S5 UI entry point on both shells. Acceptance: a paragraph with `E=mc^2` saved and reopened byte-stable, copy/search across runs works, selection and undo behave, PDF selectable where the font family allows, `.xopp` degrades visibly. Dependency: `stem-code-block` (shared text infrastructure), `stem-unicode-pdf-review`, the new-type gate."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 310
-created = 2026-11-10
-tags = ["stem", "text", "math", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-study-cards"
 title = "Review cards whose answers are hidden by interaction, not by black ink (F21)"
 description = """
@@ -1872,5 +1830,242 @@ urgency = "normal"
 order = 1390
 created = 2026-11-11
 tags = ["stem", "dataset", "device", "benchmark"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-linalg-value"
+title = "A matrix and a vector as values with checked dimensions"
+description = """
+Nothing in the build holds a matrix as a value: every Matrix hit in the tree is a transform (PdfOverlayMatrix, Viewport), and matrices exist only as LaTeX someone wrote. Add the value model in mobix-core (new math/MatrixValue.kt): MatrixValue(rows, cols, values: DoubleArray) and VectorValue(size, values), both refusing a ragged or empty shape at construction with a named error rather than a size that disagrees with its data, plus a recorded dimension ceiling (the largest side and the largest cell count this build will compute) that an input may exceed only by being refused.
+
+Attach it to the evaluator's own value type rather than beside it: audit mobix-core for the evaluation contract the finished stem-page-calculations scope produced and extend that type with a matrix/vector case; if the shipped name differs from the plan's, extend what exists and say so in the comment. Parsing from text is a separate concern and lands with the editor child, so this task is only the value, its shape rules and its equality.
+
+Verify with mobix-core/src/test/java/com/mobixournal/math/MatrixValueTest.kt: a 3x3 parses from nine values, a ragged list is refused, an empty matrix is refused, a dimension over the ceiling is refused with the limit in the message, two equal matrices compare equal, and the value survives JSON encode/decode through the project's JsonNode. Run ./gradlew :mobix-core:test --tests '*MatrixValue*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1400
+created = 2026-11-11
+tags = ["stem", "linalg", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-linalg-operations"
+title = "Add, multiply, transpose, norm and determinant with no silent NaN"
+description = """
+Add the operations the MVP names, each returning a result or an explicit error and never a NaN that prints as a number: addition (equal shape), dot product (equal length), matrix product (inner dimensions agree), transpose, Frobenius and vector norms, and determinant for small matrices by LU with partial pivoting (a recorded cap on the size, and an expansion fallback only if the cap makes LU pointless). Pure Kotlin in core, no third-party dependency; if one is ever considered it must pass the licence and portability check the scope requires.
+
+Errors are values with reasons the UI can print: DIMENSION_MISMATCH naming both shapes, TOO_LARGE naming the cap, and for the determinant a SINGULAR answer that says the matrix is singular rather than returning 0.0 as if it were a value. Every operation states its own numeric contract in the comment (tolerance for treating a pivot as zero, whether the result is exact for integer input).
+
+Verify with a core test against hand-computed results: the determinant of a known 3x3 equals its exact value within 1e-12, a singular matrix reports SINGULAR, a 2x3 times 3x2 product equals the expected 2x2, mismatched shapes report DIMENSION_MISMATCH with both shapes in the message, transpose twice is the original, and a norm of a zero vector is 0 rather than an error. Run ./gradlew :mobix-core:test --tests '*Matrix*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1410
+created = 2026-11-11
+tags = ["stem", "linalg", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-linalg-solve"
+title = "Solve a linear system and say when it cannot be trusted"
+description = """
+Solving Ax = b is where a numerical answer can look right and be wrong, so it gets its own task: partial-pivoting elimination with the same zero-pivot tolerance as the determinant, a residual check (||Ax - b|| against a recorded tolerance), and three answers instead of one — SOLVED with the solution and its residual, SINGULAR when a pivot collapses, and NEARLY_SINGULAR when the residual or the pivot ratio crosses the recorded threshold, which returns the solution plus the warning rather than pretending either way. A condition estimate (the ratio of the largest to the smallest pivot) travels with the result.
+
+The solver never mutates its inputs and never runs on the UI thread; the caller decides where it runs. State the accuracy contract in the class comment with the measured worst case from the fixtures.
+
+Verify with a core test: a known 3x3 system returns the expected solution within 1e-10 and a residual below the tolerance; a singular system reports SINGULAR with no solution returned; a Hilbert 4x4 reports NEARLY_SINGULAR with its condition estimate; a 1x1 system solves; the inputs are unchanged after the call. Run ./gradlew :mobix-core:test --tests '*LinearSolve*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1420
+created = 2026-11-11
+tags = ["stem", "linalg", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-linalg-editor"
+title = "Type a matrix, pick an operation, read an error you can act on"
+description = """
+The editor on both shells: a grid of numeric fields whose shape is chosen before typing (rows and columns, with the ceiling visible and refused above it), paste of a block of numbers (semicolon or newline rows, comma or tab columns) that fills the grid or refuses with the row that did not fit, an operation picker limited to the operations whose shapes can apply, and a result panel showing the value with its shape plus any warning (SINGULAR, NEARLY_SINGULAR with its condition estimate, DIMENSION_MISMATCH naming both shapes). Copy the result as LaTeX and as CSV, and copy the input back as text.
+
+Computation goes off the UI thread: the panel shows a pending state while the core call runs and the app never blocks the pointer. English copy, tokens only, all five states, glyphs from the catalogue only. The desktop lane asks the same questions in its own card.
+
+Docs: docs/guide-stem-tools.md gains the tool. Verify with an app JVM test of the editor state (shape change, paste with a bad row, operation availability by shape, pending state, error text for each error kind) and the same reducer on the desktop side. Run ./gradlew :app:testDebugUnitTest --tests '*Matrix*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1430
+created = 2026-11-11
+tags = ["stem", "linalg", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-linalg-persist-export"
+title = "Store the source and the operation, never a picture of the numbers"
+description = """
+A matrix on a page must be editable after a reopen, so the document stores the input and the operation, never a rendered result alone. Decide and record where it lives: a new element family (a small matrix block with its grid, operation and result cache) versus a MathBlockElement carrying a matrix source and an operation field. The family is the honest answer if the grid is editable in place; if the decision is to reuse MathBlockElement, the task must say what an older build draws and why that is acceptable. Whichever it is: codec, `LivingInk` arm, a sample in XoppExportCoverageTest with elementFamilies raised by one, and the docs/mobix-elements.md entry.
+
+Then the exports: LaTeX for the value (a pmatrix the existing LaTeX path can render) and CSV for the numbers, through the export plumbing stem-semantic-export's children establish, with a ConversionReport entry that says the .xopp keeps the drawing and not the grid. The result is a cache: recomputed on open when the operation is present, and never the only source.
+
+Verify: a matrix element round-trips with its grid and operation, reopening recomputes the result rather than trusting the old one, the .xopp export contains the rendered value, and the export report names what a .xopp cannot keep. Run ./gradlew :mobix-core:test --tests '*Matrix*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1440
+created = 2026-11-11
+tags = ["stem", "linalg", "schema", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-linalg-tests-interop"
+title = "Reference results, singular and ragged cases, and JSON/PDF interop"
+description = """
+Pin the arithmetic against an outside answer rather than against itself: a fixture table of inputs and results computed by hand or by a reference tool (determinants, products, norms, solutions with their residuals), stored as a resource and asserted within stated tolerances. Add the cases the MVP's acceptance names: a singular matrix, an empty matrix, a ragged input, a shape over the ceiling, and a system whose solution is very sensitive (the Hilbert case) where the warning must appear.
+
+Then the interop half: the value round-trips through the project's JSON with its shape intact, the LaTeX export re-parses through the existing LatexParser to the same matrix, and the PDF export of a matrix element contains the numbers as text where the font family allows (skip and report the case where it does not). Record the tolerance table in docs/benchmarks.md.
+
+Verify: ./gradlew :mobix-core:test --tests '*Matrix*' --tests '*LinearSolve*' :app:testDebugUnitTest and a deliberate failure run (change one reference value, confirm the test fails) so the fixture is proven load-bearing."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1450
+created = 2026-11-11
+tags = ["stem", "linalg", "test"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-linalg-ui-thread-pass"
+title = "Compute a matrix on the emulator without freezing the canvas"
+description = "The 'off the UI thread' claim and the pending state are runtime facts, and this host has no adb or AVD. Install the APK, enter a matrix at the ceiling, run a determinant and a solve, and confirm the canvas keeps responding (drag a page while the computation runs, watch logcat for skipped frames); confirm the pending state appears and that a SINGULAR and a NEARLY_SINGULAR answer are both readable on screen; copy the LaTeX and the CSV, export a PDF and confirm the numbers are text. Record screenshots and the measured times in the archive entry, and fix on the device anything the JVM test could not see. Follow docs/tools.md's host fallback and record the commands."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1460
+created = 2026-11-11
+tags = ["stem", "linalg", "device"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-sci-text-runs"
+title = "A paragraph of versioned text and math runs"
+description = """
+Text and maths cannot be combined today: TextElement is plain content and MathBlockElement is a whole LaTeX block, so 'the energy is E=mc²' is either two drifting objects or an image. Add the model (new file format/model/ScientificTextBox.kt): a box of paragraphs, each paragraph an ordered list of immutable runs — a text run with its content and style, or a math run with its source, flavor LATEX, and a preserved Typst source that is only rendered when a typesetter exists — plus the paragraph style. A run carries its own version so an edit replaces a run rather than mutating one in place, which is what makes selection and undo across runs tractable.
+
+The box is a living entity: codec with its own type in MobixElementCodec, the living-entity rule and a LivingInk arm, a sample in XoppExportCoverageTest with elementFamilies raised by one, and the docs/mobix-elements.md entry. Never store a rendered formula: the run holds source and flavour, and rendering is derived.
+
+Verify: a two-paragraph box with three text runs and one math run round-trips byte for byte, a Typst source is preserved without being rendered, an empty paragraph is a paragraph rather than a gap in the codec, and an unknown run kind is preserved rather than refused. Run ./gradlew :mobix-core:test --tests '*ScientificText*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1470
+created = 2026-11-11
+tags = ["stem", "text", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-sci-text-layout"
+title = "Lay runs on one baseline with the existing LaTeX layout"
+description = """
+Give the box one layout engine in core (new mobix-core/src/main/java/com/mobixournal/render/ScientificTextLayout.kt): measure a text run through the same TextWidth measurement the table cells use, lay a math run through LatexParser and LatexLayout — no second parser and no second renderer — and place every run of a line on one shared baseline, with the line's height the maximum ascent and descent in it. Line breaking is a pure function over runs and the box width, and a run is never split: a math run that does not fit moves to the next line whole.
+
+The LivingInk arm draws from that layout only: text runs as text elements, math runs as the existing MathBlockInk texImage at the measured position. Because both go through the shared dispatch, the canvas, PDF, SVG and .xopp cannot disagree about the baseline. State the out-of-scope decisions in the class comment: no global reflow across pages and no inline tables, as the scope says.
+
+Verify with a core test: a line with a 12 pt text run and a formula shares one baseline within 1e-9, the line height is the tallest ascent plus the deepest descent, a run wider than the box moves to the next line whole, and a Typst run without a typesetter draws its source in a marked fallback rather than nothing. Run ./gradlew :mobix-core:test --tests '*ScientificTextLayout*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1480
+created = 2026-11-11
+tags = ["stem", "text", "render"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-sci-text-editing"
+title = "Select, convert and type across runs without the keyboard covering the field"
+description = """
+The editor on both shells: a paragraph field that renders the runs, lets the caret sit between and inside runs, and keeps the selection coherent across a math run (selecting across it selects it whole, never half a formula); an inline formula insertion that opens a small LaTeX field and converts the inserted text to a math run; a conversion back from a math run to its source text and back again, lossless; and undo per paragraph edit rather than per keystroke. On Android the field must not be covered by the IME — reuse the echo pattern the plot inspector already uses (PlotInputEcho) rather than a new mechanism.
+
+English copy, tokens only, all five states, glyphs from the catalogue. The desktop lane asks the same questions.
+
+Docs: docs/guide-stem-tools.md gains the box. Verify with an app JVM test of the editor reducer (caret movement across runs, selection spanning a math run, convert to source and back, undo grouping, IME echo label) and the same reducer on the desktop side. Run ./gradlew :app:testDebugUnitTest --tests '*ScientificText*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1490
+created = 2026-11-11
+tags = ["stem", "text", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-sci-text-export"
+title = "Export mixed text and maths honestly, and keep it searchable"
+description = """
+Two export problems and one text problem, solved in one task because they meet in the same place. Exports: PDF draws text runs with the bundled faces and math runs through their existing texImage, with Unicode checked against the decision stem-unicode-pdf-review recorded (a character the face cannot draw is reported, never dropped); SVG emits text runs as text elements and math runs as their rendered image; .xopp emits text elements plus teximages and says visibly in docs/xopp-bridge.md that the paragraph structure is lost while the words and the formulas are not.
+
+Text: PageTextIndex's layer filter already admits TextElement and MathBlockElement, and this family must be indexed too — a search for a word inside a text run finds the box and its position, and a search for a formula's source finds the math run; copying a selection across runs yields the paragraph as text with the formulas as their sources in order, not an image. The copy path is SelectionTransfer on Android and its desktop counterpart.
+
+Verify: a word in a text run is found by search and the hit opens the box; copying a paragraph containing inline maths yields one string with the sources in reading order; the PDF contains both the words and the formula where the font family allows; the .xopp export round-trips through XoppSynthesis with the bridge claim reviving the box. Run ./gradlew :mobix-core:test --tests '*ScientificText*' --tests '*DocumentSearch*' :app:testDebugUnitTest."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1500
+created = 2026-11-11
+tags = ["stem", "text", "export", "pdf"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-sci-text-ux"
+title = "Insert and edit a mixed box from both shells"
+description = """
+The surface: a tool that places a scientific text box from the STEM tool groups, a lane/panel that edits its paragraphs with inline formula insertion and the conversion control, style controls limited to what the model stores, and a placement default size in LivingPlacement. The run model is the source of truth; the editor never renders a formula into the document, only into the canvas.
+
+English copy, tokens only, one material class, all five states, glyphs from the catalogue, and both shells asking the same questions. The box joins the same placement path the other living entities use, so undo, copy and merge already work on it.
+
+Docs: docs/guide-stem-tools.md's section and docs/interface-contract.md if a material class or glyph enters. Verify with an app JVM test of the placement-and-edit reducer and the same reducer on the desktop side, plus a check that an edit produces one history entry per paragraph edit. Run ./gradlew :app:testDebugUnitTest --tests '*ScientificText*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1510
+created = 2026-11-11
+tags = ["stem", "text", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-sci-text-emulator-pass"
+title = "Type a paragraph with an inline formula on the emulator"
+description = "The mixed box has not been typed on a device and this host has no adb or AVD. Install the APK, place a box, type 'the energy is', insert an inline E=mc^2, keep typing, and confirm the baseline stays shared and the keyboard does not cover the field (the echo cell should appear as it does for the plot inspector); convert the formula back to source and forward again; select across the formula and copy, then paste into another paragraph; save, reopen and confirm the maths is intact; export a PDF and confirm the words are selectable and the formula is drawn. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1520
+created = 2026-11-11
+tags = ["stem", "text", "device"]
 rebuild = true
 emulator_debug = true

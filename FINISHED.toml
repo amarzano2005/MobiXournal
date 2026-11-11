@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stem-scientific-text"
+title = "A mixed text-and-formula box with shared baseline (F10)"
+description = "Broke the mixed box into six atomic tasks: the run model, the shared-baseline layout, editing and selection across runs, the exports plus the text projection, the surface on both shells, and the device pass. The audit confirmed both halves of the premise: TextElement is plain content and MathBlockElement is a whole block with its flavor, and the pieces the design must reuse are already there — LatexParser and LatexLayout, MathBlockInk's texImage, and the TextWidth measurement the table cells use — so the scope's no-second-parser rule is enforceable rather than aspirational. It also found the place the family would otherwise be invisible: PageTextIndex filters a layer to TextElement and MathBlockElement, so a new run-based box would not be searchable or copyable until its own child teaches the index — which is why the export child is also the text-projection child. The dependency the plan named is satisfied in the same way the code block's was: stem-code-block is a closed scope whose children own the shared text infrastructure, and stem-unicode-pdf-review is finished, so the Unicode limit is a recorded decision. No document changed: the family does not exist yet."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "text", "math", "p2"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
+id = "stem-linear-algebra"
+title = "Vectors and matrices as values, not pictures (F14)"
+description = "Broke the linear algebra into seven atomic tasks: the value with checked dimensions, the operations, the linear solve with its singularity states, the editor, the persistence and export decision, a reference-result interop suite, and the device pass. The audit found the space literally empty — every Matrix in the tree is a transform (PdfOverlayMatrix, Viewport) — so the value model comes first and attaches to the evaluation contract the finished stem-page-calculations scope produced rather than to a parallel type. The plan's honesty rule became the design of two children: a determinant that cannot be computed reports SINGULAR instead of 0.0, and a solve that is sensitive returns NEARLY_SINGULAR with its condition estimate instead of a confident number. Persistence is its own decision because the scope's requirement is that the source and the operation are stored and never a picture: the child has to choose a new family or a MathBlockElement carrying an operation, and say what an older build draws either way. No document changed: no matrix value exists yet, and each child names the page it must update in its own commit."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "math", "matrix", "p2"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
 id = "stem-dataset-laboratory"
 title = "CSV in, statistics and a regression plot out (F13)"
 description = "Broke the laboratory into eight atomic tasks: streaming import, the hash-referencing element, statistics with diagnostics, the scatter and OLS fit, export plus validator, the workflow on both shells, and a measured device pass. The audit found the plan's boundary already in the code: TableElement carries per-row heights and cell records, so a ten-thousand-row table is neither portable nor drawable — which is exactly why the dataset is a new datasetView referencing assets/dat_<sha256>.csv while the table stays the small hand-typed grid. The asset path, the manifest entries and MobixAssetSink/MobixAssetSource already exist, so the child reuses them and adds an AssetKind only if the finished spec allows it. It also found that the plot engine is the place to fit a line, not a second renderer: the regression child extends PlotKind compatibly and records the decision, so a reader that does not know the kind draws nothing instead of the wrong curve. The 10k-row claim is a device measurement, so it is a child with emulator_debug rather than a sentence in a test. No document changed: no dataset exists yet."
