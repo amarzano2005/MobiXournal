@@ -12,7 +12,7 @@ the reason named. A refusal for a different reason is a failure of the row, not 
 ## How to run it
 
 1. **Use the corpus, not a file of your own.** `mobix-core/src/test/resources/fixtures/mobix-v1/` holds
-   seventeen documents, one per compatibility construct; `mobix-core/src/test/resources/fixtures/
+   eighteen documents, one per compatibility construct; `mobix-core/src/test/resources/fixtures/
    mobix-hostile/` holds nine, one per threat. Read the corpus READMEs for what each file is.
 2. **Open the row's sample and assert the expected outcome.** For a rejected row, assert the rule the
    message names, not merely that something failed.
@@ -63,7 +63,7 @@ another entry, a reference from one entry to another, and geometry that is the s
 | 29 | recompute a `parametricShape`'s bounds from its vertices, and accept a `shape` name this build does not know | `MobixElementExampleTest.kt` (a shape with a foreign name) | accepted, bounds recomputed | element fields, parametricShape |
 | 30 | place a `circuit` by `position` then `rotation`, with its pins relative to the position and before the rotation | `MobixElementExampleTest.kt` (a rotated component with two pins) | accepted, pins land on the rotated positions | element fields, circuit |
 | 31 | typeset a `mathBlock` from its `source` alone, in the `flavor` it names | `MathBlockCodecTest.kt` (a Typst block) | accepted, no rendered bytes read | element fields, mathBlock |
-| 32 | model every family's documented example without falling back to verbatim preservation | `MobixElementExampleTest.kt` | accepted, no `RawElement` for a known family | `mobix-element-fields.md` |
+| 32 | model every family's documented example without falling back to verbatim preservation | `18-every-family.mobix` | accepted, no `RawElement` for a known family | `mobix-element-fields.md` |
 | 33 | parse an identifier against the grammar, and fail the open on one that does not parse instead of reading it as an unknown feature | `17-third-party-writer.mobix`; `MobixCapabilityTest.kt` (a malformed identifier) | accepted; rejected — corrupt declaration | `mobix-capabilities.md`, the identifier's grammar |
 | 34 | satisfy a capability only from the same namespace and feature at an equal or higher version, never across two features | `15-capability-higher-version.mobix`; `MobixCapabilityTest.kt` | refuse-write — `:1` does not satisfy `:2` | `mobix-capabilities.md`, a later version is a superset |
 | 35 | keep both lists in written order with one entry per capability, an absent list meaning empty | `16-capability-additive-order.mobix` | accepted, order and spelling unchanged | `mobix-capabilities.md`, required is a floor |

@@ -2292,23 +2292,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-family-corpus"
-title = "Give every modelled family a fixture a third party can open"
-description = """
-The corpus has no document per family: the seventeen files are organised per compatibility construct, and elements appear in them incidentally (`08-unknown-top-level-field.mobix` carries a stroke and a text, `09-unknown-nested-fields.mobix` a table and a plot). So `spec/CONFORMANCE.md` row 32 — model every family's documented example — points at a test class rather than at a file a third party can open, and a fixture per type cannot be satisfied by an existing file without quietly changing what that file proves.
-Extend `scripts/make-mobix-fixtures.py` with `18-every-family.mobix`: one page carrying one element of each of the nine modelled families with every documented field populated, correct digests and offsets, plus its row in the corpus README saying exactly that. Then assert in `MobixV1FixturesTest` that opening it yields nine modelled elements and no retained `RawElement`, and repoint row 32's sample column at the file.
-The generator stays the source of truth for the bytes: fixed timestamps, no clock, no locale, so a re-run reproduces the same archive and the fixture stays reviewable as a diff. The README table and the fixture change together, and the file stays small enough to review — one instance per family, no stroke with thousands of points."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1700
-created = 2026-11-11
-tags = ["mobix", "spec", "fixtures"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-migration-registry"
 title = "Enforce the migration seam while there is nothing to migrate"
 description = """

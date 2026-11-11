@@ -58,6 +58,7 @@ class MobixV1FixturesTest {
         "15-capability-higher-version",
         "16-capability-additive-order",
         "17-third-party-writer",
+        "18-every-family",
     )
 
     /**
@@ -137,7 +138,7 @@ class MobixV1FixturesTest {
                 onDisk,
             )
         }
-        assertEquals("the corpus the README documents", 17, corpus.size)
+        assertEquals("the corpus the README documents", 18, corpus.size)
         for (name in corpus) {
             assertTrue("$name is a readable archive", bytes(name).size > 200)
         }
@@ -582,5 +583,28 @@ class MobixV1FixturesTest {
         assertEquals("the mode is written back", CanvasMode.INFINITE_VERTICAL, saved.manifest.canvasMode)
         assertEquals(listOf(0 to 0, -1 to 2), saved.chunks.map { it.cx to it.cy })
         assertTrue(saved.manifest.pages.isEmpty())
+    }
+
+    // ---- 18: every modelled family in one document -----------------------------------------------
+
+    @Test
+    fun oneFixtureCarriesEveryModelledFamily() {
+        val document = MobixDocument.open(archive("18-every-family"))
+        val elements = document.pages.single().layers.flatMap(Layer::elements)
+
+        assertEquals("one element per modelled family", 9, elements.size)
+        assertTrue(
+            "no element falls back to retention in the file that claims to model them all: a " +
+                "new family arriving without a codec is exactly what this asserts is absent",
+            elements.none { it is RawElement },
+        )
+        assertEquals(
+            "one of each family, and none repeated",
+            setOf(
+                "Stroke", "TextElement", "ImageElement", "TexImageElement", "TableElement",
+                "PlotElement", "ParametricShapeElement", "CircuitElement", "MathBlockElement",
+            ),
+            elements.map { it::class.simpleName }.toSet(),
+        )
     }
 }

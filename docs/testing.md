@@ -40,7 +40,7 @@ gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/re
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.
 
-**The v1 compatibility corpus.** `MobixV1FixturesTest` drives the seventeen committed files under
+**The v1 compatibility corpus.** `MobixV1FixturesTest` drives the eighteen committed files under
 `mobix-core/src/test/resources/fixtures/mobix-v1/` through the container, the paged reader, the document
 layer, a save to a new file and an incremental save, and it fails when a fixture sits in the directory
 that no test names; [`spec/CONFORMANCE.md`](../spec/CONFORMANCE.md) is the row-by-row procedure a third

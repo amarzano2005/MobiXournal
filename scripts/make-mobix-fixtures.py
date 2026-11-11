@@ -604,6 +604,85 @@ def fixture_17():
     )
 
 
+# ---- 18: one element of every modelled family ------------------------------------
+
+
+def fixture_18():
+    """One page carrying every family the format models, with its documented fields set.
+
+    The corpus is otherwise organised per compatibility construct, so an element appears in it
+    incidentally. This is the file the conformance checklist's "model every family" row and the
+    new-family gate both name, which is why every family is here at once and fully populated.
+    """
+    png = PNG_1X1
+    image_name = asset_name("img", "png", png)
+    wav = wav_tone(16)
+    audio_name = asset_name("aud", "wav", wav)
+
+    ink = stroke(
+        "stk_01", [point(72.0, 96.0, 1.4, 0.55, 0.10, 0.20, 7),
+                   point(180.0, 120.0, 1.6, 0.62, 0.12, 0.25, 9)],
+        color="#11223344", line_style="DASHED", cap_style="round", line_width=2.0,
+    )
+    ink["audioRef"] = {"filename": "take.wav", "assetId": audio_name, "startMs": 5}
+
+    text = {"type": "text", "id": "txt_01", "font": "Sans 12", "size": 12.0,
+            "x": 10.0, "y": 20.0, "color": "#000000ff", "content": "hello"}
+
+    picture = {"type": "image", "id": "img_01",
+               "bounds": {"left": 40.0, "top": 40.0, "right": 240.0, "bottom": 200.0},
+               "asset": image_name}
+
+    formula = {"type": "texImage", "id": "tex_01",
+               "bounds": {"left": 100.0, "top": 300.0, "right": 280.0, "bottom": 330.0},
+               "latex": "x^2", "color": "#000000ff", "asset": image_name,
+               "latexInAttribute": False}
+
+    grid = {"type": "table", "id": "tbl_01",
+            "bounds": {"left": 72.0, "top": 400.0, "right": 372.0, "bottom": 500.0},
+            "colWidths": [10.0, 20.0], "rowHeights": [30.0],
+            "cells": [[{"text": "a", "align": "LEFT", "bold": True,
+                        "fillColor": "#11223344"}]],
+            "headerRow": True, "borderColor": "#212121ff", "borderWidth": 1.5}
+
+    curve = {"type": "plot", "id": "plt_01",
+             "bounds": {"left": 72.0, "top": 120.0, "right": 420.0, "bottom": 340.0},
+             "xMin": -1.0, "xMax": 1.0, "samples": 50, "showCriticalPoints": True,
+             "includeDerivative": True, "shadeIntegral": {"from": 0.0, "to": 1.0},
+             "curves": [{"kind": "PARAMETRIC", "source": "cos(t)", "sourceY": "sin(t)",
+                         "color": "#000000ff", "strokeWidth": 1.5,
+                         "lineStyle": "DOTTED", "tMin": 0.0, "tMax": 6.28}],
+             "parameters": {"a": 2.0}, "axisColor": "#37474fff",
+             "infoSide": "ABOVE"}
+
+    figure = {"type": "parametricShape", "id": "shp_01", "shape": "pentagon",
+              "bounds": {"left": 1.0, "top": 2.0, "right": 3.0, "bottom": 4.0},
+              "vertices": [{"x": 1.0, "y": 2.0}, {"x": 3.0, "y": 2.0},
+                           {"x": 2.0, "y": 4.0}],
+              "strokeColor": "#000000ff", "strokeWidth": 1.5, "fillColor": "#11223344",
+              "showAngles": True, "showSideLengths": True}
+
+    component = {"type": "circuit", "id": "crc_01", "symbol": "resistor", "value": "R1",
+                 "labelSide": "RIGHT", "position": {"x": 10.0, "y": 20.0},
+                 "rotation": 90.0, "strokeColor": "#000000ff", "strokeWidth": 1.5,
+                 "pins": [{"id": "p1", "relX": 0.5, "relY": 1.5, "connectedTo": "p2"}]}
+
+    block = {"type": "mathBlock", "id": "mth_01", "source": "\\frac{\\pi}{2}",
+             "flavor": "TYPST", "color": "#1f6febff",
+             "bounds": {"left": 100.0, "top": 600.0, "right": 280.0, "bottom": 640.0}}
+
+    page_bytes = j(page(layers=[layer([ink, text, picture, formula, grid, curve, figure,
+                                       component, block], name="Every family")]))
+    write_mobix("18-every-family.mobix", [
+        ("manifest.json", j(manifest([part("pg_1", "pages/page-0001.json", page_bytes)],
+                                     title="Every family"))),
+        ("canvas.json", j(canvas())),
+        ("pages/page-0001.json", page_bytes),
+        (image_name, png),
+        (audio_name, wav),
+    ])
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     for stale in os.listdir(OUT):
@@ -612,7 +691,7 @@ def main() -> None:
     for fixture in (
         fixture_01, fixture_02, fixture_03, fixture_04, fixture_05, fixture_06,
         fixture_07, fixture_08, fixture_09, fixture_10, fixture_11, fixture_12,
-        fixture_13, fixture_14, fixture_15, fixture_16, fixture_17,
+        fixture_13, fixture_14, fixture_15, fixture_16, fixture_17, fixture_18,
     ):
         fixture()
 
