@@ -450,9 +450,9 @@ fun EditorScreen(
             )
         }
 
-        // A document is moving to or from storage — possibly a slow network share, so say so and
-        // swallow taps until it lands rather than letting the canvas be edited mid-transfer.
-        if (busy != null) TransferOverlay(busy)
+        // A document moving to or from storage may need a slow share and swallows taps until it lands; a
+        // **save** writes a snapshot the canvas is no longer part of, so it says so in the corner instead.
+        if (busy != null) if (busy.startsWith("Saving")) SavingNotice(busy) else TransferOverlay(busy)
 
         EditorOverlays(
             ui = ui,
