@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stem-numeric-reliability"
+title = "Choose derivative/root/integral algorithms by accuracy, not by doc text"
+description = "Broke the reliability question into six atomic tasks: a measured corpus first, then the derivative scheme, the root solver, the integrator, a result type that carries its own accuracy, and a deliberate rewrite of the characterization tests. The audit's findings are what the tasks are built on: derivative is a fixed H = 1e-5 symmetric difference with no bound, roots are found on a 200-sample grid with bisection refined only where the sign changes, adaptive Simpson runs to epsilon 1e-7 and depth 24, and FunctionAnalysisCharacterizationTest already asserts a missed tangent root at x = 0.5005 with the comment that nothing says so. The order is deliberate: the corpus produces the numbers before any algorithm changes, each replacement has to beat the baseline it recorded, and docs/math-engine.md's four sections are updated with the measured before and after rather than a claim of better accuracy. The last child exists because the characterization file is the honest record of the old behaviour; it is rewritten case by case, and every tolerance that moves carries its old and new number, so an improvement cannot be claimed by deleting an assertion. No document changed here: no algorithm moved yet, so the pages that describe the current schemes are still accurate."
+status = "finished"
+level = "scope"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "math", "p1"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
+id = "stem-persistent-connectors"
+title = "Connectors that hold onto pins instead of coordinates (F11)"
+description = "Broke the connector into six atomic tasks: the element and its codec with the one-truth decision about a pin's net name, the bounded orthogonal router with an explicit junction, the drag and component-move behaviour on both shells with a single undo, the .xopp export and its documented native-only semantics, the id remapping that copy and merge need, and the device pass. The audit corrected the plan's premise: a connection is not purely geometric today. CircuitPin already carries a connectedTo net name through MobixCircuitCodec, and CircuitSnapping already snaps a wire's end onto a pin (WIRE_END_PIN_ID) and writes that name — what is missing is an object that owns the connection, because the wire itself is an ordinary Stroke and nothing holds the two ends. That is why the first task is a model decision rather than a UI one, and why the plan now forbids two truths for a net. The dependency the scope named is finished: mobix-capability-contract and mobix-known-type-unknown-fields are archived, and docs/mobix-capabilities.md already shows org.mobixournal/stem.connector:1 as its example, so the model task declares the capability instead of inventing one. Copy and merge became their own task because a PinRef names an element by id: without the remap, a copied connector points at the original and a merge cannot reconcile one. No document changed: nothing exists yet, and each child names the page it must update in its own commit."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "circuit", "schema", "p1"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
 id = "stem-code-block"
 title = "A living code block: source, language, monospace rendering, no execution (F09)"
 description = "Broke the code block into six atomic tasks: the element and its codec, the monospaced ink with the PDF/SVG/.xopp fallback, the editor on both shells, search and copy, the optional highlighting adapter with its budget and the no-execution boundary, and the device pass. What the audit found is that adding a family is mechanical here rather than open-ended: Element is a sealed interface in format/model/Element.kt, MobixElementCodec dispatches on a type field with MobixMathCodec as the closest precedent, LivingInk.compile is the one dispatch the canvas and every export read, and XoppExportCoverageTest records ten families with an exhaustive when — so the build itself refuses a family that cannot leave the native format. Monospace is already half in place: PdfPagePlan maps monospace, mono and courier to PdfFamily.MONO, PageSvgWriter writes font-family per text element, and the app bundles DejaVu Sans Mono, so the renderer reuses a face instead of adding one. The real work is text infrastructure: LivingSlot has four placement slots and a code block needs a fifth on both shells, and search and copy read TextElement today, which is why the family would be invisible to DocumentSearch until its own task — the same shared layer stem-scientific-text is waiting on. No document changed: the family does not exist yet."

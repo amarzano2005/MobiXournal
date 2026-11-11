@@ -22,48 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "stem-persistent-connectors"
-title = "Connectors that hold onto pins instead of coordinates (F11)"
-description = """
-`CircuitElement` exposes `CircuitPin(id, relX, relY, connectedTo)` and `CircuitSnapping` matches geometry, including wire ends, so a wire is a drawing rather than a connection: move the component and the electrical meaning is lost, and an incidental crossing is indistinguishable from a junction. No topology exists to check.
-
-User story: place two resistors and a source, drag a wire between pins, move one component and the wire follows and still connects the same pins; a crossing is drawn but is not a junction unless marked; undo restores the whole drag as one step.
-
-Design a new `connector` element: endpoints as `PinRef {elementId, pinId}` with fallback coordinates, route mode, waypoints, style. Keep routing strictly separate from connectivity, keep the net distinct from the drawn wire, define dangling-endpoint and unresolved-pin behaviour, and make the dependency index local so a drag never recomputes a whole page. Copy and merge must remap ids consistently.
-
-Child tasks, in this order: M1 model + codec + JSON Schema + fixture (before any UI); M2 bounded orthogonal router with cache and an explicit junction marker; M3 drag UI on both shells with a single undo; M4 `.xopp` export as geometry with the semantics documented as `.mobix`-only; M5 net export consumed by `stem-netlist-spice-review`. Acceptance: a series R1/R2/V circuit keeps its connections through a component move, copy, reorder and save/reopen, and the file remains readable by a third-party validator. Dependency: `mobix-known-type-unknown-fields` and a minimum `mobix-capability-contract`."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 240
-created = 2026-11-10
-tags = ["stem", "circuit", "schema", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-numeric-reliability"
-title = "Choose derivative/root/integral algorithms by accuracy, not by doc text"
-description = """
-The audit `stem-numeric-doc-code-audit` records what `FunctionAnalysis.kt` really does: fixed `H = 1e-5`, `bisectRoot` with a 24-iteration default, no error estimate and no stated accuracy. That is adequate for drawing a tangent and not adequate for a scientific result, and the plotting features about to ship depend on it.
-
-Decide, with measurements: the derivative scheme (fixed vs adaptive step, higher-order stencil, safeguarded secant), the root and extremum solver (keep bisection, or a bracketing method with better convergence), the integrator, and how singularities and non-differentiable points are reported. Define accuracy metrics over a fixture set, error estimates, computational budgets and fallbacks when a result cannot be trusted. Keep the result honest: 'no root found in the scanned interval' is a valid answer, an invented one is not.
-
-Respect the consumers: `PlotElement.summaryText` is derived, the analysis summary is cached, and `stem-plot-inspection` will surface these numbers to users. Never swap an algorithm without a precision/regression benchmark.
-
-Child tasks: precise algorithm decisions per function, test corpus with tolerances, replacement of `FunctionAnalysis` internals behind the same public surface, and doc updates in `docs/math-engine.md`. DoD: a measured accuracy improvement (or a documented decision to keep the current scheme), with the audit's characterization tests updated deliberately. Dependency: `stem-numeric-doc-code-audit`."""
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "normal"
-order = 250
-created = 2026-11-10
-tags = ["stem", "math", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-netlist-spice-review"
 title = "From connectors to a checkable circuit: ERC and an SPICE subset (F12)"
 description = """
@@ -1406,3 +1364,228 @@ created = 2026-11-11
 tags = ["stem", "code", "device"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "stem-connector-model"
+title = "Model a connector that ends on pins, and keep one truth for a net"
+description = """
+The scope's premise is only half true, and the model must start from what exists: a pin already carries a net name — CircuitPin(id, relX, relY, connectedTo) in format/model/Living.kt, written and read by MobixCircuitCodec's PIN_KEYS — and CircuitSnapping already offers a wire's end as a target (WIRE_END_PIN_ID) and writes pin.connectedTo = netName when a gesture joins it. What does not exist is any object that holds the connection: the wire is an ordinary Stroke, so moving a component leaves the wire behind, a crossing and a junction look the same, and copy/paste or a merge has no id to remap.
+
+Add ConnectorElement in format/model/ (its own file): endpoints as PinRef(elementId, pinId) with fallback coordinates for a dangling end, route mode, waypoints, stroke colour and width, label, id, unknown-key preservation. Add MobixConnectorCodec and register the type in MobixElementCodec; the element is a living entity (its route is a recipe, its ink is a rendering), so add it to isLivingEntity's rule and to LivingInk.compile, give it a sample in XoppExportCoverageTest and raise elementFamilies by one to whatever the build then has (10 today, 11 if the code block landed first), and declare the capability org.mobixournal/stem.connector:1 following docs/mobix-capabilities.md's example so a reader that does not know connectors refuses the document politely instead of losing the wire.
+
+One decision is the point of the task: connectedTo must not become a second truth beside the connector. Record in the code comment and in docs/mobix-living-entities.md whether the pin's net name is derived from connectors (and then it is a cache, recomputed, never authored) or remains the pin's own label with the connector referencing pins and no net name at all. Pick one, state what a file written by the other build reads as, and make the codec agree.
+
+Verify with mobix-core/src/test/java/com/mobixournal/format/mobix/MobixConnectorCodecTest.kt: a connector between two component pins survives encode/decode with its PinRefs, a dangling end keeps its fallback coordinate, an unknown route mode is preserved rather than refused, and the export coverage walk names the new family. Run ./gradlew :mobix-core:test :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1090
+created = 2026-11-11
+tags = ["stem", "circuit", "schema", "connector"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-connector-router"
+title = "Route a connector orthogonally, bounded, with an explicit junction"
+description = """
+Routing and connectivity are separate: the connector's PinRefs decide what it is electrically joined to, and the route is only how it is drawn. Add the router as a pure core object (new mobix-core/src/main/java/com/mobixournal/render/ConnectorRouter.kt): given two absolute endpoints, an obstacle list of the page's element boxes and a route mode, produce an orthogonal polyline with at most a recorded number of bends, preferring straight then one-bend then two-bend paths, never crossing a component's box when a bounded detour exists, and deterministically (same input, same points). Waypoints from the element are honoured in order and split the route into legs.
+
+Junctions are explicit: a crossing is not a junction, so a connector that crosses another carries no dot, and a junction is marked by its own record (a small filled dot at a recorded point) rather than inferred from geometry. A dangling endpoint (unresolved PinRef) draws a visible open end at its fallback coordinate instead of inventing a connection. Cache routes per (endpoints, obstacles revision) and invalidate on a page revision counter, so a drag re-routes one connector, not the page.
+
+Docs: docs/mobix-living-entities.md gains the route rule and the junction statement. Verify with a core test: a direct route is one segment, an obstacle in line produces one detour and no box crossing, bends never exceed the recorded bound over a corpus of 100 endpoint pairs, the same input twice returns equal points, a crossing carries no junction marker, and an unresolved endpoint yields the open-end drawing plus no net claim. Run ./gradlew :mobix-core:test --tests '*ConnectorRouter*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1100
+created = 2026-11-11
+tags = ["stem", "circuit", "render", "connector"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-connector-drag"
+title = "Drag a connector end onto a pin, and move a component without losing the wire"
+description = """
+With the model and the router in place, wire the gesture on both shells and make the drag one undo step. Reuse the existing magnet rather than a second one: CircuitSnapping.collectTargets/collectPlacementTargets, pinAbsolutePosition and the WIRE_END_PIN_ID convention already answer which pin is near a point, so an endpoint drag snaps through them and writes a PinRef on release; the endpoint pulled free keeps a fallback coordinate and no PinRef, which the router draws as an open end.
+
+Moving a component must move the connectors that end on its pins: keep a per-page dependency index (pin ref element id to connector ids) rebuilt on element add/remove, never per pointer move, so dragging a component re-routes only its connectors and only their changed legs. One undo entry covers the whole drag on both shells (the existing element history snapshots the page, so batch the connector rewrites with the component move rather than one entry each). English copy; the pin rings the connector gesture already shows are kept.
+
+Verify with an app JVM test of the drag reducer (snap to the nearest pin, refuse a self-join, free end keeps coordinates, one history entry after a full drag) and a desktop test of the same reducer, plus a core test that moving a component's box changes its connectors' routes and keeps their PinRefs. Run ./gradlew :app:testDebugUnitTest --tests '*ConnectorDrag*' :mobix-core:test --tests '*Connector*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1110
+created = 2026-11-11
+tags = ["stem", "circuit", "ui", "connector"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-connector-export"
+title = "Export a connector as its drawn route, semantics documented as native-only"
+description = """
+A connector must leave the native format as the polyline it was drawn as, and its semantics must be stated as `.mobix`-only rather than implied. Add the arm to LivingInk.compile (the router's points, in the element's colour and width, with the junction dot when the element carries one) so PDF, SVG, PNG and `.xopp` all draw it through the one dispatch, and add the sample to XoppExportCoverageTest so the family's export is exercised and reported as clean.
+
+The `.xopp` file then holds an ordinary stroke and no PinRefs; the bridge block already claims the element and its ink digest, so re-importing this app's own export revives the connector with its endpoints, while a file edited in Xournal++ imports as the polyline it now is. Say that in docs/xopp-bridge.md's loss section in the same commit, next to the table/plot/shape statements, and state it in docs/mobix-living-entities.md's connector entry.
+
+Verify with a core test: the compiled ink's points equal the router's route for the same element, the .xopp round trip through XoppSynthesis keeps one stroke with the element's colour and width, the bridge claim revives the connector with both PinRefs intact, and an edited stroke (one point moved) imports as a plain stroke with the claim dropped. Run ./gradlew :mobix-core:test --tests '*XoppSynthesis*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1120
+created = 2026-11-11
+tags = ["stem", "circuit", "export", "connector"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-connector-copy-merge"
+title = "Remap a connector's endpoints when it is copied or merged"
+description = """
+A PinRef names an element by id, so any operation that mints new ids must rewrite the reference or the copy dangles at a component that no longer exists. Audit the paths that copy or move elements (the selection copy/paste in app/src/main/java/com/mobixournal/render/SelectionTransfer.kt and the page-level duplicate command, plus the desktop equivalents) and the merge engine (format/mobix/MobixMergeEngine.kt): a copied connector's PinRefs follow the copied components when they are part of the same selection, and become dangling fallback ends when the referenced component is not copied — never silently point at the original.
+
+Merge keys on element ids: two copies of one page must reconcile a connector as one element like any other, and a connector whose endpoint element was deleted must be reported (not dropped silently) so the user can see a wire that lost its pin. Add the rule in one place (a pure remap function parameterised by the id mapping) rather than in each caller, and test it against the merge.
+
+Verify: copy a component plus its connector, paste, and both the component and the connector carry fresh ids with the reference pointing at the pasted component; copy the connector alone and its end is dangling at the fallback coordinate; a merge of two revisions keeps one connector and reports a deleted endpoint; a reorder of elements does not change any PinRef. Run ./gradlew :mobix-core:test --tests '*Connector*' --tests '*Merge*' :app:testDebugUnitTest."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1130
+created = 2026-11-11
+tags = ["stem", "circuit", "schema", "merge"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-connector-emulator-pass"
+title = "Wire two resistors on the emulator and move one"
+description = "The connector gesture has not been seen on a device and this host has no adb or AVD. Install the APK, place two resistors and a source, arm the wire tool, drag between pins until the rings catch and the connector lands, move one component: the connector must follow and still end on the same pins. Draw a second connector crossing the first and confirm no junction appears, mark one junction explicitly and confirm the dot appears. Undo once and confirm the whole move is reversed. Save, reopen, and export a PDF. Record screenshots of the wiring, the moved component, the crossing without a dot, and the undo, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1140
+created = 2026-11-11
+tags = ["stem", "circuit", "device", "connector"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-numeric-accuracy-corpus"
+title = "Measure the analysis before changing any of it"
+description = """
+The audit (stem-numeric-doc-code-audit) recorded what FunctionAnalysis really does: fixed H = 1e-5, bisection with a 24-iteration default, adaptive Simpson with EPSILON 1e-7 and MAX_INTEGRATION_DEPTH 24, no error estimate. Before replacing anything, build the measurement that decides it: a corpus (new mobix-core/src/test/java/com/mobixournal/render/NumericAccuracyCorpus.kt plus its tests) of functions with answers known in closed form — polynomials, sin/exp, 1/x, tan, x^3 - 2, sqrt, |x|, a piecewise branch, a function with a tangent root and one with a pole — declaring per case the exact derivative at chosen points, the exact roots in an interval, the exact definite integral, and a tolerance.
+
+Measure three things per case and print them in a table from the test run: max absolute error of the derivative against the closed form, the root residual |f(x*)| at the reported root, and the relative error of the integral. Keep every existing FunctionAnalysisCharacterizationTest case in the corpus so the audit's characterization and the new measurement cannot disagree. This task changes no production code: its output is the number the later decisions are made against, and it is the baseline the replacement tasks must beat.
+
+Verify: ./gradlew :mobix-core:test --tests '*NumericAccuracy*' prints the table (a test that asserts only that every case produced a value, so the numbers are visible in the log) and the corpus covers at least ten functions with three metrics each. Record the measured table in docs/benchmarks.md under a new section for numerical analysis."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1150
+created = 2026-11-11
+tags = ["stem", "math", "test", "benchmark"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-numeric-derivative-scheme"
+title = "A derivative with a step chosen for the point, and an error bound"
+description = """
+Fixed H = 1e-5 is wrong twice: at large |x| it is too small (cancellation) and at small curvature it is too large (truncation), and the caller is told neither. Replace the scheme behind the same public surface: FunctionAnalysis.derivative(formula) returns a Formula as it does today, but computes the symmetric difference with a step chosen from |x| and the machine epsilon (a recorded constant such as cbrt(eps) * max(1, |x|)) and, where the public API allows, exposes the estimate through a new NumericResult (stem-numeric-result-contract) rather than by inventing a second function.
+
+Handle the edges honestly: at a bracket end or where the symmetric stencil touches a non-finite value, fall back to a one-sided difference and mark the result as one-sided in the error estimate; where the difference step straddles a pole (f(x-h) and f(x+h) with opposite signs and a huge magnitude) return non-finite instead of a number. Keep FunctionAnalysis.findCriticalPoints' own use of the derivative working unchanged.
+
+Decide with the corpus, not by preference: record in docs/math-engine.md section 1 the new step rule, the resulting measured max error from stem-numeric-accuracy-corpus before and after, and the cases where it is still worse than the fixed step (there will be some). Verify: the corpus's derivative column improves on at least the large-|x| and small-curvature cases, 1/x at 0 stays non-finite, sin at 0 reads 1 within 1e-9 as the characterization test already demands, and a one-sided call is marked as such. Run ./gradlew :mobix-core:test --tests '*Numeric*' --tests '*FunctionAnalysisCharacterization*'."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 1160
+created = 2026-11-11
+tags = ["stem", "math", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-numeric-root-solver"
+title = "Stop missing tangent roots, and say when nothing was found"
+description = """
+The characterization test records the failure in plain words: a root at x = 0.5005 is missed because no sample lands on it and the sign never changes, "and nothing says so". Replace bisection-with-a-grid behind findCriticalPoints with a solver that is honest: bracket the sign changes as today, then refine each bracket with a safeguarded method (Brent's or a bracketing secant) to a stated tolerance and iteration budget; for a sign-preserving touch (|f| small but no sign change), locate the minimum of |f| inside the bracket and accept it only when |f| at that point is below a declared threshold and the local slope changes sign — otherwise report no root.
+
+Every result carries its interval and residual (through NumericResult), and the scan reports "no root found in the scanned interval" instead of an empty list that reads as "there are none". Extrema keep the derivative-sign-change rule but go through the same refinement, and the bracket-completeness note in docs/math-engine.md section 2/3 is rewritten to say what is now found and what is still missed.
+
+Decide with the corpus: the tangent-root case that used to be missed is now either found (with a stated residual) or explicitly not found with a reason. Verify: the corpus's root column improves, sin over -pi..pi still finds exactly two roots (the range end is never a candidate), x^2 finds its origin root, a function with no roots returns the explicit "none found" answer, and the iteration budget is respected. Run ./gradlew :mobix-core:test --tests '*Numeric*' --tests '*FunctionAnalysisCharacterization*'."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 1170
+created = 2026-11-11
+tags = ["stem", "math", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-numeric-integrator"
+title = "Integrate with an estimate of the error, and refuse what it cannot integrate"
+description = """
+Adaptive Simpson with epsilon 1e-7 and depth 24 is a good drawing-time integrator and a poor scientific one: it returns a number with no bound and no statement of the budget it spent. Keep the refusal of a non-finite integrand (a discontinuity is not an integral), and add behind it: a Gauss–Kronrod (or a Simpson pair) estimate with an explicit error bound from the difference of the two rules, a recorded evaluation budget, and a result that says whether the bound was met. When the budget is exhausted, return the value with its measured bound and mark it as not converged rather than silently returning the last estimate.
+
+Decide against the corpus: the integral column's relative error before and after, plus the cases where the new scheme is slower — a plotting summary takes this path on every edit, so the budget has to be small enough to stay interactive, and that number is measured, not guessed. Update docs/math-engine.md section 4 (and the tolerance sentence that currently states 1e-7 and 24 levels) to the new rule and its budget.
+
+Verify: the corpus's integral column meets the declared tolerance for every smooth case, 1/x across 0 is still refused, the sign follows the bounds, the evaluation budget is respected on the heaviest case, and a not-converged result is reported as such rather than as a number. Run ./gradlew :mobix-core:test --tests '*Numeric*' --tests '*FunctionAnalysisCharacterization*'."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 1180
+created = 2026-11-11
+tags = ["stem", "math", "numeric"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-numeric-result-contract"
+title = "One result type carrying value, error bound and method"
+description = """
+A number from the analysis is currently just a Double: derivative.at(x), a CriticalPoint's x, definiteIntegral's return, each with its accuracy living only in a test's tolerance. Add a NumericResult value in mobix-core (value or null, error bound or null, method name, the interval or point it applies to, whether it converged), and return it from the new numerical entry points while keeping the old signatures as thin adapters so nothing breaks at once.
+
+Then use it where accuracy is a user-visible claim: MultiFunctionPlotter's summary and FunctionAnalysis.buildSummaryReport print a value with its bound when the bound is known and say "estimate" when it is not (the report is a cached rendering, PlotElement.summaryText, so this changes what is drawn under a plot and must be regenerated); PlotElementFactory.applyPlotEdit recomputes it, which it already does. The upcoming trace and tangent (stem-plot-inspection's children) read the same type instead of recomputing a bare Double.
+
+Docs: docs/math-engine.md gains a short section on what a result states, and docs/function-plots.md says what the report under a plot now means. Verify: a result with a bound formats with it, a result without one is marked an estimate, a null value formats as the existing "not finite over the range" wording rather than "null", and an element saved before this change reopens with its cached text unchanged until edited. Run ./gradlew :mobix-core:test :app:testDebugUnitTest --tests '*FunctionAnalysis*'."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 1190
+created = 2026-11-11
+tags = ["stem", "math", "numeric", "contract"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-numeric-characterization-update"
+title = "Update the characterization tests deliberately, case by case"
+description = """
+FunctionAnalysisCharacterizationTest exists to record failures honestly, so a solver change must rewrite it explicitly rather than by deleting assertions: every case that used to assert "missed, and nothing says so" now asserts either the found value with its residual or the explicit "no root found" answer, and every tolerance that moves is recorded with its old and new number in the test comment.
+
+Work through the file case by case: sin's roots and extrema (1e-6 on every root, 1e-9 on the derivative at zero), the refined root at 0.3, x^2's tangent root, the missed tangent root at 0.5005, the asymptote and discontinuity cases, and the integral cases. Where a case is now resolved, name it "resolved by stem-numeric-root-solver" (or the scheme that resolved it) in the test's own wording; where a limit remains, keep asserting the limit and say what it is. Add the corpus's own assertions as the source of truth so the two files cannot disagree.
+
+Verify: the file compiles with no assertion weakened without a recorded reason, the whole suite is green, and the commit's shipped text lists each case whose expectation changed and the measured before/after number that justified it. Run ./gradlew :mobix-core:test --tests '*FunctionAnalysisCharacterization*' --tests '*Numeric*' and record the measured table in docs/benchmarks.md."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1200
+created = 2026-11-11
+tags = ["stem", "math", "test"]
+rebuild = true
+emulator_debug = false
