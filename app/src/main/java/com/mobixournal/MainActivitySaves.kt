@@ -62,13 +62,16 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     owner.tabs.updateMatching({ it.id == tab.id }) { it.copy(document = document) }
     val pdf = view?.pdfSourceFile() ?: tab.pdfPath?.let(::File)
     val images = (view?.imageSources() ?: tab.backgrounds?.images ?: tab.images).toMap()
+    // The canvas reading the bytes are taken at: `afterSaved` compares it with the canvas it finds, which is
+    // how it knows whether a stroke landed after the snapshot.
+    val revision = view?.edits ?: -1
     inBackground("Saving ${displayName(uri)}.", {
         val encoded = io.encode(document, pdf, request.format, uri, images, audio::recordingFile)
         try { io.stageOut(encoded.file, uri) } finally { encoded.file.delete() }
         encoded.uncompiled
     }) { result ->
         result.onFailure { toast("Save failed: ${it.message}") }.onSuccess { uncompiled ->
-            afterSaved(owner, request, uri, document)
+            afterSaved(owner, request, uri, document, revision)
             if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
         }
     }
@@ -80,11 +83,23 @@ private fun MainActivity.afterSaved(
     request: PendingSave,
     uri: Uri,
     document: com.mobixournal.format.model.Document,
+    revision: Int,
 ) {
     io.persist(uri)
     val title = displayName(uri)
+    // A stroke can land while the bytes are being written: the file then holds the snapshot, not the page.
+    // The tab says so exactly as the window does — it stays unsaved (the strip's dot) and the session keeps
+    // the newer document, because `snapshotActiveTab` below writes the live canvas back into the record.
+    val showing = owner.surface?.takeIf { owner.tabs.active?.id == request.tabId }
+    val newer = showing != null && showing.edits != revision
     owner.tabs.updateMatching({ it.id == request.tabId }) {
-        it.copy(title = title, uri = uri.toString(), format = request.format)
+        it.copy(
+            title = title,
+            uri = uri.toString(),
+            format = request.format,
+            unsavedEdits = newer,
+            savedAt = if (showing != null && !newer) showing.edits else it.savedAt,
+        )
     }
     if (owner.tabs.active?.id == request.tabId) {
         owner.saveFormat = request.format

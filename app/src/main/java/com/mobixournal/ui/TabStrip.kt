@@ -73,6 +73,11 @@ data class TabsUiState(
     /** Tab titles in strip order (the file name, or "Untitled"). */
     val titles: List<String> = emptyList(),
     /**
+     * Per-tab "the file does not hold the newest strokes" — the window's dirty readout, so the same accent
+     * dot sits beside the label on both shells.
+     */
+    val unsaved: List<Boolean> = emptyList(),
+    /**
      * Per-tab dot colour (packed ARGB), or null for no dot — set only on tabs that are one of
      * several views of the *same* document, so duplicates are told apart from same-named files.
      * Same colour = same document. See `com.mobixournal.tabs.DocColors`.
@@ -175,6 +180,7 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
             state.titles.forEachIndexed { index, title ->
                 TabChip(
                     title = title,
+                    dirty = state.unsaved.getOrElse(index) { false },
                     dotColor = state.dotColors.getOrNull(index),
                     selected = index == state.activeIndex,
                     onSelect = { state.onSelect(index) },
@@ -287,6 +293,7 @@ private fun PaneBadge(number: Int, focused: Boolean, onClick: () -> Unit) {
 private fun TabChip(
     title: String,
     dotColor: Int?,
+    dirty: Boolean,
     selected: Boolean,
     onSelect: () -> Unit,
     onClose: () -> Unit,
@@ -341,6 +348,13 @@ private fun TabChip(
             color = if (selected) colors.onSurface else colors.onSurfaceVariant,
             modifier = Modifier.widthIn(min = 64.dp, max = 180.dp),
         )
+        if (dirty) {
+            // An **unsaved edit**, the same one readout the window wears on its strip: a single accent dot
+            // beside the label, gone the moment the file holds everything on the page. Not a control — the
+            // clickable thing beside it is the close glyph — so it has no hover, focus or disabled state
+            // (`docs/interface-contract.md` §6).
+            Box(Modifier.padding(start = 6.dp).size(TAB_DIRTY_DOT).clip(CircleShape).background(colors.primary))
+        }
         TabCloseButton(title = title, selected = selected, onClose = onClose)
     }
 }
@@ -430,6 +444,9 @@ private fun TabCloseButton(
 
 /** The mirrored-document dot: big enough to read as a colour, small enough not to crowd the title. */
 private val TAB_DOT_SIZE = 6.dp
+
+/** The unsaved-edit dot: the window's `DIRTY_DOT_DP`, so the same mark sits beside the label on either shell. */
+private val TAB_DIRTY_DOT = 6.dp
 
 /** The pane badge at the head of a split strip: a number that still fits the 38dp row. */
 private val TAB_PANE_BADGE = 20.dp

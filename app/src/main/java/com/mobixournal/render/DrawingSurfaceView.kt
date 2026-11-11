@@ -299,6 +299,16 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Notified with (canUndo, canRedo) whenever the history changes, so the chrome can enable buttons. */
     var onHistoryChanged: ((Boolean, Boolean) -> Unit)? = null
+
+    /**
+     * How many changes this canvas has recorded — strokes, erases, undos, redoes, structural edits.
+     *
+     * Monotonic for the lifetime of the surface, so two readings that differ mean something happened in
+     * between even if it was undone again. It is what makes "an edit landed while the save was writing"
+     * a measurable fact rather than a guess (`MainActivitySaves.afterSaved`).
+     */
+    var edits: Int = 0
+        private set
     /** Fired when a keyboard key is pressed; return true to consume the event. */
     var onKeyPressed: ((String) -> Boolean)? = null
     /**
@@ -886,6 +896,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     internal fun notifyHistory() {
+        // A monotonic reading of this canvas: each committed stroke, erase, undo, redo and structural edit
+        // bumps it. A save captures one and compares it when the bytes have landed, which is how the tab
+        // learns a stroke arrived after the document it wrote (`afterSaved`).
+        edits++
         onHistoryChanged?.invoke(history.canUndo, history.canRedo)
     }
 

@@ -48,7 +48,7 @@ class SourceStructureTest {
         // itself lives in `panes/DocumentSessions.kt`.
         // +3: the armed selection lift, one field, beside the clipboard it ends up on.
         // -277: the infinite-canvas half of the view retired with the canvas itself.
-        "render/DrawingSurfaceView.kt" to 1345,
+        "render/DrawingSurfaceView.kt" to 1359,
         "render/CircuitShapes.kt" to 1180,
         // -1: the generic polygon's side count is one field, one clamp and one saved key.
         // +8 deliberate: the ring's own faces — one field, one stored line, the load and the save beside

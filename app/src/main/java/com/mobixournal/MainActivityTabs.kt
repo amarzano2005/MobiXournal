@@ -36,6 +36,7 @@ internal fun MainActivity.tabsUiState(p: EditorPane): TabsUiState {
     val index = panes.indexOf(p)
     return TabsUiState(
         titles = p.tabs.tabs.map { it.title },
+        unsaved = p.tabs.tabs.map { it.unsavedEdits },
         dotColors = p.tabs.tabs.map { dots[it.docKey] },
         activeIndex = p.tabs.activeIndex,
         // Split view shows one strip lane per pane, so a strip has to know whose it is: the badge
@@ -119,6 +120,10 @@ internal fun MainActivity.snapshotActiveTab(p: EditorPane = pane) {
         it.copy(
             document = view.toDocument(),
             format = p.saveFormat,
+            // The canvas is the truth about unsaved work: a tab is dirty when what is on it is not the
+            // reading its file was last written at. Kept as an `or` so a tab that was already unsaved stays
+            // unsaved even after it has been switched away from and back (the reload resets [savedAt]).
+            unsavedEdits = it.unsavedEdits || view.edits != it.savedAt,
             pdfPath = view.pdfSourceFile()?.absolutePath,
             // The resolver a paged `.mobix` reads its backgrounds through, captured like the PDF
             // path: the tab has to be able to hand the next canvas the same one.
@@ -188,6 +193,9 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
     view.load(tab.document)
+    // A fresh history on the canvas: this is the reading a save compares against, so a document that was
+    // clean when it was switched away from stays clean, and one that was not keeps its stored flag.
+    p.tabs.updateMatching({ it.id == tab.id }) { it.copy(savedAt = view.edits) }
     if (tab.page > 0) view.goToPage(tab.page)
     if (pdf != null) analyzePdfInBackground(pdf, view)
 }
@@ -308,6 +316,9 @@ internal fun MainActivity.blankTab(p: EditorPane = pane): OpenTab =
         MainActivity.UNTITLED,
         blankDocument(),
         format = newDocumentFormat,
+        // Nothing has been written yet: the strip earns its dot from the first moment, as the window's new
+        // tab does.
+        unsavedEdits = true,
     )
 
 /**

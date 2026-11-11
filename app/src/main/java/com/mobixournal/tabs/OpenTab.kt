@@ -68,6 +68,17 @@ data class OpenTab(
     val backgrounds: BackgroundResolver? = null,
     /** Local pixmap sources owned by this tab, including eagerly opened ZIP backgrounds. */
     val images: Map<String, java.io.File> = emptyMap(),
+    /**
+     * The file does **not** hold this tab's newest strokes: the document has been edited since it was last
+     * written. The window's `unsaved` (`DesktopTab`), with the same two readings — the strip wears an accent
+     * dot while it is true, and a save only clears it when no edit landed while the bytes were going out.
+     */
+    val unsavedEdits: Boolean = false,
+    /**
+     * The canvas `edits` count this tab was last read at — the baseline a save compares the live canvas
+     * against. Set when the document is loaded onto the surface and when a save publishes everything.
+     */
+    val savedAt: Int = 0,
 )
 
 /** The whole set of open tabs plus which one is showing — what survives an app restart. */

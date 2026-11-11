@@ -221,6 +221,9 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   or from storage, where the canvas must not be edited mid-transfer. A save encodes an immutable snapshot the
   canvas is no longer part of, so the tablet puts one line in the accent at the top-right (`SavingNotice`)
   and leaves the sheet in view — the same behaviour the window has worn since it stopped covering itself.
+  The file's own truth follows it: a tab whose file does not hold its newest strokes wears the strip's accent
+  dot (`OpenTab.unsavedEdits`, the window's `DesktopTab.unsaved`), and a save leaves that dot on when a
+  stroke landed while the bytes were going out.
 - **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own
   monoline icon in a tinted disc at the head of its row (`SectionRow`), and the same glyph follows the row
   into the search results. The glyph is part of the enum, so a new section cannot be added without one.
