@@ -138,34 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-portability-report-model"
-title = "Classify every reference a document makes, and keep the evidence"
-description = "Add a pure `PortabilityAudit` in `mobix-core/src/main/java/com/mobixournal/portability/PortabilityAudit.kt` that walks an opened document — every page through `PageSource`, every element, every background — and classifies each reference as `EMBEDDED` (the `assets/` entry is present and its digest matches the name it claims, through `MobixDigests`), `REFERENCED_ABSENT` (a path, URI or sidecar `fn` with no bytes in the archive) or `UNRECOVERABLE` (a name in `assets/` shape with no entry, i.e. a corrupt document, and a reference pointing outside the document's own folder). It returns a `PortabilityReport(documentId, counts, entries)` where each entry carries the resource kind (image, texImage, pixmap, pdf, audio, font), the raw reference, the page index, the element id and a stable dedupe key, so a caller can group by reference instead of by page. It resolves, copies and downloads nothing and never mutates the model. Tests in `mobix-core/src/test/java/com/mobixournal/portability/`: a document with bundled payloads reads as fully portable; a `pdf` and a `pixmap` background with only a filename are `REFERENCED_ABSENT`; a stroke whose `fn` names an absent sidecar is `REFERENCED_ABSENT`; an `assets/` name with no entry is `UNRECOVERABLE`; a 200-page notebook is read page by page with each page read once and every payload left unopened (assert the reader's entry-open counter stays at zero for assets)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 410
-created = 2026-11-10
-tags = ["mobix", "portability"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "mobix-portability-warning-surface"
-title = "Tell the reader which parts of an opened file are not in it"
-description = "Surface `PortabilityReport` in both shells when a `.mobix` is opened: one entry in the status band or a dialog that states how many references are not inside the file, lists them per reference (page, kind, reference) and offers the portable-copy flow. On Android, fold this into the report that already exists so a page drawing a bare sheet and the document-level sentence are the same sentence rather than two: `DrawingSurfaceView.onMissingBackground`, `BundledPageAssets.drainMissing` and `MainActivityDocuments`' `missingPdf`/`missingImage` toasts. On desktop there is no equivalent today: add it where the window already reports document state (`desktop/.../shell/DesktopShell.kt`, `DesktopStatus.kt`) over the same report. Copy in English, material and states per `docs/interface-contract.md`, no internal class name in front of a person, once per open and dismissible — never a toast per page. Tests: a JVM test over the report-to-copy mapping (singular, plural, zero) and a desktop test of the status text; the Compose frame itself is a manual pass on a machine with Skia."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 420
-created = 2026-11-10
-tags = ["mobix", "portability"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "mobix-portability-embed-action"
 title = "Save a portable copy that embeds what it can and says what it could not"
 description = "Add a **Save a portable copy** action driven by `PortabilityReport`: for every `REFERENCED_ABSENT` resource whose bytes can be obtained locally — a `pdf`/`pixmap` background path resolved the way the renderer resolves it, a recording's `fn` sidecar beside the document — embed the bytes with the existing writer (`MobixAssetSink`, `carriedPayloads`, `DocumentEncoder`) and produce a normal `.mobix`, never a second container type. Bytes that are missing, unreadable or refused by the archive limits stay a reference and stay in the report, so the copy states what it could not embed instead of claiming portability; nothing is downloaded, and the original document and file are untouched. The action asks for a destination and, on success, reopens the copy to verify every embedded entry hashes to its own name (exactly the check `MobixPagedReader` already applies). Tests: a document with one bundled and one external PDF embeds the external one while the bundled bytes are carried unchanged; a copy from a document whose reference is unreadable succeeds with that reference still listed; the written copy reopens with zero `REFERENCED_ABSENT` and no `UNRECOVERABLE`."
@@ -177,48 +149,6 @@ order = 430
 created = 2026-11-10
 tags = ["mobix", "portability"]
 rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "mobix-portability-validator"
-title = "Publish the asset rules as a validator, not only as reader behaviour"
-description = "Add `MobixAssetValidator` in `mobix-core` (no Android types) that can be called on a `.mobix` without opening a document: it checks every `assets/` entry name against the grammar `MobixFormat.assetEntry` enforces (known prefix, 64 lowercase hex, non-empty suffix), verifies the digest the name claims (`MobixDigests.verifyAssetName`), compares the names the pages reference with the entries the archive holds in both directions (a referenced name with no entry is an error; an entry no page names is an orphan, allowed by the preserve-unknown rule but reported), and reports the container limits it had to apply (`MobixSafetyCaps`). It writes, repairs and rewrites nothing. Tests in `mobix-core/src/test/java/com/mobixournal/portability/` over the golden corpus (clean) and a mutated copy in `TemporaryFolder` for each failure: bad hex, unknown prefix, digest mismatch, referenced-but-missing entry, orphan entry. This is the surface the future independent CLI (`mobix-independent-cli`) reuses, so the signatures must not depend on the app."
-status = "active"
-level = "task"
-category = "test"
-urgency = "high"
-order = 440
-created = 2026-11-10
-tags = ["mobix", "portability"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-portability-fonts-policy"
-title = "Decide what a font name costs, and make the classification exhaustive"
-description = "Today `TextElement.font` is a bare name (`MobixElementCodec` writes `font` as a string) and nothing bundles or reports it, so text set in a face another machine lacks reflows silently. Decide one of two rules and record it in the owning doc: (a) font names are a rendering hint with a stated fallback order and a portability note, not a missing file — the cheap answer this build can honour today; or (b) bundle font metrics or bytes under a new `AssetKind`, which needs `spec/mobix-assets.md`'s vocabulary, the schema in `spec/schema/`, and the guard updated with it. Do not start (b) unless the spec change is ready; the deliverable is the decision, the doc sentences in `docs/mobix-elements.md`/`docs/mobix-assets.md`, and a guard test in `mobix-core/src/test` enumerating `AssetKind` and every model field that can name an asset, so a future payload kind cannot land without a portability classification."
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 450
-created = 2026-11-10
-tags = ["mobix", "portability"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-portability-doc-claims"
-title = "Stop calling every .mobix self-contained and publish the real rule"
-description = "Replace the unconditional claim with the measured truth: `README.md`'s `.mobix` row and the sentences in `docs/mobix-format.md` and `docs/mobix-assets.md` must say what is always inside the file (image and texImage bytes, bundled PDF and pixmap payloads, bundled recordings, all element data), what may be only a reference (PDF and pixmap backgrounds, audio sidecars) and what is never bundled (font faces). State the report and portable-copy workflow once in its owner — `docs/data-path.md` for the open/save path, `docs/guide-formats-and-conversion.md` for the user-facing answer — and link the other pages to it instead of repeating it. Add a `DocClaimsTest` line for any sentence that was false before, so it cannot come back. Run `DocsGuardTest` and `DocClaimsTest`."
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 460
-created = 2026-11-10
-tags = ["mobix", "portability"]
-rebuild = false
 emulator_debug = false
 
 [[task]]

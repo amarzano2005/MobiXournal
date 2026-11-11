@@ -25,6 +25,66 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-portability-warning-surface"
+title = "Tell the reader which parts of an opened file are not in it"
+description = "Surfaced the portability report in both shells, from one place. Core: com.mobixournal.portability.PortabilitySummary (count, headline, lines, sentence()) maps a PortabilityReport to English copy once — singular '1 part is not inside this notebook', plural 'N parts…', zero 'Everything this notebook names is inside the file.' — with one line per distinct reference ('Page 4 · pdf · notes.pdf', plus '— this one cannot be recovered' for UNRECOVERABLE), grouped by dedupe key so the same picture behind four pages is one line. Android: LoadedFile.Doc carries the report; DocumentIo.mobix computes it on the open's worker (PortabilityAudit over the session reader and the archive's entry names, adopting nothing) and MainActivityDocuments shows it as one notice per open and now folds the old paths into it — the per-page onMissingBackground toast is suppressed when the report exists, and the missingPdf/missingImage sentences are used only for a .xopp, which has no directory to check. Desktop: DesktopDocument.portability is filled by DocumentLoader.openMobix on the reading thread; DesktopStatus gains portabilityLabel ('1 not inside' / 'N not inside', null for a portable file and for .xopp) and portabilityTip (the references), shown as a band reading with the existing band material and hover pill — no new material class or glyph. Tests: PortabilitySummaryTest (zero, singular, plural, dedupe across pages, unrecoverable wording, one-line form) and DesktopPortabilityBandTest (null/portable say nothing, singular, plural with pages). Docs updated because the audit is no longer library-only: data-path.md, mobix-format.md and the user-facing guide say the open takes it and each shell says one sentence once per open. Deliberately not done: no portable-copy action (mobix-portability-embed-action), no dialog listing every reference (the band tip and the Android notice carry the list), and the Compose frame itself was not viewed on a machine with Skia."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["mobix", "portability"]
+design = "material: the existing status-band reading and its hover pill, no new material class; states: rest readable, hover raises contrast and shows the reference sentence, no press state because it is not a command; glyph: none added"
+
+[[task]]
+id = "mobix-portability-doc-claims"
+title = "Stop calling every .mobix self-contained and publish the real rule"
+description = "Replaced the unconditional self-contained claim with the measured rule, stated once per audience. README.md's .mobix row now says pictures, bundled PDFs and recordings travel inside, a background may stay a reference to a file the reader keeps, and fonts never travel (README trimmed elsewhere to stay inside its 160-line/1400-word front-door budget). docs/mobix-format.md gained 'What a file may leave outside itself': always inside (picture bytes, bundled PDF/pixmap background, bundled recordings, element data), may be a reference (pdf/pixmap filename, a stroke's fn sidecar), never bundled (a font face), with the reader rules linked to mobix-assets.md and the audit named as library-only. docs/mobix-assets.md's opening now says a file is self-contained when it bundles its payloads, not unconditionally. docs/data-path.md gained 'When a page names bytes the file does not carry' — the resolve-to-nothing behaviour, the once-only report, nothing fetched, a save writing the reference back — and names PortabilityAudit as library only with the portable-copy action unbuilt. docs/guide-formats-and-conversion.md gained the user-facing 'What may live outside the notebook'. DocClaimsTest gained a Claim for the retired 'one self-contained file' sentence with the reason and the owning page. Checks: DocsGuardTest, DocClaimsTest, SourceStructureTest and the portability unit tests all pass. Deliberately not done: no shell surfaces the report (mobix-portability-warning-surface) and no portable copy (mobix-portability-embed-action), which the docs say plainly rather than promising."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["mobix", "portability"]
+design = "none: documentation and a guard-test claim, with no interface surface"
+
+[[task]]
+id = "mobix-portability-fonts-policy"
+title = "Decide what a font name costs, and make the classification exhaustive"
+description = "Recorded decision (a) in docs/mobix-elements.md's Text section: TextElement.font is a rendering hint, not a payload — nothing in a .mobix carries font bytes, so a document is complete without the face it names, and the portability report emits no entry for a font. The reader's fallback order is stated in two steps: the named family in the description's weight/slant, then the platform default in the same weight/slant, with the honest consequence (text reflows: words and styles arrive, the author's line breaks do not). The reason bundling was refused for now is recorded too: a new AssetKind, a schema entry and a licence per face. docs/mobix-assets.md already states the hint rule and links here, so the fact has one home. Added mobix-core/src/test/java/com/mobixournal/portability/PortabilityModelGuardTest.kt: it enumerates MobixFormat.AssetKind (a new kind fails the build until classified), reads the model classes' declared fields back through Java reflection and requires every payload-naming field (data/filename/…asset/bundled…) of Background.Pdf, Background.Pixmap, Stroke, ImageElement, TexImageElement and TextElement to be either classified by PortabilityAudit or listed as a documented hint, and checks the text family still carries the .xopp attrs channel the audit reads fn from. Deliberately not done: no bundled faces (option b), so nothing changes in the schema, spec/ or the writer."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["mobix", "portability"]
+design = "none: a documentation decision plus a JVM guard test, with no interface surface"
+
+[[task]]
+id = "mobix-portability-validator"
+title = "Publish the asset rules as a validator, not only as reader behaviour"
+description = "Added com.mobixournal.portability.MobixAssetValidator (+ AssetValidation, AssetFinding, AssetSeverity, AssetRule) in mobix-core. validate(file) / validate(MobixEntrySource, caps) checks: every assets/ entry name against the grammar MobixFormat.assetEntry enforces (NAME_GRAMMAR) and for a known kind prefix (UNKNOWN_PREFIX); the digest the name claims against the bytes on disk (DIGEST_MISMATCH, via MobixDigests/MobixAssetSink); every name a part references with no entry (MISSING_ENTRY, an error) and every entry no part names (ORPHAN_ENTRY, a warning allowed by the preserve-unknown rule); and reports the MobixSafetyCaps it applied plus CONTAINER_LIMIT / UNREADABLE_PAGE when a cap or an undecodable page stopped the walk. A picture element's entry is matched by content digest rather than by name, because the model keeps bytes and not the container suffix they arrived in. An entry that already broke a grammar or digest rule is not also reported as an orphan. Writes, repairs and rewrites nothing. Tests: MobixAssetValidatorTest — the whole golden corpus validates clean, one mutation per rule (bad hex, unknown prefix, digest mismatch, referenced-but-missing entry, orphan warning that leaves the file clean, second container suffix matched by digest), a tight entry cap reported as CONTAINER_LIMIT with nothing examined, and the file byte-identical after validation (all mutations rewrite real archives). Docs: docs/mobix-assets.md gained the rule table and the reference-graph rule. Deliberately not done: no CLI verb yet (mobix-cli-validate reuses this code) and the report does not surface in either shell."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["mobix", "portability"]
+design = "none: an off-line core validator with no interface surface"
+
+[[task]]
+id = "mobix-portability-report-model"
+title = "Classify every reference a document makes, and keep the evidence"
+description = "Added com.mobixournal.portability.PortabilityAudit (+ PortabilityEntry, PortabilityReport, PortabilityStatus and PortabilityKind) in mobix-core: it walks an opened document through PageSource, one page at a time and each page once, and classifies every reference a background or an element makes as EMBEDDED (a bundled assets/ entry present in the archive, or a picture element's own bytes), REFERENCED_ABSENT (a filename with no bundle, a stroke/text fn sidecar) or UNRECOVERABLE (an assets/ name with no entry, or a reference leaving the document's folder: absolute path, URI, .. segment). Presence is read from the central directory, so no payload is inflated; each entry carries the payload kind, the reference as written, the page and element, and a stable dedupeKey per reference. Fonts are documented as a rendering hint, not a reference (FONT exists for a future payload kind). Overloads cover an open MobixPagedReader, a Document held in memory and a bare PageSource. Tests: PortabilityAuditTest (bundled payloads portable, background filenames absent, absent sidecar, bundled recording, missing asset entry corrupt, folder escapes, dedupe grouping, 200-page notebook read once per page with zero asset opens, in-memory document, caller-owned source). Docs: docs/mobix-assets.md gained 'Is it inside the file?' with the three statuses and the no-payload-opened limit; docs/repo-layout.md lists the new package. Deliberately not done: no shell surfaces the report yet (mobix-portability-warning-surface), no portable copy (mobix-portability-embed-action), and the audit does not verify payload digests (mobix-portability-validator)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["mobix", "portability"]
+design = "none: a pure mobix-core audit with no interface surface at all"
+
+[[task]]
 id = "mobix-safe-evolution"
 title = "Epic: evolution that never loses what this build does not understand"
 description = "Unknown types and unknown fields in known types survive an edit and a save (fixtures 07-09 and their tests); capabilities are declared, parsed, enforced and preserved (13-17, MobixCapabilityGateTest, MobixCapabilityPaste); migrations are explicit and reversible (MobixMigrations, an empty registry enforced against CURRENT_FORMAT_VERSION, every step required to carry its inverse, MobixMigrationsTest); and a new type now owes a codec, a schema file, a populated sample, an element in 18-every-family.mobix and a README row (everyModelledFamilyHasItsSchemaItsSampleAndItsCorpusElement), with verbatim preservation as the fallback an older build uses. Residual: the format has no version above 1, so no forward migration has run against a real document and no read path calls the registry yet - a bump has to wire it, and that obligation is what the guard now records."
