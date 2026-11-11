@@ -214,8 +214,14 @@ is drawn without caching. Eviction changes rebuild cost, never the stroke model 
 
 Freehand Android pressure previews reuse projected points and normals through `IncrementalTaper`.
 Desktop draft conversion shares immutable point roots, and `IncrementalSmoothing` recomputes only the
-two terminal control groups before updating the numeric taper tail. Figures and replaced/shrunk drafts
-reset the incremental state. The resulting contour is still one closed fill, preserving winding,
-self-overlap, caps and highlighter alpha. Numeric draft caches have their own bounded retention.
+two terminal control groups. Its **contour is not incremental**: a desktop draft fans
+`InkGeometry.taperOutline` over those points on every frame — the very builder the lift uses — because
+the retained taper tail was measured against a full rebuild on live strokes (the window's `--diagnose`
+probe) and answered a contour off by **69.54 px at its worst vertex on every frame**, while the points
+agreed to the thousandth of a point. That is a stroke drawn in a shape the hand did not make, so the
+desktop keeps the shared builder and pays an outline over a few hundred points per frame instead.
+Figures and replaced/shrunk drafts reset the smoothing. The resulting contour is still one closed fill,
+preserving winding, self-overlap, caps and highlighter alpha. Numeric draft caches have their own bounded
+retention.
 Backend path assembly/submission and the desktop bounds walk remain linear in stroke length; this is
 incremental geometry computation, not a claim of constant-time rendering for arbitrarily long ink.
