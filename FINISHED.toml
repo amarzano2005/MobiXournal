@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-safe-evolution"
+title = "Epic: evolution that never loses what this build does not understand"
+description = "Unknown types and unknown fields in known types survive an edit and a save (fixtures 07-09 and their tests); capabilities are declared, parsed, enforced and preserved (13-17, MobixCapabilityGateTest, MobixCapabilityPaste); migrations are explicit and reversible (MobixMigrations, an empty registry enforced against CURRENT_FORMAT_VERSION, every step required to carry its inverse, MobixMigrationsTest); and a new type now owes a codec, a schema file, a populated sample, an element in 18-every-family.mobix and a README row (everyModelledFamilyHasItsSchemaItsSampleAndItsCorpusElement), with verbatim preservation as the fallback an older build uses. Residual: the format has no version above 1, so no forward migration has run against a real document and no read path calls the registry yet - a bump has to wire it, and that obligation is what the guard now records."
+status = "finished"
+level = "epic"
+category = "refactor"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["mobix", "compatibility", "p0"]
+design = "none: an epic closed on the evidence its children shipped, no screen, control or gesture surface touched"
+
+[[task]]
+id = "mobix-open-ecosystem"
+title = "Epic: an open, independently implementable .mobix"
+description = "Every clause of the mission is on disk and verified. Specification: spec/README.md's reading order, spec/CONFORMANCE.md's thirty-eight rows with the eleven a script decides declared beside them, CC0 licences. Machine-checkable schemas: manifest, canvas, page, chunk and the nine element families, held to the corpus and the writer by MobixSchemaGuardTest. A reference tool outside mobix-core: scripts/verify-mobix.py, standard library only, eleven rows, --rows, run in CI over both corpora. Shared fixtures: eighteen golden documents and nine hostile ones, generated deterministically. Both directions proven: a file this build writes verifies with the independent script (MobixConformanceScriptTest) and documents the Python writer produces open here (MobixV1FixturesTest). Not claimed: those documents come from this repository's own generator, so 'written elsewhere' is a property of the bytes and of the rules they were built to rather than of an outside author."
+status = "finished"
+level = "epic"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["mobix", "open-format", "p0"]
+design = "none: an epic closed on the evidence its children shipped, no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-migration-registry"
 title = "Enforce the migration seam while there is nothing to migrate"
 description = "MobixMigrations: a registry of version steps, each an upgrade plus its inverse, empty at the format's baseline and asserted equal to MobixManifest.CURRENT_FORMAT_VERSION; forward and backward migration that refuse a newer version by name and a missing step rather than skipping it; MobixMigrationsTest pinning the empty state, the untouched pass-through, the named refusal, the identity of a step composed with its inverse and the missing-step refusal; the rule stated in docs/mobix-schema-spec.md"

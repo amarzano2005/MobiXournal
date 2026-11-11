@@ -43,44 +43,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-open-ecosystem"
-title = "Epic: an open, independently implementable .mobix"
-description = """
-Mission: make `.mobix` implementable by a third party without reverse-engineering this app. An honest published specification, machine-checkable schemas, a reference tool that lives outside `mobix-core`, and a proven self-containment story.
-
-Completion means: at least one cross-read and one cross-write verified by shared fixtures, in both directions - a file written here validates in the independent tool, and a file written by the tool opens here.
-
-Children (already registered): `mobix-spec-v1`, `mobix-independent-cli`, `mobix-portable-assets`, `mobix-conformance-fixtures` (next). Do not implement an epic in one pass: pick its next scope, break it down, ship the tasks."""
-status = "active"
-level = "epic"
-category = "feature"
-urgency = "high"
-order = 340
-created = 2026-11-10
-tags = ["mobix", "open-format", "p0"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-safe-evolution"
-title = "Epic: evolution that never loses what this build does not understand"
-description = """
-Mission: guarantee that new or unknown data survives, and that capabilities are declared in a way that protects a reader older than the file - the prerequisite for every new element family in the STEM roadmap.
-
-Completion means: unknown types *and* unknown fields in known types survive an edit elsewhere and a save; capabilities are declared, read and enforced; migrations are explicit, tested and reversible; and no new `type` can ship without a codec, a fixture and a legacy-reader fallback test.
-
-Children (already registered): `mobix-known-type-unknown-fields`, `mobix-capability-contract`, `mobix-migrations`, `mobix-new-type-gate` (next). Do not implement this epic directly."""
-status = "active"
-level = "epic"
-category = "refactor"
-urgency = "high"
-order = 350
-created = 2026-11-10
-tags = ["mobix", "compatibility", "p0"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-performance-hardening"
 title = "Epic: measured performance, hostile input, no regressions"
 description = """
