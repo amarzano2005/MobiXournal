@@ -277,6 +277,7 @@ fun EditorScreen(
     /** Export the active page alone, as a PNG image or an SVG vector file. */
     onExportPagePng: () -> Unit = {},
     onExportPageSvg: () -> Unit = {},
+    onSavePortableCopy: () -> Unit = {},   // a second `.mobix` carrying the files this one only names
     /** What the last `.xopp` export could not draw, reported rather than dropped. Empty is normal. */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
@@ -327,9 +328,7 @@ fun EditorScreen(
     val ui = rememberEditorUiState(settings)
     val pane = ui.pane(activePane)
 
-    // Page bookmarks: loaded for the document being shown, persisted against it on every edit, and
-    // handed to the canvas as the page flags it paints. `pane` is the pane the chrome drives, so a
-    // split view keeps each document's bookmarks to itself.
+    // Page bookmarks: loaded per document, persisted on every edit, handed on as the canvas's paint flags.
     val context = LocalContext.current
     val bookmarkStore = remember(context) { BookmarkStore(context) }
     LaunchedEffect(pane, bookmarkKey) {
@@ -383,6 +382,7 @@ fun EditorScreen(
                             onExportPdf = onExportPdf,
                             onExportPagePng = onExportPagePng,
                             onExportPageSvg = onExportPageSvg,
+                            onSavePortableCopy = onSavePortableCopy,
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
                             audio = audio,

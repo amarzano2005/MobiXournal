@@ -225,6 +225,8 @@ internal fun OverflowMenu(
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
+    /** **Save portable copy**: a second `.mobix` with the files this one only names inside it. */
+    onSavePortableCopy: () -> Unit = {},
     onSettings: () -> Unit,
     penDiagnostics: Boolean,
     onTogglePenDiagnostics: () -> Unit,
@@ -290,6 +292,24 @@ internal fun OverflowMenu(
                     label = "Save As",
                     enabled = !isReadOnly,
                     onClick = { open = false; onSaveAs() },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            // The one command here that writes a **second file** instead of changing this one: the copy
+            // carries the PDFs, pictures and recordings the notebook only names, so it can be handed on.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                GlassActionButton(
+                    icon = ChromeGlyph.SAVE_AS.imageVector(),
+                    label = "Portable copy",
+                    tint = MaterialTheme.colorScheme.primary,
+                    enabled = !isReadOnly,
+                    onClick = { open = false; onSavePortableCopy() },
                     modifier = Modifier.weight(1f),
                 )
             }

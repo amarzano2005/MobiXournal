@@ -30,6 +30,7 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.DocumentIo
 import com.mobixournal.io.IncomingDocument
 import com.mobixournal.io.MOBIX_MIME
+import com.mobixournal.io.OpenDocumentForEditing
 import com.mobixournal.io.UriStaging
 import com.mobixournal.io.XOPP_MIME
 import com.mobixournal.panes.EditorPane
@@ -280,19 +281,6 @@ class MainActivity : ComponentActivity() {
             uri?.let { insertPickedImage(it) }
         }
 
-    /**
-     * The document picker, asking for a **persistable read+write** grant rather than the default
-     * one-shot read. That grant is what lets a later plain Save write straight back to the file the
-     * document came from — including one on a mounted network share — and lets a restored tab still
-     * reach it after a restart.
-     */
-    private class OpenDocumentForEditing : ActivityResultContracts.OpenDocument() {
-        override fun createIntent(context: Context, input: Array<String>): Intent =
-            super.createIntent(context, input).addFlags(
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
-            )
-    }
-
     private val openLauncher =
         registerForActivityResult(OpenDocumentForEditing()) { uri ->
             uri?.let { openDocument(it) }
@@ -312,6 +300,15 @@ class MainActivity : ComponentActivity() {
     internal val saveMobixLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(MOBIX_MIME)) { uri ->
             handleSaveResult(uri)
+        }
+
+    /**
+     * The picker for a **portable copy**: always a `.mobix`, whatever this tab's own container is, because
+     * the copy is the file that carries its own assets. It writes a second document and leaves the tab alone.
+     */
+    internal val portableCopyLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(MOBIX_MIME)) { uri ->
+            uri?.let { savePortableCopy(it) }
         }
 
     private val importPdfLauncher =
@@ -516,6 +513,7 @@ class MainActivity : ComponentActivity() {
                     glassToast = glassToast.value,
                     onDismissToast = { glassToast.value = null },
                     onExportPagePng = { exportPagePngLauncher.launch(suggestedPageImageName("png")) },
+                    onSavePortableCopy = { portableCopyLauncher.launch(suggestedPortableCopyName()) },
                     onExportPageSvg = { exportPageSvgLauncher.launch(suggestedPageImageName("svg")) },
                     onPickImage = { placement ->
                         pendingImagePlacement = placement

@@ -152,6 +152,8 @@ fun EditorTopBar(
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
+    /** **Save portable copy**: the copy embeds what this notebook only names ([OverflowMenu]). */
+    onSavePortableCopy: () -> Unit = {},
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
     audio: AudioUiState = AudioUiState(),
@@ -342,6 +344,7 @@ fun EditorTopBar(
                     onExportPdf = onExportPdf,
                     onExportPagePng = onExportPagePng,
                     onExportPageSvg = onExportPageSvg,
+                    onSavePortableCopy = onSavePortableCopy,
                     onSettings = { ui.showSettings = true },
                     penDiagnostics = ui.penDiagnostics,
                     onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },

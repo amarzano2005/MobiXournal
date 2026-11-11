@@ -53,9 +53,9 @@ data class PortableCopyResult(
  * Nothing is downloaded, and the original document and its file are untouched: the copy is a new file
  * at [write]'s destination.
  *
- * The **desktop window** calls it from its menu's *Save portable copy* chip
- * (`desktop/src/main/java/com/mobixournal/desktop/io/PortableCopyCommand.kt`); the tablet's own command is
- * still the open task in `TODO.toml`, so `app/` has no call site yet.
+ * Both shells call it: the desk window from its menu's *Save portable copy* chip
+ * (`desktop/src/main/java/com/mobixournal/desktop/io/PortableCopyCommand.kt`), the tablet from its menu row
+ * beside the page exports (`app/src/main/java/com/mobixournal/MainActivityPortableCopy.kt`).
  */
 object PortableCopy {
 

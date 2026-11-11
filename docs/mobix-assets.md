@@ -144,11 +144,12 @@ ones it cannot as references. Three properties make it trustworthy rather than m
 - it **says what it could not do**: the result lists what was embedded and what is still only a
   reference, so a copy never claims a portability it does not have.
 
-Nothing is downloaded, and the document it read is untouched. The **desktop window** reaches it through the
-menu's *Save portable copy* chip: the name is asked where every other save asks, the tab keeps its own
-file, and a reference resolves the way that window's painter resolves it — the document's folder for a
-background, the audio store for a recording ([desktop-workstation.md](desktop-workstation.md)). On the
-tablet the command is still **planned**: `PortableCopy` has no call site in `app/` yet.
+Nothing is downloaded, and the document it read is untouched. Both shells reach it: the desk window from
+the menu's *Save portable copy* chip, the tablet from the row above its PDF actions. Each asks for the
+destination where it asks for every save, resolves a reference the way its own renderer does — the
+document's folder for a background, the audio store for a recording — and leaves the open tab on its own
+file. The tablet's copy is written to a cache file and staged onto the picked URI afterwards, so a failed
+write leaves nothing half-made in the user's folder.
 
 ## Where the rule is checked
 

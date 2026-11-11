@@ -110,7 +110,7 @@ internal class DocumentReferenceResolver(
      * cases listed on [resolvePdfBackground]). Shared by the PDF and pixmap paths, because desktop
      * Xournal++ resolves both through one `getAbsoluteFilepath`. Null when it can't be reached.
      */
-    private fun openReference(
+    internal fun openReference(
         ref: String,
         domain: String?,
         name: String,

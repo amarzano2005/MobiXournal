@@ -390,6 +390,24 @@ class DocumentIo(
     }
 
     /**
+     * Open the bytes one absent reference names, for a **portable copy** (`PortableCopy`).
+     *
+     * It is the same lookup the renderer does for a page's background — an attached sibling, a
+     * `content://` URI, a path relative to the document, an absolute path — because a reference the
+     * painter cannot resolve is one a copy cannot honestly embed. A recording is **not** here: it lives in
+     * the audio store, which the caller supplies ([BundledAudio] is where that knowledge belongs). Null
+     * when this device cannot reach the bytes.
+     */
+    internal fun portableReference(
+        entry: com.mobixournal.portability.PortabilityEntry,
+        name: String,
+        source: Uri?,
+    ): java.io.InputStream? = when (entry.kind) {
+        com.mobixournal.portability.PortabilityKind.AUDIO -> null
+        else -> refs.openReference(entry.reference, null, name, source)
+    }
+
+    /**
      * Resolve the PDF background a gzip/XML document links to, so a saved project reopens with its
      * background intact. Only the first PDF-backed page carries the reference (import convention).
      */
