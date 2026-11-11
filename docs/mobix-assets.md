@@ -83,6 +83,31 @@ kept the two apart; a name in `assets/` shape is a bundled entry whichever field
   (`carriedPayloads`) rather than orphaning them. An entry this build has no model for at all is kept by
   the container's own preserve-unknown rule ([mobix-schema-spec.md](mobix-schema-spec.md)).
 
+## Is it inside the file?
+
+A `.mobix` may legally reference bytes it does not carry — a background's `filename`, a recording's `fn`
+sidecar — so "is this file complete?" is a question about each reference, not about the file.
+`PortabilityAudit` answers it for an opened document: it walks the pages through the page surface, one
+at a time and each page once, and classifies every reference a background or an element makes.
+
+| Status | Meaning | Raised by |
+|---|---|---|
+| `EMBEDDED` | the bytes are inside the document | a bundled `assets/` entry present in the archive; a picture element's own bytes |
+| `REFERENCED_ABSENT` | a legal reference with no bytes in the archive | a `filename` with no `asset`, a stroke or text box's `fn` sidecar |
+| `UNRECOVERABLE` | no caller can make these bytes part of the document | an `assets/` name whose entry is gone (corrupt); a reference that leaves the document's folder — an absolute path, a URI, a `..` segment |
+
+The audit **opens no payload**: presence is answered from the archive's central directory, because a
+report about a file must not inflate the file it is reporting on. That is also its limit, stated rather
+than hidden — a name in `assets/` shape is trusted to claim its digest here, so damaged bytes read as
+`EMBEDDED`; verifying them is the separate, off-line validator's question. An element family this build
+preserves verbatim is opaque, so a reference inside one is not classified.
+
+Each entry carries the kind of payload (`image`, `texImage`, `pixmap`, `pdf`, `audio`), the reference as
+the document writes it, and the page and element it was found on; a stable key per reference lets a
+caller group by reference instead of by page. A font name is **not** a reference: nothing in a `.mobix`
+carries font bytes, so `TextElement.font` is a rendering hint ([mobix-elements.md](mobix-elements.md)),
+and `FONT` exists in the vocabulary only for the day a face becomes a payload kind.
+
 ## Where the rule is checked
 
 `MobixContainerTest` holds the missing-payload case at page level: a page whose `image` names an entry the

@@ -51,6 +51,7 @@ it, so it no longer tries.
 - `mobix-core/src/main/java/com/mobixournal/format/model`
 - `mobix-core/src/main/java/com/mobixournal/format/xml`
 - `mobix-core/src/main/java/com/mobixournal/io`
+- `mobix-core/src/main/java/com/mobixournal/portability`
 - `mobix-core/src/main/java/com/mobixournal/render`
 - `mobix-core/src/main/java/com/mobixournal/update`
 
