@@ -22,50 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "stem-scientific-tables"
-title = "Tables with cell formulas, ranges and references (F04)"
-description = """
-`TableElement` has textual cells, a codec, `TableInk` and a cell editor, but a cell cannot hold `=B3/A3`, a range or a unit, so a lab table cannot recompute when a measurement changes. This is the single most requested practical workflow after plain calculation.
-
-User story: build a table with `time (s)`, `distance (m)`, `speed (m/s)`; the third column holds `=B3/A3`; `SUM`, `AVG`, `MIN`, `MAX` work over ranges; changing a measurement updates dependants; the sheet can feed a plot.
-
-Audit `TableElement`, `TableCell`, `MobixTableCodec`, `TableInk`, `TableElementFactory`, `TableCellEditorModel`, `TableCellEditorDialog` and selection/undo. Then make the one decision this scope exists for: extend the known `type` compatibly, or add `type=scientificTable` with stable row and column ids and typed cells (literal / formula / error). Do not rewrite `TableCellEditorDialog` and do not turn every existing table into a spreadsheet: conversion must be an explicit 'Convert to scientific table' action, reversible by copy, and old documents are never converted automatically. `A1` is a user-facing notation; internally prefer stable row/column ids with a documented policy for insert and move.
-
-Child tasks: T1 cell schema and row/column ids; T2 formula parser with cell dependencies, cycle and missing-reference diagnostics, bounded depth; T3 explicit conversion from `TableElement`; T4 a non-invasive editor adaptation; T5 PDF/`.xopp`/CSV and interop; T6 load/save/undo and formula-error states. Keep dates, locale-sensitive parsing and drag-fill semantics out of the MVP and say so.
-
-Acceptance: `=B2*C2`, range sums, divide-by-zero and cycle errors, missing reference, incremental recompute, CSV round-trip, faithful `.xopp`, and untouched legacy tables. Dependency: F01-F03 and the forward-field-preservation policy."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 180
-created = 2026-11-10
-tags = ["stem", "tables", "formulas", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-parametric-authoring-verification"
-title = "Prove the parametric plot path end to end and align the STEM guides"
-description = """
-`app/src/main/java/com/mobixournal/ui/AdvancedFunctionGraphDialog.kt` exposes two tabs - Cartesian f(x) and Parametric {x(t), y(t)} - and creates `PlotCurve(kind=PARAMETRIC)`, while `docs/guide-stem-tools.md` and `docs/guide-limitations.md` still read as if insertion were Cartesian only. Nobody has proven the parametric path survives the whole chain, and the same test is the prerequisite for the polar decision.
-
-Verify the real flow on both shells, with a device pass: dialog tab -> `resolveActiveCurves` -> `DrawingSurfacePlots.insertPlotElement` -> `PlotInk` -> `MobixPlotCodec` -> save and reopen the `.mobix` -> export PDF and `.xopp`, and confirm the curve keeps its parameter range, sample count and style. Capture the actual behaviour (screenshots plus the exported artefacts) rather than inferring it from code.
-
-Then update the two guide pages to state exactly what is supported today, using the guide's status vocabulary, and add the JVM round-trip test the verification exposes if one is missing. Do not add a second plot engine and do not touch polar authoring - that is `stem-polar-authoring`.
-
-DoD: a passing JVM round-trip test for a parametric curve, a documented emulator pass, and guides that match the code. Dependency: none."""
-status = "active"
-level = "task"
-category = "test"
-urgency = "normal"
-order = 190
-created = 2026-11-10
-tags = ["stem", "plot", "compatibility", "p0"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "stem-polar-authoring"
 title = "Create and edit polar curves r(theta) from the UI (F06)"
 description = """
@@ -1002,6 +958,104 @@ category = "feature"
 urgency = "normal"
 order = 770
 created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-table-cell-schema"
+title = "The cell schema and the stable row and column ids"
+description = "The data model the whole sheet rests on, extending the existing `table` element rather than adding a second type. A cell keeps `text` as its source of truth for a reader that knows no formulas, and gains optional `formula` (the source starting with =), `value` (the last computed number, a cache), and `error` (the typed refusal, so a broken formula is a value rather than empty ink). Rows and columns get stable ids the way elements do, minted once and never derived from their index, so inserting a row above a formula does not silently repoint its references; the policy for insert, delete and move is written down and tested. Encode and decode in `MobixTableCodec` under the existing rule - model or preserve whole, never half-read - with an old-reader check: a document without the new fields reads as exactly today's table and writes back unchanged, and a newer writer's unknown cell key is carried in the cell's own `unknown` map. The mode marker that says a table is scientific is absent in every legacy document, so nothing is converted by reading it."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 780
+created = 2026-11-11
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-table-formula-parser"
+title = "A formula parser over cell references, with cycle and missing-reference diagnostics"
+description = "The parser a cell formula needs and nothing more: `=B3/A3`, ranges (`B2:B9`), the aggregate functions `SUM`, `AVG`, `MIN`, `MAX`, `COUNT`, arithmetic and parentheses, all over a sheet of stable cell ids rather than over strings. A reference resolves through the row and column id map, so moving a row does not silently change what a formula means. The diagnostic set is explicit and typed: unknown cell, unknown range, cycle (`a -> b -> a` reported with its members, never hung), divide by zero, non-finite result, and a depth budget that refuses rather than recursing. Evaluation is incremental: a cell carries its dependencies and a revision, an edit recomputes only what reaches it, and a chain evaluates once per revision. Dates, locale-sensitive parsing and drag-fill are explicitly out: say so in the task's docs. Tests: `=B2*C2`, a range sum, a cycle, a missing reference, divide by zero, the depth limit, and a recompute counter that does not move when nothing changed."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 790
+created = 2026-11-11
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-table-conversion-action"
+title = "Convert a table into a scientific one, explicitly and reversibly by copy"
+description = "The only route that changes a legacy table, and the reason the scope does not break old documents: a **Convert to scientific table** action on the selection, offered per table, that mints the row and column ids, keeps every cell's text as its literal, and writes the mode marker. It is one undo step, and the reverse action turns a scientific table back into a plain grid by dropping the ids and the computed caches while keeping the text. Nothing happens implicitly: opening, saving, exporting or touching a cell of a legacy table never converts it, and a test asserts a plain table saved after an edit is byte-identical to what it was. Copy is English and names the consequence rather than the mechanism. Both shells build the same element for the same input."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 800
+created = 2026-11-11
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-table-editor"
+title = "Let the existing cell editor edit a formula without rewriting it"
+description = "Adapt the editor the app already has rather than replacing it: `TableCellEditorModel`, `TableCellEditorDialog` and the desktop lane keep their shape and gain a formula-aware field, so a cell shows its source while the grid shows its value, and the error state is visible where the cell is edited. A committed formula is one undo step; an abandoned one changes nothing. The grid's selection, keyboard movement, wrapping and the per-cell unknown fields all keep working, and a cell with no formula behaves exactly as it does today. Tests: the editor opens on the source, commits a formula, refuses nothing that parses, keeps a formula the editor cannot parse as text rather than erasing it, and the surrounding cells are untouched."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 810
+created = 2026-11-11
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-table-export"
+title = "Draw a scientific table in the PDF, the SVG and the .xopp the way the grid says"
+description = "The export leg the acceptance names: the computed value is what prints, the formula never does, and a cell in error prints its marker rather than a stale number. `TableInk`, the PDF plan, the SVG writer and `XoppSynthesis` all read the same model, so the three artefacts agree cell for cell; a `.xopp` still flattens the table into rules plus text boxes, and that flattened form carries the displayed values, not the sources. Tests: a table with one formula and one error exports to each format, the PDF text and the SVG string carry the computed value, and the `.xopp` strokes match the grid's own geometry. There is no table CSV export in this build today; if one is added it reads the same model rather than re-deriving cells, and the task then states the format's quoting rule. No locale ever enters the file."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 820
+created = 2026-11-11
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "stem-table-recompute-interop"
+title = "Save, reopen, undo and merge a sheet without losing what it computed"
+description = "Prove the sheet survives its own container: a page holding formulas reopens with the same sources, ids and values, a value that is only a cache is recomputed rather than trusted, and a document whose cached value disagrees with its formula shows the recomputed answer after load. Undo covers a formula edit and the conversion action, and a drag or a bulk paste is still one entry. A merge of two copies reconciles rows and columns by id rather than by position, keeping both when ids differ. The independent validator enumerates a sheet's formulas and their dependencies without a UI, so a third party can check it. A guard test fails the build if a formula is ever resolved by display position rather than by cell id."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 830
+created = 2026-11-11
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "verify-parametric-plot-on-the-emulator"
+title = "Run the parametric plot pass on a device and record what it shows"
+description = "The one check stem-parametric-authoring-verification could not run here: no adb and no AVD on this machine, so the dialog-to-file path is proven by JVM tests only. On the debug package (docs/tools.md, com.mobixournal.v2) open the plot tool, switch to the Parametric {x, y} tab, type cos(t) and sin(t) over 0 to 6.28, confirm the preview shows one closed loop, place it, save the .mobix, reopen it and confirm the loop is still a loop and the dialog reopens on the parametric tab with both expressions. Then export the page to PDF and to .xopp and check the loop is drawn in both. Capture screenshots of the place, the reopen and both exports. Report the result here and correct guides/limitations if the device disagrees with the JVM tests."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 840
+created = 2026-11-11
 tags = ["mobix"]
 rebuild = false
 emulator_debug = false

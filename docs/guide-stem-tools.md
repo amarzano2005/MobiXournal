@@ -27,9 +27,15 @@ The plot stays a live expression. Select it and its named parameters get sliders
 dragging one re-evaluates the curve, the derivative and the summary while you drag, so the formula is
 something you can feel rather than retype.
 
-Parametric and polar curves are evaluated, drawn, exported and round-tripped, but the plot tool places
-Cartesian curves only: there is no canvas path that creates a new parametric or polar plot here. If you
-need one, it has to arrive in a document that already has it.
+On Android the dialog has a second tab, **Parametric {x, y}**: it asks for `x(t)` and `y(t)` and places
+the pair as **one** curve — sampled over the `t min`/`t max` fields instead of the domain — rather than
+as the two waves its two formulas would look like as `y = f(x)`. An `x(t)` with no `y(t)`, or one that
+does not parse, keeps the insert button off.
+
+The window's placement card has no such tab, so a graph placed there is `y = f(x)`. A parametric curve
+that arrives in a document still opens, draws and exports on both shells, and Android reopens it on the
+same tab with its two expressions. Nothing creates a **polar** curve yet on either shell: those are
+evaluated, drawn, exported and round-tripped when a document carries them.
 
 ## Tables
 
