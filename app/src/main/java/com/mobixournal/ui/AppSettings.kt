@@ -117,6 +117,14 @@ data class AppSettings(
     /** The format a **new** document is written in ([NewDocumentFormat]), asked once at first launch and
      * changeable under Settings → App & data; `.mobix` is the default — what the app authors has no home in `.xopp`. */
     val newDocumentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
+    /**
+     * Whether a document is written **by itself** once the strokes stop, without asking.
+     *
+     * Off at first launch: a save is the reader's decision until they say otherwise. It only ever writes a
+     * document that already has a file — a document with no name of its own still waits for Save, because
+     * the app may not choose where someone's notebook lives (`docs/data-path.md`).
+     */
+    val autoSave: Boolean = false,
     /** When false, fingers only pan/zoom — never draw (palm-safe for stylus users); off at first launch, so a
      * hand resting on the glass never inks a page written on with a stylus. */
     val fingerDraws: Boolean = false,
@@ -538,6 +546,7 @@ class SettingsStore(context: Context) {
             ),
             pageSizeUnit = PageFormatPrefs.read(prefs),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
+            autoSave = prefs.getBoolean(KEY_AUTO_SAVE, d.autoSave),
             fingerDraws = prefs.getBoolean(KEY_FINGER_DRAWS, d.fingerDraws),
             barrelAction = enumOr(prefs.getString(KEY_BARREL, null), d.barrelAction),
             barrelDoubleAction = enumOr(prefs.getString(KEY_BARREL_DOUBLE, null), d.barrelDoubleAction),
@@ -693,6 +702,7 @@ class SettingsStore(context: Context) {
         e.remove(KEY_NEW_DOCUMENT_CANVAS)
             .putToggleShortcuts(s)
             .putBoolean(KEY_FINGER_DRAWS, s.fingerDraws)
+            .putBoolean(KEY_AUTO_SAVE, s.autoSave)
             .putString(KEY_BARREL, s.barrelAction.name)
             .putString(KEY_BARREL_DOUBLE, s.barrelDoubleAction.name)
             .putBoolean(KEY_HOVER, s.showHover)
@@ -806,6 +816,9 @@ class SettingsStore(context: Context) {
         const val KEY_DEFAULT_PAGE_HEIGHT = "default_page_height_pt"
         const val KEY_PAGE_SIZE_STEP = "page_size_step_px"
         const val KEY_FINGER_DRAWS = "finger_draws"
+
+        /** Auto save: off unless asked, so an untouched install never writes a file by itself. */
+        const val KEY_AUTO_SAVE = "auto_save"
         const val KEY_BARREL = "barrel_action"
         const val KEY_BARREL_DOUBLE = "barrel_double_action"
         const val KEY_HOVER = "show_hover"

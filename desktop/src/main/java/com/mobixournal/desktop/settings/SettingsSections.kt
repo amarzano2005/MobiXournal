@@ -458,6 +458,16 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
                 style = DesktopTheme.numeric,
             )
         }
+        // Off until asked, and never a way to name a document: one with no file waits for Save, because where
+        // it lives is the reader's answer (`AutoSavePolicy`).
+        SettingsRow(
+            label = "Save automatically",
+            note = "Writes the document after you stop writing. Only for one that already has a file.",
+            checked = policy.autoSave,
+            onClick = { policy.pickAutoSave(!policy.autoSave) },
+        ) {
+            SettingsSwitch(policy.autoSave)
+        }
         SettingsReadout("Destination", "Documents\\MobiXournal\\Untitled n" + policy.newDocumentFormat.extension)
     }
 }

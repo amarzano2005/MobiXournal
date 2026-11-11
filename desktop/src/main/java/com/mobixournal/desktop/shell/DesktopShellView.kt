@@ -67,7 +67,7 @@ internal fun DesktopShell(
     tablet: DesktopTablet? = null,
 ) {
     SaveWorker(state)
-    ThumbnailRefresh(state)
+    ThumbnailRefresh(state); AutoSave(state)   // the third quiet job (DesktopQuiet.kt)
     // The field's answer, walked off the UI thread once per settled query (`DesktopSearch.kt`).
     SearchRunner(state.active)
     LaunchedEffect(onInsertImagePicker) { state.onInsertImagePicker = onInsertImagePicker }

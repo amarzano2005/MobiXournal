@@ -30,4 +30,15 @@ fun DocumentsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 "as standard ink for universal compatibility. Save As converts either way.",
         )
     }
+    // Off until asked, and never a way to choose a name: a document that has never been saved still waits
+    // for Save, because where it lives is the reader's answer (`docs/data-path.md`).
+    SettingsGroup("Saving") {
+        SwitchRow(
+            title = "Save automatically",
+            subtitle = "Writes the document a few seconds after you stop writing. Only for a document " +
+                "that already has a file.",
+            checked = settings.autoSave,
+            onCheckedChange = { onChange(settings.copy(autoSave = it)) },
+        )
+    }
 }

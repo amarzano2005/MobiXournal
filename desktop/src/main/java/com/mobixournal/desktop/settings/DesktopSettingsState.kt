@@ -154,6 +154,16 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var documentFormatChosen by mutableStateOf(store.documentFormatChosen)
         private set
 
+    /** Whether a document writes itself once the edits go quiet — off until the reader asks (Documents). */
+    var autoSave by mutableStateOf(store.autoSave)
+        private set
+
+    /** Turn auto save on or off and store it: the Documents page's own switch. */
+    fun pickAutoSave(on: Boolean) {
+        store.autoSave = on
+        autoSave = on
+    }
+
     /** The unit the page format and the quick size are read in ([PageSizeUnit]), as both compose it. */
     var pageSizeUnit by mutableStateOf(store.pageSizeUnit)
         private set

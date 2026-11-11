@@ -121,15 +121,13 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 2. Confirm the SmartScreen prompt if one appears, and keep or decline the associations and shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
-Desktop settings use task groups; graph previews follow the theme.
-
 A new tab is empty until saved: **Save As** names it and fixes its format; **Save** writes back there.
 **Save portable copy** writes a second `.mobix` with the files a notebook only names.
+**Save automatically** (Settings → App & data → Saving, off by default) writes a document that has a
+file a few seconds after you stop; it never picks a name.
 Recents show what you opened; **Restore last session** reopens an unfinished session.
 
 ## Where the work stands today
-
-Most of what the sections above describe is settled and in daily use.
 
 Some of it stops part-way: a Typst source is kept but not typeset, and tablet handwriting search needs its model
 downloaded before it answers. Absent: no sync between devices, tilt does not change stroke width, and the

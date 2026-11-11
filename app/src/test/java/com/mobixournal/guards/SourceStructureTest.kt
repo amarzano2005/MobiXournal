@@ -55,7 +55,14 @@ class SourceStructureTest {
         // the palette they draw from, because a settings file that stores everything but the ring would
         // make the ring the one arrangement a reader loses on restart.
         // -3: three KDoc paragraphs that restated their own field names, shortened to one line each.
-        "ui/AppSettings.kt" to 1001,
+        // +8 deliberate: **auto save** is one stored flag, and the paragraph above its field is the trade-off
+        // the setting makes (it never names a document, never writes a read-only one).
+        "ui/AppSettings.kt" to 1009,
+        // The two that carry the window's half of auto save, one deliberate line each over the budget: a stored
+        // boolean in the settings file, and the state that the Documents switch and the quiet job both read.
+        // The rule itself lives in `mobix-core` (`io/AutoSavePolicy.kt`), not here.
+        "desktop/settings/DesktopSettings.kt" to 714,
+        "desktop/settings/DesktopSettingsState.kt" to 710,
         // -62: the PDF import card moved beside the value it asks about (`PdfImportDialog.kt`).
         "ui/EditorDialogs.kt" to 858,
         // The window's code moved into topic packages (`docs/code-structure.md`), and these three files had

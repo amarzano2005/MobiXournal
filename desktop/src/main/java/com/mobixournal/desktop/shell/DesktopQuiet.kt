@@ -1,6 +1,8 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopRecovery
+import com.mobixournal.desktop.io.save
+import com.mobixournal.io.AutoSavePolicy
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,4 +69,42 @@ internal fun ThumbnailRefresh(state: DesktopShellState) {
         delay(THUMBNAIL_QUIET_MS)
         state.refreshThumbnails()
     }
+}
+
+/**
+ * **Auto save**: with the setting on, a document that has a file of its own is written once the edits have been
+ * quiet, so a stroke never pays for the encode.
+ *
+ * It is a quiet job rather than a per-stroke one for the same reason the crash snapshot is: the write stages a
+ * whole notebook. Keyed on [DesktopShellState.editRevision] the way the other two are, so the next edit cancels
+ * the pending save and restarts the wait — which is what "after you stop writing" means. [autoSaveNow] re-reads
+ * every gate when it runs, so a document that became read-only, lost its file or was cleaned in the meantime is
+ * simply not written.
+ */
+@Composable
+internal fun AutoSave(state: DesktopShellState) {
+    LaunchedEffect(state.editRevision) {
+        if (state.editRevision == 0) return@LaunchedEffect
+        delay(AutoSavePolicy.QUIET_MS)
+        state.autoSaveNow()
+    }
+}
+
+/**
+ * Write the showing document by itself, if the window is allowed to.
+ *
+ * The same path `Ctrl+S` takes on a tab that already has a file (`save`), never the picker: a document with no
+ * name of its own waits for the reader. Every answer is [AutoSavePolicy]'s, so the two shells agree on what an
+ * automatic save may touch.
+ */
+internal fun DesktopShellState.autoSaveNow() {
+    val tab = tabs.active ?: return
+    val due = AutoSavePolicy.due(
+        enabled = prefs.autoSave,
+        edited = tab.isDirty,
+        readOnly = tab.document.readOnly,
+        hasTarget = !tab.unsaved,
+        busy = saveState.committing,
+    )
+    if (due) save()
 }

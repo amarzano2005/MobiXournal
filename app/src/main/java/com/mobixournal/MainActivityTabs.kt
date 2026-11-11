@@ -143,6 +143,8 @@ internal fun MainActivity.snapshotActiveTab(p: EditorPane = pane) {
  */
 internal fun MainActivity.markShowingTabEdited(p: EditorPane) {
     val tab = p.tabs.active ?: return
+    // An edit is also what starts the auto-save watch: a document cannot need writing before one.
+    AutoSaveWatch.start(this)
     if (tab.unsavedEdits) return
     p.tabs.updateMatching({ it.id == tab.id }) { it.copy(unsavedEdits = true) }
     tabsTick.value++

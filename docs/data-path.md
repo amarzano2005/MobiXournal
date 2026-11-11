@@ -189,6 +189,17 @@ the file, and each shell then says one sentence — how many parts are missing a
 from — once per open rather than once per page. The portable-copy action that would embed what it can is
 not built.
 
+## Auto save
+
+Off by default (Settings → App & data → **Saving** on the tablet; **Documents** on the window). With it on, a
+document is written **by itself** once the strokes have been quiet for four seconds (`AutoSavePolicy.QUIET_MS`).
+
+It is the plain Save path, so it can never choose where a notebook lives: a document with no file of its own
+waits for Save, a read-only tab is never written, and a transfer already in flight keeps the file. The rule is
+one function both shells call (`io/AutoSavePolicy.kt` in `mobix-core`, pinned by `AutoSavePolicyTest`); what each
+shell adds is only the quiet period — the window on `editRevision` (`DesktopQuiet.kt`), the tablet on the
+canvas's own edit count (`MainActivityAutoSave.kt`).
+
 ## Shared immutable edit roots
 
 Layer appends promote ordinary imported lists once to `PersistentVector`; subsequent appends copy a

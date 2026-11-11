@@ -523,6 +523,19 @@ class DesktopSettings(val file: File = defaultFile()) {
         get() = PageSizeUnit.fromName(properties.getProperty(KEY_PAGE_UNIT))
         set(value) { properties.setProperty(KEY_PAGE_UNIT, value.name); save() }
 
+    /**
+     * Whether the window writes a document by itself once its edits go quiet.
+     *
+     * Off until asked (`AutoSavePolicy`), and stored under the Documents section that owns the switch: a
+     * window that writes files on its own before being told to is a window that surprises people.
+     */
+    var autoSave: Boolean
+        get() = properties.getProperty(KEY_AUTO_SAVE) == "true"
+        set(value) {
+            properties.setProperty(KEY_AUTO_SAVE, value.toString())
+            save()
+        }
+
     private fun writePageSize(widthPt: Double, heightPt: Double) {
         if (!(widthPt > 0.0) || !(heightPt > 0.0)) return
         properties.setProperty(KEY_PAGE_WIDTH, widthPt.toString())
@@ -574,6 +587,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The zoom a document opens at. */
         const val KEY_FIT_ON_OPEN = "interface.fitOnOpen"
+
+        /** Auto save: off unless the reader turns it on in Documents. */
+        const val KEY_AUTO_SAVE = "documents.autoSave"
 
         /** When the page list shows itself. */
         const val KEY_SIDEBAR_POLICY = "interface.sidebarPolicy"
