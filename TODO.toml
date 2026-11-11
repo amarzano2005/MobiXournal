@@ -29,35 +29,16 @@ Only worth doing after connectors are real. Once `stem-persistent-connectors` gi
 
 Design: a deterministic `CircuitNetGraph` compiled from components plus connectors (with explicit junctions and labels), a bounded `CircuitERC` that flags floating pins, missing ground, duplicate net names, obvious shorts and incompatible terminals where the symbol's semantics allow the judgement, and a `SpiceExporter` for a documented subset (R, C, L, ideal sources). A symbol without a mapping must report `UNSUPPORTED` rather than an invented component. An ERC is not a physics validation and must say so. No internal simulator in this scope.
 
-Child tasks: N1 net graph and stable net ids; N2 ERC rules with severities; N3 SPICE export plus fixture verification in an external tool; N4 UI surfacing of diagnostics; N5 spec and interop. Acceptance: the series R1/R2/V circuit exports a netlist that matches the hand-written reference, a floating pin and a missing ground are reported, and reordering/copying elements does not change the nets. Dependency: `stem-persistent-connectors` complete and tested."""
-status = "active"
+Child tasks: N1 net graph and stable net ids; N2 ERC rules with severities; N3 SPICE export plus fixture verification in an external tool; N4 UI surfacing of diagnostics; N5 spec and interop. Acceptance: the series R1/R2/V circuit exports a netlist that matches the hand-written reference, a floating pin and a missing ground are reported, and reordering/copying elements does not change the nets. Dependency: `stem-persistent-connectors` complete and tested.
+
+Blocked on 2026-11-11, after stem-persistent-connectors was broken down: this scope's own rule is that it is only worth doing once connectors are real, and they are still six tasks with no code (stem-connector-model, -router, -drag, -export, -copy-merge, -emulator-pass). Splitting it now would produce tasks a small model cannot execute, because the net graph is compiled from a ConnectorElement that does not exist yet. Deliberately left whole; re-read it when the connector children have shipped and then break out N1-N5."""
+status = "blocked"
 level = "scope"
 category = "feature"
 urgency = "low"
 order = 260
 created = 2026-11-10
 tags = ["stem", "circuit", "p3"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-calibrated-measurements"
-title = "Measure with declared scale, units and precision (F08)"
-description = """
-There are geometric readouts on shapes and `MeasurementText` exists for labels, but no measurement is an object: nothing stores the points it was taken between, the calibration it used or its uncertainty, so a number cannot be recomputed or trusted after a rescale.
-
-User story: measure a distance on a drawing, declare `100 pt = 2 m`, and read the real length; measure on a photo or a PDF only after an explicit calibration, with the app never pretending that an uncalibrated PDF yields metres; copy the value into a calculation.
-
-Audit `FigureGeometry`, `ParametricShapes.kt`, `MeasurementText`, `ElementBounds` and the PDF transforms. Design a `measurement` element referencing stable points/anchors and a per-page, per-image or per-figure calibration with provenance and validity, mode `DISTANCE`/`ANGLE`/`AREA`/`SLOPE`, precision, and units from `stem-physical-units`. Store the original points and the scale, never a rounded result alone. Uncertainty (±) and propagation are a later phase and must be stated as such.
-
-Child tasks: M1 uncalibrated page measurements in pt; M2 explicit scales and units; M3 angles/areas and uncertainty; M4 marker/tap/copy UX on both shells; M5 export and fixtures. Acceptance: a measurement on a rotated figure is correct, no SI unit appears without calibration, and the value can flow into `stem-page-calculations`. Dependency: F02, the reference policy."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 270
-created = 2026-11-10
-tags = ["stem", "geometry", "units", "p2"]
 rebuild = false
 emulator_debug = false
 
@@ -1589,3 +1570,112 @@ created = 2026-11-11
 tags = ["stem", "math", "test"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "stem-measurement-element"
+title = "Model a measurement as an object with stored points"
+description = """
+The scope's premise needs one correction before the model is written: MeasurementText exists (render/MeasurementText.kt, used by ShapeInk for a shape's angle and side labels through ParametricShapes.sideLengthPt) and so do the dimension primitives (FigureGeometry.doubleArrow, axes, clampedHead, Barbs). What does not exist is an object: a label is a string derived at render time, so nothing stores the points it was taken between, nothing survives a move, and nothing can be recomputed or copied.
+
+Add MeasurementElement (its own file in format/model/): mode (DISTANCE first), two endpoints as PointRef(elementId, relX, relY, absX, absY) so an endpoint can follow an element and falls back to a page point when it does not, the original page points in pt, precision, colour, width, label offset, id, unknown-key preservation. Store the points and the scale, never a rounded result: the displayed string is derived. Add MobixMeasurementCodec and the type in MobixElementCodec, the living-entity rule and the LivingInk arm (the dimension line through FigureGeometry plus the label through MeasurementText), a sample in XoppExportCoverageTest with elementFamilies raised by one, and the docs/mobix-elements.md entry that says the element is DISTANCE-only and in points for now.
+
+Verify: a distance between two points survives encode/decode, an endpoint bound to an element moves with it while an unbound one stays at its page point, the displayed string is recomputed at a new precision rather than stored, and an unknown mode is preserved rather than refused. Run ./gradlew :mobix-core:test --tests '*Measurement*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1210
+created = 2026-11-11
+tags = ["stem", "measurement", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-measurement-calibration"
+title = "Declare a scale and refuse to invent one"
+description = """
+A measurement in points is a drawing, not a physical length, and the app must never pretend otherwise. Add Calibration: a reference pair of page points, the real value the user declares, the unit (the type the finished stem-physical-units scope owns), the source (PAGE, IMAGE, FIGURE) and validity. A page can carry one, an image or a figure can carry a stricter one that wins for measurements on it, and a Background.Pdf page starts with none and says so.
+
+Rules the model has to encode rather than assume: a measurement displays metres only when a valid calibration covers it; a calibration is invalidated when the thing it measured is rescaled or replaced (an image resized, a PDF page swapped, a figure's box changed), and an invalid one is shown as stale instead of silently reused; the declaration surface is an explicit two-point plus value plus unit gesture on both shells, never a hidden setting. Store the reference points and the declared value, and derive the factor.
+
+Docs: docs/guide-stem-tools.md gains the declaration flow and the visible stale state, docs/mobix-elements.md the calibration record. Verify: 100 pt = 2 m makes a 250 pt distance read 5 m, a rescaled image marks its calibration stale and the measurement falls back to points with a visible note, an uncalibrated PDF never yields metres, and a calibration round-trips through the codec with its provenance. Run ./gradlew :mobix-core:test --tests '*Calibration*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1220
+created = 2026-11-11
+tags = ["stem", "measurement", "units"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-measurement-angles-areas"
+title = "Measure angles, areas and slopes with the geometry that exists"
+description = """
+The element starts with DISTANCE; the other three modes reuse geometry the build already computes instead of a second implementation: ANGLE between two segments through the same arithmetic ShapeInk's angle labels use, AREA for a closed polygon through the shoelace sum over its vertices, SLOPE as rise over run with the vertical case stated rather than divided by zero. Add them to MeasurementElement's mode, its codec values, its ink (an arc for an angle, a hatch or outline for an area, the dimension line for a slope) and its derived label.
+
+Precision belongs to the element, rounding happens only at render, and uncertainty is explicitly out of scope: the docs and the label say a value is exact in the model's own units, with ± propagation left to a later phase. Degenerate input is refused, not rounded: three collinear points have an angle of 180 degrees but a triangle of zero area, and that is stated in the label.
+
+Verify: an angle on a rotated triangle matches the geometric angle within 1e-9, a 3-4-5 triangle reports area 6, a vertical segment's slope is reported as undefined rather than infinite, and a degenerate polygon is refused with a message. Run ./gradlew :mobix-core:test --tests '*Measurement*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1230
+created = 2026-11-11
+tags = ["stem", "measurement", "geometry"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-measurement-ux"
+title = "Place, adjust and copy a measurement on both shells"
+description = """
+The element needs a gesture: on both shells, a measurement tool takes two taps (or a drag) and previews the live distance while the finger or pointer moves, placing the element on release; each endpoint gets a grip that moves it and recomputes the value, and a grip over an element's anchor binds the endpoint to it (PointRef) rather than to a page coordinate. The value can be copied as text with its unit, and one drag is one undo entry.
+
+The label follows the existing label rules (LivingLabelClearance: never across the line it describes, on the outside of a corner), English copy, tokens only, all five states, no new glyph unless the catalogue already has one. The tool joins the same tool groups the other STEM tools use, and the desktop lane asks the same question in its own card so the two shells cannot disagree about what a measurement is.
+
+Docs: docs/guide-stem-tools.md's measurement section and docs/interface-contract.md if a material class or glyph enters. Verify with an app JVM test of the gesture reducer (two taps, drag, endpoint grip, binding to an anchor, copy text, one history entry) and the same reducer on the desktop side. Run ./gradlew :app:testDebugUnitTest --tests '*Measurement*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1240
+created = 2026-11-11
+tags = ["stem", "measurement", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-measurement-export"
+title = "Export the drawn dimension and say what the file cannot keep"
+description = """
+A measurement must leave the native format as the dimension it is drawn as, with its value, and the loss stated where the bridge states the others. Add the arm to LivingInk.compile so PDF, SVG, PNG and .xopp all draw the dimension line, its extensions and its label through the one dispatch, and a sample in XoppExportCoverageTest so the family's export is exercised.
+
+Then state the boundary in docs/xopp-bridge.md's loss section: a .xopp keeps the drawing and the printed value, and loses the stored endpoints and the calibration, so a value cannot be recomputed from the export; the bridge claim revives the element on re-import while a file edited elsewhere imports as the ink it now is. A measurement whose calibration is stale exports its point value and says so in the label, so an exported page cannot claim metres it does not have.
+
+Verify with a core test: the exported ink's points equal the drawn dimension for the same element, the SVG carries the label text, the .xopp round trip keeps one dimension stroke plus its text and the bridge claim revives the endpoints, and a stale calibration exports points rather than a converted value. Run ./gradlew :mobix-core:test --tests '*XoppSynthesis*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1250
+created = 2026-11-11
+tags = ["stem", "measurement", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-measurement-emulator-pass"
+title = "Measure on the emulator, then move and rescale what was measured"
+description = "No measurement has been taken on a device and this host has no adb or AVD. Install the APK, measure between two points in points, then declare 100 pt = 2 m and confirm the same distance now reads in metres; bind an endpoint to a shape, move and rotate the shape and confirm the value follows; resize the image or figure the calibration was declared on and confirm the calibration is shown stale and the value returns to points; copy the value, export a PDF and confirm the dimension and its label are on the page; undo one drag. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1260
+created = 2026-11-11
+tags = ["stem", "measurement", "device"]
+rebuild = true
+emulator_debug = true

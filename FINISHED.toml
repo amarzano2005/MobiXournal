@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stem-calibrated-measurements"
+title = "Measure with declared scale, units and precision (F08)"
+description = "Broke the measurement into six atomic tasks: the element and its stored points, calibration with provenance and validity, angles/areas/slopes, the gesture on both shells, the export and its stated loss, and the device pass. The audit corrected one line of the plan: MeasurementText already exists (render/MeasurementText.kt, used by ShapeInk's angle and side labels) and FigureGeometry already draws dimension lines, so the missing half is the object that stores the points, the scale and the precision — not the text or the drawing. It also found what the model must attach to: the only anchor concept in the model today is CircuitPin (a magnetic anchor with a relative position), and an uncalibrated PDF background is a first-class case (Background.Pdf), which is why the child that adds calibration writes the stale and never-invent-a-metre rules into the model rather than the UI. stem-physical-units is finished, so the unit type has an owner and this scope consumes it instead of defining one; uncertainty and propagation are explicitly a later phase, in the plan and in the label. No document changed: nothing exists yet, and each child names the page it must update in its own commit."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "geometry", "units", "p2"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
 id = "stem-numeric-reliability"
 title = "Choose derivative/root/integral algorithms by accuracy, not by doc text"
 description = "Broke the reliability question into six atomic tasks: a measured corpus first, then the derivative scheme, the root solver, the integrator, a result type that carries its own accuracy, and a deliberate rewrite of the characterization tests. The audit's findings are what the tasks are built on: derivative is a fixed H = 1e-5 symmetric difference with no bound, roots are found on a 200-sample grid with bisection refined only where the sign changes, adaptive Simpson runs to epsilon 1e-7 and depth 24, and FunctionAnalysisCharacterizationTest already asserts a missed tangent root at x = 0.5005 with the comment that nothing says so. The order is deliberate: the corpus produces the numbers before any algorithm changes, each replacement has to beat the baseline it recorded, and docs/math-engine.md's four sections are updated with the measured before and after rather than a claim of better accuracy. The last child exists because the characterization file is the honest record of the old behaviour; it is rewritten case by case, and every tolerance that moves carries its old and new number, so an improvement cannot be claimed by deleting an assertion. No document changed here: no algorithm moved yet, so the pages that describe the current schemes are still accurate."
