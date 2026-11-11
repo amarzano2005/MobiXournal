@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import com.mobixournal.desktop.io.*
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.format.SaveFormat
@@ -83,11 +84,18 @@ internal fun writeSaveRequest(request: SaveRequest): Saved {
     }
 }
 
-/** Existing desk and typography tokens; the unavailable editor is replaced for the transaction. */
-@Composable internal fun SavingDesk() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Saving document...", color = DesktopTheme.accent)
-    }
+/**
+ * A save in progress, said **on** the page rather than instead of it: one line in the accent, no scrim and
+ * no second surface. The document stays readable while the bytes are written — the window used to swap the
+ * whole workspace for a placeholder, which read as a crash and threw every canvas away for the length of
+ * the write.
+ */
+@Composable internal fun BoxScope.SavingBadge() {
+    Text(
+        text = "Saving...",
+        color = DesktopTheme.accent,
+        modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+    )
 }
 internal fun Modifier.saveInputGate(saving: Boolean): Modifier = onPreviewKeyEvent { saving }.pointerInput(saving) {
     if (saving) awaitPointerEventScope {

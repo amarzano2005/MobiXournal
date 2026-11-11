@@ -69,17 +69,17 @@ What it does today:
 - **Writes the document back** (`Ctrl + S`; `Ctrl + Shift + S` is Save As). The bytes are
   `DocumentEncoder.write` from `mobix-core` — the same three format arms the tablet saves through —
   staged into a temp file beside the target and then moved over it, so a crash mid-write cannot leave a
-  truncated notebook. A save over the document's own file stages first, releases the archive and opens
-  it again after the move, because Windows refuses to replace a file the process still holds and a
-  `.mobix` tab holds its own for as long as its pages stay lazy. The **container is the one it was
-  opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only place it changes: the save
-  window (`SaveAsPicker.kt`) asks **which of the three** in its own type box — `.mobix`, `.xopp` or the
-  zipped `.xopp` package, the list the Documents section shows for a new file, opened on the document's
-  own container — so one dialog gives both answers, and the name it proposes wears the picked suffix
-  (`note` is written `note.mobix`). That type is what is written whatever the name field ends up saying:
-  a suffix typed over used to undo the choice in silence. The tab is re-homed onto the file it just wrote.
-  A save writes the document **with its edits**: a page the window drew on is the page the file gets, and
-  a `.mobix` repack still streams the pages nobody touched out of the archive.
+  truncated notebook. The page stays **drawn** while it runs, with a quiet *Saving...* in the corner: the
+  window used to replace its workspace with a placeholder, which read as a crash. A `.mobix` save over its
+  own file releases the archive and opens it again after the move, because Windows refuses to replace a
+  file the process still holds and a lazy tab holds its own; a `.xopp` is read whole, so the tab keeps the
+  model it just wrote instead of parsing the file back — the re-read that made a save cost an open. The
+  **container is the one it was opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only
+  place it changes: the save window (`SaveAsPicker.kt`) asks which of the three in its own type box, opened
+  on the document's own container, and names the file with the picked suffix (`note` is `note.mobix`). That
+  type is written whatever the name field ends up saying; a suffix typed over used to undo it in silence.
+  A save writes the document **with its edits**, and a `.mobix` repack streams untouched pages out of the
+  archive. The tab is re-homed onto the file it just wrote.
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, *Export PNG* writes one
   raster per page (2 px per point, the sheet painted by the canvas's own painter), *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.

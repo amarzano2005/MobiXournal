@@ -358,8 +358,14 @@ class DesktopTab(
         // A staged file an earlier failed save adopted, if there is one: once this save lands it is litter.
         val adopted = document.pageSource.takeIf { it.absoluteFile != document.file.absoluteFile }
         val staged = DesktopSaves.stage(document, target, format)
+        // A `.xopp` is read whole into memory, so nothing holds the file and the model in hand is what was
+        // just written: the tab keeps it rather than parsing the file back (a save's largest cost).
+        // Kept only while the write leaves the document the container it is already in: a Save As that
+        // changes it must read the new file back, or the tab would keep claiming the old one.
+        val keepsModel = document.container != com.mobixournal.desktop.io.DesktopContainer.MOBIX &&
+            format == DesktopSaves.formatOf(document.container)
         val failure = try {
-            document.close()
+            if (!keepsModel) document.close()
             replace(staged.temp, target)
             null
         } catch (thrown: Throwable) {
@@ -377,7 +383,7 @@ class DesktopTab(
             throw failure
         }
         staged.close()
-        document = DocumentLoader.load(target).also { it.audioStore = audioStore }
+        if (!keepsModel) document = DocumentLoader.load(target).also { it.audioStore = audioStore }
         unsaved = false
         // The closed archive's pages are what the old steps would restore; after a save the file is the
         // new baseline, so the history starts here and the save point moves with it.

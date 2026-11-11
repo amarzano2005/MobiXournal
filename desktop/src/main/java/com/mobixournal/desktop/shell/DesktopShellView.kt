@@ -133,9 +133,9 @@ internal fun DesktopShell(
             // and not a page of its own. The reader keeps the document in view while a preference is
             // changed — which is the point of changing it (`docs/interface-contract.md` — a surface that
             // comes and goes may lie over the page; only a band may not).
-            if (state.isSaving) SavingDesk() else WorkspaceBody(state, tablet, onOpenPicker)
-            if (!state.isSaving && state.prefs.open) SettingsSurface(state.prefs, state.paletteEditor)
-            if (!state.isSaving) FigureDialogHost(state)
+            WorkspaceBody(state, tablet, onOpenPicker)
+            if (state.prefs.open) SettingsSurface(state.prefs, state.paletteEditor)
+            FigureDialogHost(state)
         }
         StatusBar(
             state.active,
@@ -164,6 +164,9 @@ private fun BoxScope.WorkspaceBody(
     onOpen: () -> Unit,
 ) {
     val tab = state.active
+    // A save is said **on** the page, never instead of it: swapping the workspace for a placeholder made a
+    // save look like a crash, and rebuilding every canvas afterwards was much of what it cost.
+    if (state.isSaving) SavingBadge()
     // Whichever of the two owns the window **arrives** rather than replaces: opening a document springs
     // the page in, and closing the last one springs the entry screen back, because a cut between the two
     // read as the window having been reloaded.
