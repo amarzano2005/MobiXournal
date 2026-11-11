@@ -108,6 +108,27 @@ caller group by reference instead of by page. A font name is **not** a reference
 carries font bytes, so `TextElement.font` is a rendering hint ([mobix-elements.md](mobix-elements.md)),
 and `FONT` exists in the vocabulary only for the day a face becomes a payload kind.
 
+## A validator, not only reader behaviour
+
+A reader enforces these rules on the bytes it happens to touch, so a damaged payload nobody has drawn
+looks fine. `MobixAssetValidator` asks the same rules of the whole archive, without opening a document:
+
+| Rule id | Question | Severity |
+|---|---|---|
+| `NAME_GRAMMAR` | is the entry `assets/<prefix>_<64 lowercase hex>.<suffix>`? | error |
+| `UNKNOWN_PREFIX` | does the prefix name a kind the vocabulary defines? | error |
+| `DIGEST_MISMATCH` | do the bytes hash to the digest their name claims? | error |
+| `MISSING_ENTRY` | does every name a part references have an entry? | error |
+| `ORPHAN_ENTRY` | is there an entry no part names? | warning — legal under the preserve-unknown rule |
+| `CONTAINER_LIMIT` | did a size or count cap stop the walk? | error, and the limits travel with the answer |
+| `UNREADABLE_PAGE` | could a page be decoded at all? | error |
+
+An entry that breaks a grammar or digest rule is not reported as an orphan as well: one fault, one
+finding. A picture element's entry is matched **by digest** rather than by name, because the model keeps
+the bytes and not the container they arrived in — a payload written under a different suffix is still
+that picture. The validator writes nothing, and its signatures take an entry source or a `File`, so the
+independent CLI reuses this code instead of a second implementation of the same rules.
+
 ## Where the rule is checked
 
 `MobixContainerTest` holds the missing-payload case at page level: a page whose `image` names an entry the
