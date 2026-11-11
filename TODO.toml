@@ -2237,25 +2237,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "mobix-conformance-runbook"
-title = "Make the checklist, the docs and CI name the validator"
-description = """
-Wire the validator into the procedure that claims it, so the three descriptions of how conformance is checked cannot disagree.
-`spec/CONFORMANCE.md`'s How to run it tells a third party to run its thirty-eight rows by hand and names no tool; `docs/testing.md` and `docs/tools.md` list the two corpus generators but nothing that checks a document; `.github/workflows/build.yml` runs the Python scripts it knows by name, so a new one runs nowhere.
-Update all three in the same commit as the script: the checklist gains, for the rows a script can decide, a marker and one sentence saying how to invoke it with `--rows` as the authority for which rows those are; `docs/tools.md` gains the script with one line on what it checks and one on what it cannot (a digest held in another entry, geometry that is the sum of other fields, the save-and-reopen half a reader must still do by hand); CI runs it over both corpora and over the file the test beside it writes.
-Then guard it: a test asserting that the row numbers `spec/CONFORMANCE.md` marks as script-decided and the rows `--rows` reports are the same set in both directions, so a row cannot end up claimed by neither side. If the marker approach does not fit the table, choose the smallest representation a test can read mechanically and say so in that test's own comment.
-Budgets: every doc stays inside 300 lines (`DocsGuardTest`), no sentence is pasted from another doc, and every file a doc names must exist."""
-status = "active"
-level = "task"
-category = "docs"
-urgency = "normal"
-order = 1680
-created = 2026-11-11
-tags = ["mobix", "spec", "docs"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-migration-registry"
 title = "Enforce the migration seam while there is nothing to migrate"
 description = """

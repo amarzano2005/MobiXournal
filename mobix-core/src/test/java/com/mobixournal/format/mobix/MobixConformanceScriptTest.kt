@@ -48,16 +48,16 @@ class MobixConformanceScriptTest {
         }
 
     /**
-     * The script's verdict — exit code and combined output — run over [file].
+     * The script's verdict — exit code and combined output — run with [arguments].
      *
      * A missing `python3` is a failure, not a skip: `.github/workflows/build.yml` runs python3 for the
      * todo scripts, so an environment that cannot run this is an environment where the check silently
      * disappears, which is the failure mode the check exists to prevent.
      */
-    private fun verify(file: File): Pair<Int, String> {
+    private fun runScript(vararg arguments: String): Pair<Int, String> {
         assertTrue("${script.path} is missing", script.isFile)
         val process = try {
-            ProcessBuilder("python3", script.absolutePath, file.absolutePath)
+            ProcessBuilder("python3", script.absolutePath, *arguments)
                 .directory(repoRoot)
                 .redirectErrorStream(true)
                 .start()
@@ -67,6 +67,8 @@ class MobixConformanceScriptTest {
         val output = process.inputStream.bufferedReader().use { it.readText() }
         return process.waitFor() to output
     }
+
+    private fun verify(file: File): Pair<Int, String> = runScript(file.absolutePath)
 
     private fun assertVerifies(file: File, what: String) {
         val (exit, output) = verify(file)
@@ -96,6 +98,35 @@ class MobixConformanceScriptTest {
             "the construct this build has no model for is still in the file it wrote, got " +
                 preserved.map { it.name },
             preserved.any { it.name == "3dPlotElement" },
+        )
+    }
+
+    // ---- the checklist --------------------------------------------------------------------------
+
+    /**
+     * The rows the script decides and the rows the checklist says it decides are the same set, in both
+     * directions. Without this the two drift the way prose does: the script grows a row nobody documented,
+     * or the checklist claims a row no tool checks and a reader trusts it.
+     */
+    @Test
+    fun theChecklistAndTheScriptClaimTheSameRows() {
+        val marker = "**Script-decided rows:**"
+        val declaredLine = File(repoRoot, "spec/CONFORMANCE.md").readLines()
+            .firstOrNull { it.trimStart().startsWith(marker) }
+            ?: error("spec/CONFORMANCE.md must declare the rows a script decides, with `$marker`")
+        val declared = Regex("\\d+").findAll(declaredLine.substringAfter(marker))
+            .map { it.value.toInt() }
+            .toSet()
+
+        val (exit, output) = runScript("--rows")
+        assertEquals("--rows must succeed: $output", 0, exit)
+        val reported = output.lineSequence().mapNotNull { it.trim().toIntOrNull() }.toSet()
+
+        assertEquals(
+            "the checklist and `--rows` must name the same rows; the script said $reported, the " +
+                "checklist said $declared",
+            declared,
+            reported,
         )
     }
 

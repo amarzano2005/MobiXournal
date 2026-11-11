@@ -29,6 +29,12 @@ the reason named. A refusal for a different reason is a failure of the row, not 
    step is `MobixConformanceScriptTest`, which runs `scripts/verify-mobix.py` over a file its writer
    produced and over a saved copy of `17-third-party-writer.mobix`.
 
+**Script-decided rows:** 1 2 3 4 9 18 19 21 33 35 38 — `python3 scripts/verify-mobix.py --rows` prints
+that same list, and `MobixConformanceScriptTest` fails when the two disagree, so a row cannot be claimed by
+neither side. Everything else in the table is a reader's job: a rewrite, a digest held in another entry, a
+reference from one entry to another, geometry that is the sum of other fields, and the save-and-reopen step
+that proves preservation.
+
 The rows that a schema cannot answer are the ones whose sample is a test file: a digest of bytes kept in
 another entry, a reference from one entry to another, and geometry that is the sum of other fields.
 

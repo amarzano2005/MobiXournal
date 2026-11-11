@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-conformance-runbook"
+title = "Make the checklist, the docs and CI name the validator"
+description = "spec/CONFORMANCE.md declares the rows a script decides (1 2 3 4 9 18 19 21 33 35 38) and how to run it, MobileConformanceScriptTest fails when that list and `--rows` disagree in either direction, and the CI workflow runs the validator over the golden corpus, over the hostile corpus's legal neighbour and asserts every other hostile file is refused"
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-11-11
+completed = 2026-11-11
+tags = ["mobix", "spec", "docs"]
+design = "none: a checklist paragraph, a guard test and a CI step, no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-new-family-gate"
 title = "Fail the build when a modelled family loses its schema or fixture"
 description = "MobixElementCodec.MODELLED_TYPES as the one published list of modelled families, MobixSchemaGuardTest deriving from it instead of a second hand-typed set, and a new guard that fails with the four missing places when a family has no schema file, no decodable sample, no element in 18-every-family.mobix or no row in the corpus README; spec/README.md states the rule"
