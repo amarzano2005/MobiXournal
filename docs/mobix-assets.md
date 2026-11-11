@@ -144,8 +144,11 @@ ones it cannot as references. Three properties make it trustworthy rather than m
 - it **says what it could not do**: the result lists what was embedded and what is still only a
   reference, so a copy never claims a portability it does not have.
 
-Nothing is downloaded, and the document it read is untouched. `PortableCopy` is **library only** today:
-the shells' *Save a portable copy* command is not built, so no device reaches it yet.
+Nothing is downloaded, and the document it read is untouched. The **desktop window** reaches it through the
+menu's *Save portable copy* chip: the name is asked where every other save asks, the tab keeps its own
+file, and a reference resolves the way that window's painter resolves it — the document's folder for a
+background, the audio store for a recording ([desktop-workstation.md](desktop-workstation.md)). On the
+tablet the command is still **planned**: `PortableCopy` has no call site in `app/` yet.
 
 ## Where the rule is checked
 

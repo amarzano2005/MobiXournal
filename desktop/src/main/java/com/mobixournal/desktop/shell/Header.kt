@@ -80,6 +80,8 @@ internal fun Header(
     onExportPng: () -> Unit = {},
     /** The menu's **Import PDF** chip — the tablet's command, now that the window can carry a PDF. */
     onImportPdf: () -> Unit = {},
+    /** **Save portable copy**: a second `.mobix` carrying the PDFs, pictures and recordings this one names. */
+    onPortableCopy: () -> Unit = {},
     onToggleSidebar: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
@@ -104,11 +106,7 @@ internal fun Header(
     onSearchNext: () -> Unit = {},
     onSearchPrevious: () -> Unit = {},
     onSearchClose: () -> Unit = {},
-    /**
-     * The pages' menu on the band, immediately left of the search field: the tablet's page section, with
-     * the rows [PageMenuPanel] carries — the window's one door to them, now that the strip ends with its
-     * last tool.
-     */
+    /** The pages' menu on the band: the tablet's page section, through [PageMenuPanel]'s rows. */
     pages: PageMenuActions = PageMenuActions(),
     /**
      * The **Layers** door, inside the same capsule as Pages and to its right: the tablet's layer manager
@@ -134,6 +132,7 @@ internal fun Header(
             onOpen = onOpen,
             onSave = onSave,
             onSaveAs = onSaveAs,
+            onPortableCopy = onPortableCopy,
             onExportPdf = onExportPdf,
             onExportSvg = onExportSvg,
             onExportPng = onExportPng,

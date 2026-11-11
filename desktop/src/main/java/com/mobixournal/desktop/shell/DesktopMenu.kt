@@ -98,6 +98,8 @@ internal fun HeaderMenu(
     onPenParameters: () -> Unit = {},
     /** The window's settings, for the Pen block's pressure controls; null in a test with no window. */
     penPolicy: DesktopSettingsState? = null,
+    /** The chip that writes a copy carrying what this notebook only references ([MenuPanel]). */
+    onPortableCopy: () -> Unit = {},
 ) {
     var open by remember { mutableStateOf(false) }
     // The menu is the one popup that takes the keyboard (`MenuSurface`): while it is up the window's table
@@ -134,6 +136,7 @@ internal fun HeaderMenu(
                     onOpen = { open = false; onOpen() },
                     onSave = { open = false; onSave() },
                     onSaveAs = { open = false; onSaveAs() },
+                    onPortableCopy = { open = false; onPortableCopy() },
                     onExportPdf = { open = false; onExportPdf() },
                     onExportSvg = { open = false; onExportSvg() },
                     onExportPng = { open = false; onExportPng() },
@@ -175,6 +178,11 @@ internal fun MenuPanel(
     onDismiss: () -> Unit = {},
     /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
     penPolicy: DesktopSettingsState? = null,
+    /**
+     * **Save portable copy**: the chip under the exports, because it acts on the document's bytes —
+     * though it writes a *second* file, embedding what this one only names.
+     */
+    onPortableCopy: () -> Unit = {},
 ) {
     Column(
         Modifier
@@ -208,6 +216,13 @@ internal fun MenuPanel(
         MenuChipRow {
             MenuChip("Export PNG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportPng)
             MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
+        }
+        Spacer(Modifier.height(MenuMetrics.chipGap))
+        // The one command here that writes a **second file** instead of changing this one, where the tablet has
+        // its own portable-copy command: the exports above change the sheet, this writes a copy that carries
+        // the PDFs, pictures and recordings the notebook only names.
+        MenuChipRow {
+            MenuChip("Save portable copy", ChromeGlyph.SAVE_AS, canExport, Modifier.weight(1f), DesktopTheme.accent, onPortableCopy)
         }
         // A rule between the **exports** and the **pen**: the two chips above it act on the document's
         // bytes, and everything under it acts on the pen or on the window. A reader scanning for "export"

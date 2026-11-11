@@ -124,7 +124,8 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 Desktop settings use task groups; graph previews follow the theme.
 
 A new tab is empty until saved: **Save As** names it and fixes its format; **Save** writes back there.
-Recents show what you opened — **×** drops one — and **Restore last session** reopens an unfinished session.
+**Save portable copy** writes a second `.mobix` with the files a notebook only names.
+Recents show what you opened; **Restore last session** reopens an unfinished session.
 
 ## Where the work stands today
 

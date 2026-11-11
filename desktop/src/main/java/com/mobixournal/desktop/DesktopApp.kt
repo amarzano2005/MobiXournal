@@ -156,6 +156,7 @@ fun FrameWindowScope.DesktopApp(
             // Save As is **one** dialog that answers both of its questions (`SaveAsPicker`): the name of
             // the file, and the container in its type box.
             onSavePicker = dialogs::saveAs,
+            onPortableCopyPicker = dialogs::savePortableCopy,
             onImportPdfPicker = dialogs::importPdf,
             onInsertImagePicker = dialogs::insertImage,
             onExportPdfPicker = dialogs::exportPdf,
@@ -248,6 +249,16 @@ internal class DocumentDialogs(
         val tab = state.active ?: return
         val (file, format) = SaveAsPicker.choose(window, tab) ?: return
         state.requestSave(file, DesktopSaves.formatOf(format.container))
+    }
+
+    /**
+     * **Save portable copy**: a second `.mobix` with the PDFs, pictures and recordings this notebook only
+     * references embedded in it ([com.mobixournal.desktop.io.savePortableCopy]). It is not a Save — the tab
+     * keeps its own file — which is why it asks for a name rather than writing beside itself.
+     */
+    fun savePortableCopy() {
+        if (state.active == null) return
+        com.mobixournal.desktop.io.savePortableCopy(state, window)
     }
 
     /**

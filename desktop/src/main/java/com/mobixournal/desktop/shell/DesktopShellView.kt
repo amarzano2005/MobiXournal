@@ -55,6 +55,8 @@ internal fun DesktopShell(
     onOpenPicker: () -> Unit,
     /** The system Save As picker, opened from the menu and from `Ctrl+Shift+S`. */
     onSavePicker: () -> Unit = {},
+    /** Where a **portable copy** goes: the one command that writes a second file beside this one. */
+    onPortableCopyPicker: () -> Unit = {},
     /** The PDF picker behind the menu's **Import PDF** row (`ImportPdfDialog` asks where the pages go). */
     onImportPdfPicker: () -> Unit = {},
     onInsertImagePicker: () -> Unit = {},
@@ -70,9 +72,7 @@ internal fun DesktopShell(
     SearchRunner(state.active)
     LaunchedEffect(onInsertImagePicker) { state.onInsertImagePicker = onInsertImagePicker }
     RecoverySnapshots(state)
-    // Which document is on screen decides what the audio pill shows: the tab's own `hasAudio` (asked here,
-    // never per frame: it walks the pages) and its own take and clip. A clip belonging to the tab being
-    // left is let go, because sound out of a document nobody is looking at has no transport in sight.
+    // The audio pill follows the document on screen; a clip left behind is let go (`DesktopAudioSession`).
     LaunchedEffect(state.active?.key) {
         DesktopAudioSession.leaveTab()
         DesktopAudioSession.noteAudioPresence(state.active)
@@ -90,6 +90,7 @@ internal fun DesktopShell(
             onOpen = onOpenPicker,
             onSave = { state.requestSave() },
             onSaveAs = onSavePicker,
+            onPortableCopy = onPortableCopyPicker,
             onExportPdf = onExportPdfPicker,
             onImportPdf = onImportPdfPicker,
             // The pages' folder is the picker's question — the one the native dialog can ask and AWT
