@@ -2237,24 +2237,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "mobix-app-output-verifies-outside"
-title = "Verify a document this app wrote with the outside script"
-description = """
-Prove both directions on real bytes, produced by the code that ships.
-Today `MobixSchemaGuardTest` validates the committed corpus and compares the writer's emitted keys with the schema's properties, but no test takes a document the app's writer produced at runtime and checks it with anything outside `mobix-core`'s classpath — and `17-third-party-writer.mobix` comes from this repository's own generator, so it exercises a foreign *shape*, not a foreign writer.
-Add to `:mobix-core:test` a test that does three things: saves a document built through `MobixDocument`'s writer, carrying one element of every modelled family plus a bundled asset, to a temp file under the build directory, runs `python3 scripts/verify-mobix.py` over it and asserts exit 0; opens `17-third-party-writer.mobix`, saves it to a new temp file, and asserts the saved file also verifies and still carries the construct this build has no model for; and mutates two files — one manifest with `documentId` removed, one archive whose `mimetype` is not the typed one — asserting the script fails them by row. The third part is what stops a validator that accepts everything from passing the first.
-A missing `python3` fails the test with the process's own stderr rather than skipping: `.github/workflows/build.yml` already runs python3 for the todo scripts, and the repository ships two of them. Keep the process runner small enough to read and pass the file paths as arguments, never as shell text."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1670
-created = 2026-11-11
-tags = ["mobix", "spec", "testing"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-conformance-runbook"
 title = "Make the checklist, the docs and CI name the validator"
 description = """

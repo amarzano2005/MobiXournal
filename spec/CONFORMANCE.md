@@ -25,7 +25,9 @@ the reason named. A refusal for a different reason is a failure of the row, not 
    any code runs.
 5. **Finish on a file you produced yourself** — one document written by your own implementation, run
    through every accepted row. A reader that only handles this repository's bytes has been tested against
-   one writer, and that is the writer it was built to agree with.
+   one writer, and that is the writer it was built to agree with. This repository's own version of that
+   step is `MobixConformanceScriptTest`, which runs `scripts/verify-mobix.py` over a file its writer
+   produced and over a saved copy of `17-third-party-writer.mobix`.
 
 The rows that a schema cannot answer are the ones whose sample is a test file: a digest of bytes kept in
 another entry, a reference from one entry to another, and geometry that is the sum of other fields.
