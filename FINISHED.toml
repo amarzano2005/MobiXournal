@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stem-document-wide-definitions"
+title = "Notebook-level variable definitions without scanning every page"
+description = "Broke the registry into five atomic tasks: the storage and schema decision, the derived index, merge-by-revision, the panel, and the cost test that proves the acceptance. The audit confirmed why this was deferred: MobixDocument opens page by page through PageSource/MobixPagedReader, and MobixMergeEngine plans per page, so any design that resolves a name by scanning pages would undo both. The working proposal — a manifest-referenced stem/definitions.json preserved raw by older readers — fits the existing entry and unknown-entry rules instead of inventing a parallel mechanism. The cost test is a child of its own because the acceptance is a measurement: it counts materialised pages rather than asserting an intention, and it is proven load-bearing by a deliberate failure run. Rename and merge are handled as id-plus-revision changes, so a rename cannot break a reference and two edits of one definition resolve deterministically with a reported conflict. No document changed: no entry exists yet, and the two format pages are updated by the child that writes the schema."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "variables", "document", "p2"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
+id = "stem-study-cards"
+title = "Review cards whose answers are hidden by interaction, not by black ink (F21)"
+description = "Broke the cards into six atomic tasks: the element with its answer as data, the reveal/reset interaction outside the document, creation from a selection, the export policy with its two modes, the progress-store decision, and the device pass. The audit found no study concept anywhere and the only 'hidden' in the model is a layer's visibility, which confirms the scope's point: hiding by ink is a trick, not a promise. That is why the element stores the answer in clear and says so, and why the view state was deliberately put in a session holder and in a parameterised UI path so the element's own compiled ink can never contain an answer. The export rule became a refusal rather than a default: with no mode chosen the export refuses, because an accidental answers export is exactly the leak the scope warns about. Progress is its own child because the scope asks for a decision rather than an implementation, and the proposal to evaluate is per-device personal data outside the file, with the counter-argument required in writing if it goes the other way. No document changed: nothing exists yet, and each child names the page it must update in its own commit."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-11
+tags = ["stem", "study", "notes", "p2"]
+design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
+
+[[task]]
 id = "stem-scientific-text"
 title = "A mixed text-and-formula box with shared baseline (F10)"
 description = "Broke the mixed box into six atomic tasks: the run model, the shared-baseline layout, editing and selection across runs, the exports plus the text projection, the surface on both shells, and the device pass. The audit confirmed both halves of the premise: TextElement is plain content and MathBlockElement is a whole block with its flavor, and the pieces the design must reuse are already there — LatexParser and LatexLayout, MathBlockInk's texImage, and the TextWidth measurement the table cells use — so the scope's no-second-parser rule is enforceable rather than aspirational. It also found the place the family would otherwise be invisible: PageTextIndex filters a layer to TextElement and MathBlockElement, so a new run-based box would not be searchable or copyable until its own child teaches the index — which is why the export child is also the text-projection child. The dependency the plan named is satisfied in the same way the code block's was: stem-code-block is a closed scope whose children own the shared text infrastructure, and stem-unicode-pdf-review is finished, so the Unicode limit is a recorded decision. No document changed: the family does not exist yet."

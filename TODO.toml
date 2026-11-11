@@ -43,46 +43,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "stem-study-cards"
-title = "Review cards whose answers are hidden by interaction, not by black ink (F21)"
-description = """
-There is no study content type: hiding an answer today means covering it with ink, which is a visual trick and not a promise. Physics and maths revision is a plausible daily use for this app, and it needs its own small model.
-
-User story: create a card with a question and an answer that is hidden until tapped, annotate an attempt, link the card to a formula or a calculation, and export questions only or questions with solutions - deliberately, never accidentally.
-
-Design `studyCard`: front, answer as text/formula/reference, `revealPolicy`, ids, and a view state kept outside the document by default; decide explicitly whether saved progress is personal local data or shared document data. State plainly, in the guide, that this is not redaction - anyone holding the file can read the answer - and that PDF/`.xopp` export must offer an explicit choice of questions or questions-and-answers, never assume an opaque rectangle hides anything.
-
-Child tasks: S1 model + codec + fixture; S2 reveal/reset gesture, undo and keyboard; S3 create from selection; S4 export policy and interop; S5 no auto-reveal in any export. Acceptance: study works with nothing lost, and a third-party reader sees a documented, honest representation. Dependency: the new-type gate and the export rules from `stem-semantic-export`."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 320
-created = 2026-11-10
-tags = ["stem", "study", "notes", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-document-wide-definitions"
-title = "Notebook-level variable definitions without scanning every page"
-description = """
-Deliberately deferred out of `stem-reactive-variables`, which is page-scoped. A notebook-wide definition registry is only worth designing once page-scoped bindings are proven, because the naive version - scan all pages on every keystroke - would destroy the paging and memory work the format already does.
-
-Decide the authoritative storage (a dedicated entry referenced by the manifest is the working proposal, e.g. `stem/definitions.json`, which legacy readers preserve raw), the id namespace, how a page resolves a definition without materialising 200 pages, merge and rename/remap semantics, unknown-entry preservation, and the safety limits. Derived indices stay derived and rebuildable.
-
-Child tasks: schema decision; derived index with invalidation; merge-by-revision; document definitions UI; a test proving a notebook of 200 pages opens a shared definition without loading every page. Acceptance: shared definitions work across pages with bounded open cost. Dependency: F03 complete, `mobix-spec-v1`, the performance baseline."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 330
-created = 2026-11-10
-tags = ["stem", "variables", "document", "p2"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-open-ecosystem"
 title = "Epic: an open, independently implementable .mobix"
 description = """
@@ -2069,3 +2029,209 @@ created = 2026-11-11
 tags = ["stem", "text", "device"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "stem-study-card-model"
+title = "Model a study card whose answer is data, not black ink"
+description = """
+There is no study content type: grep finds no card, flashcard or review concept anywhere in core, app or desktop, and the only 'hidden' in the model is a layer's visibility (Document.kt notes that a hidden layer still round-trips with its content). Hiding an answer today means covering it with ink, which is a visual trick.
+
+Add StudyCardElement (its own file in format/model/): a front and an answer, each being one of a text run, a formula source (reusing MathBlockElement's flavour and source rather than a second formula spelling), or a reference to another element's id; plus revealPolicy, tags, an id and unknown-key preservation. The answer is *data*: it is stored in clear, and the element's own comment says so, because the model must not pretend to be redaction. Add MobixStudyCardCodec and the type in MobixElementCodec, the living-entity rule and a LivingInk arm (front drawn as the box, answer per the view state below), a sample in XoppExportCoverageTest with elementFamilies raised by one, and the docs/mobix-elements.md entry stating the not-redaction rule.
+
+The view state (revealed or not) is NOT stored here: the element carries the content and the policy, and the child stem-study-card-reveal owns a session state outside the document. State that separation in the class comment.
+
+Verify: a card whose answer is a formula round-trips with its source and flavour, an answer referencing another element keeps that id, an unknown revealPolicy value is preserved rather than refused, and the element is never serialised with a revealed flag. Run ./gradlew :mobix-core:test --tests '*StudyCard*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1530
+created = 2026-11-11
+tags = ["stem", "study", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-study-card-reveal"
+title = "Reveal and reset without touching the document"
+description = """
+The interaction the model deliberately leaves out: a tap (or the space key on the window) reveals the answer, a second gesture resets it, and the state lives in a session holder keyed by element id — never in the document, never in an undo entry, and dropped when the card leaves the screen. Both shells implement the same reducer so the tablet and the window cannot disagree about what 'revealed' means.
+
+The revealed answer is drawn by the LivingInk arm from the session state (a parameterised, UI-only path: the compiler for the element itself always draws the front only, so no export can accidentally capture a revealed card), and the reset returns to the front immediately. Undo does not replay a reveal: revealing is a view action, not a document edit.
+
+Verify with a core test that the element's own compiled ink contains no answer, an app JVM test of the reducer (reveal, reset, id change, card leaving the screen clears the state) and the same reducer on the desktop side. Run ./gradlew :mobix-core:test --tests '*StudyCard*' :app:testDebugUnitTest --tests '*StudyCard*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1540
+created = 2026-11-11
+tags = ["stem", "study", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-study-card-from-selection"
+title = "Make a card out of what is already selected"
+description = """
+Creating a card should not mean retyping: from a selection, the commands 'card from selection' (front = selection, empty answer) and 'card from selection with answer' (front and answer split at the caret or at a chosen line) build a StudyCardElement whose runs reuse the selected text and formulas, with references preserved as ids rather than copied text where the selection is a living element.
+
+The original selection is left intact (the card is placed beside it), one undo entry covers the insertion, and the card's box uses LivingPlacement's default size for the family. Works on both shells; the desktop selection bar gains the same two commands.
+
+Verify with an app JVM test that a selection containing a text element and a formula produces a card with two runs of the right kinds, that a referenced element keeps its id, and that one history entry is created; the same reducer test on the desktop side. Run ./gradlew :app:testDebugUnitTest --tests '*StudyCard*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1550
+created = 2026-11-11
+tags = ["stem", "study", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-study-card-export"
+title = "Export questions only or questions with answers — never a guess"
+description = """
+An export must offer the choice explicitly and never assume a rectangle hides anything. Add an export option with exactly two modes, 'Questions only' and 'Questions and answers', presented on both shells before an export that contains cards, and remembered per export rather than as a silent default; in questions-only mode the answer is omitted from the output entirely (not drawn under an opaque shape), and in answers mode it is drawn in full. PDF, SVG and .xopp all honour the same option through one flag in the export request, and no export path can reveal a card by accident.
+
+State the rule where a reader will meet it: docs/guide-stem-tools.md says plainly that a card is not redaction — anyone holding the file can read the answer — and docs/xopp-bridge.md says what a .xopp keeps (whichever of the two modes was asked for, as plain text or its texImage) and that the card's policy and ids are native-only.
+
+Verify: a questions-only PDF contains the front and not the answer string; an answers-mode export contains both; a .xopp round trip in each mode revives the card only in answers mode and imports the front as text otherwise; no export path defaults to answers when the option is unset (it refuses instead). Run ./gradlew :mobix-core:test --tests '*StudyCard*' :app:testDebugUnitTest --tests '*StudyCard*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1560
+created = 2026-11-11
+tags = ["stem", "study", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-study-card-progress"
+title = "Decide where review progress lives, and say who can see it"
+description = """
+The scope asks for an explicit decision: is saved progress personal local data or shared document data? Make it, write it down, and implement only what it implies. The proposal to evaluate is personal local data — a per-device store keyed by document identity and card id, outside the .mobix, never exported, resettable — because a shared file handed to a class would otherwise carry one student's answers, which is exactly the leak the not-redaction rule warns about. If the decision goes the other way, the counter-argument and the consent surface must be written in the same place.
+
+Implement the chosen path: a small store (Android and desktop each with their own local file, same schema) holding card id, times seen, last result and a simple due time; a reset command that clears it; and the UI showing progress only where the store exists. The document stays the source of truth for content and is never modified by reviewing.
+
+Docs: docs/guide-stem-tools.md states where progress lives and how to erase it; if it is personal data, say so in the same sentence as the not-redaction warning. Verify: reviewing a card writes nothing into the document (byte-identical save before and after), the store round-trips its schema, reset clears it, and a document opened on a second device shows no progress. Run ./gradlew :app:testDebugUnitTest --tests '*StudyCard*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1570
+created = 2026-11-11
+tags = ["stem", "study", "privacy"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-study-card-emulator-pass"
+title = "Review a deck on the emulator and export questions only"
+description = "No card has been reviewed on a device and this host has no adb or AVD. Install the APK, create a card from a selection, tap to reveal, reset, review a deck of several cards, close the document and reopen it to confirm nothing was revealed on open; confirm the answer cannot be seen by a scroll or a zoom before the reveal; export questions only and open the PDF, then export with answers and compare; confirm the local progress survives a restart and that resetting clears it. Record screenshots of the front, the revealed answer, the export-choice dialog and both PDFs, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1580
+created = 2026-11-11
+tags = ["stem", "study", "device"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-definitions-schema"
+title = "Decide where a notebook-wide definition lives"
+description = """
+This was deferred out of stem-reactive-variables because a notebook-wide registry is only worth designing once page-scoped bindings are proven, and the naive version — scanning every page for a name — would undo the paging work. Start with the decision, recorded in the format's own page: a dedicated archive entry referenced by the manifest (the working proposal is stem/definitions.json), its schema (definition id, name, expression or value, unit, revision, origin page), the id namespace rules, what a reader that predates the entry does (preserve it raw, exactly like any unknown entry — mobix-known-type-unknown-fields' rule), and the safety limits from MobixSafetyCaps (entry count, size, name length).
+
+Audit MobixDocument's open path, the manifest's entry list, MobixSafetyCaps and MobixFormat's entry naming before writing, and say in docs/mobix-schema-spec.md and docs/mobix-format.md which entry owns definitions and why it is not a page. The schema is additive: an older build must keep the entry and refuse nothing.
+
+Verify with a core test: a document with the entry opens and saves with it byte-identical, a document without it opens unchanged, an entry over the safety cap is refused with the cap named, and a definition's unit and revision survive a round trip. Run ./gradlew :mobix-core:test --tests '*Definitions*' --tests '*MobixDocument*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1590
+created = 2026-11-11
+tags = ["stem", "definitions", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-definitions-index"
+title = "Resolve a definition without touching the notebook's pages"
+description = """
+The point of the whole feature is bounded open cost, so the index is the task that proves it: load the definitions entry once when the document opens, build a derived name-to-definition index keyed by id and by name, and resolve from it — never by scanning pages. Invalidate the index when the entry's revision changes (an edit, a merge, an undo), rebuild it from the entry alone, and keep it droppable: deleting it loses nothing but time.
+
+The resolution API is pure and testable: given a name and the index, answer the definition, the unit and its revision, or an explicit 'undefined' that a formula can report rather than evaluating to zero. Page-scoped bindings keep precedence where they exist, and that rule is stated once in the class comment and once in the owning doc.
+
+Verify with a core test built on a generated 200-page document: resolving a shared definition opens exactly the manifest and the definitions entry and calls pageSource.page zero times (instrument the source to count calls), an edit bumps the revision and the next resolve sees the new value, and an undefined name returns undefined rather than a number. Run ./gradlew :mobix-core:test --tests '*Definition*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1600
+created = 2026-11-11
+tags = ["stem", "definitions", "performance"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-definitions-merge"
+title = "Merge definitions by revision, and remap renames"
+description = """
+Definitions are shared, so a merge has to reconcile them: extend MobixMergeEngine with the definitions entry as its own side (base, local, remote) keyed by definition id and revision; an unchanged remote and a changed local keeps the local, two changed sides resolve deterministically and the conflict is reported like an element conflict, and a deletion on one side removes the definition only if no page references it, otherwise it is kept and reported. A rename is a change of name with the same id, so references do not break; a re-created name under a new id is a different definition and the report says so.
+
+Nothing about pages changes: the merge must not materialise every page to reconcile definitions, so the definitions pass runs on the entry alone and the page pass stays as it is. The outcome is a notification the existing merge path already records.
+
+Verify with a core test: local-only change wins, both-changed reports a conflict and a deterministic result, delete with a live reference keeps the definition and reports it, rename keeps the id and the page resolves the new name, and the definitions pass reads no page (instrument the source). Run ./gradlew :mobix-core:test --tests '*Merge*' --tests '*Definition*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1610
+created = 2026-11-11
+tags = ["stem", "definitions", "merge"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-definitions-ui"
+title = "A document-level definitions panel on both shells"
+description = """
+The surface: a document-level panel listing each definition with its name, expression or value, unit and revision; commands to add, rename, edit and delete one; and a read-only 'used on' list built from the derived index (which pages reference the name), so a delete can show what it would orphan before it happens. Editing a value bumps the revision and invalidates caches; a formula that references an undefined name shows it as undefined in place rather than failing to draw.
+
+The panel is document-scoped, not page-scoped, and says so in its title; it is reachable from both shells and its desktop lane asks the same questions. English copy, tokens only, one material class, all five states, glyphs from the catalogue.
+
+Docs: docs/guide-stem-tools.md gains the panel and the page-versus-notebook precedence rule. Verify with an app JVM test of the panel's reducer (add, rename, delete with references, used-on list, undefined name display) and the same reducer on the desktop side. Run ./gradlew :app:testDebugUnitTest --tests '*Definition*' and the desktop module's unit-test task."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1620
+created = 2026-11-11
+tags = ["stem", "definitions", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-definitions-cost-test"
+title = "Prove a 200-page notebook opens a shared definition in bounded time"
+description = """
+The acceptance is a measurement, not an assertion of intent: build a generated 200-page document with one shared definition, instrument the page source to count how many pages were materialised, open it, resolve the definition and assert the count is zero and the wall time is under a recorded budget on this host. Then repeat the resolution after an edit that bumps the revision, and after a merge, so the invalidation path is covered too.
+
+Record the numbers in docs/benchmarks.md (open time, resolve time, pages loaded, peak page count) and state the budget in the test with the reason it is what it is. A failure must name what was loaded, not just that it was slow.
+
+Verify: ./gradlew :mobix-core:test --tests '*Definition*' --tests '*Benchmark*' and a deliberate failure run (force the index to scan pages and confirm the test fails), so the counter is proven load-bearing."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 1630
+created = 2026-11-11
+tags = ["stem", "definitions", "performance"]
+rebuild = true
+emulator_debug = false
