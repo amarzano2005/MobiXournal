@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-new-type-gate"
+title = "Make a new type prove it can be read by an older build"
+description = "the corrected audit of the new-type and migration seams and the three tasks it produced: mobix-new-family-gate, mobix-family-corpus, mobix-migration-registry"
+status = "finished"
+level = "scope"
+category = "refactor"
+created = 2026-11-11
+completed = 2026-11-11
+tags = ["mobix", "schema", "evolution"]
+design = "none: an audit of the family-gate and migration seams, plus the three tasks it produced"
+
+[[task]]
+id = "mobix-conformance-fixtures"
+title = "Prove cross-read and cross-write with shared fixtures"
+description = "the corrected conformance audit and the three tasks it produced: mobix-spec-validator-script, mobix-app-output-verifies-outside, mobix-conformance-runbook"
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-11-11
+completed = 2026-11-11
+tags = ["mobix", "spec", "interop"]
+design = "none: an audit of what the independent side can and cannot decide, plus the three tasks it produced"
+
+[[task]]
 id = "stem-document-wide-definitions"
 title = "Notebook-level variable definitions without scanning every page"
 description = "Broke the registry into five atomic tasks: the storage and schema decision, the derived index, merge-by-revision, the panel, and the cost test that proves the acceptance. The audit confirmed why this was deferred: MobixDocument opens page by page through PageSource/MobixPagedReader, and MobixMergeEngine plans per page, so any design that resolves a name by scanning pages would undo both. The working proposal — a manifest-referenced stem/definitions.json preserved raw by older readers — fits the existing entry and unknown-entry rules instead of inventing a parallel mechanism. The cost test is a child of its own because the acceptance is a measurement: it counts materialised pages rather than asserting an intention, and it is proven load-bearing by a deliberate failure run. Rename and merge are handled as id-plus-revision changes, so a rename cannot break a reference and two edits of one definition resolve deterministically with a reported conflict. No document changed: no entry exists yet, and the two format pages are updated by the child that writes the schema."
