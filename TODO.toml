@@ -22,48 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "stem-polar-authoring"
-title = "Create and edit polar curves r(theta) from the UI (F06)"
-description = """
-`PlotInk` already renders `CARTESIAN`, `PARAMETRIC` and `POLAR`, and the model carries polar curves, but `AdvancedFunctionGraphDialog` offers only the first two tabs, so a polar curve cannot be created from the UI on either shell. (This item reconciles the earlier `stem-plot-polar-completion` proposal - do not create that one as a second item.)
-
-User story: open the plot dialog, pick `r(theta)`, type `2*cos(3*theta)` with an explicit range, see a preview, insert it, reopen the document and export it to PDF and `.xopp` with the same shape.
-
-After `stem-parametric-authoring-verification` establishes the shared path, add only the polar creation/edit route: the third tab, `r(theta)` inputs with default range, preview, insertion, and the inspector fields needed to reopen and edit it. Reuse `PlotKind.POLAR`, `AdvancedCurves`, `PlotInk` and `MobixPlotCodec` - never a new element `type` for polar curves, since they already belong to `PlotElement`. Note that polar is authoring-only for now: ranges outside the default and animation are not part of this scope.
-
-Child tasks: P1 dialog tab and inputs; P2 default range plus preview; P3 inspector edit path; P4 round-trip and export regression tests; P5 guide update. Acceptance: a three-petal rose created from the UI, saved, reopened, exported on Android and Windows, with the parametric path unregressed. Dependency: `stem-parametric-authoring-verification`."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 200
-created = 2026-11-10
-tags = ["stem", "plot", "polar", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "stem-plot-inspection"
-title = "Trace, tangent and integral tools on a live plot (F05)"
-description = """
-The plotter can draw, analyse and shade, but reading a value means typing coordinates: there is no cursor that snaps to a curve, no tangent tool and no way to drag integral bounds and watch the value follow. The analysis code exists, the interaction layer does not.
-
-User story: drag a crosshair over `x^2`, read `(x, y)` with scientific precision; drop a tangent at a point and see the slope, with a clear signal at a non-differentiable point; drag two handles to shade an integral and read its value without overwriting the function; compare several curves and read a shared table of values.
-
-Audit `PlotFrame` and `PlotInk` coordinate transforms (math to canvas and back, zoom-safe), `FunctionAnalysis` point evaluation and error states, `AdvancedFunctionGraphDialog`, the gesture router and existing sliders. Design: sampling cache per revision and viewport; no heavy numeric work on the pointer-move path; transient overlays stay UI-only, and persisting a marker becomes a documented `plotAnnotation` element only if it cannot live in a known element without loss.
-
-Child tasks: P1 math crosshair with snapping; P2 tangent/normal with undefined diagnostics; P3 dual integral handles; P4 optional persistent annotation plus codec; P5 precision, zoom and export tests. Acceptance: the tangent of `x^2` at x=2 reads 4 within a stated tolerance; `1/x` never bridges the pole; annotating, zooming and exporting stays coherent; no frame jank while tracing on the baseline device. Dependency: `stem-numeric-doc-code-audit` (what the analysis can honestly promise) and the performance baseline."""
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 210
-created = 2026-11-10
-tags = ["stem", "plot", "ui", "p1"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "stem-semantic-export"
 title = "Export the meaning, not just the picture (F22)"
 description = """
@@ -1059,3 +1017,232 @@ created = 2026-11-11
 tags = ["mobix"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "stem-polar-dialog-tab"
+title = "Add the Polar r(theta) tab to the plot dialog and the inspector"
+description = """
+PlotKind.POLAR already exists end to end: format/model/Living.kt has the kind with per-curve thetaMin/thetaMax, MobixPlotCodec writes and reads them, PlotInk.sample turns r(theta) into (r cos theta, r sin theta), and PlotElementFactory.plotElementIn/applyPlotEdit already map the dialog's xMin/xMax onto thetaMin/thetaMax for a POLAR curve. What does not exist is the route that creates one: app/src/main/java/com/mobixournal/ui/AdvancedFunctionGraphDialog.kt offers modeTab 0 (Cartesian) and 1 (Parametric) only, and resolveActiveCurves has no polar branch.
+
+Change, in that file plus PlotGraphDialogChrome.kt (it forwards the same state) and PlotInspectorAnchor.kt (rememberPlotInspectorState/createInitialCurveList):
+- modeTab gains 2; ModeSelectorPill grows a third equal pill 'Polar r(θ)' with the same selected background (MaterialTheme.colorScheme.primary), onPrimary label, PillTextInset horizontal and 8.dp vertical padding as the other two.
+- new PolarInputs(paramR, onRChange): one OutlinedTextField labelled 'r(θ)', singleLine, with .plotInputEcho("r(θ)", paramR), isError when the expression does not compile.
+- resolveActiveCurves returns, for modeTab 2, exactly one PlotCurve(source = paramR, color = PRESET_COLORS[0], lineStyle = LineStyle.PLAIN, label = "r(θ)", kind = PlotKind.POLAR); modes 0 and 1 keep their answers byte for byte.
+- RangeInputs takes the mode instead of isCartesian and labels the pair 'x min/x max', 't min/t max', 'θ min/θ max'; the fields, the typing and rangeOk keep their behaviour, and the confirm gate canConfirmPlot(rangeOk, shade, curves) is unchanged.
+- the dialog starts on tab 2 when initialCurves holds a POLAR curve and prefills paramR from its source, default '2*cos(3*theta)'; entering the polar tab while the range fields still hold the Cartesian default -10..10 writes 0 and 6.283185307179586 (one turn: -10..10 draws five identical petals on top of each other).
+- the gate: PlotCurve.isDrawable() must accept the theta spelling (stem-polar-shared-variable-compile makes the renaming compile public; until it lands, compile the source and, when that fails, the source with theta/θ/t renamed to x on word boundaries).
+
+English copy, tokens only, all five states for the new pill and field, no new glyph. Verify with a new app/src/test/java/com/mobixournal/ui/PolarPlotAuthoringTest.kt modelled on ParametricPlotAuthoringTest.kt: the polar tab answers one POLAR curve; an empty or unparsable r(θ) is not drawable so Insert stays disabled; the answer becomes a PlotElement whose curve carries kind POLAR and thetaMin/thetaMax from the fields; switching back to Cartesian answers CARTESIAN; the element survives MobixElementCodec encode/decode. Run ./gradlew :app:testDebugUnitTest --tests '*PolarPlotAuthoringTest*' --tests '*ParametricPlotAuthoringTest*'. Update docs/guide-stem-tools.md (Functions) and docs/guide-limitations.md (the parametric and polar row) in the same commit: both still say a polar curve cannot be created."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 850
+created = 2026-11-11
+tags = ["stem", "plot", "polar"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-polar-shared-variable-compile"
+title = "Compile a curve's parameter spelling once, for every consumer"
+description = """
+Only PlotInk knows a stored curve may spell its parameter theta: private PlotInk.compileFormula renames theta, θ and t to the parser's x on word boundaries and compiles. Every other consumer compiles the raw source, so a document holding 2*cos(3*theta) is drawn correctly by LivingInk while PlotCurve.isDrawable() in app/src/main/java/com/mobixournal/ui/AdvancedFunctionGraphDialog.kt keeps Insert disabled and MultiFunctionPlotter.compileCurves drops that curve from any analysis.
+
+Change: promote the renaming compile to a documented public PlotInk.compileSource(source, parameters = emptyMap()): Formula? and route through it: PlotCurve.isDrawable, MultiFunctionPlotter.compileCurves and detectAllCriticalPoints, and PlotInk's own cartesianInk/sample paths (keep compileFormula as the private alias, or rename every call site). Then state in docs/math-engine.md, in the section that owns how a plot's formula is read, that a curve's parameter may be spelled theta, θ or t and is compiled as the parser's x, and that a non-Cartesian curve has no critical-point analysis because the plotter places y = f(x) only: the report stays empty rather than printing values computed for a curve it did not evaluate.
+
+Verify with a new mobix-core/src/test/java/com/mobixournal/render/PlotVariableSpellingTest.kt: 2*cos(3*theta), 2*cos(3*θ), 2*cos(3*t) and 2*cos(3*x) agree at theta = 0, 1 and 2; tan(x), sqrt(t) and atan(θ) keep their function names (their letters are not renamed); a broken source still returns null; and an app-side assertion that PlotCurve.isDrawable() is true for a POLAR curve spelled with theta. Run ./gradlew :mobix-core:test --tests '*PlotVariableSpellingTest*' :app:testDebugUnitTest --tests '*PolarPlotAuthoringTest*'."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 860
+created = 2026-11-11
+tags = ["stem", "plot", "polar", "math"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-polar-inspector-edit"
+title = "Keep a polar element polar when its inspector is opened and applied"
+description = """
+Opening a polar element's inspector lands on the wrong tab and Apply rewrites it as a Cartesian curve: silent data loss. In app/src/main/java/com/mobixournal/ui/PlotInspectorAnchor.kt, rememberPlotInspectorState detects only PlotKind.PARAMETRIC (isParametric, initialParam) and createInitialCurveList builds the editor list from that flag; resolveActiveCurves then answers CARTESIAN curves for tab 0, and PlotElementFactory.applyPlotEdit writes those kinds back. A second, quieter loss: applyPlotEdit and plotElementIn always derive thetaMin/thetaMax from the element's xMin/xMax, so editing a document whose sweep differs from its domain silently changes the sweep the author stored.
+
+Change: recognise PlotKind.POLAR in rememberPlotInspectorState, createInitialCurveList and the tab default (2), prefill the r(θ) field from the polar curve, and keep the element's own sweep: when the element carries one curve whose stored thetaMin/thetaMax differ from its xMin/xMax and the θ fields were not edited, write the stored pair back instead of the domain (compare the field text against the element's domain to decide whether they were edited). The full-screen dialog path in EditorOverlays.kt passes curves and domain but not the sweep, so it needs the same answer through the dialog's initial parameters.
+
+Verify with app/src/test/java/com/mobixournal/ui/PolarPlotInspectorEditTest.kt: opening a polar element starts on tab 2 with its source; applying without touching the range keeps kind POLAR and the stored sweep; editing the θ fields writes the new sweep into the stored curve; a Cartesian element is unaffected. Run ./gradlew :app:testDebugUnitTest --tests '*PolarPlotInspectorEditTest*' --tests '*PlotInspectorAnchorTest*'."""
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 870
+created = 2026-11-11
+tags = ["stem", "plot", "polar"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-polar-desktop-kind"
+title = "Let the window place a polar graph and preserve one it edits"
+description = """
+The window can only place a Cartesian graph: desktop/src/main/java/com/mobixournal/desktop/tools/PendingPlacement.kt builds every row of curves as PlotCurve(..., kind = PlotKind.CARTESIAN) in plotIn, and the lane's equation rows (desktop/src/main/java/com/mobixournal/desktop/tools/InspectorControls.kt) carry no kind, so a polar element opened for editing in the window is saved back as Cartesian.
+
+Change: give the plot lane a curve kind, a filter chip 'Polar r(θ)' beside the equation list, English copy, tokens only, five states, held in the same pending-answer state as the equations; plotIn builds kind = POLAR with the two domain fields as thetaMin/thetaMax and no sourceY. PlotQuestionPreview already compiles the element PendingPlacement builds through LivingInk, so the preview follows without a second path. The desktop editor must preserve the kind and the sweep of a curve it did not edit, so an untouched polar element round-trips. Read docs/desktop-editing.md and update it, and docs/guide-limitations.md's parametric and polar row, in the same commit.
+
+Verify by extending the desktop placement tests beside PendingPlacement (the desktop module's unit-test task is the one CiCoverageTest names): a polar answer builds a POLAR element whose curve carries theta bounds and no sourceY; a Cartesian answer is unchanged; the preview ink for a polar answer is not empty."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 880
+created = 2026-11-11
+tags = ["stem", "plot", "polar", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-polar-export-coverage"
+title = "Pin a polar element's PDF, SVG and .xopp export"
+description = """
+Polar curves are exported through PlotInk's sampled route (sampledInk), which fits its own frame around the samples and draws the frame without ticks: that route was added for parametric curves and polar shares it, but nothing pins a polar element's non-ink exports. Verify and pin it: a PlotElement with one POLAR curve (r = 2*cos(3*theta), theta 0..6.283185307179586, samples at least 400) compiles through LivingInk to strokes whose points all lie inside the element box, whose extent covers most of the box in both axes, and whose finite runs are more than one (the rose's lobes); and the same elements reach PdfPagePlan/PDF export, PageSvgWriter (one path per run, in the curve's colour) and XoppSynthesis (strokes plus the mobix meta claim) with the same point counts.
+
+Add the assertions to mobix-core/src/test/java/com/mobixournal/render/XoppSynthesisTest.kt's polar cases if they belong there, otherwise a new mobix-core/src/test/java/com/mobixournal/render/PolarExportTest.kt; the PDF and SVG tests live beside the classes they cover (PdfPagePlan, PageSvgWriter). If an assertion reveals that docs/mobix-elements.md's polar entry (r(θ) drawn as (r cos θ, r sin θ)) is stale, fix the doc in the same commit. Run ./gradlew :mobix-core:test --tests '*PolarExportTest*' --tests '*XoppSynthesisTest*' --tests '*PageSvgWriterTest*'."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 890
+created = 2026-11-11
+tags = ["stem", "plot", "polar", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-polar-emulator-pass"
+title = "Create a polar rose on the emulator and reopen it"
+description = "The polar tab has not been seen on a device: this host has no adb and no AVD, so the runtime claim needs its own pass. Install the debug APK on the Pixel_Tablet AVD, insert a plot, pick the Polar r(θ) tab, type 2*cos(3*theta) with 0 and 6.283185307179586, confirm the preview shows a three-petal rose, Insert, save as .mobix, reopen the document and open the plot's inspector: it must open on the polar tab with the same source and sweep. Export to PDF and .xopp and confirm the rose is in both. Record a screenshot of the preview, one of the inserted rose, the inspector's tab and the exported PDF page, keep adb logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback for the commands and record them in the archive entry."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 900
+created = 2026-11-11
+tags = ["stem", "plot", "polar", "device"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "stem-plot-trace-sampling-cache"
+title = "Give a drawn plot an inverse frame transform and a sample cache"
+description = """
+PlotFrame (mobix-core/src/main/java/com/mobixournal/render/PlotFrame.kt) maps data to page points (toX/toY) and has no inverse, and MultiFunctionPlotter.plot resamples every curve on every call, so a pointer readout has neither a pointer-to-data mapping nor a cheap value. Add the pure foundation: PlotFrame.toDataX/toDataY, the exact inverse of toX/toY because the frame is the mapping that was drawn, and a new mobix-core/src/main/java/com/mobixournal/render/PlotTrace.kt with a query object built once per plot (curves, xMin, xMax, samples, the frame) that samples each curve once and answers, for a pointer in page points: the nearest sample across all curves within a radius in page points, the snapped (x, y) and which curve it belongs to; a pointer with no sample inside the radius answers the plain data x with no curve. No allocation on the query path: one sample list per curve, reused across queries. Respect SourceStructureTest (700 lines per file, 100 per function).
+
+Verify with mobix-core/src/test/java/com/mobixournal/render/PlotTraceTest.kt: the inverse round-trips toX/toY at three points under two frames; a query on y = x^2 snaps to it and reports x within 1e-9 of the sample; a query far from every curve reports no curve; two queries at one point reuse the cached samples (same list identity); a curve with a pole (1/x) never returns a point across the break. Run ./gradlew :mobix-core:test --tests '*PlotTraceTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 910
+created = 2026-11-11
+tags = ["stem", "plot", "trace"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-crosshair-readout"
+title = "Trace a live plot with a crosshair and read its values"
+description = """
+No live reading exists: a plot's values can only be read by typing coordinates into the dialog. Add the transient crosshair on both shells. On Android, a drag over a selected plot in the gesture layer that already routes living-element gestures (app/src/main/java/com/mobixournal/ui/EditorRegions.kt, overlay stack in EditorOverlays.kt) draws a vertical crosshair at the snapped sample and a label in the curve's colour with 'x = …' and 'y = …' at the precision the trace reports. On the window, the same appears while the pointer hovers a selected plot (desktop/src/main/java/com/mobixournal/desktop/sheet, beside LivingGrips/LivingGesture). English copy, tokens only; the reading is an overlay: no element, no undo entry, cleared on tool change, deselection and panel close. Read values from the cache added by stem-plot-trace-sampling-cache, never by resampling per pointer event.
+
+Verify with an app JVM test for the overlay's state reducer (which curve is read, the formatted strings, clearing on deselect) and a desktop test for the same reducer; the arithmetic is covered by PlotTraceTest. Run ./gradlew :app:testDebugUnitTest --tests '*PlotCrosshair*' and the desktop module's unit-test task. Update docs/guide-stem-tools.md's plot section; docs/interface-contract.md needs a line only if the overlay introduces a new material class or glyph (it should be a token-only text bubble)."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 920
+created = 2026-11-11
+tags = ["stem", "plot", "trace", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-tangent-tool"
+title = "Read a tangent's slope at a traced point, including where it does not exist"
+description = """
+FunctionAnalysis.derivative exists and no surface uses it for reading: there is no tangent at a point and no signal at a point where the derivative does not exist. Add the tangent on top of the trace: from the snapped point, slope = central difference (H = 1e-5), drawn as one short line through the point in a colour that is not the curve's ink (FunctionAnalysis.markerColor's rule), with the slope printed beside it. Where the derivative is not finite, or the difference step straddles a pole, the label says 'no tangent here' and no line is drawn. Put the arithmetic in one shared core function (new mobix-core/src/main/java/com/mobixournal/render/PlotTangent.kt) answering slope, the two page-point ends and the label, and call it from both shells' trace overlay.
+
+Verify with mobix-core/src/test/java/com/mobixournal/render/PlotTangentTest.kt: x^2 at x = 2 reads 4 within 1e-4 and its line passes through the snapped point; 1/x at x = 0 has no tangent and no line; sin(x) agrees with cos(x) within 1e-3; both ends lie inside the element box. Run ./gradlew :mobix-core:test --tests '*PlotTangentTest*'."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 930
+created = 2026-11-11
+tags = ["stem", "plot", "trace"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-integral-handles"
+title = "Drag a plot's integral bounds on the canvas"
+description = """
+The shaded area's bounds live in the dialog's two text fields (PlotShadeEditor.PlotShadeState), so an area cannot be dragged on the graph. Add two handles on a selected plot, on both shells: dragging either handle moves that bound, clipped to the element's own domain, the wash redraws from the element's shadeIntegral (PlotInk.shade already draws it), and the reading beside the handle is FunctionAnalysis.definiteIntegral over the current pair, null shown as 'not finite over this range' when the curve leaves the plane inside it (1/x). Commit through PlotElementFactory.applyPlotEdit so the change is undoable and the summary's integral moves with the wash; dragging must never overwrite a curve's formula, and the dialog's fields stay as they are.
+
+Verify with an app JVM test for the handle reducer (which bound is dragged, the clip at both domain ends, the committed PlotShading, undo through the existing element history) and a core assertion that the integral over the dragged pair equals FunctionAnalysis.definiteIntegral for x^2 within 1e-6. Run ./gradlew :app:testDebugUnitTest --tests '*PlotIntegralHandle*' :mobix-core:test --tests '*FunctionAnalysis*'. Update docs/guide-stem-tools.md's shaded-area paragraph."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 940
+created = 2026-11-11
+tags = ["stem", "plot", "trace", "ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-annotation-persistence"
+title = "Decide whether a trace marker can be stored without a new element"
+description = """
+The scope allows a persistent marker only if it cannot live in a known element without loss. Decide that in writing. A marker is the pointer snapped to a sample of a stored curve, so it can be recomputed from the element's curve and range, but the drawing frame is fitted at render time (MultiFunctionPlotter, PlotInk.sampledInk), so a marker stored in page points would move when the plot is re-rendered while one stored as (curve index, data x) would not. Check whether PlotElement.extraAttrs (or a documented new field) can carry a list of those markers without a schema change and without breaking MobixPlotCodec's unknown-key preservation. If it can, add the field with codec support, the FixtureDrift/FormatDrift update and a note in XoppExportCoverageTest that a marker compiles to its glyph or is reported; if it cannot, record the decision in docs/math-engine.md and keep annotations transient.
+
+Verify: the outcome lands either as code with a codec round-trip test (a marker survives save/reopen at the same data coordinate, and a plot without markers is byte-identical to before) or as a documented 'not persisting' statement with its reason. Run ./gradlew :mobix-core:test --tests '*MobixLivingCodecTest*' --tests '*FormatDrift*' and python3 scripts/todo/todo.py validate."""
+status = "active"
+level = "task"
+category = "chore"
+urgency = "normal"
+order = 950
+created = 2026-11-11
+tags = ["stem", "plot", "trace", "schema"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-trace-precision-tests"
+title = "Pin the trace's tolerance, precision, zoom and export claims"
+description = """
+Pin the claims the trace makes. Add mobix-core/src/test/java/com/mobixournal/render/PlotTracePrecisionTest.kt plus an app test for the overlay's number formatting: the tangent of x^2 at x = 2 reads 4 within 1e-4; a trace over 1/x near the pole never returns a value whose neighbours have opposite signs; the readout's decimals follow the axis step (FunctionPlot.niceStep/decimalsFor), so a zoomed-in frame prints more digits than a zoomed-out one; the pointer-to-data mapping round-trips under two frames of different spans; and a plot exported after tracing is identical to the same plot exported without tracing (the overlay left nothing behind). Also assert the per-move path allocates no sample list (same list identity across two queries).
+
+Run ./gradlew :mobix-core:test --tests '*PlotTracePrecisionTest*' :app:testDebugUnitTest --tests '*PlotCrosshair*'."""
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 960
+created = 2026-11-11
+tags = ["stem", "plot", "trace", "test"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-plot-trace-emulator-pass"
+title = "Trace a plot on the emulator and check it keeps up"
+description = "The no-jank claim and the crosshair's look need the baseline device, and this host has no adb or AVD. Install the APK, open a document with x^2 and 1/x, select the plot, drag a finger across it and read the values; drop a tangent at a few points including the pole of 1/x; drag both integral handles and watch the value and the wash follow; compare a zoomed-in and a zoomed-out frame. Record screenshots of the crosshair, the tangent, the handles and the pole's 'no tangent here', note whether the drag keeps up (choreographer frame times in logcat where measurable), and fix on the device anything the JVM tests cannot see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 970
+created = 2026-11-11
+tags = ["stem", "plot", "trace", "device"]
+rebuild = true
+emulator_debug = true
