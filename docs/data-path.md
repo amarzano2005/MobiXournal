@@ -172,6 +172,21 @@ transform to screen space.
 
 This list mirrors the Kotlin types in `format/model/` — keep the two in sync when the model changes.
 
+## When a page names bytes the file does not carry
+
+A `.mobix` may reference a PDF or a picture by file name instead of bundling it, and a stroke may name an
+audio sidecar beside the document ([mobix-format.md](mobix-format.md) → *What a file may leave outside
+itself*). Opening reads the manifest and then a page, so a reference with no bytes resolves to
+**nothing** rather than to an error: the page draws its bare sheet and the shell says which background it
+was, once. Nothing is fetched, and nothing is written back differently — a save keeps the reference as it
+was read.
+
+The document-wide answer to "which of these are inside the file?" is `PortabilityAudit` in the
+platform-free core: one entry per reference with its status and the page it was found on, classified
+from the archive's directory without inflating a payload ([mobix-assets.md](mobix-assets.md) → *Is it
+inside the file?*). It is **library only** today — no open path calls it and neither shell shows its
+report — and the portable-copy action that would embed what it can is not built.
+
 ## Shared immutable edit roots
 
 Layer appends promote ordinary imported lists once to `PersistentVector`; subsequent appends copy a

@@ -71,6 +71,19 @@ rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec
   writing the manifest and the pages that moved, and copying every other entry as the bytes the archive
   already holds ([data-path.md](data-path.md)).
 
+## What a file may leave outside itself
+
+A `.mobix` is a container, not a promise that every byte a page names is inside it. What always travels
+inside: picture bytes, a bundled PDF or picture background, bundled recordings, and every element's own
+data. What may stay a reference: a `pdf` or `pixmap` background that only names a file, and an audio
+sidecar a stroke names by `fn`. What is never bundled: a font face — `font` is a rendering hint with a
+stated fallback ([mobix-elements.md](mobix-elements.md)).
+
+The rules a reader applies to each of those are [mobix-assets.md](mobix-assets.md)'s, and the
+classification of every reference an opened document makes is that page's *Is it inside the file?* —
+a library-only surface today: no open path calls it yet, so a shell reports what it happens to notice
+rather than a document-wide answer.
+
 ## What an open-and-save does to a v1 file
 
 The compatibility promise is a claim about a *file*, not about a version of the app, so it is measured

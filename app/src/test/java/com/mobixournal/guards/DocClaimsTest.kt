@@ -66,6 +66,12 @@ class DocClaimsTest {
                 "format and two shells open it (docs/codebase.md)",
         ),
         Claim(
+            "one self-contained file",
+            "a `.mobix` may leave a PDF or picture background as a reference it does not carry, and it " +
+                "never bundles a font: `mobix-format.md` → *What a file may leave outside itself* says what " +
+                "always travels inside and what may not",
+        ),
+        Claim(
             "not checked in",
             "`udiff.xopp` and `bhm_prior.pdf` are committed at the repo root and the README hands the first " +
                 "of them to a new user as a document to open; a doc calling a sample absent sends its " +

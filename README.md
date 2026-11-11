@@ -8,7 +8,7 @@
 
 **A handwriting-first scientific workspace for Android and Windows.**
 
-*Handwritten ideas, mathematics, scientific tools and document workflows in one workspace — for students, educators and technical readers.*
+*Handwritten ideas, mathematics, scientific tools and document workflows in one workspace.*
 
 [![Android and desktop CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
 [![Licence: GPL-2.0-or-later](https://img.shields.io/badge/Licence-GPL--2.0--or--later-blue.svg)](LICENSE)
@@ -28,16 +28,16 @@
 A notebook app treats the page as a picture and a drafting tool treats it as a canvas. MobiXournal treats it as
 working paper: what you place stays an object you can reopen and change.
 
-It is built for people who think in handwriting and need mathematics, diagrams and source documents beside
-it — a student on a problem set, an educator preparing one, an engineer sketching a circuit, a researcher
-annotating a paper. Files stay yours, in the folder you choose, with no account between.
+Built for people who think in handwriting and need mathematics, diagrams and source documents beside it —
+a student on a problem set, an educator preparing one, an engineer sketching a circuit. Files stay yours,
+in the folder you choose, with no account between.
 
 ## What the workspace is made of
 
 ### Think and write
 
-- **Ink that answers the pen.** Width follows the tablet's pressure through the same filter desktop Xournal++ uses: a thin fast stroke and a bold pressed one are one gesture.
-- **The pen outranks the toolbar.** A palm that landed first is abandoned when the stylus arrives, a flipped eraser erases, and the barrel button runs the action you pick.
+- **Ink that answers the pen.** Width follows the tablet's pressure through desktop Xournal++'s own filter: a thin fast stroke and a bold pressed one are one gesture.
+- **The pen outranks the toolbar.** A palm that landed first is abandoned when the stylus arrives, a flipped eraser erases, and the barrel button runs your action.
 - **Shapes from ink.** Rest the tip and a line, circle or arrow snaps clean; a closed triangle or rectangle keeps movable corners.
 - **Paper belongs to the page.** Plain, ruled, dotted, graph or isometric ruling, with the sheet's size chosen separately.
 
@@ -58,13 +58,13 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 
 - **Write on the source.** A PDF becomes the page's background — by range, replacing or appended — and its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays exactly as drawn.
-- **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after two files merge.
-- **Record while you write.** Tap a stroke to replay its recording. Bundled audio and waveforms load in the background.
+- **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after a merge.
+- **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.
 - **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.
 
 ### One workspace, two shells
 
-- **The same notebook, two surfaces.** One file and one core behind two surfaces: the tablet built around a pen in hand, the window around tabs, panels and export; [the limitations page](docs/guide-limitations.md) says where the tools differ.
+- **The same notebook, two surfaces.** One file and one core: the tablet built around a pen in hand, the window around tabs, panels and export; [the limitations page](docs/guide-limitations.md) says where the tools differ.
 - **The window is a workstation.** Tabs that keep their own page and zoom, a sidebar of thumbnails and layers, and export to PDF, PNG or SVG.
 - **The tablet is the paper.** Split view, the Ring at the pen, palm rejection, and pages sized for a hand.
 - **Nothing converts behind your back.** A document keeps the format it was opened in; nothing needs an account or a connection.
@@ -93,21 +93,19 @@ annotating a paper. Files stay yours, in the folder you choose, with no account 
 | **Android 8.0 or newer** | The release APK from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases). A stylus makes it a notebook; a finger does the rest. |
 | **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build that needs no install. |
 
-The shells number separately; [the release index](docs/releases/index.md) records both. The installer is **unsigned**: Windows reports an unknown publisher and SmartScreen may ask
-first; that is deliberate. Both shells check those releases and offer a newer build in About.
+The shells number separately; [the release index](docs/releases/index.md) records both. The installer is **unsigned**, so Windows warns about the publisher: that is deliberate. Both shells offer newer builds in About.
 
 ## The two file formats
 
 | Format | What it is for |
 |---|---|
-| **`.mobix`** | MobiXournal's own container: one self-contained file that keeps plots, tables, circuits, formulas, audio and full stylus telemetry editable, and opens a long notebook page by page. |
+| **`.mobix`** | MobiXournal's own container: plots, tables, circuits, formulas, audio and stylus telemetry stay editable, and a long notebook opens page by page. Pictures, bundled PDFs and recordings travel inside; a background may stay a reference to a file you keep, and fonts never travel. |
 | **`.xopp`** | The interchange format desktop Xournal++ reads and writes. On export a plot, table or circuit becomes standard ink, with metadata that restores it while that ink is unchanged. |
 
-Opening preserves the format. **Save As** changes it after a successful save; cancelling leaves the original unchanged.
-An untouched file returns the same XML; interchange limits affect telemetry and flattened objects' editability. The Windows window **refuses**
-one **packaged** `.xopp` whose background lives inside it, leaving the file untouched. Details: [the native
-format](docs/mobix-format.md), [the `.xopp` contract](docs/xopp-bridge.md), [which format your notebook is
-in](docs/guide-formats-and-conversion.md).
+Opening preserves the format; **Save As** changes it after a successful save, and cancelling leaves the original
+unchanged. An untouched file returns the same XML, while interchange limits affect telemetry and editability. The
+Windows window **refuses** one **packaged** `.xopp` whose background lives inside it, leaving the file untouched.
+Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/xopp-bridge.md), [which format your notebook is in](docs/guide-formats-and-conversion.md).
 
 ## Installing, and the first notebook
 

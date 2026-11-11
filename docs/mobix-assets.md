@@ -5,8 +5,10 @@
 
 Every binary a `.mobix` carries lives in `assets/` and nowhere else: a JSON part names one, and the
 archive holds the bytes under a name it derives from them. That is the whole design, and it buys three
-things at once — the same picture referenced twice is stored once, a name cannot go stale, and a file is
-self-contained when it is shared without the folders it came from. The container layout is
+things at once — the same picture referenced twice is stored once, a name cannot go stale, and a file
+that **bundles** its payloads travels without the folders it came from. (Not every payload is bundled:
+the next two sections say which ones may stay a reference, and *Is it inside the file?* names the
+consequence.) The container layout is
 [mobix-schema-spec.md](mobix-schema-spec.md)'s; this chapter is the `assets/` contract an outside reader
 or writer implements.
 
