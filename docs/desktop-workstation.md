@@ -19,9 +19,9 @@ of it. Windows 11 is the only platform it is built and run on — a product deci
 code.
 
 What it does today:
-- Opens **every container the app writes** — gzip `.xopp`, self-contained ZIP `.xopp` and native `.mobix` —
-  from the toolbar or a path argument, lists its pages, and zooms 25 %–3 200 %. The file is identified by
-  its **bytes** (`FileKind` plus a ZIP's `mimetype`), never its extension, so a rename still opens.
+- Opens **every container the app writes** — gzip `.xopp`, ZIP `.xopp` and native `.mobix` — from the
+  toolbar or a path argument, lists its pages, and zooms 25 %–3 200 %. Its **bytes** identify it (`FileKind`,
+  a ZIP's `mimetype`), never the extension; its path is canonicalised, so no 8.3 alias survives.
 - **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
   keeps its own page, zoom and fit), a collapsible 240 dp sidebar of page thumbnails, the current page's
   layers and — for a PDF with an outline — a collapsible **Contents** section filled only when opened

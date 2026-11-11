@@ -306,25 +306,38 @@ class DesktopDocument(
  */
 object DocumentLoader {
 
+    /**
+     * [file] as the filesystem names it: absolute, alias-free, with no `.` or `..` left in it.
+     *
+     * Windows keeps an **8.3 alias** for every long name and hands it back on some doors — a shortcut, an
+     * older launch line, a damaged command line: `LIMITA~1.MOB` for `LIMITAZIONI-statiche-2026.mobix`.
+     * Nothing in this project invents that form; what it used to do was *keep* it, so the tab, the status
+     * band, the recovery sidecar and the recents list all showed the alias and a save wrote back through
+     * it. `canonicalFile` resolves the alias to the long name (measured on Windows 11: the alias and the
+     * long name canonicalise to the same path), which is the name the user gave the file.
+     */
+    private fun canonical(file: File): File = runCatching { file.canonicalFile }.getOrDefault(file.absoluteFile)
+
     /** Open [file] and hand back a document whose pages are read through [DesktopDocument.source]. */
     fun load(file: File): DesktopDocument {
         // A path that is not there is a **document** failure, not a programming error: it is what a launch
         // argument looks like when Windows split it, what a cloud placeholder looks like before it is
         // downloaded, and what a shortcut to a moved file looks like. `describeOpenFailure` words it.
-        if (!file.isFile) throw FileNotFoundException(file.path)
-        return when (val kind = FileKind.of(leadingBytes(file))) {
-            FileKind.ZIP -> openZip(file)
+        val opened = canonical(file)
+        if (!opened.isFile) throw FileNotFoundException(opened.path)
+        return when (val kind = FileKind.of(leadingBytes(opened))) {
+            FileKind.ZIP -> openZip(opened)
             FileKind.GZIP, FileKind.XML -> {
-                val document = file.inputStream().buffered().use { input ->
+                val document = opened.inputStream().buffered().use { input ->
                     if (kind == FileKind.XML) Xopp.parseXml(input.reader(Charsets.UTF_8)) else Xopp.open(input)
                 }
                 DesktopDocument(
-                    file = file,
+                    file = opened,
                     source = PageSource.of(document),
                     model = document,
                     container = DesktopContainer.XOPP_GZIP,
                     // A gzip `.xopp` keeps its pictures beside it: the reference is a path, nothing is bundled.
-                    backdrop = PageBackdrop(bundled = { null }, documentDir = file.parentFile),
+                    backdrop = PageBackdrop(bundled = { null }, documentDir = opened.parentFile),
                 )
             }
             FileKind.PDF -> throw UnsupportedOperationException(unsupported("a PDF", kind))
@@ -375,7 +388,7 @@ object DocumentLoader {
     fun loadRecovered(snapshot: File, origin: File): DesktopDocument {
         val recovered = load(snapshot)
         return DesktopDocument(
-            file = origin,
+            file = canonical(origin),
             source = recovered.source,
             model = recovered.model,
             container = containerOf(origin) ?: recovered.container,
@@ -399,7 +412,7 @@ object DocumentLoader {
     fun adopt(origin: File, staged: File): DesktopDocument {
         val copy = load(staged)
         return DesktopDocument(
-            file = origin,
+            file = canonical(origin),
             source = copy.source,
             model = copy.model,
             container = copy.container,

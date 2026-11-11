@@ -5,6 +5,7 @@ import com.mobixournal.desktop.sheet.PagePicture
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -128,7 +129,13 @@ internal fun TextBoxHost(
             onValueChange = onChange,
             textStyle = style,
             cursorBrush = SolidColor(DesktopTheme.accent),
-            modifier = Modifier.focusRequester(focus),
+            // The field must not wrap where the page does not: a `.xopp` `<text>` carries no width, so a
+            // line breaks on its own newlines and nothing else. `BasicTextField` wraps at its constraint, and
+            // the only constraint here is the canvas — so a line longer than the visible sheet folded onto a
+            // second line while being typed and snapped back to one line on the commit, which is the box
+            // appearing to come apart mid-sentence. Asking for an unbounded width is what makes the field's
+            // line breaks the page's (`docs/element-authoring.md` states the same rule).
+            modifier = Modifier.focusRequester(focus).wrapContentWidth(unbounded = true),
         )
     }
 }

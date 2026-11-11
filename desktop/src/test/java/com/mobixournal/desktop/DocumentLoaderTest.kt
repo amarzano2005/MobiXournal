@@ -56,6 +56,25 @@ class DocumentLoaderTest {
         return file
     }
 
+    /**
+     * A file opened through a roundabout path keeps the **real** name it has on disk.
+     *
+     * Windows keeps an 8.3 alias for every long name (`LIMITA~1.MOB` for
+     * `LIMITAZIONI-statiche-2026.mobix`) and hands it back on some doors; the window used to keep whatever
+     * spelling it was given, so the tab, the status band and the recovery sidecar showed the alias and the
+     * document looked renamed without a byte having moved. Canonicalising on open is the fix, and this
+     * pins it through a path that is equivalent but differently spelled (`folder/../name`).
+     */
+    @Test
+    fun aDocumentOpenedThroughARoundaboutPathKeepsItsRealName() {
+        val file = mobix("LIMITAZIONI-statiche-2026.mobix")
+        val roundabout = File(file.parentFile, "${file.parentFile.name}/../${file.name}")
+        DocumentLoader.load(roundabout).use { document ->
+            assertEquals("the document keeps the file's canonical path", file.canonicalFile, document.file)
+            assertEquals("and therefore the name the user gave it", file.name, document.file.name)
+        }
+    }
+
     @Test
     fun opensANativeMobixPageByPage() {
         val document = DocumentLoader.load(mobix())
