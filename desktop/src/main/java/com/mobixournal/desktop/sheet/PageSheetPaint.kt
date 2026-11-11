@@ -9,6 +9,7 @@ import com.mobixournal.desktop.tools.DesktopTool
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
+import com.mobixournal.desktop.shell.DesktopDiagnostics
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.ShapeKind
@@ -43,6 +44,13 @@ internal fun DrawScope.paintSheetOf(
     karaoke: DesktopKaraoke?,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)?,
 ) {
+    // Diagnose-only: **two drafts alive at once** while the pen owns the contact. The mouse's copy of a
+    // stroke and the driver's own samples are two different tracks — one unfiltered, one low-passed — and a
+    // frame that paints both shows the line doubled and offset, which reads as the stroke warping and then
+    // snapping back. Nothing else in the window can see that collision, because both lists are valid.
+    if (DesktopDiagnostics.enabled && pointer.owns.value && draft.isNotEmpty() && penDraft.isNotEmpty()) {
+        DesktopDiagnostics.draftMismatch("two drafts painted: mouse=${draft.size} pen=${penDraft.size}")
+    }
     paintSheet(
         sheetPicture = sheetPicture,
         page = page,

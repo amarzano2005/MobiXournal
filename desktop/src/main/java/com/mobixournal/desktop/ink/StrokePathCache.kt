@@ -166,11 +166,21 @@ internal object StrokePathCache {
      * disagreement, at the moment it happens, and it mutates nothing (the comparison builds its own
      * smoothing and its own projection).
      */
-    private fun auditDraft(sampled: IncrementalSmoothing, incremental: FloatArray, scale: Float) {
-        val fresh = IncrementalSmoothing().also { it.update(sampled.points.toList()) }
+    private fun auditDraft(
+        samples: List<StrokePoint>,
+        sampled: IncrementalSmoothing,
+        incremental: FloatArray,
+        scale: Float,
+    ) {
+        // Fed the **samples**, not the smoothed output: this compares the incremental path with a full
+        // rebuild of the same input, which is the invariant the draft has to hold. Feeding it the smoothed
+        // points (the first version of this probe did) re-subdivides already-subdivided geometry and
+        // reports a difference on every frame — a measurement error that looks exactly like a defect.
+        val fresh = IncrementalSmoothing().also { it.update(samples) }
         if (fresh.points.size != sampled.points.size) {
             DesktopDiagnostics.draftMismatch(
-                "smoothed points ${sampled.points.size} incremental vs ${fresh.points.size} full",
+                "smoothed points ${sampled.points.size} incremental vs ${fresh.points.size} full " +
+                    "of ${samples.size} samples",
             )
             return
         }
@@ -221,7 +231,7 @@ internal object StrokePathCache {
                 // Asked only when the window keeps the record: a draft's outline is the one geometry that
                 // can differ from its own full rebuild, and a report of "it warps for an instant" needs the
                 // difference in pixels, not a theory (`--diagnose`).
-                if (DesktopDiagnostics.enabled) auditDraft(sampled, outline, scale)
+                if (DesktopDiagnostics.enabled) auditDraft(points, sampled, outline, scale)
                 PageInk.outlinePath(outline)
             } else PageInk.taperPath(points, scale, smooth = smooth)
         } else {
