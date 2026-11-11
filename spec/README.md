@@ -38,7 +38,10 @@ Every file's `$comment` says where it stops: a digest of bytes held in another e
 one entry to another, and geometry that is the sum of other fields are checks only code can make.
 `MobixSchemaGuardTest` runs in `:mobix-core:test`: it validates the whole golden corpus against these
 files, and it re-encodes one fully populated element per family and compares the keys the writer emits
-with the properties a schema declares, so a field added on either side alone fails the build.
+with the properties a schema declares, so a field added on either side alone fails the build. It also
+fails when a modelled family has no schema file, no sample or no element in
+[`18-every-family.mobix`](../mobix-core/src/test/resources/fixtures/mobix-v1/README.md), which is what
+keeps a new `type` from shipping as code alone.
 
 ## Where the machine-checkable part lives
 

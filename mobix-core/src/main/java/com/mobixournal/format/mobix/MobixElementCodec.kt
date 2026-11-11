@@ -61,6 +61,19 @@ object MobixElementCodec {
     const val IMAGE: String = "image"
     const val TEX_IMAGE: String = "texImage"
 
+    /**
+     * The `type` names [decode] models, in one place, so the schema guard derives its families from
+     * this list instead of keeping a second hand-typed copy of it: a family that gains a branch without
+     * gaining a schema file, a sample and an element in the corpus now fails the build, which is the
+     * gate `docs/mobix-format.md` promises. Keep it in step with the `when` in [decode] — the two sit in
+     * the same file for exactly that reason.
+     */
+    val MODELLED_TYPES: Set<String> = linkedSetOf(
+        STROKE, TEXT, IMAGE, TEX_IMAGE,
+        MobixTableCodec.TYPE, MobixPlotCodec.TYPE, MobixShapeCodec.TYPE,
+        MobixCircuitCodec.TYPE, MobixMathCodec.TYPE,
+    )
+
     private const val TYPE = "type"
     private const val ID = "id"
 

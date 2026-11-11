@@ -31,7 +31,7 @@ source of truth for the bytes — a fixture and this table are changed together.
 | `15-capability-higher-version.mobix` | `org.mobixournal/stem.connector:2` required while this build implements `:1`: a later version is a superset, so `:1` does not satisfy it. |
 | `16-capability-additive-order.mobix` | Both lists in a writer's own order, mixing `org.mobixournal` with a foreign namespace and carrying no duplicate: the order survives a save. |
 | `17-third-party-writer.mobix` | A file written elsewhere: no `minAppVersion`, a foreign capability namespace, and a construct with no model. |
-| `18-every-family.mobix` | One page carrying one element of each of the nine modelled families — stroke, text, image, texImage, table, plot, parametric shape, circuit and math block — with their documented fields set: the file the conformance checklist's "model every family" row and the new-family gate both name. |
+| `18-every-family.mobix` | One page carrying one element of each of the nine modelled families — `stroke`, `text`, `image`, `texImage`, `table`, `plot`, `parametricShape`, `circuit` and `mathBlock` — with their documented fields set: the file the conformance checklist's "model every family" row and the family gate both name. |
 
 Every construct in this corpus is asserted as **preserved**: the test says what a
 release must keep, and a change of promise changes this table and the capability

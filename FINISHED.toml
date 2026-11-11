@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-new-family-gate"
+title = "Fail the build when a modelled family loses its schema or fixture"
+description = "MobixElementCodec.MODELLED_TYPES as the one published list of modelled families, MobixSchemaGuardTest deriving from it instead of a second hand-typed set, and a new guard that fails with the four missing places when a family has no schema file, no decodable sample, no element in 18-every-family.mobix or no row in the corpus README; spec/README.md states the rule"
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-11
+completed = 2026-11-11
+tags = ["mobix", "schema", "evolution"]
+design = "none: a codec list and its guard test, no screen, control or gesture surface touched"
+
+[[task]]
 id = "mobix-app-output-verifies-outside"
 title = "Verify a document this app wrote with the outside script"
 description = "MobixConformanceScriptTest: runs scripts/verify-mobix.py over a document this writer produced (all nine families, with a bundled asset) and over a saved copy of 17-third-party-writer.mobix, asserting exit 0 both times and the unknown construct still present; and asserts the script refuses, by row, a manifest with no documentId (21) and an archive declaring another mimetype (2), so a validator that accepted everything cannot pass. spec/CONFORMANCE.md's last step names it"

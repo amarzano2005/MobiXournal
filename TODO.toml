@@ -2256,24 +2256,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-new-family-gate"
-title = "Fail the build when a modelled family loses its schema or fixture"
-description = """
-Close the hole the epic's last clause is about: a family can be added to the codec and reach none of the things that make it a format.
-`MobixSchemaGuardTest` holds `modelled` as nine family names typed by hand, beside a `samples` map typed by hand, while `MobixElementCodec.decode` dispatches on `type` in its own `when`. Adding a tenth family compiles, and if its `spec/schema/elements/<type>.schema.json`, its `samples` entry or its corpus row is forgotten nothing fails — the guard iterates the names it already lists, so a family present on one side alone is invisible.
-Give the codec one published source for the names it models and make the guard derive from it, so every modelled type must have: a schema file under `spec/schema/elements/` that declares where it stops, a fully populated sample that decodes and re-encodes with exactly the keys the schema declares, a corpus document that carries it as that family rather than as a retained `RawElement`, and a row in `mobix-core/src/test/resources/fixtures/mobix-v1/README.md` saying what it proves. A family in the dispatch and in none of those fails with the list of the four places it is missing from, which is what makes the rule usable rather than decorative.
-`XoppExportCoverageTest`'s recorded family count moves with it — a tenth family changes both counts deliberately, and the two numbers disagreeing is itself a signal. No new family is introduced by this task: the gate lands first, on the nine that exist."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "normal"
-order = 1690
-created = 2026-11-11
-tags = ["mobix", "schema", "evolution"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-migration-registry"
 title = "Enforce the migration seam while there is nothing to migrate"
 description = """

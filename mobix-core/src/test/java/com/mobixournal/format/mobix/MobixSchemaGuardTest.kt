@@ -26,10 +26,12 @@ class MobixSchemaGuardTest {
     private val fixturesDir = File(repoRoot, "mobix-core/src/test/resources/fixtures/mobix-v1")
     private val schemas = HashMap<String, JsonNode.Obj>()
 
-    /** The families the specification models; every other `type` in a page is a retained artefact. */
-    private val modelled = setOf(
-        "stroke", "text", "image", "texImage", "table", "plot", "parametricShape", "circuit", "mathBlock",
-    )
+    /**
+     * The families the specification models, read from the codec's own list rather than typed here: this
+     * used to be a second hand-kept copy of what `MobixElementCodec.decode` dispatches on, so a tenth
+     * family was invisible to the guard that was supposed to notice it.
+     */
+    private val modelled: Set<String> = MobixElementCodec.MODELLED_TYPES
 
     // ---- reading the schemas ---------------------------------------------------------------------
 
@@ -315,6 +317,66 @@ class MobixSchemaGuardTest {
                 problems.joinToString("\n  "),
             problems.isEmpty(),
         )
+    }
+
+    // ---- the family gate -------------------------------------------------------------------------
+
+    /**
+     * A modelled family has four places to appear in, and this fails with the ones it is missing from: a
+     * schema under `spec/schema/elements/`, a fully populated sample that decodes, an element in
+     * `18-every-family.mobix` that this build reads as that family rather than preserving, and a row in
+     * the corpus README saying what it proves.
+     *
+     * A type added to the codec alone used to compile and pass everything: the guard only iterated the
+     * names it already listed. That is the hole this closes, and a tenth family is the case it exists for.
+     */
+    @Test
+    fun everyModelledFamilyHasItsSchemaItsSampleAndItsCorpusElement() {
+        val missing = mutableListOf<String>()
+        val corpusTypes = familyCorpusTypes()
+        val readme = File(fixturesDir, "README.md").readText()
+
+        for (family in modelled.sorted()) {
+            if (!File(schemaDir, "elements/$family.schema.json").isFile) {
+                missing += "$family: spec/schema/elements/$family.schema.json"
+            }
+            val sample = samples[family]
+            if (sample == null) {
+                missing += "$family: no fully populated sample in this guard"
+            } else {
+                val node = MobixJson.parseJson(sample, family) as JsonNode.Obj
+                if (MobixElementCodec.decode(node, MobixAssetSource { byteArrayOf(1, 2, 3) }) == null) {
+                    missing += "$family: its sample does not decode"
+                }
+            }
+            if (family !in corpusTypes) {
+                missing += "$family: no element of this type in 18-every-family.mobix"
+            }
+            if (!readme.contains(family)) {
+                missing += "$family: no row in the corpus README"
+            }
+        }
+
+        assertTrue(
+            "a modelled family with no schema, sample or corpus element is a type that exists only in " +
+                "the codec:\n  " + missing.joinToString("\n  "),
+            missing.isEmpty(),
+        )
+    }
+
+    /** The `type` of every element in the corpus document that carries all of them. */
+    private fun familyCorpusTypes(): Set<String> {
+        val file = File(fixturesDir, "18-every-family.mobix")
+        assertTrue("${file.path} is the corpus file the family gate names", file.isFile)
+        ZipFile(file).use { zip ->
+            val pages = zip.entries().asSequence().map { it.name }.filter { it.startsWith("pages/") }.toList()
+            return pages.flatMap { entry ->
+                val page = MobixJson.parseJson(zip.readText(entry), entry) as JsonNode.Obj
+                page.getArr("layers")?.list.orEmpty()
+                    .flatMap { (it as JsonNode.Obj).getArr("elements")?.list.orEmpty() }
+                    .mapNotNull { (it as? JsonNode.Obj)?.getStrOrNull("type") }
+            }.toSet()
+        }
     }
 
     // ---- the files themselves --------------------------------------------------------------------
