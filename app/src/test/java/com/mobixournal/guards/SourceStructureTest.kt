@@ -72,7 +72,9 @@ class SourceStructureTest {
         // +3 deliberate: the pages menu's call names the size handler its quick sizes need.
         // +3 deliberate: the layer manager is one member beside the page list's commands, for the same
         // reason — it is a section of the window, and the next change here splits.
-        "desktop/shell/DesktopShell.kt" to 720,
+        // +1: the `saveOrPick` import — the header's Save now takes the key's fork, so the file names one more
+        // function from the save pair it already imported.
+        "desktop/shell/DesktopShell.kt" to 721,
         // The file that now carries the ring's own end of the work: the catalogue's glyph table gained
         // the ring's six-slots-round-a-nib mark (ToolGlyphs).
         "design/ToolGlyphs.kt" to 715,

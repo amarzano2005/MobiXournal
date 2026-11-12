@@ -215,6 +215,8 @@ private fun MenuRule() {
 @Composable
 internal fun OverflowMenu(
     isReadOnly: Boolean = false,
+    /** Whether Save has anything to write — a document the file already holds greys out (`TabsUiState.canSave`). */
+    canSave: Boolean = true,
     settings: AppSettings?,
     onSelectPenPreset: (PenPreset) -> Unit,
     onOpen: () -> Unit,
@@ -283,7 +285,7 @@ internal fun OverflowMenu(
                 MenuQuickAction(
                     icon = ChromeGlyph.SAVE.imageVector(),
                     label = "Save",
-                    enabled = !isReadOnly,
+                    enabled = !isReadOnly && canSave,
                     onClick = { open = false; onSave() },
                     modifier = Modifier.weight(1f),
                 )

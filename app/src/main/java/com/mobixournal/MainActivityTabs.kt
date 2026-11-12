@@ -37,6 +37,7 @@ internal fun MainActivity.tabsUiState(p: EditorPane): TabsUiState {
     return TabsUiState(
         titles = p.tabs.tabs.map { it.title },
         unsaved = p.tabs.tabs.map { it.unsavedEdits },
+        canSave = p.tabs.active?.let { !it.isReadOnly && (it.uri == null || it.unsavedEdits) } == true,
         dotColors = p.tabs.tabs.map { dots[it.docKey] },
         activeIndex = p.tabs.activeIndex,
         // Split view shows one strip lane per pane, so a strip has to know whose it is: the badge

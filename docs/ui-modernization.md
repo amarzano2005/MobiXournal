@@ -223,7 +223,10 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   and leaves the sheet in view — the same behaviour the window has worn since it stopped covering itself.
   The file's own truth follows it: a tab whose file does not hold its newest strokes wears the strip's accent
   dot from its first stroke (`OpenTab.unsavedEdits`, the window's `DesktopTab.unsaved`), and a save leaves that dot on when a
-  stroke landed while the bytes were going out.
+  stroke landed while the bytes were going out. It also decides whether Save can be pressed at all: the
+  control greys out when the file already holds the page, and stays live for a document that has no file yet,
+  because pressing it there asks where the notebook lives. An **automatic** save wears no notice — it is the
+  one write the reader did not ask for, so it does not put a line above the control.
 - **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own
   monoline icon in a tinted disc at the head of its row (`SectionRow`), and the same glyph follows the row
   into the search results. The glyph is part of the enum, so a new section cannot be added without one.

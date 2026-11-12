@@ -78,6 +78,12 @@ data class TabsUiState(
      */
     val unsaved: List<Boolean> = emptyList(),
     /**
+     * Whether the **Save** control of this pane has anything to do: the file is behind the page, or the
+     * document has no file yet (and saving it asks where). The window's `DesktopTab.canSave`, in the same words,
+     * so a reader who learns one shell reads the other.
+     */
+    val canSave: Boolean = false,
+    /**
      * Per-tab dot colour (packed ARGB), or null for no dot — set only on tabs that are one of
      * several views of the *same* document, so duplicates are told apart from same-named files.
      * Same colour = same document. See `com.mobixournal.tabs.DocColors`.

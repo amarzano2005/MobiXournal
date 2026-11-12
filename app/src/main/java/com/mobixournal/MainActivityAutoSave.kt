@@ -49,6 +49,8 @@ internal fun MainActivity.startAutoSaveLoop() {
     lifecycleScope.launch {
         var lastEdits = -1
         var quietMs = 0L
+        // The reading this watch last wrote: a save still encoding must not be asked for again by the next tick.
+        var writtenEdits = -1
         while (isActive) {
             delay(TICK_MS)
             val surface = pane.surface ?: continue
@@ -61,7 +63,7 @@ internal fun MainActivity.startAutoSaveLoop() {
                 lastEdits = edits
                 quietMs = 0
             }
-            if (quietMs < AutoSavePolicy.QUIET_MS) continue
+            if (quietMs < AutoSavePolicy.QUIET_MS || edits == writtenEdits) continue
             val tab = pane.tabs.active ?: continue
             val target = tab.uri?.let(Uri::parse)?.takeIf { io.isWritable(it) }
             if (target == null) continue
@@ -74,9 +76,10 @@ internal fun MainActivity.startAutoSaveLoop() {
             )
             if (!due) continue
             quietMs = 0
+            writtenEdits = edits
             // The same path plain Save takes with a file already chosen — never the picker: the app may not
-            // name a notebook.
-            saveDocument(target)
+            // name a notebook — and **quiet**, so no note appears above the Save control.
+            saveDocument(target, quiet = true)
         }
     }
 }

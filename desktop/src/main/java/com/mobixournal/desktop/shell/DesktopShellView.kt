@@ -89,10 +89,7 @@ internal fun DesktopShell(
             onMove = { from, to -> state.tabs.move(from, to) },
             onNew = { state.newDocument() },
             onOpen = onOpenPicker,
-            // The header's Save is the same command as `Ctrl+S`, so it takes the same fork: a document that
-            // has never been written asks **where** first (`saveOrPick`), instead of being given a name by
-            // the window and written into a folder nobody chose.
-            onSave = { state.saveOrPick(onSavePicker) },
+            onSave = { state.saveOrPick(onSavePicker) },   // the same fork as `Ctrl+S`
             onSaveAs = onSavePicker,
             onPortableCopy = onPortableCopyPicker,
             onExportPdf = onExportPdfPicker,

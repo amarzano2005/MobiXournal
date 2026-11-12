@@ -318,7 +318,13 @@ fun EditorTopBar(
                     shadowElevation = 4.dp,
                     modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
-                    IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
+                    // Off when the file already holds the page: the same rule as the window's header, so the
+                    // control that can be pressed is the control that has something to write.
+                    IconButton(
+                        onClick = onSave,
+                        enabled = !pane.isReadOnly && stripTabs.canSave,
+                        modifier = Modifier.size(36.dp),
+                    ) {
                         Icon(ChromeGlyph.SAVE.imageVector(), contentDescription = "Save", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                     }
                 }
@@ -339,6 +345,7 @@ fun EditorTopBar(
                     onOpen = onOpen,
                     onNewTab = onNewTab,
                     onSave = onSave,
+                    canSave = stripTabs.canSave,
                     onSaveAs = { ui.showSaveAs = true },
                     onImportPdf = onImportPdf,
                     onExportPdf = onExportPdf,

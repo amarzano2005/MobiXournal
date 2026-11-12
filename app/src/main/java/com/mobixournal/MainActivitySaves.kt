@@ -47,7 +47,13 @@ private fun MainActivity.captureSave(format: SaveFormat = saveFormat, name: Stri
  * - [SaveFormat.ORIGINAL] — gzip XML, PDF background left linked by path/URI (interchange-safe).
  * - [SaveFormat.ZIPPED] — a ZIP package with the PDF embedded (`domain="attach"`, `bg.pdf`).
  */
-internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = captureSave()) {
+/**
+ * Write the document to [uri].
+ *
+ * [quiet] is auto save's door: same snapshot, same encoder, same worker — only without the note above the Save
+ * control, because a save the reader did not ask for must not announce itself (`docs/ui-modernization.md`).
+ */
+internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = captureSave(), quiet: Boolean = false) {
     request ?: return
     val owner = panes.getOrNull(request.paneIndex) ?: return
     snapshotActiveTab(owner)
@@ -65,7 +71,7 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     // The canvas reading the bytes are taken at: `afterSaved` compares it with the canvas it finds, which is
     // how it knows whether a stroke landed after the snapshot.
     val revision = view?.edits ?: -1
-    inBackground("Saving ${displayName(uri)}.", {
+    inBackground(if (quiet) null else "Saving ${displayName(uri)}.", {
         val encoded = io.encode(document, pdf, request.format, uri, images, audio::recordingFile)
         try { io.stageOut(encoded.file, uri) } finally { encoded.file.delete() }
         encoded.uncompiled

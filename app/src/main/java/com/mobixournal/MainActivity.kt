@@ -595,13 +595,14 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Run [work] off the UI thread behind a blocking progress note, then hand its result to [done]
-     * back on the UI thread. Every document transfer goes through here: a remote share can stall for
-     * seconds, and doing that inline would freeze (and eventually kill) the app.
+     * Run [work] off the UI thread behind a progress note — a **null** label is the quiet transfer, which auto
+     * save uses so it puts no note above the Save control — then hand its result to [done] back on the UI thread.
+     * Every document transfer goes through here: a remote share can stall for seconds, and doing that inline
+     * would freeze (and eventually kill) the app.
      */
-    internal fun <T> inBackground(label: String, work: () -> T, done: (Result<T>) -> Unit) {
+    internal fun <T> inBackground(label: String?, work: () -> T, done: (Result<T>) -> Unit) {
         backgroundWorkCount++
-        busy.value = label
+        busy.value = label ?: busy.value
         Thread {
             val result = runCatching(work)
             runOnUiThread {
