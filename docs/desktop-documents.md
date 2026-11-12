@@ -67,7 +67,8 @@ on every save (`EditHistory.stateId`). Undoing back to the saved state makes the
 edit gets a new id even when the bytes match. A save that lands over the tab's **own** file therefore only
 moves the save point: the steps stay, so `Ctrl+Z` keeps working across an autosave, and only a save that
 replaces the document itself (a Save As, or a failed write adopting its own staged file) starts a new history,
-because those steps name an archive that was closed. The strip draws it as one accent dot after the label — a status
+because those steps name an archive that was closed. Switching tabs moves only which tab is active, so
+each keeps the steps it recorded: `Ctrl+Tab` and the strip cost nothing. The strip draws it as one accent dot after the label — a status
 readout, absent when the tab is clean.
 
 Closing a dirty tab (its `×`, `Ctrl+W`) or the window (its X) is a **question**, not a close: *Save*,
