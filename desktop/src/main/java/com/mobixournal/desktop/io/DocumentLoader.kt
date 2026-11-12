@@ -255,7 +255,14 @@ class DesktopDocument(
      */
     fun saveShapeFor(target: File): DocumentEncoder.SaveShape = shape.copy(
         carriedFrom = pageSource,
-        repackOver = target.takeIf { container == DesktopContainer.MOBIX && it.absoluteFile == pageSource.absoluteFile },
+        // Saving over the tab's **own** file repacks over the archive the pages were read from. For a
+        // `.mobix` that archive is the **read copy** in the cache ([DesktopReadCopies]), never the original
+        // path — so comparing the target with the source refused the repack on every ordinary save and made
+        // each one a whole-archive write: every page encoded and every entry rewritten, an autosave included.
+        // The question is whether the save lands back where this document lives, not which file it reads.
+        repackOver = pageSource.takeIf {
+            container == DesktopContainer.MOBIX && target.absoluteFile == file.absoluteFile
+        },
     )
 
     /**

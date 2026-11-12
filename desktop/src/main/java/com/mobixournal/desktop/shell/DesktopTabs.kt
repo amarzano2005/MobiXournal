@@ -409,8 +409,19 @@ class DesktopTab(
      * snapshot: the file does not hold it, so the tab stays dirty rather than losing the truth.
      */
     internal fun notePublished(dirty: Boolean) {
-        if (!dirty) unsaved = false
-        forgetHistory(dirty)
+        if (dirty) {
+            // An edit landed after the snapshot: the file does not hold it. The save point stays where it was,
+            // so the tab reads dirty for the right reason, and no step is lost.
+            syncHistory()
+            return
+        }
+        unsaved = false
+        // **The steps stay.** A save over the tab's own file does not close the document the history's
+        // snapshots describe, so there is nothing to forget: the file now holds the state the history is at,
+        // and moving the *save point* there is exactly what makes the tab clean while `Ctrl+Z` keeps working.
+        // Clearing here is what made every autosave end the undo history.
+        savePoint = history.stateId
+        syncHistory()
     }
 
     /**

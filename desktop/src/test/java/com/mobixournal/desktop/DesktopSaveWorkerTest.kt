@@ -41,6 +41,40 @@ class DesktopSaveWorkerTest {
             assertEquals("and it still reads its own copy", 3, original.pageCount)
         } finally { release.countDown(); pool.shutdownNow(); original.close() }
     }
+    @Test fun publishingTheSameDocumentKeepsTheUndoHistory() {
+        val file = temp.newFile("undo.mobix")
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(2))
+        val tab = DesktopTab(DocumentLoader.load(file))
+        try {
+            tab.record(tab.document.snapshot())
+            tab.record(tab.document.snapshot())
+            assertTrue("two commands are undoable", tab.canUndo)
+            assertTrue("and unpublished", tab.isDirty)
+            // What an autosave over the tab's own file does once the bytes landed: the document on screen is
+            // the one the steps describe, so only the **save point** moves.
+            tab.notePublished(dirty = false)
+            assertFalse("the file holds them, so the tab is clean", tab.isDirty)
+            assertTrue("but Ctrl+Z still works across a save", tab.canUndo)
+            assertTrue("and takes the step back", tab.undo())
+            assertTrue("which makes the tab dirty again", tab.isDirty)
+        } finally { tab.document.close() }
+    }
+
+    @Test fun sameFileMobixSaveRepacksOverItsReadCopy() {
+        val file = temp.newFile("repack.mobix")
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(3))
+        val document = DocumentLoader.load(file)
+        try {
+            // A `.mobix` reads a **copy** in the cache, so the repack source can never equal the target path:
+            // asking for that equality disabled the incremental write on every save, and each autosave rebuilt
+            // and rewrote the whole notebook into a synchronised folder.
+            val own = document.saveShapeFor(file)
+            assertNotNull("a save over its own file repacks", own.repackOver)
+            assertEquals("over the archive the pages were read from", document.pageSource, own.repackOver)
+            assertNull("another destination is a whole write", document.saveShapeFor(temp.newFile("elsewhere.mobix")).repackOver)
+        } finally { document.close() }
+    }
+
     @Test fun closeSaveCapturesTheRequestedTabEvenWhenAnotherTabIsActive() {
         val firstFile = temp.newFile("first.mobix")
         val secondFile = temp.newFile("second.mobix")

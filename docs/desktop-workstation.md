@@ -78,8 +78,8 @@ What it does today:
   place it changes: the save window (`SaveAsPicker.kt`) asks which of the three in its own type box, opened
   on the document's own container, and names the file with the picked suffix (`note` is `note.mobix`). That
   type is written whatever the name field ends up saying; a suffix typed over used to undo it in silence.
-  A save writes the document **with its edits**, and a `.mobix` repack streams untouched pages out of the
-  archive. The tab is re-homed onto the file it just wrote.
+  A save writes the document **with its edits** and a `.mobix` repack streams untouched pages out of the
+  archive it opened from, so only the pages that changed are rebuilt. The tab is re-homed onto the file it wrote.
 - **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, *Export PNG* writes one
   raster per page (2 px per point, the sheet painted by the canvas's own painter), *Export pages as SVG…*
   one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
