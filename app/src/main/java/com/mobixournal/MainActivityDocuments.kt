@@ -9,6 +9,7 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.LoadedFile
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
+import com.mobixournal.io.withPortability
 import com.mobixournal.io.mobixNameFor
 import com.mobixournal.io.pdfNameFor
 import com.mobixournal.io.saveNameFor
@@ -67,7 +68,9 @@ internal fun MainActivity.openDocument(uri: Uri) {
     // canvas once they have landed. A failure takes the half-built tab back down with it.
     inBackground("Opening $sourceName.", {
         val staged = io.stageIn(uri, "open")
-        try { staged to io.read(staged, sourceName, uri) } catch (failure: Throwable) {
+        // The portability report walks every page, so it is answered **here**, on the worker that fetched the
+        // file, and not inside the open: a paged `.mobix` must reach its first frame having read no page.
+        try { staged to io.read(staged, sourceName, uri).withPortability() } catch (failure: Throwable) {
             staged.delete()
             throw failure
         }

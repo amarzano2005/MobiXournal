@@ -65,14 +65,38 @@ sealed interface LoadedFile {
         val backgrounds: BackgroundResolver? = null,
         /**
          * What this `.mobix` says about the bytes it names but does not carry (`PortabilityAudit`), or
-         * null for a `.xopp` and for an open whose analysis failed.
+         * null until someone asked (`withPortability`) and for a `.xopp`.
          *
          * The shell reports it **once per open** — a document-wide sentence instead of a toast per page —
          * and the per-page notice a lazy background resolution raises is folded into it when this is
          * present (`MainActivityDocuments.applyLoadedDoc`).
          */
         val portability: com.mobixournal.portability.PortabilityReport? = null,
+        /**
+         * How to produce [portability] — **never** during the open.
+         *
+         * Answering it walks every page through the archive (`PortabilityAudit`), which is the one cost
+         * the page-by-page open exists to avoid: doing it inside `DocumentIo.read` made a 200-page
+         * notebook inflate all of its pages before the first frame. The open flow therefore calls this on
+         * the worker that fetched the file, after the bytes have landed (`withPortability`).
+         */
+        val auditPortability: (() -> com.mobixournal.portability.PortabilityReport?)? = null,
     ) : LoadedFile
+}
+
+/**
+ * Answer a `.mobix`'s [LoadedFile.Doc.portability] **on this thread** — the open's own worker, once the
+ * bytes have landed.
+ *
+ * Deliberately not part of `DocumentIo.read`: the audit inflates every page, and a page-by-page open whose
+ * promise is "opening a two-hundred-page notebook reads no page" cannot pay that before the first frame
+ * (`PagedMobixOpenTest`, `MobixPagedOpenBenchmarkTest`). Everything else — a `.xopp`, a document that was
+ * already audited, an open whose analysis fails — comes back unchanged.
+ */
+fun LoadedFile.withPortability(): LoadedFile {
+    if (this !is LoadedFile.Doc || portability != null) return this
+    val report = auditPortability?.invoke() ?: return this
+    return copy(portability = report)
 }
 
 /**

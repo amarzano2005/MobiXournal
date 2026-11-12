@@ -301,14 +301,16 @@ class DocumentIo(
             // One verdict for this open, decided by the gate and carried by the document: a notice and a
             // disabled action are two readings of this answer, never two comparisons of the manifest.
             val verdict = mobixDoc.verdict(appVersion)
-            // …and one document-wide answer to "which of the parts this notebook names are not in it?",
-            // taken here because this is the one place that holds both the entry directory and an open
-            // reader — and on the worker that is already reading the file, so the walk costs a page
-            // inflation each and no frame. It reads pages **without adopting anything**: adoption stays
-            // the lazy, per-page job `BundledPageAssets` does when a page is drawn.
-            val portability = runCatching {
-                PortabilityAudit.audit(PageSource.of(reader), mobixDoc.manifest.documentId, entries.entryNames)
-            }.getOrNull()
+            // …and the document-wide answer to "which of the parts this notebook names are not in it?" is
+            // offered as a **supplier**, not a report: answering it means inflating every page, which is
+            // exactly what this open promises not to do (`PagedMobixOpenTest`, `MobixPagedOpenBenchmarkTest`).
+            // The caller that wants the sentence asks for it on its own worker, after the document is on
+            // screen (`LoadedFile.withPortability`).
+            val portabilityReport: () -> com.mobixournal.portability.PortabilityReport? = {
+                runCatching {
+                    PortabilityAudit.audit(PageSource.of(reader), mobixDoc.manifest.documentId, entries.entryNames)
+                }.getOrNull()
+            }
             LoadedFile.Doc(
                 document = mobixDoc.toDocument().also { openSessions.opened(it) },
                 pdf = backgrounds.pdf,
@@ -318,7 +320,7 @@ class DocumentIo(
                 verdict = verdict,
                 conflictNotification = conflictNote,
                 backgrounds = backgrounds,
-                portability = portability,
+                auditPortability = portabilityReport,
             )
         } catch (e: Throwable) {
             reader.close()

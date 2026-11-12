@@ -184,10 +184,11 @@ was read.
 The document-wide answer to "which of these are inside the file?" is `PortabilityAudit` in the
 platform-free core: one entry per reference with its status and the page it was found on, classified
 from the archive's directory without inflating a payload ([mobix-assets.md](mobix-assets.md) → *Is it
-inside the file?*). It is **live** from this build: opening a `.mobix` takes it on the thread that reads
-the file, and each shell then says one sentence — how many parts are missing and which page each comes
-from — once per open rather than once per page. The portable-copy action that would embed what it can is
-not built.
+inside the file?*). It is **live** from this build, and it is asked for **after** the open, on the same
+worker that fetched the bytes (`LoadedFile.withPortability`) — never inside it: answering means reading
+every page, and a page-by-page `.mobix` opens without reading one. Each shell then says one sentence —
+how many parts are missing and which page each comes from — once per open rather than once per page. The
+portable-copy action that would embed what it can is not built.
 
 ## Auto save
 
