@@ -318,9 +318,11 @@ fun rotationBetween(
     toX: Double,
     toY: Double,
     snap: Boolean = false,
+    pivotX: Double = (selection.bounds.left + selection.bounds.right) / 2.0,
+    pivotY: Double = (selection.bounds.top + selection.bounds.bottom) / 2.0,
 ): Double {
-    val cx = (selection.bounds.left + selection.bounds.right) / 2.0
-    val cy = (selection.bounds.top + selection.bounds.bottom) / 2.0
+    val cx = pivotX
+    val cy = pivotY
     val from = atan2(fromY - cy, fromX - cx)
     val to = atan2(toY - cy, toX - cx)
     var delta = to - from

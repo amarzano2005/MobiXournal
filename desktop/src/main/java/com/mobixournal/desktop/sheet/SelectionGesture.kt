@@ -23,6 +23,7 @@ import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.shaftDrag
 import com.mobixournal.render.shaftOf
+import com.mobixournal.render.shaftTurn
 import com.mobixournal.render.rectRegion
 import com.mobixournal.render.SelectionEdit
 import com.mobixournal.render.SelectionRegion
@@ -469,11 +470,22 @@ private fun transformPageSelection(
         ) ?: snapSelectionMove(original, selection, x1 - x0, y1 - y0, scale = scale)
         SelectionEdit.move(original, selection, dx, dy)
     }
-    SelectionHandle.ROTATE -> SelectionEdit.rotate(
-        original,
-        selection,
-        rotationBetween(selection, x0, y0, x1, y1, snap = isShiftPressed),
-    )
+    SelectionHandle.ROTATE -> {
+        // A shaft turns about the middle of its own ink — where its ring's stem starts — and a figure about
+        // its box's centre.
+        val turn = shaftOf(singleElementOf(original, selection))?.let { shaftTurn(it, 0.0) }
+        val angle = rotationBetween(
+            selection, x0, y0, x1, y1,
+            snap = isShiftPressed,
+            pivotX = turn?.pivotX ?: selection.bounds.let { (it.left + it.right) / 2 },
+            pivotY = turn?.pivotY ?: selection.bounds.let { (it.top + it.bottom) / 2 },
+        )
+        if (turn == null) {
+            SelectionEdit.rotate(original, selection, angle)
+        } else {
+            SelectionEdit.rotateAround(original, selection, angle, turn.pivotX, turn.pivotY)
+        }
+    }
     SelectionHandle.SHAFT_TAIL, SelectionHandle.SHAFT_TIP ->
         shaftStretch(original, selection, handle, x0, y0, x1, y1)
     else -> {

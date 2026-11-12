@@ -206,11 +206,25 @@ object SelectionEdit {
 
     /** A turn of the rotate handle, about the selection's own centre. */
     fun rotate(page: Page, selection: PageSelection, radians: Double): Pair<Page, PageSelection> {
-        if (selection.isEmpty || radians == 0.0) return page to selection
         val cx = selection.bounds.let { (it.left + it.right) / 2.0 }
         val cy = selection.bounds.let { (it.top + it.bottom) / 2.0 }
-        val turned = map(page, selection.refs) { SelectionOps.rotate(it, radians, cx, cy) }
-        return turned to selection.copy(region = selection.region.rotate(radians, cx, cy))
+        return rotateAround(page, selection, radians, cx, cy)
+    }
+
+    /**
+     * A turn about an explicit pivot — the middle of a **shaft**, which is where its turn ring's stem starts,
+     * so a line or an arrow turns around the point the user is holding rather than around a box it has not got.
+     */
+    fun rotateAround(
+        page: Page,
+        selection: PageSelection,
+        radians: Double,
+        pivotX: Double,
+        pivotY: Double,
+    ): Pair<Page, PageSelection> {
+        if (selection.isEmpty || radians == 0.0) return page to selection
+        val turned = map(page, selection.refs) { SelectionOps.rotate(it, radians, pivotX, pivotY) }
+        return turned to selection.copy(region = selection.region.rotate(radians, pivotX, pivotY))
     }
 
     /** `Delete`: the caught elements are removed, in one edit. */
