@@ -33,8 +33,8 @@ private fun FigureRecognitionSettings(policy: DesktopSettingsState) {
         // One row, one answer — the tablet's own grammar: the triggers are exclusive, and two switches
         // let a reader tick both, which has a hold's clean figure read again at the lift.
         SettingsSelect(
-            label = "When",
-            note = "When a freehand stroke is snapped to the shape it resembles.",
+            label = "Snap when",
+            note = "A freehand stroke is snapped to the shape it resembles.",
             options = ShapeRecognition.entries.toList(),
             picked = policy.figures.recognition,
             optionLabel = { it.label },

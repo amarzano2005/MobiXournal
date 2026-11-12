@@ -53,8 +53,8 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         // One row, one answer: the two triggers are exclusive, so two switches let a reader turn both on
         // and have a stroke a hold already snapped read again at the lift.
         OptionGroup(
-            title = "When",
-            subtitle = "When a freehand stroke is snapped to the shape it resembles.",
+            title = "Snap when",
+            subtitle = "A freehand stroke is snapped to the shape it resembles.",
             options = ShapeRecognition.entries.toList(),
             selected = settings.shapeRecognition,
             label = { it.label },
