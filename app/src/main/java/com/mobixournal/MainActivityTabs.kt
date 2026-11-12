@@ -2,6 +2,7 @@ package com.mobixournal
 
 import android.graphics.Bitmap
 import android.net.Uri
+import com.mobixournal.panes.DocumentSessions
 import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
@@ -26,8 +27,9 @@ import java.io.File
 // Every function here takes the [EditorPane] it applies to, defaulting to the pane in focus, so
 // split view is just "the same thing, twice" — each pane keeps its own session and its own file.
 //
-// Undo history belongs to the surface, not the document, so it does not follow a tab switch: the
-// incoming tab starts with a clean history. Its content, including unsaved edits, is intact.
+// Undo history belongs to the **document**, not the surface: the stack a tab recorded into is handed
+// back to the canvas when the tab comes back (`DocumentSessions`, keyed by [OpenTab.docKey]), so a tab
+// switch costs no step — and a mirrored view or the split's other pane is undoing the same document.
 
 /** A pane's tab strip view of its session, re-read whenever [MainActivity.tabsTick] changes. */
 internal fun MainActivity.tabsUiState(p: EditorPane): TabsUiState {
@@ -209,11 +211,10 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     view.setBackgroundResolver(tab.backgrounds)
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
-    // The canvas drops its undo steps **here and nowhere else** — a save never comes through this function, it
-    // keeps the document it wrote — so the pen diagnostics panel names the path that took them, instead of an
-    // undo that goes dead leaving nothing to tell a tab switch apart from an autosave.
-    view.diagnostics.note("undo steps dropped: the canvas loaded a document (showTab)")
-    view.load(tab.document)
+    // **The tab brings its own undo stack.** The canvas used to start every load with a clean history, so
+    // switching tabs cost every step taken so far; the stack belongs to the *document* (`DocumentSessions`,
+    // the same instance the split's two views share), so handing it back is what makes a tab switch free.
+    view.load(tab.document, DocumentSessions.shared.history(tab.docKey))
     // A fresh history on the canvas: this is the reading a save compares against, so a document that was
     // clean when it was switched away from stays clean, and one that was not keeps its stored flag.
     p.tabs.updateMatching({ it.id == tab.id }) { it.copy(savedAt = view.edits) }
@@ -304,6 +305,9 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     if (p.tabs.tabs.getOrNull(index)?.id == recordingTabId) stopRecordingTake()
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
+    // A document's stack outlives a tab switch, so it goes only when the **last** view of it closes — asked of
+    // every pane, because the other half of a split may still be showing the same document.
+    DocumentSessions.shared.retain(panes.flatMap { pane -> pane.tabs.tabs.map { it.docKey } }.toSet())
     p.tabs.active?.takeIf { it.id != showing }?.let { show(it, p) }
     tabsTick.value++
     p.persist()

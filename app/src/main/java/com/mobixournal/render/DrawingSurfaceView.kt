@@ -667,7 +667,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     /** Replace the canvas contents with [doc] (all pages, layers, and unmodelled elements). */
-    fun load(doc: Document) {
+    fun load(doc: Document, history: EditHistory<Document>? = null) {
         cancelIndexing()
         this.docValue = if (doc.pages.isEmpty()) doc.copy(pages = listOf(blankPage())) else doc
         scrollY = 0f
@@ -677,7 +677,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onSelectionChanged?.invoke(false)
         hiddenLayers.clear()
         activeLayerIndex = -1
-        history.clear()
+        if (history != null) this.history = history else this.history.clear()
         notifyHistory()
         resetPageWindow()
         onPageCountChanged?.invoke(pageSource.pageCount)

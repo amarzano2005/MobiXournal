@@ -126,8 +126,10 @@ deleted adopts the asset again from its archive (`PagedMobixOpenTest`).
 
 Consequences worth knowing:
 
-- **Undo history is per surface, not per document.** It is cleared by `load`, so a tab switch starts
-  the incoming document with a clean history. Content, including unsaved edits, is untouched.
+- **Undo history is the document's, not the surface's.** A canvas loading a tab is handed the stack of
+  the document it shows (`DocumentSessions`, keyed by `docKey`), so switching tabs — and a mirrored view,
+  and the split's other pane — keeps every step; a *new* document (an open, an import) starts clean. The
+  stack is dropped when the last tab showing that document closes.
 - **Only the active tab's document is live**; every other tab holds the snapshot taken when it was
   last showing. That is also what gets written to disk.
 - **The session is cached, not saved.** `TabStore` writes `filesDir/tabs/`: a `session.index` line
@@ -221,8 +223,7 @@ The design decisions worth keeping:
   record — written on tab change and pause, not on every stroke — which repainted a stale document
   over the live edits and dropped the undo history. The right pane only exists while split view is
   on, so it is disposed when the split closes; `restoreTabs` re-loads its showing tab onto the
-  replacement surface when it comes back. (Undo history is per surface, so it does not survive that
-  round trip — same rule as a tab switch.)
+  replacement surface when it comes back, with the document's own undo stack (verbatim).
 - **Touching a pane adopts the live pen.** Tool, colour, width and line style live in
   `EditorUiState`, but each change only reached the surface of the pane that was active at the time.
   A touch now pushes that state onto its canvas on the pointer-input *initial* pass, before the

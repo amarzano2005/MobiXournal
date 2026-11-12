@@ -63,6 +63,37 @@ class DocumentSessionsTest {
     }
 
     @Test
+    fun aTabSwitchKeepsTheStepsBecauseTheStackIsTheDocuments() {
+        val sessions = DocumentSessions()
+        // On the canvas: two strokes, then the tab is switched away from (the canvas now loads another one).
+        val onCanvas = sessions.history("doc-1")
+        val first = document("before-1")
+        val second = document("before-2")
+        onCanvas.record(first)
+        onCanvas.record(second)
+        // Back to the tab: `showTab` asks the sessions for the same key instead of starting clean.
+        val backOnCanvas = sessions.history("doc-1")
+        assertSame("the same document hands the same stack back", onCanvas, backOnCanvas)
+        assertTrue("so the strip's undo stays enabled", backOnCanvas.canUndo)
+        assertSame("and it takes back the step made before the switch", second, backOnCanvas.undo(document("now")))
+        assertSame("and the one before that", first, backOnCanvas.undo(second))
+        assertFalse(backOnCanvas.canUndo)
+    }
+
+    @Test
+    fun retainKeepsTheDocumentsATabStillShowsAndDropsTheRest() {
+        val sessions = DocumentSessions()
+        sessions.history("kept")
+        sessions.history("mirrored")
+        sessions.history("closed")
+
+        // Every key a tab in **any** pane still holds: the closed tab's key is the one left out.
+        sessions.retain(setOf("kept", "mirrored"))
+
+        assertEquals(setOf("kept", "mirrored"), sessions.keys())
+    }
+
+    @Test
     fun closingADocumentDropsItsHistoryAndTheNextOpenStartsClean() {
         val sessions = DocumentSessions()
         val history = sessions.history("doc-1")

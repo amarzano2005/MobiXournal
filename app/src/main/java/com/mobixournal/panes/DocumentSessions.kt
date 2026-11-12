@@ -41,6 +41,17 @@ class DocumentSessions {
         histories.remove(key)
     }
 
+    /**
+     * Drop every session whose document no tab shows any more.
+     *
+     * A history outliving a **tab switch** is the point of this class, so it cannot be forgotten per view; it
+     * goes when the last view of the document closes. [keys] is every key a tab in every pane still holds, which
+     * is what makes a mirrored document survive one half of the split closing.
+     */
+    fun retain(keys: Set<String>) {
+        histories.keys.retainAll(keys)
+    }
+
     /** Drop every session (a wholesale document/tab teardown). */
     fun clear() {
         histories.clear()
