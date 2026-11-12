@@ -209,6 +209,10 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     view.setBackgroundResolver(tab.backgrounds)
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
+    // The canvas drops its undo steps **here and nowhere else** — a save never comes through this function, it
+    // keeps the document it wrote — so the pen diagnostics panel names the path that took them, instead of an
+    // undo that goes dead leaving nothing to tell a tab switch apart from an autosave.
+    view.diagnostics.note("undo steps dropped: the canvas loaded a document (showTab)")
     view.load(tab.document)
     // A fresh history on the canvas: this is the reading a save compares against, so a document that was
     // clean when it was switched away from stays clean, and one that was not keeps its stored flag.
