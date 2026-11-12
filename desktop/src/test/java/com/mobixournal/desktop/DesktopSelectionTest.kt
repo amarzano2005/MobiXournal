@@ -15,6 +15,8 @@ import com.mobixournal.desktop.sheet.SelectionHandle
 import com.mobixournal.desktop.sheet.SelectionTool
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.anchorOf
+import com.mobixournal.desktop.sheet.cornerLocksAspect
+import com.mobixournal.format.model.ImageElement
 import com.mobixournal.desktop.sheet.finishedSelection
 import com.mobixournal.desktop.sheet.rotationBetween
 import com.mobixournal.desktop.sheet.scaleFactors
@@ -476,5 +478,13 @@ class DesktopSelectionTest {
             buttons = if (pressed) PointerButtons(isPrimaryPressed = true) else PointerButtons(),
             timeMillis = time,
         )
+    }
+
+    @Test
+    fun `a figure's corner is free while an image's keeps its proportions`() {
+        assertFalse("a figure's corner stretches freely", cornerLocksAspect(null, shift = false))
+        assertTrue("shift locks the corner", cornerLocksAspect(null, shift = true))
+        val image = ImageElement(0.0, 0.0, 100.0, 80.0, ByteArray(0))
+        assertTrue("an image is never reshaped", cornerLocksAspect(image, shift = false))
     }
 }

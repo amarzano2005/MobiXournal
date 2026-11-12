@@ -450,11 +450,13 @@ private fun transformPageSelection(
             SelectionHandle.BOTTOM_LEFT,
             SelectionHandle.BOTTOM_RIGHT,
         )
-        // One rule for every family, and the tablet's: a **corner** keeps the selection's proportions, a
-        // **side** stretches one axis, and `Shift` is the key that frees the corner. It used to depend on the
-        // element — a figure's corner was free and only an image's was locked — so the same drag did two
-        // different things on two pages of one document.
-        val lockAspect = isCorner && !isShiftPressed
+        // A **figure's** corner changes its proportions — the free stretch the window has always offered,
+        // and the only way to make a rectangle wide or a triangle squat. A **side** stretches one axis, an
+        // **image's** corner keeps the picture's own proportions, and `Shift` locks any corner.
+        val own = selection.refs.singleOrNull()?.let { ref ->
+            original.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+        }
+        val lockAspect = isCorner && cornerLocksAspect(own, isShiftPressed)
         val (sx, sy) = scaleFactors(selection.bounds, handle, x1, y1, lockAspect = lockAspect)
         val (anchorX, anchorY) = anchorOf(selection.bounds, handle)
         SelectionEdit.scale(original, selection, sx, sy, anchorX, anchorY)

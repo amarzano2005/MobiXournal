@@ -2,6 +2,8 @@ package com.mobixournal.desktop.sheet
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.DesktopTool
 
+import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ImageElement
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
@@ -101,6 +103,15 @@ fun rotateHandleOf(bounds: Bounds, gapPt: Double = ROTATE_HANDLE_GAP_PT): Pair<D
  * parameter only so a caller can state its intent; [includeRotate] is false for an image, whose model carries
  * no rotation.
  */
+/**
+ * Whether a **corner** drag keeps the selection's proportions.
+ *
+ * An image's does: a picture is resized, never reshaped. A figure's does not — its corner is the free
+ * stretch that widens a rectangle or squashes a triangle, and it is what a corner of the box has always
+ * done in this window. `Shift` locks any corner, so a figure can still be scaled proportionally by hand.
+ */
+fun cornerLocksAspect(element: Element?, shift: Boolean): Boolean = shift || element is ImageElement
+
 fun selectionHandleAt(
     selection: PageSelection,
     x: Double,
