@@ -58,18 +58,16 @@ internal class FigureChoices(private val store: DesktopSettings) {
         store.figureWidth = clamped
     }
 
-    /** Pick whether freehand strokes snap to geometric shapes — switching this one on switches the hold off. */
-    fun chooseRecognizeShapes(value: Boolean) {
-        recognizeShapes = value
-        store.recognizeShapes = value
-        if (value) chooseRecognizeOnHold(false)
-    }
-
-    /** Pick whether a **held** tip snaps them instead — the lift recogniser is switched off in turn. */
-    fun chooseRecognizeOnHold(value: Boolean) {
-        recognizeOnHold = value
-        store.recognizeOnHold = value
-        if (value) chooseRecognizeShapes(false)
+    /**
+     * Pick the trigger from the page's **one** row — or none. The two stored flags are written together
+     * because they are one answer: a reader who could tick both would have a stroke a hold snapped read
+     * again at the lift.
+     */
+    fun chooseRecognition(value: ShapeRecognition) {
+        recognizeShapes = value == ShapeRecognition.ON_LIFT
+        recognizeOnHold = value == ShapeRecognition.ON_HOLD
+        store.recognizeShapes = recognizeShapes
+        store.recognizeOnHold = recognizeOnHold
     }
 
     /** One figure's answer changed — the variant, an angle a scalene one is built from, or the sides. */

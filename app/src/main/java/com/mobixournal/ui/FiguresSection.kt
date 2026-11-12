@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.ShapeBuilder
+import com.mobixournal.render.ShapeRecognition
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.ui.theme.DialogPresence
@@ -33,7 +34,7 @@ import kotlin.math.roundToInt
 
 /**
  * The figure (shape) tools: whether a freehand stroke snaps to a figure, the default size a new figure
- * starts at, and each tool's default variant. The recognition switch opens the page because it decides
+ * starts at, and each tool's default variant. The recognition row opens the page because it decides
  * what a drawn stroke *becomes* before any of the figures below are picked — the same place it holds
  * under the window's **Figures** page.
  *
@@ -49,22 +50,15 @@ import kotlin.math.roundToInt
 @Composable
 fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Shape recognition") {
-        SwitchRow(
-            title = "Recognize shapes",
-            subtitle = "Snap a freehand stroke to the shape it resembles when the stylus is lifted.",
-            checked = settings.recognizeShapes,
-            onCheckedChange = {
-                // The two triggers are exclusive: a held stroke recognised twice reads back as ink.
-                onChange(settings.copy(recognizeShapes = it, recognizeOnHold = if (it) false else settings.recognizeOnHold))
-            },
-        )
-        SwitchRow(
-            title = "Recognize on hold",
-            subtitle = "Snap while the tip rests on the stroke, before the lift. Turning this on turns the lift off.",
-            checked = settings.recognizeOnHold,
-            onCheckedChange = {
-                onChange(settings.copy(recognizeOnHold = it, recognizeShapes = if (it) false else settings.recognizeShapes))
-            },
+        // One row, one answer: the two triggers are exclusive, so two switches let a reader turn both on
+        // and have a stroke a hold already snapped read again at the lift.
+        OptionGroup(
+            title = "Trigger",
+            subtitle = "When a freehand stroke is snapped to the shape it resembles.",
+            options = ShapeRecognition.entries.toList(),
+            selected = settings.shapeRecognition,
+            label = { it.label },
+            onSelect = { onChange(settings.withShapeRecognition(it)) },
         )
     }
     SettingsGroup("Default size") { DefaultFigureSize(settings, onChange) }

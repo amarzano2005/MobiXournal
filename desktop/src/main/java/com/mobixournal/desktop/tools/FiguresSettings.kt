@@ -9,6 +9,7 @@ import com.mobixournal.desktop.settings.SettingsSwitch
 import androidx.compose.runtime.Composable
 import com.mobixournal.design.PenPalette
 import com.mobixournal.render.ShapeBuilder
+import com.mobixournal.render.ShapeRecognition
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import java.util.Locale
@@ -29,22 +30,16 @@ internal fun FiguresSettings(policy: DesktopSettingsState) {
 @Composable
 private fun FigureRecognitionSettings(policy: DesktopSettingsState) {
     SettingsGroup("Shape recognition") {
-        SettingsRow(
-            label = "Recognize shapes",
-            note = "Snap a freehand stroke to the shape it resembles when the stylus is lifted.",
-            onClick = { policy.figures.chooseRecognizeShapes(!policy.figures.recognizeShapes) },
-        ) {
-            SettingsSwitch(policy.figures.recognizeShapes)
-        }
-        // The two triggers are exclusive: recognising a held stroke *and* the lifted one would read the
-        // clean figure back as ink (a held square comes back a circle), so each switch turns the other off.
-        SettingsRow(
-            label = "Recognize on hold",
-            note = "Snap while the tip rests on the stroke, before the lift. Turning this on turns the lift off.",
-            onClick = { policy.figures.chooseRecognizeOnHold(!policy.figures.recognizeOnHold) },
-        ) {
-            SettingsSwitch(policy.figures.recognizeOnHold)
-        }
+        // One row, one answer — the tablet's own grammar: the triggers are exclusive, and two switches
+        // let a reader tick both, which has a hold's clean figure read again at the lift.
+        SettingsSelect(
+            label = "Trigger",
+            note = "When a freehand stroke is snapped to the shape it resembles.",
+            options = ShapeRecognition.entries.toList(),
+            picked = policy.figures.recognition,
+            optionLabel = { it.label },
+            onPick = { policy.figures.chooseRecognition(it) },
+        )
     }
 }
 

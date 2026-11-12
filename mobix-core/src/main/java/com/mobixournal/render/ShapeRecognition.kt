@@ -7,15 +7,19 @@ package com.mobixournal.render
  * snapped while the tip rests is already clean geometry, and recognising it a second time at the lift
  * would read that figure back as ink — a held square is four corners and a repeat, which the circle fit
  * finds perfect (see `CanvasHoldSnap`). Carrying the choice as one value makes the illegal pair
- * unrepresentable, so no shell can hand both gates the same stroke.
+ * unrepresentable, and it is what the Settings row offers — one answer at a time, instead of a switch
+ * per trigger.
  */
-enum class ShapeRecognition {
+enum class ShapeRecognition(
+    /** The word the settings row shows for this answer — the same word on the tablet and in the window. */
+    val label: String,
+) {
     /** Raw ink, whatever it looks like. */
-    OFF,
+    OFF("Off"),
 
     /** Recognise when the stylus is lifted — where both shells started. */
-    ON_LIFT,
+    ON_LIFT("Automatic"),
 
     /** Recognise while the tip **rests** on the stroke, before the lift, so the snap is watchable. */
-    ON_HOLD,
+    ON_HOLD("On hold"),
 }

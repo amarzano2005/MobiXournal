@@ -146,48 +146,41 @@ class DesktopShapeRecognitionTest {
     }
 
     @Test
-    fun figureChoicesTogglesAndPersistsRecognizeShapes() {
+    fun theRecognitionRowPicksOneAnswerAndPersistsIt() {
         val file = temp.newFile("fig-settings.properties")
         val store = DesktopSettings(file)
-        assertTrue("on by default", store.recognizeShapes)
+        assertTrue("on lift by default", store.recognizeShapes)
 
         val choices = FigureChoices(store)
-        assertTrue(choices.recognizeShapes)
+        assertEquals(ShapeRecognition.ON_LIFT, choices.recognition)
 
-        choices.chooseRecognizeShapes(false)
-        assertFalse(choices.recognizeShapes)
+        choices.chooseRecognition(ShapeRecognition.ON_HOLD)
+        assertEquals(ShapeRecognition.ON_HOLD, choices.recognition)
+        assertTrue("the hold is on", choices.recognizeOnHold)
+        assertFalse("and the lift went off with it", choices.recognizeShapes)
         assertFalse(store.recognizeShapes)
+        assertTrue(store.recognizeOnHold)
 
-        // Reload from disk
+        choices.chooseRecognition(ShapeRecognition.OFF)
+        assertEquals(ShapeRecognition.OFF, choices.recognition)
+
+        // Reload from disk: the row's answer survives a reopen, and nothing is left ticking.
         val reloaded = DesktopSettings(file)
         assertFalse(reloaded.recognizeShapes)
-
-        val newChoices = FigureChoices(reloaded)
-        assertFalse(newChoices.recognizeShapes)
-        newChoices.reload()
-        assertFalse(newChoices.recognizeShapes)
+        assertFalse(reloaded.recognizeOnHold)
+        assertEquals(ShapeRecognition.OFF, FigureChoices(reloaded).recognition)
     }
 
     @Test
-    fun theTwoRecognitionSwitchesAreExclusive() {
-        val file = temp.newFile("fig-exclusive.properties")
-        val choices = FigureChoices(DesktopSettings(file))
-
-        choices.chooseRecognizeOnHold(true)
-        assertTrue("the hold is on", choices.recognizeOnHold)
-        assertFalse("and the lift went off with it", choices.recognizeShapes)
-        assertEquals(ShapeRecognition.ON_HOLD, choices.recognition)
-
-        choices.chooseRecognizeShapes(true)
-        assertTrue(choices.recognizeShapes)
-        assertFalse("the hold went off in turn", choices.recognizeOnHold)
-        assertEquals(ShapeRecognition.ON_LIFT, choices.recognition)
-
-        choices.chooseRecognizeShapes(false)
-        assertEquals("neither trigger is left on", ShapeRecognition.OFF, choices.recognition)
-        // Both choosers wrote the store, so a reopened window reads the same pair.
-        val reopened = FigureChoices(DesktopSettings(file))
-        assertFalse(reopened.recognizeShapes)
-        assertFalse(reopened.recognizeOnHold)
+    fun oneTriggerAtATimeWhicheverAnswerIsPicked() {
+        val choices = FigureChoices(DesktopSettings(temp.newFile("fig-exclusive.properties")))
+        for (answer in ShapeRecognition.entries) {
+            choices.chooseRecognition(answer)
+            assertEquals(answer, choices.recognition)
+            assertFalse(
+                "the two stored flags are never both on (after ${answer.label})",
+                choices.recognizeShapes && choices.recognizeOnHold,
+            )
+        }
     }
 }
