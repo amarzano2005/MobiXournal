@@ -209,6 +209,11 @@ Desktop `StrokePathCache` uses identity-keyed LRU retention: at most 4096 record
 identities, additionally bounded by 250000 and 200000 weighted input points respectively. A pressure
 outline counts twice; these are retention budgets, not exact native-byte estimates. Oversized geometry
 is drawn without caching. Eviction changes rebuild cost, never the stroke model or pressure rule.
+Both desktop caches are asked from **two lanes** — the canvas on the window's thread and the page list's
+thumbnails on their own — so only their maps are guarded: a stroke's outline is built and a page's
+backdrop raster is rendered *outside* the lock, or a background thumbnail would hold the monitor for a
+whole page and the window would stop painting for as long as the sidebar took. Two lanes that want the
+same entry at once may both build it; they agree on the answer, which is cheaper than one waiting.
 
 ## Append-only draft work
 

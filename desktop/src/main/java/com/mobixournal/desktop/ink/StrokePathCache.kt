@@ -54,8 +54,9 @@ internal object StrokePathCache {
      * Read by the tests and by nothing else: a frame's cost is a wall-clock number a shared machine
      * distorts, while "this erase rebuilt no outline at all" is a count that cannot be flattered.
      */
-    var builds: Int = 0
-        private set
+    private val built = java.util.concurrent.atomic.AtomicInteger()
+
+    val builds: Int get() = built.get()
 
     /**
      * A draft's identity plus what its geometry currently **is**: the length it has reached, the box it
@@ -90,16 +91,29 @@ internal object StrokePathCache {
         return false
     }
 
-    /** The shapes of one recorded stroke at [scale]. */
-    @Synchronized
+    /**
+     * The shapes of one recorded stroke at [scale].
+     *
+     * **Built outside the lock.** This is asked by the canvas on the window's thread *and* by the page
+     * list's thumbnails on their own lane (`THUMBNAIL_PAINT`, which paints a whole page through the same
+     * `PageView`), and an outline per stroke is not a map read: holding the monitor across the build made a
+     * thumbnail a freeze of the canvas — the window stopped repainting for as long as the sidebar's page took,
+     * which is what a reader sees as "the interface hangs". Only the maps are guarded; two lanes that want the
+     * same stroke at the same scale may both build it and agree on the answer, which is cheaper than one of
+     * them waiting a page for the other.
+     */
     fun of(stroke: Stroke, scale: Float): Shapes {
-        val perScale = byStroke[stroke].orEmpty()
-        perScale[scale]?.let { return it.shapes }
+        synchronized(this) { byStroke[stroke]?.get(scale)?.let { return it.shapes } }
         val shapes = build(stroke.points, stroke.tool, stroke.lineStyle, scale, smooth = !isFigure(stroke))
-        // A page is drawn at one scale at a time; keeping two keeps a zoom round-trip warm without
-        // letting a wheel gesture's every frame live for ever.
-        val retained = if (perScale.size >= 2) emptyMap() else perScale
-        byStroke.put(stroke, retained + (scale to Cached(shapes, geometryWeight(stroke.points, shapes))))
+        synchronized(this) {
+            val perScale = byStroke[stroke].orEmpty()
+            // Filled by another lane while this one was building: its geometry is already the answer.
+            perScale[scale]?.let { return it.shapes }
+            // A page is drawn at one scale at a time; keeping two keeps a zoom round-trip warm without
+            // letting a wheel gesture's every frame live for ever.
+            val retained = if (perScale.size >= 2) emptyMap() else perScale
+            byStroke.put(stroke, retained + (scale to Cached(shapes, geometryWeight(stroke.points, shapes))))
+        }
         return shapes
     }
 
@@ -205,7 +219,7 @@ internal object StrokePathCache {
         smooth: Boolean = true,
         sampled: IncrementalSmoothing? = null,
     ): Shapes {
-        builds++
+        built.incrementAndGet()
         val polyline = PageInk.polyline(points, scale, smooth = smooth, curves = sampled?.curves)
         // Only a **pressure** stroke needs its outline filled; a band or a uniform line is the polyline
         // with a width, and building an outline for it would be a path nobody draws.
@@ -238,6 +252,6 @@ internal object StrokePathCache {
         byStroke.clear()
         byDraft.clear()
         smoothing.clear()
-        builds = 0
+        built.set(0)
     }
 }

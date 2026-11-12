@@ -55,8 +55,15 @@ class PageBackdrop(
      */
     var pdfReference: () -> Background.Pdf? = { null }
 
-    /** The image behind [background], or null when there is nothing to draw (or nothing to find). */
-    @Synchronized
+    /**
+     * The image behind [background], or null when there is nothing to draw (or nothing to find).
+     *
+     * **Rasterised outside the lock.** The canvas asks on the window's thread while the page list's
+     * thumbnails ask from their own lane, and a page's rasterisation is everything a picture costs — the PDF
+     * load, the render at [PDF_SCALE], the PNG, the Skia decode. A monitor held across it stopped the canvas
+     * from painting at all, so the window looked hung for as long as the sidebar's page took. Only the map is
+     * guarded; two lanes racing for one key do that work twice and agree on the answer.
+     */
     fun image(background: Background): ImageBitmap? {
         // A pdf page with no file of its own is drawn from the document's reference; with neither, there
         // is nothing to draw and the page keeps its paper.
@@ -65,13 +72,15 @@ class PageBackdrop(
             else -> background
         }
         val key = keyOf(painted) ?: return null
-        if (cache.containsKey(key)) return cache[key]
+        synchronized(this) { if (cache.containsKey(key)) return cache[key] }
         val bitmap = runCatching { render(painted) }.getOrNull()
-        // The **oldest** entry goes, not the whole map: the page list asks for one thumbnail per page it
-        // shows, and clearing twelve cached sheets every time a thirteenth row appears would send the
-        // canvas back to rasterising the pages it is actually drawing.
-        if (cache.size >= CACHE_MAX) cache.remove(cache.keys.first())
-        cache[key] = bitmap
+        synchronized(this) {
+            // The **oldest** entry goes, not the whole map: the page list asks for one thumbnail per page it
+            // shows, and clearing twelve cached sheets every time a thirteenth row appears would send the
+            // canvas back to rasterising the pages it is actually drawing.
+            if (cache.size >= CACHE_MAX && !cache.containsKey(key)) cache.remove(cache.keys.first())
+            cache[key] = bitmap
+        }
         return bitmap
     }
 
