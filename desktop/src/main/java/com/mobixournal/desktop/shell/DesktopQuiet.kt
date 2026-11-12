@@ -104,7 +104,9 @@ internal fun DesktopShellState.autoSaveNow() {
         edited = tab.isDirty,
         readOnly = tab.document.readOnly,
         hasTarget = !tab.unsaved,
-        busy = saveState.committing,
+        // A save already staging is busy too: the answer used to be the commit alone, so a quiet moment that
+        // landed inside a write staged the same notebook a second time.
+        busy = saveState.request != null || saveState.committing,
     )
     if (!due) return
     // **Through the worker**, when the window is up: `save()` encodes the whole notebook and writes it on the

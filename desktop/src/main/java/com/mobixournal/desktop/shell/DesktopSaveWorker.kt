@@ -13,10 +13,13 @@ import com.mobixournal.desktop.io.*
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.DocumentEncoder
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.Executors
 
 /**
  * A save that has been **asked for** and not yet written.
@@ -29,6 +32,22 @@ import java.io.File
  * [revision] and [pageCount] are the commit's two questions: did the reader edit at all, and did they change
  * the *list* of pages. Content edits can be left unpublished; a structural one cannot be reconciled.
  */
+/**
+ * The lane a save's two halves run on: **one** thread, at the lowest priority the JVM can give it.
+ *
+ * Encoding a notebook is a whole-file job — gzip, the `.mobix` repack, the audio sidecars — and on
+ * `Dispatchers.IO` it competed with the painter for cores: the window stopped repainting for as long as the
+ * write took, which is the freeze a reader meets as "it hangs while it saves". At [Thread.MIN_PRIORITY] the
+ * system hands it only what the window is not using, so a save is a little slower and the window stays live.
+ * One thread, because two saves encoding at once would only divide the same budget.
+ */
+private val SAVE_IO: CoroutineDispatcher = Executors.newSingleThreadExecutor { runnable ->
+    Thread(runnable, "mobix-save").apply {
+        isDaemon = true
+        priority = Thread.MIN_PRIORITY
+    }
+}.asCoroutineDispatcher()
+
 internal class SaveRequest(val tab: DesktopTab, val target: File, val format: SaveFormat, val completed: () -> Unit) {
     val document = tab.document
     val revision = document.edits
@@ -114,12 +133,28 @@ internal class Saved(
  *    new edits sit in, and a structural edit invalidates the snapshot's indices. The staged file is
  *    dropped and the tab is told to save again, with every page still in memory.
  */
+/**
+ * How long the commit will queue for the document's write lock before it gives up.
+ *
+ * Short on purpose. The lock is taken for a page read by whoever is painting, and this call runs while the
+ * window's input gate is down ([saveInputGate]): waiting "as long as it takes" is waiting with the canvas
+ * deaf. A page read is milliseconds, so anything past a second and a half is a save that should be retried
+ * rather than a window that stops taking input.
+ */
+private const val COMMIT_WAIT_MS = 1_500L
+
+/** The commit did not get the document in time: nothing was written, and the save can be asked again. */
+internal class SaveBusy : IllegalStateException(
+    "The document was busy (a page was still being read), so the file was not replaced. " +
+        "It will be written again at the next quiet moment.",
+)
+
 internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged): Saved {
     val original = request.document
     val same = DesktopTabs.keyOf(request.target) == request.tab.key
     val holdsNoHandle = original.container != DesktopContainer.MOBIX
     return try {
-        original.withExclusive { synchronized(original) {
+        original.tryExclusive(COMMIT_WAIT_MS) { synchronized(original) {
             val newer = original.edits != request.revision
             if (same) {
                 // Nothing has to be released: a `.xopp` holds no file, and a `.mobix` reads a copy in the
@@ -127,7 +162,7 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
                 // move lands and the tab keeps the document it was drawing on — dirty if an edit arrived
                 // after the snapshot, because the file does not hold that one yet.
                 staged.commit()
-                return@withExclusive Saved(null, null, kept = true, stillDirty = newer)
+                return@tryExclusive Saved(null, null, kept = true, stillDirty = newer)
             }
             staged.commit()
             val loaded = DocumentLoader.load(request.target).also { it.audioStore = request.audio }
@@ -136,7 +171,7 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
             original.pageSource.takeIf { it.absoluteFile != original.file.absoluteFile }?.delete()
             DesktopPdfIndexCache.forgetAll()
             Saved(loaded, null)
-        } }
+        } } ?: throw SaveBusy()
     } catch (failure: Throwable) {
         if (same && original.isClosed && staged != null) {
             val recovered = runCatching { DocumentLoader.adopt(original.file, staged.temp).also { it.audioStore = request.audio } }
@@ -154,12 +189,12 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
         // Let the editing canvas leave composition before any archive can be closed.
         withFrameNanos { }
         withContext(NonCancellable) {
-            val staged = runCatching { withContext(Dispatchers.IO) { stageSaveRequest(request) } }
+            val staged = runCatching { withContext(SAVE_IO) { stageSaveRequest(request) } }
             val result = staged.fold(
                 onSuccess = { bytes ->
                     // Only the commit holds the canvas still: the bytes are already written by now.
                     state.saveState.committing = true
-                    try { withContext(Dispatchers.IO) { commitSaveRequest(request, bytes) } }
+                    try { withContext(SAVE_IO) { commitSaveRequest(request, bytes) } }
                     finally { state.saveState.committing = false }
                 },
                 onFailure = { Saved(null, it) },
