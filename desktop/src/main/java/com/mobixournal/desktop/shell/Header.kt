@@ -76,7 +76,7 @@ internal fun Header(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
-    /** The menu's **Export PNG** chip — one raster per page, beside the document. */
+    /** The menu's **Export As ▸ PNG** answer — one raster per page, into a folder you pick. */
     onExportPng: () -> Unit = {},
     /** The menu's **Import PDF** chip — the tablet's command, now that the window can carry a PDF. */
     onImportPdf: () -> Unit = {},

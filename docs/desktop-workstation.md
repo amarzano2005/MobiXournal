@@ -80,9 +80,9 @@ What it does today:
   type is written whatever the name field ends up saying; a suffix typed over used to undo it in silence.
   A save writes the document **with its edits** and a `.mobix` repack streams untouched pages out of the
   archive it opened from, so only the pages that changed are rebuilt. The tab is re-homed onto the file it wrote.
-- **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, *Export PNG* writes one
-  raster per page (2 px per point, the sheet painted by the canvas's own painter), *Export pages as SVG…*
-  one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
+- **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF; the menu's **Export As**
+  writes one PNG per page (2 px per point, painted by the canvas's own painter), one SVG per page, or the
+  notebook as a `.pmobix`; all use the shared plan and see the window's unsaved pages.
 - **Reads a PDF's text and outline** — one `PDDocument.load` per file feeds `DesktopPdfText`/`DesktopPdfOutline`
   off the UI thread, cached by reference and length (`DesktopPdfIndexCache`, soft-referenced), and published on
   the tab as `DesktopPdfIndex`: the words **Select text (PDF)** selects and the magnetic highlighter snaps to,
@@ -191,7 +191,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), then the tablet's **two rows
   of chips**: **Import PDF** and **Export PDF** in the document red (the same file, coming in and going
-  out), and **Export PNG** and **Export SVG** in the accent (one file per page, into a folder you pick); every file dialog here is the Windows shell's own — Explorer's surface, a type box, a folder mode — with Java's dialogs as the fallback where the shell has none.
+  out), and **Export As** in the accent, which unfolds on its own line into **PNG**, **SVG** and **`.pmobix`** (one file per page or the whole notebook, into a folder you pick); every file dialog here is the Windows shell's own — Explorer's surface, a type box, a folder mode — with Java's dialogs as the fallback where the shell has none.
   **A hairline**, then the tablet's **Pen block**: its heading (the pen glyph beside the word) opens the
   Stylus page, and under it the pen's **drawing** answers in the page's own order — **Pressure
   sensitivity**, the **preset carousel** with its × and `+`, **Minimum pressure**, **Multiplier**, and

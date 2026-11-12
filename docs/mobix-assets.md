@@ -137,15 +137,16 @@ When the bytes are still reachable, the file can be made portable: `PortableCopy
 embeds every absent payload it can read — a background's file, a recording's sidecar — and leaves the
 ones it cannot as references. Three properties make it trustworthy rather than merely written:
 
-- it produces a **normal `.mobix`**, never a second container type: the embedded bytes are ordinary
-  `assets/` entries, so anything that opens a notebook opens the copy;
+- it produces a **normal `.mobix` container**, never a second container type: the embedded bytes are
+  ordinary `assets/` entries, so anything that opens a notebook opens the copy — only the extension is
+  its own (`.pmobix`), because the file is an **export and never a document to keep editing**;
 - it **re-opens what it wrote** and verifies that every entry hashes to the name it carries, deleting a
   copy that fails — a broken "portable" file is worse than none;
 - it **says what it could not do**: the result lists what was embedded and what is still only a
   reference, so a copy never claims a portability it does not have.
 
-Nothing is downloaded, and the document it read is untouched. Both shells reach it: the desk window from
-the menu's *Save portable copy* chip, the tablet from the row above its PDF actions. Each asks for the
+Nothing is downloaded, and the document it read is untouched. Both shells reach it as the `.pmobix`
+answer of the menu's **Export As** row, beside **PNG** and **SVG**. Each asks for the
 destination where it asks for every save, resolves a reference the way its own renderer does — the
 document's folder for a background, the audio store for a recording — and leaves the open tab on its own
 file. The tablet's copy is written to a cache file and staged onto the picked URI afterwards, so a failed

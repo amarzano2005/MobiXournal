@@ -62,14 +62,14 @@ import java.util.Locale
  *
  * The tablet's menu (its photo is the reference) is four **tiles** of art over a word across the top,
  * the file's **chips** under them, and the plain commands below a hairline. The window keeps that shape
- * with its own commands: New, Open, Save and Save As on the top row; then the tablet's own two rows of
- * chips — **Import PDF** and **Export PDF** in the document red, **Export PNG** and **Export SVG** in the
- * accent — then the page list under the rule.
+ * with its own commands: New, Open, Save and Save As on the top row; then the tablet's two rows of chips —
+ * **Import PDF** and **Export PDF** in the document red, then **Export As** in the accent — then the page
+ * list under the rule.
  *
  * The chips are two rows rather than one row of four because the tablet draws them so: what brings a PDF
- * *in* beside what sends a PDF *out* (both red, both about the same file), and the two page exports
- * beside each other in the accent. One row of four would put Import and Export PNG next to each other and
- * make a command that opens a document look like a command that writes one.
+ * *in* beside what sends a PDF *out* (both red, both about the same file), and one export command of its
+ * own in the accent. **Export As** unfolds into its three answers — PNG, SVG and `.pmobix` — in the same
+ * line, so the question is asked once and the panel never changes height under the pointer.
  *
  * The panel is [MenuPanel] rather than this `Popup`'s body, because a popup cannot be rendered in a
  * headless scene: the panel is what a test draws, clicks and files as a PNG, and this wrapper only adds
@@ -164,7 +164,7 @@ internal fun MenuPanel(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
-    /** **Export PNG**: one raster file per page, beside the document (`DesktopPngExport`). */
+    /** **Export As ▸ PNG**: one raster file per page, into a folder you pick (`DesktopPngExport`). */
     onExportPng: () -> Unit = {},
     /**
      * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is the
@@ -179,11 +179,14 @@ internal fun MenuPanel(
     /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
     penPolicy: DesktopSettingsState? = null,
     /**
-     * **Save portable copy**: the chip under the exports, because it acts on the document's bytes —
-     * though it writes a *second* file, embedding what this one only names.
+     * **Export As ▸ .pmobix**: one file carrying the bytes this notebook only names. An export, never a
+     * Save: the tab keeps its own file, name and container.
      */
     onPortableCopy: () -> Unit = {},
 ) {
+    // **Export As** unfolded: its three answers replace its chip on the same line, so the panel's height
+    // — which [MenuMetrics] and `DesktopMenuTest` both read — never depends on which state it is in.
+    var exportAsOpen by remember { mutableStateOf(false) }
     Column(
         Modifier
             .glassSurface()
@@ -214,15 +217,17 @@ internal fun MenuPanel(
         }
         Spacer(Modifier.height(MenuMetrics.chipGap))
         MenuChipRow {
-            MenuChip("Export PNG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportPng)
-            MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
-        }
-        Spacer(Modifier.height(MenuMetrics.chipGap))
-        // The one command here that writes a **second file** instead of changing this one, where the tablet has
-        // its own portable-copy command: the exports above change the sheet, this writes a copy that carries
-        // the PDFs, pictures and recordings the notebook only names.
-        MenuChipRow {
-            MenuChip("Save portable copy", ChromeGlyph.SAVE_AS, canExport, Modifier.weight(1f), DesktopTheme.accent, onPortableCopy)
+            if (!exportAsOpen) {
+                MenuChip("Export As", ChromeGlyph.SAVE_AS, canExport, Modifier.weight(1f), DesktopTheme.accent) {
+                    exportAsOpen = true
+                }
+            } else {
+                // The page as a shareable raster, as a scalable vector, or the notebook as the one file
+                // that carries what it names — `.pmobix`, exported, never saved over the document.
+                MenuChip("PNG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportPng)
+                MenuChip("SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
+                MenuChip(".pmobix", ChromeGlyph.SAVE_AS, canExport, Modifier.weight(1f), DesktopTheme.accent, onPortableCopy)
+            }
         }
         // A rule between the **exports** and the **pen**: the two chips above it act on the document's
         // bytes, and everything under it acts on the pen or on the window. A reader scanning for "export"
@@ -406,6 +411,10 @@ internal object MenuMetrics {
     /** One chip's width: two of them and their gap. */
     val chipWidth: androidx.compose.ui.unit.Dp
         get() = (width - padding * 2 - chipGap) / 2
+
+    /** One answer of **Export As**: three of them and their two gaps on the line a pair uses. */
+    val exportWidth: androidx.compose.ui.unit.Dp
+        get() = (width - padding * 2 - chipGap * 2) / 3
 }
 
 /**

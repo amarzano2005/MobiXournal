@@ -303,8 +303,8 @@ class MainActivity : ComponentActivity() {
         }
 
     /**
-     * The picker for a **portable copy**: always a `.mobix`, whatever this tab's own container is, because
-     * the copy is the file that carries its own assets. It writes a second document and leaves the tab alone.
+     * The picker for the portable **export**: a `.mobix` container under the `.pmobix` extension, whatever
+     * this tab's own container is — the copy carries its own assets and leaves the tab's file alone.
      */
     internal val portableCopyLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(MOBIX_MIME)) { uri ->

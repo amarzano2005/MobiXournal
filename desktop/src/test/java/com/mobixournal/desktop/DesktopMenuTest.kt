@@ -35,7 +35,8 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * The overflow menu as the mobile bar draws it: four tiles, two rows of chips (the PDF pair in the
- * document red, the page pair in the accent), then the page list and Settings under a rule.
+ * document red, **Export As** in the accent), then the page list and Settings under a rule. Its three
+ * answers — PNG, SVG and `.pmobix` — replace the Export As chip on the same line.
  *
  * A `Popup` cannot be rendered in a headless scene, which is why the panel is its own composable
  * (`MenuPanel`) and this draws it directly. The clicks use [MenuMetrics] — the very numbers the layout
@@ -69,8 +70,12 @@ class DesktopMenuTest {
             }
             tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
             tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
-            tap(scene, chipCentre(0), chipCentreY(row = 1), at); at += 512L
-            tap(scene, chipCentre(1), chipCentreY(row = 1), at); at += 512L
+            // Export As first: its three answers take its place on the same line, and the panel stays up
+            // because this scene has no popup to dismiss it.
+            tap(scene, width / 2f, chipCentreY(row = 1), at); at += 512L
+            for (index in 0..2) {
+                tap(scene, exportCentre(index), chipCentreY(row = 1), at); at += 512L
+            }
             tap(scene, width / 2f, rowCentreY(row = 0), at); at += 512L
             tap(scene, width / 2f, rowCentreY(row = 1), at)
 
@@ -80,8 +85,9 @@ class DesktopMenuTest {
             assertEquals("Save As", 1, counters[SAVE_AS])
             assertEquals("Import PDF", 1, counters[IMPORT])
             assertEquals("Export PDF", 1, counters[PDF])
-            assertEquals("Export PNG", 1, counters[PNG])
-            assertEquals("Export SVG", 1, counters[SVG])
+            assertEquals("Export As ▸ PNG", 1, counters[PNG])
+            assertEquals("Export As ▸ SVG", 1, counters[SVG])
+            assertEquals("Export As ▸ .pmobix", 1, counters[PORTABLE])
             assertEquals("the page list's row", 1, counters[SIDEBAR])
         } finally {
             scene.close()
@@ -95,13 +101,14 @@ class DesktopMenuTest {
             var at = 1_000L
             tap(scene, tileCentre(2), tileCentreY(), at); at += 512L
             tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
-            tap(scene, chipCentre(1), chipCentreY(row = 1), at); at += 512L
+            // Export As cannot unfold with nothing open, so the answers under it are unreachable too.
+            tap(scene, width / 2f, chipCentreY(row = 1), at); at += 512L
             tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
             tap(scene, tileCentre(0), tileCentreY(), at)
 
             assertEquals("a clean document has nothing to save", 0, counters[SAVE])
             assertEquals("and nothing to export", 0, counters[PDF])
-            assertEquals("neither PDF nor PNG", 0, counters[PNG])
+            assertEquals("neither PDF nor an export", 0, counters[PNG] + counters[SVG] + counters[PORTABLE])
             assertEquals(
                 "but a PDF can still be brought in, which opens a tab of its own",
                 1,
@@ -151,11 +158,9 @@ class DesktopMenuTest {
             assertTrue("chip $index of the PDF row is written in the document red", pdfChip > 12)
         }
 
-        for (index in 0..1) {
-            val rasterChip = pixelsAround(chipCentre(index), chipCentreY(row = 1), 16)
-                .count { colour -> (colour and 0xFF) > ((colour shr 16) and 0xFF) + 40 }
-            assertTrue("chip $index of the page row is written in the accent", rasterChip > 12)
-        }
+        val exportChip = pixelsAround(width / 2f, chipCentreY(row = 1), 16)
+            .count { colour -> (colour and 0xFF) > ((colour shr 16) and 0xFF) + 40 }
+        assertTrue("the export row is written in the accent", exportChip > 12)
     }
 
     /**
@@ -188,7 +193,7 @@ class DesktopMenuTest {
         val (plain, lit) = try {
             Snapshot.sendApplyNotifications()
             val before = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
-            mouse(scene, PointerEventType.Move, chipCentre(1), chipCentreY(row = 1), 1_000L, pressed = false)
+            mouse(scene, PointerEventType.Move, width / 2f, chipCentreY(row = 1), 1_000L, pressed = false)
             Snapshot.sendApplyNotifications()
             val after = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
             before to after
@@ -208,8 +213,8 @@ class DesktopMenuTest {
             val to = after.getRGB(px, y) and 0xFF
             return to > from
         }
-        assertTrue("the chip's left end lights up", brightened(chipCentre(1) - 55f))
-        assertTrue("and its far right end does too", brightened(chipCentre(1) + 55f))
+        assertTrue("the chip's left end lights up", brightened(width / 2f - 130f))
+        assertTrue("and its far right end does too", brightened(width / 2f + 130f))
     }
 
     /** One frame of the panel, tall enough that nothing in the Pen block is clipped. */
@@ -228,6 +233,7 @@ class DesktopMenuTest {
                     onExportSvg = {},
                     onExportPng = {},
                     onImportPdf = {},
+                    onPortableCopy = {},
                     onToggleSidebar = {},
                     onSettings = {},
                     onDismiss = {},
@@ -260,6 +266,7 @@ class DesktopMenuTest {
                     onExportSvg = { counters[SVG]++ },
                     onExportPng = { counters[PNG]++ },
                     onImportPdf = { counters[IMPORT]++ },
+                    onPortableCopy = { counters[PORTABLE]++ },
                     onToggleSidebar = { counters[SIDEBAR]++ },
                     onSettings = {},
                 )
@@ -274,6 +281,11 @@ class DesktopMenuTest {
 
     private fun chipCentre(index: Int): Float = with(MenuMetrics) {
         (padding + chipWidth / 2 + (chipWidth + chipGap) * index).value
+    }
+
+    /** One answer of **Export As**, on the line the single chip had to itself. */
+    private fun exportCentre(index: Int): Float = with(MenuMetrics) {
+        (padding + exportWidth / 2 + (exportWidth + chipGap) * index).value
     }
 
     /** A chip's line: the tiles, the section gap, then the first row and the second under it. */
@@ -334,7 +346,7 @@ class DesktopMenuTest {
         const val PNG = 6
         const val SVG = 7
         const val SIDEBAR = 8
-        const val SEARCH = 9
+        const val PORTABLE = 9
 
         /** Anything at or above this tone is a glyph stroke: the chrome ink is pure white. */
         const val INK_FLOOR = 0x909090

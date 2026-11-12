@@ -12,7 +12,8 @@ import java.util.zip.ZipFile
  * **Save portable copy** on the tablet: the desk window's command, with SAF in place of a file dialog.
  *
  * The same three steps as `PortableCopy` describes, and the same promise — the copy is a normal `.mobix`
- * with the references embedded, verified on the way out, and the open document is untouched. What differs
+ * container, written with the portable `.pmobix` extension, verified on the way out, and the open document
+ * untouched. It is an **export**, never a Save: the tab keeps its own file and container. What differs
  * is where the bytes come from: a background resolves through the same reference arithmetic the renderer
  * uses ([DocumentIo.portableReference]), a recording through the audio store, and the archive the notebook
  * was opened from is staged once to answer "is this already inside?" and to carry forward the entries the
@@ -65,22 +66,22 @@ internal fun MainActivity.savePortableCopy(uri: Uri) {
             staged?.delete()
         }
     }) { result ->
-        result.onFailure { toast("Portable copy failed: ${it.message}") }
+        result.onFailure { toast("Export failed: ${it.message}") }
             .onSuccess { (left, embedded) ->
                 toast(
                     when {
-                        left == 0 -> "Portable copy saved: everything is inside it ($embedded embedded)"
-                        embedded == 0 -> "Portable copy saved: $left reference(s) still point outside it"
-                        else -> "Portable copy saved: $embedded embedded, $left still outside"
+                        left == 0 -> "Exported .pmobix: everything is inside it ($embedded embedded)"
+                        embedded == 0 -> "Exported .pmobix: $left reference(s) still point outside it"
+                        else -> "Exported .pmobix: $embedded embedded, $left still outside"
                     },
                 )
             }
     }
 }
 
-/** The name a portable copy opens on: the document's own, marked, and always a `.mobix`. */
+/** The name an export opens on: the document's own, with the portable format's own extension. */
 internal fun MainActivity.suggestedPortableCopyName(): String =
-    suggestedSaveName().substringBeforeLast('.') + "-portable.mobix"
+    suggestedSaveName().substringBeforeLast('.') + ".pmobix"
 
 /**
  * The document's bytes copied into the cache, so the archive can be read twice — its central directory

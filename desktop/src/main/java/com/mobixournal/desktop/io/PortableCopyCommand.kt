@@ -12,7 +12,7 @@ import java.io.File
 import java.util.zip.ZipFile
 
 /**
- * **Save a portable copy**: the window's door to `PortableCopy` (`docs/mobix-assets.md`).
+ * **Export As ▸ .pmobix**: the window's door to `PortableCopy` (`docs/mobix-assets.md`).
  *
  * A `.mobix` may *name* what it does not carry — a PDF or a picture beside it, a recording in the app's
  * store — which is what keeps it small and what leaves it un-openable on another machine. This command
@@ -29,9 +29,13 @@ import java.util.zip.ZipFile
  * renderer cannot resolve is one the copy cannot honestly embed.
  */
 
-/** The one container a portable copy is written as: the format that can carry its own assets. */
+/**
+ * The one type an export is written as: the portable format, whose container is a `.mobix` that carries
+ * its own assets. It has an extension of its own (`.pmobix`) because it is never a document to keep
+ * editing — only a file to hand on.
+ */
 internal val PORTABLE_COPY_TYPES: List<PickerType> =
-    listOf(PickerType("Portable MobiXournal notebook (*.mobix)", listOf(".mobix")))
+    listOf(PickerType("Portable MobiXournal notebook (*.pmobix)", listOf(".pmobix")))
 
 /**
  * Write a portable copy of [state]'s active document, asking where first.
@@ -45,9 +49,9 @@ fun savePortableCopy(state: DesktopShellState, window: Frame?): Boolean {
     val folder = tab.file.absoluteFile.parentFile
     val answer = DesktopFilePicker.saveFile(
         window = window,
-        title = "Save a portable copy of the notebook",
+        title = "Export the notebook as a portable copy",
         types = PORTABLE_COPY_TYPES,
-        proposedName = tab.file.nameWithoutExtension + "-portable.mobix",
+        proposedName = tab.file.nameWithoutExtension + ".pmobix",
         startIn = folder,
     ) ?: return false
     val destination = File(answer.file.absoluteFile.parentFile, portableCopyName(answer.file.name))
@@ -74,9 +78,9 @@ fun savePortableCopy(state: DesktopShellState, window: Frame?): Boolean {
         .isSuccess
 }
 
-/** A copy is always a `.mobix`, whatever suffix the name field was left with. */
+/** An export is always a `.pmobix`, whatever suffix the name field was left with. */
 internal fun portableCopyName(name: String): String =
-    if (name.endsWith(".mobix", ignoreCase = true)) name else name.substringBeforeLast('.', name) + ".mobix"
+    if (name.endsWith(".pmobix", ignoreCase = true)) name else name.substringBeforeLast('.', name) + ".pmobix"
 
 /**
  * The file behind one absent reference, or null when this machine does not hold it.

@@ -14,11 +14,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The parts of **Save portable copy** that can be wrong without a window: the name it writes, and where it
- * looks for the bytes a reference names.
+ * The parts of **Export As ▸ .pmobix** that can be wrong without a window: the name it writes, and where
+ * it looks for the bytes a reference names.
  *
  * What it cannot test here is the copy itself — `PortableCopyTest` does that, against a real notebook. This
- * file pins the window's own decisions: a copy is always a `.mobix`, a background is resolved against the
+ * file pins the window's own decisions: an export is always a `.pmobix`, a background is resolved against the
  * document's folder (the way its painter resolves it), and the archive directory is read, not assumed.
  */
 class DesktopPortableCopyTest {
@@ -33,13 +33,15 @@ class DesktopPortableCopyTest {
     private fun folder(): File = Files.createTempDirectory("portable-copy").toFile().also(temporary::add)
 
     @Test
-    fun aCopyIsAlwaysWrittenAsMobixWhateverTheNameSays() {
-        assertEquals("notes-portable.mobix", portableCopyName("notes-portable.mobix"))
-        // A name typed in capitals keeps them: the copy is written under the name the reader chose.
-        assertEquals("notes-portable.MOBIX", portableCopyName("notes-portable.MOBIX"))
-        assertEquals("notes.mobix", portableCopyName("notes.xopp"))
-        assertEquals("notes.mobix", portableCopyName("notes"))
-        assertEquals("a.b.mobix", portableCopyName("a.b.pdf"))
+    fun anExportIsAlwaysWrittenAsPmobixWhateverTheNameSays() {
+        assertEquals("notes.pmobix", portableCopyName("notes.pmobix"))
+        // A name typed in capitals keeps them: the export is written under the name the reader chose.
+        assertEquals("notes.PMOBIX", portableCopyName("notes.PMOBIX"))
+        // A plain notebook name, or another format's, becomes the portable one.
+        assertEquals("notes.pmobix", portableCopyName("notes.xopp"))
+        assertEquals("notes.pmobix", portableCopyName("notes.mobix"))
+        assertEquals("notes.pmobix", portableCopyName("notes"))
+        assertEquals("a.b.pmobix", portableCopyName("a.b.pdf"))
     }
 
     @Test

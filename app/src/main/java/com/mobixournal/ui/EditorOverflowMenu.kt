@@ -206,7 +206,7 @@ private fun MenuRule() {
 
 /**
  * The top-bar overflow ("hamburger") menu: the glass button that opens it and the panel itself —
- * compact quick file actions, the PDF row, the active page's own export row, the pen subsection, and
+ * compact quick file actions, the PDF row, **Export As** (PNG, SVG, `.pmobix`), the pen subsection, and
  * Settings.
  *
  * It is a region of its own, which is why it lives here rather than in `EditorRegions`: everything it
@@ -227,7 +227,7 @@ internal fun OverflowMenu(
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
-    /** **Save portable copy**: a second `.mobix` with the files this one only names inside it. */
+    /** **Export As ▸ .pmobix**: a second file with the bytes this one only names inside it. */
     onSavePortableCopy: () -> Unit = {},
     onSettings: () -> Unit,
     penDiagnostics: Boolean,
@@ -235,6 +235,9 @@ internal fun OverflowMenu(
     onOpenPenParameters: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
+    // **Export As** unfolded: the three answers replace its chip on the same line, so the panel keeps its
+    // height and a hand already on the glass has nothing to chase.
+    var exportAsOpen by remember { mutableStateOf(false) }
     val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
@@ -298,24 +301,6 @@ internal fun OverflowMenu(
                 )
             }
 
-            // The one command here that writes a **second file** instead of changing this one: the copy
-            // carries the PDFs, pictures and recordings the notebook only names, so it can be handed on.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                GlassActionButton(
-                    icon = ChromeGlyph.SAVE_AS.imageVector(),
-                    label = "Portable copy",
-                    tint = MaterialTheme.colorScheme.primary,
-                    enabled = !isReadOnly,
-                    onClick = { open = false; onSavePortableCopy() },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
             // PDF Actions
             Row(
                 modifier = Modifier
@@ -341,29 +326,51 @@ internal fun OverflowMenu(
                 )
             }
 
-            // Export the active page alone, as a shareable raster image or a scalable vector file.
+            // **Export As**: one chip, because the three answers belong to one question ("as what?") and
+            // three chips of their own read as three unrelated commands. Its answers take its place.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                GlassActionButton(
-                    icon = ChromeGlyph.PICTURE.imageVector(),
-                    label = "Page as PNG",
-                    tint = MaterialTheme.colorScheme.primary,
-                    enabled = !isReadOnly,
-                    onClick = { open = false; onExportPagePng() },
-                    modifier = Modifier.weight(1f),
-                )
-                GlassActionButton(
-                    icon = ChromeGlyph.PICTURE.imageVector(),
-                    label = "Page as SVG",
-                    tint = MaterialTheme.colorScheme.primary,
-                    enabled = !isReadOnly,
-                    onClick = { open = false; onExportPageSvg() },
-                    modifier = Modifier.weight(1f),
-                )
+                if (!exportAsOpen) {
+                    GlassActionButton(
+                        icon = ChromeGlyph.SAVE_AS.imageVector(),
+                        label = "Export As",
+                        tint = MaterialTheme.colorScheme.primary,
+                        enabled = !isReadOnly,
+                        onClick = { exportAsOpen = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    // The page as a shareable raster, as a scalable vector, or the whole notebook as the
+                    // one file that carries what it names (`.pmobix`, exported, never saved over).
+                    GlassActionButton(
+                        icon = ChromeGlyph.PICTURE.imageVector(),
+                        label = "PNG",
+                        tint = MaterialTheme.colorScheme.primary,
+                        enabled = !isReadOnly,
+                        onClick = { open = false; onExportPagePng() },
+                        modifier = Modifier.weight(1f),
+                    )
+                    GlassActionButton(
+                        icon = ChromeGlyph.PICTURE.imageVector(),
+                        label = "SVG",
+                        tint = MaterialTheme.colorScheme.primary,
+                        enabled = !isReadOnly,
+                        onClick = { open = false; onExportPageSvg() },
+                        modifier = Modifier.weight(1f),
+                    )
+                    GlassActionButton(
+                        icon = ChromeGlyph.SAVE_AS.imageVector(),
+                        label = ".pmobix",
+                        tint = MaterialTheme.colorScheme.primary,
+                        enabled = !isReadOnly,
+                        onClick = { open = false; onSavePortableCopy() },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
             MenuRule()
