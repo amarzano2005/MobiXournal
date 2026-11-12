@@ -471,6 +471,10 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
      * A **wire** is magnetised here as well as at the lift (`snapWireEnds`): the preview has to show the
      * line jumping onto the pin, or the commit would appear to move the stroke after it was drawn.
      */
+    // The wire's two holds, for the whole drag: the preview keeps the pin it caught while the hand stays on
+    // the edge of the reach, and so does the lift that writes those same points.
+    val magnet = com.mobixournal.render.EndsMagnet()
+
     fun preview(px: Float, py: Float): List<StrokePoint> {
         val (x1, y1) = pagePointOf(px, py, density, view.current())
         val constrained = currentEvent.keyboardModifiers.isShiftPressed
@@ -480,6 +484,7 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
             shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained, figures = figures),
             page,
             view.current().zoom * density,
+            magnet = magnet,
         ).map { point ->
             // A placed guide rules the figure last, so it wins over the hand *and* over the pin magnet —
             // the order the tablet applies it in (`guided()` after the grid snap). Projecting here rather
@@ -487,6 +492,9 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
             val (gx, gy) = guide.project(tab.page, point.x, point.y)
             point.copy(x = gx, y = gy)
         }
+        // The pins the wire's two ends have caught, lit while the hand is still down (the tablet paints the
+        // same ring from the same hold) — the lift therefore joins a pin the user has already seen.
+        tab.magnetTargets = magnet.caught.filterNotNull()
         draft.clear()
         draft.addAll(points.map { point -> InkSample(point.x, point.y, 1f, samplePointer(lastChange)) })
         return points
@@ -512,6 +520,7 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
         }
     } finally {
         view.endDrag()
+        tab.magnetTargets = emptyList()
         onLiveDrag(null)
     }
 }

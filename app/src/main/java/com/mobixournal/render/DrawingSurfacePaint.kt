@@ -115,6 +115,9 @@ internal fun DrawingSurfaceView.paint() {
         prefetchAround(visible)
         drawSearchHighlights(canvas)
         drawCurrent(canvas)
+        // The pins a shape gesture has caught, lit like a live move's target: what the wire or the placed
+        // part will join, visible while the hand is still down.
+        if (shapeDraft.active) drawShapeMagnetTargets(canvas)
         // Where a wire or a component can actually land, while a connector is armed.
         drawCircuitPins(canvas)
         drawTextSelection(canvas)
@@ -442,12 +445,46 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
     canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
     drawSelectionHandleDots(canvas, sel, box, l, t, r, bot)
+    // A move the magnet has caught: the pin it will join, lit while the hand is still down. Without it
+    // the part jumps onto a target the user never saw, which is what made the magnet feel greedy.
+    if (gestures.moving) gestures.magnetTarget?.let { drawMagnetTarget(canvas, box, it) }
     // Interactive parameter sliders for a selected plot
     val plot = singleSelectedPlot()
     if (plot != null && plot.parameters.isNotEmpty()) {
         val tracks = PlotSliders.computeSliderTracks(plot, box, scrollX, scrollY)
         PlotSliders.draw(canvas, tracks, chrome)
     }
+}
+
+/**
+ * The targets the **shape gesture** in the draft has caught — a wire's two ends, a placed part's — as the
+ * very ring a live move wears ([drawMagnetTarget]).
+ *
+ * The hold is what makes this readable: while the hand jitters on the edge of the reach the ring stays on the
+ * pin it is going to join instead of flickering on and off with the nearest-target answer.
+ */
+internal fun DrawingSurfaceView.drawShapeMagnetTargets(canvas: Canvas) {
+    val box = layout.boxes.getOrNull(ink.currentPage) ?: return
+    shapeDraft.magnet.caught.filterNotNull().distinctBy { it.pinId }.forEach {
+        drawMagnetTarget(canvas, box, it)
+    }
+}
+
+/**
+ * The pin a move has caught, as a dot inside a ring at the target's page position.
+ *
+ * Chrome only: nothing here is in the document, and the same reading is painted by the desktop sheet
+ * (`PageCanvasOverlay`), so both shells answer "what will this join" before the release.
+ */
+internal fun DrawingSurfaceView.drawMagnetTarget(
+    canvas: Canvas,
+    box: PageBox,
+    target: CircuitSnapping.PinTarget,
+) {
+    val x = box.toViewX(target.absX, scrollX)
+    val y = box.toViewY(target.absY, scrollY)
+    canvas.drawCircle(x, y, CanvasChrome.HANDLE_DRAW_PX, chrome.handle)
+    canvas.drawCircle(x, y, CanvasChrome.HANDLE_DRAW_PX * 1.6f, chrome.selectionStroke)
 }
 
 /** Draw the guide overlay in view px: the setsquare's outline, or the compass's circle and hub. */

@@ -219,7 +219,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   tablet draws them; the ends of a wire and of a placed part are **magnetised** onto the nearest pin
   (`snapWireEnds`, `circuitSpan`), and so is a part **selected after insertion** when it is dragged
   (`SelectionMagnet`), so what was aimed at is what is joined (`CircuitGestureTest`, `SelectionMagnetTest`).
-  A **selected** part keeps its pins marked, so the dots do not vanish with the slot that placed it. A press
+  A dragged part lights the pin its magnet has caught and holds it across the drag (`PinMagnet`), and a wire being drawn or a part being placed lights one pin per end (`EndsMagnet`, `magnetTargets`), so every join is visible before the release. A **selected** part keeps its pins marked, so the dots do not vanish with the slot that placed it. A press
   **on** a pin picks the part up, and on a selected part's own pin the drag **moves** it, not scales
   (`PinPress`, `pressesOwnPin`: a scale never magnetises). A moved
   part's **own** pins are never its targets (by position, not id), and a moved selection aims at the

@@ -64,6 +64,11 @@ internal fun DrawScope.paintLiveOverlay(
      */
     pdfBands: List<MagneticHighlighter.Band> = emptyList(),
     selection: PageSelection?,
+    /**
+     * The pins the gesture has magnetically caught — one for a move, one per end for a wire being drawn or a
+     * part being placed — the targets the release will join.
+     */
+    magnetTargets: List<CircuitSnapping.PinTarget> = emptyList(),
     previewRegion: SelectionRegion?,
     grabLineY: Double?,
     /**
@@ -110,6 +115,9 @@ internal fun DrawScope.paintLiveOverlay(
     // The selection's marching outline and its handles, above the ink: what is caught stays visible.
     // A single living element also wears its own grips (a figure's corners, a table's dividers).
     selection?.let { drawSelection(it, pxPerPt, living = livingElement) }
+    // Above the outline: *what* the move will join, while the hand is still down. The tablet paints the
+    // same ring from the same target (`drawMagnetTarget`), so the two shells answer one question.
+    magnetTargets.forEach { drawMagnetTarget(it, pxPerPt) }
     previewRegion?.let { drawSelectionPreview(it, pxPerPt) }
     // Above the ink, as the tablet draws it: the line the vertical-space drag would move the page at.
     grabLineY?.let { y ->
@@ -121,6 +129,26 @@ internal fun DrawScope.paintLiveOverlay(
         )
     }
 }
+
+/**
+ * The pin a move has caught, as a dot inside a ring at the target's page position.
+ *
+ * Chrome only: the target is the page's own pin, and nothing here is written to the document.
+ */
+private fun DrawScope.drawMagnetTarget(target: CircuitSnapping.PinTarget, pxPerPt: Float) {
+    val at = Offset((target.absX * pxPerPt).toFloat(), (target.absY * pxPerPt).toFloat())
+    val dot = MAGNET_DOT_PX / pxPerPt
+    drawCircle(DesktopTheme.accent, radius = dot, center = at)
+    drawCircle(
+        color = DesktopTheme.accent,
+        radius = dot * 1.7f,
+        center = at,
+        style = Stroke(width = 2.dp.toPx()),
+    )
+}
+
+/** The magnet dot's radius in screen pixels — the tablet's handle dot, so both shells look alike. */
+private const val MAGNET_DOT_PX = 5f
 
 /**
  * The strokes **in progress**, one preview per input path, painted with the rule the lift will use: a

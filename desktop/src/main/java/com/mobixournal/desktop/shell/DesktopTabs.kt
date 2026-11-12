@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.EditHistory
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.Uncompilable
@@ -99,6 +100,16 @@ class DesktopTab(
      * two tabs show two pages, and per page in practice — a marquee names a region of the page it was drawn on.
      */
     var selection: PageSelection? by mutableStateOf(null)
+
+    /**
+     * The pin a move has **caught** right now, or null — view state, like [selection].
+     *
+     * The drag sets it from its magnet — [com.mobixournal.render.PinMagnet] for a moved selection, one hold
+     * per end for a wire being drawn or a part being placed ([com.mobixournal.render.EndsMagnet]) — and
+     * clears it when the hand lifts, so the sheet can light the target the release will join. Without it a
+     * part jumped onto a pin the user never saw, which is the half of the magnet's feel that was missing.
+     */
+    var magnetTargets: List<CircuitSnapping.PinTarget> by mutableStateOf(emptyList())
 
     /**
      * The **drawing guide** standing on this tab's page, or null when none is.

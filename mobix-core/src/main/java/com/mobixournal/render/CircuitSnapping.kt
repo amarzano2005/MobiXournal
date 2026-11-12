@@ -17,34 +17,43 @@ import kotlin.math.sin
  */
 object CircuitSnapping {
 
-    /** Distance threshold in points within which two pins magnetically snap. */
+    /**
+     * Distance in points within which two pins snap when the view's scale is **unknown** — a page whose
+     * layout has not run yet, or a caller with no zoom to give. Every UI path passes its scale and gets
+     * [thresholdFor]'s answer instead.
+     */
     const val SNAP_THRESHOLD_PT: Double = 14.0
 
     /**
-     * The magnet's reach in **screen** pixels. A fit-to-width page draws a point at well under a
-     * pixel, so a 14pt reach can be three pixels wide on screen: unhittable by eye, which is why a
-     * wire used to join a pin only by luck.
+     * The magnet's reach in **screen** pixels: the distance it keeps at every zoom, so a pin is as easy
+     * to aim at on a 20 % page as on a 400 % one. A reach fixed in page points is the thing that made
+     * the magnet feel greedy when zoomed in — 14 pt is 56 px at 400 % — and shy when zoomed out.
      */
-    const val SNAP_REACH_PX: Double = 22.0
+    const val SNAP_REACH_PX: Double = 20.0
 
     /**
-     * The most a pin may reach in page points. Without a ceiling, a heavily zoomed-out page would turn
-     * the screen-sized reach into a pull across a visible fraction of the sheet.
+     * How much further than [SNAP_REACH_PX] a **caught** target keeps winning before the magnet lets go.
+     *
+     * Without it a hand resting on the edge of the reach makes the pin flicker between caught and free on
+     * every jitter, and the moved part twitches between snapped and not. A target that was caught holds to
+     * 1.5× the reach, which is the hysteresis a drag needs to feel settled.
      */
-    const val MAX_SNAP_PT: Double = 36.0
+    const val SNAP_RELEASE_RATIO: Double = 1.5
 
     /**
-     * The magnet's reach in page points for a view [scale] (page points → screen pixels):
-     * [SNAP_THRESHOLD_PT] on a zoomed-in page, and never less than [SNAP_REACH_PX] on screen when
-     * zoomed out, so the target is always big enough to aim at — but no more than [MAX_SNAP_PT]. A
-     * scale that is not a real number (a page not laid out yet) falls back to the document-space
-     * reach.
+     * The magnet's reach in page points for a view [scale] (page points → screen pixels).
+     *
+     * It is always [reachPx] **screen** pixels: `reachPx / scale`. There is deliberately no floor and no
+     * ceiling in page points — those are exactly what turned a constant screen reach into a bigger and
+     * bigger one as the page was zoomed in (`14 pt × 8` = 112 screen pixels), so a target could be caught
+     * from a finger's width away. A scale that is not a real number (a page not laid out yet) falls back
+     * to [SNAP_THRESHOLD_PT], the document-space reach, rather than inventing one.
      */
     fun thresholdFor(scale: Float, reachPx: Double = SNAP_REACH_PX): Double {
-        // A page with no layout yet has no scale to convert with: keep the document-space reach
-        // rather than the widest one, so nothing snaps further than it looks.
+        // A page with no layout yet has no scale to convert with: keep the document-space reach rather
+        // than a zero or an infinite one.
         if (!scale.isFinite() || scale <= 0f) return SNAP_THRESHOLD_PT
-        return (reachPx / scale.toDouble()).coerceIn(SNAP_THRESHOLD_PT, MAX_SNAP_PT)
+        return reachPx / scale.toDouble()
     }
 
     /** How far a wire's intermediate vertices may sit off its own straight segment, in points. */
@@ -128,11 +137,34 @@ object CircuitSnapping {
      * exists to join a connector to a **component**, and only a connector (the line tool) or a
      * placed component ever asks for it.
      */
-    fun collectAllTargets(page: Page, excludeCircuitId: String? = null): List<PinTarget> =
+    fun collectAllTargets(
+        page: Page,
+        excludeCircuitId: String? = null,
+        /**
+         * A page-space box the caller is working in. An element whose own pins lie outside it cannot
+         * contribute a target that caller could catch, so it is skipped before a [PinTarget] is
+         * allocated. Null keeps the whole page, and the answer is the same either way: a target
+         * further away than the caller's reach could never win `findSnapTarget`.
+         */
+        near: Bounds? = null,
+    ): List<PinTarget> =
         collectTargets(
-            page.layers.flatMap { it.elements.filterIsInstance<CircuitElement>() },
+            page.layers.flatMap { layer ->
+                layer.elements.filterIsInstance<CircuitElement>()
+                    .filter { it.pins.isNotEmpty() && (near == null || circuitEnvelope(it).intersects(near)) }
+            },
             excludeCircuitId,
         )
+
+    /**
+     * The pins a gesture at ([x], [y]) could possibly catch within [reach] page points — the same answer
+     * [collectAllTargets] gives, found without walking the pins of every symbol on the page.
+     *
+     * Used by the gestures that seek a target (a wire's ends, a component being placed); the pins a sheet
+     * *draws* still come from the whole page, because chrome has to show every one of them.
+     */
+    fun collectTargetsNear(page: Page, x: Double, y: Double, reach: Double): List<PinTarget> =
+        collectAllTargets(page, near = Bounds(x - reach, y - reach, x + reach, y + reach))
 
     /**
      * Everything a **moved selection** may join: the page's pins, plus both ends of every wire on the
@@ -148,17 +180,27 @@ object CircuitSnapping {
      * These are the targets of a **component**; a moved wire keeps to the pins among them
      * (`snapTranslation`), because a line is not a terminal.
      */
-    fun collectMoveTargets(page: Page, refs: Set<ElementRef>): List<PinTarget> {
+    fun collectMoveTargets(
+        page: Page,
+        refs: Set<ElementRef>,
+        /** The box the moved pins are sweeping, as in [collectAllTargets] — far elements are skipped. */
+        near: Bounds? = null,
+    ): List<PinTarget> {
         val out = mutableListOf<PinTarget>()
         page.layers.forEachIndexed { layerIndex, layer ->
             layer.elements.forEachIndexed { elementIndex, element ->
                 if (ElementRef(layerIndex, elementIndex) in refs) return@forEachIndexed
                 when (element) {
-                    is CircuitElement -> for (pin in element.pins) {
-                        val (x, y) = pinAbsolutePosition(element, pin)
-                        out += PinTarget(element.id, pin.id, x, y, pin.connectedTo)
+                    is CircuitElement -> {
+                        if (element.pins.isEmpty()) return@forEachIndexed
+                        if (near != null && !circuitEnvelope(element).intersects(near)) return@forEachIndexed
+                        for (pin in element.pins) {
+                            val (x, y) = pinAbsolutePosition(element, pin)
+                            out += PinTarget(element.id, pin.id, x, y, pin.connectedTo)
+                        }
                     }
                     is Stroke -> if (isWire(element)) {
+                        if (near != null && !wireEnvelope(element).intersects(near)) return@forEachIndexed
                         val first = element.points.first()
                         val last = element.points.last()
                         out += PinTarget(null, WIRE_END_PIN_ID, first.x, first.y, null)
@@ -277,10 +319,41 @@ object CircuitSnapping {
         targets: List<PinTarget>? = null,
     ): Pair<Double, Double> {
         if (magnetic) {
-            val snap = findSnapTarget(x, y, targets ?: collectAllTargets(page), thresholdFor(scale))
+            val reach = thresholdFor(scale)
+            // A target out of reach cannot win, so only the pins near the gesture are collected: the
+            // page's whole pin list is not walked on every point of a drag.
+            val snap = findSnapTarget(x, y, targets ?: collectTargetsNear(page, x, y, reach), reach)
             if (snap != null) return snap.absX to snap.absY
         }
         return if (snapToGrid) Snapping.lattice(page.background, page.width).snap(x, y) else x to y
+    }
+
+    /**
+     * Where a snapped single point landed, and the target that caught it — what [PointMagnet] holds from
+     * one frame to the next, and what a preview could light.
+     */
+    data class PointSnap(val x: Double, val y: Double, val target: PinTarget?)
+
+    /**
+     * [snapPoint] with the magnet's **hold**: [caught] keeps winning while the point stays within
+     * [releaseRatio] × [thresholdPt] of it, and the ordinary nearest-within-reach answer takes over past
+     * that. Used by the gestures whose end moves frame by frame (a wire being drawn, a part being placed),
+     * so their aim does not flicker on the edge of the reach.
+     */
+    fun snapPointTo(
+        x: Double,
+        y: Double,
+        targets: List<PinTarget>,
+        thresholdPt: Double = SNAP_THRESHOLD_PT,
+        caught: PinTarget? = null,
+        releaseRatio: Double = SNAP_RELEASE_RATIO,
+    ): PointSnap {
+        if (caught != null) {
+            val hold = thresholdPt * releaseRatio.coerceAtLeast(1.0)
+            if (hypot(x - caught.absX, y - caught.absY) <= hold) return PointSnap(caught.absX, caught.absY, caught)
+        }
+        val target = findSnapTarget(x, y, targets, thresholdPt)
+        return if (target != null) PointSnap(target.absX, target.absY, target) else PointSnap(x, y, null)
     }
 
     /**
@@ -327,66 +400,145 @@ object CircuitSnapping {
         rawDx: Double,
         rawDy: Double,
         thresholdPt: Double = SNAP_THRESHOLD_PT,
-    ): Pair<Double, Double> {
-        if (page == null || refs.isEmpty()) return rawDx to rawDy
-        val selectedCircuits = refs.mapNotNull { ref ->
-            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? CircuitElement
+    ): Pair<Double, Double> =
+        snapTranslationTo(page, refs, rawDx, rawDy, thresholdPt).let { it.dx to it.dy }
+
+    /**
+     * Where a snapped move landed, and the target that caught it — the pin a shell lights while the hand
+     * is still down, and the one [PinMagnet] holds from one frame to the next.
+     */
+    data class TranslationSnap(val dx: Double, val dy: Double, val target: PinTarget?)
+
+    /**
+     * [snapTranslation], plus the magnet's **hold**: [caught] is the target the previous frame landed on,
+     * and it keeps winning while the hand stays within [releaseRatio] × [thresholdPt] of it. Further than
+     * that it is let go, and the ordinary nearest-within-reach search answers again.
+     *
+     * Everything else is [snapTranslation]'s rule, unchanged: only connectors magnetise, a component may
+     * join a pin or a wire's end, a wire may join a pin only, and the moved elements' own pins are never
+     * targets.
+     */
+    fun snapTranslationTo(
+        page: Page?,
+        refs: Set<ElementRef>,
+        rawDx: Double,
+        rawDy: Double,
+        thresholdPt: Double = SNAP_THRESHOLD_PT,
+        caught: PinTarget? = null,
+        releaseRatio: Double = SNAP_RELEASE_RATIO,
+    ): TranslationSnap {
+        if (page == null || refs.isEmpty()) return TranslationSnap(rawDx, rawDy, null)
+        val moving = movingEnds(page, refs)
+        if (moving.isEmpty()) return TranslationSnap(rawDx, rawDy, null)
+
+        // The hold is what the window has to cover: a caught target may still win from up to
+        // releaseRatio × the reach away, so both the spatial filter and the search use that wider box —
+        // and the ordinary search is the narrower one, inside the same list.
+        val hold = thresholdPt * releaseRatio.coerceAtLeast(1.0)
+        val targets = collectMoveTargets(page, refs, near = windowOf(moving, rawDx, rawDy, hold))
+        if (targets.isEmpty()) return TranslationSnap(rawDx, rawDy, null)
+
+        if (caught != null) {
+            val held = nearestAlignment(moving, listOf(caught), rawDx, rawDy, hold)
+            if (held != null) return TranslationSnap(held.dx, held.dy, caught)
         }
-        val selectedStrokes = refs.mapNotNull { ref ->
-            (page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? Stroke)
-                ?.takeIf { isWire(it) }
+        val best = nearestAlignment(moving, targets, rawDx, rawDy, thresholdPt)
+            ?: return TranslationSnap(rawDx, rawDy, null)
+        return TranslationSnap(best.dx, best.dy, best.target)
+    }
+
+    /** One end of the moved selection, at the position it had when the drag began. */
+    private class MovingEnd(val x: Double, val y: Double, val fromWire: Boolean)
+
+    /** A moved end put on a target: the translation that does it, and the target it joined. */
+    private class Alignment(val dx: Double, val dy: Double, val target: PinTarget)
+
+    /** The ends of what [refs] holds that the magnet can move — a component's pins, a wire's two ends. */
+    private fun movingEnds(page: Page, refs: Set<ElementRef>): List<MovingEnd> {
+        val out = ArrayList<MovingEnd>()
+        for (ref in refs) {
+            when (val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)) {
+                is CircuitElement -> for (pin in element.pins) {
+                    val (x, y) = pinAbsolutePosition(element, pin)
+                    out += MovingEnd(x, y, fromWire = false)
+                }
+                is Stroke -> if (isWire(element)) {
+                    out += MovingEnd(element.points.first().x, element.points.first().y, fromWire = true)
+                    out += MovingEnd(element.points.last().x, element.points.last().y, fromWire = true)
+                }
+                else -> Unit
+            }
         }
-        if (selectedCircuits.isEmpty() && selectedStrokes.isEmpty()) return rawDx to rawDy
+        return out
+    }
 
-        // The moved parts' **own** pins are not targets: a pin cannot join itself, and offering it made the
-        // magnet pull the part back onto where it already was for the first few points of every drag. By
-        // position, not by id — a part read from a `.xopp` has no id, and one exclusion covered only the
-        // first of a multi-part selection. The ends of the page's **wires** are targets too: a part dragged
-        // onto the line drawn for it is the joint the magnet exists for (`collectMoveTargets`).
-        val targets = collectMoveTargets(page, refs)
-        if (targets.isEmpty()) return rawDx to rawDy
-        // A wire is a connector, but it is **not a terminal**: two lines drawn near each other are the
-        // reader's own sketch, and the magnet pulling one onto the other's end joined strokes that were
-        // never a net. A moved wire reaches a component's pins only; a moved component reaches pins and
-        // wire ends alike.
-        val pinTargets = targets.filterNot { it.isWireEnd }
-
-        var bestDx = rawDx
-        var bestDy = rawDy
-        var bestDist = thresholdPt
-
-        for (circuit in selectedCircuits) {
-            for (pin in circuit.pins) {
-                val (origX, origY) = pinAbsolutePosition(circuit, pin)
-                val candX = origX + rawDx
-                val candY = origY + rawDy
-                for (target in targets) {
-                    val dist = hypot(candX - target.absX, candY - target.absY)
-                    if (dist <= bestDist) {
-                        bestDist = dist
-                        bestDx = target.absX - origX
-                        bestDy = target.absY - origY
-                    }
+    /** The nearest end/target pair within [limit], or null — the magnet's one rule of choice. */
+    private fun nearestAlignment(
+        moving: List<MovingEnd>,
+        targets: List<PinTarget>,
+        rawDx: Double,
+        rawDy: Double,
+        limit: Double,
+    ): Alignment? {
+        var best: Alignment? = null
+        var bestDist = limit
+        for (end in moving) {
+            val candX = end.x + rawDx
+            val candY = end.y + rawDy
+            for (target in targets) {
+                if (end.fromWire && target.isWireEnd) continue
+                val dist = hypot(candX - target.absX, candY - target.absY)
+                if (dist <= bestDist) {
+                    bestDist = dist
+                    best = Alignment(target.absX - end.x, target.absY - end.y, target)
                 }
             }
         }
+        return best
+    }
 
-        for (stroke in selectedStrokes) {
-            for (pt in listOf(stroke.points.first(), stroke.points.last())) {
-                val candX = pt.x + rawDx
-                val candY = pt.y + rawDy
-                for (target in pinTargets) {
-                    val dist = hypot(candX - target.absX, candY - target.absY)
-                    if (dist <= bestDist) {
-                        bestDist = dist
-                        bestDx = target.absX - pt.x
-                        bestDy = target.absY - pt.y
-                    }
-                }
-            }
+    /** The box the moved ends sweep, grown by [pad]: every target that can win lies inside it. */
+    private fun windowOf(moving: List<MovingEnd>, rawDx: Double, rawDy: Double, pad: Double): Bounds {
+        var left = Double.POSITIVE_INFINITY
+        var top = Double.POSITIVE_INFINITY
+        var right = Double.NEGATIVE_INFINITY
+        var bottom = Double.NEGATIVE_INFINITY
+        for (end in moving) {
+            val x = end.x + rawDx
+            val y = end.y + rawDy
+            if (x < left) left = x
+            if (x > right) right = x
+            if (y < top) top = y
+            if (y > bottom) bottom = y
         }
+        return Bounds(left - pad, top - pad, right + pad, bottom + pad)
+    }
 
-        return bestDx to bestDy
+    /** The box a symbol's pins occupy — a superset of everything it can offer as a target. */
+    private fun circuitEnvelope(circuit: CircuitElement): Bounds {
+        var left = Double.POSITIVE_INFINITY
+        var top = Double.POSITIVE_INFINITY
+        var right = Double.NEGATIVE_INFINITY
+        var bottom = Double.NEGATIVE_INFINITY
+        for (pin in circuit.pins) {
+            val (x, y) = pinAbsolutePosition(circuit, pin)
+            if (x < left) left = x
+            if (x > right) right = x
+            if (y < top) top = y
+            if (y > bottom) bottom = y
+        }
+        if (left > right) return Bounds(circuit.positionX, circuit.positionY, circuit.positionX, circuit.positionY)
+        return Bounds(left, top, right, bottom)
+    }
+
+    /** The box a wire's two ends occupy. */
+    private fun wireEnvelope(wire: Stroke): Bounds {
+        val first = wire.points.first()
+        val last = wire.points.last()
+        return Bounds(
+            minOf(first.x, last.x), minOf(first.y, last.y),
+            maxOf(first.x, last.x), maxOf(first.y, last.y),
+        )
     }
 
     /**

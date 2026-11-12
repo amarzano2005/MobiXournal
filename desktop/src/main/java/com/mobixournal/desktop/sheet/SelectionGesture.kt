@@ -15,7 +15,9 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.isLivingEntity
+import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.ElementBounds
+import com.mobixournal.render.PinMagnet
 import com.mobixournal.render.SelectionTester
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
@@ -342,6 +344,9 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     // round trip returns the ink exactly where it started.
     val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
     val before = tab.document.snapshot()
+    // The magnet of **this** drag: it holds the pin a frame caught, so a hand resting on the edge of the
+    // reach does not make the part twitch, and it is what the sheet lights below.
+    val magnet = PinMagnet()
     var recorded = false
     var cancelled = false
     val cancel = {
@@ -368,6 +373,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
             y1 = y1,
             isShiftPressed = currentEvent.keyboardModifiers.isShiftPressed,
             scale = view.current().zoom * density,
+            magnet = magnet,
         )
         if (edited !== original) {
             if (!recorded) {
@@ -376,6 +382,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
             }
             tab.document.editPage(index) { edited }
             tab.selection = next
+            tab.magnetTargets = listOfNotNull(magnet.caught)
             onEdited(index)
         }
     }
@@ -395,6 +402,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
         }
     } finally {
         view.endDrag()
+        tab.magnetTargets = emptyList()
         onLiveDrag(null)
     }
 }
@@ -410,9 +418,20 @@ private fun transformPageSelection(
     y1: Double,
     isShiftPressed: Boolean,
     scale: Float,
+    /** The live drag's magnet; null for a path with no drag behind it (a test, a click). */
+    magnet: PinMagnet? = null,
 ): Pair<Page, PageSelection> = when (handle) {
     SelectionHandle.BODY -> {
-        val (dx, dy) = snapSelectionMove(original, selection, x1 - x0, y1 - y0, scale = scale)
+        // The magnet's reach is **screen** pixels at every zoom, and the one this drag caught holds across
+        // frames (`PinMagnet`). `snapSelectionMove` is the same rule without a hold, kept for the paths
+        // that have no drag to remember anything.
+        val (dx, dy) = magnet?.translation(
+            original,
+            selection.refs,
+            x1 - x0,
+            y1 - y0,
+            CircuitSnapping.thresholdFor(scale),
+        ) ?: snapSelectionMove(original, selection, x1 - x0, y1 - y0, scale = scale)
         SelectionEdit.move(original, selection, dx, dy)
     }
     SelectionHandle.ROTATE -> SelectionEdit.rotate(

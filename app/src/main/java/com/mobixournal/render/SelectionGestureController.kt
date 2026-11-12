@@ -90,6 +90,18 @@ internal class SelectionGestureController(
      */
     val lassoPoly = ArrayList<Vec2>()
 
+    /**
+     * The pin this drag has magnetically caught, across the frames of the move.
+     *
+     * The hold is what keeps a part from twitching between snapped and free while the hand rests on the
+     * edge of the reach, and [magnetTarget] is what the sheet lights so the join is visible before the
+     * release. One per controller: [beginMove] starts it empty and [reset] drops it with the gesture.
+     */
+    private val magnet = PinMagnet()
+
+    /** The target the live move is caught by, or null — view state, painted by the canvas. */
+    val magnetTarget: CircuitSnapping.PinTarget? get() = magnet.caught
+
     // Live move of the current selection (also the base snapshot for resize/rotate, so a live
     // transform recomputes from the gesture-start document each frame and never drifts).
     var moving = false
@@ -148,6 +160,7 @@ internal class SelectionGestureController(
 
     /** Forget every live gesture and the snapshot behind it (a cancel, or a fresh document). */
     fun reset() {
+        magnet.reset()
         moving = false
         resizing = false
         rotating = false
@@ -476,6 +489,7 @@ internal class SelectionGestureController(
     }
 
     private fun beginMove(event: MotionEvent, box: PageBox) {
+        magnet.reset()
         moving = true
         snapshot()
         moveStartPtX = box.toPtX(event.x, viewport.scrollX)
@@ -527,8 +541,11 @@ internal class SelectionGestureController(
     private fun moveTo(viewX: Float, viewY: Float) = transform { sel, start, box ->
         val rawDx = box.toPtX(viewX, viewport.scrollX) - moveStartPtX
         val rawDy = box.toPtY(viewY, viewport.scrollY) - moveStartPtY
-        val (dx, dy) = CircuitSnapping.snapTranslation(
+        // The reach is **screen** pixels whatever the zoom (`thresholdFor`), and the magnet holds the
+        // pin it caught between frames — the desktop window's rule, with the view's own scale.
+        val (dx, dy) = magnet.translation(
             start.pages.getOrNull(sel.pageIndex), sel.refs, rawDx, rawDy,
+            CircuitSnapping.thresholdFor(box.scale),
         )
         SelectionOps.translate(
             start.pages, sel.pageIndex, sel.refs,

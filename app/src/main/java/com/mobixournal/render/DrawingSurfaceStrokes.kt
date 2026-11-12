@@ -41,11 +41,11 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
         // Grid snap first, then the guide — a placed guide is the stronger constraint and must
         // not be undone by pulling the point back onto the ruling. The grid snap is the *joint* one
         // so an isometric sheet's node (which rules no axis) can still capture the endpoint.
-        val (gx, gy) = snappedPoint(
+        val (gx, gy) = snappedShapePoint(
             box,
             box.toPtX(start.x, scrollX),
             box.toPtY(start.y, scrollY),
-            shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
+            start = true,
         )
         val (sx, sy) = guided(box, gx, gy)
         shapeDraft.place(sx, sy, nominalShapeWidthPt())
@@ -78,11 +78,11 @@ internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
 internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Boolean) {
     val box = gestureBox() ?: return
     if (shapeDraft.active) {
-        val (gx, gy) = snappedPoint(
+        val (gx, gy) = snappedShapePoint(
             box,
             box.toPtX(sample.x, scrollX),
             box.toPtY(sample.y, scrollY),
-            shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
+            start = false,
         )
         val (ex, ey) = guided(box, gx, gy)
         shapeDraft.extend(ex, ey)
@@ -416,6 +416,34 @@ private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
  * pulled onto a pin. The commit uses the same reach as the live drag did (`snappedPoint`), or a wire
  * would settle somewhere other than where it was previewed on a zoomed-out page.
  */
+/**
+ * The page point a shape gesture's end is at: the pin magnet first and the paper ruling after it — the
+ * order [snappedPoint] applies, with the hold this drag needs.
+ *
+ * A smart pen's hand jitters by a point or two around the edge of the magnet's reach, and a stateless snap
+ * answered each sample on its own: the end flickered between a pin and the pointer, and the previewed wire
+ * trembled along with it. The draft's [com.mobixournal.render.EndsMagnet] gives the start and the end one
+ * hold each, so what was caught stays caught until the hand really leaves.
+ */
+private fun DrawingSurfaceView.snappedShapePoint(
+    box: PageBox,
+    x: Double,
+    y: Double,
+    start: Boolean,
+): Pair<Double, Double> {
+    val targets = shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) }
+        ?: return snappedPoint(box, x, y)
+    val grid: (Double, Double) -> Pair<Double, Double> = { gx, gy ->
+        if (snapToGrid) Snapping.lattice(box.page.background, box.page.width).snap(gx, gy) else gx to gy
+    }
+    val reach = CircuitSnapping.thresholdFor(box.scale)
+    return if (start) {
+        shapeDraft.magnet.snapStart(x, y, targets, reach, grid)
+    } else {
+        shapeDraft.magnet.snapEnd(x, y, targets, reach, grid)
+    }
+}
+
 private fun DrawingSurfaceView.magnetised(pts: List<StrokePoint>, shaping: Boolean): List<StrokePoint> {
     if (!shaping || shapeKind?.let(CircuitElementFactory::isConnectorKind) != true) return pts
     val page = pageAt(ink.currentPage) ?: return pts

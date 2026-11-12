@@ -261,19 +261,29 @@ class CircuitSnappingTest {
     }
 
     /**
-     * The reach has to stay big enough to aim at on screen: a fit-to-width page draws a point at well
-     * under a pixel, so a fixed 14pt reach left a target three pixels wide — which is why wiring a
-     * component felt like it worked only now and then.
+     * The reach is one **screen** distance at every zoom. A reach fixed in page points is what made the
+     * magnet greedy when zoomed in — 14 pt is 56 px at 400 % — and shy on a zoomed-out page, and it is the
+     * half of "the target area feels too wide" that the numbers can show.
      */
     @Test
-    fun theMagnetStaysAimableAtEveryZoom() {
-        assertEquals("at 100% the reach is the fingertip on screen", 22.0, CircuitSnapping.thresholdFor(1f), 1e-6)
-        assertEquals("zoomed in, the document-space reach takes over", 14.0, CircuitSnapping.thresholdFor(3f), 1e-6)
-        assertEquals("zoomed out, it grows to keep 22 screen px", 22.0 / 0.8, CircuitSnapping.thresholdFor(0.8f), 1e-6)
+    fun theMagnetKeepsOneReachOnScreenAtEveryZoom() {
+        assertEquals("at 100 % the reach is the fingertip on screen", 20.0, CircuitSnapping.thresholdFor(1f), 1e-6)
         assertEquals(
-            "but a heavily zoomed-out page never reaches across the sheet",
-            CircuitSnapping.MAX_SNAP_PT,
-            CircuitSnapping.thresholdFor(0.1f),
+            "zoomed in, the page-space reach shrinks so the screen one does not grow",
+            CircuitSnapping.SNAP_REACH_PX,
+            CircuitSnapping.thresholdFor(4f) * 4,
+            1e-6,
+        )
+        assertEquals(
+            "zoomed out, it grows in page points and stays put on screen",
+            CircuitSnapping.SNAP_REACH_PX,
+            CircuitSnapping.thresholdFor(0.5f) * 0.5,
+            1e-6,
+        )
+        assertEquals(
+            "and a far-out page does not reach across the sheet on screen either",
+            CircuitSnapping.SNAP_REACH_PX,
+            CircuitSnapping.thresholdFor(0.1f) * 0.1,
             1e-6,
         )
         // A page that is not laid out yet must not produce an infinite or zero reach.

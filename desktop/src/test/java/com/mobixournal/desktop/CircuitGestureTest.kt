@@ -99,6 +99,31 @@ class CircuitGestureTest {
         assertEquals("a press that never travelled is horizontal", 0.0, part!!.rotation, 1e-6)
     }
 
+    /**
+     * The wire's magnet **holds**: an end that caught a pin keeps it while the hand jitters on the edge of
+     * the reach, and only lets go past 1.5 × it — the same hold a dragged selection has.
+     */
+    @Test
+    fun `a drawn wire holds the pin it caught across the drag`() {
+        val page = pageWithResistor()
+        val magnet = com.mobixournal.render.EndsMagnet()
+        val wire = listOf(StrokePoint(161.0, 201.0, 1.0), StrokePoint(300.0, 300.0, 1.0))
+
+        val caught = snapWireEnds(ShapeKind.LINE, wire, page, scale = 1f, magnet = magnet)
+        assertEquals("p1 is caught", 160.0, caught.first().x, 1e-6)
+        assertEquals(200.0, caught.first().y, 1e-6)
+
+        // 28 pt off p1: outside the 20 pt reach, inside the 30 pt hold.
+        val jitter = listOf(StrokePoint(132.0, 200.0, 1.0), StrokePoint(300.0, 300.0, 1.0))
+        val held = snapWireEnds(ShapeKind.LINE, jitter, page, scale = 1f, magnet = magnet)
+        assertEquals("the end stays on the pin it caught", 160.0, held.first().x, 1e-6)
+
+        // 40 pt off: the hold lets go and the hand's own end is written.
+        val gone = listOf(StrokePoint(120.0, 200.0, 1.0), StrokePoint(300.0, 300.0, 1.0))
+        val free = snapWireEnds(ShapeKind.LINE, gone, page, scale = 1f, magnet = magnet)
+        assertEquals(120.0, free.first().x, 1e-6)
+    }
+
     @Test
     fun `a wire's ends are pulled onto the pins, and nothing else is`() {
         val page = pageWithResistor()
@@ -217,16 +242,23 @@ class SelectionMagnetTest {
     }
 }
 
-/** A tiny sanity check that the magnet's reach grows on a zoomed-out page, as the tablet's does. */
+/** The magnet's reach is one **screen** distance, whatever the zoom — the tablet's rule, shared. */
 class CircuitReachTest {
     @Test
-    fun `the magnet reaches further on screen when the page is zoomed out`() {
-        val zoomedIn = com.mobixournal.render.CircuitSnapping.thresholdFor(4f)
-        val zoomedOut = com.mobixournal.render.CircuitSnapping.thresholdFor(0.5f)
-        assertTrue("a fit page's targets stay hittable", zoomedOut > zoomedIn)
-        assertTrue(
-            "but never across a visible fraction of the sheet",
-            zoomedOut <= com.mobixournal.render.CircuitSnapping.MAX_SNAP_PT,
+    fun `the magnet keeps one reach on screen at any zoom`() {
+        val zoomedIn = com.mobixournal.render.CircuitSnapping.thresholdFor(4f) * 4
+        val zoomedOut = com.mobixournal.render.CircuitSnapping.thresholdFor(0.5f) * 0.5
+        assertEquals(
+            "zoomed in, the reach is still the same number of pixels",
+            com.mobixournal.render.CircuitSnapping.SNAP_REACH_PX,
+            zoomedIn.toDouble(),
+            1e-3,
+        )
+        assertEquals(
+            "zoomed out too: page points change, screen pixels do not",
+            com.mobixournal.render.CircuitSnapping.SNAP_REACH_PX,
+            zoomedOut.toDouble(),
+            1e-3,
         )
     }
 }

@@ -70,6 +70,7 @@ internal fun DrawScope.paintSheetOf(
         guide = tab.guide?.takeIf { it.page == tab.page },
         guideAim = pointer.guideAim.value?.takeIf { it.pose.page == tab.page },
         selection = tab.selection,
+        magnetTargets = tab.magnetTargets,
         previewRegion = pointer.previewRegion.value,
         previewLiving = pointer.previewLiving.value,
         pdfBands = pointer.pdfBands.value,

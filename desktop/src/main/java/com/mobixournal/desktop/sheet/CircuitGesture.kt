@@ -13,6 +13,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.CircuitSnapping
+import com.mobixournal.render.EndsMagnet
 import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.ShapeKind
 
@@ -53,14 +54,15 @@ internal fun circuitSpan(
     endX: Double,
     endY: Double,
     scale: Float,
+    /** The live drag's hold, one per end; null judges each frame on its own (a test, a click). */
+    magnet: EndsMagnet? = null,
 ): CircuitSpan {
     val targets = CircuitSnapping.gestureTargets(kind, page).orEmpty()
-    val (sx, sy) = CircuitSnapping.snapPoint(
-        page, startX, startY, snapToGrid = false, magnetic = true, scale = scale, targets = targets,
-    )
-    val (ex, ey) = CircuitSnapping.snapPoint(
-        page, endX, endY, snapToGrid = false, magnetic = true, scale = scale, targets = targets,
-    )
+    val reach = CircuitSnapping.thresholdFor(scale)
+    val (sx, sy) = magnet?.snapStart(startX, startY, targets, reach)
+        ?: CircuitSnapping.snapPoint(page, startX, startY, false, true, scale, targets)
+    val (ex, ey) = magnet?.snapEnd(endX, endY, targets, reach)
+        ?: CircuitSnapping.snapPoint(page, endX, endY, false, true, scale, targets)
     return CircuitSpan(sx, sy, ex, ey)
 }
 
@@ -125,6 +127,8 @@ internal suspend fun AwaitPointerEventScope.circuitDrag(
     start: PointerInputChange,
     kind: ShapeKind,
     page: Page,
+    /** The tab whose sheet paints the pin the drag has caught. */
+    tab: DesktopTab,
     ink: DesktopInk,
     view: DragView,
     previewLiving: MutableState<Element?>?,
@@ -142,14 +146,22 @@ internal suspend fun AwaitPointerEventScope.circuitDrag(
     }
     onLiveDrag(cancel)
 
+    // One hold per end, for the whole drag: the part does not flicker between a pin and the hand while the
+    // pen rests on the edge of the reach.
+    val magnet = EndsMagnet()
+
     /** The span from the press to the pointer at ([px], [py]), magnet and preview in one place. */
     fun spanAt(px: Float, py: Float): CircuitSpan {
         val (x1, y1) = pagePointOf(px, py, density, view.current())
-        return circuitSpan(kind, page, x0, y0, x1, y1, view.current().zoom * density)
+        return circuitSpan(kind, page, x0, y0, x1, y1, view.current().zoom * density, magnet)
     }
 
     fun preview(px: Float, py: Float) {
-        previewLiving?.value = circuitPreview(kind, spanAt(px, py), ink)
+        val span = spanAt(px, py)
+        // The pins the two ends have caught, lit while the hand is still down: the part lands on a pin the
+        // user has already seen, not on one that only appears at the lift.
+        tab.magnetTargets = magnet.caught.filterNotNull()
+        previewLiving?.value = circuitPreview(kind, span, ink)
     }
 
     // The preview begins only once the hand pulls the part out, avoiding any natural-size flash on down.
@@ -172,6 +184,7 @@ internal suspend fun AwaitPointerEventScope.circuitDrag(
     } finally {
         view.endDrag()
         previewLiving?.value = null
+        tab.magnetTargets = emptyList()
         onLiveDrag(null)
     }
 }
@@ -198,6 +211,7 @@ internal suspend fun AwaitPointerEventScope.circuitPress(
         start = start,
         kind = targets.circuitKind,
         page = page,
+        tab = tab,
         ink = ink,
         view = view,
         previewLiving = targets.livingPreview,
@@ -223,11 +237,17 @@ internal fun snapWireEnds(
     points: List<com.mobixournal.format.model.StrokePoint>,
     page: Page?,
     scale: Float,
+    /** The live drag's hold, one per end; null judges the stroke once (the lift, a test). */
+    magnet: EndsMagnet? = null,
 ): List<com.mobixournal.format.model.StrokePoint> {
     if (page == null || points.size < 2 || !CircuitElementFactory.isConnectorKind(kind)) return points
-    return CircuitSnapping.snapStrokeEndpoints(
-        points,
-        CircuitSnapping.collectAllTargets(page),
-        thresholdPt = CircuitSnapping.thresholdFor(scale),
-    )
+    val reach = CircuitSnapping.thresholdFor(scale)
+    val targets = CircuitSnapping.collectAllTargets(page)
+    if (magnet == null) return CircuitSnapping.snapStrokeEndpoints(points, targets, thresholdPt = reach)
+    val (sx, sy) = magnet.snapStart(points.first().x, points.first().y, targets, reach)
+    val (ex, ey) = magnet.snapEnd(points.last().x, points.last().y, targets, reach)
+    val out = points.toMutableList()
+    out[0] = points.first().copy(x = sx, y = sy)
+    out[out.lastIndex] = points.last().copy(x = ex, y = ey)
+    return out
 }

@@ -29,6 +29,12 @@ internal class ShapeDraft {
     var active = false
         private set
 
+    /**
+     * The pin hold of this gesture, one per end (`EndsMagnet`): a wire being drawn and a part being placed
+     * keep what they caught across frames instead of re-deciding on every sample. Reset by [begin].
+     */
+    val magnet = EndsMagnet()
+
     /** The drag's anchor, in page-local pt: where the first touch landed, after the grid and guide snaps. */
     var startX = 0.0
         private set
@@ -54,6 +60,7 @@ internal class ShapeDraft {
      */
     fun begin(shape: Boolean) {
         active = shape
+        magnet.reset()
     }
 
     /** Anchor the draft at [x], [y] and pin its width; the end starts on the anchor, so a tap draws nothing. */

@@ -505,6 +505,7 @@ internal fun DrawScope.paintSheet(
     guideAim: GuideAim? = null,
     /** The live selection of the page being drawn, if any. */
     selection: PageSelection? = null,
+    magnetTargets: List<com.mobixournal.render.CircuitSnapping.PinTarget> = emptyList(),
     /** The region a selection drag is tracing right now, if any. */
     previewRegion: SelectionRegion? = null,
     /** The living element a placement drag is drawing right now, if any — a component being pulled out. */
@@ -546,6 +547,7 @@ internal fun DrawScope.paintSheet(
             previewLiving = previewLiving,
             pdfBands = pdfBands,
             selection = selection,
+            magnetTargets = magnetTargets,
             previewRegion = previewRegion,
             grabLineY = grabLineY,
             guide = guide,
