@@ -12,7 +12,6 @@ import com.mobixournal.desktop.ink.strokeOf
 import com.mobixournal.desktop.io.drawPdfPreviewBands
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.tools.DesktopTool
-import com.mobixournal.desktop.tools.selectionConnectorKind
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -118,9 +117,11 @@ internal fun DrawScope.paintLiveOverlay(
     } else {
         emptySet()
     }
+    // The kind is the **caller's** answer, because it is the caller that knows whether a gesture is live: a
+    // selection merely resting on the page marks nothing, exactly as on the tablet.
     drawConnectionPins(
         page = page,
-        markedKind = connectorKind ?: selectionConnectorKind(page, selection),
+        markedKind = connectorKind,
         previewLiving = previewLiving,
         pxPerPt = pxPerPt,
         actorRefs = actorRefs,
@@ -287,8 +288,10 @@ private fun DrawScope.drawFigureDraftPins(
     pxPerPt: Float,
 ) {
     val kind = tool.shapeKind() ?: return
-    if (FigurePins.familyOf(kind) != PinFamily.FIGURE) return
-    // A figure's pins are worth showing only when the page holds a connector that could attach to them.
+    // A component's in-flight pins come from its own preview (`drawConnectionPins`), not from the draft.
+    if (FigurePins.familyOf(kind) == PinFamily.CIRCUIT) return
+    // The marks are worth showing only when the page holds something the drawing could join — the same rule
+    // the tablet applies (`FigurePins.hasCompany`): on a page with no company the draft is bare.
     if (!FigurePins.hasCompany(page, kind)) return
     val dot = PIN_PENDING_PX / pxPerPt
     for (draft in drafts) {
