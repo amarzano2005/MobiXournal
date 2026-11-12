@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -176,6 +177,31 @@ object SelectionEdit {
             SelectionOps.affineXY(it, sx, sy, dx, dy, scaleWidth = false)
         }
         return scaled to selection.copy(region = selection.region.scale(sx, sy, anchorX, anchorY))
+    }
+
+    /**
+     * A **free** resize of a line or an arrow: the dragged end goes where the pointer is and the far end
+     * stays, so the shaft changes length **and** inclination in one gesture (`SelectionShaft`).
+     *
+     * One similarity — a uniform scale and a turn about the same anchor, which commute — keeps the drawing's
+     * shape and leaves every stroke point's width and telemetry as they were: the pen's width is the one
+     * thing the drag must not change.
+     */
+    fun similarity(
+        page: Page,
+        selection: PageSelection,
+        factor: Double,
+        radians: Double,
+        anchorX: Double,
+        anchorY: Double,
+    ): Pair<Page, PageSelection> {
+        if (selection.isEmpty || (factor == 1.0 && radians == 0.0)) return page to selection
+        val moved = SelectionOps.similarity(
+            listOf(page), 0, selection.refs, factor, radians, anchorX, anchorY,
+        ).first()
+        val region = selection.region.scale(factor, factor, anchorX, anchorY)
+            .rotate(radians, anchorX, anchorY)
+        return moved to selection.copy(region = region)
     }
 
     /** A turn of the rotate handle, about the selection's own centre. */

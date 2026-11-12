@@ -65,11 +65,24 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
         canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
     }
-    // Rotate knob poking out midway from the right edge (strokes only).
+    // Rotate knob (strokes only): midway from the right edge, or — for a line or an arrow, which has no box
+    // — hung off the middle of its own ink, so the arm starts **on** the shaft and the turn never floats.
     if (gestures.isAllStrokes(sel)) {
-        val knobX = r + DrawingSurfaceDefaults.ROTATE_ARM_PX
-        canvas.drawLine(r, midY, knobX, midY, chrome.handleArm)
-        canvas.drawCircle(knobX, midY, HANDLE_DRAW_PX, chrome.handle)
+        val turn = shaft?.let {
+            shaftTurn(it, (DrawingSurfaceDefaults.ROTATE_ARM_PX / box.scale).toDouble())
+        }
+        if (turn != null) {
+            val pivotX = box.toViewX(turn.pivotX, viewport.scrollX)
+            val pivotY = box.toViewY(turn.pivotY, viewport.scrollY)
+            val knobX = box.toViewX(turn.ringX, viewport.scrollX)
+            val knobY = box.toViewY(turn.ringY, viewport.scrollY)
+            canvas.drawLine(pivotX, pivotY, knobX, knobY, chrome.handleArm)
+            canvas.drawCircle(knobX, knobY, HANDLE_DRAW_PX, chrome.handle)
+        } else {
+            val knobX = r + DrawingSurfaceDefaults.ROTATE_ARM_PX
+            canvas.drawLine(r, midY, knobX, midY, chrome.handleArm)
+            canvas.drawCircle(knobX, midY, HANDLE_DRAW_PX, chrome.handle)
+        }
     }
     // A single selected shape: a dot on each corner, the handles the vertex drag grabs.
     drawShapeVertexHandles(canvas, box)

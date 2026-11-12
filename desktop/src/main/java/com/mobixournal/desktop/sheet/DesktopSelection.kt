@@ -7,6 +7,7 @@ import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.SelectionShaft
+import com.mobixournal.render.shaftTurn
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
@@ -141,14 +142,14 @@ fun selectionHandleAt(
 ): SelectionHandle {
     val box = selection.bounds
     val (reachX, reachY) = handleReach(box, tolPt)
-    if (includeRotate) {
-        val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
-        if (near(x, y, rotateX, rotateY, reachX, reachY)) return SelectionHandle.ROTATE
-    }
     // A line and an arrow are **not** figures: their shaft is the only thing a drag may change, so they
-    // wear two end handles and no corner or side — a diagonal line's box is a figure's box, and offering
-    // it eight handles is what turned a length into a two-axis stretch.
+    // wear two end grips and a turn ring hung on the ink itself (`shaftTurn`) — no corners, no sides, and
+    // no box, because a rectangle round a shaft promises eight handles the ink does not have.
     if (shaft != null) {
+        if (includeRotate) {
+            val turn = shaftTurn(shaft, rotateGapPt)
+            if (near(x, y, turn.ringX, turn.ringY, tolPt, tolPt)) return SelectionHandle.ROTATE
+        }
         if (near(x, y, shaft.tailX, shaft.tailY, tolPt, tolPt)) return SelectionHandle.SHAFT_TAIL
         if (near(x, y, shaft.tipX, shaft.tipY, tolPt, tolPt)) return SelectionHandle.SHAFT_TIP
         if (selection.region.inside(x, y)) return SelectionHandle.BODY
@@ -159,6 +160,10 @@ fun selectionHandleAt(
             return SelectionHandle.BODY
         }
         return SelectionHandle.NONE
+    }
+    if (includeRotate) {
+        val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
+        if (near(x, y, rotateX, rotateY, reachX, reachY)) return SelectionHandle.ROTATE
     }
     if (!box.isFlatX && !box.isFlatY) {
         val corners = listOf(

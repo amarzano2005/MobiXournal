@@ -1,6 +1,9 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
@@ -51,6 +54,58 @@ class SelectionShaftTest {
         val box = stroke(100.0 to 100.0, 200.0 to 100.0, 200.0 to 200.0, 100.0 to 200.0, 100.0 to 100.0)
         assertNull("a closed figure has no single axis", shaftOf(box))
         assertNull("nothing selected", shaftOf(null))
+    }
+
+    @Test
+    fun `a drag along the shaft only lengthens it`() {
+        // Grabbed the tip 200 pt from the tail and pulled it to 400: twice as long, same direction.
+        val drag = shaftDrag(300.0, 100.0, 500.0, 100.0, 100.0, 100.0)
+        assertEquals(2.0, drag.factor, 1e-9)
+        assertEquals(0.0, drag.angle, 1e-9)
+    }
+
+    @Test
+    fun `a drag across the shaft re-aims it and keeps its length`() {
+        // Grabbed the tip 100 pt right of the tail and pulled to 100 pt below it: a quarter turn.
+        val drag = shaftDrag(200.0, 100.0, 100.0, 200.0, 100.0, 100.0)
+        assertEquals(1.0, drag.factor, 1e-9)
+        assertEquals(kotlin.math.PI / 2, drag.angle, 1e-9)
+    }
+
+    @Test
+    fun `the turn ring hangs off the middle of the ink, on the upper side`() {
+        val turn = shaftTurn(SelectionShaft(100.0, 300.0, 300.0, 300.0), gapPt = 20.0)
+        assertEquals("the pivot is the shaft's middle", 200.0, turn.pivotX, 1e-9)
+        assertEquals(300.0, turn.pivotY, 1e-9)
+        assertEquals("a horizontal line's ring sits above it", 200.0, turn.ringX, 1e-9)
+        assertEquals(280.0, turn.ringY, 1e-9)
+    }
+
+    @Test
+    fun `a free drag maps the grabbed end onto the pointer and leaves the pen's width`() {
+        val arrow = stroke(
+            100.0 to 100.0, 300.0 to 100.0, 280.0 to 88.0, 300.0 to 100.0, 280.0 to 112.0,
+        )
+        val page = Page(
+            width = 595.0,
+            height = 842.0,
+            background = Background.Solid(-1, "plain"),
+            layers = listOf(Layer(listOf(arrow))),
+        )
+        val selection = PageSelection(
+            SelectionRegion.Rect(ElementBounds.of(arrow)),
+            setOf(ElementRef(0, 0)),
+        )
+        val drag = shaftDrag(300.0, 100.0, 300.0, 200.0, 100.0, 100.0)
+        val (edited, _) = SelectionEdit.similarity(
+            page, selection, drag.factor, drag.angle, 100.0, 100.0,
+        )
+        val out = edited.layers[0].elements[0] as Stroke
+        assertEquals("the tail is the anchor", 100.0, out.points[0].x, 1e-6)
+        assertEquals(100.0, out.points[0].y, 1e-6)
+        assertEquals("the tip follows the pointer", 300.0, out.points[1].x, 1e-6)
+        assertEquals(200.0, out.points[1].y, 1e-6)
+        assertEquals("the pen's width is untouched", 1.0, out.points[1].width, 1e-9)
     }
 
     @Test

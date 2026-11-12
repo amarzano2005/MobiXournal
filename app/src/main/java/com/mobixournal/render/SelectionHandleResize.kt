@@ -127,7 +127,41 @@ internal fun shaftResizeStart(
     val startPtX = box.toPtX(event.x, viewport.scrollX)
     val startPtY = box.toPtY(event.y, viewport.scrollY)
     val dist = hypot(startPtX - anchor.first, startPtY - anchor.second).coerceAtLeast(1e-3)
-    return ResizeStart(ResizeAxis.BOTH, anchor.first, anchor.second, startPtX, startPtY, dist)
+    return ResizeStart(ResizeAxis.SHAFT, anchor.first, anchor.second, startPtX, startPtY, dist)
+}
+
+/** A turn knob the press caught: the pivot a turn uses and where the knob sits, in view px. */
+internal data class TurnKnob(val pivotX: Double, val pivotY: Double, val knobX: Float, val knobY: Float)
+
+/**
+ * The **turn knob** of a stroke selection, or null when ([event]) missed it.
+ *
+ * A figure's knob sits a gap past its box's right edge, midway up; a line's and an arrow's sits a gap off the
+ * **middle of its own ink**, out along the shaft's normal (`shaftTurn`) — a box would float it over empty
+ * paper, and these two families have no box to hang it on.
+ */
+internal fun turnKnob(
+    event: MotionEvent,
+    b: Bounds,
+    box: PageBox,
+    viewport: ViewportState,
+    shaft: SelectionShaft?,
+): TurnKnob? {
+    val turn = shaft?.let {
+        shaftTurn(it, (DrawingSurfaceDefaults.ROTATE_ARM_PX / box.scale).toDouble())
+    }
+    val knobX = turn?.let { box.toViewX(it.ringX, viewport.scrollX) }
+        ?: ((b.right * box.scale + box.leftPx - viewport.scrollX).toFloat() +
+            DrawingSurfaceDefaults.SELECT_PAD_PX + DrawingSurfaceDefaults.ROTATE_ARM_PX)
+    val knobY = turn?.let { box.toViewY(it.ringY, viewport.scrollY) }
+        ?: ((b.top + b.bottom) / 2 * box.scale + box.topPx - viewport.scrollY).toFloat()
+    if (hypot(event.x - knobX, event.y - knobY) > DrawingSurfaceDefaults.HANDLE_HIT_PX) return null
+    return TurnKnob(
+        pivotX = turn?.pivotX ?: (b.left + b.right) / 2,
+        pivotY = turn?.pivotY ?: (b.top + b.bottom) / 2,
+        knobX = knobX,
+        knobY = knobY,
+    )
 }
 
 /**

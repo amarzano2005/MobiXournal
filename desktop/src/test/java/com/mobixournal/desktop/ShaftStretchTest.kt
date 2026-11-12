@@ -59,10 +59,25 @@ class ShaftStretchTest {
         val stroke = edited(SelectionHandle.SHAFT_TIP, x0 = 300.0, x1 = 500.0)
         assertEquals("the tail is the anchor", 100.0, stroke.points[0].x, 1e-6)
         assertEquals("the tip follows the pointer", 500.0, stroke.points[1].x, 1e-6)
-        // The head is re-emitted at the size it was drawn with (`FigureRedraw`): 20 pt back, 12 pt across.
-        assertEquals("the head keeps its own size", 480.0, stroke.points[2].x, 1e-6)
-        assertEquals("the barbs keep their own reach", 88.0, stroke.points.minOf { it.y }, 1e-6)
-        assertEquals(112.0, stroke.points.maxOf { it.y }, 1e-6)
+        // One similarity: the head keeps the arrow's shape, scaled with the shaft (20 pt back, 12 across).
+        assertEquals("the head keeps its proportion", 460.0, stroke.points[2].x, 1e-6)
+        assertEquals("and its reach across the shaft", 76.0, stroke.points.minOf { it.y }, 1e-6)
+        assertEquals(124.0, stroke.points.maxOf { it.y }, 1e-6)
+    }
+
+    @Test
+    fun `a drag across the shaft re-aims it and keeps its length`() {
+        // Grabbed the tip, dragged straight down: the arrow swings a quarter turn about its tail and the tip
+        // lands on the pointer, which is the free inclination the grips are for.
+        val (edited, _) = shaftStretch(
+            page, selection, SelectionHandle.SHAFT_TIP,
+            x0 = 300.0, y0 = 100.0, x1 = 300.0, y1 = 200.0,
+        )
+        val stroke = edited.layers[0].elements[0] as Stroke
+        assertEquals("the tail stays", 100.0, stroke.points[0].x, 1e-6)
+        assertEquals(100.0, stroke.points[0].y, 1e-6)
+        assertEquals("the tip goes where the pointer is", 300.0, stroke.points[1].x, 1e-6)
+        assertEquals(200.0, stroke.points[1].y, 1e-6)
     }
 
     @Test

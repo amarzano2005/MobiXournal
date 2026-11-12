@@ -107,7 +107,8 @@ element wholly inside it; a **press inside the live outline** acts on the select
 new one — the body moves it, a **corner handle** scales it about the opposite corner, and the **handle above
 it** turns it about its centre (`Shift` snaps the turn to 15°). A **line** and an **arrow** wear no outline at all: two
 squares on the ink's own ends and the turn ring are their whole selection, and dragging either square
-lengthens the drawing — a diagonal line like a horizontal one, and neither grows thicker; a press on the band above or below the ink
+lengthens or re-aims it, the grabbed end following the pointer and the far end staying — a free resize with the
+pen's width locked, its ring hanging off the shaft's middle instead of floating over the box; a press on the band above or below the ink
 carries it. Both paths recompute from the page **as it
 was at grab time**, so dragging back and forth cannot compound, and one drag is one edit and **one undo
 step**. `Delete` (or `Backspace`) removes what is caught, also as one step; `Esc` drops the outline before it

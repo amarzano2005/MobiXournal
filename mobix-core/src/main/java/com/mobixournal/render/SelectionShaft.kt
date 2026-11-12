@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Stroke
+import kotlin.math.atan2
 import kotlin.math.hypot
 
 /**
@@ -30,6 +31,61 @@ data class SelectionShaft(
      */
     fun factorAt(x: Double, y: Double, anchorX: Double, anchorY: Double, startDist: Double): Double =
         hypot(x - anchorX, y - anchorY) / startDist.coerceAtLeast(1e-3)
+}
+
+/**
+ * A free drag of a shaft's end: a new length **and** a new direction, both read from the pointer.
+ *
+ * [factor] scales the shaft about the anchored end and [angle] turns it, which is one similarity transform —
+ * see `SelectionEdit.similarity`. Neither changes the pen's width.
+ */
+data class ShaftDrag(val factor: Double, val angle: Double)
+
+/**
+ * The drag a pointer at ([x], [y]) describes while ([anchorX], [anchorY]) stays still, given where the
+ * pointer grabbed the end ([grabX], [grabY]).
+ *
+ * The grabbed end follows the hand **wherever it goes**, so a drag across the shaft re-aims it and a drag
+ * along it lengthens it: the two freedoms a line or an arrow has, in one grip.
+ */
+fun shaftDrag(
+    grabX: Double,
+    grabY: Double,
+    x: Double,
+    y: Double,
+    anchorX: Double,
+    anchorY: Double,
+): ShaftDrag {
+    val grabDx = grabX - anchorX
+    val grabDy = grabY - anchorY
+    val start = hypot(grabDx, grabDy).coerceAtLeast(1e-3)
+    val dx = x - anchorX
+    val dy = y - anchorY
+    return ShaftDrag(
+        factor = hypot(dx, dy) / start,
+        angle = atan2(grabDx * dy - grabDy * dx, grabDx * dx + grabDy * dy),
+    )
+}
+
+/**
+ * A shaft's **turn control**: its middle is the pivot, and the ring sits [gapPt] out from it on the side that
+ * is upward on the page.
+ *
+ * A line and an arrow have no box for a ring to float above, so the ring is measured from the ink itself —
+ * the stem starts on the shaft and the knob is a stem's length away, whichever way the shaft points.
+ */
+data class ShaftTurn(val pivotX: Double, val pivotY: Double, val ringX: Double, val ringY: Double)
+
+/** Where a shaft's turn ring sits — see [ShaftTurn]. */
+fun shaftTurn(shaft: SelectionShaft, gapPt: Double): ShaftTurn {
+    val pivotX = (shaft.tailX + shaft.tipX) / 2
+    val pivotY = (shaft.tailY + shaft.tipY) / 2
+    val length = shaft.length.coerceAtLeast(1e-6)
+    val normalX = -(shaft.tipY - shaft.tailY) / length
+    val normalY = (shaft.tipX - shaft.tailX) / length
+    // The page's y grows downward, so a normal with a positive y points **down**: flip it to sit above.
+    val side = if (normalY <= 0.0) 1.0 else -1.0
+    return ShaftTurn(pivotX, pivotY, pivotX + normalX * gapPt * side, pivotY + normalY * gapPt * side)
 }
 
 /**

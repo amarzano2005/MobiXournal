@@ -23,6 +23,12 @@ enum class ResizeAxis {
 
     /** Vertical only: an element's height changes, its width does not. */
     Y,
+
+    /**
+     * A **shaft**'s free resize: the dragged end follows the pointer, so the length and the inclination
+     * change together about the end that stays. The pen's width is untouched (`SelectionEdit.similarity`).
+     */
+    SHAFT,
 }
 
 /**

@@ -17,7 +17,9 @@ import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.anchorOf
 import com.mobixournal.desktop.sheet.cornerLocksAspect
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.desktop.sheet.ROTATE_HANDLE_GAP_PT
 import com.mobixournal.render.SelectionShaft
+import com.mobixournal.render.shaftTurn
 import com.mobixournal.desktop.sheet.finishedSelection
 import com.mobixournal.desktop.sheet.rotationBetween
 import com.mobixournal.desktop.sheet.scaleFactors
@@ -505,10 +507,12 @@ class DesktopSelectionTest {
             SelectionHandle.BODY,
             selectionHandleAt(line, 200.0, 100.0, tolPt = 4.0, shaft = shaft),
         )
-        // The turn is still offered: rotating a line does not stretch it.
+        // The turn is still offered, and its ring hangs off the **middle of the ink**: rotating a line does not
+        // stretch it.
+        val turn = shaftTurn(shaft, ROTATE_HANDLE_GAP_PT)
         assertEquals(
             SelectionHandle.ROTATE,
-            selectionHandleAt(line, 150.0, 100.0 - 26.0, tolPt = 4.0, shaft = shaft),
+            selectionHandleAt(line, turn.ringX, turn.ringY, tolPt = 4.0, shaft = shaft),
         )
     }
 

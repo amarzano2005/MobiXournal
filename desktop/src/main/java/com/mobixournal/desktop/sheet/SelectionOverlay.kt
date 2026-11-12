@@ -17,6 +17,7 @@ import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.SelectionShaft
 import com.mobixournal.render.shaftOf
+import com.mobixournal.render.shaftTurn
 
 /**
  * The selection drawn **over the page**, in the window's own chrome ink — no material of its own.
@@ -143,10 +144,19 @@ private fun DrawScope.drawHandles(
             square(edge)
         }
     }
-    if (!isImage) {
+    // The gap is a screen distance turned into page points, so the ring clears the ink at every zoom.
+    val gapPt = (ROTATE_GAP_PX / pxPerPt).toDouble()
+    val turn = shaft?.let { shaftTurn(it, gapPt) }
+    if (turn != null) {
+        // A shaft's ring is **on** the ink: the stem starts at its middle and the knob is a gap away, so the
+        // turn never floats in empty paper the way a box's handle would.
+        val ring = off(turn.ringX, turn.ringY)
+        drawLine(DesktopTheme.accent, off(turn.pivotX, turn.pivotY), ring, strokeWidth = 1f)
+        drawCircle(color = DesktopTheme.accent, radius = HANDLE_SIZE * 0.55f, center = ring)
+        drawCircle(color = Color.Black.copy(alpha = 0.35f), radius = HANDLE_SIZE * 0.28f, center = ring)
+    } else if (!isImage) {
         // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.
-        // The gap is a screen distance turned into page points, so the ring clears the outline at every zoom.
-        val (rotateX, rotateY) = rotateHandleOf(box, gapPt = (ROTATE_GAP_PX / pxPerPt).toDouble())
+        val (rotateX, rotateY) = rotateHandleOf(box, gapPt)
         val rotate = off(rotateX, rotateY)
         val topMiddle = off((box.left + box.right) / 2.0, box.top)
         drawLine(DesktopTheme.accent, topMiddle, rotate, strokeWidth = 1f)

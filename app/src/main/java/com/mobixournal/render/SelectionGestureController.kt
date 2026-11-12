@@ -236,13 +236,11 @@ internal class SelectionGestureController(
         // A selected line or arrow: its two ends are its only handles, and they are asked first.
         if (beginShaftResize(event, box)) return true
 
-        // Rotate knob poking out midway from the right edge, offered only when every element is a stroke.
+        // Rotate knob, offered only when every element is a stroke (`turnKnob` places it).
         if (isAllStrokes(sel)) {
-            val midY = ((b.top + b.bottom) / 2 * box.scale + box.topPx - viewport.scrollY).toFloat()
-            val rightX = (b.right * box.scale + box.leftPx - viewport.scrollX).toFloat() +
-                DrawingSurfaceDefaults.SELECT_PAD_PX + DrawingSurfaceDefaults.ROTATE_ARM_PX
-            if (hypot(event.x - rightX, event.y - midY) <= DrawingSurfaceDefaults.HANDLE_HIT_PX) {
-                beginRotate(event, box, (b.left + b.right) / 2, (b.top + b.bottom) / 2)
+            val knob = turnKnob(event, b, box, viewport, shaftOfSelection(sel))
+            if (knob != null) {
+                beginRotate(event, box, knob.pivotX, knob.pivotY)
                 return true
             }
         }
@@ -530,8 +528,28 @@ internal class SelectionGestureController(
      * the gesture-start snapshot each frame, so a long drag accumulates no rounding drift.
      */
     fun resizeSelect(event: MotionEvent) = transform { sel, start, box ->
-        val (sx, sy) = resizeFactors(box, event)
-        SelectionOps.scaleXY(start.pages, sel.pageIndex, sel.refs, sx, sy, resizeAnchorX, resizeAnchorY)
+        if (resizeAxis == ResizeAxis.SHAFT) {
+            // A line's or an arrow's end follows the pointer: a new length **and** a new inclination in one
+            // grip, with the far end still and the pen's width untouched (`SelectionEdit.similarity`).
+            val drag = shaftDrag(
+                resizeStartPtX,
+                resizeStartPtY,
+                box.toPtX(event.x, viewport.scrollX),
+                box.toPtY(event.y, viewport.scrollY),
+                resizeAnchorX,
+                resizeAnchorY,
+            )
+            val factor = drag.factor.coerceIn(
+                DrawingSurfaceDefaults.MIN_RESIZE,
+                DrawingSurfaceDefaults.MAX_RESIZE,
+            )
+            SelectionOps.similarity(
+                start.pages, sel.pageIndex, sel.refs, factor, drag.angle, resizeAnchorX, resizeAnchorY,
+            )
+        } else {
+            val (sx, sy) = resizeFactors(box, event)
+            SelectionOps.scaleXY(start.pages, sel.pageIndex, sel.refs, sx, sy, resizeAnchorX, resizeAnchorY)
+        }
     }
 
     /** The live per-axis factors for a pointer position: see [ResizeAxis] and [axisScaleFactor]. */
@@ -546,6 +564,8 @@ internal class SelectionGestureController(
             }
             ResizeAxis.FREE -> axisScaleFactor(resizeStartPtX, x, resizeAnchorX) to
                 axisScaleFactor(resizeStartPtY, y, resizeAnchorY)
+            // A shaft's drag is a similarity, not two factors: `resizeSelect` reads it from `shaftDrag`.
+            ResizeAxis.SHAFT -> 1.0 to 1.0
             ResizeAxis.X -> axisScaleFactor(resizeStartPtX, x, resizeAnchorX) to 1.0
             ResizeAxis.Y -> 1.0 to axisScaleFactor(resizeStartPtY, y, resizeAnchorY)
         }

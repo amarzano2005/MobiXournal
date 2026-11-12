@@ -238,6 +238,39 @@ object SelectionOps {
     }
 
     /**
+     * Return [pages] with the **strokes** at [refs] on page [pageIndex] moved like a rigid arm about
+     * ([anchorX], [anchorY]): scaled by [factor] **and** turned by [angle] rad.
+     *
+     * This is the one transform a **line or an arrow** has (`SelectionShaft`): dragging either of its ends
+     * sets a new length and a new inclination at once, and the pen's width is the one thing it must not
+     * change — every stroke point keeps its width, pressure and tilt.
+     * @param pages Document page list.
+     * @param pageIndex Index of page to modify (0-based).
+     * @param refs Set of element references to transform.
+     * @param factor Uniform scale factor (1.0 = no change).
+     * @param angle Turn in radians about the anchor (0.0 = no change).
+     * @param anchorX Anchor X in points (fixed point of the transform).
+     * @param anchorY Anchor Y in points.
+     * @return New page list with the transformed strokes, or [pages] if no change.
+     */
+    fun similarity(
+        pages: List<Page>, pageIndex: Int, refs: Set<ElementRef>,
+        factor: Double, angle: Double, anchorX: Double, anchorY: Double,
+    ): List<Page> {
+        if (refs.isEmpty() || (factor == 1.0 && angle == 0.0)) return pages
+        val c = cos(angle)
+        val s = sin(angle)
+        return mapPage(pages, pageIndex) { li, ei, el ->
+            val stroke = if (ElementRef(li, ei) in refs) el as? Stroke else null
+            stroke?.copy(points = stroke.points.map { p ->
+                val rx = (p.x - anchorX) * factor
+                val ry = (p.y - anchorY) * factor
+                p.copy(x = anchorX + rx * c - ry * s, y = anchorY + rx * s + ry * c)
+            }) ?: el
+        }
+    }
+
+    /**
      * Rotate a single element by [angle] rad about the pivot (`px`, `py`) pt. See the class note:
      * only a [Stroke] carries a rotatable point list, so text/images are returned unchanged.
      * @param element Element to rotate.

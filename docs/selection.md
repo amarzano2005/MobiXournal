@@ -92,14 +92,16 @@ its proportions are the figure's to change — while a **picture**'s and a **mix
 because its model carries no rotation. Both shells cap a handle's reach **per axis**, at a third of that axis's own
 extent, so a small element keeps a middle to be moved by.
 
-A **line** and an **arrow** are not figures with a box to stretch: they are a **shaft** with one degree of
-freedom, its length (`SelectionShaft`, answered by `shaftOf`). Neither shell draws a box round one — a
-rectangle would promise eight handles the ink does not have — and both wear their two handles on the
-shaft's own ends — the line's two ends, the arrow's tail and the tip of its head — wherever the bounding box's
-corners fall, so a diagonal line or any arrow is lengthened rather than widened: the dragged end follows the
-pointer, the far end stays, and the factor is uniform, which keeps the shaft's direction and the glyph's shape
-(a longer arrow is the same arrow, drawn longer, and a line keeps the width of its pen). A **flat** box keeps
-the same two handles, which is why a horizontal line behaves as it always did. A drag on the
+A **line** and an **arrow** are not figures with a box to stretch: they are a **shaft**, with the two freedoms
+one grip can read — its length and its inclination (`SelectionShaft`, answered by `shaftOf`). Neither shell
+draws a box round one — a rectangle would promise eight handles the ink does not have — and both wear their
+two grips on the shaft's own ends: the line's two ends, the arrow's tail and the tip of its head. Dragging one
+takes that end to the pointer and leaves the far one still, which is a **free** resize with the width locked:
+one similarity transform (`SelectionEdit.similarity`, a uniform scale and a turn about the same anchor), so the
+drawing keeps its shape and the width of its pen while it gets longer, shorter or re-aimed. The turn ring is
+attached to the ink rather than floating: it hangs a gap's length off the shaft's middle, on the side that is
+upward on the page (`shaftTurn`). A **flat** box keeps the same two grips, which is why a horizontal line
+behaves as it always did. A drag on the
 band above or below such a box carries it, which is where the dead edge handle used to be. A resize stretches **geometry, not ink**: stroke widths are
 carried through untouched (a longer arrow is not a fatter one) and a recognised arrowhead stays at
 the size it was drawn, so only the shaft lengthens (`StrokeStretch`), while text sizes follow the
