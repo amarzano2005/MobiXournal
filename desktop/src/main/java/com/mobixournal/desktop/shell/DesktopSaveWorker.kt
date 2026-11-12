@@ -5,9 +5,6 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.mobixournal.desktop.io.*
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -76,14 +73,6 @@ internal class SaveRequest(val tab: DesktopTab, val target: File, val format: Sa
 
 internal class SaveState {
     var request: SaveRequest? by mutableStateOf(null)
-
-    /**
-     * True only while the staged bytes are **put in place** — the move, and the `.mobix` reopen it needs.
-     *
-     * Separate from [request] because that is the whole transaction: the encoding is seconds on a big
-     * notebook and the commit is a rename, and only the second one has to hold the canvas still.
-     */
-    var committing by mutableStateOf(false)
     var uiBound = false
 }
 
@@ -147,37 +136,23 @@ internal class Saved(
  *    new edits sit in, and a structural edit invalidates the snapshot's indices. The staged file is
  *    dropped and the tab is told to save again, with every page still in memory.
  */
-/**
- * How long the commit will queue for the document's write lock before it gives up.
- *
- * Short on purpose. The lock is taken for a page read by whoever is painting, and this call runs while the
- * window's input gate is down ([saveInputGate]): waiting "as long as it takes" is waiting with the canvas
- * deaf. A page read is milliseconds, so anything past a second and a half is a save that should be retried
- * rather than a window that stops taking input.
- */
-private const val COMMIT_WAIT_MS = 30_000L
-
-/** The commit did not get the document in time: nothing was written, and the save can be asked again. */
-internal class SaveBusy : IllegalStateException(
-    "The document was busy (a page was still being read), so the file was not replaced. " +
-        "It will be written again at the next quiet moment.",
-)
-
 internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged): Saved {
     val original = request.document
     val same = DesktopTabs.keyOf(request.target) == request.tab.key
     val holdsNoHandle = original.container != DesktopContainer.MOBIX
     return try {
-        original.tryExclusive(COMMIT_WAIT_MS) { synchronized(original) {
-            val newer = original.edits != request.revision
-            if (same) {
-                // Nothing has to be released: a `.xopp` holds no file, and a `.mobix` reads a copy in the
-                // cache (DesktopReadCopies), so the file just written is not the one the tab is reading. The
-                // move lands and the tab keeps the document it was drawing on — dirty if an edit arrived
-                // after the snapshot, because the file does not hold that one yet.
-                staged.commit()
-                return@tryExclusive Saved(null, null, kept = true, stillDirty = newer)
-            }
+        // A save over the tab's **own** file takes no lock at all. The bytes come from an immutable snapshot,
+        // the tab reads its own copy (`DesktopReadCopies`), and replacing the file is one rename of a staged
+        // sibling — so there is nothing here to exclude, and the lease the commit used to queue for is what
+        // put a save and a page read in front of each other.
+        if (same) {
+            staged.commit()
+            // Dirty when an edit arrived after the snapshot: the file does not hold that one yet.
+            return Saved(null, null, kept = true, stillDirty = original.edits != request.revision)
+        }
+        // Another file: the tab has to let its archive go before the move, so **this** is the one path that
+        // holds the document still.
+        original.withExclusive { synchronized(original) {
             staged.commit()
             val loaded = DocumentLoader.load(request.target).also { it.audioStore = request.audio }
             original.close()
@@ -185,9 +160,9 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
             original.pageSource.takeIf { it.absoluteFile != original.file.absoluteFile }?.delete()
             DesktopPdfIndexCache.forgetAll()
             Saved(loaded, null)
-        } } ?: throw SaveBusy()
+        } }
     } catch (failure: Throwable) {
-        if (same && original.isClosed && staged != null) {
+        if (same && original.isClosed) {
             val recovered = runCatching { DocumentLoader.adopt(original.file, staged.temp).also { it.audioStore = request.audio } }
             Saved(recovered.getOrNull(), failure)
         } else { staged.close(); Saved(null, failure) }
@@ -205,15 +180,7 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
         withContext(NonCancellable) {
             val staged = runCatching { withContext(SAVE_IO) { stageSaveRequest(request) } }
             val result = staged.fold(
-                onSuccess = { bytes ->
-                    // Only a commit that **moves the tab to another file** holds the canvas still: a save over
-                    // its own file is a rename of a staged copy, and gating input for it made every quiet
-                    // moment a canvas that took no input while it waited for the document.
-                    val gated = !request.same
-                    state.saveState.committing = gated
-                    try { withContext(SAVE_IO) { commitSaveRequest(request, bytes) } }
-                    finally { if (gated) state.saveState.committing = false }
-                },
+                onSuccess = { bytes -> withContext(SAVE_IO) { commitSaveRequest(request, bytes) } },
                 onFailure = { Saved(null, it) },
             )
             val ownsResult = request.tab.document === request.document
@@ -251,13 +218,3 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
     )
 }
 
-/**
- * Swallow input while the staged bytes are **put in place**. It is bound to `committing`, not to the whole
- * save: the encoding is a read-only view of an immutable snapshot, so a stroke during it is safe, while the
- * commit either releases an archive or replaces the file the tab is reading.
- */
-internal fun Modifier.saveInputGate(saving: Boolean): Modifier = onPreviewKeyEvent { saving }.pointerInput(saving) {
-    if (saving) awaitPointerEventScope {
-        while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
-    }
-}

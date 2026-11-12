@@ -80,7 +80,7 @@ internal fun DesktopShell(
     }
     // The one export in flight, written off the UI thread (`DesktopExportCommands.kt`).
     ExportWorker(state)
-    Column(modifier.saveInputGate(state.saveState.committing).fillMaxSize().background(DesktopTheme.desk)) {
+    Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
         Header(
             tabs = state.tabs,
             sidebarVisible = state.sidebarVisible,

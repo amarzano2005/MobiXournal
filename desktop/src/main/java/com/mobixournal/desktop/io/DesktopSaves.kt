@@ -12,6 +12,7 @@ import com.mobixournal.render.ATTACH_DOMAIN
 import com.mobixournal.render.Uncompilable
 import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -212,8 +213,32 @@ object DesktopSaves {
         return File.createTempFile("mobix-", ".writing", folder)
     }
 
-    /** Move [temp] over [target] — one rename where the filesystem allows it. */
+    /**
+     * Move [temp] over [target] — one rename where the filesystem allows it, **retried** where Windows says no.
+     *
+     * `MoveFileEx` refuses to replace a file another handle has open without delete sharing, and on a
+     * synchronised folder that happens constantly: the folder's own client, the antivirus scanner and the search
+     * indexer each hold the destination for tens of milliseconds at a time. A save into such a folder therefore
+     * failed on the first refusal, which a reader meets as "it saved and did not". Only the transient reasons are
+     * retried ([transient]) — a missing folder or a full disk is not going to clear — and only a bounded number of
+     * times, because a *long* hold needs a person, not a tighter loop.
+     */
     internal fun replace(temp: File, target: File) {
+        var attempt = 1
+        while (true) {
+            try {
+                return move(temp, target)
+            } catch (failure: FileSystemException) {
+                if (attempt >= REPLACE_ATTEMPTS || !transient(failure)) throw failure
+                // 40, 80, 120, 160, 200 ms: long enough for a scanner's turn, short enough to stay a save.
+                Thread.sleep(REPLACE_BACKOFF_MS * attempt)
+                attempt++
+            }
+        }
+    }
+
+    /** The rename itself: atomic where the volume allows it, a plain replace where it does not. */
+    private fun move(temp: File, target: File) {
         try {
             Files.move(
                 temp.toPath(),
@@ -226,6 +251,19 @@ object DesktopSaves {
             Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
     }
+
+    /** Whether [failure] is the "someone else has it open for a moment" kind, and so worth another attempt. */
+    private fun transient(failure: FileSystemException): Boolean {
+        val reason = (failure.reason ?: failure.message ?: "").lowercase()
+        return reason.contains("denied") || reason.contains("used by another process") ||
+            reason.contains("sharing") || reason.contains("busy") || reason.contains("permission")
+    }
+
+    /** Attempts at one replace: the first, plus five retries. */
+    private const val REPLACE_ATTEMPTS = 6
+
+    /** The first wait, multiplied by the attempt: 40 ms to 200 ms. */
+    private const val REPLACE_BACKOFF_MS = 40L
 
     /**
      * Whether any page's background is a payload the file must carry — a bundled `assets/` entry, or a

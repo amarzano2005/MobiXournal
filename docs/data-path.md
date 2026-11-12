@@ -200,18 +200,21 @@ one function both shells call (`io/AutoSavePolicy.kt` in `mobix-core`, pinned by
 shell adds is only the quiet period — the window on `editRevision` (`DesktopQuiet.kt`), the tablet on the
 canvas's own edit count (`MainActivityAutoSave.kt`).
 
-The window hands the write to its **save worker** — the same staged path the header's Save takes — rather
-than to the thread the quiet timer runs on: a whole notebook encoded in front of the painter is the freeze a
-reader meets as "it hangs while it saves". The worker's lane is one thread at the JVM's lowest priority, so
-the encode takes what the window is not using instead of competing with it for cores. The **crash snapshot**
-runs on that same lane: both stream the notebook under the document's lock, so on separate lanes they queued
-each other and the file stayed unwritten while the quiet timer re-armed the snapshot — on one lane they simply
-follow one another. The document's lock is
-**not fair**, so a commit waiting for a long read (a crash snapshot encodes the whole notebook under it) does
-not put the page reads behind it — that ordering was the window that stopped painting while a save ran. The
-window's **input gate is down only for a save that moves the tab to another file**: a save over its own file
-is a rename of a staged copy and leaves the canvas live. A commit that still cannot get the file in time
-writes nothing, says so, and the next quiet moment tries again.
+The window's rule is the one a document editor needs, and it has no lock in it: **capture an immutable
+snapshot on the thread that owns the document, hand it to one writer, let the writer own the file.** The
+snapshot is cheap (the page model the tab already holds); encoding and the write happen on the save lane, one
+thread at the JVM's lowest priority, so the encode takes what the window is not using instead of competing
+with it for cores. The **crash snapshot** writes on that same lane, so the two never stream the same notebook
+at once — and neither takes the document's lease: the lease is for **closing** a document and for **rehoming**
+a tab onto another file, the two writers that must not be starved. A save over a tab's own file excludes
+nothing, because the bytes come from the snapshot and the tab reads its own copy.
+
+Nothing on the window's input is gated while a save runs: the canvas takes strokes throughout, including the
+commit's rename. The write is a **staged sibling encoded first**, then one replace — and that replace is
+retried a bounded number of times (40–200 ms) when Windows answers "access denied" or "in use", which is
+what a synchronised folder, its antivirus scan and the search indexer do for tens of milliseconds around
+every write. A refusal that does not clear is reported, the pages stay in memory, and the next quiet moment
+tries again.
 
 ## Shared immutable edit roots
 

@@ -12,7 +12,7 @@ import java.util.concurrent.*
 
 class DesktopSaveWorkerTest {
     @get:Rule val temp = TemporaryFolder()
-    @Test fun saveWaitsForAnExportLeaseOffTheCallingThread() {
+    @Test fun saveOverItsOwnFileNeverQueuesBehindAReader() {
         val file = temp.newFile("save.mobix")
         SyntheticNotebook.write(file, SyntheticNotebook.pages(3))
         val original = DocumentLoader.load(file)
@@ -20,25 +20,25 @@ class DesktopSaveWorkerTest {
         val pool = Executors.newFixedThreadPool(2)
         val entered = CountDownLatch(1); val release = CountDownLatch(1)
         try {
+            // A reader that holds the lease for as long as it likes: an export, a page read, the crash snapshot.
             val reader = pool.submit { original.withReader { entered.countDown(); release.await(10, TimeUnit.SECONDS) } }
             assertTrue(entered.await(5, TimeUnit.SECONDS))
-            // The two halves an ordinary Save now runs: the snapshot is encoded under a read lease, then the
-            // commit releases the archive. Only the first one has to wait for the export's lease.
-            val save = pool.submit<Saved> {
-                val request = SaveRequest(tab, file, SaveFormat.MOBIX) {}
-                commitSaveRequest(request, stageSaveRequest(request))
-            }
-            try { save.get(100, TimeUnit.MILLISECONDS); fail("save must wait for its reader") } catch (_: TimeoutException) { }
-            assertFalse(original.isClosed)
-            release.countDown(); reader.get(5, TimeUnit.SECONDS)
-            val outcome = save.get(10, TimeUnit.SECONDS)
+            val request = SaveRequest(tab, file, SaveFormat.MOBIX) {}
+            // The rule the window's save is built on: the bytes come from an immutable snapshot and land as one
+            // rename of a staged sibling, so a save over the tab's **own** file does not queue for the document
+            // at all. Waiting here (the old rule) is what put a save and the canvas in front of each other: the
+            // writer starved behind long readers and the window showed a save that never finished.
+            val outcome = pool.submit<Saved> { commitSaveRequest(request, stageSaveRequest(request)) }
+                .get(10, TimeUnit.SECONDS)
             assertNull(outcome.failure)
-            // The commit no longer releases the archive: a `.mobix` reads a copy in the cache, so the move
-            // lands with the reader still open and the tab keeps the document it was drawing on.
-            assertTrue("the save landed without closing the reader", outcome.kept)
+            assertTrue("the save landed with the reader still open", outcome.kept)
             assertFalse("so the canvas keeps its pages", original.isClosed)
             assertNull("and nothing had to be reopened", outcome.document)
             assertEquals("the file holds the pages", 3, DocumentLoader.load(file).use { it.pageCount })
+            // The proof that nothing queued: the save is already back and its reader is still inside the lease.
+            assertFalse("the reader was never waited for", reader.isDone)
+            release.countDown(); reader.get(5, TimeUnit.SECONDS)
+            assertEquals("and it still reads its own copy", 3, original.pageCount)
         } finally { release.countDown(); pool.shutdownNow(); original.close() }
     }
     @Test fun closeSaveCapturesTheRequestedTabEvenWhenAnotherTabIsActive() {
