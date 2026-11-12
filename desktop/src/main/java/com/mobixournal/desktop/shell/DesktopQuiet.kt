@@ -6,7 +6,6 @@ import com.mobixournal.io.AutoSavePolicy
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
@@ -51,7 +50,10 @@ internal fun RecoverySnapshots(state: DesktopShellState) {
         if (state.editRevision == 0) return@LaunchedEffect
         delay(RECOVERY_QUIET_MS)
         val writes = state.prepareRecovery()
-        withContext(Dispatchers.IO) { writes.forEach { (store, request) -> store.save(request) } }
+        // The **save lane**, not a pool of its own: a snapshot streams the whole notebook under the document's
+        // read lock, and a save's commit needs the write lock — on separate lanes they spent their time waiting
+        // for each other, and the file was still unwritten while the quiet timer re-armed the snapshot.
+        withContext(SAVE_IO) { writes.forEach { (store, request) -> store.save(request) } }
     }
 }
 

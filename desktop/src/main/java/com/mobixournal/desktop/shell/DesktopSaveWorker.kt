@@ -39,9 +39,13 @@ import java.util.concurrent.Executors
  * `Dispatchers.IO` it competed with the painter for cores: the window stopped repainting for as long as the
  * write took, which is the freeze a reader meets as "it hangs while it saves". At [Thread.MIN_PRIORITY] the
  * system hands it only what the window is not using, so a save is a little slower and the window stays live.
- * One thread, because two saves encoding at once would only divide the same budget.
+ * One thread, because two saves encoding at once would only divide the same budget — and because **the crash
+ * snapshot runs here too** (`RecoverySnapshots`): both stream the notebook and both take the document's lease,
+ * so on two lanes they queued each other instead of finishing (a commit waited a whole recovery encode for the
+ * write lock, and the file was never written while the quiet timer kept re-arming the snapshot). On one lane
+ * they simply follow one another.
  */
-private val SAVE_IO: CoroutineDispatcher = Executors.newSingleThreadExecutor { runnable ->
+internal val SAVE_IO: CoroutineDispatcher = Executors.newSingleThreadExecutor { runnable ->
     Thread(runnable, "mobix-save").apply {
         isDaemon = true
         priority = Thread.MIN_PRIORITY
