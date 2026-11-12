@@ -3,6 +3,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.noteSaved
+import com.mobixournal.desktop.shell.requestSave
 
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.Uncompilable
@@ -29,6 +30,21 @@ import java.io.File
  * Answers what the write could not draw — an entity this build has no `.xopp` drawing for is a page
  * short, not a detail — or null when the save failed (the reason then sits in [DesktopShellState.failure]).
  */
+/**
+ * **Save**, as every door means it — the header's button, the menu's row and `Ctrl+S` are one decision, not
+ * three (the header used to go straight to the write, which is how a never-saved document ended up being given
+ * a path by the window and then failing to write it).
+ *
+ * A document that has never been written goes to **Save As**: where a notebook lives is the reader's answer,
+ * and inventing `Documents\MobiXournal\Untitled 1.mobix` on their behalf is exactly the choice the app must not
+ * make. One that already has a file writes back through the commit machinery (`requestSave`), or straight
+ * through [save] where there is no window to stage for.
+ */
+fun DesktopShellState.saveOrPick(onSavePicker: () -> Unit) {
+    val tab = tabs.active ?: return
+    if (tab.unsaved) onSavePicker() else if (saveState.uiBound) requestSave() else save()
+}
+
 fun DesktopShellState.save(): List<Uncompilable>? {
     val tab = tabs.active ?: return null
     return runCatching { tab.saveBack() }

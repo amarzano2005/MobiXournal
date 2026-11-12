@@ -12,6 +12,7 @@ import com.mobixournal.desktop.io.askImportPdf
 import com.mobixournal.desktop.io.clipboardCommand
 import com.mobixournal.desktop.io.describeOpenFailure
 import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.io.saveOrPick
 import com.mobixournal.desktop.settings.PaletteActions
 import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings
@@ -634,7 +635,7 @@ class DesktopShellState(
             ShellCommand.SAVE -> {
                 val tab = tabs.active?.takeUnless { it.document.readOnly } ?: return false
                 if (!tab.isDirty) return false
-                if (tab.unsaved) onSavePicker() else if (saveState.uiBound) requestSave() else save()
+                saveOrPick(onSavePicker)
                 return true
             }
             else -> Unit

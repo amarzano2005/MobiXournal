@@ -204,7 +204,13 @@ object DesktopSaves {
      * a name that was only there to make the temp file recognisable. A fixed prefix costs nothing: the
      * file lives beside the target for the length of one write.
      */
-    internal fun stagingFile(folder: File): File = File.createTempFile("mobix-", ".writing", folder)
+    internal fun stagingFile(folder: File): File {
+        // The folder the window proposes for a new document does not exist on a fresh install, and
+        // `createTempFile` refuses a folder that is not there: writing the first notebook includes making its
+        // folder, or Save dies on a path nobody typed.
+        folder.mkdirs()
+        return File.createTempFile("mobix-", ".writing", folder)
+    }
 
     /** Move [temp] over [target] — one rename where the filesystem allows it. */
     internal fun replace(temp: File, target: File) {

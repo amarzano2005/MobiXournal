@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.io.saveOrPick
 import com.mobixournal.desktop.tools.selectTool
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.of
@@ -88,7 +89,10 @@ internal fun DesktopShell(
             onMove = { from, to -> state.tabs.move(from, to) },
             onNew = { state.newDocument() },
             onOpen = onOpenPicker,
-            onSave = { state.requestSave() },
+            // The header's Save is the same command as `Ctrl+S`, so it takes the same fork: a document that
+            // has never been written asks **where** first (`saveOrPick`), instead of being given a name by
+            // the window and written into a folder nobody chose.
+            onSave = { state.saveOrPick(onSavePicker) },
             onSaveAs = onSavePicker,
             onPortableCopy = onPortableCopyPicker,
             onExportPdf = onExportPdfPicker,
