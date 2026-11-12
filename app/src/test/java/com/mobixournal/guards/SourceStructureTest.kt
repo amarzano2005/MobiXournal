@@ -80,7 +80,10 @@ class SourceStructureTest {
         // reason — it is a section of the window, and the next change here splits.
         // +1: the `saveOrPick` import — the header's Save now takes the key's fork, so the file names one more
         // function from the save pair it already imported.
-        "desktop/shell/DesktopShell.kt" to 721,
+        // +20 deliberate: the **Export As** card's own state — whether it is up, the picker its `.pmobix`
+        // answer runs, and the two commands that raise and put it away (the card itself lives beside the
+        // other hosts, in `ExportAsDialog.kt`).
+        "desktop/shell/DesktopShell.kt" to 741,
         // The file that now carries the ring's own end of the work: the catalogue's glyph table gained
         // the ring's six-slots-round-a-nib mark (ToolGlyphs).
         "design/ToolGlyphs.kt" to 715,
@@ -110,6 +113,10 @@ class SourceStructureTest {
         "format/json/JsonParser.kt#parse",
         "ui/AppSettings.kt#load",
         "ui/BackupSection.kt#BackupSection",
+        // Two lines each, and the lines are parameters: **Export As** is one more command on each of the two
+        // rows that carry the menu's doors (the shell's header and the menu itself).
+        "desktop/shell/DesktopShellView.kt#DesktopShell",
+        "desktop/shell/Header.kt#Header",
     )
 
     @Test

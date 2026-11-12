@@ -154,6 +154,26 @@ class DesktopShellState(
     /** The last failed open, or null — cleared on the next successful one or by [dismissFailure]. */
     var failure by mutableStateOf<OpenFailure?>(null)
     var onInsertImagePicker: (() -> Unit)? = null
+
+    /**
+     * Whether the menu's **Export As** card is up — one question with three answers, raised over the sheet
+     * by `ExportAsHost` and put away by its `Cancel` or by the command it runs.
+     */
+    var exportAsOpen by mutableStateOf(false)
+        internal set
+
+    /** The portable export's picker, handed in by the shell: the card is hosted below the bands. */
+    var onPortableCopyPicker: (() -> Unit)? = null
+
+    /** Raise the card (the menu's **Export As** chip, which is the only door to it). */
+    fun openExportAs() {
+        exportAsOpen = true
+    }
+
+    /** Put it away, whether an answer ran or the reader changed their mind. */
+    fun closeExportAs() {
+        exportAsOpen = false
+    }
     var isDragHovering: Boolean by mutableStateOf(false)
 
     /** The PDF import being asked about, or null — the file, its pages and the answer in play. */

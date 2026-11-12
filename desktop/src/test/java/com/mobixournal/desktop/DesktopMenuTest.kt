@@ -49,7 +49,7 @@ class DesktopMenuTest {
     @get:Rule
     val temp = TemporaryFolder()
 
-    private val counters = IntArray(10)
+    private val counters = IntArray(11)
 
     private val width = MenuMetrics.width.value
     /** The scene fits the panel, Pen block included — a row clipped by the frame cannot be clicked. */
@@ -70,12 +70,8 @@ class DesktopMenuTest {
             }
             tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
             tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
-            // Export As first: its three answers take its place on the same line, and the panel stays up
-            // because this scene has no popup to dismiss it.
+            // Export As raises its card, which is the shell's overlay — the panel only has to run the door.
             tap(scene, width / 2f, chipCentreY(row = 1), at); at += 512L
-            for (index in 0..2) {
-                tap(scene, exportCentre(index), chipCentreY(row = 1), at); at += 512L
-            }
             tap(scene, width / 2f, rowCentreY(row = 0), at); at += 512L
             tap(scene, width / 2f, rowCentreY(row = 1), at)
 
@@ -85,9 +81,7 @@ class DesktopMenuTest {
             assertEquals("Save As", 1, counters[SAVE_AS])
             assertEquals("Import PDF", 1, counters[IMPORT])
             assertEquals("Export PDF", 1, counters[PDF])
-            assertEquals("Export As ▸ PNG", 1, counters[PNG])
-            assertEquals("Export As ▸ SVG", 1, counters[SVG])
-            assertEquals("Export As ▸ .pmobix", 1, counters[PORTABLE])
+            assertEquals("Export As", 1, counters[EXPORT_AS])
             assertEquals("the page list's row", 1, counters[SIDEBAR])
         } finally {
             scene.close()
@@ -101,14 +95,14 @@ class DesktopMenuTest {
             var at = 1_000L
             tap(scene, tileCentre(2), tileCentreY(), at); at += 512L
             tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
-            // Export As cannot unfold with nothing open, so the answers under it are unreachable too.
+            // With nothing open there is no card to raise: the chip is dead like the exports behind it.
             tap(scene, width / 2f, chipCentreY(row = 1), at); at += 512L
             tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
             tap(scene, tileCentre(0), tileCentreY(), at)
 
             assertEquals("a clean document has nothing to save", 0, counters[SAVE])
             assertEquals("and nothing to export", 0, counters[PDF])
-            assertEquals("neither PDF nor an export", 0, counters[PNG] + counters[SVG] + counters[PORTABLE])
+            assertEquals("neither PDF nor an export", 0, counters[EXPORT_AS])
             assertEquals(
                 "but a PDF can still be brought in, which opens a tab of its own",
                 1,
@@ -265,6 +259,7 @@ class DesktopMenuTest {
                     onExportPdf = { counters[PDF]++ },
                     onExportSvg = { counters[SVG]++ },
                     onExportPng = { counters[PNG]++ },
+                    onExportAs = { counters[EXPORT_AS]++ },
                     onImportPdf = { counters[IMPORT]++ },
                     onPortableCopy = { counters[PORTABLE]++ },
                     onToggleSidebar = { counters[SIDEBAR]++ },
@@ -283,10 +278,6 @@ class DesktopMenuTest {
         (padding + chipWidth / 2 + (chipWidth + chipGap) * index).value
     }
 
-    /** One answer of **Export As**, on the line the single chip had to itself. */
-    private fun exportCentre(index: Int): Float = with(MenuMetrics) {
-        (padding + exportWidth / 2 + (exportWidth + chipGap) * index).value
-    }
 
     /** A chip's line: the tiles, the section gap, then the first row and the second under it. */
     private fun chipCentreY(row: Int): Float = with(MenuMetrics) {
@@ -347,6 +338,7 @@ class DesktopMenuTest {
         const val SVG = 7
         const val SIDEBAR = 8
         const val PORTABLE = 9
+        const val EXPORT_AS = 10
 
         /** Anything at or above this tone is a glyph stroke: the chrome ink is pure white. */
         const val INK_FLOOR = 0x909090

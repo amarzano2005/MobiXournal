@@ -33,12 +33,14 @@ import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -235,8 +237,7 @@ internal fun OverflowMenu(
     onOpenPenParameters: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    // **Export As** unfolded: the three answers replace its chip on the same line, so the panel keeps its
-    // height and a hand already on the glass has nothing to chase.
+    // The **Export As** card, raised over the sheet once this panel is put away.
     var exportAsOpen by remember { mutableStateOf(false) }
     val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
@@ -326,51 +327,23 @@ internal fun OverflowMenu(
                 )
             }
 
-            // **Export As**: one chip, because the three answers belong to one question ("as what?") and
-            // three chips of their own read as three unrelated commands. Its answers take its place.
+            // **Export As**: its three answers are a question of their own ("as what?"), so they open a
+            // card over the sheet rather than unfolding inside this panel — a menu that unfolds is still
+            // a menu, and the export is a decision.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (!exportAsOpen) {
-                    GlassActionButton(
-                        icon = ChromeGlyph.SAVE_AS.imageVector(),
-                        label = "Export As",
-                        tint = MaterialTheme.colorScheme.primary,
-                        enabled = !isReadOnly,
-                        onClick = { exportAsOpen = true },
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    // The page as a shareable raster, as a scalable vector, or the whole notebook as the
-                    // one file that carries what it names (`.pmobix`, exported, never saved over).
-                    GlassActionButton(
-                        icon = ChromeGlyph.PICTURE.imageVector(),
-                        label = "PNG",
-                        tint = MaterialTheme.colorScheme.primary,
-                        enabled = !isReadOnly,
-                        onClick = { open = false; onExportPagePng() },
-                        modifier = Modifier.weight(1f),
-                    )
-                    GlassActionButton(
-                        icon = ChromeGlyph.PICTURE.imageVector(),
-                        label = "SVG",
-                        tint = MaterialTheme.colorScheme.primary,
-                        enabled = !isReadOnly,
-                        onClick = { open = false; onExportPageSvg() },
-                        modifier = Modifier.weight(1f),
-                    )
-                    GlassActionButton(
-                        icon = ChromeGlyph.SAVE_AS.imageVector(),
-                        label = ".pmobix",
-                        tint = MaterialTheme.colorScheme.primary,
-                        enabled = !isReadOnly,
-                        onClick = { open = false; onSavePortableCopy() },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                GlassActionButton(
+                    icon = ChromeGlyph.EXPORT.imageVector(),
+                    label = "Export As",
+                    tint = MaterialTheme.colorScheme.primary,
+                    enabled = !isReadOnly,
+                    onClick = { open = false; exportAsOpen = true },
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             MenuRule()
@@ -488,6 +461,94 @@ internal fun OverflowMenu(
                     Icon(Icons.Outlined.Settings, contentDescription = null, tint = rememberChromeInk())
                 },
                 onClick = { open = false; onSettings() },
+            )
+        }
+        // Raised **outside** the panel: the three answers are a question of their own, and a menu that
+        // unfolds inside itself is still a menu. The panel is already away by the time this opens.
+        if (exportAsOpen) {
+            ExportAsDialog(
+                onDismiss = { exportAsOpen = false },
+                onPng = onExportPagePng,
+                onSvg = onExportPageSvg,
+                onPortable = onSavePortableCopy,
+            )
+        }
+    }
+}
+
+/**
+ * **Export As**, asked in a card over the sheet: the page as a raster, the page as a vector, or the whole
+ * notebook as the one file that carries what it only names.
+ *
+ * A card rather than a list unfolding in the menu, because the three answers are a decision about a file
+ * that is about to be written, and because a reader who opened *Export As* by mistake can put it away
+ * without closing the menu twice. Every answer closes the card first — the command then asks for its own
+ * destination.
+ */
+@Composable
+private fun ExportAsDialog(
+    onDismiss: () -> Unit,
+    onPng: () -> Unit,
+    onSvg: () -> Unit,
+    onPortable: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Export As") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                ExportChoice(
+                    icon = ChromeGlyph.PICTURE.imageVector(),
+                    title = "PNG",
+                    subtitle = "One raster image per page.",
+                ) { onDismiss(); onPng() }
+                ExportChoice(
+                    icon = ChromeGlyph.PICTURE.imageVector(),
+                    title = "SVG",
+                    subtitle = "One vector file per page.",
+                ) { onDismiss(); onSvg() }
+                ExportChoice(
+                    icon = ChromeGlyph.EXPORT.imageVector(),
+                    title = ".pmobix",
+                    subtitle = "The notebook as one file carrying what it names.",
+                ) { onDismiss(); onPortable() }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+/** One answer of [ExportAsDialog]: its mark, its name and the one sentence that tells them apart. */
+@Composable
+private fun ExportChoice(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

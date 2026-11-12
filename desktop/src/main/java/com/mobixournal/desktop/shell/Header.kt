@@ -76,7 +76,9 @@ internal fun Header(
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
-    /** The menu's **Export As ▸ PNG** answer — one raster per page, into a folder you pick. */
+    /** The menu's **Export As** chip: the card that offers PNG, SVG and `.pmobix` (`ExportAsDialog`). */
+    onExportAs: () -> Unit = {},
+    /** The card's **PNG** answer — one raster per page, into a folder you pick. */
     onExportPng: () -> Unit = {},
     /** The menu's **Import PDF** chip — the tablet's command, now that the window can carry a PDF. */
     onImportPdf: () -> Unit = {},
@@ -133,6 +135,7 @@ internal fun Header(
             onSave = onSave,
             onSaveAs = onSaveAs,
             onPortableCopy = onPortableCopy,
+            onExportAs = onExportAs,
             onExportPdf = onExportPdf,
             onExportSvg = onExportSvg,
             onExportPng = onExportPng,

@@ -37,6 +37,13 @@ enum class ChromeGlyph {
     SAVE_AS,
 
     /**
+     * An arrow leaving a tray: **Export As**, the menu's one command that writes a file *out* of the
+     * notebook. Deliberately not the floppy family — an export is not a save, and the two commands sat
+     * side by side wearing the same picture.
+     */
+    EXPORT,
+
+    /**
      * A clock with its hand turned back: a session the last run left open, offered back to the reader.
      *
      * It marks both halves of one idea — the *Restore last session* door on the entry screen and the
@@ -202,6 +209,9 @@ object ChromeGlyphCatalogue {
                 "15c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM6 6h9v4H6V6zm13.99 10.25 " +
                 "1.77 1.77L16.77 23H15v-1.77l4.99-4.98zm3.26.26-.85.85-1.77-1.77.85-.85c.2-.2.51-.2.71 " +
                 "0l1.06 1.06c.2.2.2.52 0 .71z"
+        ChromeGlyph.EXPORT ->
+            "M16 5l-1.42 1.42-1.59-1.59V16h-2V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.1 " +
+                "0-2-.9-2-2V10c0-1.1.9-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .9 2 2z"
         ChromeGlyph.PDF ->
             "M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 " +
                 "14H8V4h12v12zm-16-10H2v14c0 1.1.9 2 2 2h14v-2H4V6zm12 6V9c0-.55-.45-1-1-1h-2v5h2c.55 0 " +

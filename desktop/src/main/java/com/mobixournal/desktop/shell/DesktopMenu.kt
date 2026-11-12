@@ -86,6 +86,8 @@ internal fun HeaderMenu(
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
+    /** The **Export As** chip: the card it raises owns the three answers (`ExportAsDialog`). */
+    onExportAs: () -> Unit = {},
     onExportSvg: () -> Unit,
     onExportPng: () -> Unit = {},
     /**
@@ -137,6 +139,7 @@ internal fun HeaderMenu(
                     onSave = { open = false; onSave() },
                     onSaveAs = { open = false; onSaveAs() },
                     onPortableCopy = { open = false; onPortableCopy() },
+                    onExportAs = { open = false; onExportAs() },
                     onExportPdf = { open = false; onExportPdf() },
                     onExportSvg = { open = false; onExportSvg() },
                     onExportPng = { open = false; onExportPng() },
@@ -163,6 +166,8 @@ internal fun MenuPanel(
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
+    /** **Export As**: raises the card over the sheet, where the three answers are asked. */
+    onExportAs: () -> Unit = {},
     onExportSvg: () -> Unit,
     /** **Export As ▸ PNG**: one raster file per page, into a folder you pick (`DesktopPngExport`). */
     onExportPng: () -> Unit = {},
@@ -184,9 +189,6 @@ internal fun MenuPanel(
      */
     onPortableCopy: () -> Unit = {},
 ) {
-    // **Export As** unfolded: its three answers replace its chip on the same line, so the panel's height
-    // — which [MenuMetrics] and `DesktopMenuTest` both read — never depends on which state it is in.
-    var exportAsOpen by remember { mutableStateOf(false) }
     Column(
         Modifier
             .glassSurface()
@@ -216,18 +218,10 @@ internal fun MenuPanel(
             MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
         }
         Spacer(Modifier.height(MenuMetrics.chipGap))
+        // **Export As**: its three answers are a question of their own, asked in a card over the sheet
+        // (`ExportAsDialog`) — a menu that unfolds a submenu is still a menu.
         MenuChipRow {
-            if (!exportAsOpen) {
-                MenuChip("Export As", ChromeGlyph.SAVE_AS, canExport, Modifier.weight(1f), DesktopTheme.accent) {
-                    exportAsOpen = true
-                }
-            } else {
-                // The page as a shareable raster, as a scalable vector, or the notebook as the one file
-                // that carries what it names — `.pmobix`, exported, never saved over the document.
-                MenuChip("PNG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportPng)
-                MenuChip("SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
-                MenuChip(".pmobix", ChromeGlyph.SAVE_AS, canExport, Modifier.weight(1f), DesktopTheme.accent, onPortableCopy)
-            }
+            MenuChip("Export As", ChromeGlyph.EXPORT, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportAs)
         }
         // A rule between the **exports** and the **pen**: the two chips above it act on the document's
         // bytes, and everything under it acts on the pen or on the window. A reader scanning for "export"
@@ -412,9 +406,6 @@ internal object MenuMetrics {
     val chipWidth: androidx.compose.ui.unit.Dp
         get() = (width - padding * 2 - chipGap) / 2
 
-    /** One answer of **Export As**: three of them and their two gaps on the line a pair uses. */
-    val exportWidth: androidx.compose.ui.unit.Dp
-        get() = (width - padding * 2 - chipGap * 2) / 3
 }
 
 /**

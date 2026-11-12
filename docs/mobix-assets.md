@@ -146,7 +146,7 @@ ones it cannot as references. Three properties make it trustworthy rather than m
   reference, so a copy never claims a portability it does not have.
 
 Nothing is downloaded, and the document it read is untouched. Both shells reach it as the `.pmobix`
-answer of the menu's **Export As** row, beside **PNG** and **SVG**. Each asks for the
+answer of the card the menu's **Export As** chip raises, beside **PNG** and **SVG**. Each asks for the
 destination where it asks for every save, resolves a reference the way its own renderer does — the
 document's folder for a background, the audio store for a recording — and leaves the open tab on its own
 file. The tablet's copy is written to a cache file and staged onto the picked URI afterwards, so a failed

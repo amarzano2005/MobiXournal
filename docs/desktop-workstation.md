@@ -191,7 +191,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), then the tablet's **two rows
   of chips**: **Import PDF** and **Export PDF** in the document red (the same file, coming in and going
-  out), and **Export As** in the accent, which unfolds on its own line into **PNG**, **SVG** and **`.pmobix`** (one file per page or the whole notebook, into a folder you pick); every file dialog here is the Windows shell's own — Explorer's surface, a type box, a folder mode — with Java's dialogs as the fallback where the shell has none.
+  out), and **Export As** in the accent, which raises a card of its own with the three answers — **PNG**, **SVG** and **`.pmobix`** (one file per page or the whole notebook, into a folder you pick); every file dialog here is the Windows shell's own — Explorer's surface, a type box, a folder mode — with Java's dialogs as the fallback where the shell has none.
   **A hairline**, then the tablet's **Pen block**: its heading (the pen glyph beside the word) opens the
   Stylus page, and under it the pen's **drawing** answers in the page's own order — **Pressure
   sensitivity**, the **preset carousel** with its × and `+`, **Minimum pressure**, **Multiplier**, and

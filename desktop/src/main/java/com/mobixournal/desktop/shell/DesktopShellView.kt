@@ -72,6 +72,8 @@ internal fun DesktopShell(
     // The field's answer, walked off the UI thread once per settled query (`DesktopSearch.kt`).
     SearchRunner(state.active)
     LaunchedEffect(onInsertImagePicker) { state.onInsertImagePicker = onInsertImagePicker }
+    // The Export As card is hosted below the bands, so the portable export's picker is handed down.
+    LaunchedEffect(onPortableCopyPicker) { state.onPortableCopyPicker = onPortableCopyPicker }
     RecoverySnapshots(state)
     // The audio pill follows the document on screen; a clip left behind is let go (`DesktopAudioSession`).
     LaunchedEffect(state.active?.key) {
@@ -92,6 +94,7 @@ internal fun DesktopShell(
             onSave = { state.saveOrPick(onSavePicker) },   // the same fork as `Ctrl+S`
             onSaveAs = onSavePicker,
             onPortableCopy = onPortableCopyPicker,
+            onExportAs = { state.openExportAs() },
             onExportPdf = onExportPdfPicker,
             onImportPdf = onImportPdfPicker,
             // The pages' folder is the picker's question — the one the native dialog can ask and AWT
@@ -195,6 +198,12 @@ private fun BoxScope.WorkspaceBody(
     ColourPanelHost(state)
     PageSetupHost(state)
     ImportPdfHost(state)
+    // The menu's **Export As** card: the same three commands its answers name, run through the worker.
+    ExportAsHost(
+        state = state,
+        onPng = { exportPages("Export the pages as PNG into a folder") { folder -> ExportRequest.Png(folder) } },
+        onSvg = { exportPages("Export the pages as SVG into a folder") { folder -> ExportRequest.Svg(folder) } },
+    )
     FirstRunFormatHost(state.prefs)
     // The launch check's answer, and the door out for a newer MSI: hosted by the shell, not by the settings
     // panel, because it arrives whether or not the reader is looking at Settings (`docs/updates.md`).
