@@ -295,5 +295,5 @@ one too**: the Text slot's Formula member (`Shift+T`) asks for the source, previ
 (`PendingPlacement.mathSource`, `MathPreview`), and an unknown type stays verbatim (rule 1).
 
 **A family is edited where it is drawn**: the window's selection carries the element's own grips
-(`LivingGrips.kt`) — a figure's corners through `ParametricShapes.snappedVertex`, a table's dividers rewriting
+(`LivingGrips.kt`) — a figure's corners through `ParametricShapes.moveVertex` (Shift adds the direction
 `colWidths`/`rowHeights` without touching `cells`; a plot's interval and a component's outline have none.

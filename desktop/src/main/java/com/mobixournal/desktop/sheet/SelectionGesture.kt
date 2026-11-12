@@ -560,7 +560,8 @@ private suspend fun AwaitPointerEventScope.dragLivingGrip(
             grip = grip,
             dx = x1 - x0,
             dy = y1 - y0,
-            snap = !currentEvent.keyboardModifiers.isShiftPressed,
+            // Free by default: Shift is the one way to ask for a side pulled onto a guided direction.
+            snap = currentEvent.keyboardModifiers.isShiftPressed,
         )
         if (edited === element) return
         if (!recorded) {

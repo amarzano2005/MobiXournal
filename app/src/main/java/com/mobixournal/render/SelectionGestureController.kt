@@ -337,8 +337,9 @@ internal class SelectionGestureController(
     }
 
     /**
-     * Move the dragged corner to the pointer, pulled onto the page's guided directions
-     * ([ParametricShapes.snappedVertex]) so a side lands squarely on the ruling when it is close.
+     * Move the dragged corner **to the pointer**, with nothing pulling it sideways: a corner is where the
+     * finger is, so a shape can be flattened to any angle it likes. (The window offers Shift for the sides
+     * that should land on a guided direction; a tablet has no key to ask with, so it never guesses.)
      * Re-applied from the live base every frame, so the drag accumulates no rounding drift.
      */
     fun dragVertex(event: MotionEvent) {
@@ -346,10 +347,8 @@ internal class SelectionGestureController(
         val sel = selection ?: return
         val box = layout().boxes.getOrNull(sel.pageIndex) ?: return
         val page = pageAt(sel.pageIndex) ?: return
-        val (x, y) = ParametricShapes.snappedVertex(
-            base, vertexIndex,
-            box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY),
-        )
+        val x = box.toPtX(event.x, viewport.scrollX)
+        val y = box.toPtY(event.y, viewport.scrollY)
         val updated = ParametricShapes.moveVertex(base, vertexIndex, x, y)
         if (updated === base) return
         val edited = ElementEdits.replaceElementOn(page, base, updated) ?: return

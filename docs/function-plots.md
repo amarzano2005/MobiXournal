@@ -48,10 +48,11 @@ line are properties the element does not carry, so those stay strokes, and so do
 arrows, arcs and lines, whose vertices would not be corners to drag.
 
 Selecting one draws a handle on each corner. Dragging a handle deforms the figure **live** — the box,
-the selection outline and the readout badges all follow the same frame — and the side leading into the
-dragged corner snaps onto the page's guided directions, 0°, 30°, 45° and 90° in all four quadrants,
-when it is within `VERTEX_SNAP_TOLERANCE_DEG` (7°) of one; the corner keeps the pointer's distance
-from the previous corner, so a snapped drag reads as a rail under the finger rather than a jump.
+the selection outline and the readout badges all follow the same frame — and the corner goes exactly
+where the pointer is: a plain drag never pulls a side onto the page's axes, so a shape can be flattened
+to any angle it likes. The window adds the constraint on request — **Shift** while dragging turns the
+side leading into the corner onto 0°, 30°, 45° or 90° when it is within `VERTEX_SNAP_TOLERANCE_DEG`
+(7°) of one, keeping the pointer's distance from the previous corner so it reads as a rail, not a jump.
 **Edit shape** on the selection bar toggles the two readouts (*Show side lengths*, *Show angles*).
 
 The maths is pure and unit-tested (`ParametricShapesTest`) — `moveVertex`, `snappedVertex`,

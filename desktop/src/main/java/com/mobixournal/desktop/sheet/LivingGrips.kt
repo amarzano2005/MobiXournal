@@ -80,12 +80,13 @@ internal fun gripAt(element: Element, x: Double, y: Double, tolerancePt: Double)
  * [element] with [grip] dragged by ([dx], [dy]) pt — the whole gesture's offset, always applied to the
  * element **as it was at grab time**, so dragging back and forth cannot compound.
  *
- * A figure's corner snaps through `ParametricShapes.snappedVertex` (the tablet's 0/30/45/90 directions
- * within its 7 degree tolerance) unless snapping is switched off; a table's divider stops at
+ * A figure's corner follows the pointer exactly, and only a drag with **Shift** down pulls the side onto
+ * the 0/30/45/90 directions (`ParametricShapes.snappedVertex`, its 7 degree tolerance) — a constraint
+ * asked for, never a magnet under a plain drag; a table's divider stops at
  * [GRIP_MIN_CELL_PT] rather than swallowing its neighbour, and moving a divider leaves `left`, `top` and
  * every cell's text alone.
  */
-internal fun dragGrip(element: Element, grip: LivingGrip, dx: Double, dy: Double, snap: Boolean = true): Element {
+internal fun dragGrip(element: Element, grip: LivingGrip, dx: Double, dy: Double, snap: Boolean = false): Element {
     return when {
         element is ParametricShapeElement && grip is LivingGrip.Vertex -> {
             val vertex = element.vertices.getOrNull(grip.index) ?: return element

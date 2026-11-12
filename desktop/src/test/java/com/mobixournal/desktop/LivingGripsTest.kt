@@ -103,7 +103,7 @@ class LivingGripsTest {
     @Test
     fun `dragging a corner bends the figure and leaves the other corners alone`() {
         val shape = triangle()
-        val moved = dragGrip(shape, LivingGrip.Vertex(0), dx = -20.0, dy = 30.0, snap = false)
+        val moved = dragGrip(shape, LivingGrip.Vertex(0), dx = -20.0, dy = 30.0)
         assertTrue(moved is ParametricShapeElement)
         moved as ParametricShapeElement
         assertEquals(80.0, moved.vertices[0].x, 1e-9)
@@ -113,14 +113,15 @@ class LivingGripsTest {
     }
 
     @Test
-    fun `a corner snaps onto a forty-five degree side unless snapping is off`() {
+    fun `a corner follows the pointer, and only Shift pulls the side onto a guided direction`() {
         val shape = triangle()
-        // A drag of (+100, +3) is nearly horizontal: the snapped side leaves the corner at exactly 0 degrees
-        // and keeps the pointer's distance, so the corner's y comes back to its neighbour's.
-        val snapped = dragGrip(shape, LivingGrip.Vertex(1), dx = 100.0, dy = 3.0) as ParametricShapeElement
-        assertEquals(100.0, snapped.vertices[1].y, 1e-6)
-        val free = dragGrip(shape, LivingGrip.Vertex(1), dx = 100.0, dy = 3.0, snap = false) as ParametricShapeElement
+        // A drag of (+100, +3) is nearly horizontal. Plain, it stays exactly where the pointer is — no
+        // magnet to fight when a shape has to be a little off square.
+        val free = dragGrip(shape, LivingGrip.Vertex(1), dx = 100.0, dy = 3.0) as ParametricShapeElement
         assertEquals(103.0, free.vertices[1].y, 1e-9)
+        // With the constraint asked for, the side lands at exactly 0° and keeps the pointer's distance.
+        val snapped = dragGrip(shape, LivingGrip.Vertex(1), dx = 100.0, dy = 3.0, snap = true) as ParametricShapeElement
+        assertEquals(100.0, snapped.vertices[1].y, 1e-6)
     }
 
     @Test
