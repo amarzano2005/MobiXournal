@@ -113,15 +113,15 @@ class CircuitGestureTest {
         assertEquals("p1 is caught", 160.0, caught.first().x, 1e-6)
         assertEquals(200.0, caught.first().y, 1e-6)
 
-        // 28 pt off p1: outside the 20 pt reach, inside the 30 pt hold.
-        val jitter = listOf(StrokePoint(132.0, 200.0, 1.0), StrokePoint(300.0, 300.0, 1.0))
+        // 15 pt off p1 at 100 %: outside the 12 pt reach, inside the 18 pt hold.
+        val jitter = listOf(StrokePoint(145.0, 200.0, 1.0), StrokePoint(300.0, 300.0, 1.0))
         val held = snapWireEnds(ShapeKind.LINE, jitter, page, scale = 1f, magnet = magnet)
         assertEquals("the end stays on the pin it caught", 160.0, held.first().x, 1e-6)
 
-        // 40 pt off: the hold lets go and the hand's own end is written.
-        val gone = listOf(StrokePoint(120.0, 200.0, 1.0), StrokePoint(300.0, 300.0, 1.0))
+        // 25 pt off: the hold lets go and the hand's own end is written.
+        val gone = listOf(StrokePoint(135.0, 200.0, 1.0), StrokePoint(300.0, 300.0, 1.0))
         val free = snapWireEnds(ShapeKind.LINE, gone, page, scale = 1f, magnet = magnet)
-        assertEquals(120.0, free.first().x, 1e-6)
+        assertEquals(135.0, free.first().x, 1e-6)
     }
 
     @Test

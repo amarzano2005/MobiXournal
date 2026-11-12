@@ -267,7 +267,12 @@ class CircuitSnappingTest {
      */
     @Test
     fun theMagnetKeepsOneReachOnScreenAtEveryZoom() {
-        assertEquals("at 100 % the reach is the fingertip on screen", 20.0, CircuitSnapping.thresholdFor(1f), 1e-6)
+        assertEquals(
+            "at 100 % the reach is the fingertip on screen",
+            CircuitSnapping.SNAP_REACH_PX,
+            CircuitSnapping.thresholdFor(1f),
+            1e-6,
+        )
         assertEquals(
             "zoomed in, the page-space reach shrinks so the screen one does not grow",
             CircuitSnapping.SNAP_REACH_PX,

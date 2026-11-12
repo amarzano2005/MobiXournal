@@ -28,8 +28,12 @@ object CircuitSnapping {
      * The magnet's reach in **screen** pixels: the distance it keeps at every zoom, so a pin is as easy
      * to aim at on a 20 % page as on a 400 % one. A reach fixed in page points is the thing that made
      * the magnet feel greedy when zoomed in — 14 pt is 56 px at 400 % — and shy when zoomed out.
+     *
+     * Twelve pixels is about a fingertip's own contact patch: far enough that a pen does not have to be
+     * exact, near enough that a pin beside the one aimed at is not caught instead. It used to be 20, which
+     * covered a thumb's width and made the target area feel like it swallowed every joint nearby.
      */
-    const val SNAP_REACH_PX: Double = 20.0
+    const val SNAP_REACH_PX: Double = 12.0
 
     /**
      * How much further than [SNAP_REACH_PX] a **caught** target keeps winning before the magnet lets go.
