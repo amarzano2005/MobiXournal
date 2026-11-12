@@ -52,22 +52,36 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     // while the selection is moving it, and are gone otherwise — a part merely selected marks nothing.
     val drawing = ink.current != null || ink.currentStrokes != null
     val drawingKind = if (drawing) shapeKind else null
-    val kind = drawingKind ?: if (gestures.moving) selectedFigureKind() else null
-    if (kind != null && CircuitElementFactory.isConnectorKind(kind)) drawTargetPins(canvas, kind)
-    // The inserted object's own pins are drawn only when the page holds something it could join
-    // (`FigurePins.hasCompany`): on a page with nothing compatible they are dots on empty paper.
-    drawingKind?.let { k ->
+    if (drawingKind != null) {
+        if (CircuitElementFactory.isConnectorKind(drawingKind)) drawTargetPins(canvas, drawingKind)
+        // The inserted object's own pins are drawn only when the page holds something it could join
+        // (`FigurePins.hasCompany`): on a page with nothing compatible they are dots on empty paper.
         val page = pageAt(ink.currentPage)
-        if (page != null && FigurePins.hasCompany(page, k)) drawPendingPins(canvas, k)
+        if (page != null && FigurePins.hasCompany(page, drawingKind)) drawPendingPins(canvas, drawingKind)
+        return
+    }
+    if (!gestures.moving) return
+    // A **move** marks what it could join, never its own pins, and nothing at all on a page that holds no
+    // compatible element — the same rule as the gesture that inserted it.
+    val movedKind = selectedFigureKind() ?: return
+    if (!CircuitElementFactory.isConnectorKind(movedKind)) return
+    val sel = selection ?: return
+    val page = pageAt(sel.pageIndex) ?: return
+    if (FigurePins.hasCompany(page, movedKind, exclude = sel.refs)) {
+        drawTargetPins(canvas, movedKind, exclude = sel.refs)
     }
 }
 
 /** The pins a connector [kind] could join, as the sheet draws them while the gesture is live. */
-private fun DrawingSurfaceView.drawTargetPins(canvas: Canvas, kind: ShapeKind) {
+private fun DrawingSurfaceView.drawTargetPins(
+    canvas: Canvas,
+    kind: ShapeKind,
+    exclude: Set<ElementRef> = emptySet(),
+) {
     val live = ink.current != null
     for (box in layout.visible(scrollY, height.toFloat())) {
         val page = pageAt(box.index) ?: continue
-        val targets = CircuitSnapping.gestureTargets(kind, page).orEmpty()
+        val targets = CircuitSnapping.gestureTargets(kind, page, exclude = exclude).orEmpty()
         for (target in targets) {
             val x = (target.absX * box.scale + box.leftPx - scrollX).toFloat()
             val y = (target.absY * box.scale + box.topPx - scrollY).toFloat()

@@ -77,12 +77,18 @@ object FigurePins {
      * dots are furniture on empty paper. A connector asks the matrix it aims with ([targets]); a drawn figure
      * is a target rather than a seeker, so what it asks for is a connector that can reach it.
      */
-    fun hasCompany(page: Page, kind: ShapeKind): Boolean {
+    fun hasCompany(
+        page: Page,
+        kind: ShapeKind,
+        /** Elements whose pins are the **actor** — a moved selection — so they are not company for it. */
+        exclude: Set<ElementRef> = emptySet(),
+    ): Boolean {
         val family = familyOf(kind) ?: return false
         return if (family == PinFamily.FIGURE) {
-            targets(page, PinFamily.WIRE).isNotEmpty() || targets(page, PinFamily.ARROW).isNotEmpty()
+            targets(page, PinFamily.WIRE, exclude = exclude).isNotEmpty() ||
+                targets(page, PinFamily.ARROW, exclude = exclude).isNotEmpty()
         } else {
-            targets(page, family).isNotEmpty()
+            targets(page, family, exclude = exclude).isNotEmpty()
         }
     }
 

@@ -219,8 +219,12 @@ object CircuitSnapping {
      * seeker's own end. Everything else — a rectangle, a bond, the chemist's ring — gets null, so free
      * ink is never pulled off the user's hand.
      */
-    fun gestureTargets(kind: ShapeKind, page: Page): List<PinTarget>? =
-        FigurePins.aimFamily(kind)?.let { FigurePins.targets(page, it) }
+    fun gestureTargets(
+        kind: ShapeKind,
+        page: Page,
+        /** Elements whose pins are the **actor** of the gesture, so never a target of it — a moved part. */
+        exclude: Set<ElementRef> = emptySet(),
+    ): List<PinTarget>? = FigurePins.aimFamily(kind)?.let { FigurePins.targets(page, it, exclude = exclude) }
 
     /**
      * Where the pins of the component being dragged from ([startX], [startY]) to ([endX], [endY])

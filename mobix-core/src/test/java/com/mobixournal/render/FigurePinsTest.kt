@@ -160,6 +160,20 @@ class FigurePinsTest {
         assertFalse("a part does not reach a closed figure", FigurePins.hasCompany(pageOf(figure(10.0, 10.0, 60.0, 60.0)), ShapeKind.RESISTOR))
     }
 
+    /** A **moved** element is the actor of its own drag: its own pins are never company for it. */
+    @Test
+    fun `a moved element marks nothing when it is all the page holds`() {
+        val alone = pageOf(wire(10.0, 10.0, 60.0, 10.0))
+        assertFalse(
+            "its own pins are not a target of its own move",
+            FigurePins.hasCompany(alone, ShapeKind.LINE, exclude = setOf(ElementRef(0, 0))),
+        )
+        val company = pageOf(wire(10.0, 10.0, 60.0, 10.0), wire(10.0, 40.0, 60.0, 40.0))
+        assertTrue(
+            FigurePins.hasCompany(company, ShapeKind.LINE, exclude = setOf(ElementRef(0, 0))),
+        )
+    }
+
     /** A drawn figure's pins are targets only: moving a rectangle offers no end to snap, as before. */
     @Test
     fun aMovedFigureHasNoMovingEnds() {

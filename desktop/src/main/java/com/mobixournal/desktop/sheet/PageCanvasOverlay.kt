@@ -29,6 +29,7 @@ import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.FigurePins
 import com.mobixournal.render.PinFamily
 import com.mobixournal.render.MagneticHighlighter
+import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
@@ -109,11 +110,20 @@ internal fun DrawScope.paintLiveOverlay(
     // are filled, because they are the targets it is about to mint. A part that was placed, then picked
     // up by the selection, keeps its pins marked: that is the moment the user drags it onto another pin,
     // and without the dots the magnet worked invisibly (the slot that placed it is gone).
+    // A **move** owns the marks it shows: with no stroke being drawn and no part being pulled out, whatever
+    // the selection arms marks its own pins — which are the actor's, never a target — so on a page with
+    // nothing else to join it marks nothing (`FigurePins.hasCompany`), the insertion gesture's own rule.
+    val actorRefs = if (drafts.all { it.isEmpty() } && previewLiving == null) {
+        selection?.refs.orEmpty()
+    } else {
+        emptySet()
+    }
     drawConnectionPins(
         page = page,
         markedKind = connectorKind ?: selectionConnectorKind(page, selection),
         previewLiving = previewLiving,
         pxPerPt = pxPerPt,
+        actorRefs = actorRefs,
     )
     // The selection's marching outline and its handles, above the ink: what is caught stays visible.
     // A single living element also wears its own grips (a figure's corners, a table's dividers).
@@ -226,10 +236,12 @@ internal fun DrawScope.drawConnectionPins(
     markedKind: ShapeKind?,
     previewLiving: Element?,
     pxPerPt: Float,
+    /** The elements the gesture is moving: their own pins are not marks of their own move. */
+    actorRefs: Set<ElementRef> = emptySet(),
 ) {
     if (markedKind == null) return
     val dot = PIN_DOT_PX / pxPerPt
-    val targets = CircuitSnapping.gestureTargets(markedKind, page).orEmpty()
+    val targets = CircuitSnapping.gestureTargets(markedKind, page, exclude = actorRefs).orEmpty()
     for (target in targets) {
         drawCircle(
             color = DesktopTheme.accent.copy(alpha = 0.85f),
