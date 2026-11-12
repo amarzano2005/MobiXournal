@@ -4,6 +4,7 @@ import android.view.MotionEvent
 import com.mobixournal.format.model.Page
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.min
 
 /**
  * Where a handle-resize gesture begins: the axis it scales, the corner or edge midpoint that stays fixed,
@@ -40,8 +41,6 @@ internal fun handleResizeStart(
     viewport: ViewportState,
     selection: ActiveSelection?,
     page: Page?,
-    /** The shaft when the selection is a single line or arrow; null for every other selection. */
-    shaft: SelectionShaft? = null,
 ): ResizeStart? {
     val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
     val boxWpx = (b.width * box.scale).toFloat()
@@ -58,21 +57,7 @@ internal fun handleResizeStart(
         val dist = hypot(startPtX - anchorX, startPtY - anchorY).coerceAtLeast(1e-3)
         return ResizeStart(axis, anchorX, anchorY, startPtX, startPtY, dist)
     }
-    // A line and an arrow are **not** figures: their shaft is the only thing a drag may change, so they
-    // wear two end handles and no corner or side — a diagonal line's box is a figure's box, and eight
-    // handles on it is what turned a length into a two-axis stretch. The uniform axis keeps the shaft's
-    // direction and the glyph's shape, so only the distance between the ends changes.
-    if (shaft != null) {
-        fun onEnd(hx: Float, hy: Float): Boolean =
-            abs(event.x - hx) <= pad && abs(event.y - hy) <= pad
-        val tailX = box.toViewX(shaft.tailX, viewport.scrollX)
-        val tailY = box.toViewY(shaft.tailY, viewport.scrollY)
-        if (onEnd(tailX, tailY)) return start(ResizeAxis.BOTH, shaft.tipX, shaft.tipY)
-        val tipX = box.toViewX(shaft.tipX, viewport.scrollX)
-        val tipY = box.toViewY(shaft.tipY, viewport.scrollY)
-        if (onEnd(tipX, tipY)) return start(ResizeAxis.BOTH, shaft.tailX, shaft.tailY)
-        return null
-    }
+
     // The corner handles: the anchor is the diagonally-opposite corner.
     if (!flatX && !flatY) {
         val cornersPt = arrayOf(b.left to b.top, b.right to b.top, b.right to b.bottom, b.left to b.bottom)
@@ -107,6 +92,42 @@ internal fun handleResizeStart(
         if (grabs(hx, hy)) return start(axis, anchor.first, anchor.second)
     }
     return null
+}
+
+/**
+ * The **length** drag a touch at ([event]) on one of a line's or an arrow's ends means, or null when it is
+ * on neither.
+ *
+ * Those two families are not figures: their shaft is the only thing a drag may change, so they wear two end
+ * handles and no corner or side — a diagonal line's box is a figure's box, and eight handles on it is what
+ * turned a length into a two-axis stretch. The dragged end follows the pointer and the far one is the
+ * anchor; the axis is uniform ([ResizeAxis.BOTH]), which keeps the shaft's direction and the glyph's shape
+ * and changes nothing but the distance between the ends.
+ *
+ * `SELECT_PAD_PX` is **zero** (the outline sits on the ink), so an end's grab radius is the touch radius,
+ * capped by a third of the shaft's own screen length: a short line keeps a middle to be carried by instead
+ * of both ends reaching across it.
+ */
+internal fun shaftResizeStart(
+    event: MotionEvent,
+    box: PageBox,
+    viewport: ViewportState,
+    shaft: SelectionShaft,
+): ResizeStart? {
+    val lenPx = (shaft.length * box.scale).toFloat()
+    val reach = min(DrawingSurfaceDefaults.HANDLE_HIT_PX, lenPx / 3f).coerceAtLeast(1f)
+    fun onEnd(x: Double, y: Double): Boolean =
+        abs(event.x - box.toViewX(x, viewport.scrollX)) <= reach &&
+            abs(event.y - box.toViewY(y, viewport.scrollY)) <= reach
+    val anchor = when {
+        onEnd(shaft.tailX, shaft.tailY) -> shaft.tipX to shaft.tipY
+        onEnd(shaft.tipX, shaft.tipY) -> shaft.tailX to shaft.tailY
+        else -> return null
+    }
+    val startPtX = box.toPtX(event.x, viewport.scrollX)
+    val startPtY = box.toPtY(event.y, viewport.scrollY)
+    val dist = hypot(startPtX - anchor.first, startPtY - anchor.second).coerceAtLeast(1e-3)
+    return ResizeStart(ResizeAxis.BOTH, anchor.first, anchor.second, startPtX, startPtY, dist)
 }
 
 /**

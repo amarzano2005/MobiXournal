@@ -233,6 +233,9 @@ internal class SelectionGestureController(
             }
         }
 
+        // A selected line or arrow: its two ends are its only handles, and they are asked first.
+        if (beginShaftResize(event, box)) return true
+
         // Rotate knob poking out midway from the right edge, offered only when every element is a stroke.
         if (isAllStrokes(sel)) {
             val midY = ((b.top + b.bottom) / 2 * box.scale + box.topPx - viewport.scrollY).toFloat()
@@ -268,8 +271,25 @@ internal class SelectionGestureController(
      * The handles themselves are [handleResizeStart]'s, together with the axis each one scales.
      */
     private fun beginHandleResize(event: MotionEvent, box: PageBox, b: Bounds, page: Page?): Boolean {
-        val shaft = selection?.let { shaftOfSelection(it) }
-        val start = handleResizeStart(event, box, b, viewport, selection, page, shaft) ?: return false
+        val start = handleResizeStart(event, box, b, viewport, selection, page) ?: return false
+        beginResize(start)
+        return true
+    }
+
+    /**
+     * Start the **length** drag of a selected line or arrow from one of its two ends; false when the press
+     * is on neither. Asked **before** the body, because a short shaft fills its own inset box and a move
+     * there would swallow the lengthening press.
+     */
+    private fun beginShaftResize(event: MotionEvent, box: PageBox): Boolean {
+        val shaft = selection?.let { shaftOfSelection(it) } ?: return false
+        val start = shaftResizeStart(event, box, viewport, shaft) ?: return false
+        beginResize(start)
+        return true
+    }
+
+    /** Latch a resize from its grab point: the axis, the end that stays, and the pointer's start. */
+    private fun beginResize(start: ResizeStart) {
         resizing = true
         snapshot()
         resizeAxis = start.axis
@@ -278,7 +298,6 @@ internal class SelectionGestureController(
         resizeStartPtX = start.startPtX
         resizeStartPtY = start.startPtY
         resizeStartDist = start.startDist
-        return true
     }
 
     /**

@@ -105,9 +105,9 @@ The window's selection is the tablet's, cut along the seam the core already had.
 (the straight box, or the freehand loop) which is painted as it is drawn, and the **lift** selects every
 element wholly inside it; a **press inside the live outline** acts on the selection instead of starting a
 new one — the body moves it, a **corner handle** scales it about the opposite corner, and the **handle above
-it** turns it about its centre (`Shift` snaps the turn to 15°). A **line** and an **arrow** are lengthened from
-either of their own ends: the two squares sit on the ink's ends rather than on the box's corners, so a diagonal
-line is lengthened like a horizontal one, and neither grows thicker; a press on the band above or below the ink
+it** turns it about its centre (`Shift` snaps the turn to 15°). A **line** and an **arrow** wear no outline at all: two
+squares on the ink's own ends and the turn ring are their whole selection, and dragging either square
+lengthens the drawing — a diagonal line like a horizontal one, and neither grows thicker; a press on the band above or below the ink
 carries it. Both paths recompute from the page **as it
 was at grab time**, so dragging back and forth cannot compound, and one drag is one edit and **one undo
 step**. `Delete` (or `Backspace`) removes what is caught, also as one step; `Esc` drops the outline before it
@@ -179,8 +179,9 @@ Images are living document elements (ImageElement) on the active layer:
   comfortably within the visible page bounds and recorded as a single undo step.
 - **Selection and aspect-ratio handles**:
   - Every selection — an image, ink, a living figure — wears the selection's eight handles: the four corner
-    squares and the four edge-midpoint ones. An image gives up only the rotate handle, matching the format's
-    unrotated image model.
+    squares and the four edge-midpoint ones, but for a line or an arrow, which carries its two length squares
+    and the turn ring and no box (see *Selecting, moving, resizing and turning*). An image gives up only the
+    rotate handle, matching the format's unrotated image model.
   - **Corner handles**: a figure's corner changes its proportions, as the tablet's does; a picture's (and a
     mixed selection's) keeps them, and **Shift** locks any corner to a uniform scale.
   - **Edge handles**: a side drag stretches only that axis (anchor is the opposite edge) — the choice between

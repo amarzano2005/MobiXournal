@@ -442,8 +442,12 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     val t = (b.top * box.scale + box.topPx - scrollY).toFloat() - DrawingSurfaceDefaults.SELECT_PAD_PX
     val r = (b.right * box.scale + box.leftPx - scrollX).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
     val bot = (b.bottom * box.scale + box.topPx - scrollY).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
-    canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
-    canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
+    // A line or an arrow shows **no box**: its two end dots and the turn knob are the whole of its
+    // selection, because a rectangle round a shaft promises eight handles the ink does not have.
+    if (gestures.shaftOfSelection(sel) == null) {
+        canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
+        canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
+    }
     drawSelectionHandleDots(canvas, sel, box, l, t, r, bot)
     // A move the magnet has caught: the pin it will join, lit while the hand is still down. Without it
     // the part jumps onto a target the user never saw, which is what made the magnet feel greedy.

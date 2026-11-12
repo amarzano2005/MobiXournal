@@ -421,7 +421,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
  * same arrow drawn longer, and a line keeps the width of its pen (`SelectionOps.scaleXY`). A selection that
  * is no longer a single connector (the page changed under the drag) is handed back untouched.
  */
-private fun shaftStretch(
+internal fun shaftStretch(
     original: Page,
     selection: PageSelection,
     handle: SelectionHandle,

@@ -79,7 +79,8 @@ works in Select mode (it abandons the in-progress selection gesture).
 
 The outline itself is drawn **exactly on the elements' ink box** (`SELECT_PAD_PX` = 0): a padded box
 claims more than the user picked, and the handles' hit radii are what make it grabbable, not an
-inflated rectangle. Beyond move/delete, the outline carries **eight resize handles**: the four
+inflated rectangle. Beyond move/delete, the outline carries **eight resize handles** — for every selection but a line or an
+arrow, which wear their two ends alone (below) — the four
 **corners** resize about the opposite corner, and the four **edge midpoints** stretch **one axis
 only** (`ResizeAxis.X` / `ResizeAxis.Y`, the pure `axisScaleFactor` measuring travel from the opposite
 edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion resize, so a drawing can be
@@ -92,7 +93,8 @@ because its model carries no rotation. Both shells cap a handle's reach **per ax
 extent, so a small element keeps a middle to be moved by.
 
 A **line** and an **arrow** are not figures with a box to stretch: they are a **shaft** with one degree of
-freedom, its length (`SelectionShaft`, answered by `shaftOf`). Both shells wear their two handles on the
+freedom, its length (`SelectionShaft`, answered by `shaftOf`). Neither shell draws a box round one — a
+rectangle would promise eight handles the ink does not have — and both wear their two handles on the
 shaft's own ends — the line's two ends, the arrow's tail and the tip of its head — wherever the bounding box's
 corners fall, so a diagonal line or any arrow is lengthened rather than widened: the dragged end follows the
 pointer, the far end stays, and the factor is uniform, which keeps the shaft's direction and the glyph's shape
