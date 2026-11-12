@@ -560,12 +560,12 @@ class CircuitSnappingTest {
     }
 
     /**
-     * **Two lines are not a joint.** A wire is a connector but not a terminal: the magnet exists to join
-     * a connector to a component, so a line dragged near another line's end keeps the hand's own
-     * translation — pulling them together joined strokes that were never a net.
+     * **A line joins another line's end.** As on Xnotes every figure carries pins (`FigurePins`), and a
+     * wire is one of the families that may reach another wire's ends: the joint a magnet makes is
+     * circuit↔line, circuit↔circuit or line↔line.
      */
     @Test
-    fun aMovedWireDoesNotJoinAnotherWiresEnd() {
+    fun aMovedWireJoinsAnotherWiresEnd() {
         val page = Page(
             width = 612.0,
             height = 792.0,
@@ -574,17 +574,16 @@ class CircuitSnappingTest {
                 Layer(listOf(wire(50.0, 50.0, 150.0, 50.0), wire(158.0, 52.0, 260.0, 52.0))),
             ),
         )
-        // The second wire's start is 8.2 pt from the first one's end — inside the 14 pt reach, so only
-        // the rule can keep the two apart.
+        // The second wire's start is 8.2 pt from the first one's end — inside the 14 pt reach.
         assertEquals(
-            "a wire's end is a target only for a component",
+            "the other wire's two ends are targets",
             2,
             CircuitSnapping.collectMoveTargets(page, setOf(ElementRef(0, 0)))
                 .count { it.pinId == CircuitSnapping.WIRE_END_PIN_ID },
         )
         val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 1)), 0.0, 0.0)
-        assertEquals("two lines stay two lines", 0.0, dx, 1e-6)
-        assertEquals(0.0, dy, 1e-6)
+        assertEquals("the end lands on the other wire's end", -8.0, dx, 1e-6)
+        assertEquals(-2.0, dy, 1e-6)
     }
 
     /**

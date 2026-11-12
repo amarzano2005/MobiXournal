@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import android.graphics.Canvas
+import com.mobixournal.format.model.CircuitElement
 import kotlin.math.hypot
 
 /** Radius of a connection point's ring, in view px. */
@@ -47,18 +48,16 @@ private const val WIRE_END_PIN = "wire-end"
  * connect, so ordinary ink and shapes are unaffected.
  */
 internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
-    val kind = shapeKind ?: selectedCircuitKind() ?: return
+    val kind = shapeKind ?: selectedFigureKind() ?: return
     if (!CircuitElementFactory.isConnectorKind(kind)) return
     val live = ink.current != null
-    // A component tool also offers the ends of the wires already drawn; the line tool only pins.
-    val marksWireEnds = CircuitElementFactory.isCircuitKind(kind)
     for (box in layout.visible(scrollY, height.toFloat())) {
         val page = pageAt(box.index) ?: continue
         val targets = CircuitSnapping.gestureTargets(kind, page).orEmpty()
         for (target in targets) {
             val x = (target.absX * box.scale + box.leftPx - scrollX).toFloat()
             val y = (target.absY * box.scale + box.topPx - scrollY).toFloat()
-            if (marksWireEnds && target.pinId == WIRE_END_PIN) {
+            if (target.isWireEnd) {
                 canvas.drawRect(x - WIRE_END_PX, y - WIRE_END_PX, x + WIRE_END_PX, y + WIRE_END_PX, chrome.handleArm)
             } else if (live && caughtByGesture(target)) {
                 canvas.drawCircle(x, y, PIN_CAUGHT_PX, chrome.handle)
@@ -71,15 +70,25 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
 }
 
 /**
- * The symbol of the **selected** single component, or null — the marks it arms while it is picked up.
+ * The kind a **selected** single figure arms, or null — the marks its move shows.
  *
- * The selection tool is how a part placed a moment ago is moved onto a wire it must meet, and the
- * gesture aims at the same targets a component being drawn does; without a kind here those targets had
- * no mark at all, so the joint could only be guessed at.
+ * As on Xnotes every figure carries pins, and the selection tool is how a figure placed a moment ago is
+ * moved onto what it must meet: a part joined to wires and parts, a line to parts and lines, an arrow to
+ * every figure ([FigurePins.aimsAt]). Without a kind here those targets had no mark at all, so the joint
+ * could only be guessed at.
  */
-private fun DrawingSurfaceView.selectedCircuitKind(): ShapeKind? {
-    val symbol = singleSelectedCircuit()?.symbol ?: return null
-    return ShapeKind.entries.firstOrNull { it.name == symbol }
+private fun DrawingSurfaceView.selectedFigureKind(): ShapeKind? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val page = pageAt(sel.pageIndex) ?: return null
+    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return null
+    return when (FigurePins.familyOf(element)) {
+        PinFamily.CIRCUIT -> ShapeKind.entries.firstOrNull { it.name == (element as CircuitElement).symbol }
+        PinFamily.WIRE -> ShapeKind.LINE
+        PinFamily.ARROW -> ShapeKind.ARROW
+        else -> null
+    }
 }
 
 /**

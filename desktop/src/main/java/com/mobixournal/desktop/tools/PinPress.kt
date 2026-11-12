@@ -8,6 +8,8 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.ElementRef
+import com.mobixournal.render.FigurePins
+import com.mobixournal.render.PinFamily
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionTester
 import com.mobixournal.render.ShapeKind
@@ -78,8 +80,13 @@ internal fun pressesOwnPin(element: Element?, x: Double, y: Double, radiusPt: Do
  */
 internal fun selectionConnectorKind(page: Page, selection: PageSelection?): ShapeKind? {
     val ref = selection?.takeIf { it.refs.size == 1 }?.refs?.first() ?: return null
-    val part = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? CircuitElement
-        ?: return null
-    return ShapeKind.entries.firstOrNull { it.name == part.symbol }
-        ?.takeIf { CircuitElementFactory.isConnectorKind(it) }
+    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return null
+    // Every figure carries pins as on Xnotes, so a selected **wire** or **arrow** marks the same set a
+    // gesture of its kind would: the line's ends, the arrow's tail and tip (`FigurePins`).
+    return when (FigurePins.familyOf(element)) {
+        PinFamily.CIRCUIT -> ShapeKind.entries.firstOrNull { it.name == (element as CircuitElement).symbol }
+        PinFamily.WIRE -> ShapeKind.LINE
+        PinFamily.ARROW -> ShapeKind.ARROW
+        else -> null
+    }?.takeIf { CircuitElementFactory.isConnectorKind(it) }
 }

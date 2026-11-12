@@ -244,21 +244,21 @@ it replaced, `labelBelow: true` is still read. The keyboard is capped at 480 dp 
 tablet — and sits clear of the gesture bar, the panel above laid out against the space it leaves.
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
-net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:
-a wire drawn with the line tool and a component being placed or moved are pulled onto a nearby **pin**.
-While a connector is armed — or a single component is selected, since a picked-up part aims at the same
-pins — every pin and every wire's end is marked (a ring, a square for a wire's end; the pin the live
-gesture has caught fills in), so the target can be seen before the gesture starts. The reach is `SNAP_REACH_PX` **screen**
-pixels at every zoom (`thresholdFor`): a fixed number of page points grew into a finger's width on a
-zoomed-in page, which is what made the magnet feel greedy. A caught target holds to
-`SNAP_RELEASE_RATIO` × that reach — `PinMagnet` for a moved selection, `EndsMagnet` for the two ends of a
-wire being drawn or a part being placed — so nothing flickers on the edge of it, and each caught pin is
-lit while the hand is still down, so the join is seen before the release.
+net a pin is snapped to and is omitted for a floating pin. **Every figure carries pins**, as on Xnotes:
+a component's terminals, a wire's two ends, an arrow's tail and tip (`FigurePins`), and what a gesture
+marks is exactly what it may join — a **circuit** reaches wires, a **wire** reaches parts and wires, an
+**arrow** reaches every figure. A connector tool, or a single figure selected for a move, marks that set
+(a ring per pin, a square per figure end, filled for the target the live gesture has caught), so the
+target is seen before the gesture starts. The reach is `SNAP_REACH_PX` **screen** pixels at every zoom
+(`thresholdFor`): a fixed number of page points grew into a finger's width on a zoomed-in page, which is
+what made the magnet feel greedy. A caught target holds to `SNAP_RELEASE_RATIO` × that reach —
+`PinMagnet` for a moved selection, `EndsMagnet` for the two ends of a wire or arrow being drawn, or a
+part being placed — so nothing flickers, and each caught pin is lit while the hand is still down.
 
-A **component being placed** aims at one more thing: the ends of the **wires already on the page**
-(`collectPlacementTargets`) — a pin meeting a wire's end, seen from the other side, so a wire drawn before
-the part it feeds still meets it. Only a wire's ends are offered, and only to a component; the line tool aims
-at pins alone and a pen stroke is never a target, so drawing beside a line never wires anything. A **wire being moved** is held to that same rule — it aims at pins, never at another wire's end — so a joint the magnet makes is always circuit↔line or circuit↔circuit, and two lines beside each other stay two lines.
+A **component being placed** aims at the ends of the **wires already on the page** too
+(`collectPlacementTargets`) — a pin meeting a wire's end, seen from the other side — and a wire aims at
+another wire's end, so a chain of segments is one net. A pen stroke that is neither is never a target: an
+arrow's own ends are offered only to an arrow, which is the one figure that reaches every family.
 
 Placing a component is also the one gesture whose **own** pins are drawn while it is still under the
 stylus: `previewTargets` runs the factory's placement rule on the live drag, so the rings the user lines

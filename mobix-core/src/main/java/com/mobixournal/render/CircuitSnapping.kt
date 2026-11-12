@@ -74,10 +74,11 @@ object CircuitSnapping {
         val net: String?,
     ) {
         /**
-         * True when this target is a **wire's end** rather than a component's pin.
+         * True when this target is a **figure's end** — a wire's, or an arrow's — rather than a
+         * component's pin.
          *
-         * Only a component may join one (`snapTranslation`): a line is a connector, but it is not a
-         * terminal, so two lines are never pulled together.
+         * Which figures may join one is [FigurePins.aimsAt]'s rule: a component and a wire may, and only
+         * an arrow may join another arrow's ends.
          */
         val isWireEnd: Boolean get() = pinId == WIRE_END_PIN_ID
     }
@@ -186,31 +187,8 @@ object CircuitSnapping {
         /** The box the moved pins are sweeping, as in [collectAllTargets] — far elements are skipped. */
         near: Bounds? = null,
     ): List<PinTarget> {
-        val out = mutableListOf<PinTarget>()
-        page.layers.forEachIndexed { layerIndex, layer ->
-            layer.elements.forEachIndexed { elementIndex, element ->
-                if (ElementRef(layerIndex, elementIndex) in refs) return@forEachIndexed
-                when (element) {
-                    is CircuitElement -> {
-                        if (element.pins.isEmpty()) return@forEachIndexed
-                        if (near != null && !circuitEnvelope(element).intersects(near)) return@forEachIndexed
-                        for (pin in element.pins) {
-                            val (x, y) = pinAbsolutePosition(element, pin)
-                            out += PinTarget(element.id, pin.id, x, y, pin.connectedTo)
-                        }
-                    }
-                    is Stroke -> if (isWire(element)) {
-                        if (near != null && !wireEnvelope(element).intersects(near)) return@forEachIndexed
-                        val first = element.points.first()
-                        val last = element.points.last()
-                        out += PinTarget(null, WIRE_END_PIN_ID, first.x, first.y, null)
-                        out += PinTarget(null, WIRE_END_PIN_ID, last.x, last.y, null)
-                    }
-                    else -> Unit
-                }
-            }
-        }
-        return out
+        val actor = FigurePins.moveActor(page, refs) ?: return emptyList()
+        return FigurePins.targets(page, actor, exclude = refs, near = near)
     }
 
     /**
@@ -225,20 +203,7 @@ object CircuitSnapping {
      * any ink lying beside it.
      */
     fun collectPlacementTargets(page: Page): List<PinTarget> {
-        val pins = collectAllTargets(page)
-        val wires = buildList {
-            for (layer in page.layers) {
-                for (element in layer.elements) {
-                    val stroke = element as? Stroke ?: continue
-                    if (!isWire(stroke)) continue
-                    val first = stroke.points.first()
-                    val last = stroke.points.last()
-                    add(PinTarget(null, WIRE_END_PIN_ID, first.x, first.y, null))
-                    add(PinTarget(null, WIRE_END_PIN_ID, last.x, last.y, null))
-                }
-            }
-        }
-        return pins + wires
+        return FigurePins.targets(page, PinFamily.CIRCUIT)
     }
 
     /**
@@ -250,11 +215,8 @@ object CircuitSnapping {
      * seeker's own end. Everything else — a rectangle, a bond, the chemist's ring — gets null, so free
      * ink is never pulled off the user's hand.
      */
-    fun gestureTargets(kind: ShapeKind, page: Page): List<PinTarget>? = when {
-        CircuitElementFactory.isCircuitKind(kind) -> collectPlacementTargets(page)
-        CircuitElementFactory.isConnectorKind(kind) -> collectAllTargets(page)
-        else -> null
-    }
+    fun gestureTargets(kind: ShapeKind, page: Page): List<PinTarget>? =
+        FigurePins.familyOf(kind)?.let { FigurePins.targets(page, it) }
 
     /**
      * Where the pins of the component being dragged from ([startX], [startY]) to ([endX], [endY])
@@ -448,7 +410,7 @@ object CircuitSnapping {
     }
 
     /** One end of the moved selection, at the position it had when the drag began. */
-    private class MovingEnd(val x: Double, val y: Double, val fromWire: Boolean)
+    private class MovingEnd(val x: Double, val y: Double)
 
     /** A moved end put on a target: the translation that does it, and the target it joined. */
     private class Alignment(val dx: Double, val dy: Double, val target: PinTarget)
@@ -460,11 +422,11 @@ object CircuitSnapping {
             when (val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)) {
                 is CircuitElement -> for (pin in element.pins) {
                     val (x, y) = pinAbsolutePosition(element, pin)
-                    out += MovingEnd(x, y, fromWire = false)
+                    out += MovingEnd(x, y)
                 }
-                is Stroke -> if (isWire(element)) {
-                    out += MovingEnd(element.points.first().x, element.points.first().y, fromWire = true)
-                    out += MovingEnd(element.points.last().x, element.points.last().y, fromWire = true)
+                // A wire's ends and an arrow's tail and tip are the pins a move can land on.
+                is Stroke -> if (FigurePins.familyOf(element) != null) {
+                    for ((x, y) in FigurePins.ends(element)) out += MovingEnd(x, y)
                 }
                 else -> Unit
             }
@@ -486,7 +448,6 @@ object CircuitSnapping {
             val candX = end.x + rawDx
             val candY = end.y + rawDy
             for (target in targets) {
-                if (end.fromWire && target.isWireEnd) continue
                 val dist = hypot(candX - target.absX, candY - target.absY)
                 if (dist <= bestDist) {
                     bestDist = dist

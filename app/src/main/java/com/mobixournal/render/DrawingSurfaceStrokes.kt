@@ -445,12 +445,15 @@ private fun DrawingSurfaceView.snappedShapePoint(
 }
 
 private fun DrawingSurfaceView.magnetised(pts: List<StrokePoint>, shaping: Boolean): List<StrokePoint> {
-    if (!shaping || shapeKind?.let(CircuitElementFactory::isConnectorKind) != true) return pts
+    val kind = shapeKind ?: return pts
+    if (!shaping || !CircuitElementFactory.isConnectorKind(kind)) return pts
     val page = pageAt(ink.currentPage) ?: return pts
     val scale = layout.boxes.getOrNull(ink.currentPage)?.scale ?: 1f
-    return CircuitSnapping.snapStrokeEndpoints(
-        pts, CircuitSnapping.collectAllTargets(page),
-        thresholdPt = CircuitSnapping.thresholdFor(scale),
+    // The figure's own pins — a wire's ends, an arrow's tail and tip — onto the pins the kind's marks
+    // show, so what the preview promised is what the lift writes (`FigurePins`).
+    return FigurePins.snapEnds(
+        pts, kind, CircuitSnapping.gestureTargets(kind, page).orEmpty(),
+        CircuitSnapping.thresholdFor(scale),
     )
 }
 

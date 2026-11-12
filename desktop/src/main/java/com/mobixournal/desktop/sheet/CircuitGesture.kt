@@ -14,6 +14,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.EndsMagnet
+import com.mobixournal.render.FigurePins
 import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.ShapeKind
 
@@ -241,13 +242,9 @@ internal fun snapWireEnds(
     magnet: EndsMagnet? = null,
 ): List<com.mobixournal.format.model.StrokePoint> {
     if (page == null || points.size < 2 || !CircuitElementFactory.isConnectorKind(kind)) return points
-    val reach = CircuitSnapping.thresholdFor(scale)
-    val targets = CircuitSnapping.collectAllTargets(page)
-    if (magnet == null) return CircuitSnapping.snapStrokeEndpoints(points, targets, thresholdPt = reach)
-    val (sx, sy) = magnet.snapStart(points.first().x, points.first().y, targets, reach)
-    val (ex, ey) = magnet.snapEnd(points.last().x, points.last().y, targets, reach)
-    val out = points.toMutableList()
-    out[0] = points.first().copy(x = sx, y = sy)
-    out[out.lastIndex] = points.last().copy(x = ex, y = ey)
-    return out
+    // The targets are the ones the kind's own marks show (`FigurePins`): a wire joins parts and wires, an
+    // arrow joins every figure — and the ends moved are the figure's own pins, not its first and last
+    // vertex (a head repeats its tip).
+    val targets = CircuitSnapping.gestureTargets(kind, page).orEmpty()
+    return FigurePins.snapEnds(points, kind, targets, CircuitSnapping.thresholdFor(scale), magnet)
 }

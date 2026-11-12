@@ -54,7 +54,8 @@ object CircuitElementFactory {
      * — a rectangle, a chemistry bond, a recognised freehand figure — is free ink and must never be
      * pulled off the user's hand onto a nearby pin.
      */
-    fun isConnectorKind(kind: ShapeKind): Boolean = kind == ShapeKind.LINE || isCircuitKind(kind)
+    fun isConnectorKind(kind: ShapeKind): Boolean =
+        kind == ShapeKind.LINE || kind == ShapeKind.ARROW || kind == ShapeKind.DOUBLE_ARROW || isCircuitKind(kind)
 
     /**
      * Emits canonical pin anchors in unrotated page coordinates relative to the component center.

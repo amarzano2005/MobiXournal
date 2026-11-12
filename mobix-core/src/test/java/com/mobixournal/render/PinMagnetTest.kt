@@ -137,16 +137,18 @@ class PinMagnetTest {
         assertEquals("right", magnet.caught[1]?.pinId)
     }
 
-    /** A wire is a connector, not a terminal: two lines dragged near each other stay two lines. */
+    /** Every figure carries pins: a wire dragged onto another wire's end is pulled onto it. */
     @Test
-    fun aMovedWireNeverJoinsAnotherWiresEnd() {
+    fun aMovedWireJoinsAnotherWiresEnd() {
         val page = pageOf(wire(170.0, 100.0, 250.0, 100.0), wire(100.0, 100.0, 150.0, 100.0))
         val magnet = PinMagnet()
 
+        // The second wire's end sits at (160, 100) after a 10 pt move — 10 pt short of the other wire's
+        // start (170, 100), inside the reach, so only the magnet can close the last 10 pt.
         val (dx, dy) = magnet.translation(page, setOf(ElementRef(0, 1)), 10.0, 0.0, reach)
-        assertEquals("the end is 10 pt from the other wire's end and still not caught", 10.0, dx, 1e-9)
+        assertEquals("the end lands on the other wire's end", 20.0, dx, 1e-9)
         assertEquals(0.0, dy, 1e-9)
-        assertNull(magnet.caught)
+        assertEquals(CircuitSnapping.WIRE_END_PIN_ID, magnet.caught?.pinId)
     }
 
     /**
