@@ -62,7 +62,9 @@ class SourceStructureTest {
         "ui/AppSettings.kt" to 1019,
         // +2 beyond the budget: the same switch handed to the canvas, whose hold lives in `HoldSnap`
         // (`holdSnap.enabled`) rather than in a mutable member on the view.
-        "ui/EditorScreen.kt" to 702,
+        // +3 deliberate: the **Export As** card's three answers, passed through the screen to the overlays
+        // that host it — the card's flag is the screen's, so its commands have to reach that far.
+        "ui/EditorScreen.kt" to 705,
         // The two that carry the window's half of auto save, one deliberate line each over the budget: a stored
         // boolean in the settings file, and the state that the Documents switch and the quiet job both read.
         // The rule itself lives in `mobix-core` (`io/AutoSavePolicy.kt`), not here.

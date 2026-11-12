@@ -59,6 +59,10 @@ fun BoxScope.EditorOverlays(
     currentSaveFormat: () -> SaveFormat,
     currentSaveName: () -> String,
     onSaveAs: (filename: String, format: SaveFormat) -> Unit,
+    /** The **Export As** card's answers: the page as a raster, as a vector, or the notebook as `.pmobix`. */
+    onExportPagePng: () -> Unit = {},
+    onExportPageSvg: () -> Unit = {},
+    onSavePortableCopy: () -> Unit = {},
     /** What the last `.xopp` export could not draw; empty is the normal case (see [ExportGapsDialog]). */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
@@ -121,6 +125,13 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showSaveAs = false },
         )
     }
+    ExportAsHost(
+        open = ui.exportAsOpen,
+        onPng = onExportPagePng,
+        onSvg = onExportPageSvg,
+        onPortable = onSavePortableCopy,
+        onDismiss = { ui.exportAsOpen = false },
+    )
     DialogPresence(exportGaps.isNotEmpty()) {
         // Held so the gaps the dialog lists stay put for the closing animation: the caller clears the
         // list the moment the user acknowledges it.

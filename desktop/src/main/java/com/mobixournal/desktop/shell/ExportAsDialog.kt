@@ -74,11 +74,9 @@ private fun ExportAnswerRow(title: String, note: String, onPick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .hoverFill(
-                DesktopTheme.railSlotShape,
-                active = true,
-                base = DesktopTheme.activeSlot,
-            )
+            // The light follows the row's shape and nothing is *picked* here: an answer is a command, so
+            // the row is lit by the pointer alone (never the steel the picked tools wear).
+            .hoverFill(DesktopTheme.railSlotShape)
             .pointerInput(title) { detectTapGestures { onPick() } }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,

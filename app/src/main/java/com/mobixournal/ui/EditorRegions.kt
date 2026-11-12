@@ -363,6 +363,8 @@ fun EditorTopBar(
                     onExportPagePng = onExportPagePng,
                     onExportPageSvg = onExportPageSvg,
                     onSavePortableCopy = onSavePortableCopy,
+                    // The card is the screen's, not the panel's: a menu's window dies with the menu.
+                    onExportAs = { ui.exportAsOpen = true },
                     onSettings = { ui.showSettings = true },
                     penDiagnostics = ui.penDiagnostics,
                     onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },

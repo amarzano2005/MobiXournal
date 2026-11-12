@@ -60,6 +60,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showSettings by mutableStateOf(false)
     /** Whether the Save As dialog is showing. */
     var showSaveAs by mutableStateOf(false)
+    /** Whether the hamburger's **Export As** card is showing — one question, three answers. */
+    var exportAsOpen by mutableStateOf(false)
     /** Whether the Scalene triangle angles customization dialog is showing. */
     var showScaleneAnglesDialog by mutableStateOf(false)
     /** Whether the Scalene trapezoid angles customization dialog is showing. */
