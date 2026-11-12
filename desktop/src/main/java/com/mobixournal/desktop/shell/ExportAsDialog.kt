@@ -56,7 +56,7 @@ internal fun ExportAsDialog(
             ExportAnswerRow("PNG", "One raster image per page, 2 px per point.", onPng)
             ExportAnswerRow("SVG", "One vector file per page.", onSvg)
             ExportAnswerRow(
-                "Portable Mobix (.pmobix)",
+                "Portable MobiXournal (.pmobix)",
                 "The notebook as one file, with what it only names embedded.",
                 onPortable,
             )
