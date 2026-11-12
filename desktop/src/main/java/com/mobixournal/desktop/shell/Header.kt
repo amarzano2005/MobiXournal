@@ -126,7 +126,7 @@ internal fun Header(
     ) {
         HeaderMenu(
             sidebarVisible = sidebarVisible,
-            canSave = tab?.isDirty == true,
+            canSave = tab?.canSave == true,
             canExport = tab != null,
             onNew = onNew,
             onOpen = onOpen,
@@ -171,7 +171,7 @@ internal fun Header(
 private fun HeaderFileCommands(tab: DesktopTab?, onSave: () -> Unit, onExportPdf: () -> Unit) {
     HeaderGlyph(
         active = false,
-        enabled = tab?.isDirty == true,
+        enabled = tab?.canSave == true,
         colour = DesktopTheme.accent,
         onClick = onSave,
     ) { color -> drawChromeGlyph(ChromeGlyph.SAVE, color) }

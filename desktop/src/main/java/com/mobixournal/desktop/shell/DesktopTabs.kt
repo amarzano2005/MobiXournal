@@ -413,6 +413,16 @@ class DesktopTab(
         forgetHistory(dirty)
     }
 
+    /**
+     * Whether **Save** has anything to do: the file is behind the page, or there is no file yet.
+     *
+     * The header's glyph, the menu's tile and the key ask this one question, so what a reader can press is what
+     * will do something — a document already on disk and unedited greys out instead of being written again for
+     * nothing, and a read-only document never offers to write at all. A tab that has **no** file stays enabled:
+     * saving it is what asks where it lives (`saveOrPick`).
+     */
+    val canSave: Boolean get() = !document.readOnly && (unsaved || isDirty)
+
     /** The identity two opens of the same document share — the absolute path, not the label. */
     val key: String get() = DesktopTabs.keyOf(document.file)
 
