@@ -73,10 +73,7 @@ private fun ExportAsDialog(
         title = { Text("Export As") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "What should be written?",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text("Format", style = MaterialTheme.typography.labelMedium)
                 FormatOption(
                     selected = picked == ExportAnswer.PNG,
                     title = "PNG",

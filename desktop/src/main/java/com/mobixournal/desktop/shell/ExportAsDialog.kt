@@ -48,13 +48,10 @@ internal fun ExportAsDialog(
 ) {
     Column(Modifier.width(420.dp).glassSpring().glassSurface().padding(18.dp)) {
         Text("Export As", color = DesktopTheme.ink, style = DesktopTheme.title)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "The page as a raster or a vector, or the notebook as the one file that carries what it names.",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.body,
-        )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(8.dp))
+        // The card asks one thing, so it says one thing: the answers under this word are the formats.
+        Text("Format", color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
+        Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             ExportAnswerRow("PNG", "One raster image per page, 2 px per point.", onPng)
             ExportAnswerRow("SVG", "One vector file per page.", onSvg)

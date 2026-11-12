@@ -80,7 +80,7 @@ private val TEXT_FAMILIES = listOf("Sans", "Serif", "Monospace")
  * The name is **not** typed here. The system's save picker on the next step asks for it and opens with
  * this one already in its field, so a text field on this card was the same question put twice — and the
  * second answer always won, which made the first one a decoy. The card asks the one thing the picker
- * cannot: the format.
+ * cannot: the format, under a `Format` subtitle and nothing else.
  */
 @Composable
 fun SaveAsDialog(
@@ -98,10 +98,6 @@ fun SaveAsDialog(
         title = { Text("Save As") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "“$initialName” is the name the picker opens with, and you can change it there.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
                 Text("Format", style = MaterialTheme.typography.labelMedium)
                 FormatOption(
                     selected = picked == SaveFormat.ORIGINAL,
