@@ -25,6 +25,42 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "a-dragged-corner-takes-no-rails"
+title = "A dragged corner goes where the finger is, with no invisible rails"
+description = "A corner under the hand is the hand's. SelectionGestureController (tablet) drops the direction constraint from a vertex drag, so a recognised polygon's corner lands exactly where the pointer is, and the window's LivingGrips and SelectionGesture keep the 0/30/45/90 constraint only for a drag with Shift held, where it is a request rather than a surprise. Docs: docs/function-plots.md and docs/mobix-living-entities.md. Tests: LivingGripsTest holds both answers, and the desktop class runs green in the JVM suite."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-12
+completed = 2026-11-12
+tags = []
+design = "states: a drag has two answers on the window, free by default and constrained with Shift held, and one on the tablet, free, where the corner follows the pointer; parity: the two shells agree that no constraint is applied unless it was asked for, which is the bug this closed; docs: docs/function-plots.md and docs/mobix-living-entities.md say when the constraint applies in the same change; tests: LivingGripsTest holds the free corner and the Shift-held one"
+
+[[task]]
+id = "figure-recognition-one-answer"
+title = "One recognition question, and one answer the sheet can hold"
+description = "Settings ▸ Figures now asks one question. mobix-core/render/ShapeRecognition.kt is the single answer the sheet is handed, Off, Automatic (at the lift) or On hold, with the labels on the enum so the tablet and the window name the three the same way. Tablet ui/ShapeRecognitionSetting.kt maps the answer onto the two stored flags (recognize_shapes and recognize_on_hold) and writes them together, the window does the same through FigureChoices and FiguresSettings (figure.recognizeShapes and figure.recognizeOnHold), and whichever answer is switched on switches the other off, so the illegal pair cannot be represented and a settings file that stores both is read as the lift one. CanvasHoldSnap and DrawingSurfaceView take the value instead of two booleans, and the window's PageCanvas, PageInkGesture, PageSheet and PagePressTargets follow. The row reads Snap when, with a subtitle that no longer starts on the same word. Docs: docs/shape-perfection-engine.md and docs/drawing-tools.md. Tests: ShapeRecognitionSettingTest (new), DesktopShapeRecognitionTest and DesktopDwellTest, with :app:testDebugUnitTest and :mobix-core:test green."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-12
+completed = 2026-11-12
+tags = []
+design = "copy: one row that reads Snap when, with Off, Automatic and On hold, and a subtitle that does not repeat the heading; parity: one enum names the three answers and one value reaches the sheet on both shells, so the tablet cannot offer a state the window's recogniser cannot hold; docs: docs/shape-perfection-engine.md and docs/drawing-tools.md state the row and the stored flags in the same change; tests: ShapeRecognitionSettingTest holds the mapping and the mutual exclusion, DesktopShapeRecognitionTest and DesktopDwellTest the window's side"
+
+[[task]]
+id = "figure-pins-one-magnet"
+title = "Pins on every figure, and one magnet both shells read"
+description = "Shipped one rule for both shells. mobix-core/render/FigurePins.kt (new, pure geometry, no Android types) answers which figure joins which and where its pins sit: the CIRCUIT, WIRE, ARROW and FIGURE families, the gesture-to-marks matrix (a circuit marks its parts' pins and wires, a wire marks parts, wires and drawn figures, an arrow marks every figure, and a drawn figure is a target only), corners and side midpoints on a polygon up to twelve vertices and eight points on a dense outline, an arrow attaching by its tip with pins that never move on a resize, and familyOf for a shape kind. CircuitSnapping keeps the single magnet and gained a fingertip reach plus a release ratio, so a mark does not flicker under the hand. Tablet: CircuitPinOverlay marks the pins only while a gesture that could join them is in hand, marks nothing when the page holds nothing to join, marks an inserted element's own pins only when the page can join them, and now marks a selected component's move targets as the window always did; SelectionGestureController, CanvasShapeDraft and DrawingSurfaceStrokes hold the caught pin across the drag and light it while the ends are drawn. Window: PageCanvasOverlay, PageSheetPaint, CircuitGesture, PinPress, SelectionGesture and PageCanvasInput answer the same marks from the same matrix. Docs: docs/mobix-living-entities.md states the matrix, the one magnet and the reach, docs/desktop-workstation.md the window's side. Tests: FigurePinsTest (new), CircuitSnappingTest, CircuitGestureTest, LivingGripsTest, with :mobix-core:test and :app:testDebugUnitTest green and the targeted desktop classes green."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-12
+completed = 2026-11-12
+tags = []
+design = "material: no new surface, a pin is a mark on the page's own overlay in both shells, drawn over the page and never as chrome; tokens: the window's marks and the caught pin are DesktopTheme.accent, the tablet's ink is handed in by the shell, and no literal was added; states: a pin has three answers, offered while a gesture that may join is in hand, caught and drawn larger while the hand is down, and absent when the page holds nothing to join; parity: both shells ask FigurePins and CircuitSnapping for the same matrix, which closes the bug where the window drew a selected part's targets and the tablet drew nothing; docs: docs/mobix-living-entities.md and docs/desktop-workstation.md state the matrix and the reach in the same change; tests: FigurePinsTest holds every family and the matrix, CircuitSnappingTest the reach, CircuitGestureTest and LivingGripsTest the window's answers"
+
+[[task]]
 id = "menu-export-as-card"
 title = "One Export As door, one card, a name the reader can read"
 description = "Shipped on both shells from one glyph and one question. Tablet: EditorOverflowMenu carries a single Export As chip (ChromeGlyph.EXPORT); it closes the panel and raises ExportAsDialog (ui/ExportAsDialog.kt), hosted by EditorOverlays through ExportAsHost on EditorUiState.exportAsOpen — so the card outlives the menu's window, arrives and leaves on FloatingDialog + DialogPresence, and asks its three answers as FormatOption radio rows (PNG, SVG, Portable Mobix (.pmobix)) with one Export button, the way Save As and Import PDF ask. Window: MenuPanel's Export As chip raises ExportAsDialog (desktop/shell/ExportAsDialog.kt) in ExportAsHost, the glass card beside ImportPdfHost, its rows lit by the pointer (hoverFill, no picked steel: an answer is a command). ChromeGlyph.EXPORT is a new entry in mobix-core's ChromeGlyphCatalogue (Material's ios_share path), so no shell hand-draws a mark. MainActivityPortableCopy and PortableCopyCommand keep writing the .pmobix container; the Save As card (ui/EditorDialogs.kt SaveAsDialog) no longer has a File name field — it states the name the system picker opens with and asks only the format, confirming with the document's own name. Docs: docs/chrome.md, docs/desktop-workstation.md, docs/mobix-assets.md, README.md (back under its 1400-word budget), docs/guide-first-notebook.md. Tests: DesktopMenuTest counts Export As as one door; SourceStructureTest ceilings raised deliberately for DesktopShell.kt (741), ui/EditorScreen.kt (705) and the two long functions carrying the extra command; :app:testDebugUnitTest 1572 green, :mobix-core:test green, desktop DesktopPortableCopyTest/LivingGripsTest green; DesktopMenuTest compiles but cannot run here (Skiko has no libfontconfig in this VM). APK and desktop distributable rebuilt."
