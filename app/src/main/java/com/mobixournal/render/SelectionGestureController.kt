@@ -253,7 +253,7 @@ internal class SelectionGestureController(
             box.toViewX(b.right, viewport.scrollX), box.toViewY(b.bottom, viewport.scrollY),
             box.scale,
         )
-        if (!inBody && beginHandleResize(event, box, b)) return true
+        if (!inBody && beginHandleResize(event, box, b, page)) return true
         // Inside the outline: move.
         if (b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY))) {
             beginMove(event, box)
@@ -265,62 +265,19 @@ internal class SelectionGestureController(
     /**
      * Start the resize a touch at ([event]) on one of [b]'s eight handles means; false when it is on none.
      *
-     * Each axis is reached with **its own** radius, and an axis the box has no extent on keeps the whole
-     * radius: a line is only as thick as its pen (`DrawingSurfaceDefaults.isFlat`), so capping both axes by
-     * that thickness left its end handles with a pixel of slack — the same press on an end caught the
-     * handle, carried the whole line or dropped the selection, which is a tool that behaves unpredictably.
-     * A **flat** box wears its two end handles and nothing else: no corners, which would sit exactly on
-     * them, and no edge handles along the axis that could only multiply by one. The band between the ends
-     * is then the body the press falls through to, so a drag above or below the line carries it.
+     * The handles themselves are [handleResizeStart]'s, together with the axis each one scales.
      */
-    private fun beginHandleResize(event: MotionEvent, box: PageBox, b: Bounds): Boolean {
-        val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
-        val boxWpx = (b.width * box.scale).toFloat()
-        val boxHpx = (b.height * box.scale).toFloat()
-        val flatX = DrawingSurfaceDefaults.isFlat(boxWpx, box.scale)
-        val flatY = DrawingSurfaceDefaults.isFlat(boxHpx, box.scale)
-        val reachX = DrawingSurfaceDefaults.handleReach(boxWpx, flatX)
-        val reachY = DrawingSurfaceDefaults.handleReach(boxHpx, flatY)
-        fun grabs(hx: Float, hy: Float): Boolean =
-            kotlin.math.abs(event.x - hx) <= reachX && kotlin.math.abs(event.y - hy) <= reachY
-        // Corners resize proportionally; their anchor is the diagonally-opposite corner.
-        if (!flatX && !flatY) {
-            val cornersPt = arrayOf(b.left to b.top, b.right to b.top, b.right to b.bottom, b.left to b.bottom)
-            for (i in 0..3) {
-                val padX = if (cornersPt[i].first == b.left) -pad else pad
-                val padY = if (cornersPt[i].second == b.top) -pad else pad
-                val hx = (cornersPt[i].first * box.scale + box.leftPx - viewport.scrollX).toFloat() + padX
-                val hy = (cornersPt[i].second * box.scale + box.topPx - viewport.scrollY).toFloat() + padY
-                if (grabs(hx, hy)) {
-                    val anchor = cornersPt[(i + 2) % 4]
-                    beginResize(event, box, anchor.first, anchor.second, ResizeAxis.BOTH)
-                    return true
-                }
-            }
-        }
-        // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is the
-        // opposite edge's midpoint, so the far edge stays pinned while this one follows the pointer: pull
-        // the right edge out and the element gets wider without getting taller.
-        val midXpt = (b.left + b.right) / 2
-        val midYpt = (b.top + b.bottom) / 2
-        val edges = arrayOf(
-            Triple(b.left to midYpt, b.right to midYpt, ResizeAxis.X),
-            Triple(b.right to midYpt, b.left to midYpt, ResizeAxis.X),
-            Triple(midXpt to b.top, midXpt to b.bottom, ResizeAxis.Y),
-            Triple(midXpt to b.bottom, midXpt to b.top, ResizeAxis.Y),
-        )
-        for ((handle, anchor, axis) in edges) {
-            if ((axis == ResizeAxis.X && flatX) || (axis == ResizeAxis.Y && flatY)) continue
-            val hx = (handle.first * box.scale + box.leftPx - viewport.scrollX).toFloat() +
-                if (handle.first == b.left) -pad else if (handle.first == b.right) pad else 0f
-            val hy = (handle.second * box.scale + box.topPx - viewport.scrollY).toFloat() +
-                if (handle.second == b.top) -pad else if (handle.second == b.bottom) pad else 0f
-            if (grabs(hx, hy)) {
-                beginResize(event, box, anchor.first, anchor.second, axis)
-                return true
-            }
-        }
-        return false
+    private fun beginHandleResize(event: MotionEvent, box: PageBox, b: Bounds, page: Page?): Boolean {
+        val start = handleResizeStart(event, box, b, viewport, selection, page) ?: return false
+        resizing = true
+        snapshot()
+        resizeAxis = start.axis
+        resizeAnchorX = start.anchorX
+        resizeAnchorY = start.anchorY
+        resizeStartPtX = start.startPtX
+        resizeStartPtY = start.startPtY
+        resizeStartDist = start.startDist
+        return true
     }
 
     /**
@@ -496,23 +453,6 @@ internal class SelectionGestureController(
         moveStartPtY = box.toPtY(event.y, viewport.scrollY)
     }
 
-    private fun beginResize(
-        event: MotionEvent,
-        box: PageBox,
-        anchorX: Double,
-        anchorY: Double,
-        axis: ResizeAxis,
-    ) {
-        resizing = true
-        snapshot()
-        resizeAxis = axis
-        resizeAnchorX = anchorX
-        resizeAnchorY = anchorY
-        resizeStartPtX = box.toPtX(event.x, viewport.scrollX)
-        resizeStartPtY = box.toPtY(event.y, viewport.scrollY)
-        resizeStartDist = hypot(resizeStartPtX - anchorX, resizeStartPtY - anchorY).coerceAtLeast(1e-3)
-    }
-
     private fun beginRotate(event: MotionEvent, box: PageBox, pivotX: Double, pivotY: Double) {
         rotating = true
         snapshot()
@@ -554,9 +494,9 @@ internal class SelectionGestureController(
     }
 
     /**
-     * Resize the selection about the gesture's anchor. A corner drag ([ResizeAxis.BOTH]) scales both
-     * axes by the pointer's distance ratio; an edge drag scales **only its own axis**, so an element
-     * can be stretched wider or taller out of proportion. Either way the transform is recomputed from
+     * Resize the selection about the gesture's anchor. A corner drag scales both axes — by one ratio
+     * ([ResizeAxis.BOTH]) for a picture or a mixed selection, by each axis's own ([ResizeAxis.FREE])
+     * for a single figure — and an edge drag scales **only its own axis**. Either way the transform is recomputed from
      * the gesture-start snapshot each frame, so a long drag accumulates no rounding drift.
      */
     fun resizeSelect(event: MotionEvent) = transform { sel, start, box ->
@@ -574,6 +514,8 @@ internal class SelectionGestureController(
                     .coerceIn(DrawingSurfaceDefaults.MIN_RESIZE, DrawingSurfaceDefaults.MAX_RESIZE)
                 factor to factor
             }
+            ResizeAxis.FREE -> axisScaleFactor(resizeStartPtX, x, resizeAnchorX) to
+                axisScaleFactor(resizeStartPtY, y, resizeAnchorY)
             ResizeAxis.X -> axisScaleFactor(resizeStartPtX, x, resizeAnchorX) to 1.0
             ResizeAxis.Y -> 1.0 to axisScaleFactor(resizeStartPtY, y, resizeAnchorY)
         }

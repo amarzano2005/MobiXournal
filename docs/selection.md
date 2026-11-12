@@ -80,13 +80,14 @@ works in Select mode (it abandons the in-progress selection gesture).
 The outline itself is drawn **exactly on the elements' ink box** (`SELECT_PAD_PX` = 0): a padded box
 claims more than the user picked, and the handles' hit radii are what make it grabbable, not an
 inflated rectangle. Beyond move/delete, the outline carries **eight resize handles**: the four
-**corners** resize proportionally (a uniform scale about the opposite corner, `SelectionOps.scale`,
-both factors being the pointer's distance ratio), and the four **edge midpoints** stretch **one axis
+**corners** resize about the opposite corner, and the four **edge midpoints** stretch **one axis
 only** (`ResizeAxis.X` / `ResizeAxis.Y`, the pure `axisScaleFactor` measuring travel from the opposite
 edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion resize, so a drawing can be
 widened without being made taller. The window carries the same eight: `SelectionOverlay` draws them,
-`selectionHandleAt` answers them and `scaleFactors` computes the two factors, so a corner keeps the
-proportions and a side stretches one axis on both shells; the one handle an image gives up is the turn,
+`selectionHandleAt` answers them and `scaleFactors` computes the two factors, so a side stretches one axis
+on both shells. A corner of a **single figure** scales each axis by its own ratio (`ResizeAxis.FREE`) —
+its proportions are the figure's to change — while a **picture**'s and a **mixed** selection's keep them
+(`ResizeAxis.BOTH`, one ratio for both axes); the one handle an image gives up is the turn,
 because its model carries no rotation. Both shells cap a handle's reach **per axis**, at a third of that axis's own
 extent, so a small element keeps a middle to be moved by; a **line** — a selection only as thick as the pen
 that drew it — has no middle across its thickness, so it wears just its two end handles: no corners, which

@@ -1,6 +1,12 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.Tool
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -47,6 +53,23 @@ class SelectionResizeTest {
             axisScaleFactor(40.0, -40.0, 0.0),
             1e-9,
         )
+    }
+
+    @Test
+    fun `a figure's corner changes its proportions while a picture's keeps them`() {
+        val figure = Stroke(
+            tool = Tool.PEN,
+            color = 0,
+            capStyle = null,
+            points = listOf(StrokePoint(0.0, 0.0, 1.0), StrokePoint(10.0, 10.0, 1.0)),
+            uniformWidth = true,
+        )
+        assertTrue("a figure's corner is free", cornerChangesProportions(figure))
+        assertFalse(
+            "a picture is resized, never reshaped",
+            cornerChangesProportions(ImageElement(0.0, 0.0, 10.0, 10.0, ByteArray(0))),
+        )
+        assertFalse("a mixed selection keeps its proportions", cornerChangesProportions(null))
     }
 
     @Test

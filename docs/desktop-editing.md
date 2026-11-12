@@ -180,8 +180,8 @@ Images are living document elements (ImageElement) on the active layer:
   - Every selection — an image, ink, a living figure — wears the selection's eight handles: the four corner
     squares and the four edge-midpoint ones. An image gives up only the rotate handle, matching the format's
     unrotated image model.
-  - **Corner handles**: a corner drag keeps the element's proportions, as the tablet's does, and **Shift**
-    frees them for a free non-uniform scale.
+  - **Corner handles**: a figure's corner changes its proportions, as the tablet's does; a picture's (and a
+    mixed selection's) keeps them, and **Shift** locks any corner to a uniform scale.
   - **Edge handles**: a side drag stretches only that axis (anchor is the opposite edge) — the choice between
     a horizontal and a vertical stretch that the tablet's side dots offer.
   - **Non-resampling**: Scaling modifies bounding box coordinates (left, top, right, bottom) without decoding,
