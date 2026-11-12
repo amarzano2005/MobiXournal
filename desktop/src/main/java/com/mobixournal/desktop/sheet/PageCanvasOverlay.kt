@@ -24,7 +24,10 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.render.CircuitSnapping
+import com.mobixournal.render.FigurePins
+import com.mobixournal.render.PinFamily
 import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
@@ -165,6 +168,10 @@ private fun DrawScope.paintDraftPreviews(
     magnetic: Boolean,
     pxPerPt: Float,
 ) {
+    // A **figure being drawn** wears its own pins while the stylus is still down — its corners and the
+    // middle of each side, the tablet's `drawPendingPins` — so the border a connector will attach to is
+    // visible as it is laid down. The marks follow the gesture, never the armed tool.
+    drawFigureDraftPins(tool, drafts, pxPerPt)
     val previewTool = tool.previewTool() ?: return
     if (magnetic) return
     val previewInk = if (tool.shapeKind() != null) shapeInk else ink
@@ -254,6 +261,28 @@ internal fun DrawScope.drawConnectionPins(
             center = Offset((pin.absX * pxPerPt).toFloat(), (pin.absY * pxPerPt).toFloat()),
             style = if (caught) Stroke(width = 2.dp.toPx()) else Fill,
         )
+    }
+}
+
+/** The pins of a **figure in flight**, painted where its draft is being laid down. */
+private fun DrawScope.drawFigureDraftPins(
+    tool: DesktopTool,
+    drafts: List<List<InkSample>>,
+    pxPerPt: Float,
+) {
+    val kind = tool.shapeKind() ?: return
+    if (FigurePins.familyOf(kind) != PinFamily.FIGURE) return
+    val dot = PIN_PENDING_PX / pxPerPt
+    for (draft in drafts) {
+        if (draft.size < 2) continue
+        val points = draft.map { StrokePoint(it.x, it.y, 1.0) }
+        for ((x, y) in FigurePins.pinsOf(kind, points)) {
+            drawCircle(
+                color = DesktopTheme.accent,
+                radius = dot,
+                center = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
+            )
+        }
     }
 }
 

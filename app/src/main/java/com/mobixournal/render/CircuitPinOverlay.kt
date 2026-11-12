@@ -48,8 +48,17 @@ private const val WIRE_END_PIN = "wire-end"
  * connect, so ordinary ink and shapes are unaffected.
  */
 internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
-    val kind = shapeKind ?: selectedFigureKind() ?: return
-    if (!CircuitElementFactory.isConnectorKind(kind)) return
+    // The marks belong to a **gesture**, not to a state: they are there while a figure is being drawn and
+    // while the selection is moving it, and are gone otherwise — a part merely selected marks nothing.
+    val drawing = ink.current != null || ink.currentStrokes != null
+    val drawingKind = if (drawing) shapeKind else null
+    val kind = drawingKind ?: if (gestures.moving) selectedFigureKind() else null
+    if (kind != null && CircuitElementFactory.isConnectorKind(kind)) drawTargetPins(canvas, kind)
+    drawingKind?.let { drawPendingPins(canvas, it) }
+}
+
+/** The pins a connector [kind] could join, as the sheet draws them while the gesture is live. */
+private fun DrawingSurfaceView.drawTargetPins(canvas: Canvas, kind: ShapeKind) {
     val live = ink.current != null
     for (box in layout.visible(scrollY, height.toFloat())) {
         val page = pageAt(box.index) ?: continue
@@ -66,7 +75,6 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
             }
         }
     }
-    drawPendingPins(canvas, kind)
 }
 
 /**
@@ -99,12 +107,23 @@ private fun DrawingSurfaceView.selectedFigureKind(): ShapeKind? {
  * than hollow because they are not targets yet — they are the thing being placed.
  */
 private fun DrawingSurfaceView.drawPendingPins(canvas: Canvas, kind: ShapeKind) {
-    if (ink.current == null || !CircuitElementFactory.isCircuitKind(kind)) return
+    if (ink.current == null) return
     val box = layout.boxes.getOrNull(ink.currentPage) ?: return
     val draft = shapeDraft
-    for (pin in CircuitSnapping.previewTargets(kind, draft.startX, draft.startY, draft.endX, draft.endY)) {
-        val x = (pin.absX * box.scale + box.leftPx - scrollX).toFloat()
-        val y = (pin.absY * box.scale + box.topPx - scrollY).toFloat()
+    // A component's pins are the factory's placement rule; every other figure's are its own corners and
+    // the middle of each side (`FigurePins`), which is what a connector will later attach to.
+    val pins = if (CircuitElementFactory.isCircuitKind(kind)) {
+        CircuitSnapping.previewTargets(kind, draft.startX, draft.startY, draft.endX, draft.endY)
+            .map { it.absX to it.absY }
+    } else {
+        FigurePins.pinsOf(
+            kind,
+            ShapeBuilder.build(kind, draft.startX, draft.startY, draft.endX, draft.endY, draft.widthPt),
+        )
+    }
+    for ((px, py) in pins) {
+        val x = (px * box.scale + box.leftPx - scrollX).toFloat()
+        val y = (py * box.scale + box.topPx - scrollY).toFloat()
         canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.handle)
     }
 }

@@ -216,7 +216,7 @@ object CircuitSnapping {
      * ink is never pulled off the user's hand.
      */
     fun gestureTargets(kind: ShapeKind, page: Page): List<PinTarget>? =
-        FigurePins.familyOf(kind)?.let { FigurePins.targets(page, it) }
+        FigurePins.aimFamily(kind)?.let { FigurePins.targets(page, it) }
 
     /**
      * Where the pins of the component being dragged from ([startX], [startY]) to ([endX], [endY])
@@ -426,7 +426,7 @@ object CircuitSnapping {
                 }
                 // A wire's ends and an arrow's tail and tip are the pins a move can land on.
                 is Stroke -> if (FigurePins.familyOf(element) != null) {
-                    for ((x, y) in FigurePins.ends(element)) out += MovingEnd(x, y)
+                    for ((x, y) in FigurePins.ends(element.points)) out += MovingEnd(x, y)
                 }
                 else -> Unit
             }

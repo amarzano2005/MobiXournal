@@ -389,6 +389,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
 
     // The canvas's ticker re-applies the transform while the sheet scrolls at the border, so the element
     // keeps following the pointer past the window's edge without the pointer moving at all.
+    tab.selectionMoving = true
     view.beginDrag(lastX, lastY) { px, py -> apply(px, py) }
     try {
         while (!cancelled) {
@@ -403,6 +404,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     } finally {
         view.endDrag()
         tab.magnetTargets = emptyList()
+        tab.selectionMoving = false
         onLiveDrag(null)
     }
 }

@@ -245,20 +245,20 @@ tablet — and sits clear of the gesture bar, the panel above laid out against t
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. **Every figure carries pins**, as on Xnotes:
-a component's terminals, a wire's two ends, an arrow's tail and tip (`FigurePins`), and what a gesture
-marks is exactly what it may join — a **circuit** reaches wires, a **wire** reaches parts and wires, an
-**arrow** reaches every figure. A connector tool, or a single figure selected for a move, marks that set
-(a ring per pin, a square per figure end, filled for the target the live gesture has caught), so the
-target is seen before the gesture starts. The reach is `SNAP_REACH_PX` **screen** pixels at every zoom
-(`thresholdFor`): a fixed number of page points grew into a finger's width on a zoomed-in page, which is
-what made the magnet feel greedy. A caught target holds to `SNAP_RELEASE_RATIO` × that reach —
-`PinMagnet` for a moved selection, `EndsMagnet` for the two ends of a wire or arrow being drawn, or a
-part being placed — so nothing flickers, and each caught pin is lit while the hand is still down.
+a component's terminals, a wire's two ends, an arrow's tail, tip and barbs, and a drawn figure's corners
+**and the middle of every side** (`FigurePins`). What a gesture marks is exactly what it may join: a
+**circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything.
+The marks belong to the gesture, not to the state — they appear while a figure is being drawn or a
+selection is being moved, and a part merely selected shows none. The reach is `SNAP_REACH_PX` **screen**
+pixels at every zoom (`thresholdFor`): a fixed number of page points grew into a finger's width on a
+zoomed-in page, which is what made the magnet feel greedy. A caught target holds to
+`SNAP_RELEASE_RATIO` × that reach — `PinMagnet` for a moved selection, `EndsMagnet` for the ends of a
+wire, arrow or part being drawn — so nothing flickers, and the caught pin is lit while the hand is down.
 
-A **component being placed** aims at the ends of the **wires already on the page** too
-(`collectPlacementTargets`) — a pin meeting a wire's end, seen from the other side — and a wire aims at
-another wire's end, so a chain of segments is one net. A pen stroke that is neither is never a target: an
-arrow's own ends are offered only to an arrow, which is the one figure that reaches every family.
+A **component being placed** aims at the ends of the **wires already on the page** too, and a wire aims
+at another wire's end, so a chain of segments is one net; a line or an arrow also aims at a figure's
+border, which is what its corner and side pins are for (`collectPlacementTargets`, `pinsOf`). A free
+stroke is never a target, and an arrow's own pins are offered only to an arrow.
 
 Placing a component is also the one gesture whose **own** pins are drawn while it is still under the
 stylus: `previewTargets` runs the factory's placement rule on the live drag, so the rings the user lines
