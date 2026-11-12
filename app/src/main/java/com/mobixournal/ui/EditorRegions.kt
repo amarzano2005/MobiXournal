@@ -320,12 +320,20 @@ fun EditorTopBar(
                 ) {
                     // Off when the file already holds the page: the same rule as the window's header, so the
                     // control that can be pressed is the control that has something to write.
-                    IconButton(
-                        onClick = onSave,
-                        enabled = !pane.isReadOnly && stripTabs.canSave,
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Icon(ChromeGlyph.SAVE.imageVector(), contentDescription = "Save", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+                    val saveEnabled = !pane.isReadOnly && stripTabs.canSave
+                    IconButton(onClick = onSave, enabled = saveEnabled, modifier = Modifier.size(36.dp)) {
+                        // The glyph wears the state, not only the click: a Save with nothing to write dims to the
+                        // same 0.38 the history pair beside it uses, or a blue icon would go on offering a write.
+                        Icon(
+                            ChromeGlyph.SAVE.imageVector(),
+                            contentDescription = "Save",
+                            tint = if (saveEnabled) {
+                                MaterialTheme.colorScheme.secondary
+                            } else {
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.38f)
+                            },
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
                 }
                 OverflowMenu(
