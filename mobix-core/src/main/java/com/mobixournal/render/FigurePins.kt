@@ -70,6 +70,23 @@ object FigurePins {
     }
 
     /**
+     * Whether [page] already holds ink an element of [kind] could join, in **either** direction.
+     *
+     * This is the question a mark **in flight** asks. While a figure is being drawn its pins are shown, so the
+     * border a connector will attach to is visible as it is laid down; on a page with nothing to join those
+     * dots are furniture on empty paper. A connector asks the matrix it aims with ([targets]); a drawn figure
+     * is a target rather than a seeker, so what it asks for is a connector that can reach it.
+     */
+    fun hasCompany(page: Page, kind: ShapeKind): Boolean {
+        val family = familyOf(kind) ?: return false
+        return if (family == PinFamily.FIGURE) {
+            targets(page, PinFamily.WIRE).isNotEmpty() || targets(page, PinFamily.ARROW).isNotEmpty()
+        } else {
+            targets(page, family).isNotEmpty()
+        }
+    }
+
+    /**
      * The family [kind] **aims with**, or null — only a connector magnetises. A rectangle has pins, but it
      * is a target rather than a seeker, so its own drag keeps the hand's geometry.
      */

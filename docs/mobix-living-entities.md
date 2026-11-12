@@ -261,8 +261,8 @@ border, which is what its corner and side pins are for (`collectPlacementTargets
 stroke is never a target, and an arrow's own pins are offered only to an arrow.
 
 Placing a component is also the one gesture whose **own** pins are drawn while it is still under the
-stylus: `previewTargets` runs the factory's placement rule on the live drag, so the rings the user lines
-up against a wire end are the pins the commit mints (a tap previews the default-size part it drops).
+stylus — and only when the page holds something it could join (`hasCompany`): `previewTargets` runs the
+factory's rule on the live drag, so the rings line up with the pins the commit mints (a tap still previews).
 Ordinary figures — rectangles, bonds, the chemist's ring, a recognised freehand shape —
 keep exactly the geometry drawn; their only optional pull is the page ruling under *Snap to grid*
 (`render/CircuitSnapping.kt`, `render/CircuitElementFactory.kt`). A circuit with no `pins` is a plain symbol —

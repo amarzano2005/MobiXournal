@@ -92,7 +92,7 @@ internal fun DrawScope.paintLiveOverlay(
     // A geometry slot's preview is the figure's own points; a snapping highlighter's preview is its bands,
     // not the hand's path underneath them.
     val magnetic = pdfBands.isNotEmpty() && tool.inkTool() == com.mobixournal.format.model.Tool.HIGHLIGHTER
-    paintDraftPreviews(tool, ink, shapeInk, drafts, magnetic = magnetic, pxPerPt = pxPerPt)
+    paintDraftPreviews(page, tool, ink, shapeInk, drafts, magnetic = magnetic, pxPerPt = pxPerPt)
     // The snapped bands, at the highlighter's own translucency: a preview of the ink, not chrome.
     drawPdfPreviewBands(pdfBands, ink.colour, pxPerPt)
     // The element a placement drag has drawn so far, in the same painter the page uses: a component is
@@ -160,6 +160,7 @@ private const val MAGNET_DOT_PX = 5f
  * list per frame would miss on every paint.
  */
 private fun DrawScope.paintDraftPreviews(
+    page: Page,
     tool: DesktopTool,
     ink: DesktopInk,
     shapeInk: DesktopInk,
@@ -171,7 +172,7 @@ private fun DrawScope.paintDraftPreviews(
     // A **figure being drawn** wears its own pins while the stylus is still down — its corners and the
     // middle of each side, the tablet's `drawPendingPins` — so the border a connector will attach to is
     // visible as it is laid down. The marks follow the gesture, never the armed tool.
-    drawFigureDraftPins(tool, drafts, pxPerPt)
+    drawFigureDraftPins(page, tool, drafts, pxPerPt)
     val previewTool = tool.previewTool() ?: return
     if (magnetic) return
     val previewInk = if (tool.shapeKind() != null) shapeInk else ink
@@ -251,6 +252,8 @@ internal fun DrawScope.drawConnectionPins(
         }
     }
     val preview = previewLiving as? CircuitElement ?: return
+    // Nothing on this page to join: the part's own pins would be marks on empty paper (`hasCompany`).
+    if (targets.isEmpty()) return
     for (pin in CircuitSnapping.collectTargets(listOf(preview))) {
         // The pin the magnet has caught this frame — the drag shows *that it will join* before the pen is
         // lifted, which is the only moment the person can still aim.
@@ -266,12 +269,15 @@ internal fun DrawScope.drawConnectionPins(
 
 /** The pins of a **figure in flight**, painted where its draft is being laid down. */
 private fun DrawScope.drawFigureDraftPins(
+    page: Page,
     tool: DesktopTool,
     drafts: List<List<InkSample>>,
     pxPerPt: Float,
 ) {
     val kind = tool.shapeKind() ?: return
     if (FigurePins.familyOf(kind) != PinFamily.FIGURE) return
+    // A figure's pins are worth showing only when the page holds a connector that could attach to them.
+    if (!FigurePins.hasCompany(page, kind)) return
     val dot = PIN_PENDING_PX / pxPerPt
     for (draft in drafts) {
         if (draft.size < 2) continue

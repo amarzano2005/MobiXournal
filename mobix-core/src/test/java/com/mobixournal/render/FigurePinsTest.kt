@@ -143,6 +143,23 @@ class FigurePinsTest {
         )
     }
 
+    /**
+     * The marks of an element **in flight** are only worth showing when the page already holds something it
+     * could join — on an empty page they are dots on paper.
+     */
+    @Test
+    fun `a mark in flight is drawn only when the page has company for it`() {
+        assertFalse("an empty page joins nothing", FigurePins.hasCompany(pageOf(), ShapeKind.RECTANGLE))
+        assertFalse(FigurePins.hasCompany(pageOf(), ShapeKind.RESISTOR))
+        assertFalse(FigurePins.hasCompany(pageOf(), ShapeKind.LINE))
+        // A figure is a target: a wire on the page is company for the rectangle being drawn.
+        assertTrue(FigurePins.hasCompany(pageOf(wire(10.0, 10.0, 60.0, 10.0)), ShapeKind.RECTANGLE))
+        // A connector asks the matrix it aims with: a part joins a wire, an arrow joins a closed figure.
+        assertTrue(FigurePins.hasCompany(pageOf(wire(10.0, 10.0, 60.0, 10.0)), ShapeKind.RESISTOR))
+        assertTrue(FigurePins.hasCompany(pageOf(figure(10.0, 10.0, 60.0, 60.0)), ShapeKind.ARROW))
+        assertFalse("a part does not reach a closed figure", FigurePins.hasCompany(pageOf(figure(10.0, 10.0, 60.0, 60.0)), ShapeKind.RESISTOR))
+    }
+
     /** A drawn figure's pins are targets only: moving a rectangle offers no end to snap, as before. */
     @Test
     fun aMovedFigureHasNoMovingEnds() {

@@ -54,7 +54,12 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     val drawingKind = if (drawing) shapeKind else null
     val kind = drawingKind ?: if (gestures.moving) selectedFigureKind() else null
     if (kind != null && CircuitElementFactory.isConnectorKind(kind)) drawTargetPins(canvas, kind)
-    drawingKind?.let { drawPendingPins(canvas, it) }
+    // The inserted object's own pins are drawn only when the page holds something it could join
+    // (`FigurePins.hasCompany`): on a page with nothing compatible they are dots on empty paper.
+    drawingKind?.let { k ->
+        val page = pageAt(ink.currentPage)
+        if (page != null && FigurePins.hasCompany(page, k)) drawPendingPins(canvas, k)
+    }
 }
 
 /** The pins a connector [kind] could join, as the sheet draws them while the gesture is live. */
