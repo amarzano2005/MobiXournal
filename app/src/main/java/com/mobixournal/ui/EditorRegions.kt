@@ -302,11 +302,14 @@ fun EditorTopBar(
                     shadowElevation = 4.dp,
                     modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
-                    IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
+                    // A read-only document has nothing to export here, so the glyph wears the same off-state as
+                    // Save and the history pair rather than staying a lit mark on an inert button.
+                    val exportEnabled = !pane.isReadOnly
+                    IconButton(onClick = onExportPdf, enabled = exportEnabled, modifier = Modifier.size(36.dp)) {
                         Icon(
                             ChromeGlyph.PDF.imageVector(),
                             contentDescription = "Export PDF",
-                            tint = DocumentRed,
+                            tint = if (exportEnabled) DocumentRed else DocumentRed.copy(alpha = 0.38f),
                             modifier = Modifier.size(20.dp),
                         )
                     }
