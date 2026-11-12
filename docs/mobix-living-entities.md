@@ -246,8 +246,9 @@ tablet — and sits clear of the gesture bar, the panel above laid out against t
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:
 a wire drawn with the line tool and a component being placed or moved are pulled onto a nearby **pin**.
-While a connector is armed every pin is marked with a small ring (and the pin the live gesture has caught
-fills in), so the target can be seen before the wire is drawn. The reach is `SNAP_REACH_PX` **screen**
+While a connector is armed — or a single component is selected, since a picked-up part aims at the same
+pins — every pin and every wire's end is marked (a ring, a square for a wire's end; the pin the live
+gesture has caught fills in), so the target can be seen before the gesture starts. The reach is `SNAP_REACH_PX` **screen**
 pixels at every zoom (`thresholdFor`): a fixed number of page points grew into a finger's width on a
 zoomed-in page, which is what made the magnet feel greedy. A caught target holds to
 `SNAP_RELEASE_RATIO` × that reach — `PinMagnet` for a moved selection, `EndsMagnet` for the two ends of a

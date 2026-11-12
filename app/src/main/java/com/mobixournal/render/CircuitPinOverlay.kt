@@ -37,11 +37,17 @@ private const val WIRE_END_PIN = "wire-end"
  * them ([CircuitSnapping.collectPlacementTargets]), and an invisible target is exactly the bug the
  * rings were added to fix. They are not drawn for the line tool, which never joins onto a wire's end.
  *
+ * A **selected** component arms the same marks, because the selection tool is the other way a part is
+ * joined: pick up a part that was placed and drag it onto a pin, and what it may join answers
+ * [CircuitSnapping.collectMoveTargets] — the page's pins plus both ends of every wire. The window has
+ * always drawn these for a selected part; the tablet drew nothing at all with the selection tool, so a
+ * moved part could be aimed at a wire end nobody could see.
+ *
  * Chrome only: nothing here is written to the document, and nothing is drawn for a tool that cannot
  * connect, so ordinary ink and shapes are unaffected.
  */
 internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
-    val kind = shapeKind ?: return
+    val kind = shapeKind ?: selectedCircuitKind() ?: return
     if (!CircuitElementFactory.isConnectorKind(kind)) return
     val live = ink.current != null
     // A component tool also offers the ends of the wires already drawn; the line tool only pins.
@@ -62,6 +68,18 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
         }
     }
     drawPendingPins(canvas, kind)
+}
+
+/**
+ * The symbol of the **selected** single component, or null — the marks it arms while it is picked up.
+ *
+ * The selection tool is how a part placed a moment ago is moved onto a wire it must meet, and the
+ * gesture aims at the same targets a component being drawn does; without a kind here those targets had
+ * no mark at all, so the joint could only be guessed at.
+ */
+private fun DrawingSurfaceView.selectedCircuitKind(): ShapeKind? {
+    val symbol = singleSelectedCircuit()?.symbol ?: return null
+    return ShapeKind.entries.firstOrNull { it.name == symbol }
 }
 
 /**
