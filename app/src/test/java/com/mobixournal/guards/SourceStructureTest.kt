@@ -57,11 +57,17 @@ class SourceStructureTest {
         // -3: three KDoc paragraphs that restated their own field names, shortened to one line each.
         // +8 deliberate: **auto save** is one stored flag, and the paragraph above its field is the trade-off
         // the setting makes (it never names a document, never writes a read-only one).
-        "ui/AppSettings.kt" to 1009,
+        // +10 deliberate: the hold recogniser's own switch — one stored boolean, its key, the load that keeps
+        // it exclusive with `recognizeShapes`, and the save beside them.
+        "ui/AppSettings.kt" to 1019,
+        // +2 beyond the budget: the same switch handed to the canvas, whose hold lives in `HoldSnap`
+        // (`holdSnap.enabled`) rather than in a mutable member on the view.
+        "ui/EditorScreen.kt" to 702,
         // The two that carry the window's half of auto save, one deliberate line each over the budget: a stored
         // boolean in the settings file, and the state that the Documents switch and the quiet job both read.
         // The rule itself lives in `mobix-core` (`io/AutoSavePolicy.kt`), not here.
-        "desktop/settings/DesktopSettings.kt" to 714,
+        // +9 deliberate: the window's own `figure.recognizeOnHold`, its property and its stored key.
+        "desktop/settings/DesktopSettings.kt" to 723,
         "desktop/settings/DesktopSettingsState.kt" to 710,
         // -62: the PDF import card moved beside the value it asks about (`PdfImportDialog.kt`).
         "ui/EditorDialogs.kt" to 858,

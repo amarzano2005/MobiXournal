@@ -29,6 +29,7 @@ import com.mobixournal.render.InkEvent
 import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
+import com.mobixournal.render.ShapeRecognition
 import com.mobixournal.render.InkPointerRouter
 import com.mobixournal.render.PageEraser
 import com.mobixournal.render.ParametricShapes
@@ -80,7 +81,8 @@ internal class PageInkGesture(
      * preview to publish.
      */
     private val bands: MutableState<List<MagneticHighlighter.Band>>? = null,
-    private val recognizeShapes: Boolean = false,
+    /** When this stroke is recognised — the lift and the resting tip never both, see [ShapeRecognition]. */
+    private val recognition: ShapeRecognition = ShapeRecognition.OFF,
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
@@ -181,7 +183,7 @@ internal class PageInkGesture(
      * writes: the figure's own points, all at the width the stroke was drawn at.
      */
     fun dwellCheck(nowNanos: Long = System.nanoTime()) {
-        if (!recognizeShapes) return
+        if (recognition != ShapeRecognition.ON_HOLD) return
         if (!drawing || dwellFigure != null) return
         if (nowNanos - lastSampleNanos < ShapeDwell.MS_NANOS) return
         if (tool.inkTool() == null) return
@@ -372,7 +374,7 @@ internal class PageInkGesture(
     private fun commit() {
         val drawnTool = tool.inkTool() ?: return
         val samples = draft.toList()
-        val onLiftFigure = if (dwellFigure == null && recognizeShapes && samples.size >= 3 &&
+        val onLiftFigure = if (dwellFigure == null && recognition == ShapeRecognition.ON_LIFT && samples.size >= 3 &&
             (drawnTool == Tool.PEN || drawnTool == Tool.HIGHLIGHTER) && ink.lineStyle == LineStyle.PLAIN
         ) {
             val width = ink.width.toDouble()

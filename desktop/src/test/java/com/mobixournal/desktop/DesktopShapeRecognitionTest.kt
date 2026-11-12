@@ -21,6 +21,7 @@ import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PointerKind
+import com.mobixournal.render.ShapeRecognition
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -59,7 +60,7 @@ class DesktopShapeRecognitionTest {
             draft = draft,
             onEdited = {},
             startOnDown = true,
-            recognizeShapes = recognizeShapes,
+            recognition = if (recognizeShapes) ShapeRecognition.ON_LIFT else ShapeRecognition.OFF,
         )
         return tab to gesture
     }
@@ -165,5 +166,28 @@ class DesktopShapeRecognitionTest {
         assertFalse(newChoices.recognizeShapes)
         newChoices.reload()
         assertFalse(newChoices.recognizeShapes)
+    }
+
+    @Test
+    fun theTwoRecognitionSwitchesAreExclusive() {
+        val file = temp.newFile("fig-exclusive.properties")
+        val choices = FigureChoices(DesktopSettings(file))
+
+        choices.chooseRecognizeOnHold(true)
+        assertTrue("the hold is on", choices.recognizeOnHold)
+        assertFalse("and the lift went off with it", choices.recognizeShapes)
+        assertEquals(ShapeRecognition.ON_HOLD, choices.recognition)
+
+        choices.chooseRecognizeShapes(true)
+        assertTrue(choices.recognizeShapes)
+        assertFalse("the hold went off in turn", choices.recognizeOnHold)
+        assertEquals(ShapeRecognition.ON_LIFT, choices.recognition)
+
+        choices.chooseRecognizeShapes(false)
+        assertEquals("neither trigger is left on", ShapeRecognition.OFF, choices.recognition)
+        // Both choosers wrote the store, so a reopened window reads the same pair.
+        val reopened = FigureChoices(DesktopSettings(file))
+        assertFalse(reopened.recognizeShapes)
+        assertFalse(reopened.recognizeOnHold)
     }
 }

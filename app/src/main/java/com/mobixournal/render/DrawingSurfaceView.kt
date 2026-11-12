@@ -181,7 +181,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal val holdSnap = HoldSnap(
         schedule = { runnable, delayMs -> postDelayed(runnable, delayMs) },
         unschedule = { runnable -> removeCallbacks(runnable) },
-        freehand = { recognizeShapes && !shapeDraft.active },
+        freehand = { !shapeDraft.active },
         inking = { tool == Tool.PEN || tool == Tool.HIGHLIGHTER },
         stroke = { ink.current },
         onSnapped = { render() },

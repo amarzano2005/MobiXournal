@@ -149,7 +149,7 @@ internal suspend fun PointerInputScope.pageGestures(
         onEdited = onEdited,
         pen = pen,
         bands = pdfBands,
-        recognizeShapes = targets.recognizeShapes,
+        recognition = targets.recognition,
     )
     // The edge scroll's clock, running for as long as this canvas has a pointer handler: a drag registers
     // itself with [DragView.beginDrag] and is called back while the sheet travels. It has to live out here

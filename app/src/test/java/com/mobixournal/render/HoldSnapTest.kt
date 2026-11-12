@@ -55,7 +55,17 @@ class HoldSnapTest {
         inking = { inking },
         stroke = { points },
         onSnapped = { repaints++ },
-    )
+    ).also { it.enabled = true }
+
+    /** The hold's own switch: while it is off the tip may rest as long as it likes and the stroke stays ink. */
+    @Test
+    fun `a resting tip is left alone while the hold switch is off`() {
+        holdSnap.enabled = false
+        holdSnap.start(straight(1))
+
+        assertNull("no timer is armed", holdSnap.pending)
+        assertNull("and nothing is previewed", holdSnap.preview(12))
+    }
 
     /** A straight, slow stroke: the recogniser reads it as a segment. */
     private fun straight(count: Int = 12): List<StrokePoint> =

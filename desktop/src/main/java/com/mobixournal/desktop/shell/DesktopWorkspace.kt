@@ -110,7 +110,7 @@ private fun androidx.compose.foundation.layout.RowScope.WorkspaceCanvas(
             shapeInk = state.shapeInk,
             circuitKind = state.activeCircuitKind,
             figures = state.prefs.figures.shape,
-            recognizeShapes = state.prefs.figures.recognizeShapes,
+            recognition = state.prefs.figures.recognition,
             onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
             onPlaceCircuit = { kind, span -> state.placeCircuit(tab, kind, span) },
             onEditLiving = { state.runSelection(SelectionAction.EDIT) },

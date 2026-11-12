@@ -18,6 +18,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.mobixournal.render.MagneticHighlighter
+import com.mobixournal.render.ShapeRecognition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -72,8 +73,8 @@ internal fun PenPacketStrokes(
     bands: MutableState<List<MagneticHighlighter.Band>>? = null,
     /** The pen-tip ring: while it is up the packets answer it and lay no ink under it. */
     hud: HudUi = HudUi(),
-    /** Whether freehand strokes snap to geometric primitives on lift or dwell (`figure.recognizeShapes`). */
-    recognizeShapes: Boolean = false,
+    /** When freehand strokes snap to geometric primitives — on lift or on a held tip, never both. */
+    recognition: ShapeRecognition = ShapeRecognition.OFF,
     packets: PenPacketSource?,
 ) {
     // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
@@ -93,7 +94,7 @@ internal fun PenPacketStrokes(
             onEdited = onEdited,
             startOnDown = true,
             bands = bands,
-            recognizeShapes = recognizeShapes,
+            recognition = recognition,
         )
     }
     // One ring update per frame, not one per packet: the driver sends 400 readings a second and each

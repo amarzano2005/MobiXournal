@@ -24,6 +24,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.ShapeKind
+import com.mobixournal.render.ShapeRecognition
 
 /**
  * The page inside the box the canvas measured: the tablet's packets first (they draw their own stroke),
@@ -43,7 +44,7 @@ internal fun PageSheet(
     circuitKind: ShapeKind,
     /** The triangle's and trapezoid's own answers, read by a figure drag. */
     figures: FigureShape = FigureShape(),
-    recognizeShapes: Boolean = false,
+    recognition: ShapeRecognition = ShapeRecognition.OFF,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
     onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
@@ -87,7 +88,7 @@ internal fun PageSheet(
         extent = extent,
         onViewport = onViewport,
         onEdited = onEdited,
-        recognizeShapes = recognizeShapes,
+        recognition = recognition,
         packets = packets,
         hud = hud,
     )
@@ -100,7 +101,7 @@ internal fun PageSheet(
         shapeInk = shapeInk,
         circuitKind = circuitKind,
         figures = figures,
-        recognizeShapes = recognizeShapes,
+        recognition = recognition,
         onPlaceLiving = onPlaceLiving,
         onPlaceCircuit = onPlaceCircuit,
         onTextPress = text.onPress,
@@ -181,7 +182,7 @@ private fun PenPaths(
     extent: () -> Size,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
-    recognizeShapes: Boolean = false,
+    recognition: ShapeRecognition = ShapeRecognition.OFF,
     packets: PenPacketSource?,
     /** The pen-tip ring: while it is up the packets answer it and never the page. */
     hud: HudUi = HudUi(),
@@ -209,7 +210,7 @@ private fun PenPaths(
             // The stroke path is told about the ring so a tip that lands on a face commits it and lays no
             // ink on the sheet beneath — the pen's own packets are the one path the ring cannot see.
             hud = hud,
-            recognizeShapes = recognizeShapes,
+            recognition = recognition,
             packets = packets,
         )
     }
@@ -247,7 +248,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     circuitKind: ShapeKind,
     /** The triangle's and trapezoid's own answers, read by a figure drag. */
     figures: FigureShape = FigureShape(),
-    recognizeShapes: Boolean = false,
+    recognition: ShapeRecognition = ShapeRecognition.OFF,
     placeLiving: (LivingSlot, Bounds) -> Unit,
     /** The shell's commit for a circuit drag, or null to place the family's default here. */
     placeCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
@@ -294,7 +295,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
         shapeInk = shapeInk,
         circuitKind = circuitKind,
         figures = figures,
-        recognizeShapes = recognizeShapes,
+        recognition = recognition,
         onPlaceLiving = placeLiving,
         onPlaceCircuit = placeCircuit,
         text = text,

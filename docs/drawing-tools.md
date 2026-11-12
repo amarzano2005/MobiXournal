@@ -85,8 +85,9 @@ gets its own ink back the moment a sample arrives. (Rewriting `current` instead 
 — left a half-clean, half-raw stroke and made the commit re-read the recogniser's own output, turning
 a held square into a circle.) The timer is cancelled by every move, commit, cancelled gesture and
 stylus takeover (`abandonInProgress`/`cancelGesture`), which is why the gesture plumbing had to know
-about it at all. It shares the `recognizeShapes` setting — and the pen and highlighter tool filter —
-with the on-lift path, so there is one recogniser and one switch.
+about it at all. It has its own `recognizeOnHold` switch — exclusive with the on-lift path's
+`recognizeShapes`, because recognising a held figure again at the lift would read clean geometry back
+as ink — and shares the pen and highlighter tool filter, so there is one recogniser with two triggers.
 
 ## Shapes, styles, partial eraser, layers
 

@@ -2,6 +2,7 @@ package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.sheet.FigureShape
+import com.mobixournal.render.ShapeRecognition
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,9 +23,21 @@ internal class FigureChoices(private val store: DesktopSettings) {
     var width by mutableStateOf(store.figureWidth)
         private set
 
-    /** Whether freehand strokes snap to geometric primitives on lift or dwell (igure.recognizeShapes). */
+    /** Whether freehand strokes snap to geometric primitives on lift (`figure.recognizeShapes`). */
     var recognizeShapes by mutableStateOf(store.recognizeShapes)
         private set
+
+    /** Whether a **resting** tip snaps them instead (`figure.recognizeOnHold`). */
+    var recognizeOnHold by mutableStateOf(store.recognizeOnHold)
+        private set
+
+    /** The one answer the sheet is handed: the two switches are exclusive, so it is never both. */
+    val recognition: ShapeRecognition
+        get() = when {
+            recognizeShapes -> ShapeRecognition.ON_LIFT
+            recognizeOnHold -> ShapeRecognition.ON_HOLD
+            else -> ShapeRecognition.OFF
+        }
 
     /** The triangle's and trapezoid's answers — the variant a drag draws, and its angles. */
     var shape by mutableStateOf(store.figureShape())
@@ -45,10 +58,18 @@ internal class FigureChoices(private val store: DesktopSettings) {
         store.figureWidth = clamped
     }
 
-    /** Pick whether freehand strokes snap to geometric shapes. */
+    /** Pick whether freehand strokes snap to geometric shapes — switching this one on switches the hold off. */
     fun chooseRecognizeShapes(value: Boolean) {
         recognizeShapes = value
         store.recognizeShapes = value
+        if (value) chooseRecognizeOnHold(false)
+    }
+
+    /** Pick whether a **held** tip snaps them instead — the lift recogniser is switched off in turn. */
+    fun chooseRecognizeOnHold(value: Boolean) {
+        recognizeOnHold = value
+        store.recognizeOnHold = value
+        if (value) chooseRecognizeShapes(false)
     }
 
     /** One figure's answer changed — the variant, an angle a scalene one is built from, or the sides. */

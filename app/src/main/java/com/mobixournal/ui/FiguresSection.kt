@@ -51,9 +51,20 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Shape recognition") {
         SwitchRow(
             title = "Recognize shapes",
-            subtitle = "Automatically convert recognized freehand strokes into geometric shapes on lift or dwell.",
+            subtitle = "Snap a freehand stroke to the shape it resembles when the stylus is lifted.",
             checked = settings.recognizeShapes,
-            onCheckedChange = { onChange(settings.copy(recognizeShapes = it)) },
+            onCheckedChange = {
+                // The two triggers are exclusive: a held stroke recognised twice reads back as ink.
+                onChange(settings.copy(recognizeShapes = it, recognizeOnHold = if (it) false else settings.recognizeOnHold))
+            },
+        )
+        SwitchRow(
+            title = "Recognize on hold",
+            subtitle = "Snap while the tip rests on the stroke, before the lift. Turning this on turns the lift off.",
+            checked = settings.recognizeOnHold,
+            onCheckedChange = {
+                onChange(settings.copy(recognizeOnHold = it, recognizeShapes = if (it) false else settings.recognizeShapes))
+            },
         )
     }
     SettingsGroup("Default size") { DefaultFigureSize(settings, onChange) }

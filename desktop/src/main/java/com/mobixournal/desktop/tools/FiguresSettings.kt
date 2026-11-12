@@ -31,10 +31,19 @@ private fun FigureRecognitionSettings(policy: DesktopSettingsState) {
     SettingsGroup("Shape recognition") {
         SettingsRow(
             label = "Recognize shapes",
-            note = "Automatically convert recognized freehand strokes into geometric shapes on lift or dwell.",
+            note = "Snap a freehand stroke to the shape it resembles when the stylus is lifted.",
             onClick = { policy.figures.chooseRecognizeShapes(!policy.figures.recognizeShapes) },
         ) {
             SettingsSwitch(policy.figures.recognizeShapes)
+        }
+        // The two triggers are exclusive: recognising a held stroke *and* the lifted one would read the
+        // clean figure back as ink (a held square comes back a circle), so each switch turns the other off.
+        SettingsRow(
+            label = "Recognize on hold",
+            note = "Snap while the tip rests on the stroke, before the lift. Turning this on turns the lift off.",
+            onClick = { policy.figures.chooseRecognizeOnHold(!policy.figures.recognizeOnHold) },
+        ) {
+            SettingsSwitch(policy.figures.recognizeOnHold)
         }
     }
 }

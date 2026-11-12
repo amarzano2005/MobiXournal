@@ -62,6 +62,7 @@ import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
+import com.mobixournal.render.ShapeRecognition
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -120,8 +121,8 @@ internal fun PageCanvas(
     circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
     /** The triangle's and trapezoid's own answers, read by a figure drag (Settings ▸ Figures). */
     figures: FigureShape = FigureShape(),
-    /** Whether freehand strokes snap to geometric primitives on lift or dwell (`figure.recognizeShapes`). */
-    recognizeShapes: Boolean = false,
+    /** When freehand strokes snap to a figure — the lift or a held tip, never both (`ShapeRecognition`). */
+    recognition: ShapeRecognition = ShapeRecognition.OFF,
     /**
      * What a lifted living-slot drag means. The window asks the family's values first ([DesktopShellState]'s
      * placement card); a canvas on its own commits the family's defaults, which is what a test drives.
@@ -172,7 +173,7 @@ internal fun PageCanvas(
             shapeInk = shapeInk,
             circuitKind = circuitKind,
             figures = figures,
-            recognizeShapes = recognizeShapes,
+            recognition = recognition,
             placeLiving = state.placeLiving,
             placeCircuit = onPlaceCircuit,
             text = text,
@@ -300,7 +301,7 @@ internal fun SheetCanvas(
     circuitKind: ShapeKind,
     /** The triangle's and trapezoid's own answers, read by a figure drag (Settings ▸ Figures). */
     figures: FigureShape = FigureShape(),
-    recognizeShapes: Boolean = false,
+    recognition: ShapeRecognition = ShapeRecognition.OFF,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
     onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
@@ -363,7 +364,7 @@ internal fun SheetCanvas(
                         dialWheel = dialWheel,
                         targets = sheetTargets(
                             onPlaceLiving, onPlaceCircuit, circuitKind, figures, onTextPress, onEditLiving,
-                            pointer, onLiveDrag, recognizeShapes = recognizeShapes,
+                            pointer, onLiveDrag, recognition = recognition,
                         ),
                         density = density,
                         onViewport = onViewport,
@@ -446,13 +447,13 @@ private fun sheetTargets(
     onEditLiving: (() -> Unit)?,
     pointer: PenPointer,
     onLiveDrag: ((() -> Unit)?) -> Unit,
-    recognizeShapes: Boolean = false,
+    recognition: ShapeRecognition = ShapeRecognition.OFF,
 ): PagePressTargets = PagePressTargets(
     onPlaceLiving = onPlaceLiving,
     onPlaceCircuit = onPlaceCircuit,
     circuitKind = circuitKind,
     figures = figures,
-    recognizeShapes = recognizeShapes,
+    recognition = recognition,
     onTextPress = onTextPress,
     onEditLiving = onEditLiving,
     // Only the component is drawn live: a plot or table is still waiting for its values.

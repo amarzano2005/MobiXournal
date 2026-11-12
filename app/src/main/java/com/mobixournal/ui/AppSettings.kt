@@ -150,8 +150,13 @@ data class AppSettings(
     val minimumPressure: Float = PressureCurve.MINIMUM_PRESSURE_DEFAULT,
     /** How much digitiser detail a freehand stroke keeps (fidelity vs. file size). */
     val strokePrecision: StrokePrecision = StrokePrecision.DEFAULT,
-    /** Snap a finished freehand stroke to the primitive it resembles (line, circle, rectangle…). */
+    /** Snap a finished freehand stroke to the primitive it resembles (line, circle, rectangle…) at the lift. */
     val recognizeShapes: Boolean = true,
+    /**
+     * Snap the stroke while the tip **rests** on it instead. Exclusive with [recognizeShapes]: the two
+     * switches turn each other off, so one stroke is never recognised twice (the window's rule too).
+     */
+    val recognizeOnHold: Boolean = false,
     /** Pull shape-tool endpoints onto the page background's ruling (grid/lined sheets only). */
     val snapToGrid: Boolean = false,
     /** Pull a selection's rotate handle onto 15-degree increments. */
@@ -556,6 +561,9 @@ class SettingsStore(context: Context) {
             minimumPressure = prefs.getFloat(KEY_MINIMUM_PRESSURE, d.minimumPressure),
             strokePrecision = enumOr(prefs.getString(KEY_STROKE_PRECISION, null), d.strokePrecision),
             recognizeShapes = prefs.getBoolean(KEY_RECOGNIZE_SHAPES, d.recognizeShapes),
+            // A stored pair that says both is read as the lift one: the two triggers cannot be on together.
+            recognizeOnHold = prefs.getBoolean(KEY_RECOGNIZE_ON_HOLD, d.recognizeOnHold) &&
+                !prefs.getBoolean(KEY_RECOGNIZE_SHAPES, d.recognizeShapes),
             snapToGrid = prefs.getBoolean(KEY_SNAP_GRID, d.snapToGrid),
             snapRotation = prefs.getBoolean(KEY_SNAP_ROTATION, d.snapRotation),
             guideKind = enumOr(prefs.getString(KEY_GUIDE_KIND, null), d.guideKind),
@@ -711,6 +719,7 @@ class SettingsStore(context: Context) {
             .putFloat(KEY_MINIMUM_PRESSURE, s.minimumPressure)
             .putString(KEY_STROKE_PRECISION, s.strokePrecision.name)
             .putBoolean(KEY_RECOGNIZE_SHAPES, s.recognizeShapes)
+            .putBoolean(KEY_RECOGNIZE_ON_HOLD, s.recognizeOnHold)
             .putBoolean(KEY_SNAP_GRID, s.snapToGrid)
             .putBoolean(KEY_SNAP_ROTATION, s.snapRotation)
             .putString(KEY_GUIDE_KIND, s.guideKind.name)
@@ -827,6 +836,7 @@ class SettingsStore(context: Context) {
         const val KEY_MINIMUM_PRESSURE = "minimum_pressure"
         const val KEY_STROKE_PRECISION = "stroke_precision"
         const val KEY_RECOGNIZE_SHAPES = "recognize_shapes"
+        const val KEY_RECOGNIZE_ON_HOLD = "recognize_on_hold"
         const val KEY_SNAP_GRID = "snap_to_grid"
         const val KEY_SNAP_ROTATION = "snap_rotation"
         const val KEY_GUIDE_KIND = "guide_kind"

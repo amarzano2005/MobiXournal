@@ -4,8 +4,9 @@
  * rectangle — *before* lift-off, so the user watches the snap happen and can keep drawing if it guessed
  * wrong.
  *
- * It is the same recogniser the on-lift path uses ([ShapeRecognizer], through [ShapeDwell.figureFor], and
- * it shares that path's `recognizeShapes` setting), just triggered by stillness rather than by release:
+ * It is the same recogniser the on-lift path uses ([ShapeRecognizer], through [ShapeDwell.figureFor]),
+ * just triggered by stillness rather than by release, and it has its **own** switch ([enabled], the
+ * `recognizeOnHold` setting) because recognising both ways would re-read a clean figure as ink:
  * each time the stroke advances the tip by a slop, a short timer is armed; if the tip rests for
  * [ShapeDwell.MS] the timer fires and the recognised figure is **painted in place of the stroke**.
  *
@@ -34,7 +35,7 @@ internal class HoldSnap(
     private val schedule: (Runnable, Long) -> Unit,
     /** Drop an armed timer — the view's `removeCallbacks`. */
     private val unschedule: (Runnable) -> Unit,
-    /** Whether the freehand path may snap at all: `recognizeShapes`, and not a shape gesture. */
+    /** Whether the freehand path may snap at all: no shape gesture is in flight. */
     private val freehand: () -> Boolean,
     /** Whether the tool in force lays ink a figure may replace (pen or highlighter). */
     private val inking: () -> Boolean,
@@ -43,6 +44,17 @@ internal class HoldSnap(
     /** Repaint: what is painted changed. */
     private val onSnapped: () -> Unit,
 ) {
+
+    /**
+     * The user's `recognizeOnHold` switch: a hold is armed only while this is on, and switching it off
+     * drops whatever the hold was carrying. The lift recogniser (`recognizeShapes`) is its exclusive
+     * twin — the settings turn one off when the other goes on — so a stroke is never recognised twice.
+     */
+    var enabled: Boolean = false
+        set(value) {
+            field = value
+            if (!value) reset()
+        }
 
     /** Where the tip stood when the timer was last armed, in page pt: a move out of its slop re-arms. */
     var anchorX = 0.0
@@ -75,7 +87,7 @@ internal class HoldSnap(
     fun start(points: List<StrokePoint>?) {
         anchorX = points?.lastOrNull()?.x ?: 0.0
         anchorY = points?.lastOrNull()?.y ?: 0.0
-        if (freehand()) arm()
+        if (mayHold()) arm()
     }
 
     /**
@@ -89,7 +101,7 @@ internal class HoldSnap(
             figure = null
             snapped = false
         }
-        if (!freehand()) return
+        if (!mayHold()) return
         val last = points.lastOrNull() ?: return
         if (hypot(last.x - anchorX, last.y - anchorY) >= ShapeDwell.SLOP_PT) {
             anchorX = last.x
@@ -121,6 +133,9 @@ internal class HoldSnap(
     /** The figure to paint over a stroke of [count] samples, or null when the stroke has grown past it. */
     fun preview(count: Int): RecognisedFigure? = figure?.takeIf { samples == count }
 
+    /** Whether this gesture may snap by holding: the user's switch, and no shape gesture in flight. */
+    private fun mayHold(): Boolean = enabled && freehand()
+
     /** (Re)start the hold timer; the caller has confirmed the tip is still. */
     private fun arm() {
         cancel()
@@ -141,7 +156,7 @@ internal class HoldSnap(
      */
     private fun fire() {
         pending = null
-        if (!freehand() || !inking()) return
+        if (!mayHold() || !inking()) return
         val points = stroke() ?: return
         if (points.size < 3) return
         val found = ShapeDwell.figureFor(points, points.map { it.width }.average()) ?: return

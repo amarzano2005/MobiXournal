@@ -32,6 +32,7 @@ import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.ShapeDwell
+import com.mobixournal.render.ShapeRecognition
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -87,7 +88,7 @@ class DesktopDwellTest {
             onEdited = {},
             // The tablet's rule: a press is a pen on paper, so the stroke opens on the down.
             startOnDown = true,
-            recognizeShapes = true,
+            recognition = ShapeRecognition.ON_HOLD,
         )
         return Fixture(tab, gesture, draft)
     }
@@ -224,7 +225,10 @@ class DesktopDwellTest {
         tab.fit = FitMode.NONE
         tab.viewport = Viewport(zoom = 1f)
         val scene = ImageComposeScene(500, 700, Density(1f)) {
-            PageCanvas(tab = tab, panMode = false, onViewport = {}, onFit = {}, ink = DesktopInk(width = 4f), recognizeShapes = true)
+            PageCanvas(
+                tab = tab, panMode = false, onViewport = {}, onFit = {}, ink = DesktopInk(width = 4f),
+                recognition = ShapeRecognition.ON_HOLD,
+            )
         }
         try {
             val corners = listOf(100f to 100f, 300f to 100f, 300f to 250f, 100f to 250f, 100f to 100f)

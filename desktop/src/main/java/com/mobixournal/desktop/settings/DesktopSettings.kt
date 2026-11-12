@@ -194,11 +194,19 @@ class DesktopSettings(val file: File = defaultFile()) {
         save()
     }
 
-    /** Whether freehand strokes snap to geometric primitives on lift or dwell (`figure.recognizeShapes`). */
+    /** Whether freehand strokes snap to geometric primitives on lift (`figure.recognizeShapes`). */
     var recognizeShapes: Boolean
         get() = properties.getProperty(KEY_RECOGNIZE_SHAPES)?.toBooleanStrictOrNull() ?: true
         set(value) {
             properties.setProperty(KEY_RECOGNIZE_SHAPES, value.toString())
+            save()
+        }
+
+    /** Whether a **resting** tip snaps the stroke instead (`figure.recognizeOnHold`) — never on with the lift. */
+    var recognizeOnHold: Boolean
+        get() = properties.getProperty(KEY_RECOGNIZE_ON_HOLD)?.toBooleanStrictOrNull() ?: false
+        set(value) {
+            properties.setProperty(KEY_RECOGNIZE_ON_HOLD, value.toString())
             save()
         }
 
@@ -636,8 +644,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The width a figure is drawn at, in points. */
         const val KEY_FIGURE_WIDTH = "figure.width"
-        /** Whether freehand strokes snap to geometric primitives on lift or dwell. */
+        /** Whether freehand strokes snap to geometric primitives on lift (`figure.recognizeShapes`). */
         const val KEY_RECOGNIZE_SHAPES = "figure.recognizeShapes"
+        const val KEY_RECOGNIZE_ON_HOLD = "figure.recognizeOnHold"
 
         /** What a new tab is written as: `.mobix`, a gzip `.xopp` or a zipped `.xopp`. */
         const val KEY_NEW_DOCUMENT_FORMAT = "document.newFormat"
