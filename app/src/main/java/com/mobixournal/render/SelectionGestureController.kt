@@ -268,7 +268,8 @@ internal class SelectionGestureController(
      * The handles themselves are [handleResizeStart]'s, together with the axis each one scales.
      */
     private fun beginHandleResize(event: MotionEvent, box: PageBox, b: Bounds, page: Page?): Boolean {
-        val start = handleResizeStart(event, box, b, viewport, selection, page) ?: return false
+        val shaft = selection?.let { shaftOfSelection(it) }
+        val start = handleResizeStart(event, box, b, viewport, selection, page, shaft) ?: return false
         resizing = true
         snapshot()
         resizeAxis = start.axis
@@ -278,6 +279,16 @@ internal class SelectionGestureController(
         resizeStartPtY = start.startPtY
         resizeStartDist = start.startDist
         return true
+    }
+
+    /**
+     * The shaft of a single selected **line or arrow**, or null — its two ends are the only resize
+     * handles those families have (`SelectionShaft`).
+     */
+    fun shaftOfSelection(sel: ActiveSelection): SelectionShaft? {
+        val ref = sel.refs.singleOrNull() ?: return null
+        val page = pageAt(sel.pageIndex) ?: return null
+        return shaftOf(page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex))
     }
 
     /**

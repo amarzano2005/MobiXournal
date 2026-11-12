@@ -40,6 +40,8 @@ internal fun handleResizeStart(
     viewport: ViewportState,
     selection: ActiveSelection?,
     page: Page?,
+    /** The shaft when the selection is a single line or arrow; null for every other selection. */
+    shaft: SelectionShaft? = null,
 ): ResizeStart? {
     val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
     val boxWpx = (b.width * box.scale).toFloat()
@@ -55,6 +57,21 @@ internal fun handleResizeStart(
         val startPtY = box.toPtY(event.y, viewport.scrollY)
         val dist = hypot(startPtX - anchorX, startPtY - anchorY).coerceAtLeast(1e-3)
         return ResizeStart(axis, anchorX, anchorY, startPtX, startPtY, dist)
+    }
+    // A line and an arrow are **not** figures: their shaft is the only thing a drag may change, so they
+    // wear two end handles and no corner or side — a diagonal line's box is a figure's box, and eight
+    // handles on it is what turned a length into a two-axis stretch. The uniform axis keeps the shaft's
+    // direction and the glyph's shape, so only the distance between the ends changes.
+    if (shaft != null) {
+        fun onEnd(hx: Float, hy: Float): Boolean =
+            abs(event.x - hx) <= pad && abs(event.y - hy) <= pad
+        val tailX = box.toViewX(shaft.tailX, viewport.scrollX)
+        val tailY = box.toViewY(shaft.tailY, viewport.scrollY)
+        if (onEnd(tailX, tailY)) return start(ResizeAxis.BOTH, shaft.tipX, shaft.tipY)
+        val tipX = box.toViewX(shaft.tipX, viewport.scrollX)
+        val tipY = box.toViewY(shaft.tipY, viewport.scrollY)
+        if (onEnd(tipX, tipY)) return start(ResizeAxis.BOTH, shaft.tailX, shaft.tailY)
+        return null
     }
     // The corner handles: the anchor is the diagonally-opposite corner.
     if (!flatX && !flatY) {

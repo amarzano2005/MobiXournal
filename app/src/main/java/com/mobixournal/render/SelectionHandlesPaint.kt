@@ -33,10 +33,23 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
     r: Float,
     bottom: Float,
 ) {
+    val shaft = gestures.shaftOfSelection(sel)
     val flatX = DrawingSurfaceDefaults.isFlat(r - l, box.scale)
     val flatY = DrawingSurfaceDefaults.isFlat(bottom - t, box.scale)
+    // A line or an arrow has one degree of freedom — the length of its shaft — so its two ends are the
+    // only resize dots, wherever the box's corners happen to fall.
+    if (shaft != null) {
+        for (end in listOf(shaft.tailX to shaft.tailY, shaft.tipX to shaft.tipY)) {
+            canvas.drawCircle(
+                box.toViewX(end.first, viewport.scrollX),
+                box.toViewY(end.second, viewport.scrollY),
+                HANDLE_DRAW_PX,
+                chrome.handle,
+            )
+        }
+    }
     // Corner resize handles: proportional (both axes together).
-    if (!flatX && !flatY) {
+    if (shaft == null && !flatX && !flatY) {
         for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
             canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
         }
@@ -44,11 +57,11 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
     // Edge-midpoint handles: one axis each, the out-of-proportion resize.
     val midX = (l + r) / 2f
     val midY = (t + bottom) / 2f
-    if (!flatY) {
+    if (shaft == null && !flatY) {
         canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(midX, bottom, HANDLE_DRAW_PX, chrome.handle)
     }
-    if (!flatX) {
+    if (shaft == null && !flatX) {
         canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
     }

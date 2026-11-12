@@ -4,7 +4,9 @@ import com.mobixournal.desktop.tools.DesktopTool
 
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
+import com.mobixournal.render.SelectionShaft
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
@@ -44,7 +46,21 @@ enum class SelectionHandle {
     BOTTOM,
     LEFT,
     RIGHT,
+
+    /**
+     * The two ends of a **line or an arrow**: the only handles those families have, because their one
+     * degree of freedom is the length of their shaft (`SelectionShaft`). The dragged end follows the
+     * pointer and the other stays.
+     */
+    SHAFT_TAIL,
+    SHAFT_TIP,
 }
+
+/** The one element a selection holds, or null when it holds none or several. */
+fun singleElementOf(page: Page, selection: PageSelection): Element? =
+    selection.refs.singleOrNull()?.let { ref ->
+        page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+    }
 
 /** How far above the outline's top edge the rotate handle sits, in page points at 100 %. */
 const val ROTATE_HANDLE_GAP_PT = 26.0
@@ -120,12 +136,29 @@ fun selectionHandleAt(
     rotateGapPt: Double = ROTATE_HANDLE_GAP_PT,
     includeEdges: Boolean = true,
     includeRotate: Boolean = true,
+    /** The shaft when the selection is a single line or arrow; null for every other selection. */
+    shaft: SelectionShaft? = null,
 ): SelectionHandle {
     val box = selection.bounds
     val (reachX, reachY) = handleReach(box, tolPt)
     if (includeRotate) {
         val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
         if (near(x, y, rotateX, rotateY, reachX, reachY)) return SelectionHandle.ROTATE
+    }
+    // A line and an arrow are **not** figures: their shaft is the only thing a drag may change, so they
+    // wear two end handles and no corner or side — a diagonal line's box is a figure's box, and offering
+    // it eight handles is what turned a length into a two-axis stretch.
+    if (shaft != null) {
+        if (near(x, y, shaft.tailX, shaft.tailY, tolPt, tolPt)) return SelectionHandle.SHAFT_TAIL
+        if (near(x, y, shaft.tipX, shaft.tipY, tolPt, tolPt)) return SelectionHandle.SHAFT_TIP
+        if (selection.region.inside(x, y)) return SelectionHandle.BODY
+        // The band along the shaft carries it, so a press a hair off the ink moves it instead of nothing.
+        if (x >= box.left - reachX && x <= box.right + reachX &&
+            y >= box.top - reachY && y <= box.bottom + reachY
+        ) {
+            return SelectionHandle.BODY
+        }
+        return SelectionHandle.NONE
     }
     if (!box.isFlatX && !box.isFlatY) {
         val corners = listOf(

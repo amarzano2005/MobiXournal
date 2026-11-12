@@ -21,6 +21,7 @@ import com.mobixournal.render.PinMagnet
 import com.mobixournal.render.SelectionTester
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
+import com.mobixournal.render.shaftOf
 import com.mobixournal.render.rectRegion
 import com.mobixournal.render.SelectionEdit
 import com.mobixournal.render.SelectionRegion
@@ -157,10 +158,12 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) is ImageElement
     } ?: false
     // The eight handles of the tablet, and the turn is an image's to lose (its model carries no rotation).
+    // A line or an arrow is a shaft, not a figure: its two ends are its only handles (`SelectionShaft`).
+    val shaft = live?.let { sel -> page?.let { shaftOf(singleElementOf(it, sel)) } }
     val handle = if (live == null) {
         SelectionHandle.NONE
     } else {
-        selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage)
+        selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage, shaft = shaft)
     }
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
     // which is where the hand aims when two parts have to be joined (`PinPress`).
@@ -411,6 +414,32 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     }
 }
 
+/**
+ * The one transform a **line or an arrow** has: a length change about the end the drag leaves still.
+ *
+ * The factor is uniform, so the shaft keeps its direction and the glyph its shape — a longer arrow is the
+ * same arrow drawn longer, and a line keeps the width of its pen (`SelectionOps.scaleXY`). A selection that
+ * is no longer a single connector (the page changed under the drag) is handed back untouched.
+ */
+private fun shaftStretch(
+    original: Page,
+    selection: PageSelection,
+    handle: SelectionHandle,
+    x0: Double,
+    y0: Double,
+    x1: Double,
+    y1: Double,
+): Pair<Page, PageSelection> {
+    val shaft = shaftOf(singleElementOf(original, selection)) ?: return original to selection
+    // The dragged end follows the pointer, so the far one is the anchor: the tail is dragged, the tip stays.
+    val anchorX = if (handle == SelectionHandle.SHAFT_TAIL) shaft.tipX else shaft.tailX
+    val anchorY = if (handle == SelectionHandle.SHAFT_TAIL) shaft.tipY else shaft.tailY
+    val startDist = hypot(x0 - anchorX, y0 - anchorY).coerceAtLeast(1e-3)
+    val factor = shaft.factorAt(x1, y1, anchorX, anchorY, startDist)
+        .coerceIn(MIN_SELECTION_SCALE, MAX_SELECTION_SCALE)
+    return SelectionEdit.scale(original, selection, factor, factor, anchorX, anchorY)
+}
+
 /** Compute the modified page and selection for a move, rotate or scale transform. */
 private fun transformPageSelection(
     original: Page,
@@ -443,6 +472,8 @@ private fun transformPageSelection(
         selection,
         rotationBetween(selection, x0, y0, x1, y1, snap = isShiftPressed),
     )
+    SelectionHandle.SHAFT_TAIL, SelectionHandle.SHAFT_TIP ->
+        shaftStretch(original, selection, handle, x0, y0, x1, y1)
     else -> {
         val isCorner = handle in setOf(
             SelectionHandle.TOP_LEFT,

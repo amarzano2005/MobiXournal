@@ -89,9 +89,15 @@ on both shells. A corner of a **single figure** scales each axis by its own rati
 its proportions are the figure's to change — while a **picture**'s and a **mixed** selection's keep them
 (`ResizeAxis.BOTH`, one ratio for both axes); the one handle an image gives up is the turn,
 because its model carries no rotation. Both shells cap a handle's reach **per axis**, at a third of that axis's own
-extent, so a small element keeps a middle to be moved by; a **line** — a selection only as thick as the pen
-that drew it — has no middle across its thickness, so it wears just its two end handles: no corners, which
-would sit exactly on them, and no edges along the flat axis, which could only multiply by one. A drag on the
+extent, so a small element keeps a middle to be moved by.
+
+A **line** and an **arrow** are not figures with a box to stretch: they are a **shaft** with one degree of
+freedom, its length (`SelectionShaft`, answered by `shaftOf`). Both shells wear their two handles on the
+shaft's own ends — the line's two ends, the arrow's tail and the tip of its head — wherever the bounding box's
+corners fall, so a diagonal line or any arrow is lengthened rather than widened: the dragged end follows the
+pointer, the far end stays, and the factor is uniform, which keeps the shaft's direction and the glyph's shape
+(a longer arrow is the same arrow, drawn longer, and a line keeps the width of its pen). A **flat** box keeps
+the same two handles, which is why a horizontal line behaves as it always did. A drag on the
 band above or below such a box carries it, which is where the dead edge handle used to be. A resize stretches **geometry, not ink**: stroke widths are
 carried through untouched (a longer arrow is not a fatter one) and a recognised arrowhead stays at
 the size it was drawn, so only the shaft lengthens (`StrokeStretch`), while text sizes follow the

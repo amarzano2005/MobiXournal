@@ -15,6 +15,8 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
+import com.mobixournal.render.SelectionShaft
+import com.mobixournal.render.shaftOf
 
 /**
  * The selection drawn **over the page**, in the window's own chrome ink — no material of its own.
@@ -30,7 +32,7 @@ import com.mobixournal.render.SelectionRegion
  */
 internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, living: Element? = null) {
     drawRegion(selection.region, pxPerPt, dashed = true)
-    drawHandles(selection, pxPerPt, isImage = living is ImageElement)
+    drawHandles(selection, pxPerPt, isImage = living is ImageElement, shaft = shaftOf(living))
     // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
     // where the box's handles are square, so the two never read as the same thing.
     if (living != null) drawGrips(living, pxPerPt)
@@ -93,7 +95,12 @@ private fun DrawScope.drawRegion(region: SelectionRegion, pxPerPt: Float, dashed
  * corners (they would sit exactly on its two end handles) and no squares along that axis, so a line shows the
  * two ends a stretch uses and nothing that a press could not act on (`DesktopSelection.isFlatX`).
  */
-private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float, isImage: Boolean = false) {
+private fun DrawScope.drawHandles(
+    selection: PageSelection,
+    pxPerPt: Float,
+    isImage: Boolean = false,
+    shaft: SelectionShaft? = null,
+) {
     val box = selection.bounds
     fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
     fun square(at: Offset) {
@@ -103,28 +110,35 @@ private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float, isIm
             size = Size(HANDLE_SIZE, HANDLE_SIZE),
         )
     }
-    if (!box.isFlatX && !box.isFlatY) {
-        for (corner in listOf(
-            off(box.left, box.top), off(box.right, box.top),
-            off(box.right, box.bottom), off(box.left, box.bottom),
-        )) {
-            square(corner)
+    if (shaft != null) {
+        // A line or an arrow: two squares on its own ends, and nothing on the box — its corners are not
+        // places where anything may change.
+        square(off(shaft.tailX, shaft.tailY))
+        square(off(shaft.tipX, shaft.tipY))
+    } else {
+        if (!box.isFlatX && !box.isFlatY) {
+            for (corner in listOf(
+                off(box.left, box.top), off(box.right, box.top),
+                off(box.right, box.bottom), off(box.left, box.bottom),
+            )) {
+                square(corner)
+            }
         }
-    }
-    val midX = (box.left + box.right) / 2.0
-    val midY = (box.top + box.bottom) / 2.0
-    val edges = buildList {
-        if (!box.isFlatY) {
-            add(off(midX, box.top))
-            add(off(midX, box.bottom))
+        val midX = (box.left + box.right) / 2.0
+        val midY = (box.top + box.bottom) / 2.0
+        val edges = buildList {
+            if (!box.isFlatY) {
+                add(off(midX, box.top))
+                add(off(midX, box.bottom))
+            }
+            if (!box.isFlatX) {
+                add(off(box.right, midY))
+                add(off(box.left, midY))
+            }
         }
-        if (!box.isFlatX) {
-            add(off(box.right, midY))
-            add(off(box.left, midY))
+        for (edge in edges) {
+            square(edge)
         }
-    }
-    for (edge in edges) {
-        square(edge)
     }
     if (!isImage) {
         // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.

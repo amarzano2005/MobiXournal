@@ -17,6 +17,7 @@ import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.anchorOf
 import com.mobixournal.desktop.sheet.cornerLocksAspect
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.render.SelectionShaft
 import com.mobixournal.desktop.sheet.finishedSelection
 import com.mobixournal.desktop.sheet.rotationBetween
 import com.mobixournal.desktop.sheet.scaleFactors
@@ -54,6 +55,7 @@ import com.mobixournal.render.rectRegion
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -477,6 +479,36 @@ class DesktopSelectionTest {
             ),
             buttons = if (pressed) PointerButtons(isPrimaryPressed = true) else PointerButtons(),
             timeMillis = time,
+        )
+    }
+
+    @Test
+    fun `a line's shaft wears only its two end handles`() {
+        // A **diagonal** line: its box has width and height, so a box-only rule would give it eight handles
+        // and a two-axis stretch where the user asked for a length.
+        val line = PageSelection(rectRegion(100.0, 100.0, 200.0, 200.0), setOf(ElementRef(0, 0)))
+        val shaft = SelectionShaft(100.0, 100.0, 200.0, 200.0)
+        assertEquals(
+            SelectionHandle.SHAFT_TAIL,
+            selectionHandleAt(line, 100.0, 100.0, tolPt = 4.0, shaft = shaft),
+        )
+        assertEquals(
+            SelectionHandle.SHAFT_TIP,
+            selectionHandleAt(line, 200.0, 200.0, tolPt = 4.0, shaft = shaft),
+        )
+        // The box's own corner is not a handle of a shaft: nothing there may change the drawing's shape.
+        assertNotEquals(
+            SelectionHandle.TOP_RIGHT,
+            selectionHandleAt(line, 200.0, 100.0, tolPt = 4.0, shaft = shaft),
+        )
+        assertEquals(
+            SelectionHandle.BODY,
+            selectionHandleAt(line, 200.0, 100.0, tolPt = 4.0, shaft = shaft),
+        )
+        // The turn is still offered: rotating a line does not stretch it.
+        assertEquals(
+            SelectionHandle.ROTATE,
+            selectionHandleAt(line, 150.0, 100.0 - 26.0, tolPt = 4.0, shaft = shaft),
         )
     }
 
