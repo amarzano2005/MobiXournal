@@ -278,6 +278,9 @@ second: `paints/s`, the worst gap between paints, and the paint's own cost) — 
 one-millisecond `paint` is a blocked UI thread, not a slow painter, which is the distinction a headless
 render cannot make.
 
+`mobix-ui-hang-<timestamp>.txt` beside it is the window's own answer to a stalled UI thread — every stack,
+and the monitor a blocked one waits for with its owner. Written in every run, not just under `--diagnose`.
+
 ## Mobix corpora
 
 Two generators and a validator, all dependency-free and deterministic (fixed ZIP timestamps, no clock or

@@ -24,6 +24,7 @@ import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.sheet.runScrollProbe
 import com.mobixournal.desktop.shell.DesktopDiagnostics
 import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.UiWatchdogBeats
 
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -203,6 +204,9 @@ fun main(args: Array<String>) {
             // window is stamped with the app's icon by the package, and this splits that icon — nothing
             // in the title bar, the art on the taskbar (`captionIcon`).
             LaunchedEffect(window) { captionIcon(window) }
+            // The hang detector's beat runs on this composition's thread — the one that draws and scrolls —
+            // so a stall is measured where a reader feels it (`DesktopUiWatchdog`).
+            UiWatchdogBeats()
             DesktopApp(initial = initial, state = state, onExit = ::exitApplication)
         }
     }
