@@ -111,8 +111,7 @@ fun SaveAsDialog(
                 FormatOption(
                     selected = picked == SaveFormat.MOBIX,
                     title = "MobiXournal (.mobix)",
-                    subtitle = "This app's own format: tables, plots and components stay editable. " +
-                        "For desktop Xournal++, export it to .xopp.",
+                    subtitle = "This app's own format: tables, plots and components stay editable.",
                     onClick = { picked = SaveFormat.MOBIX },
                 )
                 FormatOption(

@@ -1,11 +1,15 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.FloatingDialog
@@ -41,14 +45,20 @@ internal fun ExportAsHost(
     }
 }
 
+/** The three answers **Export As** offers: the page twice, then the whole notebook as one file. */
+private enum class ExportAnswer { PNG, SVG, PORTABLE }
+
 /**
  * **Export As** — the hamburger's one question with three answers, asked in a card over the sheet.
  *
- * An answer is a **command**, not a choice kept on screen: PNG writes one raster image per page, SVG one
- * vector file per page, and `.pmobix` the whole notebook as a single file that carries the pictures, PDFs
- * and recordings it otherwise only names (`docs/mobix-assets.md`). That is why they are buttons on the
- * card's own footer and not the radio rows `Save As` and `Import PDF` wear — nothing here stays selected
- * after the answer, the answer closes the card and asks for a destination.
+ * It asks the way `Save As` and `Import PDF` ask: the answers are **radio rows** that say what each one
+ * writes and stay readable until the reader commits, and one button runs the picked one. Pressing a row
+ * used to run its export on the spot, which made a mis-tap into a folder dialog the reader never wanted;
+ * here a row only moves the mark, and `Export` is the one thing that writes.
+ *
+ * The answers themselves are PNG (one raster image per page), SVG (one vector file per page) and
+ * `.pmobix` (the whole notebook as a single file carrying the pictures, PDFs and recordings it otherwise
+ * only names — `docs/mobix-assets.md`).
  */
 @Composable
 private fun ExportAsDialog(
@@ -57,22 +67,46 @@ private fun ExportAsDialog(
     onPortable: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var picked by remember { mutableStateOf(ExportAnswer.PNG) }
     FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Export As") },
         text = {
-            Text(
-                "PNG writes one image per page, SVG one vector file per page, and .pmobix the whole " +
-                    "notebook with the files it only names.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "What should be written?",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                FormatOption(
+                    selected = picked == ExportAnswer.PNG,
+                    title = "PNG",
+                    subtitle = "One raster image per page, two pixels per point.",
+                    onClick = { picked = ExportAnswer.PNG },
+                )
+                FormatOption(
+                    selected = picked == ExportAnswer.SVG,
+                    title = "SVG",
+                    subtitle = "One vector file per page, at the page's own size.",
+                    onClick = { picked = ExportAnswer.SVG },
+                )
+                FormatOption(
+                    selected = picked == ExportAnswer.PORTABLE,
+                    title = ".pmobix",
+                    subtitle = "The whole notebook as one file, with the files it only names embedded.",
+                    onClick = { picked = ExportAnswer.PORTABLE },
+                )
+            }
         },
         confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onPng) { Text("PNG") }
-                TextButton(onClick = onSvg) { Text("SVG") }
-                TextButton(onClick = onPortable) { Text(".pmobix") }
-            }
+            TextButton(
+                onClick = {
+                    when (picked) {
+                        ExportAnswer.PNG -> onPng()
+                        ExportAnswer.SVG -> onSvg()
+                        ExportAnswer.PORTABLE -> onPortable()
+                    }
+                },
+            ) { Text("Export") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
