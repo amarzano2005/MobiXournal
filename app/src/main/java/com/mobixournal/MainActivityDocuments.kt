@@ -66,7 +66,9 @@ internal fun MainActivity.openDocument(uri: Uri) {
     rememberRecentNotebook(uri, displayName(uri))
     // The bytes may be coming off a network share, so fetch them on a worker and only touch the
     // canvas once they have landed. A failure takes the half-built tab back down with it.
-    inBackground("Opening $sourceName.", {
+    // No full stop after the name: it would land right behind a `.mobix` and read as a third dot
+    // in the extension. The neighbours say `Reading $name…` for the same reason.
+    inBackground("Opening $sourceName…", {
         val staged = io.stageIn(uri, "open")
         // The portability report walks every page, so it is answered **here**, on the worker that fetched the
         // file, and not inside the open: a paged `.mobix` must reach its first frame having read no page.

@@ -58,7 +58,11 @@ internal fun ExportAsDialog(
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             ExportAnswerRow("PNG", "One raster image per page, 2 px per point.", onPng)
             ExportAnswerRow("SVG", "One vector file per page.", onSvg)
-            ExportAnswerRow(".pmobix", "The notebook as one file, with what it only names embedded.", onPortable)
+            ExportAnswerRow(
+                "Portable Mobix (.pmobix)",
+                "The notebook as one file, with what it only names embedded.",
+                onPortable,
+            )
         }
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
