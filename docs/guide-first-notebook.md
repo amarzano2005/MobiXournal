@@ -33,7 +33,8 @@ Three interactions carry the first five minutes:
 
 ## Save it, and know where it went
 
-**Save As** asks for a name and a format. After the first save, plain **Save** writes back to that same
+**Save As** asks for a format, and the system's picker then asks for the name, already filled in.
+After the first save, plain **Save** writes back to that same
 file in that same format, which is what keeps a `.xopp` a `.xopp` and a `.mobix` a `.mobix`.
 
 The file goes wherever you point the picker: local storage, an SD card, or a folder a sync client already

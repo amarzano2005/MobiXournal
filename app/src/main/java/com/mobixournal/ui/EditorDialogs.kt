@@ -74,8 +74,13 @@ private val TEXT_FAMILIES = listOf("Sans", "Serif", "Monospace")
  * name it proposes carries the chosen format's suffix.
  *
  * [initialName] is the open document's own name (already carrying the `.xopp` suffix), not a generic
- * placeholder: saving a copy of `notes.xopp` should start at `notes.xopp`, not at `document.xopp`.
- * Whatever is typed here is forced through the same suffix rule before it reaches the picker.
+ * placeholder: saving a copy of `notes.xopp` should start at `notes.xopp`, not at `document.xopp`. It is
+ * forced through the same suffix rule before it reaches the picker, so the two agree.
+ *
+ * The name is **not** typed here. The system's save picker on the next step asks for it and opens with
+ * this one already in its field, so a text field on this card was the same question put twice — and the
+ * second answer always won, which made the first one a decoy. The card asks the one thing the picker
+ * cannot: the format.
  */
 @Composable
 fun SaveAsDialog(
@@ -84,7 +89,6 @@ fun SaveAsDialog(
     onConfirm: (filename: String, format: SaveFormat) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(initialName) }
     // The chooser lists **each format once** and opens on the one the document already has: a row saying
     // "Default (…)" beside the format it named was the same answer printed twice, and a reader who never
     // touched Documents should not have to work out whether two of the four rows are one choice.
@@ -94,12 +98,9 @@ fun SaveAsDialog(
         title = { Text("Save As") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("File name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                Text(
+                    "“$initialName” is the name the picker opens with, and you can change it there.",
+                    style = MaterialTheme.typography.bodyMedium,
                 )
                 Text("Format", style = MaterialTheme.typography.labelMedium)
                 FormatOption(
@@ -122,7 +123,7 @@ fun SaveAsDialog(
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(name, picked) }) { Text("Save") } },
+        confirmButton = { TextButton(onClick = { onConfirm(initialName, picked) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
