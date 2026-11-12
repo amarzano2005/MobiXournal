@@ -99,17 +99,19 @@ fun SaveAsDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Format", style = MaterialTheme.typography.labelMedium)
-                FormatOption(
-                    selected = picked == SaveFormat.ORIGINAL,
-                    title = "Xournal++ (.xopp)",
-                    subtitle = "Standard gzip file; any PDF background stays linked by location.",
-                    onClick = { picked = SaveFormat.ORIGINAL },
-                )
+                // The app's own format first: it is what the document is when nothing else is asked for,
+                // and the two `.xopp` containers follow — plain, then the one that carries its PDF.
                 FormatOption(
                     selected = picked == SaveFormat.MOBIX,
                     title = "MobiXournal (.mobix)",
                     subtitle = "This app's own format: tables, plots and components stay editable.",
                     onClick = { picked = SaveFormat.MOBIX },
+                )
+                FormatOption(
+                    selected = picked == SaveFormat.ORIGINAL,
+                    title = "Xournal++ (.xopp)",
+                    subtitle = "Standard gzip file; any PDF background stays linked by location.",
+                    onClick = { picked = SaveFormat.ORIGINAL },
                 )
                 FormatOption(
                     selected = picked == SaveFormat.ZIPPED,
