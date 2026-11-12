@@ -428,9 +428,12 @@ object CircuitSnapping {
                     val (x, y) = pinAbsolutePosition(element, pin)
                     out += MovingEnd(x, y)
                 }
-                // A wire's ends and an arrow's tail and tip are the pins a move can land on.
-                is Stroke -> if (FigurePins.familyOf(element) != null) {
-                    for ((x, y) in FigurePins.ends(element.points)) out += MovingEnd(x, y)
+                // A wire joints by its two ends, an arrow by its tip; a drawn figure carries pins but
+                // never moves by them, so a corner drag on a rectangle is the plain scale it always was.
+                is Stroke -> when (FigurePins.familyOf(element)) {
+                    PinFamily.WIRE -> for ((x, y) in FigurePins.ends(element.points)) out += MovingEnd(x, y)
+                    PinFamily.ARROW -> FigurePins.tip(element.points)?.let { out += MovingEnd(it.first, it.second) }
+                    else -> Unit
                 }
                 else -> Unit
             }

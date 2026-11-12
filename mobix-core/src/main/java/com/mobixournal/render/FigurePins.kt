@@ -142,10 +142,18 @@ object FigurePins {
     fun pinsOf(kind: ShapeKind, points: List<StrokePoint>): List<Pair<Double, Double>> =
         when (familyOfPoints(points) ?: familyOf(kind)) {
             PinFamily.WIRE -> ends(points)
-            PinFamily.ARROW -> uniqueVertices(points)
+            PinFamily.ARROW -> listOfNotNull(tip(points))
             PinFamily.FIGURE -> borderPins(points)
             else -> emptyList()
         }
+
+    /**
+     * The **one** point an arrow attaches to: its tip.
+     *
+     * An arrow is a pointer, not a wire: what it joins is where it points, so only the head end carries a
+     * pin — the tail is the hand's own point and the barbs are the drawing of the head, not anchors.
+     */
+    fun tip(points: List<StrokePoint>): Pair<Double, Double>? = ends(points).lastOrNull()
 
     /**
      * The vertex indices of the two pins a figure **being drawn** offers, per `FigureGeometry`'s layouts:
@@ -180,8 +188,14 @@ object FigurePins {
         val (startIndex, endIndex) = endIndices(kind, points)
         val start = points[startIndex]
         val end = points[endIndex]
-        val snapStart = magnet?.snapStart(start.x, start.y, targets, thresholdPt)
-            ?: CircuitSnapping.findSnapTarget(start.x, start.y, targets, thresholdPt)?.let { it.absX to it.absY }
+        // An arrow attaches by its **tip** only, so its tail is never pulled: what the user drew is kept.
+        val arrowOnly = (familyOfPoints(points) ?: familyOf(kind)) == PinFamily.ARROW
+        val snapStart = if (arrowOnly) {
+            null
+        } else {
+            magnet?.snapStart(start.x, start.y, targets, thresholdPt)
+                ?: CircuitSnapping.findSnapTarget(start.x, start.y, targets, thresholdPt)?.let { it.absX to it.absY }
+        }
         val snapEnd = magnet?.snapEnd(end.x, end.y, targets, thresholdPt)
             ?: CircuitSnapping.findSnapTarget(end.x, end.y, targets, thresholdPt)?.let { it.absX to it.absY }
         if (snapStart == null && snapEnd == null) return points
@@ -253,7 +267,7 @@ object FigurePins {
     private fun pinsOf(family: PinFamily, points: List<StrokePoint>): List<Pair<Double, Double>> =
         when (family) {
             PinFamily.WIRE -> ends(points)
-            PinFamily.ARROW -> uniqueVertices(points)
+            PinFamily.ARROW -> listOfNotNull(tip(points))
             PinFamily.FIGURE -> borderPins(points)
             else -> emptyList()
         }

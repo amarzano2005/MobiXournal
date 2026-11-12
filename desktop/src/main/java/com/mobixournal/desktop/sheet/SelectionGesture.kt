@@ -389,7 +389,9 @@ private suspend fun AwaitPointerEventScope.transformSelection(
 
     // The canvas's ticker re-applies the transform while the sheet scrolls at the border, so the element
     // keeps following the pointer past the window's edge without the pointer moving at all.
-    tab.selectionMoving = true
+    // The pin marks belong to a **move**: a corner drag scales and a ring drag turns, and neither joins
+    // anything, so neither shows a target.
+    tab.selectionMoving = handle == SelectionHandle.BODY
     view.beginDrag(lastX, lastY) { px, py -> apply(px, py) }
     try {
         while (!cancelled) {

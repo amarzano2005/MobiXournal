@@ -245,8 +245,8 @@ tablet — and sits clear of the gesture bar, the panel above laid out against t
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. **Every figure carries pins**, as on Xnotes:
-a component's terminals, a wire's two ends, an arrow's tail, tip and barbs, and a drawn figure's corners
-**and the middle of every side** (`FigurePins`). What a gesture marks is exactly what it may join: a
+a component's terminals, a wire's two ends, an arrow's **tip only** (it points, it is not a wire) and a
+drawn figure's corners **and the middle of every side** (`FigurePins`). What a gesture marks is exactly what it may join: a
 **circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything.
 The marks belong to the gesture, not to the state — they appear while a figure is being drawn or a
 selection is being moved, and a part merely selected shows none. The reach is `SNAP_REACH_PX` **screen**

@@ -87,15 +87,14 @@ class FigurePinsTest {
         assertEquals(PinFamily.ARROW, FigurePins.familyOf(arrow(0.0, 0.0, 100.0, 0.0)))
     }
 
-    /** A headed figure traces its tip through the head, so its pins are found, not assumed. */
+    /** An arrow attaches by its **tip** only: a head traces the tip through the head, and it is found. */
     @Test
-    fun anArrowsPinsAreItsTailAndTip() {
-        val ends = FigurePins.ends(arrow(100.0, 100.0, 300.0, 100.0).points)
-        assertEquals(2, ends.size)
-        assertEquals(100.0, ends[0].first, 1e-6)
-        assertEquals(100.0, ends[0].second, 1e-6)
-        assertEquals(300.0, ends[1].first, 1e-6)
-        assertEquals(100.0, ends[1].second, 1e-6)
+    fun anArrowsOnlyPinIsItsTip() {
+        val points = arrow(100.0, 100.0, 300.0, 100.0).points
+        val pins = FigurePins.pinsOf(ShapeKind.ARROW, points)
+        assertEquals("one pin, not tail and barbs", 1, pins.size)
+        assertEquals(300.0, pins[0].first, 1e-6)
+        assertEquals(100.0, pins[0].second, 1e-6)
     }
 
     /** A part marks the parts' pins and the wires' ends, and nothing of an arrow's or a figure's. */
@@ -113,7 +112,11 @@ class FigurePinsTest {
             12,
             FigurePins.targets(page, PinFamily.WIRE).size,
         )
-        assertEquals("everything the page carries", 16, FigurePins.targets(page, PinFamily.ARROW).size)
+        assertEquals(
+            "everything the page carries: two pins, two wire ends, eight figure pins, one arrow tip",
+            13,
+            FigurePins.targets(page, PinFamily.ARROW).size,
+        )
     }
 
     /** A closed figure carries a pin at every corner **and** at the middle of every side. */
@@ -131,13 +134,23 @@ class FigurePinsTest {
     fun aMovedArrowJoinsAnotherArrowsPins() {
         val page = pageOf(arrow(100.0, 100.0, 200.0, 100.0), arrow(300.0, 100.0, 400.0, 100.0))
         val moved = setOf(ElementRef(0, 0))
-        assertEquals("the other arrow's tail, tip and two barbs", 4, CircuitSnapping.collectMoveTargets(page, moved).size)
+        assertEquals("the other arrow's tip", 1, CircuitSnapping.collectMoveTargets(page, moved).size)
 
         val movedPart = pageOf(part(200.0, 200.0), arrow(300.0, 100.0, 400.0, 100.0))
         assertTrue(
             "a part ignores an arrow",
             CircuitSnapping.collectMoveTargets(movedPart, setOf(ElementRef(0, 0))).isEmpty(),
         )
+    }
+
+    /** A drawn figure's pins are targets only: moving a rectangle offers no end to snap, as before. */
+    @Test
+    fun aMovedFigureHasNoMovingEnds() {
+        val page = pageOf(figure(100.0, 100.0, 200.0, 200.0), figure(300.0, 300.0, 400.0, 400.0))
+        assertTrue(CircuitSnapping.collectMoveTargets(page, setOf(ElementRef(0, 0))).isEmpty())
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 0)), 4.0, 3.0)
+        assertEquals("the corner keeps the hand's own translation", 4.0, dx, 1e-9)
+        assertEquals(3.0, dy, 1e-9)
     }
 
     /** Snapping an arrow moves every vertex of its tip together, so the head cannot tear open. */
