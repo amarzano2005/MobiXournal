@@ -200,6 +200,10 @@ one function both shells call (`io/AutoSavePolicy.kt` in `mobix-core`, pinned by
 shell adds is only the quiet period — the window on `editRevision` (`DesktopQuiet.kt`), the tablet on the
 canvas's own edit count (`MainActivityAutoSave.kt`).
 
+The window hands the write to its **save worker** — encode and replace on IO, the same staged path the
+header's Save takes — rather than to the thread the quiet timer runs on: a whole notebook encoded in front
+of the painter is the freeze a reader meets as "it hangs while it saves".
+
 ## Shared immutable edit roots
 
 Layer appends promote ordinary imported lists once to `PersistentVector`; subsequent appends copy a

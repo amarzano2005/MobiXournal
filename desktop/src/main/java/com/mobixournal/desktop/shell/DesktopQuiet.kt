@@ -106,5 +106,11 @@ internal fun DesktopShellState.autoSaveNow() {
         hasTarget = !tab.unsaved,
         busy = saveState.committing,
     )
-    if (due) save()
+    if (!due) return
+    // **Through the worker**, when the window is up: `save()` encodes the whole notebook and writes it on the
+    // calling thread, and this one is the thread that paints — so auto save ran a full encode and a write
+    // inline, which is the freeze a reader sees as "it hangs while it saves", on exactly the documents where
+    // the encode is longest. The synchronous path stays for a shell with no composition to hand the request
+    // to (the JVM tests), the same choice `saveOrPick` makes for the header's Save.
+    if (saveState.uiBound) requestSave() else save()
 }
