@@ -203,10 +203,12 @@ canvas's own edit count (`MainActivityAutoSave.kt`).
 The window hands the write to its **save worker** — the same staged path the header's Save takes — rather
 than to the thread the quiet timer runs on: a whole notebook encoded in front of the painter is the freeze a
 reader meets as "it hangs while it saves". The worker's lane is one thread at the JVM's lowest priority, so
-the encode takes what the window is not using instead of competing with it for cores, and the **commit**
-queues for the document at most 1.5 s: while it queues the window's input gate is down, so a wait without a
-deadline was a canvas that took no input at all. A commit that gives up writes nothing, says the document was
-busy, and the next quiet moment tries again.
+the encode takes what the window is not using instead of competing with it for cores. The document's lock is
+**not fair**, so a commit waiting for a long read (a crash snapshot encodes the whole notebook under it) does
+not put the page reads behind it — that ordering was the window that stopped painting while a save ran. The
+window's **input gate is down only for a save that moves the tab to another file**: a save over its own file
+is a rename of a staged copy and leaves the canvas live. A commit that still cannot get the file in time
+writes nothing, says so, and the next quiet moment tries again.
 
 ## Shared immutable edit roots
 

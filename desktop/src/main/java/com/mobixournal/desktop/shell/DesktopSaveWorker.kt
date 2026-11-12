@@ -58,6 +58,16 @@ internal class SaveRequest(val tab: DesktopTab, val target: File, val format: Sa
     val readOnly = document.readOnly
     val gateNote: String? = document.gateNote
     val pageCount = snapshot.model.pages.size
+
+    /**
+     * Whether this save writes the file the tab is already open on.
+     *
+     * The one question the input gate asks: a save over its own file renames a staged copy into place, and
+     * nothing the reader is doing touches that path — the `.mobix` reader holds a copy in the cache
+     * (`DesktopReadCopies`), so a stroke may land mid-move. A save to **another** file replaces the document the
+     * tab is reading, and that is the case the canvas has to be still for.
+     */
+    val same: Boolean = DesktopTabs.keyOf(target) == tab.key
 }
 
 internal class SaveState {
@@ -141,7 +151,7 @@ internal class Saved(
  * deaf. A page read is milliseconds, so anything past a second and a half is a save that should be retried
  * rather than a window that stops taking input.
  */
-private const val COMMIT_WAIT_MS = 1_500L
+private const val COMMIT_WAIT_MS = 30_000L
 
 /** The commit did not get the document in time: nothing was written, and the save can be asked again. */
 internal class SaveBusy : IllegalStateException(
@@ -192,10 +202,13 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
             val staged = runCatching { withContext(SAVE_IO) { stageSaveRequest(request) } }
             val result = staged.fold(
                 onSuccess = { bytes ->
-                    // Only the commit holds the canvas still: the bytes are already written by now.
-                    state.saveState.committing = true
+                    // Only a commit that **moves the tab to another file** holds the canvas still: a save over
+                    // its own file is a rename of a staged copy, and gating input for it made every quiet
+                    // moment a canvas that took no input while it waited for the document.
+                    val gated = !request.same
+                    state.saveState.committing = gated
                     try { withContext(SAVE_IO) { commitSaveRequest(request, bytes) } }
-                    finally { state.saveState.committing = false }
+                    finally { if (gated) state.saveState.committing = false }
                 },
                 onFailure = { Saved(null, it) },
             )

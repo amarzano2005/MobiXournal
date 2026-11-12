@@ -6,7 +6,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 private val gates = WeakHashMap<DesktopDocument, ReentrantReadWriteLock>()
 private fun gate(document: DesktopDocument): ReentrantReadWriteLock = synchronized(gates) {
-    gates.getOrPut(document) { ReentrantReadWriteLock(true) }
+    // **Not fair on purpose.** A fair lock puts every reader behind a writer that is already queued, and the
+    // window's readers are the page reads that paint the canvas: one commit waiting for a long read (a crash
+    // snapshot encodes the whole notebook under this lock) stopped the window from painting at all. Unfair, the
+    // painter keeps reading and the writer gets in between reads, which is the ordering this lock is for.
+    gates.getOrPut(document) { ReentrantReadWriteLock(false) }
 }
 internal fun <T> DesktopDocument.withReader(block: () -> T): T {
     val lock = gate(this).readLock()

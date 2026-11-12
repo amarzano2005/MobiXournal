@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.io
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.SaveBusy
 
 /**
  * What the window says when an open failed: a sentence a person can act on, and the detail under it.
@@ -68,6 +69,9 @@ fun describeSaveFailure(failure: Throwable): OpenFailure {
     val detail = failure.message?.takeIf { it.isNotBlank() } ?: "no detail available"
     return when (failure) {
         is DesktopSaves.SaveRefused -> OpenFailure("This document cannot be saved there", detail)
+        // A commit that ran out of patience is not a failure the reader caused: say what happened and that the
+        // pages are safe, in the same words the other save failures use — never `SaveBusy`.
+        is SaveBusy -> OpenFailure("The save did not reach the file", detail)
         is java.io.IOException -> OpenFailure(
             "Could not write the file",
             // The reason, not just the two paths: Windows says "Access is denied" or "used by another
