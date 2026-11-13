@@ -15,8 +15,9 @@ import kotlin.math.hypot
  *
  * Four families carry pins: a **circuit** (its symbols' terminals), a **wire** (a line's two ends), an
  * **arrow** (its tail, tip and barbs) and a plain **figure** (a rectangle's corners and the middle of each
- * side, a triangle's, an ellipse's outline). The last one is a *target only*: a rectangle is not a
- * connector, so it never magnetises anything itself — it is what a connector attaches to.
+ * side, a triangle's, an ellipse's outline). The last one is no connector: it is what a line or an arrow
+ * attaches to — and a figure **dragged** across a line's end lands on that end, so the pairing can be made
+ * from either side instead of only by moving the line.
  *
  * What a gesture shows is exactly what it may join, and the rule is one small matrix per family:
  *
@@ -25,6 +26,7 @@ import kotlin.math.hypot
  * | circuit | parts' pins, and wires |
  * | wire (line) | parts' pins, wires, and figures' pins |
  * | arrow | every figure — parts, wires, arrows and drawn figures |
+ * | drawn figure | the ends of the lines it may be paired with |
  *
  * The matrix is the whole point of the file: a mark a gesture could not join would be a promise the lift
  * breaks, and a target joined without a mark was the invisible-joint bug the rings were added to fix. Both
@@ -183,13 +185,14 @@ object FigurePins {
      * Whether a gesture of [actor] may join [target] — the mark it shows and the target its magnet takes.
      *
      * A circuit reaches wires; a wire reaches parts, wires and drawn figures; an arrow reaches every
-     * family. Only an arrow may join another arrow's ends.
+     * family; a drawn figure reaches the ends of the lines it can be paired with. Only an arrow may join
+     * another arrow's ends, and two figures are never pulled together.
      */
     fun aimsAt(actor: PinFamily, target: PinFamily): Boolean = when (actor) {
         PinFamily.CIRCUIT -> target == PinFamily.CIRCUIT || target == PinFamily.WIRE
         PinFamily.WIRE -> target != PinFamily.ARROW
         PinFamily.ARROW -> true
-        PinFamily.FIGURE -> false
+        PinFamily.FIGURE -> target == PinFamily.WIRE
     }
 
     /** The pins [element] itself carries — a part's terminals, a figure stroke's corners, ends and tip. */
@@ -418,7 +421,7 @@ object FigurePins {
 
     /**
      * The family a **moved selection** aims with: an arrow as soon as one is in it, else a wire, else a
-     * part. Null when what moves carries no connector — a moved rectangle joins nothing, it is joined.
+     * figure, else a part. Null only when what moves carries no pins at all.
      */
     fun moveActor(page: Page, refs: Set<ElementRef>): PinFamily? {
         val families = refs.mapNotNull { ref ->
@@ -428,6 +431,7 @@ object FigurePins {
         return when {
             PinFamily.ARROW in families -> PinFamily.ARROW
             PinFamily.WIRE in families -> PinFamily.WIRE
+            PinFamily.FIGURE in families -> PinFamily.FIGURE
             PinFamily.CIRCUIT in families -> PinFamily.CIRCUIT
             else -> null
         }

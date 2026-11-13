@@ -224,7 +224,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   (`PinPress`, `pressesOwnPin`: a scale never magnetises). A moved
   part's **own** pins are never its targets (by position, not id), and a moved selection aims at the
   **ends of the page's wires** too (`collectMoveTargets`), closing that joint (`SelectionMovePaintTest`).
-  The rule is **circuit↔line or circuit↔circuit**: a *moved wire* keeps to pins (`PinTarget.isWireEnd`) —
+  The rule is **circuit↔line, circuit↔circuit, line↔line or figure↔line**: a moved figure lands a border pin of its own on a line's end, two figures never pull each other, and a *moved wire* keeps to pins (`PinTarget.isWireEnd`) —
   a line is a connector, not a terminal, so two lines dragged near each other stay two lines.
 - **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
   surface the drawn rim — and every one is a **menu that never takes the keyboard** (`FloatingSurface`,

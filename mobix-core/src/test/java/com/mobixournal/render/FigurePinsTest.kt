@@ -78,7 +78,12 @@ class FigurePinsTest {
         assertTrue(FigurePins.aimsAt(PinFamily.ARROW, PinFamily.ARROW))
         assertTrue(FigurePins.aimsAt(PinFamily.ARROW, PinFamily.FIGURE))
 
-        assertFalse("a figure is joined, it never joins", FigurePins.aimsAt(PinFamily.FIGURE, PinFamily.WIRE))
+        // The pairing is made from **either** side: a dragged figure lands on the end of the line it is
+        // paired with, just as that line lands on the figure's border.
+        assertTrue("a figure reaches a line's ends", FigurePins.aimsAt(PinFamily.FIGURE, PinFamily.WIRE))
+        assertFalse("but two figures are never pulled together", FigurePins.aimsAt(PinFamily.FIGURE, PinFamily.FIGURE))
+        assertFalse("nor is a figure a part's terminal", FigurePins.aimsAt(PinFamily.FIGURE, PinFamily.CIRCUIT))
+        assertFalse("nor an arrow's", FigurePins.aimsAt(PinFamily.FIGURE, PinFamily.ARROW))
     }
 
     /** Every figure a hand draws has a family; a rectangle, a bond and free ink do not. */
@@ -277,10 +282,33 @@ class FigurePinsTest {
         )
     }
 
-    /** A drawn figure's pins are targets only: moving a rectangle offers no end to snap, as before. */
+    /**
+     * A **dragged figure** lands on a line's end — the pairing made from the other side.
+     *
+     * Until now a figure was a target only: the pins its line could be paired with were shown, the rectangle
+     * was picked up, and nothing ever caught. Its border pins are the moving ends, and a line's ends are the
+     * targets, so a rectangle dropped eight points short of a wire's end is pulled onto it.
+     */
     @Test
-    fun aMovedFigureHasNoMovingEnds() {
-        val page = pageOf(figure(100.0, 100.0, 200.0, 200.0), figure(300.0, 300.0, 400.0, 400.0))
+    fun `a dragged figure lands on a lines end`() {
+        val page = pageOf(figure(100.0, 100.0, 200.0, 160.0), wire(208.0, 100.0, 300.0, 100.0))
+        val moved = setOf(ElementRef(0, 0))
+        assertEquals(
+            "the line's two ends are what the figure may land on",
+            2,
+            CircuitSnapping.collectMoveTargets(page, moved).size,
+        )
+        // The figure's right-edge pins sit on x = 200; a raw move of (8, 3) leaves its right side 3 pt below
+        // the line's start (208, 100) — inside the reach, so only the magnet puts it exactly there.
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, moved, 8.0, 3.0)
+        assertEquals("the border lands on the line's end", 8.0, dx, 1e-9)
+        assertEquals("and the corner comes up to the line", 0.0, dy, 1e-9)
+    }
+
+    /** Two figures are not pulled together: a rectangle near another keeps the hand's own translation. */
+    @Test
+    fun `a dragged figure ignores another figure`() {
+        val page = pageOf(figure(100.0, 100.0, 200.0, 200.0), figure(203.0, 100.0, 300.0, 200.0))
         assertTrue(CircuitSnapping.collectMoveTargets(page, setOf(ElementRef(0, 0))).isEmpty())
         val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 0)), 4.0, 3.0)
         assertEquals("the corner keeps the hand's own translation", 4.0, dx, 1e-9)

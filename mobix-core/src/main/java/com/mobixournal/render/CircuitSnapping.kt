@@ -356,9 +356,9 @@ object CircuitSnapping {
      * pins/endpoints land on a **terminal** — a component pin, or (for a component) the end of a wire
      * already on the page.
      *
-     * Only connectors are considered, and only toward terminals ([collectMoveTargets] is empty on a
-     * page with neither a circuit nor a wire): a figure, or a free stroke, keeps the hand's own
-     * translation whatever it passes over.
+     * Only elements that carry pins are considered, and a **drawn figure** is one of them: dragged across a
+     * line's end it lands on it, the mirror of a line drawn onto the figure's border. Ink with no pins keeps
+     * the hand's own translation whatever it passes over.
      *
      * The two kinds of connector aim differently, which is the rule the magnet follows: a **component**
      * may join a pin or a wire's end (circuit↔circuit, circuit↔line), while a **wire** may join a pin
@@ -432,11 +432,13 @@ object CircuitSnapping {
                     val (x, y) = pinAbsolutePosition(element, pin)
                     out += MovingEnd(x, y)
                 }
-                // A wire joints by its two ends, an arrow by its tip; a drawn figure carries pins but
-                // never moves by them, so a corner drag on a rectangle is the plain scale it always was.
-                is Stroke -> when (FigurePins.pinFamilyOf(element)) {
+                // A wire joints by its two ends, an arrow by its tip, and a **drawn figure** by every pin on
+                // its border: the pairing is made from either side, so a rectangle dragged onto a line's end
+                // lands on it just as the line does when it is drawn onto the rectangle.
+                is Stroke -> when (val family = FigurePins.pinFamilyOf(element)) {
                     PinFamily.WIRE -> for ((x, y) in FigurePins.ends(element.points)) out += MovingEnd(x, y)
                     PinFamily.ARROW -> FigurePins.tip(element.points)?.let { out += MovingEnd(it.first, it.second) }
+                    PinFamily.FIGURE -> for ((x, y) in FigurePins.pinsOf(element)) out += MovingEnd(x, y)
                     else -> Unit
                 }
                 else -> Unit

@@ -247,7 +247,7 @@ tablet — and sits clear of the gesture bar, the panel above laid out against t
 net a pin is snapped to and is omitted for a floating pin. **Every figure carries pins**, as on Xnotes:
 a component's terminals, a wire's two ends, an arrow's **tip only** (it points, it is not a wire) and a
 drawn figure's corners **and the middle of every side** — a living `parametricShape` included (`FigurePins`). What a gesture marks is exactly what it may join: a
-**circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything.
+**circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything, and a drawn **figure** reaches the ends of the lines it is paired with — dragged onto one it lands on it; two figures never pull each other.
 The marks follow the **selection** as well as the gesture — an element merely selected wears them too:
 its own pins *and* the compatible ones it can be paired with, both ends of the join (`selectionMarks`),
 and only while the page holds something compatible — a figure a slot has just drawn is left **selected**, so they survive the slot (`appendFigures`). The reach is `SNAP_REACH_PX` **screen** pixels at
