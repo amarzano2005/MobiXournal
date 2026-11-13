@@ -1,18 +1,12 @@
 package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.sheet.connectorKindFor
 
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
-import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.ElementRef
-import com.mobixournal.render.FigurePins
-import com.mobixournal.render.PinFamily
-import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionTester
-import com.mobixournal.render.ShapeKind
 import kotlin.math.hypot
 
 /**
@@ -70,23 +64,3 @@ internal fun pressesOwnPin(element: Element?, x: Double, y: Double, radiusPt: Do
     }
 }
 
-/**
- * The connector kind a selection stands for, so the sheet keeps marking the pins of a part that was picked
- * **after** it was placed.
- *
- * A circuit slot marks the pins it could join while it is armed (`connectorKindFor`); once the part is
- * written and the window hands the page to the selection, that slot is gone — and the pins vanished with
- * it, exactly when the user wants to drag the part onto them. The selection's one element answers instead.
- */
-internal fun selectionConnectorKind(page: Page, selection: PageSelection?): ShapeKind? {
-    val ref = selection?.takeIf { it.refs.size == 1 }?.refs?.first() ?: return null
-    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return null
-    // Every figure carries pins as on Xnotes, so a selected **wire** or **arrow** marks the same set a
-    // gesture of its kind would: the line's ends, the arrow's tail and tip (`FigurePins`).
-    return when (FigurePins.pinFamilyOf(element)) {
-        PinFamily.CIRCUIT -> ShapeKind.entries.firstOrNull { it.name == (element as CircuitElement).symbol }
-        PinFamily.WIRE -> ShapeKind.LINE
-        PinFamily.ARROW -> ShapeKind.ARROW
-        else -> null
-    }?.takeIf { CircuitElementFactory.isConnectorKind(it) }
-}

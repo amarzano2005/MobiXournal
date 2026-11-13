@@ -5,7 +5,6 @@ import com.mobixournal.desktop.ink.StrokePathCache
 import com.mobixournal.desktop.io.DesktopKaraoke
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DesktopTool
-import com.mobixournal.desktop.tools.selectionConnectorKind
 
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -58,11 +57,10 @@ internal fun DrawScope.paintSheetOf(
         viewport = sheet.viewport,
         zoom = sheet.zoom,
         density = density,
-        // A connector's pins are marked while it is **being drawn**, and a **selected** connector's at rest
-        // as well as in hand: the slot that placed it is gone, so the selection answers what it can join.
+        // A connector's pins are marked while it is **being drawn**; a **selected** element's marks are the
+        // selection's own (`FigurePins.selectionMarks`), drawn beside them.
         connectorKind = connectorKindFor(tool, circuitKind)
-            ?.takeIf { draft.isNotEmpty() || penDraft.isNotEmpty() || pointer.previewLiving.value != null }
-            ?: selectionConnectorKind(page, tab.selection),
+            ?.takeIf { draft.isNotEmpty() || penDraft.isNotEmpty() || pointer.previewLiving.value != null },
         measurer = measurer,
         backdrop = tab.document.backdrop,
         hiddenLayers = tab.hiddenOn(tab.page),

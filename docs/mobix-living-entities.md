@@ -249,8 +249,8 @@ a component's terminals, a wire's two ends, an arrow's **tip only** (it points, 
 drawn figure's corners **and the middle of every side** — a living `parametricShape` included (`FigurePins`). What a gesture marks is exactly what it may join: a
 **circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything.
 The marks follow the **selection** as well as the gesture — an element merely selected wears them too:
-a connector marks what it may join, a figure its own pins, and only while the page holds something
-compatible (`selectionPins`). The reach is `SNAP_REACH_PX` **screen** pixels at every zoom
+its own pins *and* the compatible ones it can be paired with, both ends of the join (`selectionMarks`),
+and only while the page holds something compatible. The reach is `SNAP_REACH_PX` **screen** pixels at
 (`thresholdFor`): a fixed number of page points grew into a finger's width on a zoomed-in page, which
 is what made the magnet feel greedy. A caught target holds to
 `SNAP_RELEASE_RATIO` × that reach — `PinMagnet` for a moved selection, `EndsMagnet` for the ends of a

@@ -160,9 +160,8 @@ private const val MAGNET_DOT_PX = 5f
 
 /**
  * Every pin the sheet wears for a **connection**, in one call: the marks of a connector in hand, of a part
- * being pulled out, and of a **selected figure** — which wears its own pins while the page holds a connector
- * that could join it, so what a wire will attach to is visible without arming a tool
- * (`FigurePins.selectionPins`).
+ * being pulled out, and of a **selected** element — which wears its own pins *and* the compatible ones it can
+ * be paired with, so a joint can be read end to end without arming a tool (`FigurePins.selectionMarks`).
  */
 private fun DrawScope.paintConnectionMarks(
     page: Page,
@@ -174,32 +173,39 @@ private fun DrawScope.paintConnectionMarks(
     pxPerPt: Float,
 ) {
     drawConnectionPins(page, markedKind, previewLiving, pxPerPt, actorRefs)
-    drawSelectedFigurePins(page, selection, selected, pxPerPt)
+    drawSelectionPins(page, selection, selected, pxPerPt)
 }
 
 /**
- * The pins a **selected figure** carries, painted on the sheet — chrome, never ink.
+ * The pins a **selected** element wears, painted on the sheet — chrome, never ink.
  *
- * A drawn figure is a target rather than a connector, so these are the only marks it has: without them a
- * reader who selected a rectangle beside a wire had nothing to see, and the join only became visible by
- * starting a stroke over the page. The company test is the one a mark in flight uses
- * (`FigurePins.selectionPins` → `hasCompany`), so a figure alone on a page stays bare.
+ * Both ends of the pairing, which is the point of selecting a figure: its **own** pins (filled, the thing
+ * being joined) and the **compatible** ones it may be paired with (a wire's end, an arrow's tip). Without
+ * the second half a reader saw only where a joint could land, never what it could land on. A selection on a
+ * page that holds nothing to pair with stays bare (`FigurePins.selectionMarks`).
  */
-private fun DrawScope.drawSelectedFigurePins(
+private fun DrawScope.drawSelectionPins(
     page: Page,
     selection: PageSelection?,
     element: Element?,
     pxPerPt: Float,
 ) {
     if (selection == null || selection.refs.size != 1) return
-    val pins = FigurePins.selectionPins(page, element, exclude = selection.refs)
-    if (pins.isEmpty()) return
-    val dot = PIN_PENDING_PX / pxPerPt
-    for ((x, y) in pins) {
+    val marks = FigurePins.selectionMarks(page, element, exclude = selection.refs)
+    val own = PIN_PENDING_PX / pxPerPt
+    for ((x, y) in marks.own) {
         drawCircle(
             color = DesktopTheme.accent,
-            radius = dot,
+            radius = own,
             center = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
+        )
+    }
+    val compatible = PIN_DOT_PX / pxPerPt
+    for (target in marks.compatible) {
+        drawCircle(
+            color = DesktopTheme.accent.copy(alpha = 0.85f),
+            radius = compatible,
+            center = Offset((target.absX * pxPerPt).toFloat(), (target.absY * pxPerPt).toFloat()),
         )
     }
 }

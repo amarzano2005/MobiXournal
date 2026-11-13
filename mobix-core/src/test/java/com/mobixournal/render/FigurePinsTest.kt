@@ -215,42 +215,42 @@ class FigurePinsTest {
         assertEquals(
             "and a selected one wears them next to a wire",
             8,
-            FigurePins.selectionPins(pageOf(living, wire(10.0, 10.0, 60.0, 10.0)), living).size,
+            FigurePins.selectionMarks(pageOf(living, wire(10.0, 10.0, 60.0, 10.0)), living).own.size,
         )
     }
 
-    /** A **selected figure** wears its own pins, but only while the page holds a connector that could join it. */
+    /**
+     * A **selected figure** wears its own pins *and* the compatible ones it can be paired with — both ends of
+     * the join, so the pairing can be read on the page — and nothing while the page holds nothing to join it.
+     */
     @Test
-    fun `a selected figure wears its pins only with company`() {
+    fun `a selected figure wears its pins and what may join it`() {
         val rectangle = figure(300.0, 500.0, 400.0, 600.0)
-        assertEquals(
-            "a figure alone on the page is bare",
-            0,
-            FigurePins.selectionPins(pageOf(rectangle), rectangle).size,
+        fun marks(vararg elements: Element) = FigurePins.selectionMarks(pageOf(*elements), rectangle)
+
+        val bare = marks(rectangle)
+        assertTrue("a figure alone on the page is bare", bare.own.isEmpty() && bare.compatible.isEmpty())
+
+        val withWire = marks(rectangle, wire(10.0, 10.0, 60.0, 10.0))
+        assertEquals("its own eight border pins", 8, withWire.own.size)
+        assertEquals("and the wire's two ends", 2, withWire.compatible.size)
+
+        val withArrow = marks(rectangle, arrow(10.0, 10.0, 60.0, 10.0))
+        assertEquals("an arrow's tip is the other half of the join", 1, withArrow.compatible.size)
+        assertEquals(8, withArrow.own.size)
+
+        val withPart = marks(rectangle, part(200.0, 200.0))
+        assertTrue("a part never reaches a figure", withPart.compatible.isEmpty())
+
+        // A connector's marks are the **targets** its magnet would take, plus its own pins.
+        val selectedWire = wire(10.0, 10.0, 60.0, 10.0)
+        val connector = FigurePins.selectionMarks(
+            pageOf(selectedWire, figure(300.0, 500.0, 400.0, 600.0)),
+            selectedWire,
+            exclude = setOf(ElementRef(0, 0)),
         )
-        assertEquals(
-            "a wire is company for it",
-            8,
-            FigurePins.selectionPins(pageOf(rectangle, wire(10.0, 10.0, 60.0, 10.0)), rectangle).size,
-        )
-        assertEquals(
-            "an arrow too",
-            8,
-            FigurePins.selectionPins(pageOf(rectangle, arrow(10.0, 10.0, 60.0, 10.0)), rectangle).size,
-        )
-        assertEquals(
-            "a part never reaches a figure",
-            0,
-            FigurePins.selectionPins(pageOf(rectangle, part(200.0, 200.0)), rectangle).size,
-        )
-        assertEquals(
-            "a connector's marks are its targets, not its own ends",
-            0,
-            FigurePins.selectionPins(
-                pageOf(wire(10.0, 10.0, 60.0, 10.0), figure(300.0, 500.0, 400.0, 600.0)),
-                wire(10.0, 10.0, 60.0, 10.0),
-            ).size,
-        )
+        assertEquals("its own two ends", 2, connector.own.size)
+        assertEquals("and the figure's eight border pins it may reach", 8, connector.compatible.size)
     }
 
     /** A **moved** element is the actor of its own drag: its own pins are never company for it. */

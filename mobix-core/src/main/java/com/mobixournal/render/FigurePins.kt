@@ -205,22 +205,60 @@ object FigurePins {
         shape.vertices.map { StrokePoint(it.x, it.y, shape.strokeWidth) }
 
     /**
-     * The pins a **selected** element wears, or none — a figure shows where it can be joined while the page
-     * holds a connector that could reach it.
+     * The marks a **selected** element wears: its **own** pins, and the **compatible** ones it can be paired
+     * with — both, which is what makes the pairing readable on the page.
      *
-     * A drawn figure is a target, never a connector, so its own pins are the only marks it has: without them
-     * a reader who selected a figure to see what could attach to it had nothing to aim at, and the dots had
-     * to be summoned by starting a stroke over the page. The test is the one a mark in flight uses
-     * ([hasCompany]), so a selected figure on a page with nothing to join stays bare.
+     * A connector's compatible pins are the targets its magnet would take ([targets]); a drawn figure joins
+     * nothing, so its compatible pins are read the other way round — the pins of the elements that could
+     * reach *it* ([joiningPins]): a wire's ends and an arrow's tip. Without them a selected figure showed only
+     * where a joint could land, never what it could land on, and the pairing had to be guessed. An empty
+     * [SelectionMarks.compatible] means the page holds nothing to pair with, so nothing is marked at all —
+     * the same rule a mark in flight follows ([hasCompany]).
      */
-    fun selectionPins(
+    fun selectionMarks(
         page: Page,
         element: Element?,
         exclude: Set<ElementRef> = emptySet(),
-    ): List<Pair<Double, Double>> {
-        if (element == null || pinFamilyOf(element) != PinFamily.FIGURE) return emptyList()
-        if (!hasCompany(page, PinFamily.FIGURE, exclude)) return emptyList()
-        return pinsOf(element)
+    ): SelectionMarks {
+        val family = element?.let(::pinFamilyOf) ?: return SelectionMarks(emptyList(), emptyList())
+        val compatible = if (family == PinFamily.FIGURE) {
+            joiningPins(page, element, exclude)
+        } else {
+            targets(page, family, exclude = exclude)
+        }
+        if (compatible.isEmpty()) return SelectionMarks(emptyList(), emptyList())
+        return SelectionMarks(pinsOf(element), compatible)
+    }
+
+    /** What a **selected** element wears: its own pins, and the pins it can be paired with. */
+    data class SelectionMarks(
+        val own: List<Pair<Double, Double>>,
+        val compatible: List<CircuitSnapping.PinTarget>,
+    )
+
+    /**
+     * The pins of the elements that could join [element] — the mirror of [aimsAt], for the one family that is
+     * only ever joined: a drawn figure. Empty for a connector, whose marks are its own targets.
+     */
+    private fun joiningPins(
+        page: Page,
+        element: Element,
+        exclude: Set<ElementRef>,
+    ): List<PinTarget> {
+        if (pinFamilyOf(element) != PinFamily.FIGURE) return emptyList()
+        val actors = PinFamily.entries.filter { aimsAt(it, PinFamily.FIGURE) }.toSet()
+        val out = mutableListOf<PinTarget>()
+        page.layers.forEachIndexed { layerIndex, layer ->
+            layer.elements.forEachIndexed { elementIndex, other ->
+                if (ElementRef(layerIndex, elementIndex) in exclude) return@forEachIndexed
+                val family = pinFamilyOf(other) ?: return@forEachIndexed
+                if (family !in actors) return@forEachIndexed
+                for ((x, y) in pinsOf(other)) {
+                    out += PinTarget(null, CircuitSnapping.WIRE_END_PIN_ID, x, y, null)
+                }
+            }
+        }
+        return out
     }
 
     /**

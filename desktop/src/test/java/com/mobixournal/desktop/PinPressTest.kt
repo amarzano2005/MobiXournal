@@ -3,7 +3,6 @@ package com.mobixournal.desktop
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.pickForDrag
 import com.mobixournal.desktop.tools.pinnedElementAt
-import com.mobixournal.desktop.tools.selectionConnectorKind
 
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
@@ -14,11 +13,10 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.ElementRef
-import com.mobixournal.render.PageSelection
 import com.mobixournal.render.ShapeKind
-import com.mobixournal.render.rectRegion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -70,16 +68,28 @@ class PinPressTest {
         assertEquals("the pen's own stroke is what is under the pointer", ElementRef(0, 1), picked)
     }
 
+    /**
+     * The marks of a **selected** part are the shared ones now, not a kind the window guessed: its own pins and
+     * the compatible ones it may be paired with, or nothing on a page that holds nothing to join
+     * (`FigurePins.selectionMarks`, `FigurePinsTest`).
+     */
     @Test
-    fun `a selected part keeps its pins marked after it is placed`() {
-        val page = page(listOf(resistor()))
-        assertEquals(
-            ShapeKind.RESISTOR,
-            selectionConnectorKind(page, PageSelection(rectRegion(160.0, 190.0, 240.0, 210.0), setOf(ElementRef(0, 0)))),
+    fun `a selected part shows its pins and what it may join`() {
+        val page = page(listOf(resistor(), resistor(x = 300.0)))
+        val marks = com.mobixournal.render.FigurePins.selectionMarks(
+            page,
+            page.layers[0].elements[0],
+            exclude = setOf(ElementRef(0, 0)),
         )
-        assertNull(
-            "an empty selection marks nothing",
-            selectionConnectorKind(page, PageSelection(rectRegion(0.0, 0.0, 10.0, 10.0), emptySet())),
+        assertEquals("its own two terminals", 2, marks.own.size)
+        assertEquals("and the other part's two pins", 2, marks.compatible.size)
+
+        val alone = page(listOf(resistor()))
+        val bare = com.mobixournal.render.FigurePins.selectionMarks(
+            alone,
+            alone.layers[0].elements[0],
+            exclude = setOf(ElementRef(0, 0)),
         )
+        assertTrue("nothing to join marks nothing", bare.own.isEmpty() && bare.compatible.isEmpty())
     }
 }

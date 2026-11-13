@@ -60,43 +60,34 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
         if (page != null && FigurePins.hasCompany(page, drawingKind)) drawPendingPins(canvas, drawingKind)
         return
     }
-    // A **selected** element wears its marks at rest as well as in hand — the slot that placed it is gone, so
-    // the selection is the only thing left to answer *what can this join*. A connector marks what it could
-    // reach, never its own pins; a drawn figure marks its own, where a connector will attach. Nothing at all
-    // on a page that holds nothing compatible (`hasCompany`).
+    // A **selected** element wears the marks it can be paired with, at rest as well as in hand: its own pins
+    // *and* the compatible ones — a figure's border against the wires' ends and arrows' tips, a connector's
+    // pins against everything it may reach ([FigurePins.selectionMarks]). The slot that placed it is gone, so
+    // the selection is the only thing left to answer *what can this join*, and a pairing needs both ends
+    // visible. Nothing at all on a page that holds nothing compatible.
     val sel = selection ?: return
     if (sel.refs.size != 1) return
     val page = pageAt(sel.pageIndex) ?: return
-    val kind = selectedFigureKind()
-    if (kind != null && CircuitElementFactory.isConnectorKind(kind) &&
-        FigurePins.hasCompany(page, kind, exclude = sel.refs)
-    ) {
-        drawTargetPins(canvas, kind, exclude = sel.refs)
-        return
-    }
-    drawSelectedFigurePins(canvas)
-}
-
-/**
- * The pins the **selected figure** carries, so what a connector can attach to is visible without arming a
- * tool — the dots a reader looks for after drawing a rectangle beside a line.
- *
- * Chrome only, and only for a figure: a connector's own marks are its *targets* ([drawTargetPins]), and an
- * element with no family (ordinary ink) leaves the sheet bare.
- */
-private fun DrawingSurfaceView.drawSelectedFigurePins(canvas: Canvas) {
-    val sel = selection ?: return
-    if (sel.refs.size != 1) return
     val ref = sel.refs.first()
-    val page = pageAt(sel.pageIndex) ?: return
     val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return
-    val pins = FigurePins.selectionPins(page, element, exclude = sel.refs)
-    if (pins.isEmpty()) return
+    val marks = FigurePins.selectionMarks(page, element, exclude = sel.refs)
+    if (marks.own.isEmpty() && marks.compatible.isEmpty()) return
     val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
-    for ((px, py) in pins) {
-        val x = (px * box.scale + box.leftPx - scrollX).toFloat()
-        val y = (py * box.scale + box.topPx - scrollY).toFloat()
+    fun at(x: Double, y: Double) =
+        (x * box.scale + box.leftPx - scrollX).toFloat() to (y * box.scale + box.topPx - scrollY).toFloat()
+    // The selection's own pins, filled: they are the thing being joined.
+    for ((px, py) in marks.own) {
+        val (x, y) = at(px, py)
         canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.handle)
+    }
+    // And what it may join, as the sheet marks a target: a wire's end is a square, every other pin a dot.
+    for (target in marks.compatible) {
+        val (x, y) = at(target.absX, target.absY)
+        if (target.isWireEnd) {
+            canvas.drawRect(x - WIRE_END_PX, y - WIRE_END_PX, x + WIRE_END_PX, y + WIRE_END_PX, chrome.handleArm)
+        } else {
+            canvas.drawCircle(x, y, PIN_DOT_PX, chrome.handleArm)
+        }
     }
 }
 
@@ -121,28 +112,6 @@ private fun DrawingSurfaceView.drawTargetPins(
                 canvas.drawCircle(x, y, PIN_DOT_PX, chrome.handleArm)
             }
         }
-    }
-}
-
-/**
- * The kind a **selected** single figure arms, or null — the marks its move shows.
- *
- * As on Xnotes every figure carries pins, and the selection tool is how a figure placed a moment ago is
- * moved onto what it must meet: a part joined to wires and parts, a line to parts and lines, an arrow to
- * every figure ([FigurePins.aimsAt]). Without a kind here those targets had no mark at all, so the joint
- * could only be guessed at.
- */
-private fun DrawingSurfaceView.selectedFigureKind(): ShapeKind? {
-    val sel = selection ?: return null
-    if (sel.refs.size != 1) return null
-    val ref = sel.refs.first()
-    val page = pageAt(sel.pageIndex) ?: return null
-    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return null
-    return when (FigurePins.pinFamilyOf(element)) {
-        PinFamily.CIRCUIT -> ShapeKind.entries.firstOrNull { it.name == (element as CircuitElement).symbol }
-        PinFamily.WIRE -> ShapeKind.LINE
-        PinFamily.ARROW -> ShapeKind.ARROW
-        else -> null
     }
 }
 
