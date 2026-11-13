@@ -47,9 +47,10 @@ The entry screen lists the notebooks you opened recently; **Open** takes a file 
 notebook that moved since it was listed is a normal case — open it from its new home and the list follows.
 Each card has a **×** at its top-right that takes that notebook off the list.
 
-A `.pmobix` someone sends you opens the same way. It is a portable copy — a `.mobix` container with the
-pictures and recordings it names written inside — so it is a file to read and hand on, not one to keep
-editing; **Save As** still writes `.mobix` or `.xopp`.
+A `.pmobix` someone sends you opens the same way. It is a portable copy: a `.mobix` container with the
+files the notebook only named written inside — a background kept beside it, a recording left in the audio
+store — so it is a file to read and hand on, not one to keep editing; **Save As** still writes `.mobix` or
+`.xopp`.
 
 If the app was closed with notebooks still open, they are not reopened at launch: they appear on the entry
 screen marked as unsaved work from the previous session, and **Restore last session** — the button under
