@@ -118,7 +118,7 @@ if [ "$RELEASE_SIGNING" = "1" ]; then
     [ -n "$actual" ] || { rm -f "$SIGNED"; die "apksigner printed no certificate digest, so the identity cannot be checked"; }
     if [ "$actual" != "$expected" ]; then
         rm -f "$SIGNED"
-        die "the APK certificate is $actual, which is not MOBIX_ANDROID_CERT_SHA256"
+        die "the APK certificate does not match MOBIX_ANDROID_CERT_SHA256 (it is $actual)"
     fi
 else
     "$SIGNER" sign --ks "$KEYSTORE" --ks-pass pass:android --ks-key-alias androiddebugkey \
