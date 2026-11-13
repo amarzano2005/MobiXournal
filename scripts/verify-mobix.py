@@ -11,7 +11,9 @@ runs or reads anything from `mobix-core`.
 It decides these rows of `spec/CONFORMANCE.md`, by number:
 
     1, 19   the stored `mimetype` entry: its exact bytes, `mimetype` and
-            `manifest.json` as the two required entries
+            `manifest.json` as the two required entries; and an entry that
+            cannot be turned into bytes at all (encrypted, or a method other
+            than stored and deflate), refused before anything is parsed
     2       an archive whose `mimetype` is not the type this format owns
     3       an archive without `manifest.json`
     4       a `pages[]`/`chunks[]` part that names an entry the archive lacks,
@@ -31,7 +33,9 @@ It decides these rows of `spec/CONFORMANCE.md`, by number:
 Where it stops, so a passing run is not read as more than it is: anything that
 needs a rewrite (rows 9, 10, 11, 12, 16), a digest stored in another entry, a
 reference from one entry to another, geometry that is the sum of other fields, or
-the save-and-reopen half of an accepted row stays a reader's job. The hostile
+the save-and-reopen half of an accepted row stays a reader's job. A container
+this script refuses because it cannot decode it is a refusal, not a verdict on
+row 20: that row is about the error a reader reports, and only a reader has one. The hostile
 corpus is expected to fail here — one file per threat, each for its own rule — so
 run this over the golden corpus, not over that one.
 
@@ -236,6 +240,45 @@ def _digest_mismatch(archive: zipfile.ZipFile, part: dict, where: str) -> list[s
     return []
 
 
+def _local_header(archive: zipfile.ZipFile, info: zipfile.ZipInfo) -> tuple[int, int] | None:
+    """An entry's own local header: its flags and its method, or None when it has none."""
+    try:
+        position = archive.fp.tell()
+        archive.fp.seek(info.header_offset)
+        header = archive.fp.read(30)
+        archive.fp.seek(position)
+    except (AttributeError, OSError, ValueError):
+        return None
+    if len(header) < 30 or header[:4] != b"PK\x03\x04":
+        return None
+    return int.from_bytes(header[6:8], "little"), int.from_bytes(header[8:10], "little")
+
+
+def _undecodable_problems(archive: zipfile.ZipFile, infos: list[zipfile.ZipInfo]) -> list[str]:
+    """Entries whose stored bytes no reader can turn into plain bytes.
+
+    Each entry's **local** header is read as well as the central directory's copy: a writer
+    can set the encryption bit in one and not the other, and the entry is encrypted either
+    way — a reader that trusts the directory alone decodes bytes the file said it had
+    protected.
+    """
+    problems: list[str] = []
+    for info in infos:
+        flags, method = info.flag_bits, info.compress_type
+        local = _local_header(archive, info)
+        if local is not None:
+            flags |= local[0]
+            if local[1] != method:
+                method = local[1]
+        if flags & 0x1:
+            problems.append(f"`{info.filename}` is encrypted")
+        elif method not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+            problems.append(
+                f"`{info.filename}` uses compression method {method}, "
+                "which this format does not define")
+    return problems
+
+
 def _entry_name_problems(names: list[str]) -> list[str]:
     problems: list[str] = []
     for name, count in Counter(names).items():
@@ -287,6 +330,11 @@ def check(path: Path, schemas: Schemas) -> list[tuple[int, str]]:
     with archive:
         infos = archive.infolist()
         names = [info.filename for info in infos]
+
+        undecodable = _undecodable_problems(archive, infos)
+        if undecodable:
+            problems.append((1, "not a readable archive: " + "; ".join(undecodable)))
+            return problems
 
         if not infos or infos[0].filename != MIMETYPE_ENTRY:
             problems.append((1, "the first entry is not `mimetype`"))
