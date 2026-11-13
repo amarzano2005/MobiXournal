@@ -29,8 +29,11 @@ def run(*args: str) -> tuple[int, str, str]:
 
 
 def run_json(*args: str) -> tuple[int, Any, str]:
-    """Run the CLI with an explicit `--json`; return (exit code, parsed object or None, stderr)."""
+    """Run the CLI with `--json`; parse stdout whenever the command printed an object.
+
+    A refusal prints nothing on stdout, while `validate` prints its findings and still exits 1 — so
+    the presence of output, not the exit code, decides whether there is an object to parse.
+    """
     code, out, err = run(*args, "--json")
-    if code != 0:
-        return code, None, err
-    return code, json.loads(out), err
+    view = json.loads(out) if out.strip() else None
+    return code, view, err

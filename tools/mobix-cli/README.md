@@ -20,6 +20,9 @@ pipx install .            # or: pipx install ./tools/mobix-cli
 - `list FILE [--json]` — pages and chunks in manifest order, and assets by name, with size and digest.
   It reads the archive's central directory only: no part and no asset is inflated, so a digest is
   reported as the file claims it, not verified. `inspect` is the command that checks.
+- `validate FILE [--json]` — every conformance rule, one finding per line with the checklist row,
+  severity and location. It also validates against `spec/schema/` when the optional `jsonschema`
+  package is installed, and says so in the report.
 
 ## Exit codes
 

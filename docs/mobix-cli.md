@@ -6,20 +6,22 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 `tools/mobix-cli/` is a **second, independent reader** of the published format: Python 3, the
 standard library only, and no import of `com.mobixournal.*`. It is not a second engine — it reads the
-envelope and lists what the archive holds, while the elements inside a page stay the app's business.
+envelope, validates it and lists what the archive holds, while the elements inside a page stay the
+app's business.
 That independence is the point: when this reader and `mobix-core` disagree about a file, the
 disagreement is a finding about the format or about one of the two implementations, not a bug they
 share because they share code.
 
 It is not part of the Android or desktop build, so it needs no JDK, Gradle, SDK or device.
 
-## What the two commands answer
+## What the three commands answer
 
 ```sh
 cd tools/mobix-cli
-python3 -m mobix_cli inspect FILE [--json]
-python3 -m mobix_cli list    FILE [--json]
-pipx install ./tools/mobix-cli     # the same two commands as `mobix-cli`
+python3 -m mobix_cli inspect  FILE [--json]
+python3 -m mobix_cli list     FILE [--json]
+python3 -m mobix_cli validate FILE [--json]
+pipx install ./tools/mobix-cli     # the same commands as `mobix-cli`
 ```
 
 `inspect` answers **what document is this**: the type from the `mimetype` entry's bytes, the format
@@ -37,6 +39,18 @@ their name claims. It reads the central directory and the envelope only — no p
 inflated — so a digest there is the file's claim, not a verification. `inspect` is the command that
 checks; `list` is the cheap listing a script can run over a folder.
 
+`validate` answers **is this document legal**: it walks the conformance rules and reports every one
+it finds broken instead of stopping at the first, because a file can fail three rules and the person
+fixing it wants all three. Each finding names the **row of the conformance checklist** it decides and
+the rule's own name (`row-17 CONTAINER_LIMIT`, `row-14 DIGEST_MISMATCH`, `row-04 PART_DIGEST`), so
+the output, [`spec/CONFORMANCE.md`](../spec/CONFORMANCE.md) and the chapters behind it can be read
+side by side. It checks the container (type, required entries, names, caps, encryption, compression
+method), the envelope (required fields, part lists and modes, `canvas.json` agreement), every part's
+recorded digest, every asset's name and digest, every `asset`/`assetId` reference, and the JSON depth
+cap. When the optional `jsonschema` package is installed it also validates the manifest, canvas, pages
+and chunks against `spec/schema/`; the report says `schema: checked` or `schema: unavailable`, so a
+clean result never implies a schema pass that did not run.
+
 `--json` prints one object and nothing else, so a caller never parses prose. Without it the same
 fields are laid out for a person.
 
@@ -44,13 +58,13 @@ fields are laid out for a person.
 
 | Code | Meaning |
 |---|---|
-| 0 | the archive is a document this reader accepts |
-| 1 | a document it **must refuse**, with the reason on stderr |
+| 0 | the archive is a document this reader accepts, or `validate` found nothing |
+| 1 | a document it **must refuse** (the reason on stderr), or `validate` reported findings |
 | 2 | a path it **cannot open** as an archive, with the reason on stderr |
 
 The split is deliberate: "this is not a ZIP" and "this is a valid ZIP that is not a valid `.mobix`"
 are different answers, and a script that sweeps a folder needs to tell them apart. A refusal names
-the entry and the rule it broke.
+the entry and the rule it broke; a `validate` finding names its row, severity and location.
 
 ## What it refuses, and what it leaves to the app
 
@@ -84,8 +98,9 @@ tool's own tests decide are a subset, and the checklist says which.
 ## Where it lives and how it is tested
 
 `mobix_cli/container.py` is the single boundary that touches `zipfile`; `jsonbytes.py` holds the
-depth-capped decoder; `views.py` builds the JSON objects and the human reports; `cli.py` is argparse
-and the exit codes. `pyproject.toml` makes it installable, and `README.md` is the quickstart.
+depth-capped decoder; `validate.py` is the rule engine and the optional schema layer; `views.py`
+builds the JSON objects and the human reports; `cli.py` is argparse and the exit codes.
+`pyproject.toml` makes it installable, and `README.md` is the quickstart.
 
 ```sh
 python3 -m unittest discover tools/mobix-cli/tests

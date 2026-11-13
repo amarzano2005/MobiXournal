@@ -201,7 +201,7 @@ def _check_entry_names(names: list[str]) -> None:
     """Refuse duplicate and unsafe names, naming the entry (container protocol, rule 3)."""
     seen: set[str] = set()
     for name in names:
-        problem = _name_problem(name)
+        problem = name_problem(name)
         if problem:
             raise Refused(f"entry name {name!r} is not usable: {problem}")
         if name in seen:
@@ -209,19 +209,19 @@ def _check_entry_names(names: list[str]) -> None:
         seen.add(name)
 
 
-def _name_problem(name: str) -> str | None:
+def name_problem(name: str) -> str | None:
     if not name:
-        return "it is empty"
+        return "is empty"
     if "\\" in name:
-        return "it contains a backslash"
+        return "contains a backslash"
     if name.startswith("/"):
-        return "it is an absolute path"
+        return "is an absolute path"
     if len(name) >= 2 and name[0].isalpha() and name[1] == ":":
-        return "it is an absolute Windows path"
+        return "is an absolute Windows path"
     if any(ord(char) < 0x20 or ord(char) == 0x7F for char in name):
-        return "it contains a control character"
+        return "contains a control character"
     if any(segment in (".", "..") for segment in name.split("/")):
-        return "it contains a '.' or '..' segment"
+        return "contains a '.' or '..' segment"
     return None
 
 
@@ -281,7 +281,7 @@ def _read_entry(
     try:
         with archive.open(info) as stream:
             data = stream.read(limit + 1)
-    except RuntimeError as exc:  # encrypted despite the flag, or a method this build cannot read
+    except (RuntimeError, NotImplementedError) as exc:  # encrypted, or a method this build cannot read
         raise Refused(f"entry {info.filename!r} cannot be read: {exc}") from None
     except (zipfile.BadZipFile, zlib.error, EOFError, OSError) as exc:
         raise Refused(f"entry {info.filename!r} failed its integrity check: {exc}") from None

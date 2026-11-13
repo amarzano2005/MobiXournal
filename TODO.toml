@@ -138,20 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-cli-validate"
-title = "Validate a document the way a third party would, and say which rule failed"
-description = "Implement `validate` in the CLI against `spec/CONFORMANCE.md` row by row: `mimetype` first and STORED, ZIP rules (no encryption, no path traversal, entry-count and size caps mirroring `MobixSafetyCaps`), `manifest.json` and `canvas.json` checked structurally and, when the optional `jsonschema` package is present, against `spec/schema/`, every part digest compared with the manifest's `sha256`, every `assets/` name checked for grammar and for hashing to its own name, every reference resolved (an `asset` name with no entry is an error), and page/chunk counts and modes agreed with the entries. Output one finding per line with rule id, severity and location, plus `--json`; exit 0 clean, 1 findings, 2 unreadable. The rule ids must match the conformance rows so the two documents can be read together. Tests: each hostile-corpus file is refused with the expected rule id, the golden corpus validates clean, and a mutated fixture triggers exactly one finding per rule (bad mimetype order, bad hex in a name, digest mismatch, missing entry, unknown compression method)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 480
-created = 2026-11-10
-tags = ["mobix", "cli"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-cli-extract-export"
 title = "Extract what a document carries without letting it write where it wants"
 description = "Add `extract` and `export-json`. `extract` writes chosen entries (a page, a chunk, one asset, or everything) under a destination directory, refusing any name that escapes it (absolute paths, `..`, symlinked targets), refusing to overwrite unless `--force`, and never inflating more than a stated cap per entry or in total; the entry name it writes is derived from the archive's own name, never from JSON inside the document. `export-json` prints a stable document dump — manifest, canvas, per-page summaries with their element ids and families, per-asset name and size — with audio and images listed by name and size and **not** decoded, so a script can diff two documents. Tests: a hostile archive whose entry name is `../../escape.txt` writes nothing outside the destination and fails with a finding; an archive with an oversized entry is refused at the cap; `export-json` over two fixture versions produces a byte-identical diff when the document is unchanged."

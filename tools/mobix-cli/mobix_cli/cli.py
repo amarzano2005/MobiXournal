@@ -18,6 +18,7 @@ from typing import Sequence
 
 from .container import open_document
 from .errors import CannotOpen, Refused
+from .validate import validate_document
 from .views import inspect_view, list_view, render_inspect, render_list
 
 EXIT_OK = 0
@@ -28,6 +29,8 @@ EXIT_CANNOT_OPEN = 2
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    if args.command == "validate":
+        return _validate(args)
     try:
         document = open_document(args.path, integrity=args.command == "inspect")
     except CannotOpen as exc:
@@ -45,6 +48,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     return EXIT_OK
 
 
+def _validate(args: argparse.Namespace) -> int:
+    """Findings, not a refusal: a document with a defect is still a document to report on."""
+    try:
+        report = validate_document(args.path)
+    except CannotOpen as exc:
+        print(f"mobix-cli: cannot open {args.path}: {exc}", file=sys.stderr)
+        return EXIT_CANNOT_OPEN
+    if args.json:
+        print(json.dumps(report.as_json(), indent=2))
+    else:
+        print(report.render())
+    return EXIT_OK if report.ok else EXIT_REFUSED
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mobix-cli",
@@ -54,6 +71,7 @@ def _parser() -> argparse.ArgumentParser:
     for name, help_text in (
         ("inspect", "the envelope, content counts and canvas, with digests checked"),
         ("list", "pages, chunks and assets by name, size and digest"),
+        ("validate", "every conformance rule, one finding per line"),
     ):
         command = commands.add_parser(name, help=help_text)
         command.add_argument("path", type=Path, help="the .mobix file to read")
