@@ -293,15 +293,16 @@ class DesktopSelectionTest {
             scene.render()
             Snapshot.sendApplyNotifications()
 
-            // A click picks the bar, so the outline is the ink's own box: 98..162 by 98..102.
+            // A line has no box: its own ends are its two handles (`SelectionShaft`).
             click(scene, 130f, 100f, at = 1_000L)
             assertEquals("the click selected the line", 1, tab.selection!!.refs.size)
 
-            // The right end is taken out to 226: 64 pt of box span, so the drag is a factor of 2 about 98.
-            drag(scene, 162f, 100f, 226f, 100f)
+            // The tip's grip is taken out to 226: the tail is what stays, so the line is 126 pt long and
+            // the tip is under the pointer it followed.
+            drag(scene, 160f, 100f, 226f, 100f)
             val line = elements(tab.document.page(0)).last() as Stroke
-            assertEquals(102.0, line.points.first().x, 1e-6)
-            assertEquals("the end followed the pointer", 222.0, line.points.last().x, 1e-6)
+            assertEquals("the far end is the anchor", 100.0, line.points.first().x, 1e-6)
+            assertEquals("the end followed the pointer", 226.0, line.points.last().x, 1e-6)
             assertEquals("on the line it was drawn on", 100.0, line.points.last().y, 1e-6)
             assertEquals("a longer line is not a thicker one", 4.0, line.points.last().width, 1e-6)
             assertTrue("one drag, one undo step", tab.undo())
