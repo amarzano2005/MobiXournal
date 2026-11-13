@@ -427,14 +427,25 @@ internal fun shaftStretch(
     y0: Double,
     x1: Double,
     y1: Double,
+    scale: Float = 1f,
 ): Pair<Page, PageSelection> {
     val shaft = shaftOf(singleElementOf(original, selection)) ?: return original to selection
     // The dragged end follows the pointer, so the far one is the anchor: the tail is dragged, the tip stays.
     val anchorX = if (handle == SelectionHandle.SHAFT_TAIL) shaft.tipX else shaft.tailX
     val anchorY = if (handle == SelectionHandle.SHAFT_TAIL) shaft.tipY else shaft.tailY
+    // The dragged end is a **pin**: it lands on the pin it is aimed at, the same rule a moved part's ends
+    // follow (`collectMoveTargets`, `findSnapTarget`), so a line pulled onto a figure's border really joins
+    // it instead of stopping a few points short of the mark the sheet had just shown.
+    val snapped = CircuitSnapping.findSnapTarget(
+        x1, y1,
+        CircuitSnapping.collectMoveTargets(original, selection.refs),
+        CircuitSnapping.thresholdFor(scale),
+    )
+    val endX = snapped?.absX ?: x1
+    val endY = snapped?.absY ?: y1
     // A **free** resize: the pointer sets both the length and the inclination, and the pen's width is the
     // one thing the drag never changes (`SelectionEdit.similarity`).
-    val drag = shaftDrag(x0, y0, x1, y1, anchorX, anchorY)
+    val drag = shaftDrag(x0, y0, endX, endY, anchorX, anchorY)
     val factor = drag.factor.coerceIn(MIN_SELECTION_SCALE, MAX_SELECTION_SCALE)
     return SelectionEdit.similarity(original, selection, factor, drag.angle, anchorX, anchorY)
 }
@@ -483,7 +494,7 @@ private fun transformPageSelection(
         }
     }
     SelectionHandle.SHAFT_TAIL, SelectionHandle.SHAFT_TIP ->
-        shaftStretch(original, selection, handle, x0, y0, x1, y1)
+        shaftStretch(original, selection, handle, x0, y0, x1, y1, scale)
     else -> {
         val isCorner = handle in setOf(
             SelectionHandle.TOP_LEFT,

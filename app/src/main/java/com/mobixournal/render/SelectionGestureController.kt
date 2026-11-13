@@ -99,6 +99,9 @@ internal class SelectionGestureController(
      */
     private val magnet = PinMagnet()
 
+    /** The hold of a **shaft** drag, whose rule is in `ShaftMagnet.kt` (`shaftEndOnPin`). */
+    private val endMagnet = PointMagnet()
+
     /** The target the live move is caught by, or null — view state, painted by the canvas. */
     val magnetTarget: CircuitSnapping.PinTarget? get() = magnet.caught
 
@@ -161,6 +164,7 @@ internal class SelectionGestureController(
     /** Forget every live gesture and the snapshot behind it (a cancel, or a fresh document). */
     fun reset() {
         magnet.reset()
+        endMagnet.reset()
         moving = false
         resizing = false
         rotating = false
@@ -289,6 +293,7 @@ internal class SelectionGestureController(
     /** Latch a resize from its grab point: the axis, the end that stays, and the pointer's start. */
     private fun beginResize(start: ResizeStart) {
         resizing = true
+        endMagnet.reset()
         snapshot()
         resizeAxis = start.axis
         resizeAnchorX = start.anchorX
@@ -530,11 +535,17 @@ internal class SelectionGestureController(
         if (resizeAxis == ResizeAxis.SHAFT) {
             // A line's or an arrow's end follows the pointer: a new length **and** a new inclination in one
             // grip, with the far end still and the pen's width untouched (`SelectionEdit.similarity`).
+            // The dragged end is a pin: it lands on the one it is aimed at (`shaftEndOnPin`).
+            val (endX, endY) = shaftEndOnPin(
+                start.pages, sel.pageIndex, sel.refs,
+                box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY),
+                box.scale, endMagnet,
+            )
             val drag = shaftDrag(
                 resizeStartPtX,
                 resizeStartPtY,
-                box.toPtX(event.x, viewport.scrollX),
-                box.toPtY(event.y, viewport.scrollY),
+                endX,
+                endY,
                 resizeAnchorX,
                 resizeAnchorY,
             )
