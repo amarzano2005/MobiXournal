@@ -112,12 +112,6 @@ class DesktopTab(
     var magnetTargets: List<CircuitSnapping.PinTarget> by mutableStateOf(emptyList())
 
     /**
-     * True while a **selection drag** is live. The pin marks belong to the gesture, not to the selection:
-     * a part resting selected shows nothing, and its compatible pins appear while it is being moved.
-     */
-    var selectionMoving: Boolean by mutableStateOf(false)
-
-    /**
      * The **drawing guide** standing on this tab's page, or null when none is.
      *
      * View state, like the selection: a guide is an input aid the tablet has never written to a document

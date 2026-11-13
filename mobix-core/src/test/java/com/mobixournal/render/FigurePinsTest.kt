@@ -6,6 +6,8 @@ import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
@@ -186,6 +188,34 @@ class FigurePinsTest {
         assertTrue(
             "and a written stroke never magnetises a move of its own",
             CircuitSnapping.collectMoveTargets(page, setOf(ElementRef(0, 1))).isEmpty(),
+        )
+    }
+
+    /**
+     * A living figure — the closed polygon the recogniser keeps as vertices — carries the same border pins a
+     * drawn one does, so a rectangle the pen left as geometry can be aimed at by a wire.
+     */
+    @Test
+    fun `a living figure carries the border pins of its kind`() {
+        val living = ParametricShapeElement(
+            shape = ShapeKind.RECTANGLE.name,
+            vertices = listOf(
+                ShapeVertex(100.0, 100.0), ShapeVertex(200.0, 100.0),
+                ShapeVertex(200.0, 200.0), ShapeVertex(100.0, 200.0),
+            ),
+            strokeColor = 0xFF000000.toInt(),
+        )
+        assertEquals(PinFamily.FIGURE, FigurePins.pinFamilyOf(living))
+        assertEquals("four corners and four side midpoints", 8, FigurePins.pinsOf(living).size)
+        assertEquals(
+            "a wire may reach its border",
+            8,
+            FigurePins.targets(pageOf(living), PinFamily.WIRE).size,
+        )
+        assertEquals(
+            "and a selected one wears them next to a wire",
+            8,
+            FigurePins.selectionPins(pageOf(living, wire(10.0, 10.0, 60.0, 10.0)), living).size,
         )
     }
 

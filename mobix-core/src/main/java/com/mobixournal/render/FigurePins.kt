@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.render.CircuitSnapping.PinTarget
@@ -96,6 +97,7 @@ object FigurePins {
     fun pinFamilyOf(element: Element): PinFamily? = when (element) {
         is CircuitElement -> PinFamily.CIRCUIT
         is Stroke -> if (isFigureStroke(element)) familyOfPoints(element.points) else null
+        is ParametricShapeElement -> familyOf(element)
         else -> null
     }
 
@@ -157,6 +159,10 @@ object FigurePins {
     fun familyOf(element: Element): PinFamily? = when (element) {
         is CircuitElement -> PinFamily.CIRCUIT
         is Stroke -> familyOfPoints(element.points)
+        // A living figure is a closed outline kept as vertices, so it carries the border pins of its kind —
+        // the same dots the rectangle a pen drew has, which is what a connector attaches to.
+        is ParametricShapeElement ->
+            ShapeKind.entries.firstOrNull { it.name == element.shape }?.let(::familyOf) ?: PinFamily.FIGURE
         else -> null
     }
 
@@ -190,8 +196,13 @@ object FigurePins {
     fun pinsOf(element: Element): List<Pair<Double, Double>> = when (element) {
         is CircuitElement -> element.pins.map { CircuitSnapping.pinAbsolutePosition(element, it) }
         is Stroke -> pinFamilyOf(element)?.let { pinsOf(it, element.points) }.orEmpty()
+        is ParametricShapeElement -> pinFamilyOf(element)?.let { pinsOf(it, pointsOf(element)) }.orEmpty()
         else -> emptyList()
     }
+
+    /** A living figure's vertices as the points the pin rules measure, at the width it is drawn with. */
+    private fun pointsOf(shape: ParametricShapeElement): List<StrokePoint> =
+        shape.vertices.map { StrokePoint(it.x, it.y, shape.strokeWidth) }
 
     /**
      * The pins a **selected** element wears, or none — a figure shows where it can be joined while the page
@@ -343,6 +354,12 @@ object FigurePins {
                             out += PinTarget(null, CircuitSnapping.WIRE_END_PIN_ID, x, y, null)
                         }
                     }
+                    is ParametricShapeElement -> {
+                        if (near != null && !envelopeOf(element).intersects(near)) return@forEachIndexed
+                        for ((x, y) in pinsOf(element)) {
+                            out += PinTarget(null, CircuitSnapping.WIRE_END_PIN_ID, x, y, null)
+                        }
+                    }
                     else -> Unit
                 }
             }
@@ -456,6 +473,10 @@ object FigurePins {
         is Stroke -> Bounds(
             element.points.minOf { it.x }, element.points.minOf { it.y },
             element.points.maxOf { it.x }, element.points.maxOf { it.y },
+        )
+        is ParametricShapeElement -> Bounds(
+            element.vertices.minOf { it.x }, element.vertices.minOf { it.y },
+            element.vertices.maxOf { it.x }, element.vertices.maxOf { it.y },
         )
         else -> Bounds(0.0, 0.0, 0.0, 0.0)
     }

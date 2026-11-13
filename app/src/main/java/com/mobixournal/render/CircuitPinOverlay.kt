@@ -60,21 +60,21 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
         if (page != null && FigurePins.hasCompany(page, drawingKind)) drawPendingPins(canvas, drawingKind)
         return
     }
-    if (!gestures.moving) {
-        // Selected and at rest: a **drawn figure** wears its own pins, which is where a connector will
-        // attach, as long as the page holds one that could reach it (`FigurePins.selectionPins`).
-        drawSelectedFigurePins(canvas)
+    // A **selected** element wears its marks at rest as well as in hand — the slot that placed it is gone, so
+    // the selection is the only thing left to answer *what can this join*. A connector marks what it could
+    // reach, never its own pins; a drawn figure marks its own, where a connector will attach. Nothing at all
+    // on a page that holds nothing compatible (`hasCompany`).
+    val sel = selection ?: return
+    if (sel.refs.size != 1) return
+    val page = pageAt(sel.pageIndex) ?: return
+    val kind = selectedFigureKind()
+    if (kind != null && CircuitElementFactory.isConnectorKind(kind) &&
+        FigurePins.hasCompany(page, kind, exclude = sel.refs)
+    ) {
+        drawTargetPins(canvas, kind, exclude = sel.refs)
         return
     }
-    // A **move** marks what it could join, never its own pins, and nothing at all on a page that holds no
-    // compatible element — the same rule as the gesture that inserted it.
-    val movedKind = selectedFigureKind() ?: return
-    if (!CircuitElementFactory.isConnectorKind(movedKind)) return
-    val sel = selection ?: return
-    val page = pageAt(sel.pageIndex) ?: return
-    if (FigurePins.hasCompany(page, movedKind, exclude = sel.refs)) {
-        drawTargetPins(canvas, movedKind, exclude = sel.refs)
-    }
+    drawSelectedFigurePins(canvas)
 }
 
 /**

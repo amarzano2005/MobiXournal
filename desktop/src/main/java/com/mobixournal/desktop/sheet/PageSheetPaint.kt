@@ -58,11 +58,11 @@ internal fun DrawScope.paintSheetOf(
         viewport = sheet.viewport,
         zoom = sheet.zoom,
         density = density,
-        // A connector's pins are marked while it is **being drawn**, and a selection's while it is being
-        // **moved**: the marks follow the gesture, not the armed tool or a resting selection.
+        // A connector's pins are marked while it is **being drawn**, and a **selected** connector's at rest
+        // as well as in hand: the slot that placed it is gone, so the selection answers what it can join.
         connectorKind = connectorKindFor(tool, circuitKind)
             ?.takeIf { draft.isNotEmpty() || penDraft.isNotEmpty() || pointer.previewLiving.value != null }
-            ?: selectionConnectorKind(page, tab.selection).takeIf { tab.selectionMoving },
+            ?: selectionConnectorKind(page, tab.selection),
         measurer = measurer,
         backdrop = tab.document.backdrop,
         hiddenLayers = tab.hiddenOn(tab.page),

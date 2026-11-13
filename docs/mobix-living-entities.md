@@ -246,13 +246,13 @@ tablet — and sits clear of the gesture bar, the panel above laid out against t
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. **Every figure carries pins**, as on Xnotes:
 a component's terminals, a wire's two ends, an arrow's **tip only** (it points, it is not a wire) and a
-drawn figure's corners **and the middle of every side** (`FigurePins`). What a gesture marks is exactly what it may join: a
+drawn figure's corners **and the middle of every side** — a living `parametricShape` included (`FigurePins`). What a gesture marks is exactly what it may join: a
 **circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything.
-The marks belong to the gesture — they appear while a figure is being drawn or a selection is moved —
-except that a **selected figure** wears its own pins while the page holds a connector that could join it
-(`selectionPins`); a part merely selected shows none. The reach is `SNAP_REACH_PX` **screen**
-pixels at every zoom (`thresholdFor`): a fixed number of page points grew into a finger's width on a
-zoomed-in page, which is what made the magnet feel greedy. A caught target holds to
+The marks follow the **selection** as well as the gesture — an element merely selected wears them too:
+a connector marks what it may join, a figure its own pins, and only while the page holds something
+compatible (`selectionPins`). The reach is `SNAP_REACH_PX` **screen** pixels at every zoom
+(`thresholdFor`): a fixed number of page points grew into a finger's width on a zoomed-in page, which
+is what made the magnet feel greedy. A caught target holds to
 `SNAP_RELEASE_RATIO` × that reach — `PinMagnet` for a moved selection, `EndsMagnet` for the ends of a
 wire, arrow or part being drawn — so nothing flickers, and the caught pin is lit while the hand is down.
 
