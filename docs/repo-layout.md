@@ -48,6 +48,7 @@ it, so it no longer tries.
 - `mobix-core/src/main/java/com/mobixournal/format`
 - `mobix-core/src/main/java/com/mobixournal/format/json`
 - `mobix-core/src/main/java/com/mobixournal/format/mobix`
+- `mobix-core/src/main/java/com/mobixournal/format/mobix/migration`
 - `mobix-core/src/main/java/com/mobixournal/format/model`
 - `mobix-core/src/main/java/com/mobixournal/format/xml`
 - `mobix-core/src/main/java/com/mobixournal/io`
