@@ -118,12 +118,12 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 **Windows 11**
 
 1. Download `MobiXournal-<version>.msi` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases) and run it.
-2. Confirm the SmartScreen prompt, and keep or decline the `.mobix`, `.pmobix` and `.xopp` associations and the shortcut.
+2. Confirm the SmartScreen prompt; keep or decline the `.mobix`/`.pmobix`/`.xopp` associations and shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
 A new tab is empty until saved: **Save As** picks the format, the system's picker the name; **Save** writes.
 **Export As** writes the page as PNG or SVG, or the notebook as a **`.pmobix`** carrying the files it
-only names — an export, never the file you keep editing.
+only names — an export, not a working file.
 **Save automatically** writes a saved document a few seconds after you stop; it never picks a name.
 Recents show what you opened; **Restore last session** reopens an unfinished session.
 

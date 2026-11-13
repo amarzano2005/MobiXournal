@@ -112,7 +112,7 @@ What it does today:
   (`ImportPdfRequest`, `DesktopPdfImportRangeTest`), and a range that cannot be used says why instead of
   importing something else. A document already backed by a PDF
   has the second one **joined** into it, since a `.xopp` references exactly one, and a save carries the PDF
-  with the document: a `.mobix` bundles it, a zipped `.xopp` attaches it, a plain `.xopp` names the file
+  with the document: a `.mobix` normally carries it inside, a zipped `.xopp` attaches it, a plain `.xopp` names the file
   beside it.
 - **Draws and erases on the page** — pen (`B`), highlighter (`H`) and eraser (`E`). A primary drag is
   fed to the shared `InkPointerRouter` (`mobix-core`) as a stream of `InkPointer`s, so what a press
