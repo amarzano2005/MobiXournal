@@ -297,7 +297,7 @@ class DesktopSaveTest {
             state.saveAs(target)
             assertTrue("the write succeeded", state.failure == null)
 
-            assertEquals("the tab follows the file it wrote", target.absoluteFile, tab.file.absoluteFile)
+            assertEquals("the tab follows the file it wrote", target.canonicalFile, tab.file.canonicalFile)
             assertEquals("and the container it chose", DesktopContainer.XOPP_GZIP, tab.document.container)
             assertEquals("the page it was on is kept", 2, tab.page)
             assertEquals("the label follows the name", "renamed.xopp", tab.title)
@@ -374,7 +374,7 @@ class DesktopSaveTest {
                 "the pages are read from the staged copy the write produced: ${tab.document.pageSource.name}",
                 tab.document.pageSource.name.endsWith(".writing"),
             )
-            assertEquals("and the destination is still the file the user knows", file.absoluteFile, tab.file.absoluteFile)
+            assertEquals("and the destination is still the file the user knows", file.canonicalFile, tab.file.canonicalFile)
             DocumentLoader.load(file).use { onDisk ->
                 assertEquals(
                     "the file on disk was left as it was",

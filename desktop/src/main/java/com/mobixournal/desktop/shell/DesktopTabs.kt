@@ -293,7 +293,7 @@ class DesktopTab(
      * the new name. The page and viewport stay where they were — a Save As is not a new document.
      */
     fun rehome(target: File) {
-        if (target.absoluteFile == document.file.absoluteFile && !unsaved) return
+        if (DesktopTabs.keyOf(target) == DesktopTabs.keyOf(document.file) && !unsaved) return
         val reloaded = DocumentLoader.load(target)
         val previous = document
         com.mobixournal.desktop.io.DesktopAudioSession.rehome(key, DesktopTabs.keyOf(target))

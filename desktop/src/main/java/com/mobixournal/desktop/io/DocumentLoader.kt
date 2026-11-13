@@ -5,6 +5,7 @@ import com.mobixournal.format.mobix.MobixOpenVerdict
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.PageBackdrop
 import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.shell.thumbnail
 
 import com.mobixournal.format.FileKind
@@ -260,8 +261,11 @@ class DesktopDocument(
         // path — so comparing the target with the source refused the repack on every ordinary save and made
         // each one a whole-archive write: every page encoded and every entry rewritten, an autosave included.
         // The question is whether the save lands back where this document lives, not which file it reads.
+        // The question is asked with [DesktopTabs.keyOf] rather than by comparing the paths as typed: a
+        // target reached through a Windows 8.3 alias (`RUNNER~1`) or a `./` prefix is the same file, and
+        // comparing the strings refused the repack on a machine that names its temp folder that way.
         repackOver = pageSource.takeIf {
-            container == DesktopContainer.MOBIX && target.absoluteFile == file.absoluteFile
+            container == DesktopContainer.MOBIX && DesktopTabs.keyOf(target) == DesktopTabs.keyOf(file)
         },
     )
 

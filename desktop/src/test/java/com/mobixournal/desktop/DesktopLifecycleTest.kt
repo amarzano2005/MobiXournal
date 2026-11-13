@@ -265,7 +265,7 @@ class DesktopLifecycleTest {
             assertEquals("the next run adopts the snapshot", 1, next.recover())
             val recovered = next.active!!
             assertTrue("a recovered tab starts with work the file does not have", recovered.isDirty)
-            assertEquals("it stands for the file it came from", file.absoluteFile, recovered.file.absoluteFile)
+            assertEquals("it stands for the file it came from", file.canonicalFile, recovered.file.canonicalFile)
             assertTrue("and says so in its label", recovered.title.endsWith("(recovered)"))
             assertEquals("with the edit that was never saved", 2, strokeCount(recovered.document.page(0)))
 

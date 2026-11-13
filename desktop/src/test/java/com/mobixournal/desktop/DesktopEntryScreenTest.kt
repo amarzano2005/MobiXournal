@@ -141,11 +141,13 @@ class DesktopEntryScreenTest {
         val cards = next.entryCards()
         assertEquals("the unsaved document, and no second card for its file", 1, cards.size)
         assertTrue("it is a previous-session card", cards[0].fromPreviousSession)
-        assertEquals(notebook.absolutePath, cards[0].file.absolutePath)
+        // A document's identity is the alias-free path ([DesktopTabs.keyOf]), so the card is compared
+        // with the canonical file: a temp folder reached as `RUNNER~1` is the same file as its long name.
+        assertEquals(notebook.canonicalFile, cards[0].file.canonicalFile)
 
         assertEquals("restore brings it back", 1, next.restoreLastSession())
         assertTrue("a recovered tab holds work the file does not", next.active!!.isDirty)
-        assertEquals(notebook.absoluteFile, next.active!!.file.absoluteFile)
+        assertEquals(notebook.canonicalFile, next.active!!.file.canonicalFile)
         next.tabs.closeAll()
     }
 
