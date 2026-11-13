@@ -156,8 +156,8 @@ private fun DrawScope.drawMagnetTarget(target: CircuitSnapping.PinTarget, pxPerP
     )
 }
 
-/** The magnet dot's radius in screen pixels — the tablet's handle dot, so both shells look alike. */
-private const val MAGNET_DOT_PX = 5f
+/** The magnet dot's radius in screen pixels — wider than a pin, since it is what the join will land on. */
+private const val MAGNET_DOT_PX = 7f
 
 /**
  * Every pin the sheet wears for a **connection**, in one call: the marks of a connector in hand, of a part
@@ -343,40 +343,49 @@ private fun DrawScope.drawPinTarget(
     val y = (target.absY * pxPerPt).toFloat()
     if (target.isWireEnd) {
         val half = WIRE_END_PX / pxPerPt
+        val halo = (WIRE_END_PX + PIN_HALO_PX) / pxPerPt
+        drawRect(DesktopTheme.desk, topLeft = Offset(x - halo, y - halo), size = Size(halo * 2f, halo * 2f))
         drawRect(DesktopTheme.accent, topLeft = Offset(x - half, y - half), size = Size(half * 2f, half * 2f))
     } else {
-        drawCircle(DesktopTheme.accent, radius = radiusPx / pxPerPt, center = Offset(x, y))
+        drawPinDot(target.absX, target.absY, pxPerPt, radiusPx)
     }
 }
 
-/** A figure's **own** pin — the thing being joined — in the solid accent, as the tablet's `chrome.pin`. */
+/**
+ * A figure's **own** pin — the thing being joined — in the solid accent, as the tablet's `chrome.pin`.
+ *
+ * Edged by a hairline of the desk ([PIN_HALO_PX]), the same trick the pointer wears: a solid dot over a
+ * black wire or a ruled grid line lost its edge, and a mark with no edge is a mark that is not seen.
+ */
 private fun DrawScope.drawPinDot(x: Double, y: Double, pxPerPt: Float, radiusPx: Float = PIN_PENDING_PX) {
-    drawCircle(
-        color = DesktopTheme.accent,
-        radius = radiusPx / pxPerPt,
-        center = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
-    )
+    val at = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
+    drawCircle(DesktopTheme.desk, radius = (radiusPx + PIN_HALO_PX) / pxPerPt, center = at)
+    drawCircle(DesktopTheme.accent, radius = radiusPx / pxPerPt, center = at)
 }
 
 /**
- * A connection point's dot, in screen pixels — the tablet's `PIN_DOT_PX`, a step larger.
+ * A connection point's dot, in screen pixels.
  *
- * The window is drawn at density 1 on a wide monitor, where the tablet's 3.5 px dot is a speck over a ruled
- * page: the pins were on the sheet and still not seen, the report the tablet's own marks were fixed for.
+ * Big on purpose: the window is drawn at density 1 on a wide monitor, where a pin the size of the tablet's
+ * (3.5 px) is a speck over a ruled page — the marks were on the sheet and still not seen. 7.5 px is a dot a
+ * reader can aim at from a normal reading distance, which is the whole point of drawing them.
  */
-private const val PIN_DOT_PX = 5f
+private const val PIN_DOT_PX = 7.5f
 
 /** The dot a component being placed would mint, in screen pixels. */
-private const val PIN_PENDING_PX = 6f
+private const val PIN_PENDING_PX = 8f
 
 /** Half the side of the square that marks an **existing figure's end**, in screen pixels (`WIRE_END_PX`). */
-private const val WIRE_END_PX = 5f
+private const val WIRE_END_PX = 7f
 
 /** The dot a pin the magnet has **caught** wears, in screen pixels: filled and larger, so the catch reads. */
-private const val PIN_CAUGHT_PX = 7.5f
+private const val PIN_CAUGHT_PX = 10f
+
+/** The desk-coloured edge every mark wears, in screen pixels — the pointer's own hairline, around a pin. */
+private const val PIN_HALO_PX = 2f
 
 /** How close two pins must be to count as one join, in page points — a little over a pixel. */
 private const val JOIN_PT = 0.75
 
 /** The ring a **joined** pair wears, in screen pixels: bigger than a pin's dot, so the join reads. */
-private const val JOIN_PX = 7f
+private const val JOIN_PX = 9f

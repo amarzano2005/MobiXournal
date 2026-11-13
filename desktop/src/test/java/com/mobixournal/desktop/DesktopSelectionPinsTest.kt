@@ -130,10 +130,20 @@ class DesktopSelectionPinsTest {
         return false
     }
 
-    /** Both ends of the wire at y = 450 are marked as places this figure may be paired with. */
+    /**
+     * Both ends of the wire at y = 450 are marked as places this figure may be paired with — and marked
+     * with enough accent to be **seen**: a dot the size of the tablet's was on the sheet and still not
+     * looked at, so the mark has to stay a mark a reader can aim at.
+     */
     private fun assertWireMarked(pixels: IntArray, when_: String) {
         assertTrue("$when_: the wire's left end is marked", accentNear(pixels, 320, 450))
         assertTrue("$when_: and its right end", accentNear(pixels, 440, 450))
+        for (x in listOf(320, 440)) {
+            val solid = (-6..6).sumOf { dy ->
+                (-6..6).count { dx -> isAccent(pixels[(450 + dy) * width + (x + dx)]) }
+            }
+            assertTrue("$when_: the end at $x is a solid mark ($solid accent px)", solid >= 60)
+        }
     }
 
     @Test

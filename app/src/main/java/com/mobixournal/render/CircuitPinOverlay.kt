@@ -4,17 +4,22 @@ import android.graphics.Canvas
 import com.mobixournal.format.model.CircuitElement
 import kotlin.math.hypot
 
-/** Radius of a connection point's ring, in view px. */
-private const val PIN_DOT_PX = 3.5f
+/**
+ * Radius of a connection point's dot, in view px.
+ *
+ * Read against the page, not against a design sheet: at 3.5 px a pin was a speck on a ruled sheet, so the
+ * targets were drawn and still not seen. These sizes are the ones a hand can aim at.
+ */
+private const val PIN_DOT_PX = 5.5f
 
 /** Radius of the pin a live gesture has caught, in view px. */
-private const val PIN_CAUGHT_PX = 5.5f
+private const val PIN_CAUGHT_PX = 8f
 
 /** Radius of a pin the placement in flight is about to mint, in view px. */
-private const val PIN_PENDING_PX = 4.5f
+private const val PIN_PENDING_PX = 7f
 
 /** Side of the square that marks an existing wire's end, in view px. */
-private const val WIRE_END_PX = 4.0f
+private const val WIRE_END_PX = 5.5f
 
 /** How close (page pt) a gesture's end must be to a pin to count as having caught it. */
 private const val CAUGHT_EPSILON_PT = 0.5
