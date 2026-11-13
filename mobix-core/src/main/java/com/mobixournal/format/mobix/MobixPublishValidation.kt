@@ -26,7 +26,11 @@ object MobixPublishValidation {
      * file. Nothing is written and the caller keeps ownership of [file].
      */
     fun validate(file: File, appVersion: String) {
-        val container = runCatching { MobixContainer.open(file.inputStream().buffered()) }
+        // The stream is closed as soon as the envelope is read: on Windows an open handle would make the
+        // caller's own rename of the staged file fail, which is the one thing this check must not cause.
+        val container = runCatching {
+            file.inputStream().buffered().use { MobixContainer.open(it) }
+        }
             .getOrElse { failure ->
                 throw Invalid("The written file is not a .mobix archive: ${failure.message}")
             }

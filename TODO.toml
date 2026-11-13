@@ -138,20 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-migration-atomic-publish"
-title = "Publish a written document by replacement, and never leave a truncated notebook"
-description = "One publish primitive both shells use, in `mobix-core` beside the encoder: write the bytes into a temp file in the destination's own folder, validate them by reopening (container opens, `formatVersion` parses, every part digest matches, capabilities are satisfiable), then replace the target in one step; on any failure the original stays untouched and the temp file is removed. The target may be any path a save names, including a `.pmobix` opened as a notebook: validation dispatches on the container's `mimetype`, never on the suffix, so a portable copy is checked as the `.mobix` it is. The desktop already does exactly this (`DesktopSaves.stage` → `commit()` → `replace`), so the task is to lift that shape into the shared layer and make the Android path hand its finished bytes through it instead of `UriStaging.stageOut`'s truncate-and-copy: a SAF `OutputStream` cannot be replaced atomically by contract, so on Android the primitive must (a) verify the copy by reading it back where the provider allows, (b) keep the backup this scope's backup task writes, and (c) report \"the save may be incomplete\" instead of claiming success when it cannot verify. Tests: an injected failure after staging leaves the target byte-identical; a successful publish reopens the new bytes; a publish to a read-only folder fails before writing anything. The Android read-back path and the Windows lock-release path (`DesktopTab.saveBack`) are manual passes on those machines, stated as such."
-status = "in-progress"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 540
-created = 2026-11-10
-tags = ["mobix", "migration"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "mobix-migration-backup-restore"
 title = "Keep a recoverable copy before a replace, and a way back"
 description = "Add the backup the atomic publish needs: before a replace, the current target is copied beside it under a stated name (`<target>.bak` — `notes.mobix.bak` for a notebook, `notes.pmobix.bak` for a portable copy, one per document; never the collision-prone `<name>.mobix.bak` for a `.pmobix` target), and the copy is kept until the next successful publish replaces it. Define the retention rule in the owning doc rather than in code comments, remove the backup only on explicit user action, and add a restore path: an action that puts the backup back through the same atomic publish, with the same validation, so a bad restore cannot overwrite a good file with a truncated one. Android owns a second case — the SAF provider copy that cannot be replaced atomically — where the backup is the only recovery, so it is written there unconditionally. The target is whatever path the save names, including a `.pmobix` opened as a notebook. Tests: a failed publish leaves the backup in place and the target untouched; a successful one leaves the backup of the previous bytes; a restore reopens the backup's content; a second publish replaces rather than accumulates backups."
@@ -162,20 +148,6 @@ urgency = "high"
 order = 550
 created = 2026-11-10
 tags = ["mobix", "migration"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "portable-copy-open-save-policy"
-title = "A portable copy is opened, so say what saving one does"
-description = "A .pmobix is a .mobix container under an export suffix, and it now opens on both shells (desktop DOCUMENT_OPEN_TYPES lists *.pmobix; AndroidManifest.xml registers its pathPatterns). Plain Save on it therefore writes a mobix container back into the hand-off file, while docs/mobix-assets.md says the copy is never a document to keep editing. Decide one policy and implement it on both shells: either open a portable copy read-only through the existing verdict/read-only band, or allow editing and make its save write a working .mobix (Save As proposes <name>.mobix) while refusing plain Save in place with a sentence that names the copy. Record the choice in docs/mobix-assets.md (owner) and in docs/data-path.md's save policy; implement in desktop DesktopSaves.formatOf/DesktopTab.saveBack and in the Android save path (SaveTarget/MainActivity). Tests: DesktopSavesTest proves the chosen behaviour and that a refused save leaves the .pmobix byte-identical; a SaveTarget JVM test for the proposed name; keep DesktopFilePickerTest's open row. The Android read-back and the Windows lock-release passes are manual and stated as such. Do not change the CLI: it must keep validating a .pmobix as a .mobix."
-status = "in-progress"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 555
-created = 2026-11-13
-tags = ["pmobix", "save"]
 rebuild = true
 emulator_debug = false
 

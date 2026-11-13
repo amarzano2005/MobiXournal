@@ -81,7 +81,8 @@ class DesktopSaveTest {
         assertNotNull(state.failure?.toString(), saved)
         assertFalse(tab.isDirty)
         assertEquals(DesktopContainer.MOBIX, tab.document.container)
-        assertNotNull(state.save())
+        val again = state.save()
+        assertNotNull(state.failure?.toString(), again)
         DocumentLoader.load(file).use { assertEquals(DesktopContainer.MOBIX, it.container) }
     }
 

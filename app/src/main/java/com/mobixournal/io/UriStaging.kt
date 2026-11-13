@@ -33,11 +33,37 @@ class UriStaging(private val resolver: ContentResolver, private val dir: File) {
         return out
     }
 
-    /** Push a finished local [file] out to [uri], truncating whatever was there. */
-    fun stageOut(file: File, uri: Uri) {
+    /**
+     * Push a finished local [file] out to [uri], truncating whatever was there, and answer whether the
+     * bytes could be read back.
+     *
+     * A SAF stream cannot be replaced atomically, so a write that reported success can still have landed
+     * short; where the provider lets us read, the copy is compared with [file] byte for byte. `false`
+     * means **unverified**, not failed — the caller says the save may be incomplete instead of claiming a
+     * write it could not see (`docs/document-session.md`).
+     */
+    fun stageOut(file: File, uri: Uri): Boolean {
         resolver.openOutputStream(uri, "wt").use { output ->
             requireNotNull(output) { "could not write $uri" }
             file.inputStream().use { it.copyTo(output) }
+        }
+        return runCatching {
+            resolver.openInputStream(uri)?.use { input ->
+                file.inputStream().use { expected -> sameBytes(expected, input) }
+            } ?: false
+        }.getOrDefault(false)
+    }
+
+    /** Byte-for-byte equality without holding either side in memory. */
+    private fun sameBytes(expected: java.io.InputStream, actual: java.io.InputStream): Boolean {
+        val left = ByteArray(DEFAULT_BUFFER_SIZE)
+        val right = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val read = expected.read(left)
+            val got = actual.read(right)
+            if (read != got) return false
+            if (read <= 0) return true
+            if (!left.copyOf(read).contentEquals(right.copyOf(got))) return false
         }
     }
 

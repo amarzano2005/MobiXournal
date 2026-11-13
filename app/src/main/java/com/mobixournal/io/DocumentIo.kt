@@ -155,7 +155,7 @@ class DocumentIo(
     fun stageIn(uri: Uri, name: String): File = staging.stageIn(uri, name)
 
     /** Push a finished local [file] out to [uri]. Slow; run it off the UI thread. */
-    fun stageOut(file: File, uri: Uri) = staging.stageOut(file, uri)
+    fun stageOut(file: File, uri: Uri): Boolean = staging.stageOut(file, uri)
 
     /**
      * The archive [tab] can be snapshotted **as**: the one it was opened from, while nothing has been

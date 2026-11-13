@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "portable-copy-open-save-policy"
+title = "A portable copy is opened, so say what saving one does"
+description = "A portable copy is opened read-and-edit, but never written in place: Save is Save As on a working `.mobix`. Core: `PortableCopy.EXTENSION` and `PortableCopy.isPortableCopy` are the one predicate both shells use. Desktop: `saveOrPick` opens the Save As window for a `.pmobix` tab, `DesktopTab.saveBack` refuses before releasing the archive, `DesktopSaves.stageSnapshot` refuses a `.pmobix` destination, and auto save skips the tab. Android: `saveActiveTab` opens the picker on `SaveFormat.MOBIX` with `<name>.mobix`, and `saveDocument` refuses any `.pmobix` destination (quietly for auto save). Docs: `.pmobix` is the portable profile in `docs/mobix-format.md`; the save rule is owned by `docs/mobix-assets.md` and placed in the sticky-format policy in `docs/data-path.md`; `docs/guide-limitations.md` has its row; `docs/desktop-documents.md` and `docs/document-session.md` link the rule. Verified on the Windows host: `PortableCopyTest` (5), `SaveTargetTest` (14), `DesktopSaveTest` (16, including the refusal leaving the copy byte-identical), `DocsGuardTest`/`DocClaimsTest` (38), `:app:assembleDebug` and `:desktop:createDistributable`. The manual SAF/Windows passes were not run."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-13
+completed = 2026-11-13
+tags = ["pmobix", "save"]
+design = "none: it reuses the existing Save As dialog and adds no element"
+
+[[task]]
+id = "mobix-migration-atomic-publish"
+title = "Publish a written document by replacement, and never leave a truncated notebook"
+description = "Published documents are now written through a shared primitive and proved before they replace anything. `AtomicPublish` (mobix-core) writes into a staging file in the destination's own folder, refuses an empty write, hands the finished file to a validator and moves it over the target with an atomic replace where the volume allows one; every refusal leaves the target byte-identical and removes the staging file. The suffix is never consulted, so a `.pmobix` target is published as the `.mobix` it is. `MobixPublishValidation` is the proof: the archive opens with this format's mimetype, the manifest and `formatVersion` parse, the capability verdict allows a write and every `assets/` entry hashes to its name with its references resolving. It is wired into the desktop's `stageSnapshot` (before commit) and into the Android save before `stageOut`. Android no longer claims a write it cannot see: `UriStaging.stageOut` returns whether the copy could be read back, comparing bytes without holding the file in memory, and both the save and the portable-copy export say \"the save may be incomplete\" when the provider does not allow the check. Tests: `AtomicPublishTest` (5) covers success, failed write, failed validation, empty write and a `.pmobix` target; `MobixPublishValidationTest` (4) covers a clean document, a non-archive, a required capability this build lacks and a portable copy; `DesktopSaveTest` (16) passes and caught a real defect — the validation left the staging stream open, so the Windows replace failed; the stream is now closed. `:app:assembleDebug`, `:desktop:createDistributable`, the app unit tests and the doc guards pass on the Windows host (JDK 21, SDK). Not done: the backup before a replace and its restore remain `mobix-migration-backup-restore`'s, and the manual SAF-provider and Windows lock-release passes were not run (no device; `emulator_debug = false`)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-10
+completed = 2026-11-13
+tags = ["mobix", "migration"]
+design = "none: the change is a save-path guarantee, no new interface surface"
+
+[[task]]
 id = "portable-copy-format-home"
 title = "Give .pmobix a home in the format pages"
 description = "Documented `.pmobix` where the format is owned, and made the save rule explicit on the pages a reader reaches it from. `docs/mobix-format.md` (under *Opening `.mobix`*) now says `.pmobix` is the same container under a profile suffix — same mimetype, schema and reader, only its own extension — and that it opens through the mimetype dispatch. `docs/mobix-assets.md` (owner of the portable copy) changes \"never a document to keep editing\" to \"never written in place: Save on an opened copy is Save As, which proposes a working `.mobix`\", and names the predicate and the three tests that pin it. `docs/data-path.md` adds the save-policy sentence beside the sticky format, linking the assets page. `docs/guide-limitations.md` gains a row for saving an opened copy in place (Not supported on both shells, because Save is Save As), and its back-link requirement is satisfied by a `For the task` line on the assets page. `docs/desktop-documents.md` and `docs/document-session.md` each state the same rule in their own words and link `data-path.md` instead of copying it. Verified: `DocsGuardTest` and `DocClaimsTest` pass (38 tests), including line budgets (mobix-format 286 lines), links, duplicate-sentence and owner-page checks. No code changed in this task."

@@ -84,12 +84,15 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
         if (request.format == SaveFormat.MOBIX) {
             com.mobixournal.format.mobix.MobixPublishValidation.validate(encoded.file, BuildConfig.VERSION_NAME)
         }
-        try { io.stageOut(encoded.file, uri) } finally { encoded.file.delete() }
-        encoded.uncompiled
+        val verified = try { io.stageOut(encoded.file, uri) } finally { encoded.file.delete() }
+        encoded.uncompiled to verified
     }) { result ->
-        result.onFailure { toast("Save failed: ${it.message}") }.onSuccess { uncompiled ->
+        result.onFailure { toast("Save failed: ${it.message}") }.onSuccess { (uncompiled, verified) ->
             afterSaved(owner, request, uri, document, revision)
             if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
+            if (!verified) {
+                toast("The file was written but could not be read back: the save may be incomplete.")
+            }
         }
     }
 }

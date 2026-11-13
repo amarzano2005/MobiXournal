@@ -58,22 +58,24 @@ internal fun MainActivity.savePortableCopy(uri: Uri) {
                     suppliedAudio = { recording -> audio.recordingFile(recording)?.let(MobixPayload::of) },
                 ),
             )
-            io.stageOut(scratch, uri)
+            val verified = io.stageOut(scratch, uri)
             // What the copy still leaves outside itself, in the words the reader needs.
-            written.remaining.size to written.embedded.size
+            Triple(written.remaining.size, written.embedded.size, verified)
         } finally {
             scratch.delete()
             staged?.delete()
         }
     }) { result ->
         result.onFailure { toast("Export failed: ${it.message}") }
-            .onSuccess { (left, embedded) ->
+            .onSuccess { (left, embedded, verified) ->
+                val report = when {
+                    left == 0 -> "Exported .pmobix: everything is inside it ($embedded embedded)"
+                    embedded == 0 -> "Exported .pmobix: $left reference(s) still point outside it"
+                    else -> "Exported .pmobix: $embedded embedded, $left still outside"
+                }
                 toast(
-                    when {
-                        left == 0 -> "Exported .pmobix: everything is inside it ($embedded embedded)"
-                        embedded == 0 -> "Exported .pmobix: $left reference(s) still point outside it"
-                        else -> "Exported .pmobix: $embedded embedded, $left still outside"
-                    },
+                    if (verified) report
+                    else "$report — the copy could not be read back, so it may be incomplete",
                 )
             }
     }
