@@ -219,7 +219,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   pins show as it is laid down, as the tablet draws them — but only when the page holds something to join; ends are magnetised onto the nearest pin
   (`snapWireEnds`, `circuitSpan`; an arrow reaches every family, `FigurePins`), a **selected** element shows
   them at rest as well as while it is dragged (`selectionMarks`) — its own pins plus what it may be paired with, and none with nothing to join.
-  A dragged part lights the pin its magnet has caught and holds it across the drag (`PinMagnet`), and a wire being drawn or a part being placed lights one pin per end (`EndsMagnet`, `magnetTargets`), so every join is visible before the release. A **selected** part keeps its pins marked, so the dots do not vanish with the slot that placed it. A press
+  A dragged part lights the pin its magnet has caught and holds it across the drag (`PinMagnet`), and a wire being drawn or a part being placed lights one pin per end (`EndsMagnet`, `magnetTargets`), so every join is visible before the release. A **selected** part keeps its pins marked, and a figure the Shape slot has just drawn is **left selected** (`commitShape`), so the dots do not vanish with the slot that placed it. A press
   **on** a pin picks the part up, and on a selected part's own pin the drag **moves** it, not scales
   (`PinPress`, `pressesOwnPin`: a scale never magnetises). A moved
   part's **own** pins are never its targets (by position, not id), and a moved selection aims at the

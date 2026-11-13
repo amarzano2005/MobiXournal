@@ -304,20 +304,18 @@ internal fun DrawingSurfaceView.commitCurrent() {
         ink.currentStrokes = null
         ink.current = null
         shapeDraft.finish()
-        for (mPts in multi) {
-            if (mPts.size >= 2) {
-                appendStroke(
-                    ink.currentPage,
-                    // A figure tool minted these points, so the stroke says so: the magnet and the pin
-                    // marks read that claim rather than the geometry, because a short pen stroke is two
-                    // vertices on one straight line exactly as a wire is (`FigurePins.isFigureStroke`).
-                    Stroke(
-                        tool, strokeColor(), "round", mPts, true,
-                        lineStyle = currentLineStyle, extraAttrs = FigurePins.FIGURE_ATTRS,
-                    ),
+        appendFigures(
+            ink.currentPage,
+            multi.filter { it.size >= 2 }.map { mPts ->
+                // A figure tool minted these points, so the stroke says so: the magnet and the pin
+                // marks read that claim rather than the geometry, because a short pen stroke is two
+                // vertices on one straight line exactly as a wire is (`FigurePins.isFigureStroke`).
+                Stroke(
+                    tool, strokeColor(), "round", mPts, true,
+                    lineStyle = currentLineStyle, extraAttrs = FigurePins.FIGURE_ATTRS,
                 )
-            }
-        }
+            },
+        )
         render()
         return
     }
@@ -385,7 +383,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
             lineStyle = currentLineStyle,
             extraAttrs = if (wasShaping || snapped) FigurePins.FIGURE_ATTRS else emptyMap(),
         )
-        appendStroke(ink.currentPage, stroke)
+        if (wasShaping) appendFigures(ink.currentPage, listOf(stroke)) else appendStroke(ink.currentPage, stroke)
         // A dimension line carries its value: the measurement goes in as a text box of its own.
         if (wasShaping && shapeKind == ShapeKind.DIMENSION) appendDimensionLabel(raw, strokeColor())
     }
@@ -505,6 +503,25 @@ internal fun DrawingSurfaceView.withAudioStamp(stroke: Stroke): Stroke =
 internal fun DrawingSurfaceView.appendStroke(pageIndex: Int, stroke: Stroke) {
     val edited = windowEditPage(pageIndex) { page -> withStroke(page, stroke) } ?: return
     relayout() // rebuild boxes so they reference the updated pages, not stale ones
+}
+
+/**
+ * Append the strokes of one **figure** and leave them selected.
+ *
+ * The slot that drew a figure is gone the moment the pen lifts, and with it the marks that showed where the
+ * figure can join (`FigurePins.selectionMarks`): the figure kept its pins, but nothing on screen said so —
+ * which reads as a figure with no pins at all. Selecting what the insert wrote is what keeps them there, the
+ * same way an inserted plot lands already selected (`DrawingSurfacePlots`).
+ */
+internal fun DrawingSurfaceView.appendFigures(pageIndex: Int, strokes: List<Stroke>) {
+    if (strokes.isEmpty()) return
+    val page = pageAt(pageIndex) ?: return
+    val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }
+    val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
+    val base = layers[target].elements.size
+    strokes.forEach { appendStroke(pageIndex, it) }
+    selection = ActiveSelection(pageIndex, strokes.indices.map { ElementRef(target, base + it) }.toSet())
+    onSelectionChanged?.invoke(true)
 }
 
 /** [page] with [stroke] appended to its active (or top) layer — the one commit shape ink has. */

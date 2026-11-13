@@ -1,5 +1,4 @@
 package com.mobixournal.desktop.sheet
-import com.mobixournal.desktop.ink.withElement
 import com.mobixournal.desktop.ink.activeTool
 import com.mobixournal.desktop.ink.shapeKind
 import com.mobixournal.desktop.ink.DesktopInk
@@ -44,19 +43,23 @@ import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.runtime.MutableState
 import com.mobixournal.render.ActiveTool
+import com.mobixournal.render.ElementBounds
 import com.mobixournal.render.InkEvent
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
 import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.PageEraser
+import com.mobixournal.render.PageSelection
 import com.mobixournal.render.PointerKind
+import com.mobixournal.render.SelectionOps
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.VerticalSpaceOps
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.render.eraserRadiusPt
+import com.mobixournal.render.rectRegion
 import kotlin.math.exp
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -525,7 +528,16 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
     }
 }
 
-/** One shape's commit: an ordinary stroke on the page's top layer, and one undo step. */
+/**
+ * One shape's commit: an ordinary stroke on the page's active layer, one undo step — and the figure is left
+ * **selected**.
+ *
+ * The slot that drew it is gone on the lift, and the marks that show where the figure can join go with it
+ * (`FigurePins.selectionMarks`): the figure kept its pins, the sheet just stopped saying so, which reads as a
+ * figure with no pins. The selection is what keeps them on screen — and it is also what lets the figure be
+ * dragged onto the pin it marks, since a selection is what the magnet moves. Inserted living elements already
+ * land selected (`LivingSlots`).
+ */
 private fun commitShape(
     points: List<StrokePoint>,
     tab: DesktopTab,
@@ -534,9 +546,14 @@ private fun commitShape(
 ) {
     val stroke = shapeStroke(points, ink.colour, ink.width, ink.lineStyle) ?: return
     val index = tab.page
+    val page = runCatching { tab.document.page(index) }.getOrNull() ?: return
+    val (grown, refs) = SelectionOps.addToLayerOn(page, listOf(stroke), tab.inkLayer(page))
+    if (refs.isEmpty()) return
     val before = tab.document.snapshot()
-    tab.document.editPage(index) { page -> page.withElement(stroke, tab.inkLayer(page)) }
+    if (tab.document.editPage(index) { grown } == null) return
     tab.record(before)
+    val bounds = ElementBounds.of(stroke)
+    tab.selection = PageSelection(rectRegion(bounds.left, bounds.top, bounds.right, bounds.bottom), refs)
     onEdited(index)
 }
 
