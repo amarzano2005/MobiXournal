@@ -138,20 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-cli-skeleton"
-title = "A .mobix reader outside the repository's code, starting with inspect and list"
-description = "Create `tools/mobix-cli/` as a Python 3 package runnable with `python3 -m mobix_cli` from a checkout and installable with pipx, **standard library only** (no Kotlin, Gradle, Android or `com.mobixournal.*` import; an optional JSON-Schema dependency is a later task and must stay optional). Implement `inspect` (mimetype, formatVersion, documentId, creator, page or chunk count, entry count and total bytes, canvas mode and page size, declared capabilities) and `list` (pages and chunks by index with their entry name, size and digest; assets by name and size, decoded from the central directory only). Both take a path and a `--json` flag that prints one object a script can read, and both exit 0 on a readable archive, 2 on a file it cannot open and 1 on a document it must refuse, with the reason on stderr. No rendering and no element decoding yet. Tests with `unittest` in `tools/mobix-cli/tests/` over the committed golden corpus in `mobix-core/src/test/resources/fixtures/mobix-v1/` and the hostile corpus, run by `python3 -m unittest discover tools/mobix-cli/tests`, with no network and no dependency outside the standard library."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 470
-created = 2026-11-10
-tags = ["mobix", "cli"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-cli-validate"
 title = "Validate a document the way a third party would, and say which rule failed"
 description = "Implement `validate` in the CLI against `spec/CONFORMANCE.md` row by row: `mimetype` first and STORED, ZIP rules (no encryption, no path traversal, entry-count and size caps mirroring `MobixSafetyCaps`), `manifest.json` and `canvas.json` checked structurally and, when the optional `jsonschema` package is present, against `spec/schema/`, every part digest compared with the manifest's `sha256`, every `assets/` name checked for grammar and for hashing to its own name, every reference resolved (an `asset` name with no entry is an error), and page/chunk counts and modes agreed with the entries. Output one finding per line with rule id, severity and location, plus `--json`; exit 0 clean, 1 findings, 2 unreadable. The rule ids must match the conformance rows so the two documents can be read together. Tests: each hostile-corpus file is refused with the expected rule id, the golden corpus validates clean, and a mutated fixture triggers exactly one finding per rule (bad mimetype order, bad hex in a name, digest mismatch, missing entry, unknown compression method)."

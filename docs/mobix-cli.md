@@ -1,0 +1,98 @@
+# The `.mobix` command-line reader
+
+> Read when you inspect or script a `.mobix` outside the app, or change `tools/mobix-cli`.
+
+_One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
+
+`tools/mobix-cli/` is a **second, independent reader** of the published format: Python 3, the
+standard library only, and no import of `com.mobixournal.*`. It is not a second engine — it reads the
+envelope and lists what the archive holds, while the elements inside a page stay the app's business.
+That independence is the point: when this reader and `mobix-core` disagree about a file, the
+disagreement is a finding about the format or about one of the two implementations, not a bug they
+share because they share code.
+
+It is not part of the Android or desktop build, so it needs no JDK, Gradle, SDK or device.
+
+## What the two commands answer
+
+```sh
+cd tools/mobix-cli
+python3 -m mobix_cli inspect FILE [--json]
+python3 -m mobix_cli list    FILE [--json]
+pipx install ./tools/mobix-cli     # the same two commands as `mobix-cli`
+```
+
+`inspect` answers **what document is this**: the type from the `mimetype` entry's bytes, the format
+version, the document id, the creator when the `.xopp` bridge sidecar records one, the canvas mode
+and page size (the sheet's size, the first page's own size, or a chunk's tile), how many pages or
+chunks it carries, how many archive entries and bytes it holds, and the two declared capability
+lists. It also **checks** what it reports: every part is read, compared with the digest the manifest
+records for it and parsed within the 64-level JSON cap, and every asset is hashed against the digest
+its own name claims. The `integrity` block says how many of each were actually inspected, so the
+report cannot imply more than it did.
+
+`list` answers **what is in the archive**: pages and chunks in manifest order, each with its entry
+name, size and the digest the manifest records, and assets by name with their size and the digest
+their name claims. It reads the central directory and the envelope only — no page and no payload is
+inflated — so a digest there is the file's claim, not a verification. `inspect` is the command that
+checks; `list` is the cheap listing a script can run over a folder.
+
+`--json` prints one object and nothing else, so a caller never parses prose. Without it the same
+fields are laid out for a person.
+
+## The three exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | the archive is a document this reader accepts |
+| 1 | a document it **must refuse**, with the reason on stderr |
+| 2 | a path it **cannot open** as an archive, with the reason on stderr |
+
+The split is deliberate: "this is not a ZIP" and "this is a valid ZIP that is not a valid `.mobix`"
+are different answers, and a script that sweeps a folder needs to tell them apart. A refusal names
+the entry and the rule it broke.
+
+## What it refuses, and what it leaves to the app
+
+The rules are the format's own, not this tool's opinions; each has one authoritative home and the
+code follows it rather than restating it.
+
+- **The container**: the type is read from `mimetype`'s bytes (never from the suffix); `manifest.json`
+  is required; duplicate, `.`/`..`-segment, absolute, backslashed and control-character entry names
+  are refused rather than normalised; the caps are 20 000 entries, 256 MiB per entry, 1 GiB of payload
+  and 1000× expansion ([mobix-schema-spec.md](mobix-schema-spec.md),
+  [mobix-format.md](mobix-format.md)).
+- **The envelope**: `formatVersion`, `documentId` and `canvasMode` are required, an unknown format
+  version or canvas mode is refused, `pages` and `chunks` are exclusive with each other and with the
+  mode, a part naming an entry the archive lacks is refused, `canvas.json` may not disagree with the
+  manifest, and a JSON part may not nest past the depth cap
+  ([mobix-data-model.md](mobix-data-model.md)).
+- **Capabilities**: an identifier that does not parse, or that appears twice in one list, is a corrupt
+  declaration ([mobix-capabilities.md](mobix-capabilities.md)). A *well-formed* required capability
+  this reader does not implement is **reported, not refused**: the contract's outcome there is
+  refuse-write, and this tool never writes.
+- **Assets**: an entry under `assets/` must be named by the digest of its bytes
+  ([mobix-assets.md](mobix-assets.md)); `inspect` also refuses bytes that do not hash to that name.
+- **`minAppVersion`** is not a refusal: a higher floor means an older *app* may not save the file, and
+  a read-only inspection is exactly what this tool does.
+
+What it does **not** do: decode elements, render anything, verify geometry that is the sum of other
+fields, follow a reference from one element to another, or write a file. Those are the rows of
+[the conformance checklist](../spec/CONFORMANCE.md) that stay a full reader's job; the rows this
+tool's own tests decide are a subset, and the checklist says which.
+
+## Where it lives and how it is tested
+
+`mobix_cli/container.py` is the single boundary that touches `zipfile`; `jsonbytes.py` holds the
+depth-capped decoder; `views.py` builds the JSON objects and the human reports; `cli.py` is argparse
+and the exit codes. `pyproject.toml` makes it installable, and `README.md` is the quickstart.
+
+```sh
+python3 -m unittest discover tools/mobix-cli/tests
+```
+
+No network and no dependency outside the standard library. The suite reads the committed golden and
+hostile corpora under `mobix-core/src/test/resources/fixtures/`, plus archives it builds in a
+temporary directory so each envelope refusal has a sample of its own. It also runs
+`python3 -m mobix_cli` once from the package directory, because that is how the tool is started from
+a checkout.

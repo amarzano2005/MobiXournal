@@ -35,6 +35,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`mobix-data-model.md`](mobix-data-model.md) | the field tables of the envelope parts: types, requiredness, defaults, units | you need the exact field of the manifest, canvas, a page or a chunk |
 | [`mobix-element-fields.md`](mobix-element-fields.md) | the field tables of the nine v1 element families, and which `bounds` are facts | you need the exact field or default of an element, or must know whether its box is stored or derived |
 | [`mobix-streaming-api.md`](mobix-streaming-api.md) | the published `.mobix` contract a second shell opens, reads and writes with | you call `mobix-core` from outside the engine |
+| [`mobix-cli.md`](mobix-cli.md) | the independent command-line reader: `inspect`/`list`, the three exit codes, what it refuses | you inspect or script a `.mobix` outside the app, or change `tools/mobix-cli` |
 | [`mobix-elements.md`](mobix-elements.md) | the element schema's four rules and the geometry elements: stroke, text, image, LaTeX | you add or change a geometry element |
 | [`mobix-living-entities.md`](mobix-living-entities.md) | the living entities: table, plot, parametric shape, circuit, math block | you add or change a re-editable element |
 | [`data-path.md`](data-path.md) | opening and saving: the container verdict, the encoder, the in-memory model | you change how a document's bytes are read, written or staged |
