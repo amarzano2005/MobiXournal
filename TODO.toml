@@ -140,7 +140,7 @@ emulator_debug = false
 [[task]]
 id = "mobix-migration-atomic-publish"
 title = "Publish a written document by replacement, and never leave a truncated notebook"
-description = "One publish primitive both shells use, in `mobix-core` beside the encoder: write the bytes into a temp file in the destination's own folder, validate them by reopening (container opens, `formatVersion` parses, every part digest matches, capabilities are satisfiable), then replace the target in one step; on any failure the original stays untouched and the temp file is removed. The desktop already does exactly this (`DesktopSaves.stage` → `commit()` → `replace`), so the task is to lift that shape into the shared layer and make the Android path hand its finished bytes through it instead of `UriStaging.stageOut`'s truncate-and-copy: a SAF `OutputStream` cannot be replaced atomically by contract, so on Android the primitive must (a) verify the copy by reading it back where the provider allows, (b) keep the backup this scope's backup task writes, and (c) report \"the save may be incomplete\" instead of claiming success when it cannot verify. Tests: an injected failure after staging leaves the target byte-identical; a successful publish reopens the new bytes; a publish to a read-only folder fails before writing anything. The Android read-back path and the Windows lock-release path (`DesktopTab.saveBack`) are manual passes on those machines, stated as such."
+description = "One publish primitive both shells use, in `mobix-core` beside the encoder: write the bytes into a temp file in the destination's own folder, validate them by reopening (container opens, `formatVersion` parses, every part digest matches, capabilities are satisfiable), then replace the target in one step; on any failure the original stays untouched and the temp file is removed. The target may be any path a save names, including a `.pmobix` opened as a notebook: validation dispatches on the container's `mimetype`, never on the suffix, so a portable copy is checked as the `.mobix` it is. The desktop already does exactly this (`DesktopSaves.stage` → `commit()` → `replace`), so the task is to lift that shape into the shared layer and make the Android path hand its finished bytes through it instead of `UriStaging.stageOut`'s truncate-and-copy: a SAF `OutputStream` cannot be replaced atomically by contract, so on Android the primitive must (a) verify the copy by reading it back where the provider allows, (b) keep the backup this scope's backup task writes, and (c) report \"the save may be incomplete\" instead of claiming success when it cannot verify. Tests: an injected failure after staging leaves the target byte-identical; a successful publish reopens the new bytes; a publish to a read-only folder fails before writing anything. The Android read-back path and the Windows lock-release path (`DesktopTab.saveBack`) are manual passes on those machines, stated as such."
 status = "active"
 level = "task"
 category = "feature"
@@ -154,7 +154,7 @@ emulator_debug = false
 [[task]]
 id = "mobix-migration-backup-restore"
 title = "Keep a recoverable copy before a replace, and a way back"
-description = "Add the backup the atomic publish needs: before a replace, the current target is copied beside it under a stated name (`<name>.mobix.bak`, one per document), and the copy is kept until the next successful publish replaces it. Define the retention rule in the owning doc rather than in code comments, remove the backup only on explicit user action, and add a restore path: an action that puts the backup back through the same atomic publish, with the same validation, so a bad restore cannot overwrite a good file with a truncated one. Android owns a second case — the SAF provider copy that cannot be replaced atomically — where the backup is the only recovery, so it is written there unconditionally. Tests: a failed publish leaves the backup in place and the target untouched; a successful one leaves the backup of the previous bytes; a restore reopens the backup's content; a second publish replaces rather than accumulates backups."
+description = "Add the backup the atomic publish needs: before a replace, the current target is copied beside it under a stated name (`<target>.bak` — `notes.mobix.bak` for a notebook, `notes.pmobix.bak` for a portable copy, one per document; never the collision-prone `<name>.mobix.bak` for a `.pmobix` target), and the copy is kept until the next successful publish replaces it. Define the retention rule in the owning doc rather than in code comments, remove the backup only on explicit user action, and add a restore path: an action that puts the backup back through the same atomic publish, with the same validation, so a bad restore cannot overwrite a good file with a truncated one. Android owns a second case — the SAF provider copy that cannot be replaced atomically — where the backup is the only recovery, so it is written there unconditionally. The target is whatever path the save names, including a `.pmobix` opened as a notebook. Tests: a failed publish leaves the backup in place and the target untouched; a successful one leaves the backup of the previous bytes; a restore reopens the backup's content; a second publish replaces rather than accumulates backups."
 status = "active"
 level = "task"
 category = "feature"
@@ -162,6 +162,20 @@ urgency = "high"
 order = 550
 created = 2026-11-10
 tags = ["mobix", "migration"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "portable-copy-open-save-policy"
+title = "A portable copy is opened, so say what saving one does"
+description = "A .pmobix is a .mobix container under an export suffix, and it now opens on both shells (desktop DOCUMENT_OPEN_TYPES lists *.pmobix; AndroidManifest.xml registers its pathPatterns). Plain Save on it therefore writes a mobix container back into the hand-off file, while docs/mobix-assets.md says the copy is never a document to keep editing. Decide one policy and implement it on both shells: either open a portable copy read-only through the existing verdict/read-only band, or allow editing and make its save write a working .mobix (Save As proposes <name>.mobix) while refusing plain Save in place with a sentence that names the copy. Record the choice in docs/mobix-assets.md (owner) and in docs/data-path.md's save policy; implement in desktop DesktopSaves.formatOf/DesktopTab.saveBack and in the Android save path (SaveTarget/MainActivity). Tests: DesktopSavesTest proves the chosen behaviour and that a refused save leaves the .pmobix byte-identical; a SaveTarget JVM test for the proposed name; keep DesktopFilePickerTest's open row. The Android read-back and the Windows lock-release passes are manual and stated as such. Do not change the CLI: it must keep validating a .pmobix as a .mobix."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 555
+created = 2026-11-13
+tags = ["pmobix", "save"]
 rebuild = true
 emulator_debug = false
 
@@ -196,7 +210,7 @@ emulator_debug = false
 [[task]]
 id = "mobix-migration-docs"
 title = "Write the four operations down, and the conditions for formatVersion 2"
-description = "Own the policy in the pages that describe the save path: `docs/mobix-format.md` gets the four operations the codebase conflates today — format migration (schema, may bump `formatVersion`), writer upgrade (compression or a derived entry, no semantic change, no bump), compaction (explicit, conservative, never on save), external conversion (PDF/SVG/`.xopp`/JSON, never mutates the original) — with the criteria that genuinely require `formatVersion = 2` and the ones that never do. `docs/document-session.md` states that opening never migrates, what the publish/backup/restore sequence is, and what each platform guarantees: desktop replaces atomically, a SAF provider copy does not and is verified or reported. `docs/tools.md` names the desktop command and the backup file. Add `DocClaimsTest` lines for the sentences that were false before (\"opening never rewrites\", \"a save never leaves a truncated notebook\"). Run `DocsGuardTest` and `DocClaimsTest`."
+description = "Own the policy in the pages that describe the save path: `docs/mobix-format.md` gets the four operations the codebase conflates today — format migration (schema, may bump `formatVersion`), writer upgrade (compression or a derived entry, no semantic change, no bump), compaction (explicit, conservative, never on save), external conversion (PDF/SVG/`.xopp`/JSON, never mutates the original) — with the criteria that genuinely require `formatVersion = 2` and the ones that never do. It also says `.pmobix` is the portable profile (same container, extension only) and links `portable-copy-format-home` for what an opened copy saves as, instead of restating it. `docs/document-session.md` states that opening never migrates, what the publish/backup/restore sequence is, and what each platform guarantees: desktop replaces atomically, a SAF provider copy does not and is verified or reported; a backup of a `.pmobix` target is `<target>.bak`. `docs/tools.md` names the desktop command and the backup file. Add `DocClaimsTest` lines for the sentences that were false before (\"opening never rewrites\", \"a save never leaves a truncated notebook\"). Run `DocsGuardTest` and `DocClaimsTest`."
 status = "active"
 level = "task"
 category = "docs"
@@ -204,6 +218,20 @@ urgency = "high"
 order = 580
 created = 2026-11-10
 tags = ["mobix", "migration"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "portable-copy-format-home"
+title = "Give .pmobix a home in the format pages"
+description = "Document the portable profile where the format is owned. docs/mobix-format.md states that .pmobix is the portable profile of .mobix: same mimetype, schema and reader, a different extension only, with the portability promise and its best-effort limit, and that Save As still offers the two containers. docs/data-path.md says opening dispatches on the container's mimetype rather than the suffix and names the .pmobix alias; docs/guide-limitations.md gains the opening answer for both shells; docs/desktop-documents.md and docs/document-session.md link the save policy task rather than restating it. Link spec/README.md's reference-implementation section. Run DocsGuardTest and DocClaimsTest, and keep each sentence in one home."
+status = "active"
+level = "task"
+category = "docs"
+urgency = "normal"
+order = 585
+created = 2026-11-13
+tags = ["pmobix", "docs"]
 rebuild = false
 emulator_debug = false
 
