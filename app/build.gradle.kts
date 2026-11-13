@@ -18,8 +18,8 @@ android {
         // The tablet app's own line, at 2.0.0. The Windows window numbers itself separately
         // (desktop/build.gradle.kts, from 1.0.0): no version is derived from the other, and
         // `scripts/todo.sh versions` reads both.
-        versionCode = 15
-        versionName = "2.1.0"
+        versionCode = 16
+        versionName = "2.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

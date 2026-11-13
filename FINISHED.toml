@@ -17,7 +17,7 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
-latest_release = "2.1.0"
+latest_release = "2.2.0"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
@@ -33,6 +33,7 @@ level = "task"
 category = "feature"
 created = 2026-11-13
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["pmobix", "save"]
 design = "none: it reuses the existing Save As dialog and adds no element"
 
@@ -45,6 +46,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "migration"]
 design = "none: the change is a save-path guarantee, no new interface surface"
 
@@ -57,6 +59,7 @@ level = "task"
 category = "docs"
 created = 2026-11-13
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["pmobix", "docs"]
 design = "none: documentation only, no interface surface"
 
@@ -69,6 +72,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "migration"]
 design = "none: a pure core model with no interface surface"
 
@@ -81,6 +85,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "cli"]
 design = "none: documentation and a CLI's own README, with no interface surface"
 
@@ -93,6 +98,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "cli"]
 design = "none: a CI job and an offline checker with no user interface"
 
@@ -105,6 +111,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "cli"]
 design = "none: command-line writer with no on-screen interface or UI states"
 
@@ -117,6 +124,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "cli"]
 design = "none: command-line commands with no on-screen interface or UI states"
 
@@ -129,6 +137,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "cli"]
 design = "none: a command-line validator with no on-screen interface or UI states"
 
@@ -141,6 +150,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-13
+release = "2.2.0"
 tags = ["mobix", "cli"]
 design = "none: a command-line reader with no on-screen interface, no tokens and no UI states"
 
@@ -153,6 +163,7 @@ level = "task"
 category = "bug"
 created = 2026-11-12
 completed = 2026-11-12
+release = "2.2.0"
 tags = []
 design = "states: a drag has two answers on the window, free by default and constrained with Shift held, and one on the tablet, free, where the corner follows the pointer; parity: the two shells agree that no constraint is applied unless it was asked for, which is the bug this closed; docs: docs/function-plots.md and docs/mobix-living-entities.md say when the constraint applies in the same change; tests: LivingGripsTest holds the free corner and the Shift-held one"
 
@@ -165,6 +176,7 @@ level = "task"
 category = "feature"
 created = 2026-11-12
 completed = 2026-11-12
+release = "2.2.0"
 tags = []
 design = "copy: one row that reads Snap when, with Off, Automatic and On hold, and a subtitle that does not repeat the heading; parity: one enum names the three answers and one value reaches the sheet on both shells, so the tablet cannot offer a state the window's recogniser cannot hold; docs: docs/shape-perfection-engine.md and docs/drawing-tools.md state the row and the stored flags in the same change; tests: ShapeRecognitionSettingTest holds the mapping and the mutual exclusion, DesktopShapeRecognitionTest and DesktopDwellTest the window's side"
 
@@ -177,6 +189,7 @@ level = "task"
 category = "feature"
 created = 2026-11-12
 completed = 2026-11-12
+release = "2.2.0"
 tags = []
 design = "material: no new surface, a pin is a mark on the page's own overlay in both shells, drawn over the page and never as chrome; tokens: the window's marks and the caught pin are DesktopTheme.accent, the tablet's ink is handed in by the shell, and no literal was added; states: a pin has three answers, offered while a gesture that may join is in hand, caught and drawn larger while the hand is down, and absent when the page holds nothing to join; parity: both shells ask FigurePins and CircuitSnapping for the same matrix, which closes the bug where the window drew a selected part's targets and the tablet drew nothing; docs: docs/mobix-living-entities.md and docs/desktop-workstation.md state the matrix and the reach in the same change; tests: FigurePinsTest holds every family and the matrix, CircuitSnappingTest the reach, CircuitGestureTest and LivingGripsTest the window's answers"
 
@@ -189,6 +202,7 @@ level = "task"
 category = "feature"
 created = 2026-11-12
 completed = 2026-11-12
+release = "2.2.0"
 tags = []
 design = "material: floating surface on both shells, FloatingDialog (floating glass, rim as its whole edge, 20 dp) on the tablet and glassSurface + glassSpring + GlassPresence in the window, arriving and leaving on GlassMotion with the spring outside the fill; tokens: no literal added, the accent on the chip and the answers' marks and the muted ink on the notes; glyph: ChromeGlyph.EXPORT in the shared ChromeGlyphCatalogue, read by both adapters, not the floppy Save As wears; states: tablet answers are FormatOption radio rows inside Material's button states, window rows answer the pointer through hoverFill with no picked fill because an answer is a command, and the chip is disabled when read-only; copy: English sentence case, each answer saying what it writes, and Save As naming the file the picker opens with rather than showing an empty field; parity: same chip, glyph and three answers on both shells, only the list control differing by platform grammar; docs: docs/chrome.md, docs/mobix-assets.md and docs/desktop-workstation.md updated in the same change; tests: ChromeGlyphsTest holds the new mark, DesktopMenuTest counts Export As as one door, both unit suites green"
 
@@ -201,6 +215,7 @@ level = "task"
 category = "feature"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "portability"]
 design = "material: GlassActionButton pane on the tablet glass menu and MenuChip on the desktop glass panel; tokens: MaterialTheme.colorScheme.primary and DesktopTheme.accent only; glyph: ChromeGlyph.SAVE_AS from the catalogue; states: enabled while a document is open and not read-only, hover and press inherited from the shared components; copy: Portable copy on the tablet, Save portable copy on the desktop, English in both; parity: same place beside the page exports in both shells; docs: docs/mobix-assets.md and the README paragraph; tests: DesktopPortableCopyTest with the guard suites"
 
@@ -213,6 +228,7 @@ level = "task"
 category = "feature"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["android", "portability"]
 design = "material: GlassActionButton pane on the tablet glass menu and MenuChip on the desktop glass panel; tokens: MaterialTheme.colorScheme.primary and DesktopTheme.accent only; glyph: ChromeGlyph.SAVE_AS from the catalogue; states: enabled while a document is open and not read-only, hover and press inherited from the shared components; copy: Portable copy on the tablet, Save portable copy on the desktop, English in both; parity: same place beside the page exports in both shells; docs: docs/mobix-assets.md and the README paragraph; tests: DesktopPortableCopyTest with the guard suites"
 
@@ -225,6 +241,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "portability"]
 design = "none: a platform-free core engine with no interface surface of its own"
 
@@ -237,6 +254,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "portability"]
 design = "material: the existing status-band reading and its hover pill, no new material class; states: rest readable, hover raises contrast and shows the reference sentence, no press state because it is not a command; glyph: none added"
 
@@ -249,6 +267,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "portability"]
 design = "none: documentation and a guard-test claim, with no interface surface"
 
@@ -261,6 +280,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "portability"]
 design = "none: a documentation decision plus a JVM guard test, with no interface surface"
 
@@ -273,6 +293,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "portability"]
 design = "none: an off-line core validator with no interface surface"
 
@@ -285,6 +306,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "portability"]
 design = "none: a pure mobix-core audit with no interface surface at all"
 
@@ -297,6 +319,7 @@ level = "epic"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "compatibility", "p0"]
 design = "none: an epic closed on the evidence its children shipped, no screen, control or gesture surface touched"
 
@@ -309,6 +332,7 @@ level = "epic"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "open-format", "p0"]
 design = "none: an epic closed on the evidence its children shipped, no screen, control or gesture surface touched"
 
@@ -321,6 +345,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "schema", "evolution"]
 design = "none: a registry, its tests and one doc section, no screen, control or gesture surface touched"
 
@@ -333,6 +358,7 @@ level = "task"
 category = "docs"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "spec", "docs"]
 design = "none: a checklist paragraph, a guard test and a CI step, no screen, control or gesture surface touched"
 
@@ -345,6 +371,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "schema", "evolution"]
 design = "none: a codec list and its guard test, no screen, control or gesture surface touched"
 
@@ -357,6 +384,7 @@ level = "task"
 category = "feature"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "spec", "testing"]
 design = "none: a JVM test that runs a script, plus one doc sentence, no screen, control or gesture surface touched"
 
@@ -369,6 +397,7 @@ level = "task"
 category = "feature"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "spec", "fixtures"]
 design = "none: a fixture and its tests, no screen, control or gesture surface touched"
 
@@ -381,6 +410,7 @@ level = "task"
 category = "feature"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "spec", "interop"]
 design = "none: a script and one doc entry, no screen, control or gesture surface touched"
 
@@ -393,6 +423,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "schema", "evolution"]
 design = "none: an audit of the family-gate and migration seams, plus the three tasks it produced"
 
@@ -405,6 +436,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-11
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["mobix", "spec", "interop"]
 design = "none: an audit of what the independent side can and cannot decide, plus the three tasks it produced"
 
@@ -417,6 +449,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "variables", "document", "p2"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -429,6 +462,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "study", "notes", "p2"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -441,6 +475,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "text", "math", "p2"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -453,6 +488,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "math", "matrix", "p2"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -465,6 +501,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "data", "csv", "statistics", "p2"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -477,6 +514,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "geometry", "constraints", "p2"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -489,6 +527,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "geometry", "units", "p2"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -501,6 +540,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "math", "p1"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -513,6 +553,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "circuit", "schema", "p1"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -525,6 +566,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "code", "schema", "p1"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -537,6 +579,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "export", "open-format", "p1"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -549,6 +592,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "plot", "ui", "p1"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -561,6 +605,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "plot", "polar", "p1"]
 design = "none: a scope produces tasks and no code, so it has no interface surface of its own."
 
@@ -573,6 +618,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "plot", "compatibility", "p0"]
 design = "none: verification of an existing path, no decision to record"
 
@@ -585,6 +631,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-11
+release = "2.2.0"
 tags = ["stem", "tables", "formulas", "p1"]
 design = "none: one compatible extension of the table element decided from the codec's own rules"
 
@@ -597,6 +644,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["stem", "dependency", "variables", "p1"]
 design = "none: a binding model and a dependency-graph contract decided before any variable code exists"
 
@@ -609,6 +657,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["stem", "units", "math", "p1"]
 design = "none: a published table and an error taxonomy decided before any quantity code exists"
 
@@ -621,6 +670,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["stem", "calculator", "format", "p1"]
 design = "none: a model decision for a feature that does not exist yet, broken into children"
 
@@ -633,6 +683,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["stem", "pdf", "unicode", "p1"]
 design = "none: an audit and a font decision for the PDF export, decided before any painter changes"
 
@@ -645,6 +696,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "zip", "performance", "p2"]
 design = "none: a boundary analysis of the archive with the limits already enforced in code"
 
@@ -657,6 +709,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "performance", "p2"]
 design = "none: a go-no-go on a derived index decided from a measured profile"
 
@@ -669,6 +722,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "performance", "p1"]
 design = "none: a measured decision about the container compression policy with no user-facing surface"
 
@@ -681,6 +735,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "compatibility", "p1"]
 design = "none: a policy audit of the save and migration path plus the tasks it produced"
 
@@ -693,6 +748,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "open-format", "p1"]
 design = "none: a stack and interface decision plus the tasks it produced"
 
@@ -705,6 +761,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "portability", "p1"]
 design = "none: an audit of what the container can reference plus the tasks it produced"
 
@@ -717,6 +774,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["stem", "math", "p0"]
 design = "none: a numerical audit with its characterization tests and the doc that describes them"
 
@@ -729,6 +787,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "performance", "p0"]
 design = "none: a test-side measurement and the numbers it publishes, with no user-facing surface."
 
@@ -741,6 +800,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: documentation only, no user-facing surface changed"
 
@@ -753,6 +813,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: machine-readable specification plus a test-only guard, no user-facing surface changed"
 
@@ -765,6 +826,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: licence, notice and documentation only, no user-facing surface changed"
 
@@ -777,6 +839,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: documentation only, no user-facing surface changed"
 
@@ -789,6 +852,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: documentation plus a reader-side test, no user-facing surface changed"
 
@@ -801,6 +865,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "versioning"]
 design = "material: the window's status-band reading with its hover pill and the tablet's consent card; states: full-edit says nothing, preserved reads one band line and stays editable, read-only and refuse-write take no ink and make Save and Save As unavailable while the pages stay readable"
 
@@ -813,6 +878,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "versioning"]
 design = "none: the union and the paste decision are document rules with no control or screen of their own, and the notice is the next task's"
 
@@ -825,6 +891,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "versioning"]
 design = "none: the gate is a decision carried by the opened document, and no screen changed in this task"
 
@@ -837,6 +904,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: normative tables, defaults and checklist rows for the file format, with no screen, control or gesture surface touched"
 
@@ -849,6 +917,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: normative field tables and their checklist rows, with no screen, control or gesture surface touched"
 
@@ -861,6 +930,7 @@ level = "task"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: normative prose and container tests, with no screen, control or gesture surface touched"
 
@@ -873,6 +943,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: a corpus and its test inside mobix-core's read path, with no screen, control or gesture surface touched"
 
@@ -885,6 +956,7 @@ level = "task"
 category = "bug"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: digest verification inside mobix-core's read paths, with no screen, control or gesture surface touched"
 
@@ -897,6 +969,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: the container and paged reader's allocation policy, with no screen, control or gesture surface touched"
 
@@ -909,6 +982,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: the container reader's error contract and the troubleshooting page, with no screen, control or gesture surface touched"
 
@@ -921,6 +995,7 @@ level = "task"
 category = "bug"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: archive entry validation inside mobix-core's container reader, with no screen, control or gesture surface touched"
 
@@ -933,6 +1008,7 @@ level = "task"
 category = "bug"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = []
 design = "none: mobix-core's JSON parser and the document boundaries that call it, with no screen, control or gesture surface touched"
 
@@ -945,6 +1021,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "security", "p0"]
 design = "none: audit, owner-doc section and task breakdown only, with no screen, control or gesture surface touched"
 
@@ -957,6 +1034,7 @@ level = "scope"
 category = "docs"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "open-format", "p0"]
 design = "none: specification, audit and task breakdown only, with no screen, control or gesture surface touched"
 
@@ -969,6 +1047,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "versioning"]
 design = "none: fixtures, generator and core tests only, with no screen, control or gesture surface touched"
 
@@ -981,6 +1060,7 @@ level = "task"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "versioning"]
 design = "none: mobix-core value type and manifest codec only, with no screen, control or gesture surface touched"
 
@@ -993,6 +1073,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "compatibility"]
 design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
 
@@ -1005,6 +1086,7 @@ level = "task"
 category = "bug"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "compatibility"]
 design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
 
@@ -1017,6 +1099,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "compatibility"]
 design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
 
@@ -1029,6 +1112,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "compatibility"]
 design = "none: mobix-core model, codecs and tests only, with no screen, control or gesture surface touched"
 
@@ -1041,6 +1125,7 @@ level = "task"
 category = "test"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "compatibility", "p0"]
 design = "none: this task adds fixtures, tests and documentation and has no interface surface"
 
@@ -1053,6 +1138,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "versioning", "p0"]
 design = "none: a scope that writes a contract and child tasks, with no interface surface"
 
@@ -1065,6 +1151,7 @@ level = "scope"
 category = "refactor"
 created = 2026-11-10
 completed = 2026-11-10
+release = "2.2.0"
 tags = ["mobix", "compatibility", "p0"]
 design = "none: a scope that writes a decision and child tasks, with no interface surface"
 

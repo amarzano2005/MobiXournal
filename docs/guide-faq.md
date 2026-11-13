@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: twelve answers and a pointer each. The internal map is [architecture.md](architecture.md)._
 
-This page is true for Android **2.1.0** and desktop **1.1.0**. No answer here is the only home of its
+This page is true for Android **2.2.0** and desktop **1.2.0**. No answer here is the only home of its
 fact; each one points at the page that owns it.
 
 ## Can I open the notebook in Xournal++ after saving here?

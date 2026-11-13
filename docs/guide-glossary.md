@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: the vocabulary, with the page that owns each term. The internal map is [architecture.md](architecture.md)._
 
-This page is true for Android **2.1.0** and desktop **1.1.0**. A term's owner is where its behaviour is
+This page is true for Android **2.2.0** and desktop **1.2.0**. A term's owner is where its behaviour is
 described; nothing here is more than a definition.
 
 ## Document and formats

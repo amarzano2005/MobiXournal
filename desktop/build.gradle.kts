@@ -68,7 +68,7 @@ compose.desktop {
             // other. It must stay numeric `X.Y.Z` — Compose writes it into the MSI's version resource
             // and Windows reads that as a number, so a suffix fails at packaging, not at review.
             // `scripts/todo.sh versions` prints and checks both lines.
-            packageVersion = "1.1.0"
+            packageVersion = "1.2.0"
             // The app is **named** MobiXournal everywhere Windows asks for a name, and this line is one of
             // those places: jpackage writes it into the launcher's file description, which is what Task
             // Manager, the firewall prompt and Explorer's Details column show as the program — so a sentence
