@@ -152,9 +152,17 @@ document's folder for a background, the audio store for a recording — and leav
 file. The tablet's copy is written to a cache file and staged onto the picked URI afterwards, so a failed
 write leaves nothing half-made in the user's folder.
 
+Because the container is a `.mobix`, the suffix is an alias at the door rather than a third format: a
+portable copy opens with the same readers as the notebook it came from — the desktop Open row lists
+`*.pmobix`, and Android's extension fallback registers the suffix for a tap — because the read dispatch
+is on the archive's `mimetype`, never on the name ([data-path.md](data-path.md)). **Save As** still
+offers only the two containers a document lives in.
+
 ## Where the rule is checked
 
 `MobixContainerTest` holds the missing-payload case at page level: a page whose `image` names an entry the
 archive does not carry comes back as the container's malformed-document error rather than as a blank
 element. Fixture 03 is the positive case, and `MobixV1FixturesTest` checks that its names are the hashes
-of their own bytes and that they survive a save.
+of their own bytes and that they survive a save. `DesktopFilePickerTest` keeps `*.pmobix` in the window's
+open row and `ManifestIntentFilterTest` keeps its Android registration, so the copy can always be opened
+again.

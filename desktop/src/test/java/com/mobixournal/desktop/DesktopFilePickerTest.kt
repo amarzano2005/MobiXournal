@@ -22,8 +22,8 @@ import org.junit.Test
  *
  * **The type rows** are the window's own facts and they are pure: the save box lists the three containers
  * in the order the enum names them, a row maps back to exactly the container it writes, and the open row
- * accepts both readable documents — the filter `java.awt.FileDialog` ignored on Windows and the native box
- * does not.
+ * accepts both readable documents plus a portable copy — the filter `java.awt.FileDialog` ignored on
+ * Windows and the native box does not.
  *
  * **The binding** is probed for real ([DesktopFilePickerWindows.probe]): the shell's dialog is created,
  * given the type rows, read back and released without ever being shown. That is what a wrong vtable slot
@@ -60,6 +60,7 @@ class DesktopFilePickerTest {
         val row = DOCUMENT_OPEN_TYPES.single()
         assertTrue(row.matches("notes.mobix"))
         assertTrue("a suffix typed in another case is the same file", row.matches("notes.XOPP"))
+        assertTrue("a portable copy is a .mobix container with another suffix", row.matches("notes.pmobix"))
         assertTrue("Open also accepts a PDF", row.matches("notes.pdf"))
         assertFalse(row.matches("notes.txt"))
         assertEquals("the shell wants a bare suffix as its default extension", "mobix", row.defaultExtension)
@@ -72,7 +73,7 @@ class DesktopFilePickerTest {
         assertEquals(listOf("*.mobix", "*.xopp", "*.xopp"), DOCUMENT_SAVE_TYPES.map { filterOf(it.extensions.single()) })
         assertEquals(
             "three patterns, one row",
-            listOf("*.mobix", "*.xopp", "*.pdf"),
+            listOf("*.mobix", "*.pmobix", "*.xopp", "*.pdf"),
             DOCUMENT_OPEN_TYPES.single().extensions.map(::filterOf),
         )
     }

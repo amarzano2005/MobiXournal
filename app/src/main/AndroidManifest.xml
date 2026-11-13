@@ -88,6 +88,11 @@
                 <data android:pathPattern=".*\\.mobix" />
                 <data android:pathPattern=".*\\..*\\.mobix" />
                 <data android:pathPattern=".*\\..*\\..*\\.mobix" />
+                <!-- The portable copy's own suffix: the bytes are a .mobix container, so the tap
+                     must land here too (docs/mobix-assets.md owns why the extension differs). -->
+                <data android:pathPattern=".*\\.pmobix" />
+                <data android:pathPattern=".*\\..*\\.pmobix" />
+                <data android:pathPattern=".*\\..*\\..*\\.pmobix" />
             </intent-filter>
 
             <!-- Offer the app as a PDF handler: open/annotate a PDF handed over by a file

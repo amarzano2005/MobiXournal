@@ -45,6 +45,19 @@ class ManifestIntentFilterTest {
         )
     }
 
+    /**
+     * A portable copy is a `.mobix` container under its own suffix, so a tap on one has to reach the
+     * app too — otherwise the export it just wrote is a file it cannot be handed back
+     * (`docs/mobix-assets.md`).
+     */
+    @Test
+    fun aPortableCopyIsRegisteredUnderItsOwnExtension() {
+        assertTrue(
+            "a .pmobix file could not be tapped open — add its pathPattern in AndroidManifest.xml",
+            declaresExtension(manifestText(), "pmobix"),
+        )
+    }
+
     /** A registered type has to be the one the app actually writes, not merely a string that looks like it. */
     @Test
     fun theRegisteredTypesAreTheFormatsOwnTypes() {

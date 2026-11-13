@@ -33,15 +33,22 @@ internal val DOCUMENT_SAVE_TYPES: List<PickerType> =
     DesktopNewDocumentFormat.entries.map { PickerType(it.label, listOf(it.extension)) }
 
 /**
- * One row for every file *Open* accepts: both native containers and a PDF (which opens as a new tab after
- * asking which pages to bring).
+ * One row for every file *Open* accepts: both native containers, a portable copy (a `.mobix` container
+ * under its export suffix) and a PDF (which opens as a new tab after asking which pages to bring).
  *
  * `java.awt.FileDialog` ignores its filter on Windows, so the window could only ever test the suffix
- * itself; the shell's box filters for real, and one row covering all three keeps `.xopp`, `.mobix` and `.pdf`
- * visible together.
+ * itself; the shell's box filters for real, and one row covering all four keeps `.xopp`, `.mobix`,
+ * `.pmobix` and `.pdf` visible together. The suffix only decides what the box lists — the read dispatch
+ * is on the archive's own `mimetype`, so a portable copy opens exactly like the notebook it was made
+ * from (`docs/mobix-assets.md`).
  */
 internal val DOCUMENT_OPEN_TYPES: List<PickerType> =
-    listOf(PickerType("MobiXournal, Xournal++ and PDF (*.mobix, *.xopp, *.pdf)", listOf(".mobix", ".xopp", ".pdf")))
+    listOf(
+        PickerType(
+            "MobiXournal, Xournal++ and PDF (*.mobix, *.pmobix, *.xopp, *.pdf)",
+            listOf(".mobix", ".pmobix", ".xopp", ".pdf"),
+        ),
+    )
 
 /** A PDF, for the import and for the export that writes one. */
 internal val PDF_TYPES: List<PickerType> = listOf(PickerType("PDF document (*.pdf)", listOf(".pdf")))
