@@ -1452,8 +1452,10 @@ private fun DrawingSurfaceView.applyLiveStyle(ui: EditorUiState) {
 
 /**
  * Binds the surface's state callbacks to the pane state holder.
+ *
+ * [onSelected] answers a selection appearing — an insertion, in practice (`EditorUiState.backToSelection`).
  */
-private fun DrawingSurfaceView.bindTo(state: PaneState) {
+private fun DrawingSurfaceView.bindTo(state: PaneState, onSelected: () -> Unit) {
     onLayersChanged = {
         state.layers = visibleLayers()
         state.backgroundStyle = visiblePageBackgroundStyle()
@@ -1475,7 +1477,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
         state.pageSize = visiblePageSize()
     }
     onScrollChanged = { y, total, vp, x -> state.scrollY = y; state.contentHeight = total; state.viewportHeight = vp; state.scrollX = x }
-    onSelectionChanged = { s -> state.hasSelection = s }
+    onSelectionChanged = { s -> state.hasSelection = s; if (s) onSelected() }
     onSelectionRectChanged = { r -> state.selectionRect = r }
     onTextSelectionChanged = { s -> state.hasTextSelection = s }
     onPdfOutlineChanged = { outline -> state.outline = outline }
@@ -1636,7 +1638,7 @@ fun EditorPaneView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {
                         it.applyInitialStyle(ui, settings)
-                        it.bindTo(state)
+                        it.bindTo(state) { ui.backToSelection(it, { latestSettings.value }, onSettingsChange) }
                         it.bindEditorActions(
                             ui, index, onActivePane, onPickImage,
                             { latestSettings.value }, onSettingsChange,

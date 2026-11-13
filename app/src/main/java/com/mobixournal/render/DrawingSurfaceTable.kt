@@ -34,7 +34,10 @@ internal fun DrawingSurfaceView.commitTableInsertion() {
             borderWidth = draft.widthPt,
         )
     }
-    ElementEdits.addElement(doc, ink.currentPage, table) { resolvedActiveLayer(it) }
-        ?.let { commitElementEdit(it) }
+    val written = ElementEdits.addElement(doc, ink.currentPage, table) { resolvedActiveLayer(it) }
+    if (written != null) {
+        commitElementEdit(written)
+        selectInsertedElement(ink.currentPage)
+    }
     render()
 }

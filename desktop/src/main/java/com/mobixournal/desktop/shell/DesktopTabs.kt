@@ -112,6 +112,16 @@ class DesktopTab(
     var magnetTargets: List<CircuitSnapping.PinTarget> by mutableStateOf(emptyList())
 
     /**
+     * What the shell does when a **top-bar element has just been inserted** — null until the workspace
+     * wires it, which is why a bare canvas test sees no answer.
+     *
+     * The commit is the only place that knows an element landed: a drag shorter than
+     * [MIN_SHAPE_DRAG_PT] writes nothing and must not read as an insertion, so the shell cannot infer one
+     * from the selection appearing. Not snapshot state — it is a callback, not something drawn.
+     */
+    var onElementInserted: (() -> Unit)? = null
+
+    /**
      * The **drawing guide** standing on this tab's page, or null when none is.
      *
      * View state, like the selection: a guide is an input aid the tablet has never written to a document

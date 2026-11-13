@@ -11,6 +11,7 @@ import com.mobixournal.desktop.ink.PressureFeel
 import com.mobixournal.desktop.ink.activeTool
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.ink.pagePointOf
+import com.mobixournal.desktop.ink.shapeStroke
 import com.mobixournal.desktop.ink.strokeOf
 import com.mobixournal.desktop.ink.warmInk
 import com.mobixournal.desktop.io.DesktopAudioSession
@@ -31,9 +32,13 @@ import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.ShapeRecognition
 import com.mobixournal.render.InkPointerRouter
+import com.mobixournal.render.ElementBounds
 import com.mobixournal.render.PageEraser
+import com.mobixournal.render.PageSelection
 import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PointerKind
+import com.mobixournal.render.SelectionOps
+import com.mobixournal.render.rectRegion
 import com.mobixournal.render.RecognisedFigure
 import com.mobixournal.render.ShapeDwell
 import com.mobixournal.render.ShapeRecognizer
@@ -504,4 +509,40 @@ internal class PageInkGesture(
         }
         onEdited(index)
     }
+}
+
+/**
+ * One shape's commit: an ordinary stroke on the page's active layer, one undo step — and the figure is left
+ * **selected**.
+ *
+ * The slot that drew it is gone on the lift, and the marks that show where the figure can join go with it
+ * (`FigurePins.selectionMarks`): the figure kept its pins, the sheet just stopped saying so, which reads as a
+ * figure with no pins. The selection is what keeps them on screen — and it is also what lets the figure be
+ * dragged onto the pin it marks, since a selection is what the magnet moves. Inserted living elements already
+ * land selected (`LivingSlots`).
+ *
+ * The commit is also where an **insertion** is announced ([DesktopTab.onElementInserted]), because it is the
+ * only place that knows the element really landed: a drag shorter than [MIN_SHAPE_DRAG_PT] writes nothing.
+ *
+ * Here rather than beside the drag that calls it: `PageCanvasInput` is at its line budget, and committing a
+ * stroke belongs with the other writes of this file.
+ */
+internal fun commitShape(
+    points: List<StrokePoint>,
+    tab: DesktopTab,
+    ink: DesktopInk,
+    onEdited: (Int) -> Unit,
+) {
+    val stroke = shapeStroke(points, ink.colour, ink.width, ink.lineStyle) ?: return
+    val index = tab.page
+    val page = runCatching { tab.document.page(index) }.getOrNull() ?: return
+    val (grown, refs) = SelectionOps.addToLayerOn(page, listOf(stroke), tab.inkLayer(page))
+    if (refs.isEmpty()) return
+    val before = tab.document.snapshot()
+    if (tab.document.editPage(index) { grown } == null) return
+    tab.record(before)
+    val bounds = ElementBounds.of(stroke)
+    tab.selection = PageSelection(rectRegion(bounds.left, bounds.top, bounds.right, bounds.bottom), refs)
+    tab.onElementInserted?.invoke()
+    onEdited(index)
 }

@@ -527,6 +527,23 @@ internal fun DrawingSurfaceView.appendFigures(pageIndex: Int, strokes: List<Stro
     onSelectionChanged?.invoke(true)
 }
 
+/**
+ * Select the element an insertion has just appended to page [pageIndex]'s active layer.
+ *
+ * Every top-bar element lands **selected**, the way a figure's stroke already did and the window's own
+ * placements do (`placeLivingElement`): the toolbar's element actions can act on what was just placed, and
+ * the editor reads the selection appearing to hand the canvas back to selection (`toolAfterInsertion`) —
+ * with the figure tool still in hand the next drag would draw a second element over the first.
+ */
+internal fun DrawingSurfaceView.selectInsertedElement(pageIndex: Int) {
+    val page = pageAt(pageIndex) ?: return
+    val layer = resolvedActiveLayer(page)
+    val count = page.layers.getOrNull(layer)?.elements?.size ?: return
+    if (count == 0) return
+    selection = ActiveSelection(pageIndex, setOf(ElementRef(layer, count - 1)))
+    onSelectionChanged?.invoke(true)
+}
+
 /** [page] with [stroke] appended to its active (or top) layer — the one commit shape ink has. */
 internal fun DrawingSurfaceView.withStroke(page: Page, stroke: Stroke): Page {
     val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()

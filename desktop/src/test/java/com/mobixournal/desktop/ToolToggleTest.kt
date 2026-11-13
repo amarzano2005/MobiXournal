@@ -7,6 +7,7 @@ import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.handToSelectionAfterInsertion
 import com.mobixournal.desktop.tools.DesktopTool
 
 import java.io.File
@@ -98,6 +99,23 @@ class ToolToggleTest {
         DesktopSettings(file).also { it.pickedTool = "SPLINES_THAT_NEVER_EXISTED" }
 
         assertEquals(DesktopTool.PEN, state(file).tools.current)
+    }
+
+    /**
+     * An inserted element hands the page to the selection, and the pen does not: a freehand stroke the
+     * recogniser turns into a figure is writing, and the tool must not move under the writer's hand.
+     */
+    @Test
+    fun `an inserted element hands the page to the selection and writing does not`() {
+        val shell = state(file("insert.properties"))
+
+        shell.selectTool(DesktopTool.RECTANGLE)
+        shell.handToSelectionAfterInsertion()
+        assertEquals("the figure slot hands the page over", DesktopTool.MARQUEE, shell.tools.current)
+
+        shell.selectTool(DesktopTool.PEN)
+        shell.handToSelectionAfterInsertion()
+        assertEquals("writing leaves the pen in hand", DesktopTool.PEN, shell.tools.current)
     }
 
     @Test

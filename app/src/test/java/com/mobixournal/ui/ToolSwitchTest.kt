@@ -108,6 +108,24 @@ class ToolSwitchTest {
     }
 
     @Test
+    fun `every figure tool hands the canvas back to selection once its element has landed`() {
+        for (tool in SHAPE_TOOLS) {
+            assertEquals("$tool inserted an element", EditorTool.SELECT, toolAfterInsertion(tool))
+        }
+    }
+
+    @Test
+    fun `writing is not an insertion, so the tool stays in hand`() {
+        // A stroke the recogniser turns into a figure is the writer's own gesture: the tool must not move
+        // under the hand, and neither must the erasers or the selection itself.
+        assertEquals(null, toolAfterInsertion(EditorTool.PEN))
+        assertEquals(null, toolAfterInsertion(EditorTool.HIGHLIGHTER))
+        assertEquals(null, toolAfterInsertion(EditorTool.ERASER))
+        assertEquals(null, toolAfterInsertion(EditorTool.SELECT))
+        assertEquals(null, toolAfterInsertion(EditorTool.TEXT))
+    }
+
+    @Test
     fun `width changes land in the live tool's own slot`() {
         var settings = AppSettings()
 

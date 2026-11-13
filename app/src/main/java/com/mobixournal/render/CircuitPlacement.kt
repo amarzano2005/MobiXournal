@@ -23,7 +23,10 @@ internal fun DrawingSurfaceView.commitCircuitInsertion(kind: ShapeKind) {
         strokeColor = strokeColor(),
         strokeWidth = draft.widthPt,
     ) ?: return
-    ElementEdits.addElement(doc, ink.currentPage, circuit) { resolvedActiveLayer(it) }
-        ?.let { commitElementEdit(it) }
+    val written = ElementEdits.addElement(doc, ink.currentPage, circuit) { resolvedActiveLayer(it) }
+    if (written != null) {
+        commitElementEdit(written)
+        selectInsertedElement(ink.currentPage)
+    }
     render()
 }

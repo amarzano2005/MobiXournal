@@ -1,6 +1,8 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.shapeKind
 import com.mobixournal.desktop.sheet.livingElementFor
+import com.mobixournal.desktop.sheet.livingSlotOf
 import com.mobixournal.desktop.sheet.placeLivingElement
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.PendingPlacement
@@ -41,6 +43,21 @@ fun DesktopShellState.placeOrAsk(tab: DesktopTab, slot: LivingSlot, bounds: Boun
 /** Pick the selection tool, so the element just placed can be moved with the next press. */
 internal fun DesktopShellState.handToSelection() {
     selectTool(DesktopTool.MARQUEE)
+}
+
+/**
+ * What an element **inserted from the strip** does to the tool in hand (`DesktopTab.onElementInserted`).
+ *
+ * A figure or a living slot hands the page to the selection, exactly as a placement does ([handToSelection]):
+ * what was inserted is already the selection, so a tool still armed to place another one would make the very
+ * next drag draw a second figure over the first instead of moving the one just made.
+ *
+ * Every other tool keeps its place — the pen above all: a freehand stroke the recogniser turns into a figure
+ * is writing, and the tool must not move under the writer's hand.
+ */
+internal fun DesktopShellState.handToSelectionAfterInsertion() {
+    val current = tools.current
+    if (current.shapeKind() != null || livingSlotOf(current) != null) handToSelection()
 }
 
 /** The question's answer: build the element from it and write it as **one** edit and one undo step. */

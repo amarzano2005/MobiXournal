@@ -223,6 +223,32 @@ class DesktopSelectionPinsTest {
         }
     }
 
+    /**
+     * An insertion is announced **once**, and only when an element really landed: the workspace reads this
+     * to hand the page back to selection (`DesktopTab.onElementInserted`, `toolAfterInsertion` on the
+     * tablet). A click is shorter than the figure's minimum drag, writes nothing, and must not read as one.
+     */
+    @Test
+    fun `a figure drag reports the insertion and a click does not`() {
+        val tab = tab(withRectangle = false)
+        var inserted = 0
+        tab.onElementInserted = { inserted++ }
+        val scene = scene(tab, DesktopTool.RECTANGLE)
+        try {
+            pointer(scene, PointerEventType.Press, 120f, 500f, 1_000L)
+            pointer(scene, PointerEventType.Release, 121f, 501f, 1_016L, pressed = false)
+            assertEquals("a click draws no figure, so it reports nothing", 0, inserted)
+
+            pointer(scene, PointerEventType.Press, 100f, 250f, 2_000L)
+            pointer(scene, PointerEventType.Move, 200f, 320f, 2_016L)
+            pointer(scene, PointerEventType.Release, 200f, 320f, 2_032L, pressed = false)
+            assertEquals("the figure landed once", 1, inserted)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
     private fun pointer(
         scene: ImageComposeScene,
         type: PointerEventType,
