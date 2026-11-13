@@ -110,10 +110,15 @@ if [ "$RELEASE_SIGNING" = "1" ]; then
     "$SIGNER" sign --ks "$SIGNING_FILE" --ks-pass env:MOBIX_ANDROID_STORE_PASSWORD \
         --ks-key-alias "$MOBIX_ANDROID_KEY_ALIAS" --key-pass env:MOBIX_ANDROID_KEY_PASSWORD \
         --out "$SIGNED" "$ALIGNED"
-    actual=$("$SIGNER" verify --print-certs "$SIGNED" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+    # The digest line is read by pattern rather than by a pinned sentence: `apksigner` prints a signer
+    # number and its own spacing, and a build-tools release that rewords the line must not be mistaken for
+    # a certificate that changed.
+    certs=$("$SIGNER" verify --print-certs "$SIGNED") || { rm -f "$SIGNED"; die "apksigner could not verify the signed APK"; }
+    actual=$(printf '%s\n' "$certs" | sed -n 's/^.*SHA-256 digest:[[:space:]]*//p' | head -1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+    [ -n "$actual" ] || { rm -f "$SIGNED"; die "apksigner printed no certificate digest, so the identity cannot be checked"; }
     if [ "$actual" != "$expected" ]; then
         rm -f "$SIGNED"
-        die "the APK certificate does not match MOBIX_ANDROID_CERT_SHA256"
+        die "the APK certificate is $actual, which is not MOBIX_ANDROID_CERT_SHA256"
     fi
 else
     "$SIGNER" sign --ks "$KEYSTORE" --ks-pass pass:android --ks-key-alias androiddebugkey \
