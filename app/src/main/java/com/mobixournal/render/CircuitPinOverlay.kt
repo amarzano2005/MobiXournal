@@ -53,10 +53,16 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     val drawing = ink.current != null || ink.currentStrokes != null
     val drawingKind = if (drawing) shapeKind else null
     if (drawingKind != null) {
-        if (CircuitElementFactory.isConnectorKind(drawingKind)) drawTargetPins(canvas, drawingKind)
+        val page = pageAt(ink.currentPage)
+        if (CircuitElementFactory.isConnectorKind(drawingKind)) {
+            drawTargetPins(canvas, drawingKind)
+        } else if (page != null) {
+            // A **figure** being laid down shows both halves of the join: the wires' ends and arrows' tips it
+            // could attach to (`FigurePins.joinedBy`), under its own pins, so the pairing is made in flight.
+            drawPinTargets(canvas, ink.currentPage, FigurePins.joinedBy(page, drawingKind))
+        }
         // The inserted object's own pins are drawn only when the page holds something it could join
         // (`FigurePins.hasCompany`): on a page with nothing compatible they are dots on empty paper.
-        val page = pageAt(ink.currentPage)
         if (page != null && FigurePins.hasCompany(page, drawingKind)) drawPendingPins(canvas, drawingKind)
         return
     }
@@ -80,9 +86,24 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
         val (x, y) = at(px, py)
         canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.handle)
     }
-    // And what it may join, as the sheet marks a target: a wire's end is a square, every other pin a dot.
-    for (target in marks.compatible) {
-        val (x, y) = at(target.absX, target.absY)
+    // And what it may join — the other end of the pairing.
+    drawPinTargets(canvas, sel.pageIndex, marks.compatible)
+}
+
+/**
+ * Pins on **one page**, drawn the way the sheet marks a target: a wire's end is a square, every other pin a
+ * dot. One place, because a gesture's marks and a selection's must look identical.
+ */
+private fun DrawingSurfaceView.drawPinTargets(
+    canvas: Canvas,
+    pageIndex: Int,
+    targets: List<CircuitSnapping.PinTarget>,
+) {
+    if (targets.isEmpty()) return
+    val box = layout.boxes.getOrNull(pageIndex) ?: return
+    for (target in targets) {
+        val x = (target.absX * box.scale + box.leftPx - scrollX).toFloat()
+        val y = (target.absY * box.scale + box.topPx - scrollY).toFloat()
         if (target.isWireEnd) {
             canvas.drawRect(x - WIRE_END_PX, y - WIRE_END_PX, x + WIRE_END_PX, y + WIRE_END_PX, chrome.handleArm)
         } else {

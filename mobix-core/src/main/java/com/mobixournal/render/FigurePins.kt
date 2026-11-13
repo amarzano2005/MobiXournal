@@ -222,7 +222,7 @@ object FigurePins {
     ): SelectionMarks {
         val family = element?.let(::pinFamilyOf) ?: return SelectionMarks(emptyList(), emptyList())
         val compatible = if (family == PinFamily.FIGURE) {
-            joiningPins(page, element, exclude)
+            joiningPins(page, family, exclude)
         } else {
             targets(page, family, exclude = exclude)
         }
@@ -237,15 +237,26 @@ object FigurePins {
     )
 
     /**
-     * The pins of the elements that could join [element] — the mirror of [aimsAt], for the one family that is
+     * The pins of the elements that could join a **figure being drawn** — the in-flight half of
+     * [selectionMarks], so the page's wires and arrows are visible while the figure is still under the stylus
+     * and the pairing can be made before the lift.
+     */
+    fun joinedBy(
+        page: Page,
+        kind: ShapeKind,
+        exclude: Set<ElementRef> = emptySet(),
+    ): List<PinTarget> = familyOf(kind)?.let { joiningPins(page, it, exclude) }.orEmpty()
+
+    /**
+     * The pins of the elements that could join a family — the mirror of [aimsAt], for the one family that is
      * only ever joined: a drawn figure. Empty for a connector, whose marks are its own targets.
      */
     private fun joiningPins(
         page: Page,
-        element: Element,
+        family: PinFamily,
         exclude: Set<ElementRef>,
     ): List<PinTarget> {
-        if (pinFamilyOf(element) != PinFamily.FIGURE) return emptyList()
+        if (family != PinFamily.FIGURE) return emptyList()
         val actors = PinFamily.entries.filter { aimsAt(it, PinFamily.FIGURE) }.toSet()
         val out = mutableListOf<PinTarget>()
         page.layers.forEachIndexed { layerIndex, layer ->

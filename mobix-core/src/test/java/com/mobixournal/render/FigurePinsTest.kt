@@ -242,6 +242,16 @@ class FigurePinsTest {
         val withPart = marks(rectangle, part(200.0, 200.0))
         assertTrue("a part never reaches a figure", withPart.compatible.isEmpty())
 
+        // The same half is marked while the figure is still **in flight**, so it can be lined up before the lift.
+        assertEquals(
+            "a wire's two ends and an arrow's tip are the figure's company",
+            3,
+            FigurePins.joinedBy(
+                pageOf(wire(10.0, 10.0, 60.0, 10.0), arrow(80.0, 10.0, 140.0, 10.0)),
+                ShapeKind.RECTANGLE,
+            ).size,
+        )
+
         // A connector's marks are the **targets** its magnet would take, plus its own pins.
         val selectedWire = wire(10.0, 10.0, 60.0, 10.0)
         val connector = FigurePins.selectionMarks(

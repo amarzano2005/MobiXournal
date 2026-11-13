@@ -339,6 +339,16 @@ private fun DrawScope.drawFigureDraftPins(
     // The marks are worth showing only when the page holds something the drawing could join — the same rule
     // the tablet applies (`FigurePins.hasCompany`): on a page with no company the draft is bare.
     if (!FigurePins.hasCompany(page, kind)) return
+    // The other half of the join: the wires' ends and arrows' tips already on the page, so the figure can be
+    // lined up against them before the lift (`FigurePins.joinedBy`).
+    val compatible = PIN_DOT_PX / pxPerPt
+    for (target in FigurePins.joinedBy(page, kind)) {
+        drawCircle(
+            color = DesktopTheme.accent.copy(alpha = 0.85f),
+            radius = compatible,
+            center = Offset((target.absX * pxPerPt).toFloat(), (target.absY * pxPerPt).toFloat()),
+        )
+    }
     val dot = PIN_PENDING_PX / pxPerPt
     for (draft in drafts) {
         if (draft.size < 2) continue
