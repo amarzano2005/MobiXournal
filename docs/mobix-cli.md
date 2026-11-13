@@ -1,13 +1,14 @@
-# The `.mobix` command-line reader
+# The `.mobix` command-line reader and writer
 
 > Read when you inspect or script a `.mobix` outside the app, or change `tools/mobix-cli`.
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-`tools/mobix-cli/` is a **second, independent reader** of the published format: Python 3, the
+`tools/mobix-cli/` is a **second, independent implementation** of the published format: Python 3, the
 standard library only, and no import of `com.mobixournal.*`. It is not a second engine — it reads the
-envelope, validates it and lists what the archive holds, while the elements inside a page stay the
-app's business.
+envelope, validates it, lists what the archive holds and writes only two things: a new one-page
+document (`new`) and a title change that copies every other byte (`retitle`). The elements inside a
+page stay the app's business.
 That independence is the point: when this reader and `mobix-core` disagree about a file, the
 disagreement is a finding about the format or about one of the two implementations, not a bug they
 share because they share code.
@@ -130,14 +131,15 @@ code follows it rather than restating it.
 - **Capabilities**: an identifier that does not parse, or that appears twice in one list, is a corrupt
   declaration ([mobix-capabilities.md](mobix-capabilities.md)). A *well-formed* required capability
   this reader does not implement is **reported, not refused**: the contract's outcome there is
-  refuse-write, and this tool never writes.
+  refuse-write, and the two documents this tool writes claim no capability it cannot produce.
 - **Assets**: an entry under `assets/` must be named by the digest of its bytes
   ([mobix-assets.md](mobix-assets.md)); `inspect` also refuses bytes that do not hash to that name.
 - **`minAppVersion`** is not a refusal: a higher floor means an older *app* may not save the file, and
   a read-only inspection is exactly what this tool does.
 
 What it does **not** do: decode elements, render anything, verify geometry that is the sum of other
-fields, follow a reference from one element to another, or write a file. Those are the rows of
+fields, follow a reference from one element to another, repair or convert an archive, or write anything
+beyond `new`'s one page and `retitle`'s one field. Those are the rows of
 [the conformance checklist](../spec/CONFORMANCE.md) that stay a full reader's job; the rows this
 tool's own tests decide are a subset, and the checklist says which.
 
@@ -148,7 +150,10 @@ depth-capped decoder; `validate.py` is the rule engine and the optional schema l
 owns path safety and the atomic write; `export.py` builds the stable dump; `writer.py` writes the new
 document and the title-only rewrite; `views.py` builds the
 `inspect`/`list` objects and the human reports; `cli.py` is argparse and the exit codes.
-`pyproject.toml` makes it installable, and `README.md` is the quickstart.
+`pyproject.toml` makes it installable, and `README.md` is the quickstart, the `--json` shapes and the
+stack decision. Its source is GPL-2.0-or-later while the specification and fixtures it is checked
+against stay CC0, so a third party can implement from those without this code;
+[spec/README.md](../spec/README.md) names it as the reference implementation to compare against.
 
 ```sh
 python3 -m unittest discover tools/mobix-cli/tests
@@ -158,4 +163,6 @@ No network and no dependency outside the standard library. The suite reads the c
 hostile corpora under `mobix-core/src/test/resources/fixtures/`, plus archives it builds in a
 temporary directory so each envelope refusal has a sample of its own. It also runs
 `python3 -m mobix_cli` once from the package directory, because that is how the tool is started from
-a checkout.
+a checkout. CI's `cli` job runs the suite plus `scripts/check-mobix-cli.py`: every corpus verdict is
+compared with `spec/corpus-verdicts.csv`, which records what `mobix-core` decides and which its
+`CorpusVerdictsTest` keeps honest, so a rule added on one side alone fails the build.

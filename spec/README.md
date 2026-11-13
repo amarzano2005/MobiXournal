@@ -51,6 +51,17 @@ guard test in the repository keeps those documents in step with the codecs. The 
 **stop** at three things, and say so in the file: a digest of bytes stored in another entry, a reference
 from one entry to another (`asset`, `entry`), and geometry that is the sum of other fields.
 
+## A reference implementation to compare against
+
+[`tools/mobix-cli/`](../tools/mobix-cli/README.md) is a second implementation of exactly these rules,
+written in Python with the standard library and without importing the application's code. It reads,
+validates and exports a document, writes one new page or one changed title, and never downloads
+anything. Because it shares no compiler or classpath with the app, a disagreement is a finding: the
+verdict table in [`corpus-verdicts.csv`](corpus-verdicts.csv) records what the app decides for every
+committed corpus file, the app's `CorpusVerdictsTest` keeps that table honest, and the CLI is checked
+against it in CI. Its source is GPL-2.0-or-later; this directory and the fixtures stay CC0, so using
+the spec does not depend on using that code.
+
 ## How a third party checks an implementation
 
 [`CONFORMANCE.md`](CONFORMANCE.md) is the checklist, one row per rule a reader can be wrong about. The

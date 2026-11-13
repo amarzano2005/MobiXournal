@@ -138,20 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-cli-docs"
-title = "Record the stack, the licence and the honest scope of the tool"
-description = "Write the decisions and the usage down where an operator looks: `tools/mobix-cli/README.md` for install, the five verbs, exit codes and the `--json` shapes; `docs/tools.md` for the command and the CI job; `spec/README.md` linking the tool as the reference implementation a third party can compare against. Record the stack decision and its reason — Python 3 standard library, no Kotlin or Gradle import, Rust only if the tool grows a server surface, and then as a second implementation rather than a rewrite — and the licence split: the tool's source is GPL-2.0-or-later like the rest of the code, the specification and fixtures stay CC0, so a third party may implement from the spec without touching this code. State plainly what the tool does not do (no rendering, no STEM semantics, no repair, no conversion) and that `extract` never downloads anything. Run `DocsGuardTest` and `DocClaimsTest`."
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 520
-created = 2026-11-10
-tags = ["mobix", "cli"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-migration-plan-model"
 title = "A migration is a plan with preconditions, checkpoints and a stated revert"
 description = "Add a pure `FormatMigration` model in `mobix-core/src/main/java/com/mobixournal/format/mobix/migration/` — `fromVersion`, `toVersion`, preconditions (the capabilities the source must satisfy and the constructs it must not contain), an ordered list of steps with a checkpoint after each, a diagnostic per refused precondition, and whether the result is revertible. A `MigrationRegistry` answers `plan(from, to)` and returns null when no path exists, which is the honest answer for a v1 file today: `CURRENT_FORMAT_VERSION` is 1 and nothing migrates. The plan never runs itself and never touches a file. KDoc states the rule this task is the home of: `formatVersion` is bumped only by a change an older reader cannot preserve — a renamed or removed required field, changed entry naming, a compression baseline v1 readers reject, or a change to an existing family's meaning — while an additive optional field, a new element family, a new asset kind, a derived entry or a writer upgrade never qualifies, because v1's preserve rules already cover them. Tests: `plan(1, 1)` is null (nothing to do), `plan(1, 2)` is null while no migration is registered, a registered fake migration exposes its steps in order, and a missing precondition produces one diagnostic naming it rather than an exception."

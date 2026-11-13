@@ -1,4 +1,4 @@
-"""The `mobix-cli` command line: five commands, three exit codes.
+"""The `mobix-cli` command line: seven commands, three exit codes.
 
     inspect FILE [--json]        the envelope, with digests checked
     list FILE [--json]           pages, chunks and assets by size and digest
