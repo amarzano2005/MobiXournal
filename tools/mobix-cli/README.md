@@ -28,6 +28,10 @@ pipx install .            # or: pipx install ./tools/mobix-cli
   each recorded digest before the file appears.
 - `export-json FILE` — one stable dump (manifest, canvas, page element ids and families, assets by
   name and size) so two documents can be diffed.
+- `new OUT --title T [--force] [--json]` — a one-page document with one stroke, one image and its
+  bundled PNG. It produces exactly those two families and says which ones it only preserves.
+- `retitle FILE --title T [--out FILE] [--force] [--json]` — changes `manifest.json` and copies every
+  other entry byte for byte, including entries and keys this tool has no model for.
 
 ## Exit codes
 

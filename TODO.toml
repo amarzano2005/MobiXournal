@@ -138,20 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-cli-writer"
-title = "Write a .mobix from the CLI and prove both directions open"
-description = "Second stage: a minimal writer in the same package that (a) creates a one-page document with one stroke and one bundled asset and (b) changes the title of an existing document while preserving every entry it does not understand, every unknown JSON key and every asset byte it does not touch. Determinism is a requirement: fixed ZIP timestamps, sorted entries after `mimetype`, the same bytes for the same input. Prove both directions with named acceptance tests: a file the CLI wrote opens in MobiXournal (a JVM test in `mobix-core` reading a file the CLI generated, gated on an env var with a stated skip message when the generator is absent) and a file MobiXournal saved validates clean in the CLI. State in the task's own output which element families the tool only **preserves** and which it can actually produce — a ZIP parser is not a STEM renderer. Never rewrite an element family it does not model: a title change touches the manifest and nothing else."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 500
-created = 2026-11-10
-tags = ["mobix", "cli"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-cli-ci"
 title = "Make cross-implementation drift fail the build"
 description = "Add a job to `.github/workflows/build.yml` that installs nothing but Python 3 and runs: the CLI's `unittest` suite, `validate` over every golden fixture (must be clean) and over every hostile-corpus file (must be refused with its expected rule id), the CLI's own writer round-trip, and the Kotlin↔Python differential — `mobix-core`'s validator (`mobix-portability-validator`) and the CLI must agree on the verdict for every corpus file, so a rule added on one side alone fails here. Keep the job's failure output to the finding lines, not the whole archive. Update `CiCoverageTest` if it enumerates the workflow's jobs, and `docs/tools.md` with the command the job runs so a person can reproduce it."

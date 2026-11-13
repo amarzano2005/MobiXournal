@@ -23,6 +23,8 @@ python3 -m mobix_cli list      FILE [--json]
 python3 -m mobix_cli validate  FILE [--json]
 python3 -m mobix_cli extract   FILE --dest DIR [--entry NAME ... | --all] [--force] [--json]
 python3 -m mobix_cli export-json FILE
+python3 -m mobix_cli new       OUT --title T [--force] [--json]
+python3 -m mobix_cli retitle   FILE --title T [--out FILE] [--force] [--json]
 pipx install ./tools/mobix-cli     # the same commands as `mobix-cli`
 ```
 
@@ -70,6 +72,34 @@ useful in a review.
 `--json` prints one object and nothing else, so a caller never parses prose. Without it the same
 fields are laid out for a person (`export-json` is always the JSON dump).
 
+## What the writer will and will not do
+
+`new OUT --title T` writes a paginated one-page document: one stroke and one image in one layer on an
+A4 sheet, with the image's 1×1 PNG bundled as `assets/img_<sha256>.png`. The families it can
+**produce** are exactly `stroke` and `image`. It is not a STEM renderer: `text`, `texImage`, `table`,
+`plot`, `parametricShape`, `circuit` and `mathBlock` are never authored here, only preserved.
+
+`retitle FILE --title T [--out FILE]` changes `title` in `manifest.json` and copies every other entry
+as the bytes the archive already holds — pages, chunks, assets, the bridge sidecar, and any entry the
+tool has no model for, which it lists as `unknown entries kept`. No element family is re-encoded, so
+elements and JSON keys a newer writer added survive untouched. Rewriting in place needs no `--force`;
+writing a different existing `--out` does. `--json` reports `produced`, `preserved`, `rewritten` and
+`unknownEntries`.
+
+Both commands are deterministic: fixed ZIP timestamps, `mimetype` first and STORED, every other entry
+sorted by name, and the document id derived from the title rather than a random source — the same
+input writes the same bytes, which is what lets a test compare two runs.
+
+The writer is checked in both directions. The CLI proves that a file MobiXournal saved
+(`18-every-family.mobix`) validates clean; the other half proves `new`'s output opens in the app, as
+`CliWrittenDocumentTest` in `mobix-core` — gated, because the generator is not part of the Gradle
+build:
+
+```sh
+cd tools/mobix-cli && python3 -m mobix_cli new /tmp/cli-document.mobix --title "CLI acceptance"
+MOBIX_CLI_DOCUMENT=/tmp/cli-document.mobix ./gradlew :mobix-core:test --tests '*CliWrittenDocumentTest*'
+```
+
 ## The three exit codes
 
 | Code | Meaning |
@@ -115,7 +145,8 @@ tool's own tests decide are a subset, and the checklist says which.
 
 `mobix_cli/container.py` is the single boundary that touches `zipfile`; `jsonbytes.py` holds the
 depth-capped decoder; `validate.py` is the rule engine and the optional schema layer; `extract.py`
-owns path safety and the atomic write; `export.py` builds the stable dump; `views.py` builds the
+owns path safety and the atomic write; `export.py` builds the stable dump; `writer.py` writes the new
+document and the title-only rewrite; `views.py` builds the
 `inspect`/`list` objects and the human reports; `cli.py` is argparse and the exit codes.
 `pyproject.toml` makes it installable, and `README.md` is the quickstart.
 

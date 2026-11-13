@@ -5,6 +5,8 @@
     validate FILE [--json]       every conformance rule, one finding per line
     extract FILE --dest DIR [--entry NAME ... | --all] [--force] [--json]
     export-json FILE             a stable document dump
+    new OUT --title T [--force] [--json]
+    retitle FILE --title T [--out FILE] [--force] [--json]
 
 Exit 0 is a readable document (or a clean validation), 2 is a path that is not an archive this
 program can open, and 1 is a document it must refuse or a validation with findings. The reason goes
@@ -26,6 +28,7 @@ from .export import export_document
 from .extract import extract_entries
 from .validate import validate_document
 from .views import inspect_view, list_view, render_inspect, render_list
+from .writer import create_document, retitle
 
 EXIT_OK = 0
 EXIT_REFUSED = 1
@@ -41,6 +44,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _extract(args)
     if args.command == "export-json":
         return _export_json(args)
+    if args.command == "new":
+        return _new(args)
+    if args.command == "retitle":
+        return _retitle(args)
 
     try:
         document = open_document(args.path, integrity=args.command == "inspect")
@@ -121,14 +128,13 @@ def _export_json(args: argparse.Namespace) -> int:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mobix-cli",
-        description="Read, validate and inspect a .mobix notebook without the app.",
+        description="Read, validate, create and inspect a .mobix notebook without the app.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (
         ("inspect", "the envelope, content counts and canvas, with digests checked"),
         ("list", "pages, chunks and assets by name, size and digest"),
         ("validate", "every conformance rule, one finding per line"),
-        ("extract", "write chosen entries under a destination directory"),
         ("export-json", "one stable JSON dump a script can diff"),
     ):
         command = commands.add_parser(name, help=help_text)
@@ -139,21 +145,56 @@ def _parser() -> argparse.ArgumentParser:
                 action="store_true",
                 help="print one JSON object instead of the human report",
             )
-        if name == "extract":
-            command.add_argument(
-                "--dest", type=Path, required=True, help="the directory to write under"
-            )
-            command.add_argument(
-                "--entry",
-                action="append",
-                default=[],
-                metavar="NAME",
-                help="an archive entry to write (repeatable)",
-            )
-            command.add_argument(
-                "--all", action="store_true", help="write every entry in the archive"
-            )
-            command.add_argument(
-                "--force", action="store_true", help="overwrite a file that already exists"
-            )
+
+    extract = commands.add_parser("extract", help="write chosen entries under a destination")
+    extract.add_argument("path", type=Path, help="the .mobix file to read")
+    extract.add_argument("--dest", type=Path, required=True, help="the directory to write under")
+    extract.add_argument(
+        "--entry", action="append", default=[], metavar="NAME", help="an entry to write (repeatable)"
+    )
+    extract.add_argument("--all", action="store_true", help="write every entry in the archive")
+    extract.add_argument(
+        "--force", action="store_true", help="overwrite a file that already exists"
+    )
+    extract.add_argument("--json", action="store_true", help="print one JSON object")
+
+    new = commands.add_parser("new", help="write a one-page document with a stroke and an asset")
+    new.add_argument("out", type=Path, metavar="OUT", help="the .mobix file to write")
+    new.add_argument("--title", required=True, help="the document's title")
+    new.add_argument("--force", action="store_true", help="overwrite an existing file")
+    new.add_argument("--json", action="store_true", help="print one JSON object")
+
+    retitle = commands.add_parser("retitle", help="change only the title, preserving the rest")
+    retitle.add_argument("path", type=Path, help="the .mobix file to rewrite")
+    retitle.add_argument("--title", required=True, help="the new title")
+    retitle.add_argument(
+        "--out", type=Path, help="write elsewhere instead of rewriting in place"
+    )
+    retitle.add_argument(
+        "--force", action="store_true", help="overwrite an existing --out file"
+    )
+    retitle.add_argument("--json", action="store_true", help="print one JSON object")
     return parser
+
+
+def _new(args: argparse.Namespace) -> int:
+    try:
+        written = create_document(args.out, args.title, force=args.force)
+    except Refused as exc:
+        print(f"mobix-cli: refused {args.out}: {exc}", file=sys.stderr)
+        return EXIT_REFUSED
+    print(json.dumps(written.as_json(), indent=2) if args.json else written.render())
+    return EXIT_OK
+
+
+def _retitle(args: argparse.Namespace) -> int:
+    try:
+        written = retitle(args.path, args.title, out=args.out, force=args.force)
+    except CannotOpen as exc:
+        print(f"mobix-cli: cannot open {args.path}: {exc}", file=sys.stderr)
+        return EXIT_CANNOT_OPEN
+    except Refused as exc:
+        print(f"mobix-cli: refused {args.path}: {exc}", file=sys.stderr)
+        return EXIT_REFUSED
+    print(json.dumps(written.as_json(), indent=2) if args.json else written.render())
+    return EXIT_OK
