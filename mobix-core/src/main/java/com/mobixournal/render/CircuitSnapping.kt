@@ -219,6 +219,19 @@ object CircuitSnapping {
      * seeker's own end. Everything else — a rectangle, a bond, the chemist's ring — gets null, so free
      * ink is never pulled off the user's hand.
      */
+    /**
+     * What a **shape being drawn** aims at, or empty for a kind that aims at nothing.
+     *
+     * A connector aims with its own family ([gestureTargets]); a drawn **figure** aims at the ends of the lines
+     * it may be paired with, so the corner under the hand lands on the pin the sheet already marks for it — the
+     * pairing made while the figure is still being inserted, not only after the lift.
+     */
+    fun draftTargets(kind: ShapeKind, page: Page): List<PinTarget> = if (FigurePins.familyOf(kind) == PinFamily.FIGURE) {
+        FigurePins.targets(page, PinFamily.FIGURE)
+    } else {
+        gestureTargets(kind, page).orEmpty()
+    }
+
     fun gestureTargets(
         kind: ShapeKind,
         page: Page,

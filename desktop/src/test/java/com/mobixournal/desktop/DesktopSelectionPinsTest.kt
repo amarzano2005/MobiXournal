@@ -196,6 +196,33 @@ class DesktopSelectionPinsTest {
         }
     }
 
+    /**
+     * The magnet works **while the figure is being inserted**: the corner under the hand lands on the line's
+     * end before the lift, so the geometry written is the one the preview showed.
+     */
+    @Test
+    fun `a figure drawn onto a lines end lands on it`() {
+        val tab = tab(withRectangle = false)
+        val scene = scene(tab, DesktopTool.RECTANGLE)
+        try {
+            pointer(scene, PointerEventType.Press, 100f, 380f, 1_000L)
+            pointer(scene, PointerEventType.Move, 200f, 420f, 1_016L)
+            // Released eight points short of the wire's start (320, 450): only the magnet closes that gap.
+            pointer(scene, PointerEventType.Move, 326f, 456f, 1_032L)
+            pointer(scene, PointerEventType.Release, 326f, 456f, 1_048L, pressed = false)
+
+            val rectangle = tab.document.page(0).layers.flatMap { it.elements }
+                .filterIsInstance<com.mobixournal.format.model.Stroke>().last()
+            assertTrue(
+                "the corner landed on the wire's end",
+                rectangle.points.any { abs(it.x - 320.0) < 1e-6 && abs(it.y - 450.0) < 1e-6 },
+            )
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
     private fun pointer(
         scene: ImageComposeScene,
         type: PointerEventType,

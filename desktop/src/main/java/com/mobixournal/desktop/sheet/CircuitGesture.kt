@@ -33,6 +33,53 @@ import com.mobixournal.render.ShapeKind
  * (`CircuitSnapping.thresholdFor`), so what the drag shows is exactly what the lift writes — and a wire
  * (the Line tool) is snapped by the same rule in `shapeDrag`.
  */
+/**
+ * A **figure being inserted**, with its two ends pulled onto the lines it may be paired with.
+ *
+ * The sheet marks the ends of the lines a figure can join while the figure is being drawn, so the corner under
+ * the hand has to be able to land on one: the anchor lands on the end it was put on, the corner on the one it
+ * is aimed at (`CircuitSnapping.draftTargets`, the same targets the marks come from — the tablet applies the
+ * identical rule in its `snappedShapePoint`). Without it the pairing only existed after the lift, and a
+ * rectangle drawn onto a line's end was written a few points short of the pin it had just been shown.
+ *
+ * A kind that is not a figure gets its points back untouched: a connector's own ends are snapped by
+ * `snapWireEnds`, and a table or a bond carries no pins at all.
+ */
+internal fun figureDragAnchor(
+    kind: ShapeKind,
+    page: Page?,
+    x: Double,
+    y: Double,
+    scale: Float,
+    magnet: EndsMagnet,
+): Pair<Double, Double> = snapDragPin(kind, page, x, y, scale, magnet, start = true)
+
+/** The corner that follows the hand: [figureDragAnchor]'s other end. */
+internal fun figureDragCorner(
+    kind: ShapeKind,
+    page: Page?,
+    x: Double,
+    y: Double,
+    scale: Float,
+    magnet: EndsMagnet,
+): Pair<Double, Double> = snapDragPin(kind, page, x, y, scale, magnet, start = false)
+
+/** Nothing to aim at — or a kind with no pins — leaves the hand's own point where it is. */
+private fun snapDragPin(
+    kind: ShapeKind,
+    page: Page?,
+    x: Double,
+    y: Double,
+    scale: Float,
+    magnet: EndsMagnet,
+    start: Boolean,
+): Pair<Double, Double> {
+    val targets = page?.let { CircuitSnapping.draftTargets(kind, it) }.orEmpty()
+    if (targets.isEmpty()) return x to y
+    val reach = CircuitSnapping.thresholdFor(scale)
+    return if (start) magnet.snapStart(x, y, targets, reach) else magnet.snapEnd(x, y, targets, reach)
+}
+
 internal data class CircuitSpan(
     val startX: Double,
     val startY: Double,

@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.sheet
 import com.mobixournal.desktop.ink.activeTool
+import com.mobixournal.desktop.ink.shapeStroke
 import com.mobixournal.desktop.ink.shapeKind
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
@@ -12,7 +13,6 @@ import com.mobixournal.desktop.ink.inksByPackets
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.ink.pagePointOf
 import com.mobixournal.desktop.ink.shapeFromDrag
-import com.mobixournal.desktop.ink.shapeStroke
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfTextNotice
@@ -456,8 +456,8 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
      */
     page: Page? = null,
 ) {
-    val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, view.current())
-    if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return
+    val (anchorX, anchorY) = pagePointOf(start.position.x, start.position.y, density, view.current())
+    if (anchorX !in 0.0..view.pageW.toDouble() || anchorY !in 0.0..view.pageH.toDouble()) return
     var lastX = start.position.x
     var lastY = start.position.y
     var lastChange = start
@@ -478,8 +478,13 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
     // the edge of the reach, and so does the lift that writes those same points.
     val magnet = com.mobixournal.render.EndsMagnet()
 
+    val scale = view.current().zoom * density
+    // A figure being inserted lands its ends on the pins the sheet marks for it (`FigureDragMagnet`).
+    val (x0, y0) = figureDragAnchor(kind, page, anchorX, anchorY, scale, magnet)
+
     fun preview(px: Float, py: Float): List<StrokePoint> {
-        val (x1, y1) = pagePointOf(px, py, density, view.current())
+        val (pointerX, pointerY) = pagePointOf(px, py, density, view.current())
+        val (x1, y1) = figureDragCorner(kind, page, pointerX, pointerY, scale, magnet)
         val constrained = currentEvent.keyboardModifiers.isShiftPressed
         val guide = tab.guide
         val points = snapWireEnds(

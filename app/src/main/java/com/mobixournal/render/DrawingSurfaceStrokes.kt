@@ -439,8 +439,11 @@ private fun DrawingSurfaceView.snappedShapePoint(
     y: Double,
     start: Boolean,
 ): Pair<Double, Double> {
-    val targets = shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) }
-        ?: return snappedPoint(box, x, y)
+    val kind = shapeKind ?: return snappedPoint(box, x, y)
+    // A connector aims with its own family; a **figure** aims at the ends of the lines it is paired with, so
+    // its corner lands on the pin while it is still being inserted (`draftTargets`).
+    val targets = CircuitSnapping.draftTargets(kind, box.page)
+    if (targets.isEmpty()) return snappedPoint(box, x, y)
     val grid: (Double, Double) -> Pair<Double, Double> = { gx, gy ->
         if (snapToGrid) Snapping.lattice(box.page.background, box.page.width).snap(gx, gy) else gx to gy
     }
