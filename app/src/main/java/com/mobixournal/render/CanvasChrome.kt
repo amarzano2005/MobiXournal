@@ -60,6 +60,17 @@ internal class CanvasChrome {
         strokeWidth = 2f
         color = SELECTION_COLOR
     }
+    /**
+     * A **pin mark**: a filled dot, and the one paint the pin overlay uses for every pin it draws.
+     *
+     * Filled on purpose. [handle] and [handleArm] are `Style.STROKE`, so drawing a 3.5 px "dot" with one of
+     * them paints a **2 px ring** — four accent pixels on a ruled page, which is why a page full of the pins a
+     * figure could be paired with looked like a page with no pins at all. A pin is not a line.
+     */
+    val pin = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = SELECTION_COLOR
+    }
     /** Drag-select band fill: translucent wash under the lasso. */
     val bandFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -249,6 +260,7 @@ internal class CanvasChrome {
         selectionStroke.color = selection
         handle.color = selection
         handleArm.color = selection
+        pin.color = selection
         selectionFill.color = selection.withAlpha(SELECTION_FILL_ALPHA)
         bandFill.color = selection.withAlpha(BAND_FILL_ALPHA)
         guideStroke.color = guide
