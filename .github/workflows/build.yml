@@ -134,6 +134,27 @@ jobs:
           --tests "com.mobixournal.guards.DocClaimsTest"
           --stacktrace
 
+  # The independent `.mobix` reader is a second implementation of the format, so it is checked by a job
+  # that installs nothing but the Python 3 the runner already carries: no Gradle, JDK or Android SDK.
+  # That is what makes a disagreement a real finding instead of two sides sharing one compiler, and it
+  # answers a CLI-only patch without waiting for an APK. `spec/corpus-verdicts.csv` carries this side's
+  # verdict for every corpus file (`CorpusVerdictsTest` keeps the table honest), and the script compares
+  # the CLI against it, so a rule added on one side alone fails here.
+  cli:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run the independent reader's suite
+        run: python3 -m unittest discover tools/mobix-cli/tests
+
+      - name: Check the corpus verdicts and the writer round-trip
+        run: python3 scripts/check-mobix-cli.py
+
   # The desktop shell is Windows 11 only (`docs/desktop-workstation.md`), so its suite runs on a
   # Windows runner instead of the Ubuntu one above. It is a separate job rather than a step because
   # `:desktop:test` renders pages and chrome headlessly through Skiko, and that work must not gate or

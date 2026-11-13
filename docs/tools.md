@@ -283,17 +283,17 @@ and the monitor a blocked one waits for with its owner. Written in every run, no
 
 ## Mobix corpora
 
-Two generators and a validator, all dependency-free and deterministic (fixed ZIP timestamps, no clock or
-locale), so a re-run reproduces the same bytes and a fixture can be reviewed as a diff:
+Two generators and two readers, all dependency-free and deterministic (fixed ZIP timestamps, no clock
+or locale), so a re-run reproduces the same bytes and a fixture can be reviewed as a diff:
 
 - `scripts/make-mobix-fixtures.py` → the golden v1 corpus under
   `mobix-core/src/test/resources/fixtures/mobix-v1/`, driven by `MobixV1FixturesTest`.
-- `scripts/make-mobix-hostile-corpus.py` → the hostile corpus under
-  `mobix-core/src/test/resources/fixtures/mobix-hostile/`: one file per threat in the limits table of
-  [mobix-format.md](mobix-format.md), plus the smallest legal document (`MobixHostileCorpusTest`).
-  Re-run it after changing a cap — the many-entry file is sized to the entry cap and the bomb's ratio
-  follows the ratio cap — or the corpus stops testing the policy it is meant to.
-- `scripts/verify-mobix.py` → the independent reader: decides the conformance rows a script can decide
-  (`--rows` lists them) and validates the envelope against `spec/schema/` with no dependency on `mobix-core`.
-  It cannot see a rewrite, so the save-and-reopen rows stay manual; run it over the golden corpus, never
-  over the hostile one, which is meant to fail.
+- `scripts/make-mobix-hostile-corpus.py` → the hostile corpus under `…/fixtures/mobix-hostile/`: one file
+  per threat in the limits table of [mobix-format.md](mobix-format.md), plus the smallest legal document
+  (`MobixHostileCorpusTest`); re-run it after changing a cap, or it stops testing that policy.
+- `scripts/verify-mobix.py` → the independent reader: the conformance rows a script can decide (`--rows`
+  lists them) and the envelope against `spec/schema/`, with no `mobix-core` dependency; the save-and-reopen
+  rows stay manual, so run it over the golden corpus, never the hostile one.
+- `scripts/check-mobix-cli.py` → what the `cli` CI job runs: the CLI's suite, `validate` over both corpora
+  (each hostile file refused for its row), the writer round-trip, and one verdict per file compared with
+  `spec/corpus-verdicts.csv` (`CorpusVerdictsTest` keeps it honest) — a rule added on one side alone fails.

@@ -1,0 +1,39 @@
+# The verdict `mobix-core` reaches on every committed corpus file, and the verdict the independent
+# reader in `tools/mobix-cli/` must reach too. `clean` means the file opens as a document (the archive
+# and its pages) and its `assets/` rules hold; `refused` means it must not be accepted.
+#
+# `CorpusVerdictsTest` (`mobix-core`) recomputes this table and fails when a rule moves on one side
+# only, so a change here is a decision rather than a stale list. `scripts/check-mobix-cli.py` compares
+# the CLI against it, and the `cli` job in `.github/workflows/build.yml` runs that script. Licence:
+# CC0-1.0, like the rest of `spec/`.
+
+# The golden v1 corpus: eighteen compatibility constructs, every one a document.
+01-minimal-single-page.mobix,clean
+02-multi-page-order.mobix,clean
+03-bundled-assets.mobix,clean
+04-incremental-save.mobix,clean
+05-unknown-entry.mobix,clean
+06-unknown-envelope-fields.mobix,clean
+07-unknown-element-type.mobix,clean
+08-unknown-top-level-field.mobix,clean
+09-unknown-nested-fields.mobix,clean
+10-chunked-document.mobix,clean
+11-unknown-vocabulary-values.mobix,clean
+12-unknown-background-type.mobix,clean
+13-required-capability-unknown.mobix,clean
+14-optional-capability-unknown.mobix,clean
+15-capability-higher-version.mobix,clean
+16-capability-additive-order.mobix,clean
+17-third-party-writer.mobix,clean
+18-every-family.mobix,clean
+
+# The hostile corpus: the legal neighbour passes, every threat is refused for its own reason.
+00-smallest.mobix,clean
+01-too-many-entries.mobix,refused
+02-deflate-bomb.mobix,refused
+03-deep-nesting.mobix,refused
+04-duplicate-entry.mobix,refused
+05-traversal-entry.mobix,refused
+06-wrong-digest.mobix,refused
+07-encrypted-entry.mobix,refused
+08-truncated-directory.mobix,refused

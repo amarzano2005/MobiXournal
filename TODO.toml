@@ -138,20 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-cli-ci"
-title = "Make cross-implementation drift fail the build"
-description = "Add a job to `.github/workflows/build.yml` that installs nothing but Python 3 and runs: the CLI's `unittest` suite, `validate` over every golden fixture (must be clean) and over every hostile-corpus file (must be refused with its expected rule id), the CLI's own writer round-trip, and the Kotlin↔Python differential — `mobix-core`'s validator (`mobix-portability-validator`) and the CLI must agree on the verdict for every corpus file, so a rule added on one side alone fails here. Keep the job's failure output to the finding lines, not the whole archive. Update `CiCoverageTest` if it enumerates the workflow's jobs, and `docs/tools.md` with the command the job runs so a person can reproduce it."
-status = "active"
-level = "task"
-category = "test"
-urgency = "high"
-order = 510
-created = 2026-11-10
-tags = ["mobix", "cli"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-cli-docs"
 title = "Record the stack, the licence and the honest scope of the tool"
 description = "Write the decisions and the usage down where an operator looks: `tools/mobix-cli/README.md` for install, the five verbs, exit codes and the `--json` shapes; `docs/tools.md` for the command and the CI job; `spec/README.md` linking the tool as the reference implementation a third party can compare against. Record the stack decision and its reason — Python 3 standard library, no Kotlin or Gradle import, Rust only if the tool grows a server surface, and then as a second implementation rather than a rewrite — and the licence split: the tool's source is GPL-2.0-or-later like the rest of the code, the specification and fixtures stay CC0, so a third party may implement from the spec without touching this code. State plainly what the tool does not do (no rendering, no STEM semantics, no repair, no conversion) and that `extract` never downloads anything. Run `DocsGuardTest` and `DocClaimsTest`."
