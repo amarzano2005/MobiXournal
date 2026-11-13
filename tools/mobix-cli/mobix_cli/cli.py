@@ -1,11 +1,15 @@
-"""The `mobix-cli` command line: two read-only commands, three exit codes.
+"""The `mobix-cli` command line: five commands, three exit codes.
 
-    python3 -m mobix_cli inspect FILE [--json]
-    python3 -m mobix_cli list FILE [--json]
+    inspect FILE [--json]        the envelope, with digests checked
+    list FILE [--json]           pages, chunks and assets by size and digest
+    validate FILE [--json]       every conformance rule, one finding per line
+    extract FILE --dest DIR [--entry NAME ... | --all] [--force] [--json]
+    export-json FILE             a stable document dump
 
-Exit 0 is a readable document, 2 is a path that is not an archive this program can open, and 1 is a
-document it must refuse. The reason goes to stderr in both failure cases, and `--json` writes exactly
-one object to stdout so a script never has to parse prose.
+Exit 0 is a readable document (or a clean validation), 2 is a path that is not an archive this
+program can open, and 1 is a document it must refuse or a validation with findings. The reason goes
+to stderr for the two failure cases; `--json` writes exactly one object to stdout, so a script never
+has to parse prose.
 """
 
 from __future__ import annotations
@@ -18,6 +22,8 @@ from typing import Sequence
 
 from .container import open_document
 from .errors import CannotOpen, Refused
+from .export import export_document
+from .extract import extract_entries
 from .validate import validate_document
 from .views import inspect_view, list_view, render_inspect, render_list
 
@@ -31,6 +37,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "validate":
         return _validate(args)
+    if args.command == "extract":
+        return _extract(args)
+    if args.command == "export-json":
+        return _export_json(args)
+
     try:
         document = open_document(args.path, integrity=args.command == "inspect")
     except CannotOpen as exc:
@@ -62,22 +73,87 @@ def _validate(args: argparse.Namespace) -> int:
     return EXIT_OK if report.ok else EXIT_REFUSED
 
 
+def _extract(args: argparse.Namespace) -> int:
+    try:
+        written = extract_entries(
+            path=args.path,
+            destination=args.dest,
+            entries=args.entry,
+            write_all=args.all,
+            force=args.force,
+        )
+    except CannotOpen as exc:
+        print(f"mobix-cli: cannot open {args.path}: {exc}", file=sys.stderr)
+        return EXIT_CANNOT_OPEN
+    except Refused as exc:
+        print(f"mobix-cli: refused {args.path}: {exc}", file=sys.stderr)
+        return EXIT_REFUSED
+
+    view = {
+        "path": str(args.path),
+        "dest": str(args.dest),
+        "written": [
+            {"entry": item.entry, "file": item.target, "bytes": item.size, "digest": item.digest}
+            for item in written
+        ],
+    }
+    if args.json:
+        print(json.dumps(view, indent=2))
+    else:
+        for item in written:
+            print(f"{item.entry} -> {item.target} ({item.size} B, sha256:{item.digest})")
+    return EXIT_OK
+
+
+def _export_json(args: argparse.Namespace) -> int:
+    try:
+        text = export_document(args.path)
+    except CannotOpen as exc:
+        print(f"mobix-cli: cannot open {args.path}: {exc}", file=sys.stderr)
+        return EXIT_CANNOT_OPEN
+    except Refused as exc:
+        print(f"mobix-cli: refused {args.path}: {exc}", file=sys.stderr)
+        return EXIT_REFUSED
+    sys.stdout.write(text)
+    return EXIT_OK
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mobix-cli",
-        description="Inspect a .mobix notebook without opening it in the app.",
+        description="Read, validate and inspect a .mobix notebook without the app.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (
         ("inspect", "the envelope, content counts and canvas, with digests checked"),
         ("list", "pages, chunks and assets by name, size and digest"),
         ("validate", "every conformance rule, one finding per line"),
+        ("extract", "write chosen entries under a destination directory"),
+        ("export-json", "one stable JSON dump a script can diff"),
     ):
         command = commands.add_parser(name, help=help_text)
         command.add_argument("path", type=Path, help="the .mobix file to read")
-        command.add_argument(
-            "--json",
-            action="store_true",
-            help="print one JSON object instead of the human report",
-        )
+        if name != "export-json":
+            command.add_argument(
+                "--json",
+                action="store_true",
+                help="print one JSON object instead of the human report",
+            )
+        if name == "extract":
+            command.add_argument(
+                "--dest", type=Path, required=True, help="the directory to write under"
+            )
+            command.add_argument(
+                "--entry",
+                action="append",
+                default=[],
+                metavar="NAME",
+                help="an archive entry to write (repeatable)",
+            )
+            command.add_argument(
+                "--all", action="store_true", help="write every entry in the archive"
+            )
+            command.add_argument(
+                "--force", action="store_true", help="overwrite a file that already exists"
+            )
     return parser

@@ -138,20 +138,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-cli-extract-export"
-title = "Extract what a document carries without letting it write where it wants"
-description = "Add `extract` and `export-json`. `extract` writes chosen entries (a page, a chunk, one asset, or everything) under a destination directory, refusing any name that escapes it (absolute paths, `..`, symlinked targets), refusing to overwrite unless `--force`, and never inflating more than a stated cap per entry or in total; the entry name it writes is derived from the archive's own name, never from JSON inside the document. `export-json` prints a stable document dump — manifest, canvas, per-page summaries with their element ids and families, per-asset name and size — with audio and images listed by name and size and **not** decoded, so a script can diff two documents. Tests: a hostile archive whose entry name is `../../escape.txt` writes nothing outside the destination and fails with a finding; an archive with an oversized entry is refused at the cap; `export-json` over two fixture versions produces a byte-identical diff when the document is unchanged."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 490
-created = 2026-11-10
-tags = ["mobix", "cli"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-cli-writer"
 title = "Write a .mobix from the CLI and prove both directions open"
 description = "Second stage: a minimal writer in the same package that (a) creates a one-page document with one stroke and one bundled asset and (b) changes the title of an existing document while preserving every entry it does not understand, every unknown JSON key and every asset byte it does not touch. Determinism is a requirement: fixed ZIP timestamps, sorted entries after `mimetype`, the same bytes for the same input. Prove both directions with named acceptance tests: a file the CLI wrote opens in MobiXournal (a JVM test in `mobix-core` reading a file the CLI generated, gated on an env var with a stated skip message when the generator is absent) and a file MobiXournal saved validates clean in the CLI. State in the task's own output which element families the tool only **preserves** and which it can actually produce — a ZIP parser is not a STEM renderer. Never rewrite an element family it does not model: a title change touches the manifest and nothing else."

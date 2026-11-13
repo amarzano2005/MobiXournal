@@ -23,6 +23,11 @@ pipx install .            # or: pipx install ./tools/mobix-cli
 - `validate FILE [--json]` — every conformance rule, one finding per line with the checklist row,
   severity and location. It also validates against `spec/schema/` when the optional `jsonschema`
   package is installed, and says so in the report.
+- `extract FILE --dest DIR [--entry NAME … | --all] [--force] [--json]` — write chosen entries under
+  a destination, refusing a name that could escape it (including through a symlink) and verifying
+  each recorded digest before the file appears.
+- `export-json FILE` — one stable dump (manifest, canvas, page element ids and families, assets by
+  name and size) so two documents can be diffed.
 
 ## Exit codes
 

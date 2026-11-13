@@ -14,13 +14,15 @@ share because they share code.
 
 It is not part of the Android or desktop build, so it needs no JDK, Gradle, SDK or device.
 
-## What the three commands answer
+## What the commands answer
 
 ```sh
 cd tools/mobix-cli
-python3 -m mobix_cli inspect  FILE [--json]
-python3 -m mobix_cli list     FILE [--json]
-python3 -m mobix_cli validate FILE [--json]
+python3 -m mobix_cli inspect   FILE [--json]
+python3 -m mobix_cli list      FILE [--json]
+python3 -m mobix_cli validate  FILE [--json]
+python3 -m mobix_cli extract   FILE --dest DIR [--entry NAME ... | --all] [--force] [--json]
+python3 -m mobix_cli export-json FILE
 pipx install ./tools/mobix-cli     # the same commands as `mobix-cli`
 ```
 
@@ -51,8 +53,22 @@ cap. When the optional `jsonschema` package is installed it also validates the m
 and chunks against `spec/schema/`; the report says `schema: checked` or `schema: unavailable`, so a
 clean result never implies a schema pass that did not run.
 
+`extract` answers **put these entries on disk, and nowhere else**. The name written is the archive's
+own entry name, never a name read out of the document's JSON; the resolved path has to stay under
+`--dest`, including through a symbolic link, and a target that already exists needs `--force`. An entry
+is hashed against the digest the document records for it before anything appears, the write lands
+through a temporary sibling file, and the caps are the format's own — 256 MiB per entry and 1 GiB in
+total. `--entry` is repeatable; `--all` takes every file entry.
+
+`export-json` answers **what does this document contain, in a form I can diff**: the manifest and
+canvas as carried, a per-page summary with its size and its elements' ids and families, and the
+assets by name, size, digest and kind. Layers and elements keep document order, assets are sorted by
+name, and nothing is decoded — a picture is not rasterised and a recording is not played. Two copies
+of one unchanged document therefore print byte-identical dumps, which is what makes the command
+useful in a review.
+
 `--json` prints one object and nothing else, so a caller never parses prose. Without it the same
-fields are laid out for a person.
+fields are laid out for a person (`export-json` is always the JSON dump).
 
 ## The three exit codes
 
@@ -98,8 +114,9 @@ tool's own tests decide are a subset, and the checklist says which.
 ## Where it lives and how it is tested
 
 `mobix_cli/container.py` is the single boundary that touches `zipfile`; `jsonbytes.py` holds the
-depth-capped decoder; `validate.py` is the rule engine and the optional schema layer; `views.py`
-builds the JSON objects and the human reports; `cli.py` is argparse and the exit codes.
+depth-capped decoder; `validate.py` is the rule engine and the optional schema layer; `extract.py`
+owns path safety and the atomic write; `export.py` builds the stable dump; `views.py` builds the
+`inspect`/`list` objects and the human reports; `cli.py` is argparse and the exit codes.
 `pyproject.toml` makes it installable, and `README.md` is the quickstart.
 
 ```sh
