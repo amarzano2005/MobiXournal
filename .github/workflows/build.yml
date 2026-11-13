@@ -203,6 +203,17 @@ jobs:
           path: desktop/build/installer/*.msi
           if-no-files-found: error
 
+      # A failing suite used to leave nothing behind but a test name and a line number in the log, which
+      # is not enough to fix a test that only fails on a runner. The JUnit XML carries the assertion
+      # message, so it is uploaded when the suite fails — the report is the evidence, not the console.
+      - name: Upload the test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-test-report
+          path: desktop/build/test-results/test/
+          if-no-files-found: warn
+
       - name: Upload the headless renders
         if: always()
         uses: actions/upload-artifact@v4
