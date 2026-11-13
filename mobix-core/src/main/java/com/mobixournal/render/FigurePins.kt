@@ -60,6 +60,45 @@ object FigurePins {
         ShapeKind.TRAPEZOID, ShapeKind.POLYGON, ShapeKind.CHEM_BENZENE,
     )
 
+    /**
+     * The `extraAttrs` key a **figure tool** mints its stroke with — the one thing that tells a drawn figure
+     * from ink.
+     *
+     * A line and a pen stroke are the same element with the same kind of point list, and nothing in the
+     * vertices separates them: the line tool writes two of them, and a short pen stroke is two or three on
+     * one straight line, which is exactly the geometry a wire has. Reading the family off the vertices alone
+     * therefore made handwriting a magnetic target — every scribble offered its ends as pins. So the tool that
+     * mints a figure says so here, and the magnet asks [pinFamilyOf] instead of guessing.
+     *
+     * An extra attribute on purpose: `.xopp` and `.mobix` both carry those through untouched, so the claim
+     * survives a save in either format, and a stroke written before it simply carries no pins.
+     */
+    const val SHAPE_ATTR: String = "shape"
+
+    /** The attribute this build read before [SHAPE_ATTR]: a stroke marking either name is a figure. */
+    private const val LEGACY_SHAPE_ATTR: String = "figure"
+
+    /** The `extraAttrs` a stroke is minted with when a figure tool — not the pen — drew it. */
+    val FIGURE_ATTRS: Map<String, String> = mapOf(SHAPE_ATTR to "true")
+
+    /** Whether [stroke] was **minted by a figure tool** — a line, arrow, rectangle or component — not by the pen. */
+    fun isFigureStroke(stroke: Stroke): Boolean =
+        stroke.extraAttrs.containsKey(SHAPE_ATTR) || stroke.extraAttrs.containsKey(LEGACY_SHAPE_ATTR)
+
+    /**
+     * The family the **magnet** sees in a committed [element], or null for anything that is not a terminal.
+     *
+     * A component is a connector by nature; a stroke is one only when a figure tool minted it
+     * ([isFigureStroke]), because ink that happens to lie on one straight line is still handwriting. This is
+     * the question the marks, the targets and a moved selection ask; [familyOf] is what the element *looks
+     * like*, which the selection's own drawing still reads.
+     */
+    fun pinFamilyOf(element: Element): PinFamily? = when (element) {
+        is CircuitElement -> PinFamily.CIRCUIT
+        is Stroke -> if (isFigureStroke(element)) familyOfPoints(element.points) else null
+        else -> null
+    }
+
     /** The family the shape [kind] carries when it is drawn or placed, or null for one with no pins. */
     fun familyOf(kind: ShapeKind): PinFamily? = when {
         CircuitElementFactory.isCircuitKind(kind) -> PinFamily.CIRCUIT
@@ -82,14 +121,30 @@ object FigurePins {
         kind: ShapeKind,
         /** Elements whose pins are the **actor** — a moved selection — so they are not company for it. */
         exclude: Set<ElementRef> = emptySet(),
+    ): Boolean = familyOf(kind)?.let { hasCompany(page, it, exclude) } ?: false
+
+    /** [hasCompany] for a family already read — what a **selected** element asks about itself. */
+    fun hasCompany(
+        page: Page,
+        family: PinFamily,
+        exclude: Set<ElementRef> = emptySet(),
     ): Boolean {
-        val family = familyOf(kind) ?: return false
-        return if (family == PinFamily.FIGURE) {
-            targets(page, PinFamily.WIRE, exclude = exclude).isNotEmpty() ||
-                targets(page, PinFamily.ARROW, exclude = exclude).isNotEmpty()
-        } else {
-            targets(page, family, exclude = exclude).isNotEmpty()
+        // A figure is joined and never joins, so its company is read the other way round: the families whose
+        // own gesture can reach it (`aimsAt`) have to be **on the page**. Asking `targets(page, WIRE)`
+        // instead answered yes for every figure in the world, its own pins included.
+        if (family == PinFamily.FIGURE) {
+            val actors = PinFamily.entries.filter { aimsAt(it, family) }.toSet()
+            for (layerIndex in page.layers.indices) {
+                val elements = page.layers[layerIndex].elements
+                for (elementIndex in elements.indices) {
+                    if (ElementRef(layerIndex, elementIndex) in exclude) continue
+                    val present = pinFamilyOf(elements[elementIndex])
+                    if (present != null && present in actors) return true
+                }
+            }
+            return false
         }
+        return targets(page, family, exclude = exclude).isNotEmpty()
     }
 
     /**
@@ -129,6 +184,32 @@ object FigurePins {
         PinFamily.WIRE -> target != PinFamily.ARROW
         PinFamily.ARROW -> true
         PinFamily.FIGURE -> false
+    }
+
+    /** The pins [element] itself carries — a part's terminals, a figure stroke's corners, ends and tip. */
+    fun pinsOf(element: Element): List<Pair<Double, Double>> = when (element) {
+        is CircuitElement -> element.pins.map { CircuitSnapping.pinAbsolutePosition(element, it) }
+        is Stroke -> pinFamilyOf(element)?.let { pinsOf(it, element.points) }.orEmpty()
+        else -> emptyList()
+    }
+
+    /**
+     * The pins a **selected** element wears, or none — a figure shows where it can be joined while the page
+     * holds a connector that could reach it.
+     *
+     * A drawn figure is a target, never a connector, so its own pins are the only marks it has: without them
+     * a reader who selected a figure to see what could attach to it had nothing to aim at, and the dots had
+     * to be summoned by starting a stroke over the page. The test is the one a mark in flight uses
+     * ([hasCompany]), so a selected figure on a page with nothing to join stays bare.
+     */
+    fun selectionPins(
+        page: Page,
+        element: Element?,
+        exclude: Set<ElementRef> = emptySet(),
+    ): List<Pair<Double, Double>> {
+        if (element == null || pinFamilyOf(element) != PinFamily.FIGURE) return emptyList()
+        if (!hasCompany(page, PinFamily.FIGURE, exclude)) return emptyList()
+        return pinsOf(element)
     }
 
     /**
@@ -245,7 +326,7 @@ object FigurePins {
         page.layers.forEachIndexed { layerIndex, layer ->
             layer.elements.forEachIndexed { elementIndex, element ->
                 if (ElementRef(layerIndex, elementIndex) in exclude) return@forEachIndexed
-                val family = familyOf(element) ?: return@forEachIndexed
+                val family = pinFamilyOf(element) ?: return@forEachIndexed
                 if (!aimsAt(actor, family)) return@forEachIndexed
                 when (element) {
                     is CircuitElement -> {
@@ -275,7 +356,7 @@ object FigurePins {
      */
     fun moveActor(page: Page, refs: Set<ElementRef>): PinFamily? {
         val families = refs.mapNotNull { ref ->
-            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)?.let(::familyOf)
+            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)?.let(::pinFamilyOf)
         }.toSet()
         if (families.isEmpty()) return null
         return when {

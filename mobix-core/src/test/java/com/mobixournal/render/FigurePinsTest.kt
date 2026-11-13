@@ -30,8 +30,17 @@ class FigurePinsTest {
         id = "c1",
     )
 
+    /** A stroke a **figure tool** minted: marked, which is what makes it a figure rather than ink. */
     private fun stroke(points: List<StrokePoint>) =
-        Stroke(Tool.PEN, 0xFF000000.toInt(), "round", points, true)
+        Stroke(Tool.PEN, 0xFF000000.toInt(), "round", points, true, extraAttrs = FigurePins.FIGURE_ATTRS)
+
+    /** What the **pen** writes: same shape of stroke, no marker, so nothing about it is a terminal. */
+    private fun ink(x0: Double, y0: Double, x1: Double, y1: Double) =
+        Stroke(
+            Tool.PEN, 0xFF000000.toInt(), "round",
+            listOf(StrokePoint(x0, y0, 1.0), StrokePoint(x1, y1, 1.0)),
+            true,
+        )
 
     private fun wire(x0: Double, y0: Double, x1: Double, y1: Double) =
         stroke(listOf(StrokePoint(x0, y0, 1.0), StrokePoint(x1, y1, 1.0)))
@@ -158,6 +167,60 @@ class FigurePinsTest {
         assertTrue(FigurePins.hasCompany(pageOf(wire(10.0, 10.0, 60.0, 10.0)), ShapeKind.RESISTOR))
         assertTrue(FigurePins.hasCompany(pageOf(figure(10.0, 10.0, 60.0, 60.0)), ShapeKind.ARROW))
         assertFalse("a part does not reach a closed figure", FigurePins.hasCompany(pageOf(figure(10.0, 10.0, 60.0, 60.0)), ShapeKind.RESISTOR))
+    }
+
+    /**
+     * A written stroke is never a terminal, however straight it is: the line tool's two vertices are the very
+     * two vertices a short written stroke leaves, so only the **marker** separates them. Reading the family
+     * off the vertices is what made handwriting a magnetic target.
+     */
+    @Test
+    fun `a written stroke carries no pins`() {
+        assertNull(FigurePins.pinFamilyOf(ink(10.0, 10.0, 90.0, 10.0)))
+        val page = pageOf(part(200.0, 200.0), ink(10.0, 10.0, 90.0, 10.0))
+        assertEquals("the part's two pins, and nothing of the ink", 2, FigurePins.targets(page, PinFamily.CIRCUIT).size)
+        assertTrue(
+            "a wire reaches the part's pins, never the written stroke's ends",
+            FigurePins.targets(page, PinFamily.WIRE).none { it.isWireEnd },
+        )
+        assertTrue(
+            "and a written stroke never magnetises a move of its own",
+            CircuitSnapping.collectMoveTargets(page, setOf(ElementRef(0, 1))).isEmpty(),
+        )
+    }
+
+    /** A **selected figure** wears its own pins, but only while the page holds a connector that could join it. */
+    @Test
+    fun `a selected figure wears its pins only with company`() {
+        val rectangle = figure(300.0, 500.0, 400.0, 600.0)
+        assertEquals(
+            "a figure alone on the page is bare",
+            0,
+            FigurePins.selectionPins(pageOf(rectangle), rectangle).size,
+        )
+        assertEquals(
+            "a wire is company for it",
+            8,
+            FigurePins.selectionPins(pageOf(rectangle, wire(10.0, 10.0, 60.0, 10.0)), rectangle).size,
+        )
+        assertEquals(
+            "an arrow too",
+            8,
+            FigurePins.selectionPins(pageOf(rectangle, arrow(10.0, 10.0, 60.0, 10.0)), rectangle).size,
+        )
+        assertEquals(
+            "a part never reaches a figure",
+            0,
+            FigurePins.selectionPins(pageOf(rectangle, part(200.0, 200.0)), rectangle).size,
+        )
+        assertEquals(
+            "a connector's marks are its targets, not its own ends",
+            0,
+            FigurePins.selectionPins(
+                pageOf(wire(10.0, 10.0, 60.0, 10.0), figure(300.0, 500.0, 400.0, 600.0)),
+                wire(10.0, 10.0, 60.0, 10.0),
+            ).size,
+        )
     }
 
     /** A **moved** element is the actor of its own drag: its own pins are never company for it. */

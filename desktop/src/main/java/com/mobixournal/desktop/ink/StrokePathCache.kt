@@ -8,6 +8,7 @@ import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
+import com.mobixournal.render.FigurePins
 import com.mobixournal.render.InkGeometry
 import com.mobixournal.collections.IdentityLruCache
 
@@ -84,7 +85,7 @@ internal object StrokePathCache {
 
     /** A stroke is a figure when explicitly marked or when it has constant width and zero telemetry dtMs. */
     internal fun isFigure(stroke: Stroke): Boolean {
-        if (stroke.extraAttrs.containsKey("shape") || stroke.extraAttrs.containsKey("figure")) return true
+        if (FigurePins.isFigureStroke(stroke)) return true
         if (stroke.uniformWidth && stroke.points.isNotEmpty() && stroke.points.all { it.dtMs == 0 }) {
             return true
         }

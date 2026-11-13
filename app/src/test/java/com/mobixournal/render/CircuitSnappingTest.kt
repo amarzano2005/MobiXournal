@@ -381,12 +381,14 @@ class CircuitSnappingTest {
         layers = listOf(Layer(listOf(stroke))),
     )
 
+    /** A wire as the **line tool** mints it: marked as a figure, which is what makes its ends terminals. */
     private fun wire(x1: Double, y1: Double, x2: Double, y2: Double) = Stroke(
         Tool.PEN,
         0xFF000000.toInt(),
         "round",
         listOf(StrokePoint(x1, y1, 1.0), StrokePoint(x2, y2, 1.0)),
         true,
+        extraAttrs = FigurePins.FIGURE_ATTRS,
     )
 
     /**

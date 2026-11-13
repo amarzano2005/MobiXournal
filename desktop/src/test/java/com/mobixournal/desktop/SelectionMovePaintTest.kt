@@ -285,6 +285,9 @@ class SelectionMovePaintTest {
             capStyle = "round",
             points = listOf(StrokePoint(100.0, 400.0, 1.0), StrokePoint(220.0, 400.0, 1.0)),
             uniformWidth = true,
+            // A wire as the Line tool mints it: marked, because a pen stroke with the same two vertices is
+            // ink and never a terminal (`FigurePins.pinFamilyOf`).
+            extraAttrs = com.mobixournal.render.FigurePins.FIGURE_ATTRS,
         )
         val tab = tab()
         tab.document.editPage(0) { page ->

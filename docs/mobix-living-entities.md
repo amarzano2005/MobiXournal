@@ -248,8 +248,9 @@ net a pin is snapped to and is omitted for a floating pin. **Every figure carrie
 a component's terminals, a wire's two ends, an arrow's **tip only** (it points, it is not a wire) and a
 drawn figure's corners **and the middle of every side** (`FigurePins`). What a gesture marks is exactly what it may join: a
 **circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything.
-The marks belong to the gesture, not to the state — they appear while a figure is being drawn or a
-selection is being moved, and a part merely selected shows none. The reach is `SNAP_REACH_PX` **screen**
+The marks belong to the gesture — they appear while a figure is being drawn or a selection is moved —
+except that a **selected figure** wears its own pins while the page holds a connector that could join it
+(`selectionPins`); a part merely selected shows none. The reach is `SNAP_REACH_PX` **screen**
 pixels at every zoom (`thresholdFor`): a fixed number of page points grew into a finger's width on a
 zoomed-in page, which is what made the magnet feel greedy. A caught target holds to
 `SNAP_RELEASE_RATIO` × that reach — `PinMagnet` for a moved selection, `EndsMagnet` for the ends of a
@@ -257,8 +258,8 @@ wire, arrow or part being drawn — so nothing flickers, and the caught pin is l
 
 A **component being placed** aims at the ends of the **wires already on the page** too, and a wire aims
 at another wire's end, so a chain of segments is one net; a line or an arrow also aims at a figure's
-border, which is what its corner and side pins are for (`collectPlacementTargets`, `pinsOf`). A free
-stroke is never a target, and an arrow's own pins are offered only to an arrow.
+border, which is what its corner and side pins are for (`collectPlacementTargets`, `pinsOf`). **Ink is
+never a target**: a stroke carries pins only when a figure tool minted it, and an arrow's only to an arrow.
 
 Placing a component is also the one gesture whose **own** pins are drawn while it is still under the
 stylus, in both shells, and only when the page holds something it could join (`hasCompany`): `previewTargets`

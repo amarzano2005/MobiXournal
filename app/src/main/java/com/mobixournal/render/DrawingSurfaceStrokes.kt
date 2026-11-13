@@ -308,7 +308,13 @@ internal fun DrawingSurfaceView.commitCurrent() {
             if (mPts.size >= 2) {
                 appendStroke(
                     ink.currentPage,
-                    Stroke(tool, strokeColor(), "round", mPts, true, lineStyle = currentLineStyle),
+                    // A figure tool minted these points, so the stroke says so: the magnet and the pin
+                    // marks read that claim rather than the geometry, because a short pen stroke is two
+                    // vertices on one straight line exactly as a wire is (`FigurePins.isFigureStroke`).
+                    Stroke(
+                        tool, strokeColor(), "round", mPts, true,
+                        lineStyle = currentLineStyle, extraAttrs = FigurePins.FIGURE_ATTRS,
+                    ),
                 )
             }
         }
@@ -371,9 +377,13 @@ internal fun DrawingSurfaceView.commitCurrent() {
         // Highlighter and geometric shapes are constant-width → store a single width; the freehand
         // pen keeps its per-vertex pressure. The live line-style is baked in so it round-trips.
         val uniform = tool == Tool.HIGHLIGHTER || wasShaping || snapped
+        // A shape tool's figure, and a freehand stroke the recogniser or the hold replaced with exact
+        // geometry, are **figures**: marked as such so their pins are the terminals a connector may join.
+        // Ink written by the pen is never marked, however straight it came out (`FigurePins.pinFamilyOf`).
         val stroke = Stroke(
             tool, strokeColor(), "round", finalPts, uniform,
             lineStyle = currentLineStyle,
+            extraAttrs = if (wasShaping || snapped) FigurePins.FIGURE_ATTRS else emptyMap(),
         )
         appendStroke(ink.currentPage, stroke)
         // A dimension line carries its value: the measurement goes in as a text box of its own.

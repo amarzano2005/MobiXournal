@@ -16,6 +16,7 @@ import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.ActiveTool
 import com.mobixournal.render.EraserMode
+import com.mobixournal.render.FigurePins
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeKind
@@ -197,7 +198,7 @@ fun shapeStroke(
         points = points.map { it.copy(width = widthPt.toDouble()) },
         uniformWidth = true,
         lineStyle = lineStyle,
-        extraAttrs = mapOf("shape" to "true"),
+        extraAttrs = FigurePins.FIGURE_ATTRS,
     )
 }
 

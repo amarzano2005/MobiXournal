@@ -60,7 +60,12 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
         if (page != null && FigurePins.hasCompany(page, drawingKind)) drawPendingPins(canvas, drawingKind)
         return
     }
-    if (!gestures.moving) return
+    if (!gestures.moving) {
+        // Selected and at rest: a **drawn figure** wears its own pins, which is where a connector will
+        // attach, as long as the page holds one that could reach it (`FigurePins.selectionPins`).
+        drawSelectedFigurePins(canvas)
+        return
+    }
     // A **move** marks what it could join, never its own pins, and nothing at all on a page that holds no
     // compatible element — the same rule as the gesture that inserted it.
     val movedKind = selectedFigureKind() ?: return
@@ -69,6 +74,29 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     val page = pageAt(sel.pageIndex) ?: return
     if (FigurePins.hasCompany(page, movedKind, exclude = sel.refs)) {
         drawTargetPins(canvas, movedKind, exclude = sel.refs)
+    }
+}
+
+/**
+ * The pins the **selected figure** carries, so what a connector can attach to is visible without arming a
+ * tool — the dots a reader looks for after drawing a rectangle beside a line.
+ *
+ * Chrome only, and only for a figure: a connector's own marks are its *targets* ([drawTargetPins]), and an
+ * element with no family (ordinary ink) leaves the sheet bare.
+ */
+private fun DrawingSurfaceView.drawSelectedFigurePins(canvas: Canvas) {
+    val sel = selection ?: return
+    if (sel.refs.size != 1) return
+    val ref = sel.refs.first()
+    val page = pageAt(sel.pageIndex) ?: return
+    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return
+    val pins = FigurePins.selectionPins(page, element, exclude = sel.refs)
+    if (pins.isEmpty()) return
+    val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
+    for ((px, py) in pins) {
+        val x = (px * box.scale + box.leftPx - scrollX).toFloat()
+        val y = (py * box.scale + box.topPx - scrollY).toFloat()
+        canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.handle)
     }
 }
 
@@ -110,7 +138,7 @@ private fun DrawingSurfaceView.selectedFigureKind(): ShapeKind? {
     val ref = sel.refs.first()
     val page = pageAt(sel.pageIndex) ?: return null
     val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return null
-    return when (FigurePins.familyOf(element)) {
+    return when (FigurePins.pinFamilyOf(element)) {
         PinFamily.CIRCUIT -> ShapeKind.entries.firstOrNull { it.name == (element as CircuitElement).symbol }
         PinFamily.WIRE -> ShapeKind.LINE
         PinFamily.ARROW -> ShapeKind.ARROW

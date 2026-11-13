@@ -83,7 +83,7 @@ internal fun selectionConnectorKind(page: Page, selection: PageSelection?): Shap
     val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return null
     // Every figure carries pins as on Xnotes, so a selected **wire** or **arrow** marks the same set a
     // gesture of its kind would: the line's ends, the arrow's tail and tip (`FigurePins`).
-    return when (FigurePins.familyOf(element)) {
+    return when (FigurePins.pinFamilyOf(element)) {
         PinFamily.CIRCUIT -> ShapeKind.entries.firstOrNull { it.name == (element as CircuitElement).symbol }
         PinFamily.WIRE -> ShapeKind.LINE
         PinFamily.ARROW -> ShapeKind.ARROW

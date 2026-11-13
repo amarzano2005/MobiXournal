@@ -36,12 +36,14 @@ class PinMagnetTest {
         layers = listOf(Layer(elements.toList())),
     )
 
+    /** A **figure tool's** wire: marked, which is what makes its ends terminals (`FigurePins`). */
     private fun wire(x0: Double, y0: Double, x1: Double, y1: Double): Stroke = Stroke(
         Tool.PEN,
         0xFF000000.toInt(),
         "round",
         listOf(StrokePoint(x0, y0, 1.0), StrokePoint(x1, y1, 1.0)),
         true,
+        extraAttrs = com.mobixournal.render.FigurePins.FIGURE_ATTRS,
     )
 
     /** A mover at (180, 200) whose pin is exactly on the edge of a reach from an anchor at (200, 200). */

@@ -119,13 +119,7 @@ internal fun DrawScope.paintLiveOverlay(
     }
     // The kind is the **caller's** answer, because it is the caller that knows whether a gesture is live: a
     // selection merely resting on the page marks nothing, exactly as on the tablet.
-    drawConnectionPins(
-        page = page,
-        markedKind = connectorKind,
-        previewLiving = previewLiving,
-        pxPerPt = pxPerPt,
-        actorRefs = actorRefs,
-    )
+    paintConnectionMarks(page, connectorKind, previewLiving, selection, livingElement, actorRefs, pxPerPt)
     // The selection's marching outline and its handles, above the ink: what is caught stays visible.
     // A single living element also wears its own grips (a figure's corners, a table's dividers).
     selection?.let { drawSelection(it, pxPerPt, living = livingElement) }
@@ -163,6 +157,52 @@ private fun DrawScope.drawMagnetTarget(target: CircuitSnapping.PinTarget, pxPerP
 
 /** The magnet dot's radius in screen pixels — the tablet's handle dot, so both shells look alike. */
 private const val MAGNET_DOT_PX = 5f
+
+/**
+ * Every pin the sheet wears for a **connection**, in one call: the marks of a connector in hand, of a part
+ * being pulled out, and of a **selected figure** — which wears its own pins while the page holds a connector
+ * that could join it, so what a wire will attach to is visible without arming a tool
+ * (`FigurePins.selectionPins`).
+ */
+private fun DrawScope.paintConnectionMarks(
+    page: Page,
+    markedKind: ShapeKind?,
+    previewLiving: Element?,
+    selection: PageSelection?,
+    selected: Element?,
+    actorRefs: Set<ElementRef>,
+    pxPerPt: Float,
+) {
+    drawConnectionPins(page, markedKind, previewLiving, pxPerPt, actorRefs)
+    drawSelectedFigurePins(page, selection, selected, pxPerPt)
+}
+
+/**
+ * The pins a **selected figure** carries, painted on the sheet — chrome, never ink.
+ *
+ * A drawn figure is a target rather than a connector, so these are the only marks it has: without them a
+ * reader who selected a rectangle beside a wire had nothing to see, and the join only became visible by
+ * starting a stroke over the page. The company test is the one a mark in flight uses
+ * (`FigurePins.selectionPins` → `hasCompany`), so a figure alone on a page stays bare.
+ */
+private fun DrawScope.drawSelectedFigurePins(
+    page: Page,
+    selection: PageSelection?,
+    element: Element?,
+    pxPerPt: Float,
+) {
+    if (selection == null || selection.refs.size != 1) return
+    val pins = FigurePins.selectionPins(page, element, exclude = selection.refs)
+    if (pins.isEmpty()) return
+    val dot = PIN_PENDING_PX / pxPerPt
+    for ((x, y) in pins) {
+        drawCircle(
+            color = DesktopTheme.accent,
+            radius = dot,
+            center = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
+        )
+    }
+}
 
 /**
  * The strokes **in progress**, one preview per input path, painted with the rule the lift will use: a
