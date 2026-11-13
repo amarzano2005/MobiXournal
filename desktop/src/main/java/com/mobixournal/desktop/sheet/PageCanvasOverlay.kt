@@ -194,7 +194,13 @@ private fun DrawScope.drawSelectionPins(
     if (selection == null || selection.refs.size != 1) return
     val marks = FigurePins.selectionMarks(page, element, exclude = selection.refs)
     for ((x, y) in marks.own) drawPinDot(x, y, pxPerPt)
-    for (target in marks.compatible) drawPinTarget(target, pxPerPt)
+    // A compatible mark that sits **on** one of the figure's own pins is the same joint, not a second one:
+    // drawing both put a square and a dot at one point, which reads as a mark that missed its pin. A joined
+    // pair therefore wears one mark, exactly where the two ends meet.
+    for (target in marks.compatible) {
+        if (marks.own.any { (x, y) -> hypot(x - target.absX, y - target.absY) <= JOIN_PT }) continue
+        drawPinTarget(target, pxPerPt)
+    }
 }
 
 /**
@@ -275,7 +281,16 @@ internal fun DrawScope.drawConnectionPins(
 ) {
     if (markedKind == null) return
     val targets = CircuitSnapping.gestureTargets(markedKind, page, exclude = actorRefs).orEmpty()
-    for (target in targets) drawPinTarget(target, pxPerPt)
+    // The part being pulled out marks its own pins below: a target one of them is already standing on is
+    // the join itself, and drawing both would stack a square and a dot on one point.
+    val carried = (previewLiving as? CircuitElement)
+        ?.let { CircuitSnapping.collectTargets(listOf(it)) }
+        .orEmpty()
+    for (target in targets) {
+        if (carried.any { hypot(it.absX - target.absX, it.absY - target.absY) <= JOIN_PT }) continue
+        drawPinTarget(target, pxPerPt)
+    }
+
     // A **join** the page already holds: two pins in one place are drawn as a ring, so a connection that was
     // made is visible on the sheet instead of being an invisible agreement between two overlapping dots.
     for ((index, a) in targets.withIndex()) {
@@ -290,10 +305,9 @@ internal fun DrawScope.drawConnectionPins(
             }
         }
     }
-    val preview = previewLiving as? CircuitElement ?: return
     // Nothing on this page to join: the part's own pins would be marks on empty paper (`hasCompany`).
-    if (targets.isEmpty()) return
-    for (pin in CircuitSnapping.collectTargets(listOf(preview))) {
+    if (targets.isEmpty() || carried.isEmpty()) return
+    for (pin in carried) {
         // The pin the magnet has caught this frame — the drag shows *that it will join* before the pen is
         // lifted, which is the only moment the person can still aim.
         val caught = targets.any { hypot(it.absX - pin.absX, it.absY - pin.absY) <= JOIN_PT }
@@ -370,19 +384,19 @@ private fun DrawScope.drawPinDot(x: Double, y: Double, pxPerPt: Float, radiusPx:
  * (3.5 px) is a speck over a ruled page — the marks were on the sheet and still not seen. 7.5 px is a dot a
  * reader can aim at from a normal reading distance, which is the whole point of drawing them.
  */
-private const val PIN_DOT_PX = 7.5f
+private const val PIN_DOT_PX = 9f
 
 /** The dot a component being placed would mint, in screen pixels. */
-private const val PIN_PENDING_PX = 8f
+private const val PIN_PENDING_PX = 9.5f
 
 /** Half the side of the square that marks an **existing figure's end**, in screen pixels (`WIRE_END_PX`). */
-private const val WIRE_END_PX = 7f
+private const val WIRE_END_PX = 8f
 
 /** The dot a pin the magnet has **caught** wears, in screen pixels: filled and larger, so the catch reads. */
-private const val PIN_CAUGHT_PX = 10f
+private const val PIN_CAUGHT_PX = 12f
 
 /** The desk-coloured edge every mark wears, in screen pixels — the pointer's own hairline, around a pin. */
-private const val PIN_HALO_PX = 2f
+private const val PIN_HALO_PX = 2.5f
 
 /** How close two pins must be to count as one join, in page points — a little over a pixel. */
 private const val JOIN_PT = 0.75

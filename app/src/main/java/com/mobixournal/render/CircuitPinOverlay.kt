@@ -10,19 +10,22 @@ import kotlin.math.hypot
  * Read against the page, not against a design sheet: at 3.5 px a pin was a speck on a ruled sheet, so the
  * targets were drawn and still not seen. These sizes are the ones a hand can aim at.
  */
-private const val PIN_DOT_PX = 5.5f
+private const val PIN_DOT_PX = 7f
 
 /** Radius of the pin a live gesture has caught, in view px. */
-private const val PIN_CAUGHT_PX = 8f
+private const val PIN_CAUGHT_PX = 10f
 
 /** Radius of a pin the placement in flight is about to mint, in view px. */
-private const val PIN_PENDING_PX = 7f
+private const val PIN_PENDING_PX = 8.5f
 
 /** Side of the square that marks an existing wire's end, in view px. */
-private const val WIRE_END_PX = 5.5f
+private const val WIRE_END_PX = 7f
 
 /** How close (page pt) a gesture's end must be to a pin to count as having caught it. */
 private const val CAUGHT_EPSILON_PT = 0.5
+
+/** The white edge every pin wears, in view px — the sheet showing through, so a dot keeps its outline. */
+private const val PIN_HALO_PX = 2.5f
 
 /** The `pinId` [CircuitSnapping.collectPlacementTargets] gives a wire's ends. */
 private const val WIRE_END_PIN = "wire-end"
@@ -89,10 +92,16 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     // The selection's own pins, filled: they are the thing being joined.
     for ((px, py) in marks.own) {
         val (x, y) = at(px, py)
+        canvas.drawCircle(x, y, PIN_PENDING_PX + PIN_HALO_PX, chrome.pinHalo)
         canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.pin)
     }
-    // And what it may join — the other end of the pairing.
-    drawPinTargets(canvas, sel.pageIndex, marks.compatible)
+    // And what it may join — the other end of the pairing. A compatible mark that sits **on** one of the
+    // figure's own pins is the same joint (`FigurePins.selectionMarks` answers both ends): marking it twice
+    // stacked a square and a dot on one point, which read as a mark that had missed its pin.
+    val unjoined = marks.compatible.filter { target ->
+        marks.own.none { (x, y) -> hypot(x - target.absX, y - target.absY) <= CAUGHT_EPSILON_PT }
+    }
+    drawPinTargets(canvas, sel.pageIndex, unjoined)
 }
 
 /**
@@ -111,9 +120,15 @@ private fun DrawingSurfaceView.drawPinTargets(
         val y = (target.absY * box.scale + box.topPx - scrollY).toFloat()
         // Filled marks (`chrome.pin`): a pin drawn with a stroke paint is a 2 px ring, and a ring at this
         // size is invisible over a ruled page — which read as "the figure shows no pins".
+        val edge = PIN_HALO_PX
         if (target.isWireEnd) {
+            canvas.drawRect(
+                x - WIRE_END_PX - edge, y - WIRE_END_PX - edge,
+                x + WIRE_END_PX + edge, y + WIRE_END_PX + edge, chrome.pinHalo,
+            )
             canvas.drawRect(x - WIRE_END_PX, y - WIRE_END_PX, x + WIRE_END_PX, y + WIRE_END_PX, chrome.pin)
         } else {
+            canvas.drawCircle(x, y, PIN_DOT_PX + edge, chrome.pinHalo)
             canvas.drawCircle(x, y, PIN_DOT_PX, chrome.pin)
         }
     }
@@ -132,12 +147,16 @@ private fun DrawingSurfaceView.drawTargetPins(
         for (target in targets) {
             val x = (target.absX * box.scale + box.leftPx - scrollX).toFloat()
             val y = (target.absY * box.scale + box.topPx - scrollY).toFloat()
+            val radius = if (live && !target.isWireEnd && caughtByGesture(target)) PIN_CAUGHT_PX else PIN_DOT_PX
             if (target.isWireEnd) {
+                canvas.drawRect(
+                    x - WIRE_END_PX - PIN_HALO_PX, y - WIRE_END_PX - PIN_HALO_PX,
+                    x + WIRE_END_PX + PIN_HALO_PX, y + WIRE_END_PX + PIN_HALO_PX, chrome.pinHalo,
+                )
                 canvas.drawRect(x - WIRE_END_PX, y - WIRE_END_PX, x + WIRE_END_PX, y + WIRE_END_PX, chrome.pin)
-            } else if (live && caughtByGesture(target)) {
-                canvas.drawCircle(x, y, PIN_CAUGHT_PX, chrome.pin)
             } else {
-                canvas.drawCircle(x, y, PIN_DOT_PX, chrome.pin)
+                canvas.drawCircle(x, y, radius + PIN_HALO_PX, chrome.pinHalo)
+                canvas.drawCircle(x, y, radius, chrome.pin)
             }
         }
     }
@@ -168,6 +187,7 @@ private fun DrawingSurfaceView.drawPendingPins(canvas: Canvas, kind: ShapeKind) 
     for ((px, py) in pins) {
         val x = (px * box.scale + box.leftPx - scrollX).toFloat()
         val y = (py * box.scale + box.topPx - scrollY).toFloat()
+        canvas.drawCircle(x, y, PIN_PENDING_PX + PIN_HALO_PX, chrome.pinHalo)
         canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.pin)
     }
 }
