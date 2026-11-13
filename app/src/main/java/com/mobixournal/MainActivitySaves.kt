@@ -80,6 +80,10 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     val revision = view?.edits ?: -1
     inBackground(if (quiet) null else "Saving ${displayName(uri)}.", {
         val encoded = io.encode(document, pdf, request.format, uri, images, audio::recordingFile)
+        // Prove the bytes before a SAF copy can replace the document; a refusal keeps the original.
+        if (request.format == SaveFormat.MOBIX) {
+            com.mobixournal.format.mobix.MobixPublishValidation.validate(encoded.file, BuildConfig.VERSION_NAME)
+        }
         try { io.stageOut(encoded.file, uri) } finally { encoded.file.delete() }
         encoded.uncompiled
     }) { result ->

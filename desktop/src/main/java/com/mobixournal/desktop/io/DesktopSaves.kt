@@ -185,6 +185,11 @@ object DesktopSaves {
                     audioFiles = audio::file,
                 )
             }
+            // A `.mobix` is proved by reopening it before it can replace anything: container, manifest,
+            // capabilities and every asset digest (`docs/document-session.md`).
+            if (format == SaveFormat.MOBIX) {
+                com.mobixournal.format.mobix.MobixPublishValidation.validate(temp, APP_VERSION)
+            }
             // The `.xopp` half of the same promise: the sidecars a save names are pushed out beside the
             // file, so the `fn` in the XML resolves to a recording that is actually there.
             if (format != SaveFormat.MOBIX) audio.exportSidecars(target, model)
