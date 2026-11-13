@@ -14,6 +14,7 @@ import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.tools.DesktopTool
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -192,22 +193,8 @@ private fun DrawScope.drawSelectionPins(
 ) {
     if (selection == null || selection.refs.size != 1) return
     val marks = FigurePins.selectionMarks(page, element, exclude = selection.refs)
-    val own = PIN_PENDING_PX / pxPerPt
-    for ((x, y) in marks.own) {
-        drawCircle(
-            color = DesktopTheme.accent,
-            radius = own,
-            center = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
-        )
-    }
-    val compatible = PIN_DOT_PX / pxPerPt
-    for (target in marks.compatible) {
-        drawCircle(
-            color = DesktopTheme.accent.copy(alpha = 0.85f),
-            radius = compatible,
-            center = Offset((target.absX * pxPerPt).toFloat(), (target.absY * pxPerPt).toFloat()),
-        )
-    }
+    for ((x, y) in marks.own) drawPinDot(x, y, pxPerPt)
+    for (target in marks.compatible) drawPinTarget(target, pxPerPt)
 }
 
 /**
@@ -287,15 +274,8 @@ internal fun DrawScope.drawConnectionPins(
     actorRefs: Set<ElementRef> = emptySet(),
 ) {
     if (markedKind == null) return
-    val dot = PIN_DOT_PX / pxPerPt
     val targets = CircuitSnapping.gestureTargets(markedKind, page, exclude = actorRefs).orEmpty()
-    for (target in targets) {
-        drawCircle(
-            color = DesktopTheme.accent.copy(alpha = 0.85f),
-            radius = dot,
-            center = Offset((target.absX * pxPerPt).toFloat(), (target.absY * pxPerPt).toFloat()),
-        )
-    }
+    for (target in targets) drawPinTarget(target, pxPerPt)
     // A **join** the page already holds: two pins in one place are drawn as a ring, so a connection that was
     // made is visible on the sheet instead of being an invisible agreement between two overlapping dots.
     for ((index, a) in targets.withIndex()) {
@@ -317,12 +297,9 @@ internal fun DrawScope.drawConnectionPins(
         // The pin the magnet has caught this frame — the drag shows *that it will join* before the pen is
         // lifted, which is the only moment the person can still aim.
         val caught = targets.any { hypot(it.absX - pin.absX, it.absY - pin.absY) <= JOIN_PT }
-        drawCircle(
-            color = DesktopTheme.accent,
-            radius = (if (caught) JOIN_PX else PIN_PENDING_PX) / pxPerPt,
-            center = Offset((pin.absX * pxPerPt).toFloat(), (pin.absY * pxPerPt).toFloat()),
-            style = if (caught) Stroke(width = 2.dp.toPx()) else Fill,
-        )
+        // Caught: the dot is filled and grown (`PIN_CAUGHT_PX`), as the tablet draws its caught pin. A 2 dp
+        // outline around a small dot was the mark that went unnoticed over a ruled sheet.
+        drawPinDot(pin.absX, pin.absY, pxPerPt, if (caught) PIN_CAUGHT_PX else PIN_PENDING_PX)
     }
 }
 
@@ -341,33 +318,62 @@ private fun DrawScope.drawFigureDraftPins(
     if (!FigurePins.hasCompany(page, kind)) return
     // The other half of the join: the wires' ends and arrows' tips already on the page, so the figure can be
     // lined up against them before the lift (`FigurePins.joinedBy`).
-    val compatible = PIN_DOT_PX / pxPerPt
-    for (target in FigurePins.joinedBy(page, kind)) {
-        drawCircle(
-            color = DesktopTheme.accent.copy(alpha = 0.85f),
-            radius = compatible,
-            center = Offset((target.absX * pxPerPt).toFloat(), (target.absY * pxPerPt).toFloat()),
-        )
-    }
-    val dot = PIN_PENDING_PX / pxPerPt
+    for (target in FigurePins.joinedBy(page, kind)) drawPinTarget(target, pxPerPt)
     for (draft in drafts) {
         if (draft.size < 2) continue
         val points = draft.map { StrokePoint(it.x, it.y, 1.0) }
-        for ((x, y) in FigurePins.pinsOf(kind, points)) {
-            drawCircle(
-                color = DesktopTheme.accent,
-                radius = dot,
-                center = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
-            )
-        }
+        for ((x, y) in FigurePins.pinsOf(kind, points)) drawPinDot(x, y, pxPerPt)
     }
 }
 
-/** A connection point's ring, in screen pixels — the tablet's `PIN_DOT_PX`. */
-private const val PIN_DOT_PX = 3.5f
+/**
+ * One pin of the page, as the tablet paints it: a **wire's end is a square**, every other pin a filled dot,
+ * both in the solid accent (`CircuitPinOverlay.drawPinTargets`).
+ *
+ * The window drew every target as a small circle at 85 % of the accent, so a wire's end looked like any other
+ * pin and a dot over a ruled page read as part of the ruling: the marks were there and still invisible, which
+ * is the report the tablet's own marks were changed for.
+ */
+private fun DrawScope.drawPinTarget(
+    target: CircuitSnapping.PinTarget,
+    pxPerPt: Float,
+    radiusPx: Float = PIN_DOT_PX,
+) {
+    val x = (target.absX * pxPerPt).toFloat()
+    val y = (target.absY * pxPerPt).toFloat()
+    if (target.isWireEnd) {
+        val half = WIRE_END_PX / pxPerPt
+        drawRect(DesktopTheme.accent, topLeft = Offset(x - half, y - half), size = Size(half * 2f, half * 2f))
+    } else {
+        drawCircle(DesktopTheme.accent, radius = radiusPx / pxPerPt, center = Offset(x, y))
+    }
+}
 
-/** The ring a component being placed would mint, in screen pixels. */
-private const val PIN_PENDING_PX = 4.5f
+/** A figure's **own** pin — the thing being joined — in the solid accent, as the tablet's `chrome.pin`. */
+private fun DrawScope.drawPinDot(x: Double, y: Double, pxPerPt: Float, radiusPx: Float = PIN_PENDING_PX) {
+    drawCircle(
+        color = DesktopTheme.accent,
+        radius = radiusPx / pxPerPt,
+        center = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
+    )
+}
+
+/**
+ * A connection point's dot, in screen pixels — the tablet's `PIN_DOT_PX`, a step larger.
+ *
+ * The window is drawn at density 1 on a wide monitor, where the tablet's 3.5 px dot is a speck over a ruled
+ * page: the pins were on the sheet and still not seen, the report the tablet's own marks were fixed for.
+ */
+private const val PIN_DOT_PX = 5f
+
+/** The dot a component being placed would mint, in screen pixels. */
+private const val PIN_PENDING_PX = 6f
+
+/** Half the side of the square that marks an **existing figure's end**, in screen pixels (`WIRE_END_PX`). */
+private const val WIRE_END_PX = 5f
+
+/** The dot a pin the magnet has **caught** wears, in screen pixels: filled and larger, so the catch reads. */
+private const val PIN_CAUGHT_PX = 7.5f
 
 /** How close two pins must be to count as one join, in page points — a little over a pixel. */
 private const val JOIN_PT = 0.75

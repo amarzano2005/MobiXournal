@@ -7,6 +7,7 @@ import com.mobixournal.desktop.tools.glassSpring
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +55,9 @@ internal fun ExportAsDialog(
         Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             ExportAnswerRow("PNG", "One raster image per page, 2 px per point.", onPng)
+            ExportAnswerRule()
             ExportAnswerRow("SVG", "One vector file per page.", onSvg)
+            ExportAnswerRule()
             ExportAnswerRow(
                 "Portable MobiXournal (.pmobix)",
                 "The notebook as one file, with what it only names embedded.",
@@ -66,6 +69,21 @@ internal fun ExportAsDialog(
             PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
         }
     }
+}
+
+/**
+ * The hairline between two answers — the rule the Settings pages draw between their rows, so the three
+ * formats read as three separate commands instead of one list of text.
+ */
+@Composable
+private fun ExportAnswerRule() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp)
+            .height(1.dp)
+            .background(DesktopTheme.hairline),
+    )
 }
 
 /** One answer of [ExportAsDialog]: its name and the one sentence that tells it from the other two. */

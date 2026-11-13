@@ -221,7 +221,10 @@ internal fun MenuPanel(
         // **Export As**: its three answers are a question of their own, asked in a card over the sheet
         // (`ExportAsDialog`) — a menu that unfolds a submenu is still a menu.
         MenuChipRow {
-            MenuChip("Export As", ChromeGlyph.EXPORT, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportAs)
+            MenuChip(
+                "Export As", ChromeGlyph.EXPORT, canExport, Modifier.weight(1f), DesktopTheme.accent,
+                onClick = onExportAs, centered = true,
+            )
         }
         // A rule between the **exports** and the **pen**: the two chips above it act on the document's
         // bytes, and everything under it acts on the pen or on the window. A reader scanning for "export"
@@ -474,6 +477,12 @@ private fun MenuChip(
     /** The command's own colour while it can act — red for a PDF, the accent for a page export. */
     tone: Color,
     onClick: () -> Unit,
+    /**
+     * Whether the art and the word sit in the chip's **middle**: a chip that is the only one on its line
+     * (Export As) reads as a centred button, while a pair side by side keeps both words flush with their
+     * art at the same left margin.
+     */
+    centered: Boolean = false,
 ) {
     val ink = if (enabled) tone else DesktopTheme.inkMuted
     Row(
@@ -487,7 +496,10 @@ private fun MenuChip(
             .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(
+            8.dp,
+            if (centered) Alignment.CenterHorizontally else Alignment.Start,
+        ),
     ) {
         if (glyph != null) {
             Canvas(Modifier.size(18.dp)) { drawChromeGlyph(glyph, ink) }
