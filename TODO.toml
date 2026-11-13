@@ -169,7 +169,7 @@ emulator_debug = false
 id = "portable-copy-open-save-policy"
 title = "A portable copy is opened, so say what saving one does"
 description = "A .pmobix is a .mobix container under an export suffix, and it now opens on both shells (desktop DOCUMENT_OPEN_TYPES lists *.pmobix; AndroidManifest.xml registers its pathPatterns). Plain Save on it therefore writes a mobix container back into the hand-off file, while docs/mobix-assets.md says the copy is never a document to keep editing. Decide one policy and implement it on both shells: either open a portable copy read-only through the existing verdict/read-only band, or allow editing and make its save write a working .mobix (Save As proposes <name>.mobix) while refusing plain Save in place with a sentence that names the copy. Record the choice in docs/mobix-assets.md (owner) and in docs/data-path.md's save policy; implement in desktop DesktopSaves.formatOf/DesktopTab.saveBack and in the Android save path (SaveTarget/MainActivity). Tests: DesktopSavesTest proves the chosen behaviour and that a refused save leaves the .pmobix byte-identical; a SaveTarget JVM test for the proposed name; keep DesktopFilePickerTest's open row. The Android read-back and the Windows lock-release passes are manual and stated as such. Do not change the CLI: it must keep validating a .pmobix as a .mobix."
-status = "active"
+status = "in-progress"
 level = "task"
 category = "feature"
 urgency = "high"
@@ -218,20 +218,6 @@ urgency = "high"
 order = 580
 created = 2026-11-10
 tags = ["mobix", "migration"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "portable-copy-format-home"
-title = "Give .pmobix a home in the format pages"
-description = "Document the portable profile where the format is owned. docs/mobix-format.md states that .pmobix is the portable profile of .mobix: same mimetype, schema and reader, a different extension only, with the portability promise and its best-effort limit, and that Save As still offers the two containers. docs/data-path.md says opening dispatches on the container's mimetype rather than the suffix and names the .pmobix alias; docs/guide-limitations.md gains the opening answer for both shells; docs/desktop-documents.md and docs/document-session.md link the save policy task rather than restating it. Link spec/README.md's reference-implementation section. Run DocsGuardTest and DocClaimsTest, and keep each sentence in one home."
-status = "active"
-level = "task"
-category = "docs"
-urgency = "normal"
-order = 585
-created = 2026-11-13
-tags = ["pmobix", "docs"]
 rebuild = false
 emulator_debug = false
 

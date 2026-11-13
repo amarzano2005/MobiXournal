@@ -31,8 +31,10 @@ are both ZIPs — so `DocumentIo.read` asks the archive what it *is*
 (`MobixContainer.isMobix`, i.e. the `mimetype` entry's content, container rule 2) and opens it the way
 that answer says. The verdict also fixes the **sticky SaveFormat**: a document opened as a `.mobix`
 saves as one, and one opened as a `.xopp` (gzip or ZIP package) saves as the `.xopp` it was, so
-travelling through this app never changes a file's format behind the user's back. Save As is the one
-place the format changes, and then the name it proposes carries the new suffix (the picker's declared
+travelling through this app never changes a file's format behind the user's back. An opened `.pmobix` is
+the portable alias of that same container: it is read and edited like a notebook, but Save is Save As,
+which proposes `<name>.mobix`, so the hand-off file is never written in place
+([mobix-assets.md](mobix-assets.md)). Save As is the one place the format changes, and then the name it proposes carries the new suffix (the picker's declared
 type changes with it, since a `.mobix` offered to the system as `application/x-xopp` would invite
 desktop Xournal++ to open something it cannot). The `desktop/` window follows the same rule through the same encoder, and its Save As switches it through the **type chosen in its save window** — which names the file in the same dialog; how it stages and moves the write is [desktop-documents.md](desktop-documents.md)'s. The tablet's dialog lists each format **once** — `.xopp`, `.mobix`, then the zipped package — and opens on the one the document already carries (`SaveAsDialog`).
 

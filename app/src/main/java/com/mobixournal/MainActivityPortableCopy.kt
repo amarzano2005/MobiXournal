@@ -81,7 +81,7 @@ internal fun MainActivity.savePortableCopy(uri: Uri) {
 
 /** The name an export opens on: the document's own, with the portable format's own extension. */
 internal fun MainActivity.suggestedPortableCopyName(): String =
-    suggestedSaveName().substringBeforeLast('.') + ".pmobix"
+    suggestedSaveName().substringBeforeLast('.') + PortableCopy.EXTENSION
 
 /**
  * The document's bytes copied into the cache, so the archive can be read twice — its central directory

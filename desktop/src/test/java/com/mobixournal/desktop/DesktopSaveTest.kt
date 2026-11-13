@@ -628,6 +628,33 @@ class DesktopSaveTest {
         assertTrue("a staged temp file was left behind: $leftovers", leftovers.isEmpty())
     }
 
+    /**
+     * A portable copy is a hand-off file, not a working one: no plain Save may write it back, on any door
+     * (Ctrl+S, auto save, closing). The refusal happens before the archive is released, so the copy on
+     * disk is byte-identical — the export someone was given cannot become a half-saved notebook.
+     */
+    @Test
+    fun refusesToSaveOverAPortableCopy() {
+        val file = temp.newFile("handed-on.pmobix").apply { delete() }
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(2))
+        val before = file.readBytes()
+        val opened = DocumentLoader.load(file)
+        val tab = DesktopTab(withExtraStroke(opened, x = 42.0, id = "stk_portable_edit"))
+        try {
+            val refused = org.junit.Assert.assertThrows(DesktopSaves.SaveRefused::class.java) { tab.saveBack() }
+            assertTrue(
+                "the refusal says how to keep working: ${refused.message}",
+                refused.message.orEmpty().contains("Save As"),
+            )
+            assertTrue(
+                "a refused save leaves the portable copy byte-identical",
+                before.contentEquals(file.readBytes()),
+            )
+        } finally {
+            opened.close()
+        }
+    }
+
     /** The module's working directory is `desktop/`, so walk up to the repository root. */
     private fun repoFile(name: String): File {
         var dir: File? = File(System.getProperty("user.dir")).absoluteFile

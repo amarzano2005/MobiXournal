@@ -195,6 +195,11 @@ nowhere. Because a `.mobix` and a ZIP-package `.xopp` are both ZIP archives, the
 `mimetype` entry's content, not the leading bytes — see container rule 2 in
 [mobix-schema-spec.md](mobix-schema-spec.md).
 
+`.pmobix` is that same container under a profile suffix: a portable copy, written to be handed on, with
+the same mimetype, schema and reader and only its own extension. It opens through the same `mimetype`
+dispatch; saving one writes a working `.mobix` rather than the copy ([mobix-assets.md](mobix-assets.md),
+[data-path.md](data-path.md)).
+
 Conversion is **never automatic on open**: opening a `.xopp` does not write a `.mobix` next to it, and
 opening a `.mobix` does not touch the `.xopp` it may have come from. A file the user did not ask to
 create does not appear on their disk (and in their sync client's history).

@@ -42,6 +42,9 @@ import java.io.File
  */
 fun DesktopShellState.saveOrPick(onSavePicker: () -> Unit) {
     val tab = tabs.active ?: return
+    // An opened portable copy is read like any notebook and written like none: Save is the Save As picker,
+    // which proposes the working `.mobix`; the copy itself is never touched (`docs/data-path.md`).
+    if (com.mobixournal.portability.PortableCopy.isPortableCopy(tab.file.name)) return onSavePicker()
     if (tab.unsaved) onSavePicker() else if (saveState.uiBound) requestSave() else save()
 }
 

@@ -1,5 +1,6 @@
 package com.mobixournal.io
 
+import com.mobixournal.format.SaveFormat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -77,6 +78,14 @@ class SaveTargetTest {
         assertEquals("Untitled.pdf", pdfNameFor(""))
         assertEquals("Untitled.pdf", pdfNameFor("   "))
         assertEquals("Untitled.pdf", pdfNameFor("Untitled"))
+    }
+
+    @Test
+    fun `a portable copy is proposed as a working mobix, never written in place`() {
+        // Save on an opened `.pmobix` opens Save As with this name: the portable export keeps its own
+        // suffix, and the document being worked on lands as the .mobix it is.
+        assertEquals("notes.mobix", saveNameFor("notes.pmobix", SaveFormat.MOBIX))
+        assertEquals("Untitled.mobix", saveNameFor("", SaveFormat.MOBIX))
     }
 
     @Test

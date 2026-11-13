@@ -2,6 +2,8 @@
 
 > Read when you read or write an `assets/` entry — a picture, a bundled PDF or a recording — or when one
 > is named and missing and you have to decide whether that is an empty element or a corrupt document.
+>
+> For the task: [What works, and what is not there](guide-limitations.md).
 
 Every binary a `.mobix` carries lives in `assets/` and nowhere else: a JSON part names one, and the
 archive holds the bytes under a name it derives from them. That is the whole design, and it buys three
@@ -139,7 +141,8 @@ ones it cannot as references. Three properties make it trustworthy rather than m
 
 - it produces a **normal `.mobix` container**, never a second container type: the embedded bytes are
   ordinary `assets/` entries, so anything that opens a notebook opens the copy — only the extension is
-  its own (`.pmobix`), because the file is an **export and never a document to keep editing**;
+  its own (`.pmobix`), because the file is an **export, never a document written in place**: Save on an
+  opened copy is Save As, and it proposes a working `.mobix`;
 - it **re-opens what it wrote** and verifies that every entry hashes to the name it carries, deleting a
   copy that fails — a broken "portable" file is worse than none;
 - it **says what it could not do**: the result lists what was embedded and what is still only a
@@ -157,6 +160,12 @@ portable copy opens with the same readers as the notebook it came from — the d
 `*.pmobix`, and Android's extension fallback registers the suffix for a tap — because the read dispatch
 is on the archive's `mimetype`, never on the name ([data-path.md](data-path.md)). **Save As** still
 offers only the two containers a document lives in.
+
+Opening one is therefore read-and-edit, but saving one is not: `PortableCopy.isPortableCopy` is the one
+predicate both shells gate on, so a Save never writes the copy back — the window's Save opens the Save As
+window on `<name>.mobix`, and the tablet's Save opens its picker on the same working name. The rule is
+pinned by `PortableCopyTest` (the suffix), `DesktopSaveTest` (a refused save leaves the copy
+byte-identical) and `SaveTargetTest` (the proposed name).
 
 ## Where the rule is checked
 

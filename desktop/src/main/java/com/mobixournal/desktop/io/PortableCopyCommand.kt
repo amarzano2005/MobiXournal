@@ -35,7 +35,12 @@ import java.util.zip.ZipFile
  * editing — only a file to hand on.
  */
 internal val PORTABLE_COPY_TYPES: List<PickerType> =
-    listOf(PickerType("Portable MobiXournal notebook (*.pmobix)", listOf(".pmobix")))
+    listOf(
+        PickerType(
+            "Portable MobiXournal notebook (*${PortableCopy.EXTENSION})",
+            listOf(PortableCopy.EXTENSION),
+        ),
+    )
 
 /**
  * Write a portable copy of [state]'s active document, asking where first.
@@ -51,7 +56,7 @@ fun savePortableCopy(state: DesktopShellState, window: Frame?): Boolean {
         window = window,
         title = "Export the notebook as a portable copy",
         types = PORTABLE_COPY_TYPES,
-        proposedName = tab.file.nameWithoutExtension + ".pmobix",
+        proposedName = tab.file.nameWithoutExtension + PortableCopy.EXTENSION,
         startIn = folder,
     ) ?: return false
     val destination = File(answer.file.absoluteFile.parentFile, portableCopyName(answer.file.name))
@@ -80,7 +85,8 @@ fun savePortableCopy(state: DesktopShellState, window: Frame?): Boolean {
 
 /** An export is always a `.pmobix`, whatever suffix the name field was left with. */
 internal fun portableCopyName(name: String): String =
-    if (name.endsWith(".pmobix", ignoreCase = true)) name else name.substringBeforeLast('.', name) + ".pmobix"
+    if (name.endsWith(PortableCopy.EXTENSION, ignoreCase = true)) name
+    else name.substringBeforeLast('.', name) + PortableCopy.EXTENSION
 
 /**
  * The file behind one absent reference, or null when this machine does not hold it.

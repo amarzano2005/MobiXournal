@@ -59,6 +59,9 @@ deep folder — `…\28-10-2026\Materiale\Le caratteristiche statiche…, il CMO
 
 A notebook **opened from Explorer** arrives as the command line's tail, and an unquoted path is split at every run of spaces — with the run **squeezed into one**, so `…/09)  21-10-2026/…` reaches `main` as `09) 21-10-2026`. `initialDocument` therefore reads the line Windows actually wrote (`rawCommandLine`, `kernel32!GetCommandLineW`) before it rearranges the arguments, so a double-clicked notebook opens with no dialog at all; `--args` splits its value on spaces too, and only when the line answers nothing are those pieces put back — `launchDocument` searching by name as a last resort, never by guessing.
 
+A document opened from a `.pmobix` is a portable copy: Save opens Save As on the working name
+([data-path.md](data-path.md)), and this window never replaces the copy itself.
+
 ## Unsaved edits: the dot, the question, and a snapshot
 
 A tab is **dirty** when the document holds commands its file does not, and the window does not answer that

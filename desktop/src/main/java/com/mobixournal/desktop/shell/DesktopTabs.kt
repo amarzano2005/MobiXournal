@@ -371,6 +371,14 @@ class DesktopTab(
         replace: (File, File) -> Unit = DesktopSaves::replace,
     ): List<Uncompilable> {
         val target = file
+        // A portable copy is a hand-off file, not a working one: writing this tab back over it would turn
+        // the export the author gave someone into a notebook two people now edit. Save As writes the
+        // working `.mobix`; the refusal says so instead of doing it quietly.
+        if (com.mobixournal.portability.PortableCopy.isPortableCopy(target.name)) {
+            throw com.mobixournal.desktop.io.DesktopSaves.SaveRefused(
+                com.mobixournal.desktop.io.DesktopSaves.PORTABLE_COPY_REFUSAL,
+            )
+        }
         val audioStore = document.audioStore
         // A staged file an earlier failed save adopted, if there is one: once this save lands it is litter.
         val adopted = document.pageSource.takeIf { it.absoluteFile != document.file.absoluteFile }

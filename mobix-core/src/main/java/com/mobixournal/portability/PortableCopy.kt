@@ -179,6 +179,18 @@ object PortableCopy {
     /** The copy re-opened as something other than a faithful document; nothing partial is left behind. */
     class VerificationFailed(message: String) : IllegalStateException(message)
 
+    /**
+     * The suffix a portable copy carries.
+     *
+     * It is an alias, not a third container: the bytes are a `.mobix`, and the suffix exists so a copy is
+     * recognisable as one to hand on. Neither shell writes it in place — Save on an opened copy is Save As,
+     * which writes a working `.mobix` (`docs/mobix-assets.md`, `docs/data-path.md`).
+     */
+    const val EXTENSION = ".pmobix"
+
+    /** True when [fileName] names a portable copy rather than a working notebook. */
+    fun isPortableCopy(fileName: String): Boolean = fileName.endsWith(EXTENSION, ignoreCase = true)
+
     /** True when [file] is a `.mobix` this build would open — what "a normal `.mobix`" means. */
     fun isReadableCopy(file: File): Boolean =
         file.isFile && runCatching { MobixContainer.isMobix(file.inputStream().buffered()) }.getOrDefault(false)

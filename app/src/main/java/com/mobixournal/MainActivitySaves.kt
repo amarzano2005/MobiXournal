@@ -5,6 +5,7 @@ import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.pdfNameFor
 import com.mobixournal.io.saveNameFor
+import com.mobixournal.portability.PortableCopy
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.tabs.PendingSave
 import com.mobixournal.panes.EditorPane
@@ -55,6 +56,12 @@ private fun MainActivity.captureSave(format: SaveFormat = saveFormat, name: Stri
  */
 internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = captureSave(), quiet: Boolean = false) {
     request ?: return
+    // A portable copy is a hand-off file, never written in place: a Save As answered with a `.pmobix`
+    // name is refused here rather than turning the export into a notebook someone keeps editing.
+    if (PortableCopy.isPortableCopy(displayName(uri))) {
+        if (!quiet) toast("This is a portable copy, made to hand on: save a working .mobix instead.")
+        return
+    }
     val owner = panes.getOrNull(request.paneIndex) ?: return
     snapshotActiveTab(owner)
     val tab = request.tabIn(owner.tabs) ?: return
@@ -133,6 +140,14 @@ internal fun MainActivity.saveActiveTab() {
     if (tabs.isEmpty || tabs.active == null || tabs.active?.hydrated == false || tabs.active?.opening == true) return
     if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
         toast("Document is read-only")
+        return
+    }
+    // The opened file may be a portable copy: Save must not write the export back, so it opens the
+    // Save As picker on a working `.mobix` name — the same rule the window follows.
+    val name = tabs.active?.uri?.let(Uri::parse)?.let { displayName(it) }.orEmpty()
+    if (PortableCopy.isPortableCopy(name)) {
+        toast("This is a portable copy: choose where to keep working as a .mobix")
+        launchSavePicker(SaveFormat.MOBIX, saveNameFor(pendingSaveName, SaveFormat.MOBIX))
         return
     }
     snapshotActiveTab()

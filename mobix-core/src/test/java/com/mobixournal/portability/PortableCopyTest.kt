@@ -173,4 +173,18 @@ class PortableCopyTest {
         assertTrue("a portable copy never rewrites the file it read", before.contentEquals(source.readBytes()))
         assertTrue("the destination is a separate file", copy.length() > 0 && copy.absolutePath != source.absolutePath)
     }
+
+    /**
+     * The suffix is the only thing that distinguishes a hand-off copy from a notebook, and both shells
+     * decide "is this portable?" from it — so the rule is pinned here, including the case-insensitive
+     * spelling and the backup name that must not be mistaken for one.
+     */
+    @Test
+    fun aPortableCopyIsRecognisedByItsOwnSuffix() {
+        assertTrue(PortableCopy.isPortableCopy("notes.pmobix"))
+        assertTrue(PortableCopy.isPortableCopy("Notes.PMOBIX"))
+        assertFalse(PortableCopy.isPortableCopy("notes.mobix"))
+        assertFalse(PortableCopy.isPortableCopy("notes.pmobix.bak"))
+        assertFalse(PortableCopy.isPortableCopy("notes"))
+    }
 }

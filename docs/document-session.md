@@ -89,7 +89,8 @@ anyway: the model keeps the names it was read with (`Background.Pdf.bundledAsset
 `Background.Pixmap.bundledAsset`, `Stroke.bundledAudio`), and `carriedPayloads` (in `mobix-core`) reads those
 `assets/` entries back out of the staged copy the session still holds and hands them to the writer as
 payloads — so a picture or a recording that no page has ever adopted (a page that was never read) is
-not lost to a Save As. A document whose staged copy the session no longer holds has nothing left to
+not lost to a Save As. An opened portable copy is never written in place: Save is Save As with a
+working `.mobix` name ([data-path.md](data-path.md)). A document whose staged copy the session no longer holds has nothing left to
 read, which is the one case a payload can still be missing — the session keeps that staged copy while
 any tab or canvas holds the document and deletes it when none does (`MobixOpenSessions.prune`); the page that needs it is what
 `report-a-mobix-page-whose-background-is-missing` exists to report.

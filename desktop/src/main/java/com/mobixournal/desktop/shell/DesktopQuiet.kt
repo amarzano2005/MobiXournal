@@ -105,7 +105,8 @@ internal fun DesktopShellState.autoSaveNow() {
         enabled = prefs.autoSave,
         edited = tab.isDirty,
         readOnly = tab.document.readOnly,
-        hasTarget = !tab.unsaved,
+        hasTarget = !tab.unsaved &&
+            !com.mobixournal.portability.PortableCopy.isPortableCopy(tab.file.name),
         // A save already in flight owns the file: a quiet moment that lands inside a write would stage the same
         // notebook a second time, and the second stage is pure cost.
         busy = saveState.request != null,

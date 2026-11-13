@@ -166,6 +166,9 @@ object DesktopSaves {
                     "bundle a picture or a PDF it has no copy of. Save it as a .xopp or a .mobix instead.",
             )
         }
+        if (com.mobixournal.portability.PortableCopy.isPortableCopy(target.name)) {
+            throw SaveRefused(PORTABLE_COPY_REFUSAL)
+        }
         val folder = target.absoluteFile.parentFile
             ?: throw SaveRefused("That destination has no folder to write into.")
         val temp = stagingFile(folder)
@@ -194,6 +197,10 @@ object DesktopSaves {
 
     /** A save that would produce a file it could not open again, said in words the user can act on. */
     class SaveRefused(message: String) : IllegalStateException(message)
+
+    /** What a save to a portable copy is told instead, in one sentence both doors reuse. */
+    internal const val PORTABLE_COPY_REFUSAL =
+        "This is a portable copy, made to hand on: use Save As to keep working in a .mobix."
 
     /**
      * A staging file in [folder] — the same folder as the target, so the replace is one rename.
