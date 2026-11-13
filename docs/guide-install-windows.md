@@ -25,10 +25,13 @@ It is a **per-user** install: no administrator prompt, and the program lands in 
 
 During setup it offers two optional extras, both on by default:
 
-- associate `.mobix` and `.xopp` files with MobiXournal, so double-clicking a notebook opens the window;
+- associate `.mobix`, `.pmobix` and `.xopp` files with MobiXournal, so double-clicking a notebook or a
+  portable copy opens the window;
 - put a shortcut on the desktop.
 
-Both can be declined, and associations can be changed later in Windows' own *Default apps* settings.
+Both can be declined, and associations can be changed later in Windows' own *Default apps* settings. A
+`.pmobix` is a portable export — a `.mobix` container under its own suffix — and opens in the same window;
+the installer associates it because a file you were handed is the one you are most likely to double-click.
 
 ### The installer is not signed
 

@@ -3,8 +3,8 @@
   The Windows installer, authored here rather than by jpackage.
 
   jpackage's MSI has one feature and no screen that offers a choice, so it cannot carry the option this
-  installer must have: `.mobix` and `.xopp` associations that a reader may switch **off** in the feature
-  tree (they are on by default). The app image is still jpackage's — `:desktop:createDistributable`, with
+  installer must have: `.mobix`, `.pmobix` and `.xopp` associations that a reader may switch **off** in the
+  feature tree (they are on by default). The app image is still jpackage's — `:desktop:createDistributable`, with
   its icon and its runtime — and `scripts/desktop-package.ps1` harvests it with heat, compiles this file
   with candle and links the MSI with light (`docs/tools.md`, *Desktop installer*).
 
@@ -91,6 +91,21 @@
                        Type="string" Value="application/vnd.mobixournal+zip" />
       </Component>
 
+      <!-- `.pmobix`: a portable copy, which is a `.mobix` container under its export suffix, so it shares
+           the same declared type and opens in the same launcher (`docs/mobix-assets.md`). -->
+      <Component Id="PmobixAssociation" Guid="A7F3C2D1-5B64-4E29-8C13-6D2B9F0A7E04">
+        <RegistryValue Root="HKCU" Key="Software\Classes\MobiXournal.pmobix"
+                       Type="string" Value="MobiXournal portable notebook" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\MobiXournal.pmobix\DefaultIcon"
+                       Type="string" Value="[INSTALLDIR]MobiXournal.exe,0" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\MobiXournal.pmobix\shell\open\command"
+                       Type="string" Value="&quot;[INSTALLDIR]MobiXournal.exe&quot; &quot;%1&quot;" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\.pmobix"
+                       Type="string" Value="MobiXournal.pmobix" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\.pmobix" Name="Content Type"
+                       Type="string" Value="application/vnd.mobixournal+zip" />
+      </Component>
+
       <!-- `.xopp`: the interchange format, opened by the same launcher and saved back as `.xopp`. -->
       <Component Id="XoppAssociation" Guid="B93E5A21-0C7D-4E63-8A54-3F1C2B9D7E03">
         <RegistryValue Root="HKCU" Key="Software\Classes\MobiXournal.xopp"
@@ -120,16 +135,17 @@
     <!--
       The installer's one question, answered **yes** on a fresh install: `Level=1` is what installs it by
       default, and `Absent="allow"` is what lets the feature tree switch it off, so a reader who keeps
-      `.mobix` and `.xopp` on another program is not overruled by the installer. (`Absent` is WiX 3's
-      spelling of this — it sets the MSI Feature table's *UI may allow absent* bit.)
+      `.mobix`, `.pmobix` and `.xopp` on another program is not overruled by the installer. (`Absent` is
+      WiX 3's spelling of this — it sets the MSI Feature table's *UI may allow absent* bit.)
     -->
     <Feature Id="FileAssociations"
-             Title="Associate .mobix and .xopp files"
-             Description="Opens MobiXournal when you double-click a .mobix notebook or an .xopp file."
+             Title="Associate .mobix, .pmobix and .xopp files"
+             Description="Opens MobiXournal when you double-click a .mobix notebook, a .pmobix portable copy or an .xopp file."
              Level="1"
              Absent="allow"
              Display="expand">
       <ComponentRef Id="MobixAssociation" />
+      <ComponentRef Id="PmobixAssociation" />
       <ComponentRef Id="XoppAssociation" />
     </Feature>
 

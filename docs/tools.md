@@ -163,7 +163,7 @@ completed task** (`AGENTS.md`, build flags — a stale `.exe` is a feature deliv
 `scripts/desktop-package.ps1` builds the app image (`:desktop:createDistributable -PdesktopOnly`), harvests it
 with `heat` and links `desktop/build/installer/MobiXournal-<version>.msi` from `desktop/installer/main.wxs` with
 `candle`/`light` — not jpackage's MSI, whose one feature offers no choice, while this feature tree does:
-`.mobix`/`.xopp` associations and a desktop shortcut, on by default and switchable off, per user, under
+`.mobix`/`.pmobix`/`.xopp` associations and a desktop shortcut, on by default and switchable off, per user, under
 `%LOCALAPPDATA%`. It is signed whenever `MOBIX_SIGN_PFX_BASE64`+`MOBIX_SIGN_PFX_PASSWORD`, `MOBIX_SIGN_PFX` or
 `MOBIX_SIGN_THUMBPRINT` is set, unsigned otherwise; CI builds it and a `v*` tag releases it.
 

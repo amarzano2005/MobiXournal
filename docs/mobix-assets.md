@@ -164,5 +164,5 @@ offers only the two containers a document lives in.
 archive does not carry comes back as the container's malformed-document error rather than as a blank
 element. Fixture 03 is the positive case, and `MobixV1FixturesTest` checks that its names are the hashes
 of their own bytes and that they survive a save. `DesktopFilePickerTest` keeps `*.pmobix` in the window's
-open row and `ManifestIntentFilterTest` keeps its Android registration, so the copy can always be opened
-again.
+open row, `ManifestIntentFilterTest` keeps its Android registration and `InstallerFileAssociationsTest`
+the Windows installer's, so the copy can always be opened again.
