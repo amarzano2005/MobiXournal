@@ -118,7 +118,7 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 **Windows 11**
 
 1. Download `MobiXournal-<version>.msi` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases) and run it.
-2. Confirm the SmartScreen prompt, and keep or decline the associations and shortcut.
+2. Confirm the SmartScreen prompt, and keep or decline the `.mobix`, `.pmobix` and `.xopp` associations and the shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
 A new tab is empty until saved: **Save As** picks the format, the system's picker the name; **Save** writes.
