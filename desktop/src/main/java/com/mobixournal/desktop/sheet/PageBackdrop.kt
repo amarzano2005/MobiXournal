@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.imageio.ImageIO
 import org.apache.pdfbox.pdmodel.PDDocument
+import com.mobixournal.desktop.previews.PdfRenderGate
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.jetbrains.skia.Image as SkiaImage
 
@@ -165,8 +166,9 @@ class PageBackdrop(
         if (pdf.numberOfPages == 0) return null
         val index = pageNo.coerceIn(0, pdf.numberOfPages - 1)
         // PDFBox draws on the JVM's 2D pipeline; the result reaches Skia as PNG because a
-        // BufferedImage's pixels are not a layout Compose can wrap directly.
-        return decode(PDFRenderer(pdf).renderImage(index, PDF_SCALE).toPng())
+        // BufferedImage's pixels are not a layout Compose can wrap directly. The gate is what keeps this
+        // raster from being interleaved with the import card's previews of the same file ([PdfRenderGate]).
+        return PdfRenderGate.page { decode(PDFRenderer(pdf).renderImage(index, PDF_SCALE).toPng()) }
     }
 
     private fun decode(bytes: ByteArray): ImageBitmap? =

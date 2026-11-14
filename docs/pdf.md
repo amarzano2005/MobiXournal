@@ -212,6 +212,16 @@ so the PDF that was there keeps its contents and relinking the PDF is the whole 
 is the box the export imports that page by, so a mark drawn on screen lands over the ink it was drawn
 over. Reading the media box instead made every cropped PDF's sheet larger than its picture.
 
+**One rasterisation at a time, in the whole window.** PDFBox is explicit that it is not thread-safe, and the
+drawing machinery behind a `PDFRenderer` — the font mapper, the glyph cache — is shared state: two renders at
+once answer one document's fonts or widths to the other, and the page arrives with the right layout and the
+wrong glyphs. The window has three surfaces that rasterise the same file (the canvas, the page list, the
+import card's previews), and they overlapped the moment a PDF-backed document was scrolled with the card
+open. Every PDFBox raster in the window therefore goes through `PdfRenderGate`, a lock and nothing else: the
+rasters are cached, so serialising them costs no visible latency. The tablet serialises the import card the
+same way (`PdfThumbnailCache` renders one page at a time) and needs no wider gate — its `PdfRenderer` draws
+pages through the platform, not through PDFBox's shared caches.
+
 Evidence: these rules are covered by JVM and renderer tests — `DesktopPdfDurabilityTest`,
 `DesktopPdfMergeTest`, `DesktopPdfImportTest`, `DesktopPdfExportTest`, `PdfStoreTest` and
 `PdfExportTest`. The tablet's side of the pin is tested on the store only; driving a joined notebook

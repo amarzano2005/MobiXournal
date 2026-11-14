@@ -38,7 +38,10 @@ internal class PdfThumbnailCache(
 
     private val images = mutableStateMapOf<Int, ImageBitmap>()
     private val pending = HashSet<Int>()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // One preview at a time: an Android `PdfRenderer` is not thread-safe either, and two cells scrolled into
+    // view together would render the same page set on two pool threads at once (see `DesktopPdfThumbnails`,
+    // which learned this the hard way). A preview is small, so the queue is invisible.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
     private val source: PdfPageCache? = runCatching { PdfPageCache(file) }.getOrNull()
     private var closed = false
 
