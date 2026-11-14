@@ -1,8 +1,9 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,14 +27,17 @@ import com.mobixournal.ui.theme.FloatingDialog
 import com.mobixournal.ui.theme.rememberClosingArgument
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfOutlineEntry
-
-/** How far one nesting level indents a row of the list. */
-private val CONTENT_INDENT = 14.dp
 
 /**
  * The **Contents** door, as the page list's own: one glyph at the lane's foot, the PDF's outline behind it.
@@ -87,52 +91,105 @@ internal fun PdfContentsDialog(
         title = { Text("Contents") },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         text = {
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(outline.entries) { entry ->
-                    ContentsRow(
-                        entry = entry,
-                        onClick = {
-                            onGoToPdfPage(entry.pageIndex)
-                            onDismiss()
-                        },
-                    )
+            // The row's own width, not the screen's: in a split-screen pane the card is what the list has.
+            BoxWithConstraints {
+                val widthDp = maxWidth.value
+                val widest = largestPageNumber(outline)
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(outline.entries) { entry ->
+                        ContentsRow(
+                            entry = entry,
+                            rowWidthDp = widthDp,
+                            largestPageNumber = widest,
+                            onClick = {
+                                onGoToPdfPage(entry.pageIndex)
+                                onDismiss()
+                            },
+                        )
+                    }
                 }
             }
         },
     )
 }
 
-/** One Contents row: its title, indented by depth, with the target page number on the right. */
+/** The widest page number the card will print — the number its column is reserved from. */
+private fun largestPageNumber(outline: PdfOutline): Int =
+    outline.entries.maxOfOrNull { if (it.hasDestination) it.pageIndex + 1 else 0 } ?: 0
+
+/**
+ * One Contents row: its title, indented by depth, with the page it leads to in a column of its own.
+ *
+ * The indentation, the column and the announcement come from [ContentsRowLayout], so this row and the
+ * window's say the same thing about the same outline; what is the tablet's own is the type — a chapter
+ * heading in the heading face and its sections under it in the body face.
+ */
 @Composable
-private fun ContentsRow(entry: PdfOutlineEntry, onClick: () -> Unit) {
+private fun ContentsRow(
+    entry: PdfOutlineEntry,
+    rowWidthDp: Float,
+    largestPageNumber: Int,
+    onClick: () -> Unit,
+) {
+    val pageColumnDp = ContentsRowLayout.pageColumnDp(
+        largestPageNumber = largestPageNumber,
+        rowWidthDp = rowWidthDp,
+        fontScale = LocalDensity.current.fontScale,
+    )
+    val heading = ContentsRowLayout.isHeading(entry.depth)
+    val number = (entry.pageIndex + 1).takeIf { entry.hasDestination }
+    val ink = if (entry.hasDestination) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = entry.hasDestination, onClick = onClick)
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .clickable(enabled = entry.hasDestination, role = Role.Button, onClick = onClick)
+            // One announcement for the whole row: a title, a page and whether it opens at all, instead of a
+            // title with a lone number beside it and a click that may do nothing.
+            .semantics(mergeDescendants = true) {
+                contentDescription = ContentsRowLayout.announcement(entry.title, number)
+            }
+            .padding(
+                start = ContentsRowLayout.indentDp(entry.depth, rowWidthDp, pageColumnDp).dp,
+                top = 6.dp,
+                bottom = 6.dp,
+            ),
+        // The number sits on the title's **first** line, not halfway down a two-line title: a table of
+        // contents whose figures float between the lines is a table of contents nobody can scan.
+        verticalAlignment = Alignment.Top,
     ) {
-        Spacer(Modifier.width(CONTENT_INDENT * entry.depth + 4.dp))
         Text(
             text = entry.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (entry.depth == 0) FontWeight.Medium else FontWeight.Normal,
-            color = if (entry.hasDestination) {
-                MaterialTheme.colorScheme.onSurface
+            style = if (heading) {
+                MaterialTheme.typography.titleSmall
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                MaterialTheme.typography.bodyMedium
             },
+            // Inter ships 400, 500 and 700 (`TypeContractGuardTest`): the heading step is the larger face
+            // plus the one weight the theme owns, not a 600 the family answers with 700.
+            fontWeight = if (heading) FontWeight.Medium else FontWeight.Normal,
+            color = ink,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        if (entry.hasDestination) {
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "${entry.pageIndex + 1}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // The column is kept on every row, empty where a row leads nowhere, so the titles end on one line
+        // and a four-digit page does not narrow its neighbours.
+        Box(
+            modifier = Modifier.width(pageColumnDp.dp),
+            contentAlignment = Alignment.TopEnd,
+        ) {
+            if (number != null) {
+                Text(
+                    text = "$number",
+                    style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                )
+            }
         }
     }
 }

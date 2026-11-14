@@ -7,6 +7,8 @@ import com.mobixournal.desktop.settings.drawChromeGlyph
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,9 +29,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.ContentsRowLayout
 
 /**
  * The PDF's **Contents** in the page sidebar: a collapsible section under the page list, filled from the
@@ -77,38 +85,81 @@ internal fun PdfContentsSection(tab: DesktopTab, onSelectPage: (Int) -> Unit) {
             Text("No contents", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
             return@Column
         }
-        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
-            items(rows) { row -> OutlineRowView(row, onSelectPage) }
+        // The row's own width, not the window's: the sidebar is a column the reader can narrow, and the
+        // indentation gives way to the title rather than the other way round.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val widthDp = maxWidth.value
+            val widest = largestPageNumber(rows)
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
+                items(rows) { row -> OutlineRowView(row, widthDp, widest, onSelectPage) }
+            }
         }
     }
 }
 
-/** One Contents row: its indent, its title, and the page it leads to. */
+/** The widest page number the list will print — the number its column is reserved from. */
+private fun largestPageNumber(rows: List<OutlineRow>): Int = (rows.maxOfOrNull { it.page ?: 0 } ?: 0) + 1
+
+/**
+ * One Contents row: its indent, its title, and the page it leads to in a column of its own.
+ *
+ * The indentation, the column and the announcement come from [ContentsRowLayout], so this row and the
+ * tablet's say the same thing about the same outline — a chapter heading in the heading face, its sections
+ * under it smaller and lighter, a row that leads nowhere dimmed and not clickable.
+ */
 @Composable
-private fun OutlineRowView(row: OutlineRow, onSelectPage: (Int) -> Unit) {
+internal fun OutlineRowView(
+    row: OutlineRow,
+    rowWidthDp: Float,
+    largestPageNumber: Int,
+    onSelectPage: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val pageColumnDp = ContentsRowLayout.pageColumnDp(
+        largestPageNumber = largestPageNumber,
+        rowWidthDp = rowWidthDp,
+        fontScale = LocalDensity.current.fontScale,
+    )
     val target = row.page
+    val number = target?.plus(1)
+    val heading = ContentsRowLayout.isHeading(row.depth)
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
-            .hoverFill(RoundedCornerShape(8.dp))
-            .then(if (target != null) Modifier.clickable { onSelectPage(target) } else Modifier)
-            .padding(start = (row.depth * 10).dp, top = 3.dp, bottom = 3.dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            // A row that leads nowhere answers the pointer with nothing: `active` keeps the hover light off
+            // it, so the row's own "cannot be opened" is not contradicted by a highlight.
+            .hoverFill(RoundedCornerShape(8.dp), active = target == null)
+            .clickable(enabled = target != null, role = Role.Button) {
+                if (target != null) onSelectPage(target)
+            }
+            // One announcement for the whole row: the title, the page and whether it opens at all.
+            .semantics(mergeDescendants = true) {
+                contentDescription = ContentsRowLayout.announcement(row.title, number)
+            }
+            .padding(
+                start = ContentsRowLayout.indentDp(row.depth, rowWidthDp, pageColumnDp).dp,
+                top = 3.dp,
+                bottom = 3.dp,
+                end = 4.dp,
+            ),
+        // The number sits on the title's first line, as on the tablet: a wrapped title must not leave its
+        // page number floating between the two lines.
+        verticalAlignment = Alignment.Top,
     ) {
         Text(
             text = row.title,
             // An entry with no page is shown but not jumpable: dimmed, as the tablet draws it.
             color = if (target != null) DesktopTheme.ink else DesktopTheme.inkMuted,
-            style = DesktopTheme.tab,
-            maxLines = 1,
+            style = if (heading) DesktopTheme.tab else DesktopTheme.label,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.weight(1f))
-        if (target != null) {
-            Text(
-                text = "${target + 1}",
-                color = DesktopTheme.inkMuted,
-                style = DesktopTheme.numeric,
-            )
+        // Reserved on every row, empty where there is no page, so the titles end on one line.
+        Box(Modifier.width(pageColumnDp.dp), contentAlignment = Alignment.TopEnd) {
+            if (number != null) {
+                Text(text = "$number", color = DesktopTheme.inkMuted, style = DesktopTheme.numeric)
+            }
         }
     }
 }

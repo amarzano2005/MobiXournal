@@ -149,6 +149,13 @@ reasoning that keeps desktop Xournal++'s PDF text selection out of the saved doc
 when opened, and resolves a click through `Background.Pdf.pageNo` — never an offset — so a merged PDF
 still lands on the right page.
 
+A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): the indent a level buys is
+capped by the row's own width so the title never drops under its minimum, the page number keeps a column
+reserved from the widest number in the list (and reserved on a row that leads nowhere, which is what keeps
+the titles' right edge straight), depth 0 is the heading each shell sets in its heading face, and a row
+announces its title, its page and whether it opens as one sentence. `ContentsRowLayoutTest` holds the
+arithmetic and `DesktopPdfContentsRowTest` lays rows out in a narrow sidebar at 100 % and 150 % text.
+
 ## Joined PDFs: lifetime, publishing and refusing a blank sheet
 
 A document holds **one** PDF reference, so a second import is *joined* into the first

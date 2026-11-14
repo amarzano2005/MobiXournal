@@ -76,6 +76,14 @@ bookmark tree the file already had. Tapping goes by the PDF's own page number ra
 even a merged PDF lands on the right sheet; an entry with no destination inherits the page of the nearest
 chapter below it, and an entry that points nowhere is listed but not tappable.
 
+**The list reads as a tree, not as lines of text.** A chapter stands in the heading face and its sections
+sit smaller and lighter under it, each level indented a step further — but the indent stops before the
+title does, so an eight-deep bookmark in a split-screen pane or a narrow sidebar keeps its whole name
+instead of running off the edge. The page number every entry leads to keeps a column of its own, wide
+enough for four digits and reserved even on a row that leads nowhere, which is what keeps the numbers
+lined up under each other however long the title beside them is. At 150 % text the rows grow sideways not
+one pixel: they get taller.
+
 Navigation only: the notebook format has nowhere to keep a bookmark tree, so the outline is read from the
 PDF and your file is untouched by it.
 
