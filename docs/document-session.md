@@ -212,7 +212,10 @@ The design decisions worth keeping:
   own lane over its own half (`SplitTabRow`), the focused pane's numbered badge wears the accent, and
   a touch anywhere in a lane — a chip, its "+", even its empty space — focuses that pane. Selecting a
   tab, adding one or closing one also focuses the pane it happened in, and a *move* to the other pane
-  hands focus to the destination; a mirror leaves it where it was.
+  hands focus to the destination; a mirror leaves it where it was. An **empty lane keeps drawing**: its
+  badge and its "+" stay, and the half itself becomes the entry screen (`PaneEntry`) rather than a
+  surface still painting the tab that was just closed, so the document that left the split is one tap
+  from being reopened into it. Only the window with nothing open anywhere is the entry screen.
 - **Each pane persists separately.** `TABS_DIRS` gives pane 0 the historical `filesDir/tabs` and pane
   1 `filesDir/tabs-right`, so an existing session still restores and the right-hand pane's documents
   survive both a split-view toggle and a restart. `onPause` snapshots and writes *both*.

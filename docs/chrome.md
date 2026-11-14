@@ -273,15 +273,15 @@ the `top_bar_order_migrated_v2` flag, while a hand-arranged row is never rewritt
 
 ## Starting with nothing open
 
-The window **is** the entry screen whenever the pane has no tab — no header, no tab strip and no
-rail, so the block centres in the whole window instead of in what a bar left over. The recents grid
-sizes its cards to the width it is given, so a phone shows three to a line where a fixed grid clipped
-the third: the doors — *New sheet*, *Restore last session* when the last run was killed with tabs
-open, *Open…*, and the notebooks opened lately as cards whose face is their first page — in three
-columns when the width is there and in one when it is not. It is the PC window's screen, whose design
-[`desktop-ui-layout.md`](desktop-ui-layout.md) owns, drawn with the tablet's own tokens: a card is the
-sheet's rectangle, carries no rim and no fill, is lifted in the theme's ink, and its caption starts on the
-paper rather than a halo's width before it.
+The window **is** the entry screen whenever **no** pane has a tab — no header, no tab strip and no rail,
+so the block centres in the whole window instead of in what a bar left over. A **half** of a split with no
+document is not that state: the other half is open, so the workspace stays, and the empty half draws the
+entry screen itself (`PaneEntry`) — its lane keeps its badge and its `+`, so a notebook closed out of the
+split comes back in from there. The recents grid sizes its cards to the width it is given: the doors are
+*New sheet*, *Open…* and the notebooks opened lately as cards whose face is their first page, three to a
+line when the width is there and one when it is not. It is the PC window's screen, whose design
+[`desktop-ui-layout.md`](desktop-ui-layout.md) owns: same tokens, cards without rim or fill, captions on
+the paper rather than a halo's width before it.
 
 Closing the last tab leaves the pane **empty** rather than opening a blank document — that is what
 makes "nothing open" a state at all. Each card carries a red `×` on its corner that takes it out of the recents, and the

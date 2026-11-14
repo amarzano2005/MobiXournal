@@ -36,7 +36,9 @@ class SourceStructureTest {
         // (`ShapeEditorHost`), so the canvas file pays one line for it, not twenty.
         // +14 deliberate: the split workspace's own window plumbing — the pane session bridge and the
         // shared document an editing pane hands its mirror, both passed straight through to the canvas.
-        "ui/EditorRegions.kt" to 1776,
+        // +8 deliberate: a pane with no document draws the entry screen instead of a dead canvas, so its
+        // focus gesture is declared once and used by both branches.
+        "ui/EditorRegions.kt" to 1784,
         // +5 deliberate: the editable page window it owns (pageSource / pageWindow / resetPageWindow).
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
@@ -64,7 +66,9 @@ class SourceStructureTest {
         // (`holdSnap.enabled`) rather than in a mutable member on the view.
         // +3 deliberate: the **Export As** card's three answers, passed through the screen to the overlays
         // that host it — the card's flag is the screen's, so its commands have to reach that far.
-        "ui/EditorScreen.kt" to 705,
+        // +16 deliberate: the empty half of a split draws the entry screen in its own pane, so the screen
+        // counts each pane's documents and hands down the entry the window shows when none is open.
+        "ui/EditorScreen.kt" to 721,
         // The two that carry the window's half of auto save, one deliberate line each over the budget: a stored
         // boolean in the settings file, and the state that the Documents switch and the quiet job both read.
         // The rule itself lives in `mobix-core` (`io/AutoSavePolicy.kt`), not here.

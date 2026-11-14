@@ -1604,24 +1604,39 @@ fun EditorPaneView(
     onActivePane: (Int) -> Unit,
     onSurfaceCreated: (Int, DrawingSurfaceView) -> Unit,
     onPickImage: (Placement) -> Unit,
+    /**
+     * What the pane draws when it holds no document: the entry screen, **in that half**, so the notebooks
+     * closed out of a split can be reopened straight back into it. Null while the pane has a tab, and the
+     * pane then builds its canvas as it always did.
+     */
+    emptyEntry: (@Composable (Modifier) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val state = ui.panes[index]
     val chrome = rememberCanvasChromeColors()
     val latestSettings = rememberUpdatedState(settings)
+    // A touch anywhere in the pane — an entry card as much as the canvas — hands it focus on the initial
+    // pass, before the card or the canvas handles the event, so what the touch does already belongs here.
+    val paneFocus = Modifier.pointerInput(index) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            onActivePane(index)
+            // The touch is about to reach the canvas, so the focused pane must already hold the
+            // tool and style the chrome is showing (see [applyLiveStyle]).
+            state.surface?.applyLiveStyle(ui)
+            // Request focus so key events arrive only when we are not editing an element or searching
+            if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null &&
+                ui.editingShape == null && !state.searchOpen) state.surface?.requestFocus()
+        }
+    }
+    if (emptyEntry != null) {
+        // No document, no canvas: the half **is** its own entry screen, instead of a surface still painting
+        // the tab that was just closed and taking no document back.
+        Box(modifier = modifier.then(paneFocus)) { emptyEntry(Modifier.fillMaxSize()) }
+        return
+    }
     Column(
-        modifier = modifier.pointerInput(index) {
-            awaitEachGesture {
-                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                onActivePane(index)
-                // The touch is about to reach the canvas, so the focused pane must already hold the
-                // tool and style the chrome is showing (see [applyLiveStyle]).
-                state.surface?.applyLiveStyle(ui)
-                // Request focus so key events arrive only when we are not editing an element or searching
-                if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null &&
-                    ui.editingShape == null && !state.searchOpen) state.surface?.requestFocus()
-            }
-        },
+        modifier = modifier.then(paneFocus),
     ) {
         // The document tabs are the top bar's own second row ([EditorTopBar]) — one slab, with the
         // tools row above them — and in full-page mode there is no bar at all, so this pane is the

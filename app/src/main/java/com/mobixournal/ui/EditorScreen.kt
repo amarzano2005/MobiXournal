@@ -365,7 +365,9 @@ fun EditorScreen(
                 // With nothing open the window **is** the entry screen: no header, no tab strip, no rail.
                 // The bars have nothing to act on there, and they took the band of height the block needed
                 // to centre in — the same reason the PC window's screen is one surface between its bands.
-                val nothingOpen = activeTabs.titles.isEmpty()
+                // An **empty half** of a split is not "nothing open": the other half is, and focusing the
+                // empty one must not take the workspace away from the tap that only meant "the tools go here".
+                val nothingOpen = tabs.none { it.titles.isNotEmpty() }
                 if (!ui.fullPage && !nothingOpen) {
                     if (topBar != null) {
                         topBar(ui, pane, activeTabs)
@@ -415,6 +417,13 @@ fun EditorScreen(
                         onActivePane = onActivePane,
                         onSurfaceCreated = onSurfaceCreated,
                         onPickImage = onPickImage,
+                        tabCounts = tabs.map { it.titles.size },
+                        paneEntry = { paneModifier ->
+                            PaneEntry(
+                                recents, onNewDocument, onOpen, onOpenRecent, onRemoveRecent,
+                                onRestoreSession, paneModifier,
+                            )
+                        },
                         paneChrome = paneChrome,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -555,6 +564,10 @@ private fun EditorBody(
     onActivePane: (Int) -> Unit,
     onSurfaceCreated: (Int, DrawingSurfaceView) -> Unit,
     onPickImage: (Placement) -> Unit,
+    /** How many documents each pane holds, so a pane with none can offer the entry inside its half. */
+    tabCounts: List<Int>,
+    /** The entry screen a pane with no document draws in its own half. */
+    paneEntry: @Composable (Modifier) -> Unit,
     paneChrome: @Composable (EditorUiState, PaneState, AppSettings, (AppSettings) -> Unit, AudioUiState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -571,6 +584,8 @@ private fun EditorBody(
     val latestOnActivePane = rememberUpdatedState(onActivePane)
     val latestOnSurfaceCreated = rememberUpdatedState(onSurfaceCreated)
     val latestOnPickImage = rememberUpdatedState(onPickImage)
+    val latestTabCounts = rememberUpdatedState(tabCounts)
+    val latestPaneEntry = rememberUpdatedState(paneEntry)
     val paneAt: @Composable (Int, Modifier) -> Unit = { index, paneModifier ->
         EditorPaneView(
             index = index,
@@ -580,6 +595,7 @@ private fun EditorBody(
             onActivePane = latestOnActivePane.value,
             onSurfaceCreated = latestOnSurfaceCreated.value,
             onPickImage = latestOnPickImage.value,
+            emptyEntry = latestPaneEntry.value.takeIf { latestTabCounts.value.getOrNull(index) == 0 },
             modifier = paneModifier,
         )
     }

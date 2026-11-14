@@ -128,12 +128,13 @@ data class TabsUiState(
  * canvas; the trailing "+" opens a fresh blank one.
  *
  * Always shown once a document is open — including the single-document case — so "new tab", "close"
- * and "switch" sit in the same place no matter how many documents are loaded. Only an empty session
- * (no tabs at all) draws nothing.
+ * and "switch" sit in the same place no matter how many documents are loaded. In split view an **empty
+ * lane** still draws itself: its badge and its "+" are how the half that was just emptied is given a
+ * document back. Only a session with nothing open and nowhere else to put a document draws nothing.
  */
 @Composable
 fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
-    if (state.titles.isEmpty()) return
+    if (state.titles.isEmpty() && state.paneCount <= 1) return
     // Drag-reorder state lives here, not in the chip: a drag walks the tab past its neighbours, so the
     // slot the gesture started in stops being the dragged tab after the first swap. [dragIndex] is
     // where the dragged tab sits *now*, and [dragOffset] is how far past its slot the finger is.
