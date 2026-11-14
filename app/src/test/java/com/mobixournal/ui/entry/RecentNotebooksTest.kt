@@ -69,7 +69,7 @@ class RecentNotebooksTest {
             ),
             activeIndex = 0,
         )
-        val cards = EntryCards.of(session, listOf(notebook("a"), notebook("b")))
+        val cards = EntryCards.of(session, null, listOf(notebook("a"), notebook("b")))
         assertEquals(listOf("Untitled", "notes.xopp", "b"), cards.map { it.name })
         assertEquals(listOf(true, true, false), cards.map { it.fromPreviousSession })
         assertEquals("t2", cards[1].sessionTab)
@@ -78,7 +78,49 @@ class RecentNotebooksTest {
     @Test
     fun noSessionLeavesTheRecentsAsTheyAre() {
         val list = listOf(notebook("a"), notebook("b"))
-        assertEquals(list, EntryCards.of(null, list))
+        assertEquals(list, EntryCards.of(null, null, list))
+    }
+
+    @Test
+    fun aRunClosedInSplitViewIsOneCardForBothHalves() {
+        val left = TabSession(
+            listOf(OpenTab("l1", "sql.mobix", blankDocument(), uri = "content://docs/a")),
+            activeIndex = 0,
+        )
+        val right = TabSession(
+            listOf(OpenTab("r1", "deep-outline.mobix", blankDocument(), uri = "content://docs/b")),
+            activeIndex = 0,
+        )
+        val cards = EntryCards.of(left, right, listOf(notebook("a"), notebook("b"), notebook("c")))
+        // The workspace is one card, its two documents are not also listed on their own.
+        assertEquals(listOf("sql.mobix · deep-outline.mobix", "c"), cards.map { it.name })
+        assertTrue(cards[0].fromSplitSession)
+        assertEquals("l1", cards[0].sessionTab)
+        assertEquals("r1", cards[0].splitTab)
+    }
+
+    @Test
+    fun aRightPaneWithNothingOpenIsNoSplitCard() {
+        val right = TabSession(listOf(OpenTab("r1", "notes.xopp", blankDocument())), activeIndex = 0)
+        val cards = EntryCards.of(null, right, listOf(notebook("a")))
+        assertEquals(listOf("a"), cards.map { it.name })
+        assertTrue(cards.none { it.fromSplitSession })
+    }
+
+    @Test
+    fun aSplitCardKeepsTheRightHalfsTabToo() {
+        val card = RecentNotebook("content://docs/a", "a · b", sessionTab = "l1", splitTab = "r1")
+        assertEquals(listOf(card), RecentNotebooks.decode(RecentNotebooks.encode(listOf(card))))
+        assertTrue(card.fromSplitSession)
+    }
+
+    @Test
+    fun aListWrittenBeforeSplitCardsStillReads() {
+        // Three fields: a build that knew no split (see `RecentNotebooks.encode`).
+        val row = "content://docs/a\u001Fa\u001Ftab-1"
+        val back = RecentNotebooks.decode(row)
+        assertEquals("tab-1", back.single().sessionTab)
+        assertEquals(null, back.single().splitTab)
     }
 
     @Test

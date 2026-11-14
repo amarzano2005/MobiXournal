@@ -278,10 +278,10 @@ so the block centres in the whole window instead of in what a bar left over. A *
 document is not that state: the other half is open, so the workspace stays, and the empty half draws the
 entry screen itself (`PaneEntry`) — its lane keeps its badge and its `+`, so a notebook closed out of the
 split comes back in from there. The recents grid sizes its cards to the width it is given: the doors are
-*New sheet*, *Open…* and the notebooks opened lately as cards whose face is their first page, three to a
-line when the width is there and one when it is not. It is the PC window's screen, whose design
-[`desktop-ui-layout.md`](desktop-ui-layout.md) owns: same tokens, cards without rim or fill, captions on
-the paper rather than a halo's width before it.
+*New sheet*, *Open…* and the notebooks opened lately as cards whose face is their first page — and a run
+closed **in split view** is one card wearing that glyph, naming both halves, because what it reopens is a
+workspace. Three cards to a line when the width is there and one when it is not. It is the PC window's
+screen, whose design [`desktop-ui-layout.md`](desktop-ui-layout.md) owns: same tokens, no rim, no fill.
 
 Closing the last tab leaves the pane **empty** rather than opening a blank document — that is what
 makes "nothing open" a state at all. Each card carries a red `×` on its corner that takes it out of the recents, and the

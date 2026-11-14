@@ -216,6 +216,13 @@ The design decisions worth keeping:
   badge and its "+" stay, and the half itself becomes the entry screen (`PaneEntry`) rather than a
   surface still painting the tab that was just closed, so the document that left the split is one tap
   from being reopened into it. Only the window with nothing open anywhere is the entry screen.
+- **The split itself is remembered.** Turning split view on gives the right pane **a sheet of its own** if it
+  holds nothing — a half with no document is a placeholder — and records that the split is where the app
+  will be closed (the `split_open` flag beside the recents, not in `AppSettings`). A run closed that way is
+  offered on the next launch as **one** card naming both halves: taking it opens the right pane's tabs and
+  the left pane's session and switches the split on, each document on the page it was left on, so the
+  workspace comes back whole rather than as two documents to assemble (`EntryCards`, `adoptSplitSession`).
+  The left pane's tabs are not listed singly while that card stands: the reader left a workspace.
 - **Each pane persists separately.** `TABS_DIRS` gives pane 0 the historical `filesDir/tabs` and pane
   1 `filesDir/tabs-right`, so an existing session still restores and the right-hand pane's documents
   survive both a split-view toggle and a restart. `onPause` snapshots and writes *both*.

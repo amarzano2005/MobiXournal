@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.NoteAdd
+import androidx.compose.material.icons.outlined.VerticalSplit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -228,11 +229,14 @@ private fun RecentColumn(
                 line.forEach { notebook ->
                     SheetCard(
                         // A session card is keyed by its tab: two untitled documents have no URI to tell them apart.
-                        key = "recent:${notebook.sessionTab ?: notebook.uri}:$cardWidthDp",
+                        key = "recent:${notebook.splitTab ?: notebook.sessionTab ?: notebook.uri}:$cardWidthDp",
                         caption = notebook.name,
                         widthDp = cardWidthDp,
                         ink = ink,
-                        fromSession = notebook.fromPreviousSession,
+                        // A split card says "both halves reopen", which is more than "unsaved": one mark,
+                        // the one that describes it.
+                        fromSession = notebook.fromPreviousSession && !notebook.fromSplitSession,
+                        split = notebook.fromSplitSession,
                         load = { EntryPreviews.load(context, notebook.uri)?.asImage() },
                         onClick = { onOpenRecent(notebook) },
                         onRemove = { onRemoveRecent(notebook) },
@@ -274,6 +278,7 @@ private fun SheetCard(
     onClick: () -> Unit,
     onRemove: (() -> Unit)? = null,
     fromSession: Boolean = false,
+    split: Boolean = false,
 ) {
     var preview by remember(key) { mutableStateOf(FACES[key]) }
     // Read here, not inside the canvas: the draw lambda is not a composable scope.
@@ -314,7 +319,9 @@ private fun SheetCard(
             }
             // The two actions that sit **on** the card, in the paper's own inset so they clear the halo:
             // the session badge at the top-left, the remove mark at the top-right.
-            if (fromSession) {
+            if (split) {
+                SplitBadge(ink, Modifier.align(Alignment.TopStart).padding(DesignTokens.PAGE_SHADOW_DP.dp))
+            } else if (fromSession) {
                 SessionBadge(ink, Modifier.align(Alignment.TopStart).padding(DesignTokens.PAGE_SHADOW_DP.dp))
             }
             onRemove?.let { remove ->
@@ -354,6 +361,30 @@ private fun SessionBadge(ink: Color, modifier: Modifier = Modifier) {
         Icon(
             ChromeGlyph.RESTORE.imageVector(),
             contentDescription = "From the previous session — not saved",
+            tint = ink,
+            modifier = Modifier.size(SESSION_BADGE_GLYPH_DP.dp),
+        )
+    }
+}
+
+/**
+ * The mark on a **split** the last run left open: the same two-pane glyph the top bar's split control
+ * wears, in the same floating glass and at the card's top-left corner. One mark, one idea — this card
+ * reopens a workspace, not a document.
+ */
+@Composable
+private fun SplitBadge(ink: Color, modifier: Modifier = Modifier) {
+    val glass = rememberGlassSurfaceColor()
+    Box(
+        modifier = modifier
+            .size(SESSION_BADGE_DP.dp)
+            .background(glass, CircleShape)
+            .border(DesignTokens.RIM_WIDTH_DP.dp, ink.copy(alpha = HAIRLINE_TINT), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Outlined.VerticalSplit,
+            contentDescription = "Split view — both halves reopen",
             tint = ink,
             modifier = Modifier.size(SESSION_BADGE_GLYPH_DP.dp),
         )

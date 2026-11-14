@@ -35,6 +35,18 @@ internal class EntryRecents(private val context: Context) {
     /** The tabs the last run left open in the focused pane, or null when it left none. */
     val previous = mutableStateOf<TabSession?>(null)
 
+    /**
+     * The right-hand pane's tabs, when the last run was closed **in split view**. Offered together with
+     * [previous] as one card, because what the reader left was a workspace and not a document.
+     */
+    val previousRight = mutableStateOf<TabSession?>(null)
+
+    /** Whether the last run was closed in split view — what makes [previousRight] worth offering. */
+    val splitOpen: Boolean get() = store.splitOpen()
+
+    /** Record that the split is (or is no longer) where the app will be closed, for the next launch. */
+    fun rememberSplitOpen(open: Boolean) = store.setSplitOpen(open)
+
     /** Read the list back from the device — the launch path. */
     fun reload() {
         recent.value = store.list()
@@ -57,8 +69,11 @@ internal class EntryRecents(private val context: Context) {
      * [offered] is the pane's claim: once any document has been opened, the session on disk has been
      * replaced (its snapshots swept), so its cards must not come back when the last tab is closed.
      */
-    fun cards(offered: Boolean): List<RecentNotebook> =
-        EntryCards.of(previous.value.takeIf { offered }, recent.value)
+    fun cards(offered: Boolean): List<RecentNotebook> = EntryCards.of(
+        session = previous.value.takeIf { offered },
+        split = previousRight.value.takeIf { offered },
+        recents = recent.value,
+    )
 }
 
 /** The cards to draw, or nothing of the last run once its offer is no longer valid. */
@@ -78,16 +93,63 @@ internal fun MainActivity.restoreDoor(): (() -> Unit)? =
  * is offering — an empty write would sweep every snapshot that session names away.
  */
 internal fun MainActivity.readPreviousSession() {
-    if (!pane.tabs.isEmpty) return
-    val session = runCatching { pane.store.load() }.getOrNull() ?: return
-    entryRecents.previous.value = session
-    pane.holdsPreviousSession = true
+    if (pane.tabs.isEmpty) {
+        val session = runCatching { pane.store.load() }.getOrNull()
+        if (session != null) {
+            entryRecents.previous.value = session
+            pane.holdsPreviousSession = true
+        }
+    }
+    // A run closed **in split view** offers both halves as one card, and the right pane holds the session
+    // it is offering so nothing writes over it before the reader answers (as the left one does).
+    if (entryRecents.previous.value == null || !entryRecents.splitOpen) return
+    val right = panes.getOrNull(1)?.takeIf { it.tabs.isEmpty } ?: return
+    val session = runCatching { right.store.load() }.getOrNull() ?: return
+    if (session.tabs.isEmpty()) return
+    entryRecents.previousRight.value = session
+    right.holdsPreviousSession = true
 }
 
-/** Reopen a card: a notebook by its URI, a tab the last run left open by taking its session back. */
+/**
+ * Reopen a card: a notebook by its URI, a tab the last run left open by taking its session back, the
+ * **split** the last run left open by taking both panes back.
+ */
 internal fun MainActivity.openEntryCard(notebook: RecentNotebook) {
     val tabId = notebook.sessionTab
-    if (tabId == null) openDocument(Uri.parse(notebook.uri)) else adoptPreviousSession(tabId)
+    when {
+        tabId == null -> openDocument(Uri.parse(notebook.uri))
+        notebook.fromSplitSession -> adoptSplitSession(notebook)
+        else -> adoptPreviousSession(tabId)
+    }
+}
+
+/**
+ * Take the offered **split** back: the right pane's tabs open in it, on the tab the card names, and the
+ * split is switched on so the left half lands where it was too — each pane's document carries its own page.
+ *
+ * The right pane has no canvas before the split opens; `restoreTabs` shows its tab on the surface it builds,
+ * exactly as it does for a split restored from the window's own state.
+ */
+private fun MainActivity.adoptSplitSession(notebook: RecentNotebook) {
+    val rightTab = notebook.splitTab
+    val rightSession = entryRecents.previousRight.value
+    val right = panes.getOrNull(1)
+    if (rightTab == null || rightSession == null || right == null) {
+        // Nothing to split: the card still stands for the document it names.
+        adoptPreviousSession(notebook.sessionTab)
+        return
+    }
+    entryRecents.previousRight.value = null
+    right.holdsPreviousSession = false
+    rightSession.tabs.forEach(right.tabs::open)
+    right.tabs.select(
+        rightSession.tabs.indexOfFirst { it.id == rightTab }.takeIf { it >= 0 } ?: rightSession.activeIndex,
+    )
+    right.persist()
+    adoptPreviousSession(notebook.sessionTab)
+    splitView.value = true
+    entryRecents.rememberSplitOpen(true)
+    tabsTick.value++
 }
 
 /** *Restore last session*: every tab the last run left open, on the tab it was left on. */
@@ -129,11 +191,21 @@ private fun MainActivity.adoptPreviousSession(tabId: String?) {
 /** *New sheet*: starting new work is the reader's answer to the offer — the last run's cards go. */
 internal fun MainActivity.startFreshSession() {
     entryRecents.previous.value = null
+    // Starting new work answers the whole offer, the split included.
+    entryRecents.previousRight.value = null
     newTab()
 }
 
 /** A card's `×`: out of the recents, and out of the stored session when the card stands for one. */
 internal fun MainActivity.removeEntryCard(notebook: RecentNotebook) {
+    // A split card takes both halves out: the right pane's tab from its own cache, then the left below.
+    notebook.splitTab?.let { rightTab ->
+        entryRecents.previousRight.value = null
+        panes.getOrNull(1)?.let { right ->
+            right.holdsPreviousSession = false
+            right.store.dropTab(rightTab)
+        }
+    }
     val tabId = notebook.sessionTab
     if (tabId == null) {
         entryRecents.forget(notebook)
