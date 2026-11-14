@@ -5,21 +5,24 @@ import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.TextElement
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * What the vector PDF export does with text it cannot encode — measured, not assumed.
+ * What the export does with text a **base-14** font cannot encode — which is now a choice of face rather
+ * than a character filter.
  *
- * `PdfPagePlan.winAnsi` guards text with a **code range** (`0x20..0xFF`) rather than with an encoding,
- * and every text path into the export goes through it: `text`, `mathBlock` and `tex` all sanitise their
- * lines there before an emitter ever sees them. That makes the guard both too strict (WinAnsi encodes
- * `…`, `–`, `€` and their neighbours above U+00FF) and too permissive (WinAnsi's `0x80` is `€`, and
- * `showText` throws on a codepoint its font cannot map), and silent in both directions: the page
- * exports, the text is gone or wrong.
+ * `PdfPagePlan` used to decide this with a code range (`0x20..0xFF`) and rewrite the text before an
+ * emitter ever saw it, so the guard was both too strict (WinAnsi **does** carry `…`, `–`, `€`, `™` and
+ * their neighbours above U+00FF) and too permissive (WinAnsi's `0x80` is `€`, so a C1 control printed as
+ * a currency sign) — and silent in both directions. The plan keeps the characters and names a face
+ * instead: [PdfFontRef.Base14] while every character encodes in [WinAnsi], [PdfFontRef.Bundled] the
+ * moment one does not, so the run is typeset in DejaVu rather than sanitised.
  *
- * These are **characterisation** tests. They pin today's behaviour so a fix has to change them
- * deliberately rather than drift, and they are the fixture `pdf-unicode-text-ops` must turn into a
- * round-trip assertion that the produced PDF both draws and extracts these characters.
+ * What a bundled run *draws* is the emitter's half, measured over real PDFBox output in the app's
+ * `PdfUnicodeExportTest`; this is the decision, and the pin that a run WinAnsi carries plans exactly what
+ * it planned before.
  */
 class PdfTextEncodingAuditTest {
 
@@ -27,8 +30,8 @@ class PdfTextEncodingAuditTest {
     private val black = 0xFF000000.toInt()
     private val transform = PdfPageTransform(0f, 0f, height.toFloat())
 
-    /** The lines a single text box contributes to the plan — the last thing before an emitter. */
-    private fun lines(content: String): List<String> = PdfPagePlan.of(
+    /** The single text op a box of [content] contributes to the plan, in [font]'s face. */
+    private fun run(content: String, font: String = "Sans"): PdfText = PdfPagePlan.of(
         Page(
             width = 595.27559100,
             height = height,
@@ -36,49 +39,98 @@ class PdfTextEncodingAuditTest {
             layers = listOf(
                 Layer(
                     listOf(
-                        TextElement(font = "Sans", size = 12.0, x = 72.0, y = 96.0, color = black, content = content),
+                        TextElement(font = font, size = 12.0, x = 72.0, y = 96.0, color = black, content = content),
                     ),
                 ),
             ),
         ),
         transform,
-    ).filterIsInstance<PdfText>().single().lines
+    ).filterIsInstance<PdfText>().single()
 
     @Test
     fun `latin-1 survives, accents and vulgar fractions included`() {
-        assertEquals(listOf("café ñ ½ ²"), lines("café ñ ½ ²"))
+        val op = run("café ñ ½ ²")
+        assertEquals("the characters reach the emitter as written", listOf("café ñ ½ ²"), op.lines)
+        assertEquals(PdfFontRef.Base14(PdfFontFace(PdfFamily.SANS, bold = false, italic = false)), op.font)
     }
 
     @Test
-    fun `scripts outside latin-1 are replaced`() {
-        assertEquals("Greek", listOf("?"), lines("α"))
-        assertEquals("Cyrillic", listOf("?"), lines("Ж"))
-    }
-
-    @Test
-    fun `a subscript and a combining mark are lost while their base character stays`() {
-        assertEquals(listOf("H?"), lines("H₂"))
-        assertEquals(listOf("e?"), lines("e\u0301"))
-    }
-
-    @Test
-    fun `an astral character costs one substitute per surrogate half`() {
-        assertEquals(listOf("??"), lines("😀"))
-    }
-
-    @Test
-    fun `every cp1252 character above U+00FF is dropped, though WinAnsi carries each one`() {
-        // … – — ‘ ’ “ ” € ™ Š ž ƒ ‹ › † ‡ • ‰ : all present in WinAnsi, all lost by the range test.
+    fun `every cp1252 character above U+00FF is WinAnsi, so the run keeps its base-14 face`() {
+        // … – — ‘ ’ “ ” € ™ Š ž ƒ ‹ › † ‡ • ‰ : all present in WinAnsi, all lost by the old range test.
         val cp1252 = "\u2026\u2013\u2014\u2018\u2019\u201C\u201D\u20AC\u2122\u0160\u017E\u0192" +
             "\u2039\u203A\u2020\u2021\u2022\u2030"
-        assertEquals("?".repeat(18), lines(cp1252).single())
+        val op = run(cp1252)
+        assertEquals("none of them becomes a question mark", listOf(cp1252), op.lines)
+        assertTrue("and none of them needed the bundled face", op.font is PdfFontRef.Base14)
     }
 
     @Test
-    fun `a control character in the cp1252 range passes through to a different glyph`() {
-        // WinAnsi's 0x80 is €, so this is not a drop but a substitution the guard cannot see: the
-        // emitter either draws a currency sign or throws inside showText.
-        assertEquals("\u0080", PdfPagePlan.winAnsi("\u0080"))
-        assertEquals(listOf("\u0080"), lines("\u0080"))
+    fun `a script outside latin-1 asks for the bundled face instead of a substitute`() {
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), run("α").font)
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), run("Ж").font)
+        assertEquals("and the character itself is still there", listOf("α"), run("α").lines)
+    }
+
+    @Test
+    fun `a subscript, a combining mark and an astral character all ask for the bundled face`() {
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), run("H₂").font)
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), run("e\u0301").font)
+        val emoji = run("😀")
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), emoji.font)
+        assertEquals("the pair is not split into two substitutes here", listOf("😀"), emoji.lines)
+    }
+
+    @Test
+    fun `a control character is not WinAnsi, so it never prints as a currency sign`() {
+        assertFalse(WinAnsi.encodes('\u0080'))
+        assertFalse(WinAnsi.encodes('\u007F'))
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), run("\u0080").font)
+    }
+
+    @Test
+    fun `a monospace run keeps its bundle's mono face`() {
+        assertEquals(
+            PdfFontRef.Bundled(PdfBundledFace.MONOSPACE),
+            run("α", font = "Courier").font,
+        )
+    }
+
+    @Test
+    fun `the face is chosen per run, not per page`() {
+        val page = Page(
+            width = 595.27559100,
+            height = height,
+            background = Background.Solid(0xFFFFFFFF.toInt(), "plain"),
+            layers = listOf(
+                Layer(
+                    listOf(
+                        TextElement(font = "Sans", size = 12.0, x = 72.0, y = 96.0, color = black, content = "plain latin"),
+                        TextElement(font = "Sans", size = 12.0, x = 72.0, y = 196.0, color = black, content = "α"),
+                    ),
+                ),
+            ),
+        )
+        val runs = PdfPagePlan.of(page, transform).filterIsInstance<PdfText>()
+        assertTrue("the Latin line stays base-14", runs[0].font is PdfFontRef.Base14)
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), runs[1].font)
+    }
+
+    @Test
+    fun `a pure-winansi run plans exactly what it planned before the change`() {
+        // The pin: same lines, same baseline, same size — and a base-14 face, so the produced PDF carries
+        // no font file for it and is the file it always was.
+        val op = run("Hello")
+        assertEquals(
+            PdfText(
+                lines = listOf("Hello"),
+                font = PdfFontRef.Base14(PdfFontFace(PdfFamily.SANS, bold = false, italic = false)),
+                size = 12.0,
+                colour = black,
+                x = 72f,
+                y = 842f - (96.0 + 12.0 * PdfPagePlan.ASCENT_RATIO).toFloat(),
+                lineHeight = 12.0 * PdfPagePlan.LINE_HEIGHT_RATIO,
+            ),
+            op,
+        )
     }
 }

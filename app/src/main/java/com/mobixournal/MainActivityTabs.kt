@@ -223,6 +223,15 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
 }
 
 /**
+ * The single worker every preview is queued on: the tab overview's ([previewTabPage]) and the entry
+ * screen's cards ([RememberRecentNotebook]). It lives here because rasterising a page is the work it
+ * runs.
+ */
+internal val MainActivity.previewWorker: java.util.concurrent.ExecutorService by lazy {
+    java.util.concurrent.Executors.newSingleThreadExecutor()
+}
+
+/**
  * Rasterise the page tab [index] of [p] is showing, for the tab overview grid, and hand it back on
  * the main thread.
  *

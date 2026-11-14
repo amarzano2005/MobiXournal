@@ -17,13 +17,13 @@ import java.io.OutputStream
  *
  * Layout is delegated wholly to [TextPaginator] (plain) or [MarkdownLayout] (markdown) — this class
  * only picks the flavour and authors the PDF, handing the markdown half to [MarkdownPdfWriter].
- * Fonts are injected as a `(PDDocument, Face) -> PdfFonts.Embedded` loader so the generator stays
+ * Fonts are injected as a `(PDDocument, PdfBundledFace) -> PdfFonts.Embedded` loader so the generator stays
  * free of Android's `AssetManager` and is unit-testable on the JVM; [plainFace] is the single face
  * the plain path draws in, monospace being the sensible default for logs and source.
  */
 class TextPdfGenerator(
-    private val loadFont: (PDDocument, PdfFonts.Face) -> PdfFonts.Embedded,
-    private val plainFace: PdfFonts.Face = PdfFonts.Face.MONOSPACE,
+    private val loadFont: (PDDocument, PdfBundledFace) -> PdfFonts.Embedded,
+    private val plainFace: PdfBundledFace = PdfBundledFace.MONOSPACE,
 ) {
 
     /**

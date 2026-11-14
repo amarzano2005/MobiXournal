@@ -43,6 +43,7 @@ import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.KaraokeFrameDriver
 import com.mobixournal.render.PdfFonts
+import com.mobixournal.render.useExportFonts
 import com.mobixournal.render.Placement
 import com.mobixournal.render.TextPdfGenerator
 import com.mobixournal.render.onStylusButtonKey
@@ -233,21 +234,15 @@ class MainActivity : ComponentActivity() {
     internal val pendingNewerAppConsent = mutableStateOf<PendingConsent?>(null)
 
     /**
-     * The single worker every tab-overview preview is queued on, so a grid of tabs parses and
-     * rasterises one document at a time instead of all of them at once (see [previewTabPage]).
-     */
-    internal val previewWorker: java.util.concurrent.ExecutorService by lazy {
-        java.util.concurrent.Executors.newSingleThreadExecutor()
-    }
-
-    /**
      * All document I/O policy — staging, the background-PDF stores, and the read/encode/merge steps
      * (see [DocumentIo]). The activity keeps only the intent plumbing and the canvas wiring.
      */
     internal val io: DocumentIo by lazy {
-        // Plain text defaults to monospace — the sensible face for the logs and source it usually
-        // holds; markdown picks its own faces per run style (see MarkdownPdfWriter).
+        // One loader for both halves of the text story: the import's generated pages and the export,
+        // whose plan now names a face per run ([useExportFonts]). Two instances would embed one face
+        // into one document twice.
         val fonts = PdfFonts(assets)
+        useExportFonts(fonts)
         DocumentIo(
             resolver = contentResolver,
             cacheDir = cacheDir,

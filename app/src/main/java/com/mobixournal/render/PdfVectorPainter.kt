@@ -41,7 +41,7 @@ class PdfVectorPainter {
                 when (op) {
                     is PdfFill -> fill(cs, op)
                     is PdfPath -> path(cs, op)
-                    is PdfText -> text(cs, op)
+                    is PdfText -> text(doc, cs, op)
                     is PdfImage -> image(doc, cs, op)
                 }
             }
@@ -82,14 +82,35 @@ class PdfVectorPainter {
         cs.restoreGraphicsState()
     }
 
-    private fun text(cs: PDPageContentStream, op: PdfText) {
+    /**
+     * Typeset [op] in the face its plan chose: a base-14 family as-is, or a **bundled** face embedded for
+     * this document and subsets into it, so Greek, Cyrillic, a subscript or an emoji is drawn instead of
+     * being dropped. A codepoint even DejaVu lacks goes through [GlyphSanitizer] to a visible U+FFFD — the
+     * last resort, never a `?`.
+     *
+     * No bundled face available (a JVM caller that registered none) leaves the run undrawn: half a page
+     * is a worse answer than a missing line the caller can see is missing.
+     */
+    private fun text(doc: PDDocument, cs: PDPageContentStream, op: PdfText) {
         if (op.lines.isEmpty()) return
+        val sanitize: ((String) -> String)?
+        val face = when (val ref = op.font) {
+            is PdfFontRef.Base14 -> {
+                sanitize = null
+                fontFor(ref.face)
+            }
+            is PdfFontRef.Bundled -> {
+                val embedded = exportFonts?.invoke(doc, ref.face) ?: return
+                sanitize = embedded::sanitize
+                embedded.font
+            }
+        }
         cs.beginText()
         cs.setNonStrokingArgb(op.colour)
-        cs.setFont(fontFor(op.face), op.size.toFloat())
+        cs.setFont(face, op.size.toFloat())
         cs.newLineAtOffset(op.x, op.y)
         for (i in op.lines.indices) {
-            cs.showText(op.lines[i])
+            cs.showText(sanitize?.invoke(op.lines[i]) ?: op.lines[i])
             if (i < op.lines.lastIndex) cs.newLineAtOffset(0f, -op.lineHeight.toFloat())
         }
         cs.endText()

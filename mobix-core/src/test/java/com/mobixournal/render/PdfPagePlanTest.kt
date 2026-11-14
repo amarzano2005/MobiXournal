@@ -126,28 +126,28 @@ class PdfPagePlanTest {
     }
 
     @Test
-    fun textIsLaidOutAndSanitisedWhereItIsPlanned() {
+    fun textIsLaidOutAndKeepsItsCharactersForTheEmitter() {
         val plan = PdfPagePlan.of(page(text("café 😀")), transform)
 
         val run = plan.filterIsInstance<PdfText>().single()
-        // The emoji is a surrogate pair, and WinAnsi has room for neither half: one `?` per character,
-        // which is exactly what the canvas's own text writer does rather than dropping the pair.
-        assertEquals("one line, WinAnsi only", listOf("café ??"), run.lines)
+        // Nothing is sanitised at plan time any more: an emitter knows which face it can draw, and a run
+        // holding an emoji asks for the bundled one instead of travelling as `café ??`.
+        assertEquals("one line, as written", listOf("café 😀"), run.lines)
+        assertEquals(PdfFontRef.Bundled(PdfBundledFace.PROPORTIONAL), run.font)
         // The baseline sits an ascent below the box's top edge, flipped into PDF space.
         assertEquals(842f - (96.0 + 12.0 * PdfPagePlan.ASCENT_RATIO).toFloat(), run.y, 1e-4f)
         assertEquals(12.0 * PdfPagePlan.LINE_HEIGHT_RATIO, run.lineHeight, 1e-6)
-        assertEquals(PdfFontFace(PdfFamily.SANS, bold = false, italic = false), run.face)
     }
 
     @Test
     fun aSerifAndAMonoFontAskForTheirOwnBaseFourteenFace() {
         assertEquals(
-            PdfFontFace(PdfFamily.SERIF, bold = true, italic = false),
-            PdfPagePlan.of(page(text(font = "Times Bold")), transform).filterIsInstance<PdfText>().single().face,
+            PdfFontRef.Base14(PdfFontFace(PdfFamily.SERIF, bold = true, italic = false)),
+            PdfPagePlan.of(page(text(font = "Times Bold")), transform).filterIsInstance<PdfText>().single().font,
         )
         assertEquals(
-            PdfFontFace(PdfFamily.MONO, bold = false, italic = true),
-            PdfPagePlan.of(page(text(font = "Courier Italic")), transform).filterIsInstance<PdfText>().single().face,
+            PdfFontRef.Base14(PdfFontFace(PdfFamily.MONO, bold = false, italic = true)),
+            PdfPagePlan.of(page(text(font = "Courier Italic")), transform).filterIsInstance<PdfText>().single().font,
         )
     }
 

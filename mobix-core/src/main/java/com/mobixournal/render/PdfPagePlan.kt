@@ -90,15 +90,125 @@ data class PdfPath(
 ) : PdfOp
 
 /**
+ * The **bundled Unicode faces** an emitter can embed, each with the path it lives under.
+ *
+ * A plan may say "typeset this run in DejaVu Sans" without knowing how a shell unpacks its files: the
+ * app loads the path through `PdfFonts` (`PDType0Font.load(doc, stream, subset = true)`, which also
+ * writes the `ToUnicode` map), the window through its own resources. Naming them here — rather than in
+ * each emitter — is what keeps the two shells typesetting the same run in the same face.
+ */
+enum class PdfBundledFace(val assetPath: String) {
+    PROPORTIONAL("fonts/DejaVuSans.ttf"),
+    PROPORTIONAL_BOLD("fonts/DejaVuSans-Bold.ttf"),
+    PROPORTIONAL_ITALIC("fonts/DejaVuSans-Oblique.ttf"),
+    PROPORTIONAL_BOLD_ITALIC("fonts/DejaVuSans-BoldOblique.ttf"),
+    MONOSPACE("fonts/DejaVuSansMono.ttf"),
+    ;
+
+    /**
+     * The **base-14** face standing in for this one — same family, same slant. It is what a shell that
+     * cannot embed a bundled face yet falls back to, and it is the reason a document still reads in the
+     * window while `desktop-pdf-unicode-fonts` is open.
+     */
+    val base14: PdfFontFace
+        get() = when (this) {
+            MONOSPACE -> PdfFontFace(PdfFamily.MONO, bold = false, italic = false)
+            PROPORTIONAL -> PdfFontFace(PdfFamily.SANS, bold = false, italic = false)
+            PROPORTIONAL_BOLD -> PdfFontFace(PdfFamily.SANS, bold = true, italic = false)
+            PROPORTIONAL_ITALIC -> PdfFontFace(PdfFamily.SANS, bold = false, italic = true)
+            PROPORTIONAL_BOLD_ITALIC -> PdfFontFace(PdfFamily.SANS, bold = true, italic = true)
+        }
+
+    companion object {
+        /** The bundled member of [face]'s family and slant. */
+        fun of(face: PdfFontFace): PdfBundledFace = when (face.family) {
+            PdfFamily.MONO -> MONOSPACE
+            else -> when {
+                face.bold && face.italic -> PROPORTIONAL_BOLD_ITALIC
+                face.bold -> PROPORTIONAL_BOLD
+                face.italic -> PROPORTIONAL_ITALIC
+                else -> PROPORTIONAL
+            }
+        }
+    }
+}
+
+/**
+ * Which face a text run is typeset in: a **base-14** family the shells carry without a font file, or a
+ * **bundled Unicode** face to embed.
+ *
+ * It is decided per run, by [forRun], and it is the only font information an emitter needs.
+ */
+sealed interface PdfFontRef {
+
+    /** A base-14 face: no font file, and only [WinAnsi]'s characters can be drawn. */
+    data class Base14(val face: PdfFontFace) : PdfFontRef
+
+    /** A bundled face to embed, because the run holds something WinAnsi cannot carry. */
+    data class Bundled(val face: PdfBundledFace) : PdfFontRef
+
+    companion object {
+        /**
+         * The face [lines] are typeset in: the base-14 [face] while every character encodes in
+         * [WinAnsi] (an ordinary export stays small and familiar), else the bundled member of the same
+         * family and slant — **not** a sanitised copy of the text, which is the whole point: Greek,
+         * Cyrillic, a subscript, a combining accent and the CP1252 punctuation set are drawn, not lost.
+         */
+        fun forRun(lines: List<String>, face: PdfFontFace): PdfFontRef =
+            if (lines.all(WinAnsi::encodes)) Base14(face) else Bundled(PdfBundledFace.of(face))
+    }
+}
+
+/**
+ * What a **base-14** font can encode: **WinAnsi**, which is CP1252 — Latin-1's printable range plus the
+ * 27 characters CP1252 adds above U+00FF (curly quotes, dashes, `€`, `™`, `Š`, `ž`, `ƒ`, `‹`, `›`, `†`,
+ * `‡`, `•`, `‰` …).
+ *
+ * The guard here used to be a **code range** (`0x20..0xFF`), and a range is wrong in both directions: it
+ * threw away all 27 of those, which WinAnsi does carry, and it let DEL and the C1 controls through, where
+ * WinAnsi decodes `0x80` as `€` — so a control character printed as a currency sign, or threw inside
+ * `showText`. This is the set, not the range.
+ */
+object WinAnsi {
+
+    /** True when every character of [text] encodes. An empty string encodes. */
+    fun encodes(text: String): Boolean = text.all(::encodes)
+
+    /** True when [c] is a character WinAnsi carries. */
+    fun encodes(c: Char): Boolean = when (c.code) {
+        in 0x20..0x7E, in 0xA0..0xFF -> true
+        else -> c in EXTRAS
+    }
+
+    /**
+     * [text] reduced to what a base-14 font can encode, the rest becoming [substitute].
+     *
+     * Only for a shell that has **no** bundled face to fall back on: the window prints `?` here until
+     * `desktop-pdf-unicode-fonts` ships the same DejaVu faces beside its resources. The app never needs
+     * it — a run that fails [encodes] is typeset in a bundled face, where the last resort is
+     * `GlyphSanitizer`'s visible U+FFFD.
+     */
+    fun safe(text: String, substitute: Char = '?'): String =
+        if (encodes(text)) text else text.map { if (encodes(it)) it else substitute }.joinToString("")
+
+    /** CP1252's additions above U+00FF: the members WinAnsi keeps that Latin-1 has no room for. */
+    private val EXTRAS: Set<Char> = setOf(
+        '\u20AC', '\u201A', '\u0192', '\u201E', '\u2026', '\u2020', '\u2021', '\u02C6', '\u2030',
+        '\u0160', '\u2039', '\u0152', '\u017D', '\u2018', '\u2019', '\u201C', '\u201D', '\u2022',
+        '\u2013', '\u2014', '\u02DC', '\u2122', '\u0161', '\u203A', '\u0153', '\u017E', '\u0178',
+    )
+}
+
+/**
  * A block of text at the baseline of its first line.
  *
- * [lines] are already split and sanitised (the base-14 fonts only encode WinAnsi, so anything above
- * U+00FF becomes `?` here rather than throwing inside an emitter), and [y] is that first baseline in
- * PDF space — the emitter draws line by line, one [lineHeight] apart.
+ * [lines] are the text as written — an emitter gets the characters, not a sanitised copy, because only it
+ * knows which face it can draw ([font]) — and [y] is the first baseline in PDF space: the emitter draws
+ * line by line, one [lineHeight] apart.
  */
 data class PdfText(
     val lines: List<String>,
-    val face: PdfFontFace,
+    val font: PdfFontRef,
     val size: Double,
     val colour: Int,
     val x: Float,
@@ -243,15 +353,18 @@ object PdfPagePlan {
             (s.points[i - 1].width + s.points[i].width) / 2.0
         }
 
-    private fun text(tx: TextElement, t: PdfPageTransform) = PdfText(
-        lines = TextBlock.lines(tx.content).map(::winAnsi),
-        face = PdfFontFace.of(tx.font),
-        size = tx.size,
-        colour = tx.color,
-        x = t.x(tx.x),
-        y = t.y(tx.y + tx.size * ASCENT_RATIO),
-        lineHeight = tx.size * LINE_HEIGHT_RATIO,
-    )
+    private fun text(tx: TextElement, t: PdfPageTransform): PdfText {
+        val lines = TextBlock.lines(tx.content)
+        return PdfText(
+            lines = lines,
+            font = PdfFontRef.forRun(lines, PdfFontFace.of(tx.font)),
+            size = tx.size,
+            colour = tx.color,
+            x = t.x(tx.x),
+            y = t.y(tx.y + tx.size * ASCENT_RATIO),
+            lineHeight = tx.size * LINE_HEIGHT_RATIO,
+        )
+    }
 
     private fun image(img: ImageElement, t: PdfPageTransform) = PdfImage(
         data = img.data,
@@ -277,8 +390,8 @@ object PdfPagePlan {
         for (glyph in layout.glyphs) {
             if (glyph.text.isBlank()) continue
             ops += PdfText(
-                lines = listOf(winAnsi(glyph.text)),
-                face = face,
+                lines = listOf(glyph.text),
+                font = PdfFontRef.forRun(listOf(glyph.text), face),
                 size = glyph.size,
                 colour = block.color,
                 x = t.x(block.left + glyph.x),
@@ -304,9 +417,10 @@ object PdfPagePlan {
     private fun tex(tex: TexImageElement, t: PdfPageTransform): PdfText? {
         if (tex.latex.isBlank()) return null
         val size = ((tex.bottom - tex.top) * 0.5).coerceIn(TEX_MIN_SIZE, TEX_MAX_SIZE)
+        val lines = listOf(tex.latex)
         return PdfText(
-            lines = listOf(winAnsi(tex.latex)),
-            face = PdfFontFace(PdfFamily.MONO, bold = false, italic = false),
+            lines = lines,
+            font = PdfFontRef.forRun(lines, PdfFontFace(PdfFamily.MONO, bold = false, italic = false)),
             size = size,
             colour = tex.color,
             x = t.x(tex.left),
@@ -441,14 +555,6 @@ object PdfPagePlan {
 
     /** Half the side of the square that stands in for a dot, in points. */
     private const val DOT_HALF_PT = 1.0f
-
-    /**
-     * The base-14 fonts only encode WinAnsi, and `showText` **throws** on anything outside it. Dropping
-     * the character here is what keeps one stray emoji from failing an export while the same page draws
-     * fine on screen.
-     */
-    internal fun winAnsi(s: String): String =
-        buildString(s.length) { for (c in s) append(if (c.code in 0x20..0xFF) c else '?') }
 }
 
 /** The ARGB alpha channel of a packed colour, as the emitters need it. */

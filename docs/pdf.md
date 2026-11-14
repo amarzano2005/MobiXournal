@@ -13,8 +13,8 @@ A page's PDF **background** — the renderer, its caches, and the portable refer
 encode WinAnsi, so any codepoint outside it is lost wherever text is typeset **into** a PDF. Two paths
 do that: the **text import**'s generated background, where the source is arbitrary UTF-8 and the glyphs
 only exist in the generated PDF, and the **page export itself**, which replays `PdfPagePlan`'s `PdfText`
-ops as text rather than painting glyphs into an image — so a `<text>` element's codepoints leave through
-the same sanitiser. So the text-import path draws with fonts
+ops as text rather than painting glyphs into an image — so a `<text>` element is typeset by the same
+faces (see *Unicode in exported text* below). The text-import path draws with fonts
 **bundled as app assets** and embedded per document by `PdfFonts`
 (`PDType0Font.load(doc, stream, subset = true)`): PDFBox subsets them into the output, so a CJK or
 Cyrillic import renders identically everywhere without bloating the file with a whole face.
@@ -34,29 +34,43 @@ Markdown needs the same guarantee across *five* faces at once, so `MarkdownPdfWr
 the draw-time font lookup — one table, so a line can never be wider on the page than the width it was
 wrapped to.
 
-### Unicode in exported text, and the decision
+### Unicode in exported text
 
-`PdfTextEncodingAuditTest` pushes a text box through the plan and records what comes out:
+A `<text>` element leaves through `PdfPagePlan`, which now decides the **face of each run** and keeps the
+characters. A run whose every character encodes in `WinAnsi` — Latin-1's printable range plus the 27
+characters CP1252 adds above U+00FF, so `…`, `–`, `€`, `™`, `Š`, `ž`, `ƒ`, `‹`, `›`, `†`, `‡`, `•`, `‰`
+and their neighbours — keeps its base-14 family and costs the file nothing. A run holding anything else
+(`α`, `Ж`, `H₂`, `e` + U+0301, an emoji, a C1 control) asks for the **bundled** DejaVu face of its
+family and slant ([`PdfFontRef.Bundled`]), which the app embeds per document and subsets into it
+(`PDType0Font.load(doc, stream, subset = true)`): that also writes the `ToUnicode` map, so the run is
+drawn **and** selectable **and** extractable. `PdfBundledFace` names the asset path in `mobix-core`
+(`fonts/DejaVuSans.ttf`, its bold, oblique and bold-oblique companions, and `fonts/DejaVuSansMono.ttf`),
+so the plan stays platform-free and `PdfFonts` puts the file in the document; the licence ships beside
+the assets (`app/src/main/assets/fonts/LICENSE.txt` — Bitstream Vera + Arev, DejaVu changes in the
+public domain).
 
-| Input | Today | Why |
+Nothing is sanitised at plan time any more. The emitter, the only layer that knows which face it can
+draw, keeps `GlyphSanitizer` as the **last resort**: a codepoint even DejaVu lacks becomes the visible
+U+FFFD, never `?`.
+
+The guard this replaced was a code **range** (`0x20..0xFF`) applied to the text, and a range is wrong in
+both directions — it threw away all 27 of those CP1252 characters, and it let DEL and the C1 controls
+through, where WinAnsi decodes `0x80` as `€`. Both halves are measured: `PdfTextEncodingAuditTest` pins
+the decision (which face each fixture run asks for, and that a pure-WinAnsi run plans exactly what it
+planned before), and `PdfUnicodeExportTest` pins the round trip — paint, **save**, reload, extract with
+PDFBox's stripper.
+
+| Input | Face | What the produced PDF does |
 |---|---|---|
-| `café ñ ½ ²` | unchanged | inside `0x20..0xFF` |
-| `α`, `Ж`, `H₂`, `e` + U+0301 | `?`, `?`, `H?`, `e?` | the guard is a code range, not an encoding |
-| `… – — ‘ ’ “ ” € ™ Š ž ƒ ‹ › † ‡ • ‰` | 18 × `?` | WinAnsi **does** encode all of these |
-| `\u0080` | passes through | WinAnsi's `0x80` is `€`: a control character becomes a currency sign, or `showText` throws |
-| `😀` | `??` | a surrogate pair, one substitute per half |
+| `café ñ ½ ²`, and the 18 CP1252 punctuation characters | base-14 | unchanged text, and no font file added |
+| `α`, `Ж`, `H₂`, `e` + U+0301, `😀` | bundled DejaVu Sans | drawn, and extracted back character for character |
+| `\u0080` (a C1 control) | bundled DejaVu Sans | a substitute glyph, not `€` |
 
-The guard is therefore both too strict and too permissive, and it is **silent**: the page exports and
-the text is gone or wrong. The decision is to **reuse the faces already bundled for the text import** —
-DejaVu Sans through `PDType0Font.load(doc, stream, subset = true)`, which also writes a `ToUnicode` map,
-so the text is drawn *and* selectable *and* extractable. A run whose characters all encode in WinAnsi
-keeps its base-14 face, so an ordinary export stays small and familiar; a run with anything else is
-typeset in the bundled face. The licence question is already settled and shipped
-(`app/src/main/assets/fonts/LICENSE.txt`). Where even DejaVu has no glyph, the fallback must be
-**visible** — U+FFFD from `GlyphSanitizer` — never a silent `?`. Broken out as `pdf-unicode-text-ops`,
-`desktop-pdf-unicode-fonts` and `pdf-unicode-extraction-test`; until the first lands, the table above is
-what the export does. Sanitising now keeps one bad emoji from failing an export while the same page
-draws fine on screen.
+**The window is the remaining gap.** `DesktopPdfPainter` has no DejaVu beside its resources yet, so a
+`PdfFontRef.Bundled` run is printed there in its base-14 family, with `WinAnsi.safe`'s `?` for each
+character that cannot be carried — exactly what the window printed before the plan learned to name a
+face. `desktop-pdf-unicode-fonts` ships the same faces under `desktop/src/main/resources/fonts` and
+closes it; `pdf-unicode-extraction-test` is the fixture both emitters must pass.
 
 ## PDF text selection
 

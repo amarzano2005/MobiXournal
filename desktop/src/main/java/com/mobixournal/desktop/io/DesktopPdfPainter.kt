@@ -11,7 +11,9 @@ import com.mobixournal.render.PdfPagePlan
 import com.mobixournal.render.PdfPageTransform
 import com.mobixournal.render.PdfPath
 import com.mobixournal.render.PdfPoint
+import com.mobixournal.render.PdfFontRef
 import com.mobixournal.render.PdfText
+import com.mobixournal.render.WinAnsi
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
@@ -100,14 +102,27 @@ internal class DesktopPdfPainter {
         cs.restoreGraphicsState()
     }
 
+    /**
+     * Typeset [op] in the face its plan chose.
+     *
+     * A [PdfFontRef.Base14] run is the base-14 family, as before. A [PdfFontRef.Bundled] run needs the
+     * DejaVu faces embedded, which this window does not ship yet (`desktop-pdf-unicode-fonts` owns that):
+     * it prints the same family in base-14, with the characters WinAnsi cannot carry reduced to `?` —
+     * exactly what it printed before this plan learned to name a bundled face, so the app gains Unicode
+     * text without the window's export changing under it.
+     */
     private fun text(cs: PDPageContentStream, op: PdfText) {
         if (op.lines.isEmpty()) return
         cs.beginText()
         cs.setNonStrokingColor(op.colour.red, op.colour.green, op.colour.blue)
-        cs.setFont(fontFor(op.face), op.size.toFloat())
+        val lines = when (val ref = op.font) {
+            is PdfFontRef.Base14 -> op.lines to fontFor(ref.face)
+            is PdfFontRef.Bundled -> op.lines.map { WinAnsi.safe(it) } to fontFor(ref.face.base14)
+        }
+        cs.setFont(lines.second, op.size.toFloat())
         cs.newLineAtOffset(op.x, op.y)
-        for (i in op.lines.indices) {
-            cs.showText(op.lines[i])
+        for (i in lines.first.indices) {
+            cs.showText(lines.first[i])
             if (i < op.lines.lastIndex) cs.newLineAtOffset(0f, -op.lineHeight.toFloat())
         }
         cs.endText()

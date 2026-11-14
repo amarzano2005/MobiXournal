@@ -92,16 +92,16 @@ class MarkdownPdfWriter(private val faces: Map<RunStyle, PdfFonts.Embedded>) {
 
     companion object {
         /** Which bundled face sets a given run style. Code is the one monospaced style. */
-        fun faceFor(style: RunStyle): PdfFonts.Face = when (style) {
-            RunStyle.REGULAR -> PdfFonts.Face.PROPORTIONAL
-            RunStyle.BOLD -> PdfFonts.Face.PROPORTIONAL_BOLD
-            RunStyle.ITALIC -> PdfFonts.Face.PROPORTIONAL_ITALIC
-            RunStyle.BOLD_ITALIC -> PdfFonts.Face.PROPORTIONAL_BOLD_ITALIC
-            RunStyle.CODE -> PdfFonts.Face.MONOSPACE
+        fun faceFor(style: RunStyle): PdfBundledFace = when (style) {
+            RunStyle.REGULAR -> PdfBundledFace.PROPORTIONAL
+            RunStyle.BOLD -> PdfBundledFace.PROPORTIONAL_BOLD
+            RunStyle.ITALIC -> PdfBundledFace.PROPORTIONAL_ITALIC
+            RunStyle.BOLD_ITALIC -> PdfBundledFace.PROPORTIONAL_BOLD_ITALIC
+            RunStyle.CODE -> PdfBundledFace.MONOSPACE
         }
 
         /** Embed every face markdown can need into [doc], via [load]. */
-        fun forDocument(doc: PDDocument, load: (PDDocument, PdfFonts.Face) -> PdfFonts.Embedded): MarkdownPdfWriter =
+        fun forDocument(doc: PDDocument, load: (PDDocument, PdfBundledFace) -> PdfFonts.Embedded): MarkdownPdfWriter =
             MarkdownPdfWriter(RunStyle.entries.associateWith { load(doc, faceFor(it)) })
     }
 }

@@ -25,15 +25,6 @@ import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
  */
 class PdfFonts(private val assets: AssetManager) {
 
-    /** The bundled faces, by role. */
-    enum class Face(val assetPath: String) {
-        PROPORTIONAL("fonts/DejaVuSans.ttf"),
-        PROPORTIONAL_BOLD("fonts/DejaVuSans-Bold.ttf"),
-        PROPORTIONAL_ITALIC("fonts/DejaVuSans-Oblique.ttf"),
-        PROPORTIONAL_BOLD_ITALIC("fonts/DejaVuSans-BoldOblique.ttf"),
-        MONOSPACE("fonts/DejaVuSansMono.ttf"),
-    }
-
     /**
      * A font embedded in one document, paired with the [GlyphSanitizer] that keeps unsupported
      * codepoints from throwing, plus the metrics [TextPaginator] needs to wrap against it.
@@ -58,7 +49,7 @@ class PdfFonts(private val assets: AssetManager) {
      * [java.io.IOException] if the asset is missing or unreadable — a packaging error, not something
      * a caller can recover from.
      */
-    fun load(doc: PDDocument, face: Face): Embedded = cache.getOrPut(Key(System.identityHashCode(doc), face)) {
+    fun load(doc: PDDocument, face: PdfBundledFace): Embedded = cache.getOrPut(Key(System.identityHashCode(doc), face)) {
         val font = assets.open(face.assetPath).use { PDType0Font.load(doc, it, true) }
         Embedded(font, GlyphSanitizer { s -> runCatching { font.getStringWidth(s) }.isSuccess })
     }
@@ -69,5 +60,21 @@ class PdfFonts(private val assets: AssetManager) {
         cache.keys.removeAll { it.docId == id }
     }
 
-    private data class Key(val docId: Int, val face: Face)
+    private data class Key(val docId: Int, val face: PdfBundledFace)
+}
+
+/**
+ * Where the **page export** finds the bundled Unicode faces.
+ *
+ * A [com.mobixournal.render.PdfPagePlan] op names a [PdfBundledFace], but the paths that replay one —
+ * saving from the canvas, and the snapshot exporter a share runs — have no `Context` to open an asset
+ * with. The activity registers its [PdfFonts] once at start-up ([useExportFonts]), the JVM tests register
+ * the same faces read off disk, and this is the seam they meet at. **Null** means no bundled face is
+ * available at all, and a run that needs one is left undrawn rather than printed in the wrong glyphs.
+ */
+internal var exportFonts: ((PDDocument, PdfBundledFace) -> PdfFonts.Embedded)? = null
+
+/** Register the fonts [PdfVectorPainter] embeds for a run that WinAnsi cannot carry. */
+internal fun useExportFonts(fonts: PdfFonts) {
+    exportFonts = { doc, face -> fonts.load(doc, face) }
 }
