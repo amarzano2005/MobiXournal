@@ -29,7 +29,7 @@ class PdfFontRepairTest {
             document.addPage(page)
 
             val before = ink(document)
-            assertEquals(1, PdfFontRepair.repair(page))
+            assertEquals(1, PdfFontRepair.repair(document, page))
             val after = ink(document)
 
             assertTrue("the damaged page drew $before ink, the repaired one $after", after > before)
@@ -42,14 +42,19 @@ class PdfFontRepairTest {
             val bold = pageWith('B', '!', toUnicode = true, baseFont = "QAAAAA+NotoSans-Bold")
             val mono = pageWith('m', 'o', toUnicode = true, baseFont = "RAAAAA+DejaVuSansMono")
             val italic = pageWith('i', 't', toUnicode = true, baseFont = "SAAAAA+NotoSans-Italic")
-            listOf(bold, mono, italic).forEach {
+            val serif = pageWith('s', 'f', toUnicode = true, baseFont = "TAAAAA+NotoSerif-Regular")
+            listOf(bold, mono, italic, serif).forEach {
                 document.addPage(it)
-                assertEquals(1, PdfFontRepair.repair(it))
+                assertEquals(1, PdfFontRepair.repair(document, it))
             }
 
-            assertEquals("Helvetica-Bold", standInOf(bold))
-            assertEquals("Courier", standInOf(mono))
-            assertEquals("Helvetica-Oblique", standInOf(italic))
+            // A family the window carries comes back in its own shape, with its program in the dictionary.
+            assertEquals("DejaVuSans-Bold", standInOf(bold))
+            assertEquals("DejaVuSansMono", standInOf(mono))
+            assertEquals("DejaVuSans-Oblique", standInOf(italic))
+            assertTrue("the bundled face was not embedded", hasProgram(bold))
+            // A family it does not carry gets the base-14 face of the same style.
+            assertEquals("Times-Roman", standInOf(serif))
         }
     }
 
@@ -59,7 +64,7 @@ class PdfFontRepairTest {
             val page = pageWith(code1 = 'H', code2 = 'i', toUnicode = false)
             document.addPage(page)
 
-            assertEquals(0, PdfFontRepair.repair(page))
+            assertEquals(0, PdfFontRepair.repair(document, page))
         }
     }
 
@@ -126,11 +131,19 @@ class PdfFontRepairTest {
         createOutputStream().use { it.write(text.toByteArray(Charsets.ISO_8859_1)) }
     }
 
-    /** The base-14 face the page's one font was rebuilt as. */
-    private fun standInOf(page: PDPage): String? =
-        ((page.resources.cosObject.getDictionaryObject(COSName.FONT) as COSDictionary)
-            .getDictionaryObject(COSName.getPDFName("F1")) as COSDictionary)
-            .getNameAsString(COSName.BASE_FONT)
+    /** The page's one font dictionary, as the repair left it. */
+    private fun fontOf(page: PDPage): COSDictionary =
+        (page.resources.cosObject.getDictionaryObject(COSName.FONT) as COSDictionary)
+            .getDictionaryObject(COSName.getPDFName("F1")) as COSDictionary
+
+    /** The face the page's one font was rebuilt as. */
+    private fun standInOf(page: PDPage): String? = fontOf(page).getNameAsString(COSName.BASE_FONT)
+
+    /** Whether the font dictionary now carries a program of its own. */
+    private fun hasProgram(page: PDPage): Boolean {
+        val descriptor = fontOf(page).getDictionaryObject(COSName.FONT_DESC) as COSDictionary
+        return descriptor.getDictionaryObject(COSName.FONT_FILE2) != null
+    }
 
     /** Dark pixels of the page's raster: the cheapest measure of "there is writing on it". */
     private fun ink(document: PDDocument): Int {

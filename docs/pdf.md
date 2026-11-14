@@ -227,15 +227,17 @@ TrueType subset and then not write the program it points at (a truncated downloa
 LibreOffice export), and the file still carries the text operators, the `/Widths` and the `/ToUnicode`: the
 layout comes out exactly right and the letters come out as whatever a substitute font has at those codes —
 a slide of `#` and `&` over a table that reads perfectly, which a reader reports as *the PDF opens broken*.
-`PdfFontRepair` rebuilds such a font as a **base-14 face of the same style** — Helvetica, its bold and
-oblique, Courier for a monospaced face — whose `/Differences` names come from the font's own ToUnicode,
-leaving `/Widths` in place, before PDFBox parses it. The style is not decoration to drop: rebuilding a
-slide's bold heading, italic note and monospaced listing as one plain Helvetica is what made a repaired page
-look bold and stretched in the wrong places. The family changes
-(Noto Sans becomes Helvetica) and a code the ToUnicode does not name stays blank; those characters are not
-recoverable from the file. `PdfFontRepairTest` holds the three halves: a font without its program draws its
-letters after the repair, the rebuilt face keeps the weight, slant and spacing of the one it replaces, and a
-font with no ToUnicode is left untouched.
+`PdfFontRepair` replaces exactly that font dictionary — the page's content stream, vectors, images and
+colours are never rebuilt — and gives it a program we do have: the bundled DejaVu face the name asks for when
+the family is one the window carries (`PdfDejaVuFaces`: DejaVu Sans in its four styles and DejaVu Sans Mono),
+otherwise a base-14 face of the same style (Helvetica, Times, Courier). Its `/Differences` names come from the
+font's own ToUnicode and its `/Widths` stay, so the letters are the document's and no advance moves. Style is
+not decoration to drop: rebuilding a slide's bold heading, italic note and monospaced listing as one plain
+Helvetica is what made a repaired page look bold and stretched in the wrong places. A code the ToUnicode does
+not name stays blank, and a family we do not carry changes family — those characters are not recoverable from
+the file. `PdfFontRepairTest` holds the three halves: a font without its program draws its letters after the
+repair, the rebuilt face keeps the weight, slant and spacing of the one it replaces, and a font with no
+ToUnicode is left untouched.
 
 Evidence: these rules are covered by JVM and renderer tests — `DesktopPdfDurabilityTest`,
 `DesktopPdfMergeTest`, `DesktopPdfImportTest`, `DesktopPdfExportTest`, `PdfStoreTest` and

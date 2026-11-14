@@ -74,7 +74,7 @@ internal class DesktopPdfThumbnails(file: File) : Closeable {
                 val box = pdf!!.getPage(page).cropBox
                 val scale = (THUMBNAIL_TARGET_PX / box.width).coerceIn(0.02f, 1f)
                 // A file that does not carry the font programs it names reads as nonsense in a preview too.
-                runCatching { PdfFontRepair.repair(pdf.getPage(page)) }
+                runCatching { PdfFontRepair.repair(pdf, pdf.getPage(page)) }
                 PdfRenderGate.png { renderer.renderImage(page, scale).toPng() }
             }.getOrNull()
             val bitmap = bitmaps?.let { runCatching { SkiaImage.makeFromEncoded(it).toComposeImageBitmap() }.getOrNull() }

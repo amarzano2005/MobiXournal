@@ -170,7 +170,7 @@ class PageBackdrop(
         // advances — a slide of nonsense over the right layout. The page's fonts are rebuilt from their own
         // ToUnicode before PDFBox parses them ([PdfFontRepair]).
         val page = pdf.getPage(index)
-        runCatching { PdfFontRepair.repair(page) }
+        runCatching { PdfFontRepair.repair(pdf, page) }
         // PDFBox draws on the JVM's 2D pipeline; the result reaches Skia as PNG because a
         // BufferedImage's pixels are not a layout Compose can wrap directly. The gate is what keeps this
         // raster from being interleaved with the import card's previews of the same file ([PdfRenderGate]).
