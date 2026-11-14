@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-import-accessible-controls"
-title = "Make PDF import usable with keyboard and screen reader"
-description = "In desktop ImportModeRow replace pointer-only input with a semantic selectable control; expose the same labeled radio group in Android PdfImportDialog. Associate range validation with the relevant fields, use a visible focus indicator, and preserve focus while typing. Verify Tab/Shift+Tab, Space, Escape and TalkBack announcements for selected mode and invalid bounds. Apply docs/interface-contract.md and document verified changes in the owning guide."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 113
-created = 2026-11-14
-tags = ["pdf", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-contents-readable-rows"
 title = "Keep PDF chapter titles and page numbers readable"
 description = "Adjust Android PdfContentsDialog.ContentsRow and desktop PdfContentsSidebar row layout: reserve the page-number column, cap indentation on narrow screens, distinguish top-level and nested headings with typography, and announce title, destination and enabled state together. Test a deeply nested outline with long titles and four-digit page numbers in light/dark themes at enlarged font size. Apply docs/interface-contract.md and document verified changes in the owning guide."
