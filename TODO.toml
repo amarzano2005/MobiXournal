@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-outline-target-resolution"
-title = "Resolve outline targets without ever guessing a page"
-description = "Turn a persisted outline into rows a tap can follow. Add render/OutlineResolution.kt in mobix-core: resolve(tree, pages) -> a pre-order list of resolved rows carrying depth, title, id, hasDestination and the document page index, where Sheet(n) resolves to the first page in document order whose Background.Pdf.pageNo == n and Page(id) to the page carrying that id, and a target that finds nothing yields the row with no destination rather than a clamped or nearest index. No inheritance is applied at read time: the importer writes a chapter header's inherited page onto the node, so a header the user leaves empty stays empty. Point both shells at it: app/src/main/java/com/mobixournal/ui/PdfContentsDialog.kt (and PdfOutlineVisible in mobix-core, which must keep filtering and folding keyed by node id, not title) uses the document outline when the document has one and the extracted PdfOutline otherwise, and desktop/src/main/java/com/mobixournal/desktop/io/DesktopPdfContents.kt does the same for PdfContentsSidebar; goToPdfPage and the window's click path take the resolved page index instead of recomputing it from pageNo. Tests: OutlineResolutionTest over a tree mixing both target kinds, two chapters with one title, a deleted page, a removed-sheet target and a reordered page list; DesktopPdfContentsTest extended for the resolved rows and the un-tappable node. Verify on the emulator that a tap from the Contents card lands on the expected page of an imported PDF with a reordered page list."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 182
-created = 2026-11-14
-tags = ["pdf", "bookmarks"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-outline-import-seeding"
 title = "Seed the outline from the PDF an import brings in"
 description = "Once a document has a place to keep a tree, an import fills it. On the tablet, the import path (app/src/main/java/com/mobixournal/MainActivityDocuments.kt, io/DocumentIo.kt and the PdfMerger call site) and on the window desktop/src/main/java/com/mobixournal/desktop/io/DesktopPdfMerge.kt: when the document has no outline, turn the extracted PdfOutline into OutlineTree nodes, minting a bkm_ id per row and writing each row's destination explicitly as OutlineTarget.Sheet - including the page a destination-less header inherited from its first pointing descendant, because resolution at read time inherits nothing. When the document already has an outline, append the new PDF's rows under one new node titled after the imported file with no target of its own, so a second import never merges two PDFs by title. The pages and the seeded tree are one undoable operation, and a cancelled or failed import writes nothing. Seeding is a one-time thing: a document that already carries an outline is never re-seeded on open, so an entry the reader deleted stays deleted. Tests: PdfOutlineSeedingTest over PdfOutlineExtractor fixtures (nested rows, a header with no destination, an empty outline), a golden .mobix fixture that must open with the tree it was written with, and the second-import append; then a save/reopen test proving ids survive. Verify on the emulator: import a PDF whose outline has a nested chapter, open Contents, and confirm the rows are the PDF's own and a tap still lands on the right sheet."
