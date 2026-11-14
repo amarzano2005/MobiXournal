@@ -21,6 +21,17 @@ arrives as a document of its own and what you had open is untouched. **Add to th
 same on both and is the default, because it keeps the work. Appending is one undo step, and a single
 untouched blank sheet in front of the PDF is dropped rather than left stranded.
 
+**The card fits the space it is given.** It asks for at most 420 dp of width and takes less when the window
+or the pane is narrower, and only its title and its two buttons stay put — the file name, the page count,
+the range, the error and both answers scroll inside the height that is left. So a short window, a
+split-screen pane or the on-screen keyboard takes room from the body, never from the buttons: at 150 % text
+in a pane roughly 370 dp wide, with the keyboard up, the fields, the *Pages are numbered 1 to 3* error and
+Cancel are all reachable by scrolling, and the confirm button greys out rather than importing a range that
+cannot be used. Under a narrow card or a large text scale the two page fields stand one above the other
+(each under its own name) and the footer stacks the same way, instead of Material squeezing them onto two
+unrelated lines. Both shells share those size rules, so the window and the tablet answer a cramped place
+the same way.
+
 A document holds one PDF. Import a second one onto a document that already has one and the two are merged
 into a single file, so every page's PDF page number still points at the right sheet; the merge and the new
 pages land together, which is what makes undoing it put the document back as it was.
