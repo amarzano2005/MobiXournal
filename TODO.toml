@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-selection-toolbar-placement"
-title = "Keep the PDF selection toolbar clear of selected text"
-description = "In Android TextSelectionBar and desktop PdfTextCopyBar measure the actual toolbar and clamp it to the visible pane; prefer above or below the selected lines where space permits. Keep Copy reachable near every edge with zoom, enlarged type and narrow split panes. Verify the highlight remains visible, Copy still copies the original words and keyboard focus is visible. Apply docs/interface-contract.md and document verified changes in the owning guide."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 115
-created = 2026-11-14
-tags = ["pdf", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-import-page-selection"
 title = "Import nonconsecutive PDF pages in a single action"
 description = "Extend PageRanges with an ordered selection for input such as 2,4-6,9, preserving its existing contiguous API. Wire PdfImportPrompt, both import dialogs and commands to the same selection. Keep the chosen append/replace mode while editing fields, display the selected count, reject invalid pages, and import in source order as one undo step. Test duplicates, invalid bounds and reopen with the correct source pages. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
