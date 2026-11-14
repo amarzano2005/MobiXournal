@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-text-availability-ui"
-title = "Explain when PDF text selection is ready on the current page"
-description = "Feed extraction status and page-local word availability to the Select text (PDF) UI in both shells. Distinguish indexing, a ready page with no selectable text, and a failed read with a retry action. Keep notices scoped to the active tool and pane. Verify mixed scanned/digital pages, failed indexing, retry and a tab switch during extraction. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 170
-created = 2026-11-14
-tags = ["pdf", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-bookmark-storage-review"
 title = "Define persistent editable notebook bookmarks and bridge identity"
 description = "Define an additive persisted bookmark tree with stable node identity and page targets in .mobix and a validated .xopp bridge. Audit Document.kt, MobixManifest, MobixDocument, MobixMeta and MobixMetaRevival. Decide how existing source-PDF entries become editable notebook entries, including renamed/deleted overrides and nodes without destinations. Ordinary notebook pages must be bookmarkable. Specify reorder, deletion, duplication, imported subsets and external .xopp edits; ambiguous targets must never jump to a guessed page. Record the decision in docs/pdf.md and owning format specs, then create exact atomic model/codec/session tasks with golden fixtures. This scope produces tasks, not implementation. Follow docs/interface-contract.md for UI work and update README.md and docs/guide-pdf-and-audio.md when wired end to end."
