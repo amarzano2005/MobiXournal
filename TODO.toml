@@ -176,6 +176,90 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "pdf-import-page-selection"
+title = "Import nonconsecutive PDF pages in a single action"
+description = "Extend PageRanges with an ordered selection for input such as 2,4-6,9, preserving its existing contiguous API. Wire PdfImportPrompt, both import dialogs and commands to the same selection. Keep the chosen append/replace mode while editing fields, display the selected count, reject invalid pages, and import in source order as one undo step. Test duplicates, invalid bounds and reopen with the correct source pages. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 120
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-import-thumbnails"
+title = "Choose PDF pages visually before importing"
+description = "In PdfImportDialog.kt and desktop ImportPdfDialog.kt show numbered, selectable thumbnails synchronized with pdf-import-page-selection. Render visible previews from the staged source off-thread with a bounded cache; release resources on dismissal. Provide select all, clear and accessible selected states. Verify pages 2/4/7, keyboard and touch selection, cancellation and a 500-page source without rendering the whole file. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 130
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-export-page-selection"
+title = "Export the current page or a chosen set of notebook pages"
+description = "Extend both ExportAsDialog flows with All pages (default), Current page and Selected pages using the shared selector. Pass notebook indices into PdfExporter and DesktopPdfExport, retaining source PDF page mappings, layer semantics and vector overlays. Export pages 2 and 4 of a reordered annotated notebook and reopen the result to check count, order, text and ink. Cancel without changing the notebook or destination. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 140
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-highlight-selection"
+title = "Highlight selected PDF words from the selection toolbar"
+description = "Add Highlight beside Copy in the Android text selection bar and Desktop PdfTextCopyBar. Use PdfTextIndex word boxes and existing magnetic highlighter geometry to emit ordinary highlighter strokes on the editable layer in one undo step. Preserve Copy, enforce layer locks, and verify a multiline selection after undo/redo, .mobix/.xopp reopen and PDF export. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 150
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-outline-navigation"
+title = "Filter PDF contents and expand individual chapters"
+description = "Extend PdfContentsDialog and PdfContentsSidebar with per-branch expansion and a title filter. Derive branch identity from outline position rather than title; retain ancestor context and current destination mapping. Restore expansion after clearing the filter. Test duplicate chapter names, unavailable destinations, keyboard and touch navigation, and that browsing leaves the document clean. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 160
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-text-availability-ui"
+title = "Explain when PDF text selection is ready on the current page"
+description = "Feed extraction status and page-local word availability to the Select text (PDF) UI in both shells. Distinguish indexing, a ready page with no selectable text, and a failed read with a retry action. Keep notices scoped to the active tool and pane. Verify mixed scanned/digital pages, failed indexing, retry and a tab switch during extraction. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 170
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
 id = "stem-netlist-spice-review"
 title = "From connectors to a checkable circuit: ERC and an SPICE subset (F12)"
 description = """
