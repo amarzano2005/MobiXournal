@@ -4,6 +4,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopContainer
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfIndex
+import com.mobixournal.desktop.io.DesktopPdfTextHighlight
 import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.io.DesktopPdfTextSelection
 import com.mobixournal.desktop.sheet.PageBackdrop
@@ -12,10 +13,13 @@ import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.Tool
 import com.mobixournal.render.PdfWord
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -87,6 +91,42 @@ class DesktopPdfTextSelectionTest {
             DesktopPdfTextSelect.extend(tab, begun, 170.0, 106.0)
             assertEquals("the page is untouched", before, tab.document.page(0))
             assertEquals(0, tab.document.edits)
+            assertFalse(tab.canUndo)
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `Highlight writes ordinary highlighter bands, and one undo takes them all back`() {
+        val tab = DesktopPdfFixture.tab(temp.root)
+        try {
+            tab.pdfTextSelection = DesktopPdfTextSelection(page = 0, anchor = 0, focus = 1)
+            assertTrue(DesktopPdfTextHighlight.highlight(tab, 0xFFFFFF00.toInt()))
+            val bands = tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
+            assertEquals("one band over the one selected line", 1, bands.size)
+            assertEquals(Tool.HIGHLIGHTER, bands.single().tool)
+            assertTrue("a highlight is a band, not a growing stroke", bands.single().uniformWidth)
+            assertEquals(2, bands.single().points.size)
+            assertEquals(1, tab.document.edits)
+            assertTrue("the whole highlight is one undo step", tab.canUndo)
+            assertTrue(tab.undo())
+            assertTrue(
+                "undo takes every band of the selection back",
+                tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>().isEmpty(),
+            )
+            assertTrue("and redo puts them back", tab.redo())
+            assertEquals(1, tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>().size)
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `Highlight without a selection writes nothing`() {
+        val tab = DesktopPdfFixture.tab(temp.root)
+        try {
+            assertFalse(DesktopPdfTextHighlight.highlight(tab, 0xFFFFFF00.toInt()))
             assertFalse(tab.canUndo)
         } finally {
             tab.document.close()

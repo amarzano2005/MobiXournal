@@ -59,6 +59,39 @@ class MagneticHighlighterTest {
     }
 
     @Test
+    fun aSelectionOfWordsBecomesTheBandsADragOverThemWouldMake() {
+        val bands = MagneticHighlighter.bandsOf(lineOne)
+        assertEquals(1, bands.size)
+        assertEquals(49.0, bands.single().left, 0.0)
+        assertEquals(181.0, bands.single().right, 0.0)
+    }
+
+    @Test
+    fun aSelectionIsNotCappedAtTheDragsLineLimit() {
+        // A drag across six lines is marking, not highlighting (MAX_LINES); a *selection* of six lines is the
+        // reader having chosen six lines, and every one of them is meant to be highlighted.
+        val sixLines = (0 until 6).map { i -> word("line$i", 50.0, 100.0 + i * 18, 120.0, 112.0 + i * 18) }
+        assertEquals(6, MagneticHighlighter.bandsOf(sixLines).size)
+    }
+
+    @Test
+    fun selectionStrokesAreOneTwoPointBandPerLineInThePickedColour() {
+        val strokes = MagneticHighlighter.selectionStrokes(lineOne, color = 0x66FFCC00)
+        assertEquals(1, strokes.size)
+        val stroke = strokes.single()
+        assertEquals(Tool.HIGHLIGHTER, stroke.tool)
+        assertEquals(0x66FFCC00, stroke.color)
+        assertTrue("a highlight is a band, not a growing stroke", stroke.uniformWidth)
+        assertEquals(2, stroke.points.size)
+        assertEquals(
+            "the band is as tall as the line it covers, plus the documented air",
+            12.0 + 2 * MagneticHighlighter.BAND_PAD_PT,
+            stroke.points[0].width,
+            0.0,
+        )
+    }
+
+    @Test
     fun strokesCarryTheBandAsOneConstantWidthHighlight() {
         val strokes = MagneticHighlighter.strokes(
             listOf(point(45.0, 106.0), point(185.0, 106.0)),

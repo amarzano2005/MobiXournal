@@ -19,6 +19,8 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.format.XoppColor
+import com.mobixournal.format.XoppColor.withAlpha
 
 // --- selection: rubber-band / tap to select, drag to move, delete ------------------------------
 
@@ -242,6 +244,38 @@ fun DrawingSurfaceView.copyTextSelection() {
     if (text.isEmpty()) return
     val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
     manager.setPrimaryClip(ClipData.newPlainText("PDF text", text))
+}
+
+/**
+ * Highlight the selected PDF words: one ordinary highlighter band per line, on the page's active layer, as
+ * **one** undo step.
+ *
+ * The bands are [MagneticHighlighter.selectionStrokes] over the words the reader selected — the same geometry a
+ * magnetic highlighter drag commits — so a highlight made by selecting text and one made by dragging the
+ * marker are the same ink, round-trip through `.mobix`/`.xopp` the same way, and reach a PDF export as the
+ * same `/Highlight` annotation. [color] is the highlighter's own colour; it is stored semi-transparent, as a
+ * drawn highlight is.
+ *
+ * Selection is reading, so this is the first act of the select-text slot that *writes*: it is refused on a
+ * read-only document, exactly as the eraser and the pen are, and the selection is left where it was — a reader
+ * who wants it again does not have to select the passage twice.
+ */
+fun DrawingSurfaceView.highlightTextSelection(color: Int): Boolean {
+    val index = pdfTextIndex ?: return false
+    if (isReadOnly || !hasTextSelection()) return false
+    val words = index.rangeBoxes(textSelPage, textSelAnchor, textSelFocus)
+    if (words.isEmpty()) return false
+    val ink = if ((color ushr 24) == 0xFF) color.withAlpha(XoppColor.HIGHLIGHTER_ALPHA) else color
+    val strokes = MagneticHighlighter.selectionStrokes(words, ink)
+    if (strokes.isEmpty()) return false
+    // One snapshot for the whole highlight, taken before the first band lands: many strokes, one undo step.
+    val before = doc
+    strokes.forEach { appendStroke(textSelPage, it) }
+    history.record(before)
+    relayout()
+    render()
+    notifyHistory()
+    return true
 }
 
 /** Drop the current PDF-text selection (view-only). */

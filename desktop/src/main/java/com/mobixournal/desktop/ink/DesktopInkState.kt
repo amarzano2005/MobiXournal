@@ -76,6 +76,12 @@ internal class DesktopInkState(
     val shapeInk: DesktopInk get() = inks.pen
 
     /**
+     * The **highlighter's** ink, whatever tool is picked: what *Highlight* on a PDF text selection writes with,
+     * so selecting a passage marks it yellow while the pen is black.
+     */
+    val highlightInk: DesktopInk get() = inks.highlighter
+
+    /**
      * The palette's editable custom slot, shared by both tools like the palette itself (a palette is what
      * the user has, not what a tool is). Null while it is empty.
      */

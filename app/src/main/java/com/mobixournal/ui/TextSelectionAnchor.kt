@@ -21,12 +21,12 @@ private val TEXT_BAR_GAP = 10.dp
 private val TEXT_BAR_MARGIN = 8.dp
 
 /**
- * The **PDF text selection's** Copy bar, floating against the selected words instead of sitting on the
+ * The **PDF text selection's** bar, floating against the selected words instead of sitting on the
  * bottom edge of the pane.
  *
  * It used to be a fixed bar at the foot of the screen, which is where the one thing it is for stops
  * being true: a passage near the foot of a page — the last lines of a paragraph, a footnote, a caption —
- * sat *under* its own toolbar, its highlight hidden by the two buttons that were supposed to act on it.
+ * sat *under* its own toolbar, its highlight hidden by the buttons that were supposed to act on it.
  * Anchored to the box the surface reports ([PaneState.textSelectionRect]), the bar takes the same place
  * the element selection's bar takes ([selectionBarOffset]): centred **below** the last selected line,
  * **above** the block when the pane runs out below, and always clamped inside the pane — so Copy stays
@@ -40,6 +40,7 @@ internal fun TextSelectionAnchor(
     pane: PaneState,
     canvasSizePx: IntSize,
     onCopy: () -> Unit,
+    onHighlight: () -> Unit,
     onDeselect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -58,6 +59,7 @@ internal fun TextSelectionAnchor(
     )
     TextSelectionBar(
         onCopy = onCopy,
+        onHighlight = onHighlight,
         onDeselect = onDeselect,
         modifier = modifier
             .offset { placed }

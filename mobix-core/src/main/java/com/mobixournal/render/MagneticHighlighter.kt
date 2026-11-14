@@ -72,26 +72,64 @@ object MagneticHighlighter {
         }
         if (claimed.isEmpty()) return emptyList()
 
+        val lines = linesOf(claimed)
+        if (lines.size > MAX_LINES) return emptyList()
+        return lines.mapNotNull(::bandOf)
+    }
+
+    /**
+     * The bands a list of **already selected** words forms: one per line, exactly the bands a highlighter
+     * drag across them would snap to.
+     *
+     * This is the selection's door onto the same geometry — the app's *Highlight* verb takes the words the
+     * reader selected, asks for their bands and commits them, so a highlight made by selecting text and one
+     * made by dragging the highlighter are the same ink, drawn by the same rule. Unlike [bands] there is no
+     * line cap: a selection may run down a whole page, and every line of it is meant to be highlighted.
+     */
+    fun bandsOf(words: List<PdfWord>): List<Band> = linesOf(words).mapNotNull(::bandOf)
+
+    /**
+     * [bandsOf] as the strokes to commit: one constant-width, two-point stroke per line, the width the
+     * line's own height — the same shape [strokes] gives a snapped drag.
+     */
+    fun selectionStrokes(
+        words: List<PdfWord>,
+        color: Int,
+        tool: Tool = Tool.HIGHLIGHTER,
+    ): List<Stroke> = bandsOf(words).map { strokeFor(it, color, tool) }
+
+    /** Words clustered into the lines of text they sit on, each cluster in reading order. */
+    private fun linesOf(words: List<PdfWord>): List<MutableList<PdfWord>> {
         val lines = mutableListOf<MutableList<PdfWord>>()
-        for (word in claimed.sortedBy { it.top }) {
+        for (word in words.sortedBy { it.top }) {
             val line = lines.firstOrNull { group ->
                 abs(group.map { it.centerY }.average() - word.centerY) <=
                     maxOf(6.0, (word.bottom - word.top) * 0.75)
             }
             if (line != null) line += word else lines += mutableListOf(word)
         }
-        if (lines.size > MAX_LINES) return emptyList()
-
-        return lines.mapNotNull { group ->
-            val band = Band(
-                left = group.minOf { it.left } - 1.0,
-                top = group.minOf { it.top } - BAND_PAD_PT,
-                right = group.maxOf { it.right } + 1.0,
-                bottom = group.maxOf { it.bottom } + BAND_PAD_PT,
-            )
-            band.takeIf { it.width >= 4.0 }
-        }
+        return lines
     }
+
+    /** One line's band, or null when it is too short to be a highlight. */
+    private fun bandOf(group: List<PdfWord>): Band? = Band(
+        left = group.minOf { it.left } - 1.0,
+        top = group.minOf { it.top } - BAND_PAD_PT,
+        right = group.maxOf { it.right } + 1.0,
+        bottom = group.maxOf { it.bottom } + BAND_PAD_PT,
+    ).takeIf { it.width >= 4.0 }
+
+    /** [band] as the stroke a lifted highlighter commits. */
+    private fun strokeFor(band: Band, color: Int, tool: Tool): Stroke = Stroke(
+        tool = tool,
+        color = color,
+        capStyle = "round",
+        points = listOf(
+            StrokePoint(band.left, band.centerY, band.height),
+            StrokePoint(band.right, band.centerY, band.height),
+        ),
+        uniformWidth = true,
+    )
 
     /**
      * [bands] as the strokes the canvas commits: one constant-width, two-point stroke per line, the
@@ -103,18 +141,7 @@ object MagneticHighlighter {
         words: List<PdfWord>,
         color: Int,
         tool: Tool = Tool.HIGHLIGHTER,
-    ): List<Stroke> = bands(points, words).map { band ->
-        Stroke(
-            tool = tool,
-            color = color,
-            capStyle = "round",
-            points = listOf(
-                StrokePoint(band.left, band.centerY, band.height),
-                StrokePoint(band.right, band.centerY, band.height),
-            ),
-            uniformWidth = true,
-        )
-    }
+    ): List<Stroke> = bands(points, words).map { band -> strokeFor(band, color, tool) }
 
     /** The stroke's own y at [x] (linear between its vertices), or null outside its x-range. */
     private fun yAt(points: List<StrokePoint>, x: Double): Double? {

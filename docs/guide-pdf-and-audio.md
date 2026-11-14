@@ -91,12 +91,20 @@ pick it, and the slot then keeps it for next time. The
 selection is a view over the PDF, not something written into your notebook: it is never saved, and
 `Esc`, a click off the text or a page change clears it.
 
-**Copy rides with the words.** The Copy button does not sit at the bottom of the screen: it floats
+**Highlight marks the words in place.** Beside Copy the bar carries **Highlight**: the passage you selected
+becomes highlighter ink on the page — one band per line, in the highlighter's own colour, on the layer you are
+writing on — and the whole selection is **one undo step**, so undo takes back every line at once and redo puts
+them back. It is ordinary highlighter ink, not a PDF annotation object: it saves, reopens in `.mobix` and
+`.xopp`, and reaches an exported PDF the way any drawn highlight does. A document opened read-only keeps its
+Copy and has no Highlight.
+
+**Copy rides with the words.** The bar does not sit at the bottom of the screen: it floats
 against the passage you selected — under its last line, above it when the page ends there — so the tint
-that shows what is selected is never hidden by the two buttons that act on it. Near an edge, or with the
+that shows what is selected is never hidden by the buttons that act on it. Near an edge, or with the
 text enlarged or a split-screen pane, the bar is measured and pulled inside the pane instead of hanging
-over its edge, and `Tab` puts a ring around Copy or Deselect when a keyboard is attached. The words copied
-are the PDF's own, exactly the ones under the tint: the selection changes nothing in your document.
+over its edge, and `Tab` puts a ring around Copy, Highlight or Deselect when a keyboard is attached. The words
+copied are the PDF's own, exactly the ones under the tint: Copy leaves your document untouched, and Highlight
+marks exactly those words.
 
 A scanned page is a picture of text, not text. It has no words to select, and this app ships no OCR for
 it — the limitation is tracked, not hidden.

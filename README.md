@@ -8,8 +8,6 @@
 
 **A handwriting-first scientific workspace for Android and Windows.**
 
-*Handwritten ideas, mathematics, scientific tools and document workflows in one workspace.*
-
 [![Android and desktop CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
 [![Licence: GPL-2.0-or-later](https://img.shields.io/badge/Licence-GPL--2.0--or--later-blue.svg)](LICENSE)
 
@@ -57,7 +55,7 @@ in the folder you choose, with no account between.
 #### Documents and research
 
 - **Write on the source.** A PDF becomes the page background — the pages you pick by preview, replacing or appended — its text stays selectable and copyable.
-- **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays exactly as drawn.
+- **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays as drawn. Select text and **Highlight** writes the same bands.
 - **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after a merge.
 - **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.
 - **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.

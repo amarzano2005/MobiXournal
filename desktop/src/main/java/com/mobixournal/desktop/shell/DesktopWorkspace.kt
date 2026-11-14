@@ -112,6 +112,7 @@ private fun androidx.compose.foundation.layout.RowScope.WorkspaceCanvas(
             tool = state.tools.current,
             ink = state.pageInk,
             shapeInk = state.shapeInk,
+            highlightInk = state.highlightInk,
             circuitKind = state.activeCircuitKind,
             figures = state.prefs.figures.shape,
             recognition = state.prefs.figures.recognition,

@@ -321,6 +321,7 @@ fun SelectModeBar(
 @Composable
 fun TextSelectionBar(
     onCopy: () -> Unit,
+    onHighlight: () -> Unit,
     onDeselect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -331,6 +332,7 @@ fun TextSelectionBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             BarAction(label = "Copy", onClick = onCopy, glyph = ChromeGlyph.COPY)
+            BarAction(label = "Highlight", onClick = onHighlight)
             BarAction(label = "Deselect", onClick = onDeselect)
         }
     }

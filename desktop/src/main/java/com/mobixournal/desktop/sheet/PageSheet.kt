@@ -41,6 +41,8 @@ internal fun PageSheet(
     tool: DesktopTool,
     ink: DesktopInk,
     shapeInk: DesktopInk,
+    /** The highlighter's own ink, whatever tool is in hand: what *Highlight* on a selection writes with. */
+    highlightInk: DesktopInk = ink,
     circuitKind: ShapeKind,
     /** The triangle's and trapezoid's own answers, read by a figure drag. */
     figures: FigureShape = FigureShape(),
@@ -125,7 +127,7 @@ internal fun PageSheet(
         onEdited = onEdited,
         hud = hud,
     )
-    SheetOverlaysOf(tab, text, sheet, density, selectionBar, extent)
+    SheetOverlaysOf(tab, text, sheet, density, selectionBar, extent, highlightInk)
 }
 
 /**
@@ -142,6 +144,7 @@ private fun SheetOverlaysOf(
     density: Float,
     selectionBar: SelectionBarUi,
     extent: () -> Size,
+    highlightInk: DesktopInk,
 ) {
     SheetOverlays(
         text = text,
@@ -154,7 +157,7 @@ private fun SheetOverlaysOf(
         canvas = extent(),
         viewW = sheet.viewW,
         viewH = sheet.viewH,
-        pdfText = pdfTextCopyUi(tab),
+        pdfText = pdfTextCopyUi(tab, highlightInk.colour),
     )
 }
 
@@ -245,6 +248,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     tool: DesktopTool,
     ink: DesktopInk,
     shapeInk: DesktopInk,
+    highlightInk: DesktopInk = ink,
     circuitKind: ShapeKind,
     /** The triangle's and trapezoid's own answers, read by a figure drag. */
     figures: FigureShape = FigureShape(),
@@ -293,6 +297,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
         tool = tool,
         ink = ink,
         shapeInk = shapeInk,
+        highlightInk = highlightInk,
         circuitKind = circuitKind,
         figures = figures,
         recognition = recognition,

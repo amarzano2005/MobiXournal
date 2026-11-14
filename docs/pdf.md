@@ -107,8 +107,10 @@ that case is a tracked follow-up. Boxes are page-local top-left points (the `.xo
 map to the screen through a `PageBox` exactly like strokes. The **Select text (PDF)** tool
 (`EditorTool.TEXT_SELECT` → `ActiveTool.TEXT_SELECT` → `GestureIntent.SELECT_TEXT`) drags to select
 an inclusive reading-order word range: `beginTextSelect`/`textSelectMove` resolve pointer positions
-to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawTextSelection`), and the
-`TextSelectionBar`'s Copy puts the text on the Android system clipboard (`copyTextSelection`). The bar
+to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawTextSelection`), the
+`TextSelectionBar`'s Copy puts the text on the Android system clipboard (`copyTextSelection`), and its
+**Highlight** writes the passage onto the page (`highlightTextSelection`, see [the magnetic
+highlighter](#the-magnetic-highlighter)). The bar
 **floats against the words**: the surface reports the selected word boxes' union
 (`textSelectionScreenRect` → `onTextSelectionRectChanged` → `PaneState.textSelectionRect`, from the paint
 pass beside `reportScroll`), and `TextSelectionAnchor` places the measured capsule below that box, above
@@ -132,7 +134,8 @@ shell's glue is only that: the reader (`PdfTextExtractor`/`PdfOutlineExtractor` 
 length in `DesktopPdfIndexCache` and read off the UI thread). Both shells therefore resolve a pointer on
 the same word boxes. In the window, **Select text (PDF)** (`Shift+S`) anchors at `anchorWord`, drags an
 inclusive reading-order range, washes it and puts the words on the system clipboard (`Ctrl+C` or the
-selection's Copy bar); `Esc`, a click off the text or a page change clears it, and it writes nothing.
+selection's Copy/Highlight bar); `Esc`, a click off the text or a page change clears it, and **Copy** writes
+nothing.
 
 ## The magnetic highlighter
 
@@ -147,6 +150,15 @@ through `.mobix` and `.xopp` as ink. Snapping is a convenience, never a correcti
 for: a margin mark is not silently turned into a sentence. The window commits and previews the same
 bands from the same object (`DesktopPdfIndex`'s words, `PenPointer.pdfBands` as the live preview), so a
 stylus highlight snaps exactly as a mouse one does.
+
+**Highlighting a selection is the same geometry's other door.** The words a text selection covers go to
+`MagneticHighlighter.selectionStrokes` — the drag's bands, without its three-line cap, because a selection may
+run down a page — and land on the tab's **active layer** through the ordinary commit path
+(`highlightTextSelection` on the tablet, `DesktopPdfTextHighlight` in the window): one undo step for the whole
+multi-line selection, and the same drawn band in a PDF export. The colour is the highlighter's own, not
+the picked tool's, on both shells; Copy still writes nothing and a read-only document has no Highlight. The
+model has **no layer lock** — a layer carries elements, a name and its extra attributes — so there is nothing
+for this verb to bypass: it writes where every other stroke writes.
 
 ## PDF Contents (the outline)
 

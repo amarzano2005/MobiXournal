@@ -5,10 +5,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntSize
 import com.mobixournal.render.clearTextSelection
 import com.mobixournal.render.copyTextSelection
+import com.mobixournal.render.highlightTextSelection
 
 /**
  * **Both of a pane's selection bars**, in one place: the element selection's action bar and the PDF text
- * selection's Copy bar.
+ * selection's Copy/Highlight bar.
  *
  * Neither belongs on the bottom edge of the screen — each rides with what it acts on, so the tint that
  * says what is selected is never covered by the controls for it, and a hand holding the stylus does not
@@ -36,12 +37,13 @@ internal fun PaneSelectionBars(
             modifier = modifier,
         )
     }
-    // The PDF text bar: one verb, against the words it copies.
+    // The PDF text bar: two verbs, against the words they act on.
     if (pane.textSelectionRect != null) {
         TextSelectionAnchor(
             pane = pane,
             canvasSizePx = canvasSizePx,
             onCopy = { pane.surface?.copyTextSelection() },
+            onHighlight = { pane.surface?.highlightTextSelection(settings.highlighterColor) },
             onDeselect = { pane.surface?.clearTextSelection() },
             modifier = modifier,
         )

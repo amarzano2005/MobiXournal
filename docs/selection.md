@@ -74,7 +74,7 @@ are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halve
 and it arrives **in place** on the shared glass spring (`liquidGlassSpringAnimation`, scale + fade —
 the motion every floating surface plays), its offset animated only once it has been measured, so it
 never travels in from the canvas edge. Pure placement geometry lives in
-`ui/SelectionActionAnchor.kt`'s `selectionBarOffset`, pinned by `SelectionActionAnchorTest`. The other mode bars (paste/region, table) stay on the bottom edge; the PDF-text selection's Copy bar is the second bar to float, anchored to the words through `PaneState.textSelectionRect` (`ui/TextSelectionAnchor.kt`, pinned by `TextSelectionBarAnchorTest`). The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
+`ui/SelectionActionAnchor.kt`'s `selectionBarOffset`, pinned by `SelectionActionAnchorTest`. The other mode bars (paste/region, table) stay on the bottom edge; the PDF-text selection's Copy/Highlight bar is the second bar to float, anchored to the words through `PaneState.textSelectionRect` (`ui/TextSelectionAnchor.kt`, pinned by `TextSelectionBarAnchorTest`). The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
 works in Select mode (it abandons the in-progress selection gesture).
 
 The outline itself is drawn **exactly on the elements' ink box** (`SELECT_PAD_PX` = 0): a padded box

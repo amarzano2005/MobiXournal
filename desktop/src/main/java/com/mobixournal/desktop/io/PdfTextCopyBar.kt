@@ -40,29 +40,36 @@ import com.mobixournal.render.Bounds
 import kotlin.math.roundToInt
 
 /**
- * What a PDF text selection carries on screen: the box its Copy bar is anchored to, and what the bar
- * does.
+ * What a PDF text selection carries on screen: the box its bar is anchored to, and what the bar does.
  *
- * A value rather than two parameters, so a canvas that has no text selection passes one `null` and the
- * bar does not exist — a Copy button over nothing would be chrome pretending to be a feature.
+ * A value rather than three parameters, so a canvas that has no text selection passes one `null` and the
+ * bar does not exist — a Copy button over nothing would be chrome pretending to be a feature. [onHighlight]
+ * is null on a document the window opened read-only: the words can still be copied, but nothing may be
+ * written on the page.
  */
-internal data class PdfTextCopyUi(val bounds: Bounds?, val onCopy: () -> Unit)
+internal data class PdfTextCopyUi(
+    val bounds: Bounds?,
+    val onCopy: () -> Unit,
+    val onHighlight: (() -> Unit)? = null,
+)
 
 /**
- * The Copy bar a **PDF text selection** wears, where the element selection's bar would stand.
+ * The bar a **PDF text selection** wears, where the element selection's bar would stand: **Copy** and
+ * **Highlight**.
  *
- * It is one button because the text selection has one verb: the words are already selected, and the only
- * thing a reader can do with them is take them elsewhere. It sits in the same glass capsule, at the same
- * offset rule ([selectionBarOffset]) as the element bar, so the window does not grow a second place for a
- * selection's actions to appear.
+ * It sits in the same glass capsule, at the same offset rule ([selectionBarOffset]) as the element bar, so the
+ * window does not grow a second place for a selection's actions to appear. Two words and not three: the words
+ * are already selected, so what a reader can do with them is take them elsewhere or mark them on the page —
+ * and deselecting is a click on the page, which needs no button.
  *
  * **Its own size is measured, not assumed.** It used to place itself with a hard-coded 78 × 30 dp capsule,
  * which is true only at 100 % text and one font: a wider glyph, a larger scale or the window's own density
  * moved the capsule past the pane's edge while the clamp still believed it was 78 dp wide. The measured box
- * is what the clamp uses, so Copy stays inside the pane at every edge.
+ * is what the clamp uses, so the bar stays inside the pane at every edge — and it grew a word without a
+ * second hard-coded width to get wrong.
  *
  * The ring is the keyboard's: a capsule in the middle of the page draws no focus of its own, so Tab landing
- * on Copy has to be visible.
+ * on Copy or Highlight has to be visible.
  */
 @Composable
 internal fun PdfTextCopyBar(
@@ -105,19 +112,41 @@ internal fun PdfTextCopyBar(
                     focused = it.isFocused
                     WindowKeys.focusControl(owner, focused)
                 }
-                .clickable(role = Role.Button) { ui.onCopy() }
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Canvas(Modifier.size(14.dp)) { drawChromeGlyph(ChromeGlyph.COPY, DesktopTheme.inkSecondary) }
-            Spacer(Modifier.width(2.dp))
-            Text(
-                text = "Copy",
-                color = DesktopTheme.inkSecondary,
-                style = DesktopTheme.label,
-                modifier = Modifier.padding(end = 2.dp),
-            )
+            BarWord(label = "Copy", glyph = ChromeGlyph.COPY, onClick = ui.onCopy)
+            // A read-only document keeps its Copy and grows no Highlight: the verb would be a dead button.
+            ui.onHighlight?.let { highlight ->
+                BarWord(label = "Highlight", glyph = null, onClick = highlight)
+            }
         }
+    }
+}
+
+/**
+ * One word of the bar.
+ *
+ * The words are the bar's **targets**, so each is its own click — the capsule used to be one button because it
+ * had one word, and a second verb inside a single target would have made the whole capsule ambiguous.
+ */
+@Composable
+private fun BarWord(label: String, glyph: ChromeGlyph?, onClick: () -> Unit) {
+    Row(
+        Modifier.clickable(role = Role.Button, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (glyph != null) {
+            Canvas(Modifier.size(14.dp)) { drawChromeGlyph(glyph, DesktopTheme.inkSecondary) }
+            Spacer(Modifier.width(2.dp))
+        }
+        Text(
+            text = label,
+            color = DesktopTheme.inkSecondary,
+            style = DesktopTheme.label,
+            modifier = Modifier.padding(end = 2.dp),
+        )
     }
 }

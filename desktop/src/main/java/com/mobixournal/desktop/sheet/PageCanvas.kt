@@ -118,6 +118,7 @@ internal fun PageCanvas(
      * yellow marker never turns a rectangle yellow; a canvas on its own uses the picked tool's ink.
      */
     shapeInk: DesktopInk = ink,
+    highlightInk: DesktopInk = ink,
     circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
     /** The triangle's and trapezoid's own answers, read by a figure drag (Settings ▸ Figures). */
     figures: FigureShape = FigureShape(),
@@ -171,6 +172,7 @@ internal fun PageCanvas(
             tool = tool,
             ink = ink,
             shapeInk = shapeInk,
+            highlightInk = highlightInk,
             circuitKind = circuitKind,
             figures = figures,
             recognition = recognition,

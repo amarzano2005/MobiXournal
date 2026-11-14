@@ -33,12 +33,16 @@ class PdfTextCopyBarTest {
     private val canvas = Size(600f, 400f)
 
     /** Compose the bar and answer the size of the capsule it actually drew, in px at density 1. */
-    private fun measuredCapsule(fontScale: Float): Size {
+    private fun measuredCapsule(fontScale: Float, highlightable: Boolean = false): Size {
         var size = Size.Zero
         val scene = ImageComposeScene(600, 400, Density(1f, fontScale)) {
             MaterialTheme {
                 PdfTextCopyBar(
-                    ui = PdfTextCopyUi(bounds = Bounds(100.0, 100.0, 300.0, 140.0), onCopy = {}),
+                    ui = PdfTextCopyUi(
+                        bounds = Bounds(100.0, 100.0, 300.0, 140.0),
+                        onCopy = {},
+                        onHighlight = if (highlightable) ({}) else null,
+                    ),
                     zoom = 1f,
                     density = 1f,
                     offsetX = 0f,
@@ -74,6 +78,18 @@ class PdfTextCopyBarTest {
         val large = measuredCapsule(fontScale = 1.5f)
         assertTrue("the bar drew a capsule: $plain", plain.width > 70f && plain.height > 20f)
         assertTrue("150 % text draws a wider capsule than 100 %: $large against $plain", large.width > plain.width)
+    }
+
+    @Test
+    fun `the bar carries Highlight beside Copy, and only where the page may be written`() {
+        val copying = measuredCapsule(fontScale = 1f)
+        val both = measuredCapsule(fontScale = 1f, highlightable = true)
+        assertTrue(
+            "Highlight is a second word in the capsule: $both against $copying",
+            both.width > copying.width + 20f,
+        )
+        // A read-only document passes no `onHighlight`, so the verb does not exist at all.
+        assertTrue("Copy alone is the read-only bar: $copying", copying.width > 70f)
     }
 
     @Test

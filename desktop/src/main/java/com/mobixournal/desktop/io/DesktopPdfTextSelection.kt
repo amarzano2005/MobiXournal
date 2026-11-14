@@ -1,7 +1,12 @@
 package com.mobixournal.desktop.io
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.warmInk
+import com.mobixournal.desktop.ink.withElement
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.audio.withAudio
+import com.mobixournal.format.XoppColor.withAlpha
+import com.mobixournal.format.model.Stroke
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,9 +94,57 @@ internal object DesktopPdfTextSelect {
     }
 }
 
-/** [tab]'s text selection as the Copy bar's own value; a null bounds is "no bar". */
-internal fun pdfTextCopyUi(tab: DesktopTab): PdfTextCopyUi =
-    PdfTextCopyUi(bounds = pdfTextSelectionBounds(tab), onCopy = { copyPdfTextOf(tab) })
+/**
+ * [tab]'s text selection as the bar's own value; a null bounds is "no bar".
+ *
+ * [highlightColour] is the highlighter's ink, so *Highlight* writes the marker's own colour even while the
+ * pen is the picked tool — the tablet reads `AppSettings.highlighterColor` for the same word.
+ */
+internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi = PdfTextCopyUi(
+    bounds = pdfTextSelectionBounds(tab),
+    onCopy = { copyPdfTextOf(tab) },
+    onHighlight = if (tab.document.readOnly) null else ({ DesktopPdfTextHighlight.highlight(tab, highlightColour) }),
+)
+
+/**
+ * **Highlight** the words a PDF text selection covers: ordinary highlighter bands on the tab's active layer,
+ * as **one** undo step.
+ *
+ * The bands are `MagneticHighlighter.selectionStrokes` over the selected words — the geometry a magnetic
+ * highlighter drag snaps to — so selecting a passage and highlighting it writes the ink a drag over it would
+ * have written: the same stroke shape, the same colour, the same layer, and the same `/Highlight` annotation
+ * when the page reaches a PDF export. Nothing new enters the document format.
+ *
+ * One snapshot names the whole highlight, so `Ctrl+Z` takes back every line of a multi-line selection at once,
+ * and a redo puts them all back.
+ */
+internal object DesktopPdfTextHighlight {
+
+    /** Write the selection's bands; false when there is nothing to write or the page took no edit. */
+    fun highlight(tab: DesktopTab, colour: Int): Boolean {
+        val selection = tab.pdfTextSelection ?: return false
+        val words = DesktopPdfTextSelect.boxes(tab, selection)
+        if (words.isEmpty()) return false
+        val ink = if ((colour ushr 24) == 0xFF) colour.withAlpha(com.mobixournal.format.XoppColor.HIGHLIGHTER_ALPHA) else colour
+        val strokes = com.mobixournal.render.MagneticHighlighter.selectionStrokes(words, ink)
+        if (strokes.isEmpty()) return false
+        val index = tab.page
+        val before = tab.document.snapshot()
+        // A take that is running stamps the same `fn`/`ts` every committed stroke carries.
+        val stamp = DesktopAudioSession.stamp(tab)
+        val edited = tab.document.editPage(index) { page ->
+            strokes.fold(page) { grown, stroke ->
+                val band = if (stamp != null) stroke.withAudio(stamp) else stroke
+                grown.withElement(band, tab.inkLayer(grown))
+            }
+        }
+        if (edited == null) return false
+        tab.record(before)
+        tab.warmInk()
+        DesktopPdfTextNotice.highlighted(words.size)
+        return true
+    }
+}
 
 /**
  * The union box of [tab]'s text selection, in page points — where its Copy bar is placed — or null when
@@ -163,6 +216,11 @@ internal object DesktopPdfTextNotice {
     /** `Copied 4 words` — the confirmation a silent clipboard never gives. */
     fun copied(words: Int) {
         text = if (words == 1) "Copied 1 word" else "Copied $words words"
+    }
+
+    /** `Highlighted 4 words` — the page changed, and the bar says which words it marked. */
+    fun highlighted(words: Int) {
+        text = if (words == 1) "Highlighted 1 word" else "Highlighted $words words"
     }
 
     fun clear() {

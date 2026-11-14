@@ -351,12 +351,12 @@ class DesktopShellState(
         palette = { palette }, custom = { paletteCustom }, contents = { prefs.ring.contents },
         onColour = ::pickColour, onWidth = ::pickWidth, onTool = { selectTool(it) },
     )
-
     /** The ink of the picked tool — the pen's, or the highlighter's colour and width **slot**. */
     val ink: DesktopInk get() = inkState.ink
 
     /** [ink] as the page is written with it: a highlighter's slot read as a marker's tip (`DesktopInkState.pageInk`). */
     val pageInk: DesktopInk get() = inkState.pageInk
+    val highlightInk: DesktopInk get() = inkState.highlightInk
 
     /**
      * The pen's ink, whatever tool is in hand: a figure, a circuit or a placement writes with this one.
