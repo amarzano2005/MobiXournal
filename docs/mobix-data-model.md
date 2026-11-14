@@ -29,6 +29,7 @@ format stores device pixels.
 | `defaultPaper` | background object | no | `null` | what a new page starts on, in the same shape a page's `background` has ([mobix-schema-spec.md](mobix-schema-spec.md) → *Backgrounds*) |
 | `requiredCapabilities` | array of strings | no | `[]` | see [mobix-capabilities.md](mobix-capabilities.md) |
 | `optionalCapabilities` | array of strings | no | `[]` | the same grammar, a weaker promise |
+| `outline` | outline object | no | absent | the notebook **Contents** tree; absent means the document has none and the index shown is the source PDF's |
 
 `defaultPaper` being a full background object rather than a paper name is deliberate: what a new page
 starts on and what this page is on cannot drift apart, and a ruling's parameters ride verbatim in
@@ -43,6 +44,43 @@ re-serialised into a spelling mismatch.
 | `entry` | string | **yes** | — | the archive entry that holds the part's bytes |
 | `modified` | integer | no | `0` | the part's last-write time, which is what a merge compares |
 | `sha256` | string | no | `""` | the digest of the entry's **stored** bytes; empty means no claim, and a claim is checked |
+
+### The outline tree
+
+**Planned — no codec reads this key yet**, and a build that does not model a manifest field preserves it
+([rules that are not field-local](#rules-that-are-not-field-local), rule 7), so a file written by the
+future reader still round-trips here today.
+
+```json
+"outline": {
+  "version": 1,
+  "nodes": [
+    { "id": "bkm_1", "title": "Geometry", "target": { "sheet": 4 },
+      "children": [ { "id": "bkm_2", "title": "Angles", "target": { "page": "pg_07" } } ] },
+    { "id": "bkm_3", "title": "Appendix", "children": [] }
+  ]
+}
+```
+
+| Field | Type | Required | Default | Meaning |
+|---|---|---|---|---|
+| `version` | integer | no | `1` | the node schema's version; a newer one is refused whole |
+| `nodes` | array of nodes | no | `[]` | the top-level nodes, **in the tree's order** |
+| `nodes[].id` | string | **yes** | — | the node's identity, `bkm_` followed by the element alphabet; unique in the whole tree |
+| `nodes[].title` | string | no | `""` | what the row reads; empty renders as `Page N` when the node has a page |
+| `nodes[].target` | object | no | absent | absent means the row groups the ones under it and is not tappable |
+| `nodes[].target.sheet` | integer | one of the two | — | 0-based page index **inside the document's PDF**, the same number a page's `background` carries |
+| `nodes[].target.page` | string | one of the two | — | the `pages[].id` of the notebook page it opens |
+| `nodes[].children` | array of nodes | no | `[]` | the nodes under it, in their own order |
+
+Three rules the shape cannot state on its own. **Identity is the id, never the title or the position**:
+two chapters may both be called `Introduction`, and a rename or a move keeps the node. **A target names
+one page, and its kind decides how to find it**: `sheet` resolves to the first page whose background
+shows that sheet, `page` to the page carrying that id, and neither is ever clamped, rounded or backed off
+to a neighbouring page — a target that no longer resolves leaves the row in place, un-tappable. **Order
+is the array's**, not a sort by title, which is what lets a reader drag a row. A tree nested deeper than
+32 levels, a duplicate `id`, or both target kinds on one node is a corrupt document, not a document with
+two answers.
 
 ## `canvas.json`
 

@@ -232,6 +232,29 @@ the ink is read as the ordinary strokes it is:
 | a `version` from a newer build, unreadable JSON, or no block at all | nothing is revived; the file imports as the drawing it is |
 | an entry naming something that is not a living entity | dropped on its own; the rest of the block still applies |
 
+### The outline in the bridge block
+
+A `.xopp` has no bookmark tree, and desktop Xournal++ will drop any that it does not understand, so the
+notebook's Contents tree travels in the same comment as the living entities — one more **planned** key
+beside `elements`, carrying the same node shape as the manifest's `outline`
+([mobix-data-model.md](mobix-data-model.md) → *The outline tree*), with each target written in the form the
+import can check:
+
+```json
+{"version":1,"doc":"f47ac10b-…","outline":{"nodes":[{"id":"bkm_1","title":"Geometry",
+  "sheet":4,"children":[{"id":"bkm_2","title":"Chapter 7","index":6,"sha256":"c0ffee…"}]}]},
+ "elements":[ … ]}
+```
+
+A page that shows a PDF sheet is named by that `sheet`, because the sheet number is still there to find. A
+plain notebook page has no such handle, so it is named by its `index` **plus the digest of that page's ink**
+(`MobixMetaDigest`, the same digest the entity claims use). On import a node's target is honoured only where
+the file in front of us still proves it: a `sheet` while some page still shows that sheet, an `index` while
+the page at that position still hashes to the recorded value. Anything else — a page inserted or reordered
+in Xournal++, an edited page, an index past the end — arrives with **no destination**: the title and the
+children stay, the row is shown un-tappable, and nothing lands on a page that merely happens to be nearby.
+That is the same discipline the claims above follow, applied to a target instead of to ink.
+
 That is what "lossless" means for this bridge, and it is deliberately narrower than "bit-identical":
 geometry is always preserved exactly (it is compiled into real elements), and semantics are recovered
 only while nothing downstream touched them. A file edited in Xournal++ opens correctly — as the edit,

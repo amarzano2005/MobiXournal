@@ -175,12 +175,13 @@ to the chrome through `onPdfOutlineChanged` (pane state), and the page list lane
 list that folds its chapters and filters by title (`PdfOutlineView`). A tap calls `goToPdfPage`, which picks the page by `Background.Pdf.pageNo` rather than by index
 (a merged PDF renumbers every appended page, and a desktop-authored file may order them freely).
 
-This is deliberately **navigation only, never document content**: the `.xopp` format has nowhere to
-keep a bookmark tree, so the outline is read from the PDF and the file is untouched by it — the same
-reasoning that keeps desktop Xournal++'s PDF text selection out of the saved document. The window's
-**Contents** section (`PageSidebar`, under the layers) prints the same rows, indented by depth, only
-when opened, and resolves a click through `Background.Pdf.pageNo` — never an offset — so a merged PDF
-still lands on the right page.
+**What is live today is navigation only**: the `.xopp` format has nowhere to keep a bookmark tree, so the
+outline is read from the PDF and the file is untouched by it — the same reasoning that keeps desktop
+Xournal++'s PDF text selection out of the saved document. The window's **Contents** section (`PageSidebar`,
+under the layers) prints the same rows, indented by depth, only when opened, and resolves a click through
+`Background.Pdf.pageNo` — never an offset — so a merged PDF still lands on the right page.
+
+**Planned: the tree becomes the notebook's.** A manifest key `outline` ([mobix-data-model.md](mobix-data-model.md) → *The outline tree*) keeps a `bkm_` id per node, an explicit order and one target — `sheet` (the PDF page an imported row already means) or `page` (a page id, so paper is bookmarkable) — and a target that stops resolving leaves its row un-tappable rather than aiming at a neighbour.
 
 A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): the indent a level buys is
 capped by the row's own width so the title never drops under its minimum, the page number keeps a column
