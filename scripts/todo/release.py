@@ -59,6 +59,9 @@ _VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 _GRADLE_VERSION_CODE_RE = re.compile(r"^(\s*versionCode\s*=\s*)(\d+)(\s*)$", re.M)
 _GRADLE_VERSION_NAME_RE = re.compile(r'^(\s*versionName\s*=\s*")([^"]*)("\s*)$', re.M)
 _GRADLE_PACKAGE_VERSION_RE = re.compile(r'^(\s*packageVersion\s*=\s*")([^"]*)("\s*)$', re.M)
+_BUILD_VERSIONS_DESKTOP_RE = re.compile(
+    r'^(\s*const\s+val\s+DESKTOP\s*=\s*")([^"]*)("\s*)$', re.M
+)
 
 
 # --- version helpers -------------------------------------------------------
@@ -308,6 +311,57 @@ def desktop_version(root):
     return match.group(2) if match else None
 
 
+_BUILD_VERSIONS_RELATIVE = os.path.join(
+    "mobix-core", "src", "main", "java", "com", "mobixournal", "design", "BuildVersions.kt"
+)
+
+
+def build_versions_path(root):
+    return os.path.join(root, _BUILD_VERSIONS_RELATIVE)
+
+
+def build_versions_desktop(root):
+    """``BuildVersions.DESKTOP`` — the number the window's About row shows, or ``None``."""
+    path = build_versions_path(root)
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as fh:
+        match = _BUILD_VERSIONS_DESKTOP_RE.search(fh.read())
+    return match.group(2) if match else None
+
+
+def sync_build_versions(root):
+    """Point ``BuildVersions.DESKTOP`` at ``desktop/build.gradle.kts``'s ``packageVersion``.
+
+    The window's number is written in two files that a release has to keep in step: the
+    Gradle line that names the MSI, and the constant the About row reads (and the tablet
+    names as the build it speaks to). Only the first is a version decision — the second
+    follows it — so a release copies it over instead of asking again.
+
+    Returns ``(old, new)`` when the constant moved, ``None`` when the two already agree or
+    either file is not there. Read and written with ``newline=""`` so the file's line
+    endings survive the edit.
+    """
+    desktop = desktop_version(root)
+    path = build_versions_path(root)
+    if desktop is None or not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8", newline="") as fh:
+        text = fh.read()
+    match = _BUILD_VERSIONS_DESKTOP_RE.search(text)
+    if not match:
+        return None
+    old = match.group(2)
+    if old == desktop:
+        return None
+    text = _BUILD_VERSIONS_DESKTOP_RE.sub(
+        lambda m: f"{m.group(1)}{desktop}{m.group(3)}", text, count=1,
+    )
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(text)
+    return old, desktop
+
+
 def check_versions(root):
     """Both version lines, as the problems a release would trip over.
 
@@ -335,5 +389,11 @@ def check_versions(root):
         problems.append(
             f"desktop packageVersion {desktop!r} is not numeric X.Y.Z — Windows reads the MSI "
             "version as a number, so a suffix such as -rc1 fails at packaging"
+        )
+    shown = build_versions_desktop(root)
+    if shown is not None and desktop is not None and shown != desktop:
+        problems.append(
+            f"BuildVersions.DESKTOP is {shown!r} while desktop packageVersion is {desktop!r}: "
+            "the window would name the wrong build in its About row"
         )
     return problems

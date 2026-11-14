@@ -336,9 +336,15 @@ def cmd_release(args):
 
     if args.dry_run:
         print(changelog)
+        shown = release.build_versions_desktop(root)
+        desktop = release.desktop_version(root)
+        follows = (
+            f"; BuildVersions.DESKTOP would follow {shown} -> {desktop}"
+            if shown is not None and desktop is not None and shown != desktop else ""
+        )
         print(
             f"(dry run: {len(pending)} task(s) would be stamped {version}; "
-            f"{rel_target} would be written)"
+            f"{rel_target} would be written{follows})"
         )
         return
 
@@ -358,6 +364,12 @@ def cmd_release(args):
             f"  app/build.gradle.kts: versionName {old_name} -> {version}, "
             f"versionCode {old_code} -> {new_code}"
         )
+    # The window numbers itself, but it *names* that number twice: `packageVersion` for the MSI and
+    # `BuildVersions.DESKTOP` for its About row. Only the first is a decision, so the second follows it
+    # here instead of being remembered — 1.2.0 shipped with 1.1.0 on its About page when it was not.
+    moved = release.sync_build_versions(root)
+    if moved:
+        print(f"  BuildVersions.DESKTOP: {moved[0]} -> {moved[1]}")
     remaining = len(release.pending_tasks(store.load(fin_path)["tasks"]))
     print(f"  pending after this release: {remaining}")
     if not args.no_changelog:

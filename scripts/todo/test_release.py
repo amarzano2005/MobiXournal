@@ -207,13 +207,34 @@ DESKTOP_SAMPLE = (
 )
 
 
-def _two_line_repo(tmp, app_text=GRADLE_SAMPLE, desktop_text=DESKTOP_SAMPLE):
+BUILD_VERSIONS_SAMPLE = (
+    "package com.mobixournal.design\r\n"
+    "\r\n"
+    "object BuildVersions {\r\n"
+    "\r\n"
+    '    const val DESKTOP = "1.0.0"\r\n'
+    "}\r\n"
+)
+
+
+def _build_versions_file(tmp):
+    return os.path.join(tmp, release._BUILD_VERSIONS_RELATIVE)
+
+
+def _two_line_repo(tmp, app_text=GRADLE_SAMPLE, desktop_text=DESKTOP_SAMPLE,
+                   build_versions_text=BUILD_VERSIONS_SAMPLE):
+    """A repository with both Gradle files and, when given, the window's About constant."""
     os.makedirs(os.path.join(tmp, "app"), exist_ok=True)
     os.makedirs(os.path.join(tmp, "desktop"), exist_ok=True)
     with open(os.path.join(tmp, "app", "build.gradle.kts"), "w", encoding="utf-8") as fh:
         fh.write(app_text)
     with open(os.path.join(tmp, "desktop", "build.gradle.kts"), "w", encoding="utf-8") as fh:
         fh.write(desktop_text)
+    if build_versions_text is not None:
+        path = _build_versions_file(tmp)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="") as fh:
+            fh.write(build_versions_text)
 
 
 def test_desktop_version():
@@ -256,6 +277,52 @@ def test_check_versions_rejects_a_bad_app_line():
               "an app versionName that is not X.Y.Z is reported")
 
 
+def test_build_versions_desktop():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp)
+        check(release.build_versions_desktop(tmp) == "1.0.0",
+              "build_versions_desktop reads the About row's constant")
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp, build_versions_text=None)
+        check(release.build_versions_desktop(tmp) is None,
+              "a repository without the constant reports nothing rather than a guess")
+
+
+def test_sync_build_versions():
+    with tempfile.TemporaryDirectory() as tmp:
+        # The window is on 1.2.0 while its About row still says 1.0.0: the case 1.2.0 shipped with.
+        _two_line_repo(tmp, desktop_text=DESKTOP_SAMPLE.replace("1.0.0", "1.2.0"))
+        moved = release.sync_build_versions(tmp)
+        check(moved == ("1.0.0", "1.2.0"),
+              f"sync_build_versions reports the move it made: {moved}")
+        check(release.build_versions_desktop(tmp) == "1.2.0",
+              "the About row follows the packaged version")
+        with open(_build_versions_file(tmp), "rb") as fh:
+            raw = fh.read()
+        check(b"\r\n" in raw and b"\n" not in raw.replace(b"\r\n", b""),
+              "the constant is rewritten without touching the file's line endings")
+        check(b"package com.mobixournal.design" in raw,
+              "and nothing else in the file is rewritten")
+
+
+def test_sync_build_versions_leaves_an_agreed_pair_alone():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp, desktop_text=DESKTOP_SAMPLE.replace("1.0.0", "1.2.0"),
+                       build_versions_text=BUILD_VERSIONS_SAMPLE.replace('"1.0.0"', '"1.2.0"'))
+        before = os.stat(_build_versions_file(tmp)).st_mtime_ns
+        moved = release.sync_build_versions(tmp)
+        check(moved is None and os.stat(_build_versions_file(tmp)).st_mtime_ns == before,
+              "a pair that already agrees is not rewritten")
+
+
+def test_check_versions_rejects_a_stale_about_row():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp, desktop_text=DESKTOP_SAMPLE.replace("1.0.0", "1.2.0"))
+        problems = release.check_versions(tmp)
+        check(any("BuildVersions.DESKTOP" in p for p in problems),
+              "an About row left behind by a bump is reported")
+
+
 def main():
     test_versions()
     test_latest_version()
@@ -271,6 +338,10 @@ def main():
     test_check_versions_rejects_an_msi_suffix()
     test_check_versions_rejects_a_missing_desktop_version()
     test_check_versions_rejects_a_bad_app_line()
+    test_build_versions_desktop()
+    test_sync_build_versions()
+    test_sync_build_versions_leaves_an_agreed_pair_alone()
+    test_check_versions_rejects_a_stale_about_row()
     if _FAILURES:
         print(f"\n{len(_FAILURES)} check(s) failed")
         return 1

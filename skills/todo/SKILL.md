@@ -138,7 +138,9 @@ newest-`completed`-first.
   `docs/releases/vX.Y.Z.md` grouped by category (plus a compare link to the previous version).
   Refuses to overwrite an existing changelog (`--force`), refuses a version that is not newer than
   the last recorded one, and refuses to run with nothing pending. `--bump-gradle` also sets
-  `versionName` and increments `versionCode` in `app/build.gradle.kts`. `--through YYYY-MM-DD`
+  `versionName` and increments `versionCode` in `app/build.gradle.kts`. With or without it, the
+  command points `BuildVersions.DESKTOP` — the window's About row — at `desktop/build.gradle.kts`'s
+  `packageVersion`, so a desktop bump cannot leave that row a version behind. `--through YYYY-MM-DD`
   narrows the stamp to tasks finished by that date — the one-shot backfill for a release older than
   this field. `--dry-run` prints the draft and changes nothing. Implementation: `release.py`;
   regression check: `python3 scripts/todo/test_release.py`.

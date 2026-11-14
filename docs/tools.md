@@ -204,7 +204,7 @@ failure).
 
 1. **Run the release command** (above). With `--bump-gradle` it sets `versionName` to the version
    and increments `versionCode` in `app/build.gradle.kts` — the counter is monotonic, not derived
-   from the name.
+   from the name. Either way it points `BuildVersions.DESKTOP` at the window's `packageVersion`.
 2. **Curate `docs/releases/vX.Y.Z.md`.** The generated file is a *draft*: group the bullets,
    reword them, add the highlights a raw list cannot show. The file name must match the tag
    exactly.
