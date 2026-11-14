@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,10 +48,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,7 +94,7 @@ internal fun ImportPdfDialog(
     // what both shells read when the card is confirmed.
     val picked = request.mode
     val range = request.range
-    val usable = range is PageRangePlan.Pages
+    val usable = request.chosen != null
     val scroll = rememberScrollState()
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val width = ImportCardLayout.cardWidth(maxWidth.value).dp
@@ -114,10 +117,8 @@ internal fun ImportPdfDialog(
             Column(Modifier.weight(1f, fill = false).verticalScroll(scroll)) {
                 CardHeading(request)
                 Spacer(Modifier.height(12.dp))
-                RangeSection(
+                PagesSection(
                     request = request,
-                    stacked = stacked,
-                    usable = usable,
                     invalidMessage = (range as? PageRangePlan.Invalid)?.message,
                     onEdit = onEdit,
                 )
@@ -187,84 +188,85 @@ private fun Actions(row: Boolean, label: String, enabled: Boolean, onConfirm: ()
 }
 
 /**
- * The range, on one line when there is room for it and one field per line when there is not.
+ * **Which pages to bring**, in the reader's own grammar: `2,4-6,9`, and `3` or `3-5` as the one-run case.
  *
- * The stacked form says each field's name out loud: two bare capsules over one another are a puzzle,
- * and at 150 % text the words would not have fitted the row anyway.
+ * The card used to hold two fields, *First page* and *Last page*, which can only name one continuous
+ * stretch; a chapter that is pages 2, 4–6 and 9 had to be brought as 2–9. One field says what an import
+ * is — a set of source pages — and the words beside it answer back with the count the selection comes to,
+ * out of how many the file has. The field takes digits, a comma, a hyphen and spaces: the refusal that
+ * follows is always about a page number, never about a keystroke the field could not hold.
  */
 @Composable
-private fun RangeSection(
+private fun PagesSection(
     request: ImportPdfRequest,
-    stacked: Boolean,
-    usable: Boolean,
     invalidMessage: String?,
     onEdit: ((ImportPdfRequest) -> ImportPdfRequest) -> Unit,
 ) {
     Spacer(Modifier.height(12.dp))
-    if (stacked) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            RangeLine(
-                label = "First page",
-                value = request.first,
-                field = "First page to import",
-                errorText = invalidMessage,
-                onValue = { typed -> onEdit { it.copy(first = typed) } },
-            )
-            RangeLine(
-                label = "Last page",
-                value = request.last,
-                field = "Last page to import",
-                errorText = invalidMessage,
-                onValue = { typed -> onEdit { it.copy(last = typed) } },
-            )
-            Text("of ${request.pageCount}", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-        }
-    } else {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Pages", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
-            Spacer(Modifier.width(10.dp))
-            PageNumberField(
-                value = request.first,
-                label = "First page to import",
-                errorText = invalidMessage,
-                onValue = { typed -> onEdit { it.copy(first = typed) } },
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("to", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
-            Spacer(Modifier.width(8.dp))
-            PageNumberField(
-                value = request.last,
-                label = "Last page to import",
-                errorText = invalidMessage,
-                onValue = { typed -> onEdit { it.copy(last = typed) } },
-            )
-            Spacer(Modifier.width(10.dp))
-            Text("of ${request.pageCount}", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-        }
-    }
-    if (!usable) {
-        Spacer(Modifier.height(8.dp))
-        Text(
-            invalidMessage ?: "These pages cannot be imported.",
-            color = DesktopTheme.documentRed,
-            style = DesktopTheme.label,
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Pages", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+        Spacer(Modifier.width(10.dp))
+        PagesTextField(
+            value = request.pages,
+            label = "Pages to import",
+            errorText = invalidMessage,
+            onValue = { typed ->
+                onEdit { it.copy(pages = typed.filter { c -> c.isDigit() || c == ',' || c == '-' || c == ' ' }.take(60)) }
+            },
         )
+        Spacer(Modifier.width(12.dp))
+        Text(selectionReadout(request), color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+    }
+    if (invalidMessage != null) {
+        Spacer(Modifier.height(8.dp))
+        Text(invalidMessage, color = DesktopTheme.documentRed, style = DesktopTheme.label)
     }
 }
 
-/** One field with its word in front, for a card too narrow (or too large-typed) to hold both. */
+/**
+ * The line beside the field: the count the selection comes to, or — while it names nothing — the shape of
+ * an answer. "4 of 108 pages" is the number the reader is deciding on; the file's own count is already
+ * above, and saying it here is what makes the field's grammar teachable.
+ */
+private fun selectionReadout(request: ImportPdfRequest): String {
+    val chosen = request.chosen?.size ?: 0
+    if (chosen == 0) return "pages or runs, like 2,4-6,9"
+    val pages = if (chosen == 1) "1 page" else "$chosen pages"
+    return "$pages of ${request.pageCount}"
+}
+
+/**
+ * The selection's field: wider than the Manage pages panel's number capsule, because it holds a sentence
+ * the reader types rather than one number, and it says its own name to a screen reader with the refusal
+ * attached to it ([error] carries the sentence a keyboard-only reader would otherwise not meet).
+ */
 @Composable
-private fun RangeLine(
-    label: String,
+private fun PagesTextField(
     value: String,
-    field: String,
+    label: String,
     onValue: (String) -> Unit,
     errorText: String? = null,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
-        Spacer(Modifier.width(10.dp))
-        PageNumberField(value = value, label = field, errorText = errorText, onValue = onValue)
+    Box(
+        Modifier
+            .width(168.dp)
+            .height(32.dp)
+            .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
+            .semantics {
+                contentDescription = label
+                if (errorText != null) this.error(errorText)
+            }
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = { typed -> onValue(typed) },
+            singleLine = true,
+            textStyle = DesktopTheme.body.copy(color = DesktopTheme.ink),
+            cursorBrush = SolidColor(DesktopTheme.accent),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

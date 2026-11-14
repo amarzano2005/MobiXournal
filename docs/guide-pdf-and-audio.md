@@ -9,10 +9,19 @@ This page is true for Android **2.2.0** and desktop **1.2.0**.
 
 ## A PDF becomes the page's background
 
-**Import PDF** reads the file first, then asks two things: which pages (a range you type, not a
-checkbox per page) and where they go. The card reads top-down — the file's name and its page count, then
-the pages, then the destination — and the button under it names the answer you picked instead of a bare
-*Import*, so you never have to remember which of the two is selected.
+**Import PDF** reads the file first, then asks two things: which pages and where they go. The card reads
+top-down — the file's name and its page count, then the pages, then the destination — and the button under
+it names the answer you picked instead of a bare *Import*, so you never have to remember which of the two
+is selected.
+
+**The pages are a selection you type, not a checkbox per page.** One field takes the reader's own grammar:
+`2,4-6,9` for a chapter with holes in it, and `3` or `3-5` when it is one stretch. Under the field the card
+answers back with the count — *4 of 108 pages* — so the number being decided on is on screen before the
+button is pressed. A page named twice is imported once, and the pages always arrive in the file's own order
+whatever order they were typed in, because that is how the document will hold them. A letter, a page past
+the end or a run typed backwards is refused with a sentence (*Pages are numbered 1 to 108*), never rounded
+to something else, and the confirm button greys out meanwhile. On the tablet the tool that selects a
+passage later is the Select slot's third entry, as under [Copying text out of the page](#copying-text-out-of-the-page).
 
 On the tablet the second answer is **Replace this document's pages**: the PDF becomes this document and the
 pages already open are gone. In the window it is **Open in a new tab**, because that is what its command
@@ -27,22 +36,23 @@ the range, the error and both answers scroll inside the height that is left. So 
 split-screen pane or the on-screen keyboard takes room from the body, never from the buttons: at 150 % text
 in a pane roughly 370 dp wide, with the keyboard up, the fields, the *Pages are numbered 1 to 3* error and
 Cancel are all reachable by scrolling, and the confirm button greys out rather than importing a range that
-cannot be used. Under a narrow card or a large text scale the two page fields stand one above the other
-(each under its own name) and the footer stacks the same way, instead of Material squeezing them onto two
-unrelated lines. Both shells share those size rules, so the window and the tablet answer a cramped place
-the same way.
+cannot be used. Under a narrow card or a large text scale the footer stacks, instead of Material squeezing
+the two buttons onto unrelated lines. Both shells share those size rules, so the window and the tablet
+answer a cramped place the same way.
 
-**The card works without a finger.** `Tab` and `Shift+Tab` walk it top-down — the two page fields, the two
-answers, Cancel, then the confirm button — and `Space` takes whichever answer holds focus, so the range and
+**The card works without a finger.** `Tab` and `Shift+Tab` walk it top-down — the pages field, the two
+answers, Cancel, then the confirm button — and `Space` takes whichever answer holds focus, so the pages and
 the destination can be set from a keyboard alone, in the window and on a tablet with one attached. `Esc` in
 the window and `Back` on the tablet close the card without importing anything. The focused answer draws a
-ring around itself, so where the next `Space` will land is visible and not guessed.
+ring around itself, so where the next `Space` will land is visible and not guessed. The destination you
+picked stays picked while you go back and change a page number, so the two answers are not re-decided every
+time the field is touched.
 
 **A screen reader hears one answer at a time.** Each of the two rows is a single radio choice carrying its
 name and its note as one announcement — *Add to this document. Continues after the pages already open, as
 one step you can undo.* — followed by whether it is the chosen one, instead of a radio button announced on
 top of two unrelated lines of text. Double-tapping a row with TalkBack selects it. A range the file cannot
-use marks both fields red, reads *Pages are numbered 1 to 3* as the fields' error rather than as a stray
+use marks the field red, reads *Pages are numbered 1 to 3* as the field's error rather than as a stray
 label, and the confirm button greys out, so nothing is entered that could not be imported.
 
 A document holds one PDF. Import a second one onto a document that already has one and the two are merged

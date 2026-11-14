@@ -56,8 +56,7 @@ class DesktopImportKeyboardTest {
             file = File("lecture-handout.pdf"),
             pageCount = 120,
             mode = ImportPdfMode.APPEND,
-            first = "1",
-            last = "120",
+            pages = "1-120",
             chooseMode = true,
         )
         return state
@@ -151,7 +150,7 @@ class DesktopImportKeyboardTest {
     @Test
     fun `the range's error is carried with the fields, and only the card's own imports`() {
         val state = state()
-        state.editImportPdf { it.copy(last = "999") }
+        state.editImportPdf { it.copy(pages = "1-999") }
         val request = state.importRequest!!
         assertTrue("999 pages out of 120 is not a range the card can import", request.range is com.mobixournal.render.PageRangePlan.Invalid)
         val scene = scene(state)

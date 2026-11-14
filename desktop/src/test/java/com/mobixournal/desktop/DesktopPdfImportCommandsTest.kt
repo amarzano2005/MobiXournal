@@ -229,7 +229,7 @@ class DesktopPdfImportCommandsTest {
             assertEquals("mode is fixed to a new tab", ImportPdfMode.REPLACE, request!!.mode)
             assertTrue("no append/replace choice is needed", !request.chooseMode)
 
-            state.editImportPdf { it.copy(first = "2", last = "3") }
+            state.editImportPdf { it.copy(pages = "2-3") }
             state.confirmImportPdf()
 
             assertEquals("opened in a second tab", 2, state.tabs.size)

@@ -62,7 +62,7 @@ fun ImportPdfDialog(
     // keyboard, a narrower pane) without forgetting what was picked, and the same field is what the window's
     // card edits — one place, two shells.
     val mode = request.mode
-    val usable = request.range is PageRangePlan.Pages
+    val usable = request.chosen != null
     val scroll = rememberScrollState()
     // The buttons are as cramped as the card: at 150 % text and a split-screen pane, Material's own button
     // flow puts them on two right-aligned lines with no air between them. The card decides instead — a row
@@ -76,11 +76,9 @@ fun ImportPdfDialog(
         title = { Text("Import PDF") },
         text = {
             BoxWithConstraints {
-                val stacked = ImportCardLayout.stacked(maxWidth.value, LocalDensity.current.fontScale)
                 ImportQuestions(
                     request = request,
                     merging = merging,
-                    stacked = stacked,
                     onEdit = onEdit,
                     modifier = Modifier.heightIn(max = maxHeight).verticalScroll(scroll),
                 )
@@ -118,7 +116,6 @@ fun ImportPdfDialog(
 private fun ImportQuestions(
     request: PdfImportPrompt,
     merging: Boolean,
-    stacked: Boolean,
     onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -144,11 +141,7 @@ private fun ImportQuestions(
             "Which of its pages, and where should they go?",
             style = MaterialTheme.typography.bodyMedium,
         )
-        if (stacked) {
-            StackedRange(request = request, error = invalid, onEdit = onEdit)
-        } else {
-            InlineRange(request = request, error = invalid, onEdit = onEdit)
-        }
+        PagesField(request = request, error = invalid, onEdit = onEdit)
         if (invalid != null) {
             Text(
                 invalid,
@@ -197,87 +190,51 @@ private fun StackedActions(
     }
 }
 
-/** The range on one line — the roomy card, and what a phone in portrait has always shown. */
-@Composable
-private fun InlineRange(
-    request: PdfImportPrompt,
-    error: String?,
-    onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        PageField(
-            value = request.first,
-            label = "First page",
-            error = error,
-            onValue = { typed -> onEdit { it.copy(first = typed) } },
-            modifier = Modifier.weight(1f),
-        )
-        Text("to", style = MaterialTheme.typography.bodyMedium)
-        PageField(
-            value = request.last,
-            label = "Last page",
-            error = error,
-            onValue = { typed -> onEdit { it.copy(last = typed) } },
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-/** The range one field per line, for a narrow card or a large text scale. */
-@Composable
-private fun StackedRange(
-    request: PdfImportPrompt,
-    error: String?,
-    onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        PageField(
-            value = request.first,
-            label = "First page",
-            error = error,
-            onValue = { typed -> onEdit { it.copy(first = typed) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        PageField(
-            value = request.last,
-            label = "Last page",
-            error = error,
-            onValue = { typed -> onEdit { it.copy(last = typed) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
 /**
- * One typed page number: digits only, so the range reader never has to explain a letter. When the keyboard
- * opens over it the body scrolls it back into view — the card is the dialog's scrolling slot, so the focus
- * request moves the content rather than a cut-off edge.
+ * **Which pages to bring**, in the reader's own grammar: `2,4-6,9`, and `3` or `3-5` as the one-run case.
  *
- * A field the range reader has refused carries its `error` both as the field's own error state — so a screen
- * reader says "error" and reads the sentence with the field it belongs to — and as the one visible message
- * under the pair, never twice.
+ * It used to be two fields, *First page* and *Last page*, which could only ever name one continuous
+ * stretch — a chapter that is pages 2, 4–6 and 9 had to be imported as 2–9 and the unwanted pages deleted
+ * afterwards. One field says what an import actually is, a set of source pages, and the line under it
+ * answers back: how many pages the selection is, out of how many the file has. The field takes digits, a
+ * comma, a hyphen and spaces, so the refusal that the selection reader writes is about a page number and
+ * never about a character the keyboard could not even type.
+ *
+ * A refused selection carries its `error` both as the field's own error state — so a screen reader says
+ * "error" and reads the sentence with the field it belongs to — and as the one visible message under it,
+ * never twice.
  */
 @Composable
-private fun PageField(
-    value: String,
-    label: String,
-    onValue: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    error: String? = null,
+private fun PagesField(
+    request: PdfImportPrompt,
+    error: String?,
+    onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
 ) {
     OutlinedTextField(
-        value = value,
-        onValueChange = { typed -> onValue(typed.filter { it.isDigit() }.take(6)) },
-        label = { Text(label) },
+        value = request.pages,
+        onValueChange = { typed ->
+            onEdit { it.copy(pages = typed.filter { c -> c.isDigit() || c == ',' || c == '-' || c == ' ' }.take(60)) }
+        },
+        label = { Text("Pages") },
         singleLine = true,
         isError = error != null,
-        modifier = modifier.then(
+        supportingText = { Text(selectionReadout(request)) },
+        modifier = Modifier.fillMaxWidth().then(
             if (error == null) Modifier else Modifier.semantics { this.error(error) }
         ),
     )
+}
+
+/**
+ * The line under the field: the count the selection comes to, or — while it is still empty — the shape of
+ * an answer. "4 of 108 pages" is the number the reader is deciding on; the file's own count is already
+ * above, and saying it here is what makes the field's grammar teachable.
+ */
+private fun selectionReadout(request: PdfImportPrompt): String {
+    val chosen = request.count
+    if (chosen == 0) return "Type pages or runs, like 2,4-6,9"
+    val pages = if (chosen == 1) "1 page" else "$chosen pages"
+    return "$pages of ${request.pageCount}"
 }
 
 /**

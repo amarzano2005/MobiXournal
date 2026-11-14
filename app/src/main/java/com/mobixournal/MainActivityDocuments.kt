@@ -391,7 +391,7 @@ internal fun MainActivity.cancelPdfImport() {
  */
 internal fun MainActivity.confirmPdfImport(mode: ImportPdfMode) {
     val prompt = pendingPdfImport ?: return
-    val range = prompt.range as? PageRangePlan.Pages ?: return
+    val chosen = prompt.chosen ?: return
     pendingPdfImport = null
     val source = prompt.file
     // Read on the UI thread only what a decision needs: which canvas will take the pages, which tab
@@ -405,7 +405,7 @@ internal fun MainActivity.confirmPdfImport(mode: ImportPdfMode) {
         null
     }
     inBackground("Importing ${prompt.name}…", {
-        preparePdfImport(source, mode, prompt.reference, range.first..range.last, base)
+        preparePdfImport(source, mode, prompt.reference, chosen, base)
     }) { result ->
         // The staged copy has done its job either way: the plan holds the store's own file.
         source.delete()
@@ -423,7 +423,7 @@ internal fun MainActivity.confirmPdfImport(mode: ImportPdfMode) {
  * Import a PDF, optionally only the pages [indices] names — the run's own position is not the page's
  * number, so `pageno` stays the source page's own (see [PdfImport.pagesFor]).
  */
-internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode, indices: IntRange?) {
+internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode, indices: List<Int>?) {
     // Persist read access so the same content URI still resolves when the saved .xopp is reopened
     // later (this is the reference plain Save records for domain="absolute"). Best-effort: import
     // still works if the grant isn't persistable.
@@ -474,7 +474,7 @@ internal fun MainActivity.preparePdfImport(
     source: File,
     mode: ImportPdfMode,
     reference: String,
-    indices: IntRange?,
+    indices: List<Int>?,
     base: File?,
     inStore: Boolean = false,
 ): PdfImportPlan {
@@ -483,8 +483,10 @@ internal fun MainActivity.preparePdfImport(
         // by the merge itself, so there is no need for a store copy of them on the way.
         val offset = PdfPageCache(base).use { it.pageCount }
         val added = PdfPageCache(source).use { cache ->
-            val run = indices ?: 0 until cache.pageCount
-            PdfImport.pagesFor(cache, reference = null, pageNoOffset = offset, indices = run.first..run.last)
+            // The joined file's own numbering is the only correct one: its page i is page i, so the arriving
+            // pages are the picked source pages shifted by the base's count.
+            val run = (indices ?: (0 until cache.pageCount).toList()).map { offset + it }
+            PdfImport.pagesFor(cache, reference = null, pageNoOffset = offset, indices = run)
         }
         val joined = io.merge(base, source)
         // The merge rewrote these bytes: any text or outline read from the files it joined is stale.
@@ -554,7 +556,7 @@ internal fun MainActivity.adoptPdf(
     mode: ImportPdfMode,
     reference: String,
     inStore: Boolean = false,
-    indices: IntRange? = null,
+    indices: List<Int>? = null,
 ) {
     val p = pane
     val tabId = p.tabs.active?.id

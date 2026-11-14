@@ -56,7 +56,7 @@ in the folder you choose, with no account between.
 
 #### Documents and research
 
-- **Write on the source.** A PDF becomes the page's background — by range, replacing or appended — and its text stays selectable and copyable.
+- **Write on the source.** A PDF becomes the page's background — the pages you pick, replacing or appended — and its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays exactly as drawn.
 - **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after a merge.
 - **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.

@@ -17,7 +17,7 @@ import com.mobixournal.format.model.Page
  */
 object PdfImport {
 
-    fun documentFor(cache: PdfPageCache, reference: String, indices: IntRange? = null): Document =
+    fun documentFor(cache: PdfPageCache, reference: String, indices: List<Int>? = null): Document =
         Document(pages = pagesFor(cache, reference, indices = indices))
 
     /**
@@ -30,18 +30,20 @@ object PdfImport {
      * existing background PDF ([PdfMerger]) and the existing reference is re-pointed at the joined
      * file instead. [pageNoOffset] is then where these pages start inside that joined PDF.
      *
-     * [indices] is the run of **source** pages to bring, 0-based; null brings the whole PDF. A `pageno`
-     * is always the source page's own number plus [pageNoOffset], never the run's position, so importing
-     * pages 5–20 of a scan still draws pages 5–20 of that scan — the same rule the window's import
-     * keeps, because it is the page numbering of the file that has to be right, not the run's.
+     * [indices] is the **selection** of source pages to bring, 0-based; null brings the whole PDF. It is a
+     * list rather than a run because an import may name pages 2, 4–6 and 9 ([PageRanges.selection]), and
+     * the pages land in the order the list has them — the file's own. A `pageno` is always the source
+     * page's own number plus [pageNoOffset], never the run's position, so importing pages 5–20 of a scan
+     * still draws pages 5–20 of that scan — the same rule the window's import keeps, because it is the
+     * page numbering of the file that has to be right, not the run's.
      */
     fun pagesFor(
         cache: PdfPageCache,
         reference: String?,
         pageNoOffset: Int = 0,
-        indices: IntRange? = null,
+        indices: List<Int>? = null,
     ): List<Page> {
-        val wanted = (indices?.toList() ?: (0 until cache.pageCount).toList())
+        val wanted = (indices ?: (0 until cache.pageCount).toList())
             .filter { it in 0 until cache.pageCount }
         return wanted.mapIndexed { run, index ->
             val (w, h) = cache.pageSizePt(index)

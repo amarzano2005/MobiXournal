@@ -45,9 +45,12 @@ data class ImportPdfRequest(
     val pageCount: Int,
     /** The answer being considered. Add is the default when a tab is open and the import can choose. */
     val mode: ImportPdfMode = ImportPdfMode.APPEND,
-    /** The first and last page to bring, as typed (1-based); the whole PDF until told otherwise. */
-    val first: String = "1",
-    val last: String = "$pageCount",
+    /**
+     * The pages to bring, as typed (1-based) — `2,4-6,9`, and `3` or `3-5` as the one-run case of it. The
+     * whole PDF until told otherwise. A selection rather than a first and a last page: a chapter of a scan
+     * is rarely one continuous stretch, and [PageRanges.selection] is the one reader behind both cards.
+     */
+    val pages: String = PageRanges.whole(pageCount),
     /**
      * Whether the card asks **where** the pages go (append vs replace). False when the PDF came through
      * *Open* or when no tab is open — then the pages always open in a new tab ([ImportPdfMode.REPLACE]) and
@@ -55,8 +58,11 @@ data class ImportPdfRequest(
      */
     val chooseMode: Boolean = true,
 ) {
-    /** The run this card asks for, or the sentence saying why it cannot be used ([PageRanges]). */
-    internal val range: PageRangePlan get() = PageRanges.pages(PageRangeRequest(first, last), pageCount)
+    /** The selection this card asks for, or the sentence saying why it cannot be used ([PageRanges]). */
+    internal val range: PageRangePlan get() = PageRanges.selection(pages, pageCount)
+
+    /** The pages as 0-based source indices, in the file's own order, or null while the field is refused. */
+    internal val chosen: List<Int>? get() = range.indices()
 }
 
 /**
@@ -101,17 +107,17 @@ fun DesktopShellState.cancelImportPdf() {
  */
 fun DesktopShellState.confirmImportPdf(mode: ImportPdfMode = importRequest?.mode ?: ImportPdfMode.REPLACE) {
     val request = importRequest ?: return
-    val range = request.range as? PageRangePlan.Pages ?: return
+    val chosen = request.chosen ?: return
     val resolved = if (request.chooseMode) mode else ImportPdfMode.REPLACE
     importRequest = null
-    importPdf(request.file, resolved, range.first..range.last)
+    importPdf(request.file, resolved, chosen)
 }
 
 /**
  * Turn [file] into pages, per [mode]. True when something landed; a PDF that cannot be read leaves the
  * window as it was and says why through the failure card.
  */
-fun DesktopShellState.importPdf(file: File, mode: ImportPdfMode, indices: IntRange? = null): Boolean {
+fun DesktopShellState.importPdf(file: File, mode: ImportPdfMode, indices: List<Int>? = null): Boolean {
     val reference = file.absolutePath
     return try {
         DesktopPdfImport.open(file).use { pdf ->
@@ -137,7 +143,7 @@ private fun DesktopShellState.openImported(
     pdf: PDDocument,
     file: File,
     reference: String,
-    indices: IntRange?,
+    indices: List<Int>?,
 ): Boolean {
     val model = DesktopPdfImport.document(pdf, reference, indices)
     val format = prefs.newDocumentFormat
@@ -181,7 +187,7 @@ private fun DesktopShellState.appendImported(
     pdf: PDDocument,
     file: File,
     reference: String,
-    indices: IntRange?,
+    indices: List<Int>?,
 ): Boolean {
     val tab = tabs.active ?: return false
     val before = tab.document.snapshot()
@@ -193,7 +199,7 @@ private fun DesktopShellState.appendImported(
         importFailed(MissingPdfBase(held.filename ?: held.bundledAsset.orEmpty()))
         return false
     }
-    val wanted = indices ?: 0 until pdf.numberOfPages
+    val wanted = indices ?: (0 until pdf.numberOfPages).toList()
     val landing = if (base != null) {
         val joined = DesktopPdfMerge.joined(base, file)
         val offset = DesktopPdfImport.pageCount(base)
@@ -204,7 +210,7 @@ private fun DesktopShellState.appendImported(
             DesktopPdfImport.pages(
                 joinedPdf,
                 reference = null,
-                indices = (offset + wanted.first)..(offset + wanted.last),
+                indices = wanted.map { offset + it },
             )
         }
         DesktopPdfImport.retarget(tab.document.model.pages, joined) to added

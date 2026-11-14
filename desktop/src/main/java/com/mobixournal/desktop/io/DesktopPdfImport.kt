@@ -56,9 +56,11 @@ internal object DesktopPdfImport {
      * merge that joined an arriving PDF after the document's own passes the base's page count, so every
      * `pageno` still points at the page it was made from.
      *
-     * [indices] is the run of **source** pages to bring, 0-based; null brings the whole PDF. A `pageno` is
-     * always the source page's own number plus [pageNoOffset], never the run's position, so importing pages
-     * 5–20 of a scan still draws pages 5–20 of that scan.
+     * [indices] is the **selection** of source pages to bring, 0-based; null brings the whole PDF. It is a
+     * list rather than a run because an import may name pages 2, 4–6 and 9 ([PageRanges.selection]), and
+     * the pages land in the order the list has them. A `pageno` is always the source page's own number
+     * plus [pageNoOffset], never the run's position, so importing pages 5–20 of a scan still draws pages
+     * 5–20 of that scan.
      *
      * The sheet is the page's **effective CropBox**, not its MediaBox: the crop is the page a reader sees,
      * and it is the box the export imports the page by. Taking the media box here made a cropped PDF's
@@ -70,9 +72,9 @@ internal object DesktopPdfImport {
         pdf: PDDocument,
         reference: String?,
         pageNoOffset: Int = 0,
-        indices: IntRange? = null,
+        indices: List<Int>? = null,
     ): List<Page> {
-        val wanted = (indices?.toList() ?: (0 until pdf.numberOfPages).toList())
+        val wanted = (indices ?: (0 until pdf.numberOfPages).toList())
             .filter { it in 0 until pdf.numberOfPages }
         return wanted.mapIndexed { run, index ->
             val page = pdf.getPage(index)
@@ -94,7 +96,7 @@ internal object DesktopPdfImport {
     }
 
     /** The whole document an import makes: the PDF's pages ([indices], or all), and nothing else. */
-    fun document(pdf: PDDocument, reference: String, indices: IntRange? = null): Document =
+    fun document(pdf: PDDocument, reference: String, indices: List<Int>? = null): Document =
         Document(pages = pages(pdf, reference, indices = indices))
 
     /** How many pages [file] has, without building anything — the question card's readout. */

@@ -2,17 +2,21 @@ package com.mobixournal.desktop
 
 import com.mobixournal.desktop.io.askImportPdf
 import com.mobixournal.desktop.io.cancelImportPdf
+import com.mobixournal.desktop.io.confirmImportPdf
 import com.mobixournal.desktop.io.editImportPdf
 import com.mobixournal.desktop.io.importPdf
+import com.mobixournal.desktop.io.saveAs
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfImport
+import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.shell.DesktopShellState
 
 import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PageRangeRequest
 import com.mobixournal.render.PageRanges
 
+import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Background
 import com.mobixournal.render.ImportPdfMode
 import java.io.File
@@ -57,7 +61,7 @@ class DesktopPdfImportRangeTest {
     fun `a run of source pages keeps its own numbering`() {
         val file = pdf(5)
         DesktopPdfImport.open(file).use { doc ->
-            val pages = DesktopPdfImport.pages(doc, file.absolutePath, indices = 2..3)
+            val pages = DesktopPdfImport.pages(doc, file.absolutePath, indices = listOf(2, 3))
 
             assertEquals("two sheets for two source pages", 2, pages.size)
             assertEquals("the numbering is the source's", listOf(2, 3), pages.map { (it.background as Background.Pdf).pageNo })
@@ -72,7 +76,7 @@ class DesktopPdfImportRangeTest {
         try {
             state.newDocument()
             val file = pdf(4)
-            assertTrue(state.importPdf(file, ImportPdfMode.REPLACE, 1..2))
+            assertTrue(state.importPdf(file, ImportPdfMode.REPLACE, listOf(1, 2)))
 
             val document = state.tabs.active!!.document
             assertEquals(2, document.pageCount)
@@ -89,7 +93,7 @@ class DesktopPdfImportRangeTest {
         try {
             state.newDocument()
             val file = pdf(4)
-            assertTrue(state.importPdf(file, ImportPdfMode.APPEND, 2..3))
+            assertTrue(state.importPdf(file, ImportPdfMode.APPEND, listOf(2, 3)))
 
             val document = state.tabs.active!!.document
             assertEquals(2, document.pageCount)
@@ -109,7 +113,7 @@ class DesktopPdfImportRangeTest {
             val first = pdf(3, "first")
             val second = pdf(2, "second")
             assertTrue(state.importPdf(first, ImportPdfMode.APPEND))
-            assertTrue(state.importPdf(second, ImportPdfMode.APPEND, 1..1))
+            assertTrue(state.importPdf(second, ImportPdfMode.APPEND, listOf(1)))
 
             val document = state.tabs.active!!.document
             assertEquals("the base's three pages and the one picked", 4, document.pageCount)
@@ -129,13 +133,65 @@ class DesktopPdfImportRangeTest {
             val file = pdf(3)
             state.askImportPdf(file)
             val request = state.importRequest!!
-            assertEquals("every page is proposed", "1", request.first)
-            assertEquals("3", request.last)
-            assertTrue("and it is usable", request.range is PageRangePlan.Pages)
+            assertEquals("every page is proposed", "1-3", request.pages)
+            assertTrue("and it is usable", request.chosen?.size == 3)
 
-            state.editImportPdf { it.copy(first = "2", last = "9") }
+            state.editImportPdf { it.copy(pages = "2,9") }
             assertTrue("past the end is refused", state.importRequest!!.range is PageRangePlan.Invalid)
             state.cancelImportPdf()
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+    /**
+     * **Nonconsecutive pages, end to end.** A chapter that is pages 2 and 4 is one import: the two sheets
+     * carry the source page numbers they were made from (2 and 4, not 0 and 1), and a save and reopen keeps
+     * both — the reopened pages still name pages 2 and 4 of the PDF, which is what drawing them right means.
+     */
+    @Test
+    fun `a selection of pages imports in the source's order and survives a reopen`() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            val file = pdf(5)
+            state.askImportPdf(file)
+            state.editImportPdf { it.copy(pages = "4,2", mode = ImportPdfMode.REPLACE) }
+            assertEquals("the card counts what it will bring", 2, state.importRequest!!.chosen?.size)
+            state.confirmImportPdf()
+
+            val document = state.tabs.active!!.document
+            assertEquals("two sheets for two picked pages", 2, document.pageCount)
+            assertEquals("source order, not typing order", listOf(1, 3), pageNos(document))
+            assertEquals("both sheets sit on the PDF", listOf(true, true), painted(document))
+
+            val target = File(temp.root, "selection.mobix")
+            state.saveAs(target, SaveFormat.MOBIX)
+            DocumentLoader.load(target).use { reopened ->
+                assertEquals(2, reopened.pageCount)
+                assertEquals(
+                    "the reopened pages still name the pages they were made from",
+                    listOf(1, 3),
+                    reopened.model.pages.map { (it.background as Background.Pdf).pageNo },
+                )
+            }
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `a page named twice lands once`() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            val file = pdf(5)
+            state.askImportPdf(file)
+            state.editImportPdf { it.copy(pages = "3,3,2-3", mode = ImportPdfMode.REPLACE) }
+            state.confirmImportPdf()
+
+            val document = state.tabs.active!!.document
+            assertEquals("pages 2 and 3, once each", 2, document.pageCount)
+            assertEquals(listOf(1, 2), pageNos(document))
         } finally {
             state.tabs.closeAll()
         }

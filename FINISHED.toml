@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-import-page-selection"
+title = "Import nonconsecutive PDF pages in a single action"
+description = "An import can now name nonconsecutive pages in one action: PageRanges.selection reads 2,4-6,9 (spaces free, either end included, duplicates collapsed, always in the source's order) and leaves the contiguous PageRanges.pages API untouched for Manage pages; both import cards — the tablet's and the window's — replace their first/last fields with one Pages field that shows the count it comes to (4 of 108 pages) and refuses a letter, a page past the end or a backwards run with a sentence; the answer picked stays picked while the field is edited; the pages reach PdfImport.pagesFor and DesktopPdfImport.pages as a list, so each sheet keeps its own source page number and the append path shifts every picked page by the base's count. Verified on the Pixel Tablet emulator: '1-108' on open with '108 pages of 108', '2,999' refused with 'Pages are numbered 1 to 108.', '2,4-6' showing '4 pages of 108', Replace staying selected through the edit, and the imported document reading '1 / 4' with page 2's keywords page first; desktop covered by save and reopen of a 4,2 selection (pages 2 and 4)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "ui"]
+design = "material: both cards keep their own field idiom, no new surface or token; states: empty, refused (error sentence, confirm greyed) and usable with a live count; copy: Type pages or runs, like 2,4-6,9 / N of M pages / Pages are numbered 1 to M; keyboard: the field holds digits, comma, hyphen and spaces only, Tab order unchanged, the refusal rides the field's semantics; parity: one PageRanges.selection behind both shells, same sentences; docs: README and guide-pdf-and-audio; tests: PageRangesSelectionTest 10, PdfImportPromptTest 5, DesktopPdfImportRangeTest with the selection and duplicate cases"
+
+[[task]]
 id = "pdf-selection-toolbar-placement"
 title = "Keep the PDF selection toolbar clear of selected text"
 description = "The PDF text Copy bar floats against the selected passage on Android and in the desktop window: measured with onSizeChanged, placed below the last selected line, above the block when the pane runs out below, and clamped inside the pane; the Android rail's Select slot offers Select text (PDF) again, so the tool and its bar are actually reachable; verified on the Pixel Tablet emulator (mid-page selection bar below with the tint clear, bottom-of-page selection bar above it, Copy pasting the selected word into the search field, font scale 1.5, light and dark)."
