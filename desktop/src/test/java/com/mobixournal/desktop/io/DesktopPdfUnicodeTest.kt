@@ -93,6 +93,34 @@ class DesktopPdfUnicodeTest {
     }
 
     @Test
+    fun `each of the four cases the old range guard got wrong round-trips here too`() {
+        for (case in listOf(PdfUnicodeFixture.CP1252_ABOVE_LATIN1, PdfUnicodeFixture.COMBINING)) {
+            painted(case).use { doc -> assertEquals(case, extracted(doc)) }
+        }
+        for (case in listOf(PdfUnicodeFixture.CONTROL, PdfUnicodeFixture.ASTRAL)) {
+            painted(case).use { doc ->
+                val out = extracted(doc)
+                assertEquals("$case must stay one codepoint", 1, out.codePointCount(0, out.length))
+                assertTrue("$case must not become a question mark", '?' !in out)
+            }
+        }
+    }
+
+    @Test
+    fun `the embedded face is a subset, not the whole family`() {
+        val built = PDDocument()
+        built.addPage(PDPage(PDRectangle(0f, 0f, width, height)))
+        val cs = PDPageContentStream(built, built.getPage(0), PDPageContentStream.AppendMode.APPEND, false)
+        DesktopPdfPainter().paint(built, cs, page(PdfUnicodeFixture.MIXED), PdfPageTransform(0f, 0f, height))
+        cs.close()
+        val bytes = ByteArrayOutputStream().also { built.save(it) }.toByteArray()
+        built.close()
+        // DejaVu Sans is 759 kB on its own: a page of text that ships the face whole is a file nobody can
+        // mail, so `subset = true` is what this measures.
+        assertTrue("the export is ${bytes.size} bytes, which suggests a face was embedded whole", bytes.size < 200_000)
+    }
+
+    @Test
     fun `a pure-winansi run still keeps the base-14 face`() {
         painted(PdfUnicodeFixture.WIN_ANSI).use { doc ->
             val used = fonts(doc)

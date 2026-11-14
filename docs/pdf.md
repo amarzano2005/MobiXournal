@@ -74,7 +74,11 @@ cached per document), so it embeds, subsets and writes the `ToUnicode` map exact
 falls back to the same shared `GlyphSanitizer`. The run both are measured against lives in
 `PdfUnicodeFixture` (`mobix-core` test fixtures) and is read by two tests — `PdfUnicodeExportTest` for
 the app's PDFBox port and `DesktopPdfUnicodeTest` for the window's `org.apache.pdfbox` — so a shell that
-drifts is a failing test, not an export the owner finds wrong a release later.
+drifts is a failing test, not an export the owner finds wrong a release later. Both also take the four
+cases the old range guard got wrong **one at a time**, so a failure names the one that broke: a character
+WinAnsi encodes above U+00FF, a C1 control (`\u0085`, which WinAnsi reads as `…`), a surrogate pair and a
+combining mark. Both assert the embedded face is a **subset** as well as `ToUnicode`-mapped: a page of
+text that ships a 759 kB face whole is a file nobody can mail.
 
 ## PDF text selection
 

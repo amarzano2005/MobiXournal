@@ -20,4 +20,16 @@ object PdfUnicodeFixture {
 
     /** A run WinAnsi carries whole: it must stay in a base-14 face, and add no font file to the export. */
     const val WIN_ANSI = "Hello café ñ ½ ² — “quoted” €5"
+
+    /**
+     * The four cases the old range guard got wrong, each on its own so a failure names the one that broke:
+     * a character WinAnsi encodes **above** U+00FF (`€`, which the range dropped), a C1 control
+     * (`\u0085`, which the range let through where WinAnsi means `…`), a surrogate pair (one astral
+     * codepoint, which the range split into two substitutes) and a combining mark (`e` + U+0301, which must
+     * survive as its own codepoint after the base letter).
+     */
+    const val CP1252_ABOVE_LATIN1 = "… – — ‘ ’ “ ” € ™ Š ž ƒ ‹ › † ‡ • ‰"
+    const val CONTROL = "\u0085"
+    const val ASTRAL = "😀"
+    const val COMBINING = "e\u0301"
 }

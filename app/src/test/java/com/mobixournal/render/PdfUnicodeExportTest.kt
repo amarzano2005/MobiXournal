@@ -117,6 +117,57 @@ class PdfUnicodeExportTest {
     }
 
     @Test
+    fun `a character WinAnsi encodes above U+00FF is drawn, not dropped`() {
+        painted(PdfUnicodeFixture.CP1252_ABOVE_LATIN1).use { doc ->
+            assertEquals(PdfUnicodeFixture.CP1252_ABOVE_LATIN1, extracted(doc))
+        }
+    }
+
+    @Test
+    fun `a C1 control becomes a substitute glyph, never the character WinAnsi maps it to`() {
+        // WinAnsi's 0x85 is …, so the old range test printed an ellipsis where the text held a control
+        // character. It is not text at all: it must not survive as a printable character.
+        painted(PdfUnicodeFixture.CONTROL).use { doc ->
+            val out = extracted(doc)
+            assertEquals("one substitute, not the ellipsis", 1, out.codePointCount(0, out.length))
+            assertTrue("and not a question mark", out != "?")
+            assertTrue("and not WinAnsi's ellipsis", out != "…")
+        }
+    }
+
+    @Test
+    fun `a surrogate pair survives as one codepoint`() {
+        painted(PdfUnicodeFixture.ASTRAL).use { doc ->
+            val out = extracted(doc)
+            assertEquals("one codepoint, not two surrogate halves", 1, out.codePointCount(0, out.length))
+            assertTrue("and never a question mark", '?' !in out)
+        }
+    }
+
+    @Test
+    fun `a combining mark keeps both codepoints`() {
+        painted(PdfUnicodeFixture.COMBINING).use { doc ->
+            val out = extracted(doc)
+            assertEquals(PdfUnicodeFixture.COMBINING, out)
+            assertEquals("the mark is its own codepoint after the base letter", 2, out.codePointCount(0, out.length))
+        }
+    }
+
+    @Test
+    fun `the embedded face is a subset, not the whole three megabyte family`() {
+        val built = PDDocument()
+        built.addPage(PDPage(PDRectangle(0f, 0f, width, height)))
+        val cs = PDPageContentStream(built, built.getPage(0), PDPageContentStream.AppendMode.APPEND, false)
+        PdfVectorPainter().paint(built, cs, page(mixed), PdfPageTransform(0f, 0f, height))
+        cs.close()
+        val bytes = ByteArrayOutputStream().also { built.save(it) }.toByteArray()
+        built.close()
+        // DejaVu Sans is 759 kB on its own; a page of text that ships the face whole is a file nobody can
+        // mail. `subset = true` is the difference, and this is what it looks like.
+        assertTrue("the export is ${bytes.size} bytes, which suggests a face was embedded whole", bytes.size < 200_000)
+    }
+
+    @Test
     fun `a pure-winansi run keeps the base-14 face, and no font file comes with it`() {
         painted(PdfUnicodeFixture.WIN_ANSI).use { doc ->
             val used = fonts(doc)
