@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-outline-model-codec"
-title = "Carry an editable outline tree in the manifest"
-description = "Give the notebook its own Contents tree. Add format/model/Outline.kt: OutlineTree(version, nodes), OutlineNode(id, title, target: OutlineTarget?, children) and a sealed OutlineTarget of Sheet(pageNo) / Page(pageId), with an empty default and a depth cap of 32; add ElementId.BOOKMARK = \"bkm\" in format/model/ElementIds.kt and Document.outline: OutlineTree = OutlineTree.EMPTY in format/model/Document.kt. Read and write it in a new format/mobix/MobixOutlineCodec.kt (node JSON only) wired from MobixManifest: an optional \"outline\" key whose absence means no notebook outline, added to KNOWN_KEYS so it is modelled rather than parked in extra, with the object refused whole when version > 1, when two nodes share an id, when a node carries both sheet and page, or when nesting passes the cap. Unknown fields inside the tree are preserved like everywhere else. Tests: MobixOutlineCodecTest over a golden fixture file (add it to the golden corpus and its index), MobixManifestOutlineTest for absence, round-trip, a newer version and each refusal, and a test that a Document with an outline opened and saved through MobixDocument keeps it byte-identically; the JVM suite must not need a device. Update docs/mobix-data-model.md: the outline table stops saying Planned and states what the codec now refuses."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 181
-created = 2026-11-14
-tags = ["pdf", "bookmarks"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "pdf-outline-target-resolution"
 title = "Resolve outline targets without ever guessing a page"
 description = "Turn a persisted outline into rows a tap can follow. Add render/OutlineResolution.kt in mobix-core: resolve(tree, pages) -> a pre-order list of resolved rows carrying depth, title, id, hasDestination and the document page index, where Sheet(n) resolves to the first page in document order whose Background.Pdf.pageNo == n and Page(id) to the page carrying that id, and a target that finds nothing yields the row with no destination rather than a clamped or nearest index. No inheritance is applied at read time: the importer writes a chapter header's inherited page onto the node, so a header the user leaves empty stays empty. Point both shells at it: app/src/main/java/com/mobixournal/ui/PdfContentsDialog.kt (and PdfOutlineVisible in mobix-core, which must keep filtering and folding keyed by node id, not title) uses the document outline when the document has one and the extracted PdfOutline otherwise, and desktop/src/main/java/com/mobixournal/desktop/io/DesktopPdfContents.kt does the same for PdfContentsSidebar; goToPdfPage and the window's click path take the resolved page index instead of recomputing it from pageNo. Tests: OutlineResolutionTest over a tree mixing both target kinds, two chapters with one title, a deleted page, a removed-sheet target and a reordered page list; DesktopPdfContentsTest extended for the resolved rows and the un-tappable node. Verify on the emulator that a tap from the Contents card lands on the expected page of an imported PDF with a reordered page list."
