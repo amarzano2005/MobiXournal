@@ -172,7 +172,7 @@ of its nearest descendant that has one, so a chapter header still leads to the c
 an entry that points nowhere at all is shown but not tappable. `setPdfOutline` publishes the outline
 to the chrome through `onPdfOutlineChanged` (pane state), and the page list lane's foot grows a
 **Contents** glyph (`PdfContentsButton`) that opens `PdfContentsDialog` — an indented, page-numbered
-list. A tap calls `goToPdfPage`, which picks the page by `Background.Pdf.pageNo` rather than by index
+list that folds its chapters and filters by title (`PdfOutlineView`). A tap calls `goToPdfPage`, which picks the page by `Background.Pdf.pageNo` rather than by index
 (a merged PDF renumbers every appended page, and a desktop-authored file may order them freely).
 
 This is deliberately **navigation only, never document content**: the `.xopp` format has nowhere to

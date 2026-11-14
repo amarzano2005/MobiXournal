@@ -655,7 +655,7 @@ private fun PageListLane(ui: EditorUiState, pane: PaneState, expandFromStart: Bo
         pages = pane.surface?.pageCommands?.pages().orEmpty(),
         surface = pane.surface,
         contentsAction = {
-            PdfContentsButton(pane.outline, onGoToPdfPage = { pane.surface?.goToPdfPage(it) })
+            PdfContentsLane(pane, onGoToPdfPage = { pane.surface?.goToPdfPage(it) })
         },
         onSelection = { ui.pageSelection = it },
         onGoToPage = { pane.surface?.goToPage(it) },

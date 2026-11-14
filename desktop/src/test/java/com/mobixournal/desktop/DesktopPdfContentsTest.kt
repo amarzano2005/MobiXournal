@@ -3,6 +3,7 @@ package com.mobixournal.desktop
 import com.mobixournal.desktop.io.OutlineRow
 import com.mobixournal.desktop.io.contentsRowsOf
 import com.mobixournal.desktop.io.outlineRows
+import com.mobixournal.desktop.io.visibleContentsRows
 import com.mobixournal.desktop.shell.Header
 
 import com.mobixournal.format.model.Background
@@ -11,7 +12,9 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfOutlineEntry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -77,6 +80,73 @@ class DesktopPdfContentsTest {
     fun `a sheet no page shows is not jumpable either`() {
         val rows = outlineRows(outline, listOf(plainPage()))
         assertEquals(listOf(null, null, null), rows.map { it.page })
+    }
+
+    /** Two chapters that honestly share a title, each with a section, plus a header that names no page. */
+    private val duplicated = PdfOutline(
+        listOf(
+            PdfOutlineEntry("Introduction", 0, 0),
+            PdfOutlineEntry("Getting started", 0, 1),
+            PdfOutlineEntry("Introduction", 1, 0),
+            PdfOutlineEntry("Header only", PdfOutlineEntry.NO_DESTINATION, 1),
+        ),
+    )
+
+    private val twoSheets = listOf(pdfPage(0, carriesReference = true), pdfPage(1))
+
+    @Test
+    fun `a branch folds by position, so two chapters called Introduction fold one at a time`() {
+        val collapsed = visibleContentsRows(duplicated, twoSheets, collapsed = setOf(0))
+        assertEquals(listOf("Introduction", "Introduction", "Header only"), collapsed.map { it.title })
+        assertEquals("the second chapter keeps its section", listOf(0, 2, 3), collapsed.map { it.row })
+        assertTrue("and it is still open", collapsed[1].expanded)
+        assertTrue("while the first is closed", !collapsed[0].expanded)
+    }
+
+    @Test
+    fun `a filter keeps the chapters above its hit as context, and the pages still resolve`() {
+        val rows = visibleContentsRows(duplicated, twoSheets, query = "getting")
+        assertEquals(listOf(0, 1), rows.map { it.row })
+        assertTrue("the chapter is the path", rows[0].context)
+        assertTrue("it is not the answer itself", !rows[0].matched)
+        assertFalse("while the section is not merely context", rows[1].context)
+        assertEquals("and the hit still jumps", 0, rows[1].page)
+    }
+
+    @Test
+    fun `filtering does not move the collapse state, so clearing the box gives the tree back`() {
+        val collapsed = setOf(0)
+        val before = visibleContentsRows(duplicated, twoSheets, collapsed)
+        val filtered = visibleContentsRows(duplicated, twoSheets, collapsed, query = "getting")
+        assertEquals("the folded section is found anyway", listOf(0, 1), filtered.map { it.row })
+        assertEquals("and clearing restores it exactly", before, visibleContentsRows(duplicated, twoSheets, collapsed))
+    }
+
+    @Test
+    fun `the row naming the sheet in view is marked, with the page mapped to the document`() {
+        val pages = listOf(plainPage(), pdfPage(0, carriesReference = true), pdfPage(1))
+        val rows = visibleContentsRows(duplicated, pages, currentPdfPage = 1)
+        assertEquals("the second chapter names sheet 1", listOf(false, false, true, false), rows.map { it.current })
+        assertEquals("and it points at the document's page 2", 2, rows[2].page)
+    }
+
+    @Test
+    fun `a search no bookmark answers is an empty list, not the whole outline`() {
+        assertTrue(visibleContentsRows(duplicated, twoSheets, query = "bibliography").isEmpty())
+    }
+
+    @Test
+    fun `folding and filtering the contents writes nothing to the document`() {
+        val tab = DesktopPdfFixture.tab(temp.root, pages = 2, outline = DesktopPdfFixture.outline())
+        try {
+            val before = tab.document.edits
+            val rows = contentsRowsOf(tab, collapsed = setOf(0), query = "section")
+            assertTrue("the filter still finds the section", rows.isNotEmpty())
+            assertEquals("browsing is reading, not editing", before, tab.document.edits)
+            assertFalse("and it records no undo step", tab.canUndo)
+        } finally {
+            tab.document.close()
+        }
     }
 
     @Test

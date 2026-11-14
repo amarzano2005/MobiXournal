@@ -56,7 +56,7 @@ in the folder you choose, with no account between.
 
 - **Write on the source.** A PDF becomes the page background — the pages you pick by preview, replacing or appended — its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays as drawn. Select text and **Highlight** writes the same bands.
-- **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after a merge.
+- **Follow the document's contents.** A PDF's outline is a tree by its own page numbers, even after a merge; filter or fold it.
 - **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.
 - **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.
 
