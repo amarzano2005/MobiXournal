@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-outline-navigation"
-title = "Filter PDF contents and expand individual chapters"
-description = "Extend PdfContentsDialog and PdfContentsSidebar with per-branch expansion and a title filter. Derive branch identity from outline position rather than title; retain ancestor context and current destination mapping. Restore expansion after clearing the filter. Test duplicate chapter names, unavailable destinations, keyboard and touch navigation, and that browsing leaves the document clean. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 160
-created = 2026-11-14
-tags = ["pdf", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-text-availability-ui"
 title = "Explain when PDF text selection is ready on the current page"
 description = "Feed extraction status and page-local word availability to the Select text (PDF) UI in both shells. Distinguish indexing, a ready page with no selectable text, and a failed read with a retry action. Keep notices scoped to the active tool and pane. Verify mixed scanned/digital pages, failed indexing, retry and a tab switch during extraction. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
