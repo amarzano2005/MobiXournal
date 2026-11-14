@@ -33,38 +33,51 @@ import org.apache.pdfbox.text.TextPosition
 internal object DesktopPdfText {
 
     /**
-     * [doc]'s positioned text layer, page by page.
+     * How many times the last [of] walked a document — `1` for any document with a page.
+     *
+     * The seam a test reads, because the saving this buys is a **cost**: a one-pass and a per-page
+     * reader answer exactly the same words, and only a count tells the two apart.
+     */
+    internal var traversals: Int = 0
+        private set
+
+    /**
+     * [doc]'s positioned text layer, page by page — read in **one** traversal.
      *
      * The box convention is the app's, deliberately: PDFBox's stripper reports top-left origin, y-down,
      * in points — the frame `.xopp` geometry uses — and `yDirAdj` is the glyph's **bottom**. Reading it
      * as the top drops every word a line, which is exactly the bug `PdfTextExtractor` documents.
+     *
+     * `getText` walks the page range it is given, so asking it once per page parsed the file once per
+     * page; the range is the whole document now, and each line is filed under its own page.
      */
     fun of(doc: PDDocument): PdfTextIndex {
-        val stripper = WordStripper()
-        val pages = ArrayList<List<PdfWord>>(doc.numberOfPages)
-        for (i in 0 until doc.numberOfPages) {
-            stripper.begin(i + 1) // PDFTextStripper's page range is 1-based.
-            stripper.getText(doc)
-            pages += stripper.take()
-        }
-        return PdfTextIndex(pages)
+        val stripper = WordStripper(doc.numberOfPages)
+        traversals = stripper.collect(doc)
+        return PdfTextIndex(stripper.pages())
     }
 
-    /** Collects one page's glyphs into words through the shared [PdfWordGrouper]. */
-    private class WordStripper : PDFTextStripper() {
-        private val collected = ArrayList<PdfWord>()
+    /** Collects every page's glyphs into words through the shared [PdfWordGrouper]. */
+    private class WordStripper(pageCount: Int) : PDFTextStripper() {
+        /** One bucket per page, in document order — a page with no words keeps its empty bucket. */
+        private val words: List<ArrayList<PdfWord>> = List(pageCount.coerceAtLeast(0)) { ArrayList() }
 
         init {
             sortByPosition = true
+            // The whole document as one range: PDFBox walks the pages and reports the page each line
+            // belongs to, which is both one traversal and how the page numbers stay true.
+            startPage = 1
+            endPage = pageCount.coerceAtLeast(1)
         }
 
-        fun begin(page: Int) {
-            collected.clear()
-            startPage = page
-            endPage = page
+        /** Walk [doc] once; answers how many traversals that was. */
+        fun collect(doc: PDDocument): Int {
+            if (words.isEmpty()) return 0
+            getText(doc)
+            return 1
         }
 
-        fun take(): List<PdfWord> = collected.toList()
+        fun pages(): List<List<PdfWord>> = words.map { it.toList() }
 
         override fun writeString(text: String, textPositions: List<TextPosition>) {
             val chars = ArrayList<CharBox>(textPositions.size)
@@ -82,7 +95,8 @@ internal object DesktopPdfText {
                     height,
                 )
             }
-            collected += PdfWordGrouper.group(chars)
+            val page = currentPageNo - 1
+            if (page in words.indices) words[page] += PdfWordGrouper.group(chars)
         }
     }
 }

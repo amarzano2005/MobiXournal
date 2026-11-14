@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-android-index-jobs"
+title = "Share in-flight PDF indexing between Android panes"
+description = "New PdfAnalysisJobs keys a walk by source revision (path, length, modification time), so a request for a file already being read joins that job and every listener is answered once, the walks run on a fixed two-thread daemon pool instead of one Thread per request, a half already cached is not re-read, a failure answers empty layers, and new bytes (a merge) are a new key. MainActivity.analyzePdfInBackground now goes through the app's single job set and still drops an answer whose canvas has moved to another PDF. PdfAnalysisJobsTest counts the walks: two views of one file walk once, a second file waits for the only worker, rewritten bytes are walked again. docs/pdf.md records the rule."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "android"]
+design = "none: no interface surface, an extraction job pool"
+
+[[task]]
+id = "pdf-index-single-pass"
+title = "Extract PDF text in one traversal per document"
+description = "PdfTextExtractor and DesktopPdfText hand PDFBox's stripper the whole page range once and file each line under the page PDFBox reports (currentPageNo), instead of calling getText per page; an empty page keeps its empty bucket, so the pages after it are not shifted. Each carries an internal traversals counter as the seam its test reads, because one-pass and per-page extraction answer identical words. New PdfTextExtractorTest (3 pages with an empty middle, 40 pages, a non-PDF file) and DesktopPdfTextTest pin the page-local boxes and one traversal per document; DesktopPdfIndexTest still passes. docs/pdf.md records the rule."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "shared"]
+design = "none: no interface surface, a reading of PDF text"
+
+[[task]]
 id = "pdf-desktop-crop-geometry"
 title = "Align imported sheet dimensions with the PDF crop"
 description = "DesktopPdfImport.pages sizes a sheet by the page's effective rotated CropBox instead of its MediaBox, which is the box DesktopPdfExport imports the source page by. DesktopPdfImportTest pins the width and height at 0/90/180/270 degrees for an offset crop smaller than the media box, and DesktopPdfExportTest pins that an imported cropped sheet exports a page whose CropBox is the sheet, so a mark drawn on screen stays over its ink. docs/pdf.md records the rule."

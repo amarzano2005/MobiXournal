@@ -20,6 +20,7 @@ import com.mobixournal.render.resetZoom
 import com.mobixournal.render.ImageImport
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PdfImport
+import com.mobixournal.render.PdfAnalysisJobs
 import com.mobixournal.render.blankDocument
 import com.mobixournal.render.PdfOutlineCache
 import com.mobixournal.render.PdfOutlineExtractor
@@ -486,12 +487,25 @@ internal fun MainActivity.appendMergedPdf(
 }
 
 /**
+ * The app's one set of PDF extraction jobs, shared by both panes ([PdfAnalysisJobs]).
+ *
+ * One set, so a document mirrored into the second pane joins the walk the first one started instead of
+ * parsing the same bytes again, and so a burst of opens queues on a bounded pool rather than starting a
+ * thread per request.
+ */
+internal val pdfAnalysis = PdfAnalysisJobs()
+
+/**
  * Read a PDF's derived layers — its positioned text and its Contents outline — off the UI thread
  * (both walks are slow on a big file), then attach them to the canvas.
  *
- * Both are read in one thread on purpose: they load and parse the same bytes, and doing that twice
- * for one open buys nothing. Either may already be cached by the other pane showing the same file (a
- * mirrored document), so each half is skipped when it is; only what is missing is actually walked.
+ * Both are read by one job on purpose: they load and parse the same bytes, and doing that twice for one
+ * open buys nothing. Either may already be cached by the other pane showing the same file (a mirrored
+ * document), so each half is skipped when it is; only what is missing is actually walked.
+ *
+ * The answer is discarded when the canvas has moved on: a tab switch, another import or a reopened file
+ * changes what [DrawingSurfaceView.pdfSourceFile] names, and a walk over the old bytes must not land on
+ * the new page.
  */
 internal fun MainActivity.analyzePdfInBackground(file: File, into: DrawingSurfaceView? = surface) {
     // Bind the destination canvas up front: with two panes open, the focus may well have moved by the
@@ -504,15 +518,13 @@ internal fun MainActivity.analyzePdfInBackground(file: File, into: DrawingSurfac
         view.setPdfOutline(cachedOutline)
         return
     }
-    Thread {
-        val text = cachedText ?: PdfTextExtractor().extract(file)
-        val outline = cachedOutline ?: PdfOutlineExtractor().extract(file)
-        PdfTextIndexCache.put(file, text)
-        PdfOutlineCache.put(file, outline)
+    pdfAnalysis.request(file, cachedText, cachedOutline) { result ->
+        PdfTextIndexCache.put(file, result.text)
+        PdfOutlineCache.put(file, result.outline)
         view.post {
             if (view.pdfSourceFile()?.absoluteFile != file.absoluteFile) return@post
-            view.setPdfTextIndex(text)
-            view.setPdfOutline(outline)
+            view.setPdfTextIndex(result.text)
+            view.setPdfOutline(result.outline)
         }
-    }.start()
+    }
 }

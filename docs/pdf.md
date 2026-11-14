@@ -77,7 +77,14 @@ it doesn't affect round-trip (matching how desktop selects a PDF background's te
 
 The geometry is **shared, not forked**: `CharBox`, `PdfWord`, `PdfWordGrouper`, `PdfTextIndex` and the
 outline tree live in `mobix-core/src/main/java/com/mobixournal/render/`, and each shell keeps only its
-own PDFBox glue (`PdfTextExtractor`/`PdfOutlineExtractor` over `pdfbox-android`; `DesktopPdfText`/
+own PDFBox glue. A document's text is read in **one traversal** on both sides: PDFBox's stripper is
+handed the whole page range and each line is filed under the page it came from, where asking it page
+by page re-parsed the file once per page. The tablet also coalesces requests by **source revision** —
+path, length and modification time (`PdfAnalysisJobs`) — so two panes asking about one file join a
+single walk, the walks run on a two-thread pool, and a merge (new bytes) is a new key rather than an
+answer left over from the old file. A result whose canvas has moved to another PDF is dropped. Each
+shell's glue is only that: the reader (`PdfTextExtractor`/`PdfOutlineExtractor` over `pdfbox-android`;
+`DesktopPdfText`/
 `DesktopPdfOutline` over `org.apache.pdfbox`, one `PDDocument.load` per file, cached by reference and
 length in `DesktopPdfIndexCache` and read off the UI thread). Both shells therefore resolve a pointer on
 the same word boxes. In the window, **Select text (PDF)** (`Shift+S`) anchors at `anchorWord`, drags an
