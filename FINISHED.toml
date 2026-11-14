@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-unicode-extraction-test"
+title = "Prove exported Greek, Cyrillic, subscripts and emoji round-trip through extraction"
+description = "The audit is a round trip on both shells. A single fixture page (PdfUnicodeFixture.MIXED: accented Latin, a vulgar fraction and a superscript, Greek, Cyrillic, a subscript, a combining accent, an astral emoji and the CP1252 punctuation set) is exported, saved, reloaded and read back with PDFTextStripper: PdfUnicodeExportTest for the app's PDFBox port (8 tests) and DesktopPdfUnicodeTest for the window's org.apache.pdfbox (5 tests) both get the text back character for character, with no ? anywhere. The four cases the old range guard got wrong are each a test of their own, so a break names the case: a character WinAnsi encodes above U+00FF (- - - quoted - - euro trademark - -), a C1 control (U+0085, which WinAnsi reads as an ellipsis and which now becomes one visible substitute, not a printable character), a surrogate pair (one codepoint out, never two halves) and a combining mark (e + U+0301 keeps both codepoints). Both suites also assert the document embeds a subset with a ToUnicode map — every font on the page is a PDType0Font with /ToUnicode, and the produced file stays under 200 kB with a 759 kB face available — plus the counter-case that a pure-WinAnsi run names base-14 fonts only and adds no font file. docs/pdf.md records what the fixture proves and why the subset check is a size bound."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-10
+completed = 2026-11-14
+tags = ["mobix"]
+design = "none: test-only work over an existing plan and two emitters"
+
+[[task]]
 id = "desktop-pdf-unicode-fonts"
 title = "Embed the same DejaVu faces in the window's PDF export"
 description = "The window's PDF export now typesets a run the base-14 faces cannot carry in DejaVu, like the app. The same five files the app ships were copied to desktop/src/main/resources/fonts with LICENSE.txt beside them, and the new DesktopPdfFonts loads a PdfBundledFace off the classpath (PDType0Font.load(doc, stream, true), cached per document, so the face is subset into the export with its ToUnicode map); DesktopPdfPainter resolves PdfFontRef.Bundled through it and keeps the shared GlyphSanitizer as the last resort (visible U+FFFD, never ?). The sanitizer moved from the app to mobix-core so both emitters run one rule, and WinAnsi.safe — the window-only ?-reduction that existed for this gap — is gone. One fixture now drives both shells: PdfUnicodeFixture (mobix-core test fixtures) is read by the app's PdfUnicodeExportTest and the window's new DesktopPdfUnicodeTest, which paint, save, reload and extract the mixed run (Greek, Cyrillic, H with a subscript, e + U+0301, an astral emoji, the CP1252 punctuation set) and assert it comes back character for character, with a ToUnicode map on every embedded font and base-14 only for a pure-WinAnsi run. docs/pdf.md records the desktop resource path and the licence and states both shells' behaviour; docs/guide-limitations.md now reads Supported on Windows as well. :app:testDebugUnitTest (with the docs and structure guards) and :desktop:test are green, and the rebuilt exe's desktop jar carries the five faces and LICENSE.txt."

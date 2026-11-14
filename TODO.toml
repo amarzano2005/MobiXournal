@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-unicode-extraction-test"
-title = "Prove exported Greek, Cyrillic, subscripts and emoji round-trip through extraction"
-description = "Make the audit a round trip. Produce a PDF from one fixture page holding accented Latin, a vulgar fraction, Greek, Cyrillic, a subscript, a combining accent, an astral emoji and the CP1252 punctuation set, then read it back with PDFTextStripper (the desktop test module has org.apache.pdfbox) and assert the extracted text equals what was written, character for character, with the emoji either preserved or consistently U+FFFD and never ?. Cover the four cases today's guard gets wrong: a character WinAnsi encodes above U+00FF, a control character in 0x80..0x9F, a surrogate pair, and a combining mark. Also assert the document embeds subsets with a ToUnicode map, because text that draws but cannot be copied is not the promise this scope made. This is the failing-then-fixed fixture the scope required: it must fail against today's plan and pass once the two font tasks land."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 110
-created = 2026-11-10
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "pdf-import-destination-labels"
 title = "Name the actual destination in PDF import choices"
 description = "In Android PdfImportDialog and desktop ImportPdfDialog match each English option to its command: appending, replacing the current pages on Android, or opening a new tab on desktop. Desktop currently calls the last choice Replace this document. Group the filename and page count above the range and destination, allow long names to wrap, and use the chosen action as the confirm label. Verify all command paths, including a desktop import without a mode chooser. Apply docs/interface-contract.md and document verified changes in the owning guide."
