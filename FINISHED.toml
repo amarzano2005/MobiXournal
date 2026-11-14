@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-android-async-append"
+title = "Keep the Android editor responsive while joining PDFs"
+description = "The Android PDF import is now a plan built on a worker and applied on the UI thread: preparePdfImport copies the bytes into the store, builds the pages and merges an append onto a PDF-backed document into the joined file, returning a PdfImportPlan; applyPdfImport takes that plan on the canvas as one undoable edit, finds the tab that asked (bringing it back if the reader moved on) and drops the pages only when that tab was closed. The import card, a PDF handed over or dropped, and a PDF opened as a new document all reach the split from where they already hold the bytes. A failure deletes the copy it made, leaves the document untouched and says so. Verified on the Pixel_Tablet emulator: 120- and 1500-page opens, a 3-page append onto a 120-page document (123 pages, page 123 rendering the appended page), 1500+3=1503, the merge behind the progress note with no ANR, and a corrupt PDF refused with the document intact; docs/pdf.md records the split and the tab rule."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "android"]
+design = "none: the refactor keeps one entry point per import surface, with the plan as the value the worker hands the canvas"
+
+[[task]]
 id = "pdf-android-index-jobs"
 title = "Share in-flight PDF indexing between Android panes"
 description = "New PdfAnalysisJobs keys a walk by source revision (path, length, modification time), so a request for a file already being read joins that job and every listener is answered once, the walks run on a fixed two-thread daemon pool instead of one Thread per request, a half already cached is not re-read, a failure answers empty layers, and new bytes (a merge) are a new key. MainActivity.analyzePdfInBackground now goes through the app's single job set and still drops an answer whose canvas has moved to another PDF. PdfAnalysisJobsTest counts the walks: two views of one file walk once, a second file waits for the only worker, rewritten bytes are walked again. docs/pdf.md records the rule."

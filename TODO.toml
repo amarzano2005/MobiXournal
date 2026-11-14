@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-android-async-append"
-title = "Keep the Android editor responsive while joining PDFs"
-description = "MainActivityDocuments.confirmPdfImport calls adoptPdf and appendMergedPdf from the dialog handler. Stage file copying and joining in the background, apply the result to the originating tab only if still valid, release scratch on failure and report a recovery action. Exercise a large append, a tab switch and a failed merge on the emulator. Update docs/pdf.md with the verified behaviour."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 60
-created = 2026-11-14
-tags = ["pdf", "android"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-unicode-text-ops"
 title = "Typeset an exported text run in the bundled DejaVu face when WinAnsi cannot encode it"
 description = "PdfPagePlan carries a PdfText whose face is one of the base-14 families, and winAnsi decides what survives by code range. Replace the range with an encoding: a CP1252 table for the base-14 path, so ... - quotes, euro, trademark and the rest of WinAnsi punctuation survive instead of becoming ?, and a font reference on the op (base14 or a bundled asset path) chosen per run, so a line holding any character outside WinAnsi is typeset in DejaVu Sans rather than sanitised. The plan stays platform-free: it names the asset; the app emitter loads it through PdfFonts, which already caches PDType0Font per document with subset = true and therefore writes the ToUnicode map. Keep GlyphSanitizer as the last resort for a codepoint even DejaVu lacks, with U+FFFD as the substitute, never ?. Turn PdfTextEncodingAuditTest into round-trip assertions over the produced PDF in the emitter tests, and keep one test proving a pure-WinAnsi export is byte-for-byte what it is today."
