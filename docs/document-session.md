@@ -214,11 +214,12 @@ The design decisions worth keeping:
   tab, adding one or closing one also focuses the pane it happened in, and a *move* to the other pane
   hands focus to the destination; a mirror leaves it where it was. An **empty lane keeps drawing**: its
   badge and its "+" stay, and the half itself becomes the entry screen (`PaneEntry`) rather than a
-  surface still painting the tab that was just closed, so the   document that left the split is one tap
+  surface still painting the tab that was just closed, so the document that left the split is one tap
   from being reopened into it. Closing a half's **last** tab therefore opens a clean sheet in that half
   (`closeTab`): in split view the reader is working on two documents, and the entry screen would take the
-  workspace away from a tap that only meant "done with this one". Only the window with nothing open
-  anywhere — single-pane, after its last tab closes — is the entry screen.
+  workspace away from a tap that only meant "done with this one". Only a window whose **visible** panes are
+  all empty — single-pane, after its last tab closes — is the entry screen: the pane that is not drawn keeps
+  its tabs for the next split, and they do not count (`EditorScreen`'s `nothingOpen`).
 - **The split itself is remembered.** Turning split view on gives the right pane **a sheet of its own** if it
   holds nothing — a half with no document is a placeholder — and records that the split is where the app
   will be closed (the `split_open` flag beside the recents, not in `AppSettings`). A run closed that way is

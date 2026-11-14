@@ -273,7 +273,7 @@ the `top_bar_order_migrated_v2` flag, while a hand-arranged row is never rewritt
 
 ## Starting with nothing open
 
-The window **is** the entry screen whenever **no** pane has a tab — no header, no tab strip and no rail,
+The window **is** the entry screen whenever **no pane on screen** has a tab — no header, no tab strip and
 so the block centres in the whole window instead of in what a bar left over. A **half** of a split with no
 document is not that state: the other half is open, so the workspace stays, and the empty half draws the
 entry screen itself (`PaneEntry`) — its lane keeps its badge and its `+`, so a notebook closed out of the

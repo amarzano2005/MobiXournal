@@ -365,9 +365,9 @@ fun EditorScreen(
                 // With nothing open the window **is** the entry screen: no header, no tab strip, no rail.
                 // The bars have nothing to act on there, and they took the band of height the block needed
                 // to centre in — the same reason the PC window's screen is one surface between its bands.
-                // An **empty half** of a split is not "nothing open": the other half is, and focusing the
-                // empty one must not take the workspace away from the tap that only meant "the tools go here".
-                val nothingOpen = tabs.none { it.titles.isNotEmpty() }
+                //
+                // "Nothing open" is a question about the panes **on screen** (see [windowIsEmpty]).
+                val nothingOpen = windowIsEmpty(tabs, splitView)
                 if (!ui.fullPage && !nothingOpen) {
                     if (topBar != null) {
                         topBar(ui, pane, activeTabs)
