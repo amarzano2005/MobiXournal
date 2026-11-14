@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PageRangePlan
@@ -30,6 +31,11 @@ import com.mobixournal.ui.theme.FloatingDialog
  * [ImportPdfMode.APPEND] is the default because it keeps the work; a document already backed by a PDF
  * joins the two files on the way in (see [ImportPdfMode] and `PdfMerger`), which the subtitle says
  * rather than hides.
+ *
+ * The card is read top-down as one story: **which file**, then **which pages**, then **where they go**,
+ * and the button under it names the answer that is picked (`Add pages`, `Replace pages`). Each answer's
+ * title says what its command does to *this* document, so the window's card can title the same
+ * [ImportPdfMode.REPLACE] with the tab it opens instead.
  */
 @Composable
 fun ImportPdfDialog(
@@ -47,9 +53,23 @@ fun ImportPdfDialog(
         title = { Text("Import PDF") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // The file, as one block above the questions: its name is the longest thing here and a
+                // scan can be called anything, so it gets a line of its own to wrap in.
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        request.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        pagesLabel(request.pageCount),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    "“${request.name}” has ${pagesLabel(request.pageCount)}. Which of them, and where " +
-                        "should they go?",
+                    "Which of its pages, and where should they go?",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Row(
@@ -87,14 +107,14 @@ fun ImportPdfDialog(
                 )
                 FormatOption(
                     selected = mode == ImportPdfMode.REPLACE,
-                    title = "Replace",
-                    subtitle = "The PDF's pages become this document, replacing the current pages.",
+                    title = "Replace this document's pages",
+                    subtitle = "The PDF's pages become this document, replacing the pages it has now.",
                     onClick = { mode = ImportPdfMode.REPLACE },
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(mode) }, enabled = usable) { Text("Import") }
+            TextButton(onClick = { onConfirm(mode) }, enabled = usable) { Text(confirmLabel(mode)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
@@ -115,6 +135,16 @@ private fun PageField(
         singleLine = true,
         modifier = modifier,
     )
+}
+
+/**
+ * The button that commits the card, named after what it will do rather than a generic *Import*: the two
+ * answers land differently here (the pages continue this document, or replace it), and the reader should
+ * not have to remember which was picked to know what the button does.
+ */
+private fun confirmLabel(mode: ImportPdfMode): String = when (mode) {
+    ImportPdfMode.APPEND -> "Add pages"
+    ImportPdfMode.REPLACE -> "Replace pages"
 }
 
 /** "3 pages" / "1 page" — a card that says "1 pages" reads as a machine talking. */

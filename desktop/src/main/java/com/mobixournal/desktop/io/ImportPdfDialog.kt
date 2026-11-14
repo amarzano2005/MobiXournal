@@ -39,6 +39,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.ImportPdfMode
 
@@ -48,11 +49,15 @@ import com.mobixournal.render.ImportPdfMode
  * A floating surface like every question here (`docs/interface-contract.md`): the floating glass, the
  * accent on the answer that keeps the work, English copy, and Cancel as a plain word under it. The two
  * answers are [ImportPdfMode]', with the words the reader needs to tell them apart — *add* continues after
- * the page in view, *replace* opens the PDF as its own tab and leaves what is open alone.
+ * the page in view, and the second one is titled **Open in a new tab**, because that is its command here:
+ * it was called *Replace this document* while it opened a tab, which named the tablet's behaviour rather
+ * than this window's. A card whose title contradicts its own sentence teaches the reader not to trust
+ * either.
  *
- * The card names the file and its page count, because an import can bring a hundred pages and that is a
- * fact worth knowing before the button is pressed — and it asks **which** of them, because bringing a
- * chapter out of a four-hundred-page scan is a normal thing to want and rasterising the rest is not.
+ * The card is read top-down as one story: **which file** (its name and page count, grouped above and
+ * allowed to wrap — a scan can be called anything), then **which pages**, then **where they go**. The
+ * button under it names the answer that is picked, so a card with no chooser still says what pressing it
+ * does ([ImportPdfMode.REPLACE] there: the pages open as a tab).
  */
 @Composable
 internal fun ImportPdfDialog(
@@ -66,13 +71,23 @@ internal fun ImportPdfDialog(
     val range = request.range
     val usable = range is PageRangePlan.Pages
     Column(modifier.width(420.dp).glassSpring().glassSurface().padding(18.dp)) {
-        Text("Import a PDF", color = DesktopTheme.ink, style = DesktopTheme.title)
-        Spacer(Modifier.height(6.dp))
+        Text("Import PDF", color = DesktopTheme.ink, style = DesktopTheme.title)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            request.file.name,
+            color = DesktopTheme.ink,
+            style = DesktopTheme.body,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(pages(request.pageCount), color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+        Spacer(Modifier.height(8.dp))
         Text(
             if (request.chooseMode) {
-                "“${request.file.name}” has ${pages(request.pageCount)}. Which of them, and where should they go?"
+                "Which of its pages, and where should they go?"
             } else {
-                "“${request.file.name}” has ${pages(request.pageCount)}. Which pages should be imported?"
+                "Which of its pages should be imported?"
             },
             color = DesktopTheme.inkSecondary,
             style = DesktopTheme.body,
@@ -109,14 +124,14 @@ internal fun ImportPdfDialog(
             Spacer(Modifier.height(14.dp))
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 ImportModeRow(
-                    title = "Add the pages to this document",
+                    title = "Add to this document",
                     note = "Continues after the page in view, as one step you can undo.",
                     picked = picked == ImportPdfMode.APPEND,
                     onPick = { picked = ImportPdfMode.APPEND },
                 )
                 ImportModeRow(
-                    title = "Replace this document",
-                    note = "Opens the PDF in a new tab and leaves the open document alone.",
+                    title = "Open in a new tab",
+                    note = "The PDF's pages become a document of their own; the open one is left alone.",
                     picked = picked == ImportPdfMode.REPLACE,
                     onPick = { picked = ImportPdfMode.REPLACE },
                 )
@@ -127,7 +142,7 @@ internal fun ImportPdfDialog(
             PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
             Spacer(Modifier.width(8.dp))
             PanelButton(
-                label = "Import",
+                label = confirmLabel(if (request.chooseMode) picked else ImportPdfMode.REPLACE),
                 primary = true,
                 enabled = usable,
                 onClick = { onConfirm(if (request.chooseMode) picked else ImportPdfMode.REPLACE) },
@@ -138,6 +153,16 @@ internal fun ImportPdfDialog(
 
 /** "3 pages" / "1 page" — a card that says "1 pages" reads as a machine talking. */
 private fun pages(count: Int): String = if (count == 1) "1 page" else "$count pages"
+
+/**
+ * The button that commits the card, named after the command it runs: [ImportPdfMode.REPLACE] opens a tab
+ * here, so it says so — including when there was nothing to choose and the card went straight to that
+ * answer.
+ */
+private fun confirmLabel(mode: ImportPdfMode): String = when (mode) {
+    ImportPdfMode.APPEND -> "Add pages"
+    ImportPdfMode.REPLACE -> "Open in a new tab"
+}
 
 /** One answer of [ImportPdfDialog]: its name, its sentence, and the mark that says it is the picked one. */
 @OptIn(ExperimentalComposeUiApi::class)

@@ -10,9 +10,16 @@ This page is true for Android **2.2.0** and desktop **1.2.0**.
 ## A PDF becomes the page's background
 
 **Import PDF** reads the file first, then asks two things: which pages (a range you type, not a
-checkbox per page) and where they go — replacing the document, or appended after the pages already open.
-Appending is one undo step, and a single untouched blank sheet in front of the PDF is dropped rather than
-left stranded.
+checkbox per page) and where they go. The card reads top-down — the file's name and its page count, then
+the pages, then the destination — and the button under it names the answer you picked instead of a bare
+*Import*, so you never have to remember which of the two is selected.
+
+On the tablet the second answer is **Replace this document's pages**: the PDF becomes this document and the
+pages already open are gone. In the window it is **Open in a new tab**, because that is what its command
+does — a window with tabs has no reason to throw the open document away, so *replace* there means the PDF
+arrives as a document of its own and what you had open is untouched. **Add to this document** reads the
+same on both and is the default, because it keeps the work. Appending is one undo step, and a single
+untouched blank sheet in front of the PDF is dropped rather than left stranded.
 
 A document holds one PDF. Import a second one onto a document that already has one and the two are merged
 into a single file, so every page's PDF page number still points at the right sheet; the merge and the new

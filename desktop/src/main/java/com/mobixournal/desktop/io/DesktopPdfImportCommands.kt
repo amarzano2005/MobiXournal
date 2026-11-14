@@ -24,13 +24,14 @@ import org.apache.pdfbox.pdmodel.PDDocument
  * the tablet's promise kept on the PC — every PDF page becomes a page of the document to write on — and the
  * answers are the tablet's two, with one desktop difference that is the whole point of tabs:
  *
- *  - **Add the pages to this document** ([ImportPdfMode.APPEND]) keeps what is open and continues after its
+ *  - **Add to this document** ([ImportPdfMode.APPEND]) keeps what is open and continues after its
  *    last page, as one undo step. A brand-new document is a single untouched sheet, and that sheet is
  *    dropped rather than left stranded in front of the PDF ([PageOps.appendPages] owns the rule).
- *  - **Replace this document** ([ImportPdfMode.REPLACE]) opens the PDF as a **new tab** on the PC. The
+ *  - **Open in a new tab** ([ImportPdfMode.REPLACE]) opens the PDF as a **new tab** on the PC. The
  *    tablet's version discards the open document because it has one view; a window with tabs has no reason
  *    to throw a reader's work away, so "replace" here means "this PDF is the document" without an
- *    unanswered save question in between.
+ *    unanswered save question in between. The card says *Open in a new tab* rather than the tablet's
+ *    *Replace*, which named a command this window does not run.
  *
  * The bytes are dealt with where the format can carry them: the document's pages reference the PDF by its
  * absolute path, and a save hands that file to the encoder (`DesktopSaves`), which bundles it into a
