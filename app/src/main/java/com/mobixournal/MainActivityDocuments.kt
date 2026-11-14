@@ -4,9 +4,13 @@ import com.mobixournal.ui.openVerdictNotice
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Looper
 import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.Page
 import com.mobixournal.io.LoadedFile
+import com.mobixournal.panes.EditorPane
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
 import com.mobixournal.io.withPortability
@@ -73,20 +77,26 @@ internal fun MainActivity.openDocument(uri: Uri) {
         val staged = io.stageIn(uri, "open")
         // The portability report walks every page, so it is answered **here**, on the worker that fetched the
         // file, and not inside the open: a paged `.mobix` must reach its first frame having read no page.
-        try { staged to io.read(staged, sourceName, uri).withPortability() } catch (failure: Throwable) {
+        val read = try { io.read(staged, sourceName, uri).withPortability() } catch (failure: Throwable) {
             staged.delete()
             throw failure
         }
+        // A raw PDF is not parsed into a document: its bytes are copied into the store and its pages are
+        // built here, on the worker that already has the file, so the canvas only receives the result.
+        val plan = (read as? LoadedFile.Pdf)?.let { pdf ->
+            preparePdfImport(pdf.file, ImportPdfMode.REPLACE, uri.toString(), indices = null, base = null, inStore = pdf.generated)
+        }
+        Triple(staged, read, plan)
     }) { result ->
         val focus = activePane.value
         activePane.value = panes.indexOf(openingPane)
         try {
         // Staging names are unique per open, so the copy has to be swept once it has been read
         // or the cache would grow a file per document opened.
-        result.mapCatching { (staged, loaded) ->
+        result.mapCatching { (staged, loaded, plan) ->
             try {
                 check(tabs.active?.id == placeholder.id) { "The opening tab is no longer selected" }
-                loadDocument(loaded, uri, placeholder, created)
+                loadDocument(loaded, uri, placeholder, created, plan)
             } finally { if (!io.retainsStaged(staged)) staged.delete() }
         }
             .onSuccess {
@@ -227,12 +237,18 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
     }
 }
 
-/** Put a staged local copy of the document onto the canvas ([DocumentIo] decided what it is). */
+/**
+ * Put a staged local copy of the document onto the canvas ([DocumentIo] decided what it is).
+ *
+ * [plan] is a PDF's pages and store copy already built on the staging worker; when it is null the PDF
+ * branch builds them itself.
+ */
 internal fun MainActivity.loadDocument(
     loaded: LoadedFile,
     source: Uri,
     placeholder: OpenTab? = null,
     created: Int = -1,
+    plan: PdfImportPlan? = null,
 ) {
     when (loaded) {
         // A raw PDF isn't a document to parse — it becomes a fresh annotatable one over its pages.
@@ -244,7 +260,13 @@ internal fun MainActivity.loadDocument(
             // stable path to link: that one goes out as the package which embeds its bytes.
             saveFormat = if (loaded.generated) SaveFormat.ZIPPED else newDocumentFormat
             surface?.isReadOnly = false
-            adoptPdf(loaded.file, ImportPdfMode.REPLACE, source.toString(), inStore = loaded.generated)
+            // The pages are already built when the staging worker made the plan; the canvas takes the
+            // result and nothing else. No plan means nobody built it (a PDF adopted in place).
+            if (plan != null) {
+                applyPdfImport(plan, tabs.active?.id)
+            } else {
+                adoptPdf(loaded.file, ImportPdfMode.REPLACE, source.toString(), inStore = loaded.generated)
+            }
             // The tab came from a PDF, so it has no `.xopp` on disk yet: drop the source URI so
             // plain Save asks for a destination instead of writing document bytes over the PDF,
             // and suggest the PDF's own name with the extension swapped. The PDF itself stays on
@@ -321,8 +343,9 @@ internal fun MainActivity.loadDocument(
  * document and adds the PDF's pages after it (one undoable edit).
  *
  * A `.xopp` can reference only **one** background PDF, so appending onto a document that already
- * has one goes through [appendMergedPdf]: the two PDFs are merged into a single joined PDF that
- * becomes the document's one background source.
+ * has one goes through [preparePdfImport], which merges the two PDFs into a single joined file that
+ * becomes the document's one background source — off the UI thread, with the pages it built, so the
+ * canvas only receives the result.
  */
 internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode = ImportPdfMode.REPLACE) {
     importPdf(uri, mode, indices = null)
@@ -371,10 +394,28 @@ internal fun MainActivity.confirmPdfImport(mode: ImportPdfMode) {
     val range = prompt.range as? PageRangePlan.Pages ?: return
     pendingPdfImport = null
     val source = prompt.file
-    try {
-        adoptPdf(source, mode, prompt.reference, indices = range.first..range.last)
-    } finally {
+    // Read on the UI thread only what a decision needs: which canvas will take the pages, which tab
+    // asked, and whether that document already sits on a PDF. Copying, building pages and joining the
+    // two files are the slow half, and none of it needs the canvas ([preparePdfImport]).
+    val p = pane
+    val tabId = p.tabs.active?.id
+    val base = if (mode == ImportPdfMode.APPEND && p.surface?.hasPdfBackground() == true) {
+        p.surface?.pdfSourceFile()
+    } else {
+        null
+    }
+    inBackground("Importing ${prompt.name}…", {
+        preparePdfImport(source, mode, prompt.reference, range.first..range.last, base)
+    }) { result ->
+        // The staged copy has done its job either way: the plan holds the store's own file.
         source.delete()
+        result.onSuccess { plan -> applyPdfImport(plan, tabId, p) }
+            .onFailure { failure ->
+                toast(
+                    "PDF import failed: ${failure.message ?: "the file could not be read"}. Nothing " +
+                        "was changed — try again, or import it into a new document.",
+                )
+            }
     }
 }
 
@@ -396,6 +437,114 @@ internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode, indices: IntR
 }
 
 /**
+ * What an import has **brought**, built off the UI thread: the document's new background file and the
+ * pages that go on the canvas.
+ *
+ * It is a value rather than a set of edits so the slow half and the canvas half can happen apart: the
+ * pages are built where a big PDF can take a second to read, and applied on the UI thread to the tab
+ * that asked. A plan whose tab is gone is simply not applied; its copy is the store's, and the sweep
+ * that runs when the work counter reaches zero collects files nothing live refers to.
+ */
+internal class PdfImportPlan(
+    val mode: ImportPdfMode,
+    /** The file the document's background reference will name: the store copy, or the joined file. */
+    val file: File,
+    /** REPLACE: the document those pages make. */
+    val document: Document? = null,
+    /** APPEND: the pages that land after the current last one. */
+    val added: List<Page>? = null,
+    /**
+     * True when the pages landed in a **joined** file, so the document's one PDF reference has to move
+     * there. False means the arriving pages name the picked PDF themselves (a notebook of paper).
+     */
+    val joined: Boolean = false,
+)
+
+/**
+ * The slow half of an import: copy the bytes into the store, build the pages, and — for an append onto a
+ * document that already sits on a PDF — join the two files into the one a `.xopp` can name.
+ *
+ * Runs on a worker. [base] is the document's current background file, or null when it has none or the
+ * pages are replacing them; [inStore] says [source] is already this app's own copy (a text import's
+ * generated PDF) and must not be duplicated.
+ *
+ * A failure deletes the copy it made before throwing: an import that did not land leaves no bytes behind.
+ */
+internal fun MainActivity.preparePdfImport(
+    source: File,
+    mode: ImportPdfMode,
+    reference: String,
+    indices: IntRange?,
+    base: File?,
+    inStore: Boolean = false,
+): PdfImportPlan {
+    if (mode == ImportPdfMode.APPEND && base != null) {
+        // A `.xopp` holds one reference, so the two PDFs become one file. The arriving bytes are read
+        // by the merge itself, so there is no need for a store copy of them on the way.
+        val offset = PdfPageCache(base).use { it.pageCount }
+        val added = PdfPageCache(source).use { cache ->
+            val run = indices ?: 0 until cache.pageCount
+            PdfImport.pagesFor(cache, reference = null, pageNoOffset = offset, indices = run.first..run.last)
+        }
+        val joined = io.merge(base, source)
+        // The merge rewrote these bytes: any text or outline read from the files it joined is stale.
+        PdfTextIndexCache.forget(joined)
+        PdfOutlineCache.forget(joined)
+        return PdfImportPlan(mode, joined, added = added, joined = true)
+    }
+    val copy = if (inStore) source else io.adoptPdf(source)
+    try {
+        if (mode == ImportPdfMode.REPLACE) {
+            val document = PdfPageCache(copy).use { cache -> PdfImport.documentFor(cache, reference, indices) }
+            PdfTextIndexCache.forget(copy)
+            return PdfImportPlan(mode, copy, document = document)
+        }
+        val added = PdfPageCache(copy).use { cache ->
+            PdfImport.pagesFor(cache, reference, indices = indices)
+        }
+        PdfTextIndexCache.forget(copy)
+        return PdfImportPlan(mode, copy, added = added)
+    } catch (failure: Throwable) {
+        if (!inStore) copy.delete()
+        throw failure
+    }
+}
+
+/**
+ * The canvas half of an import, on the UI thread: take the plan's file as the document's background and
+ * put its pages on the canvas — as one undoable edit, because the pages are already built.
+ *
+ * [tabId] is the tab that asked, and the pages land **there** whatever the reader did meanwhile: the tab
+ * is brought back onto the canvas first, because the pages continue *that* document (the card said "add to
+ * this document"), not whichever tab happens to be showing. A tab closed while its pages were being read
+ * has nowhere to put them, and the import is dropped.
+ */
+internal fun MainActivity.applyPdfImport(plan: PdfImportPlan, tabId: String?, p: EditorPane = pane) {
+    // The canvas is only ever touched on the UI thread. The plan is built on a worker, and this half can
+    // be reached from one (a PDF handed over by another app).
+    if (Looper.myLooper() != Looper.getMainLooper()) {
+        runOnUiThread { applyPdfImport(plan, tabId, p) }
+        return
+    }
+    val index = p.tabs.tabs.indexOfFirst { it.id == tabId }
+    if (index < 0) return
+    if (p.tabs.active?.id != tabId) selectTab(index, p)
+    val view = p.surface ?: return
+    view.setPdfSource(PdfPageCache.shared(plan.file))
+    view.clearPdfAnalysis() // cleared until extraction below finishes
+    when {
+        // A replaced document keeps none of the old one's pixmap pictures.
+        plan.mode == ImportPdfMode.REPLACE -> {
+            view.setImageSources(emptyMap())
+            plan.document?.let { view.load(it) }
+        }
+        plan.joined -> plan.added?.let { view.appendPdfPages(it, plan.file.absolutePath) }
+        else -> plan.added?.let { view.appendPages(it) }
+    }
+    analyzePdfInBackground(plan.file, view)
+}
+
+/**
  * Turn an already-local [source] PDF into annotatable pages, per [mode]. [inStore] says [source]
  * *is* already the store's own never-rewritten copy (a text import's generated PDF), so it is
  * used in place rather than duplicated — which also keeps its cache entry alive with the tab.
@@ -407,28 +556,16 @@ internal fun MainActivity.adoptPdf(
     inStore: Boolean = false,
     indices: IntRange? = null,
 ) {
-    val file = if (inStore) source else io.adoptPdf(source)
-    val view = surface
-    val existing = view?.pdfSourceFile()
-    if (mode == ImportPdfMode.APPEND && existing != null && view.hasPdfBackground()) {
-        appendMergedPdf(view, existing, file, indices)
-        return
+    val p = pane
+    val tabId = p.tabs.active?.id
+    val view = p.surface
+    val base = if (mode == ImportPdfMode.APPEND && view != null && view.hasPdfBackground()) {
+        view.pdfSourceFile()
+    } else {
+        null
     }
-    val cache = PdfPageCache.shared(file)
-    view?.setPdfSource(cache)
-    view?.clearPdfAnalysis() // cleared until extraction below finishes
-    when (mode) {
-        // A replaced document keeps none of the old one's pixmap pictures.
-        ImportPdfMode.REPLACE -> {
-            view?.setImageSources(emptyMap())
-            view?.load(PdfImport.documentFor(cache, reference, indices))
-        }
-        ImportPdfMode.APPEND -> view?.appendPages(PdfImport.pagesFor(cache, reference, indices = indices))
-    }
-    if (view == null) cache.close() // nobody took the claim; don't hold the renderer open
-    // Freshly imported bytes: whatever was extracted for this path before doesn't describe them.
-    PdfTextIndexCache.forget(file)
-    analyzePdfInBackground(file)
+    val plan = preparePdfImport(source, mode, reference, indices, base, inStore)
+    applyPdfImport(plan, tabId, p)
 }
 
 /**
@@ -451,39 +588,6 @@ internal fun MainActivity.adoptImage(source: File, reference: String): Boolean {
     surface?.setImageSources(mapOf(reference to io.adoptImage(source)))
     surface?.load(ImageImport.documentFor(widthPx, heightPx, reference))
     return true
-}
-
-/**
- * Append [incoming]'s pages to a document that already has a background PDF, by **merging** the
- * two into one joined PDF ([PdfMerger]) — the only shape a `.xopp` can represent, since it holds
- * a single background reference.
- *
- * The joined file lands in `filesDir` (not the cache) so the link a plain Save records survives;
- * successive appends ping-pong between two names so a merge never writes the file it's reading.
- * The document's one reference is re-pointed at the joined PDF and the new pages' `pageno` values
- * are renumbered against it, both in a single undoable edit.
- */
-internal fun MainActivity.appendMergedPdf(
-    view: DrawingSurfaceView,
-    existing: File,
-    incoming: File,
-    indices: IntRange? = null,
-) {
-    val offset = view.pdfSourcePageCount()
-    // Size the new pages from the incoming PDF before anything is closed or replaced. Only the picked
-    // run is brought, and it lands where the merge puts it: after the base's own pages, so a page keeps
-    // the number it has in the joined file.
-    val added = PdfPageCache(incoming).use { cache ->
-        val run = indices ?: 0 until cache.pageCount
-        PdfImport.pagesFor(cache, reference = null, pageNoOffset = offset, indices = run.first..run.last)
-    }
-    val joined = io.merge(existing, incoming)
-    PdfTextIndexCache.forget(joined) // the merge rewrote these bytes; any cached result is stale
-    PdfOutlineCache.forget(joined)
-    view.setPdfSource(PdfPageCache.shared(joined)) // releases the old rasteriser, freeing the old file
-    view.clearPdfAnalysis() // cleared until extraction below finishes
-    view.appendPdfPages(added, joined.absolutePath)
-    analyzePdfInBackground(joined)
 }
 
 /**

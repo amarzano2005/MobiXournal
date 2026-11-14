@@ -81,7 +81,9 @@ the open document's pages as one undoable edit (`PageOps.appendPages` → `Drawi
 which also drops a lone untouched blank sheet so it isn't stranded in front of the PDF). Because the
 `filename`/`domain` convention — and `XoppZip`'s single embedded `bg.pdf` — allow exactly **one** PDF
 per document, `APPEND` onto a document that already has a PDF background does not add a second
-reference: `MainActivity.appendMergedPdf` **merges** the two PDFs into one via `DocumentIo.merge`. `PdfMerger.join`
+reference: `MainActivity.preparePdfImport` **merges** the two PDFs into one via `DocumentIo.merge`, on a
+worker thread, and `MainActivity.applyPdfImport` puts the built pages on the canvas only if the tab that
+asked is still the active one. `PdfMerger.join`
 concatenates the current background PDF and the incoming one with PDFBox's `PDFMergerUtility` (source
 pages imported verbatim, so they rasterise and re-export unchanged); the joined file is written to
 `filesDir` — not the cache, so the link a plain `Save` records survives — under a name allocated by

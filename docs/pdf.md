@@ -166,3 +166,39 @@ Evidence: these rules are covered by JVM and renderer tests — `DesktopPdfDurab
 `DesktopPdfMergeTest`, `DesktopPdfImportTest`, `DesktopPdfExportTest`, `PdfStoreTest` and
 `PdfExportTest`. The tablet's side of the pin is tested on the store only; driving a joined notebook
 through close, prune and reopen on an emulator is still owed.
+
+## Importing a PDF: the slow half, and the tab it lands on
+
+Reading a PDF is the import that can take seconds — a 456 kB file became 1500 sheets in the emulator run
+below — so the work is split from what it produces. `preparePdfImport` copies the bytes into the store,
+builds the pages and, when the document already sits on a PDF, merges the two files into the joined one;
+it asks nothing of the canvas and runs on a worker. What it returns is a `PdfImportPlan`, and
+`applyPdfImport` puts it on the canvas on the UI thread — as **one** undoable edit, because the pages are
+already built. That second half is the only one that touches a `DrawingSurfaceView`.
+
+Each entry point reaches the split from where it already has the bytes:
+
+- the **import card** (Menu → Import PDF, which asks which pages and where they go) builds its plan inside
+  `inBackground`, behind the card's progress note;
+- a PDF **handed over by another app or dropped on the page** (`importPdf`, `onExternalPdf`) is fetched and
+  prepared on the staging worker; before this split the whole adoption, canvas included, ran there;
+- a PDF **opened as a new document** (`loadDocument`) has its plan built by the staging worker that has just
+  read the file, so the open's callback only applies it.
+
+**The pages land on the tab that asked.** An append continues *that* document — the card's own words are
+"add to this document" — so `applyPdfImport` looks the tab up by id and, if the reader is on another one,
+brings it back onto the canvas before applying; a tab closed while its pages were being read has nowhere to
+put them and the import is dropped. The progress note is modal, so in practice the tab cannot change under
+an import: this rule is what makes that a decision of the window rather than a side effect of the note.
+
+**A failed import changes nothing.** The plan is built before anything is applied, so a corrupt file, a
+merge that cannot read its base, or a copy that cannot be written leaves the open document exactly as it
+was: the copy made on the way is deleted, and the note says the import failed rather than letting it half
+land.
+
+Verified on the `Pixel_Tablet` emulator against this build: a 120-page and a 1500-page PDF opened from
+Open… (page 1 rendering the source's own content), a 3-page PDF appended by the card onto the 120-page
+document (123 pages, page 123 rendering the appended PDF's last page) and again onto the 1500-page one
+(1503 pages); the merge ran behind the `Importing huge.pdf…` note with the canvas painted and no ANR or
+exception in `logcat`; and a corrupt `.pdf` reported `PDF import failed: file not in PDF format or
+corrupted` with the document still at its 1623 pages.
