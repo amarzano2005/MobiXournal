@@ -93,7 +93,13 @@ map to the screen through a `PageBox` exactly like strokes. The **Select text (P
 (`EditorTool.TEXT_SELECT` → `ActiveTool.TEXT_SELECT` → `GestureIntent.SELECT_TEXT`) drags to select
 an inclusive reading-order word range: `beginTextSelect`/`textSelectMove` resolve pointer positions
 to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawTextSelection`), and the
-`TextSelectionBar`'s Copy puts the text on the Android system clipboard (`copyTextSelection`). The
+`TextSelectionBar`'s Copy puts the text on the Android system clipboard (`copyTextSelection`). The bar
+**floats against the words**: the surface reports the selected word boxes' union
+(`textSelectionScreenRect` → `onTextSelectionRectChanged` → `PaneState.textSelectionRect`, from the paint
+pass beside `reportScroll`), and `TextSelectionAnchor` places the measured capsule below that box, above
+it when the pane ends below, and inside the pane's edges either way — a bar pinned to the bottom edge sat
+on top of a passage near the foot of the page. The window's `PdfTextCopyBar` does the same with its own
+measured capsule (a hard-coded 78 × 30 dp assumed one text scale). The
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 

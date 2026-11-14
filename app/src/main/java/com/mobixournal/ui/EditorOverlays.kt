@@ -325,13 +325,6 @@ private fun BoxScope.SelectionOverlays(
             onClearRegion = { surface?.clearBackgroundRegion() },
         )
     }
-    if (pane.hasTextSelection) {
-        TextSelectionBar(
-            onCopy = { surface?.copyTextSelection() },
-            onDeselect = { surface?.clearTextSelection() },
-            modifier = barModifier,
-        )
-    }
     if (ui.tool == EditorTool.TABLE && !pane.hasSelection) {
         TableModeBar(
             rows = settings.tableRows,

@@ -143,6 +143,7 @@ internal fun DrawingSurfaceView.paint() {
     reportCurrentPage()
     reportScroll()
     reportSelectionRect()
+    reportTextSelectionRect()
     reportMissingBackgrounds()
 }
 

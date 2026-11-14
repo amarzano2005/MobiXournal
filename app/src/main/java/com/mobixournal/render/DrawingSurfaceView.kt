@@ -252,8 +252,14 @@ class DrawingSurfaceView @JvmOverloads constructor(
     private var lastReportedPage = -1
     /** Last (scrollY, totalHeightPx, viewportPx) reported to [onScrollChanged], to suppress duplicate calls. */
     private var lastScrollReport = ScrollReport(-1f, -1f, -1f, -1f)
-    /** Last selection box reported to [onSelectionRectChanged], to suppress duplicate calls. */
-    private var lastSelectionRect: android.graphics.RectF? = null
+    /**
+     * The boxes already reported to the chrome, so a redraw that moved neither selection stays silent.
+     *
+     * One holder rather than a field per report: the view's mutable state is a ratchet
+     * (`PackageStructureTest`), and both entries answer the same question — what the chrome already knows
+     * (`DrawingSurfaceSelection.kt` owns the reporting).
+     */
+    internal val selectionReports = SelectionReports()
 
     /** Undo/redo snapshots of the whole [Document] (cheap: immutable pages/layers share structure). */
     internal var history = EditHistory<Document>()
@@ -493,6 +499,15 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * anchor the contextual action bar to the selection (see [EditorPaneView][com.mobixournal.ui.EditorPaneView]).
      */
     var onSelectionRectChanged: ((android.graphics.RectF?) -> Unit)? = null
+
+    /**
+     * Notified whenever the **PDF text** selection's on-screen box changes — it appears, its range
+     * extends, it clears, or the view scrolls or zooms under it. View px, exactly like
+     * [onSelectionRectChanged], so the chrome can float the Copy bar beside the words that were
+     * selected instead of parking it on the bottom edge of the pane, where a selection near the foot of
+     * the page sat underneath its own toolbar.
+     */
+    var onTextSelectionRectChanged: ((android.graphics.RectF?) -> Unit)? = null
 
     /** Notified when the copy/cut clipboard gains or loses content (drives the Paste affordance). */
     var onClipboardChanged: ((Boolean) -> Unit)? = null
@@ -1087,34 +1102,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         if (t != lastScrollReport) {
             lastScrollReport = t
             onScrollChanged?.invoke(t.scrollY, t.totalPx, t.viewportPx, t.scrollX)
-        }
-    }
-
-    /**
-     * The active selection's bounding box in view px, padded like the drawn marquee, or null when
-     * nothing is selected or its page isn't laid out. The same box [drawSelectionBox] outlines, so the
-     * chrome can hang actions directly off what the user sees.
-     */
-    fun selectionScreenRect(): android.graphics.RectF? {
-        val sel = selection ?: return null
-        val box = layout.boxes.getOrNull(sel.pageIndex) ?: return null
-        val page = pageAt(sel.pageIndex) ?: return null
-        val b = SelectionTester.boundsOf(page, sel.refs) ?: return null
-        val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
-        return android.graphics.RectF(
-            (b.left * box.scale + box.leftPx - scrollX).toFloat() - pad,
-            (b.top * box.scale + box.topPx - scrollY).toFloat() - pad,
-            (b.right * box.scale + box.leftPx - scrollX).toFloat() + pad,
-            (b.bottom * box.scale + box.topPx - scrollY).toFloat() + pad,
-        )
-    }
-
-    /** Emit [onSelectionRectChanged] if the selection box moved since the last report. */
-    internal fun reportSelectionRect() {
-        val rect = selectionScreenRect()
-        if (rect != lastSelectionRect) {
-            lastSelectionRect = rect
-            onSelectionRectChanged?.invoke(rect)
         }
     }
 

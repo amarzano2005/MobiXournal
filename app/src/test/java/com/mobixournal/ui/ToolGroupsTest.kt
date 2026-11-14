@@ -112,10 +112,13 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `select group contains select and lasso`() {
+    fun `select group holds the two marquees and the PDF text tool`() {
         val select = groupOf(EditorTool.SELECT)
         assertEquals("select", select?.id)
-        assertEquals(listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT), select?.tools)
+        assertEquals(listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT), select?.tools)
+        // The text marquee is only reachable through this slot's picker: without it the tool, the gesture
+        // router and the Copy bar were all present and unreachable.
+        assertEquals("select", groupOf(EditorTool.TEXT_SELECT)?.id)
     }
 
     @Test

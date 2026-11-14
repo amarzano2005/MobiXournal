@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -311,7 +312,12 @@ fun SelectModeBar(
     }
 }
 
-/** Shown while PDF text is selected: copy the selection to the system clipboard, or deselect. */
+/**
+ * Shown while PDF text is selected: copy the selection to the system clipboard, or deselect.
+ *
+ * It floats against the selected words ([TextSelectionAnchor]) rather than on the pane's bottom edge, and
+ * each word wears the focus ring Material does not draw — see [BarAction].
+ */
 @Composable
 fun TextSelectionBar(
     onCopy: () -> Unit,
@@ -324,12 +330,38 @@ fun TextSelectionBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(onClick = onCopy) {
-                Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null)
+            BarAction(label = "Copy", onClick = onCopy, glyph = ChromeGlyph.COPY)
+            BarAction(label = "Deselect", onClick = onDeselect)
+        }
+    }
+}
+
+/**
+ * One word of a floating bar, with a focus ring a hardware keyboard can see.
+ *
+ * The bars float over the canvas, and Material's text button draws no focus indication of its own: Tab
+ * moved focus onto Copy and nothing on screen said where it had landed, so the ring is the bar's job. It
+ * is `hasFocus`, not `isFocused`, because the focus target is the button inside the ring's box.
+ */
+@Composable
+private fun BarAction(label: String, onClick: () -> Unit, glyph: ChromeGlyph? = null) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .onFocusChanged { focused = it.hasFocus }
+            .border(
+                width = 2.dp,
+                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = RoundedCornerShape(percent = 50),
+            )
+            .padding(1.dp),
+    ) {
+        TextButton(onClick = onClick) {
+            if (glyph != null) {
+                Icon(glyph.imageVector(), contentDescription = null)
                 Spacer(Modifier.width(6.dp))
-                Text("Copy")
             }
-            TextButton(onClick = onDeselect) { Text("Deselect") }
+            Text(label)
         }
     }
 }

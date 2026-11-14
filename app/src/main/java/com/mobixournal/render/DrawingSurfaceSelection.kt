@@ -207,6 +207,30 @@ internal fun DrawingSurfaceView.textSelectMove(event: MotionEvent) {
     if (focus != textSelFocus) { textSelFocus = focus; render() }
 }
 
+/**
+ * The union of the selected words' boxes, in this view's own px, or null when nothing is selected. The
+ * same mapping [drawTextSelection] paints with, so the Copy bar is anchored to what the reader sees
+ * highlighted rather than to an approximation of it.
+ */
+internal fun DrawingSurfaceView.textSelectionScreenRect(): android.graphics.RectF? {
+    val index = pdfTextIndex ?: return null
+    if (textSelPage < 0 || textSelAnchor < 0) return null
+    val box = layout.boxes.getOrNull(textSelPage) ?: return null
+    val boxes = index.rangeBoxes(textSelPage, textSelAnchor, textSelFocus)
+    if (boxes.isEmpty()) return null
+    var left = Float.MAX_VALUE
+    var top = Float.MAX_VALUE
+    var right = -Float.MAX_VALUE
+    var bottom = -Float.MAX_VALUE
+    for (w in boxes) {
+        left = minOf(left, (w.left * box.scale + box.leftPx - scrollX).toFloat())
+        top = minOf(top, (w.top * box.scale + box.topPx - scrollY).toFloat())
+        right = maxOf(right, (w.right * box.scale + box.leftPx - scrollX).toFloat())
+        bottom = maxOf(bottom, (w.bottom * box.scale + box.topPx - scrollY).toFloat())
+    }
+    return android.graphics.RectF(left, top, right, bottom)
+}
+
 /** True while a PDF-text selection is active (drives the Copy affordance). */
 fun DrawingSurfaceView.hasTextSelection(): Boolean = textSelPage >= 0 && textSelAnchor >= 0
 
@@ -406,4 +430,49 @@ internal fun DrawingSurfaceView.fallbackReplaceCircuitOn(page: Page, pageIndex: 
     val layers = page.layers.toMutableList()
     layers[ref.layerIndex] = Layer(els, layer.name)
     return page.copy(layers = layers)
+}
+
+// --- what the chrome already knows ----------------------------------------------------------------
+
+/** The boxes last reported to the chrome, so a frame that moved neither selection reports nothing. */
+internal class SelectionReports {
+    var strokes: android.graphics.RectF? = null
+    var text: android.graphics.RectF? = null
+}
+
+/**
+ * The active selection's bounding box in view px, padded like the drawn marquee, or null when nothing is
+ * selected or its page isn't laid out. The same box [drawSelectionBox] outlines, so the chrome can hang
+ * actions directly off what the user sees.
+ */
+fun DrawingSurfaceView.selectionScreenRect(): android.graphics.RectF? {
+    val sel = selection ?: return null
+    val box = layout.boxes.getOrNull(sel.pageIndex) ?: return null
+    val page = pageAt(sel.pageIndex) ?: return null
+    val b = SelectionTester.boundsOf(page, sel.refs) ?: return null
+    val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
+    return android.graphics.RectF(
+        (b.left * box.scale + box.leftPx - scrollX).toFloat() - pad,
+        (b.top * box.scale + box.topPx - scrollY).toFloat() - pad,
+        (b.right * box.scale + box.leftPx - scrollX).toFloat() + pad,
+        (b.bottom * box.scale + box.topPx - scrollY).toFloat() + pad,
+    )
+}
+
+/** Emit [onSelectionRectChanged] if the selection box moved since the last report. */
+internal fun DrawingSurfaceView.reportSelectionRect() {
+    val rect = selectionScreenRect()
+    if (rect != selectionReports.strokes) {
+        selectionReports.strokes = rect
+        onSelectionRectChanged?.invoke(rect)
+    }
+}
+
+/** Emit [onTextSelectionRectChanged] if the PDF text selection's box moved since the last report. */
+internal fun DrawingSurfaceView.reportTextSelectionRect() {
+    val rect = textSelectionScreenRect()
+    if (rect != selectionReports.text) {
+        selectionReports.text = rect
+        onTextSelectionRectChanged?.invoke(rect)
+    }
 }

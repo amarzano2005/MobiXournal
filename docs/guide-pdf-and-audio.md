@@ -52,9 +52,18 @@ pages land together, which is what makes undoing it put the document back as it 
 ## Copying text out of the page
 
 A born-digital PDF's text layer is extracted when you import it, so **Select text (PDF)** can drag a
-reading-order range and **Copy** puts it on the clipboard — `Shift+S` and `Ctrl+C` in the window. The
+reading-order range and **Copy** puts it on the clipboard — `Shift+S` and `Ctrl+C` in the window. On the
+tablet it is the third entry of the Select slot's menu: press and hold the Select button in the rail to
+pick it, and the slot then keeps it for next time. The
 selection is a view over the PDF, not something written into your notebook: it is never saved, and
 `Esc`, a click off the text or a page change clears it.
+
+**Copy rides with the words.** The Copy button does not sit at the bottom of the screen: it floats
+against the passage you selected — under its last line, above it when the page ends there — so the tint
+that shows what is selected is never hidden by the two buttons that act on it. Near an edge, or with the
+text enlarged or a split-screen pane, the bar is measured and pulled inside the pane instead of hanging
+over its edge, and `Tab` puts a ring around Copy or Deselect when a keyboard is attached. The words copied
+are the PDF's own, exactly the ones under the tint: the selection changes nothing in your document.
 
 A scanned page is a picture of text, not text. It has no words to select, and this app ships no OCR for
 it — the limitation is tracked, not hidden.

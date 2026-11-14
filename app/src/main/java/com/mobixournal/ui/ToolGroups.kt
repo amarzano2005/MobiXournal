@@ -88,11 +88,14 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup("highlighter", "Highlighter", listOf(EditorTool.HIGHLIGHTER)),
     ToolGroup("eraser", "Eraser", listOf(EditorTool.ERASER_WHOLE, EditorTool.ERASER)),
     ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),
+    // The slot's three marquees: a rectangle, a freehand lasso, and — over an imported PDF — its text.
+    // The text tool was a member of no group at all, so the one way to select a passage was missing from
+    // the rail while `applyTool`, the gesture router and the Copy bar all waited for it.
     ToolGroup(
         "select", "Select",
-        listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
+        listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT),
         pickerLayout = listOf(
-            listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
+            listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT),
         ),
     ),
     // Text authoring lives in a slot of its own (below), so Insert is only about pictures.

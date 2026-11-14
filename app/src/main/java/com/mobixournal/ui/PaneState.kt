@@ -57,6 +57,12 @@ class PaneState {
     var selectionRect by mutableStateOf<android.graphics.RectF?>(null)
     /** Whether there is an active text selection (caret inside a text box). */
     var hasTextSelection by mutableStateOf(false)
+    /**
+     * The PDF text selection's box in this canvas's own view px, or null when nothing is selected.
+     * Republished by the surface whenever the range or the view moves, and used to float the Copy bar
+     * beside the words instead of on the pane's bottom edge.
+     */
+    var textSelectionRect by mutableStateOf<android.graphics.RectF?>(null)
     /** Whether there is content on the clipboard (cut or copied selection/pages). */
     var hasClipboard by mutableStateOf(false)
     /** Whether a released background-select region is waiting to be copied or cut. */

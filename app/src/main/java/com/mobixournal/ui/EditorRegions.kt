@@ -1480,6 +1480,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState, onSelected: () -> Unit) 
     onSelectionChanged = { s -> state.hasSelection = s; if (s) onSelected() }
     onSelectionRectChanged = { r -> state.selectionRect = r }
     onTextSelectionChanged = { s -> state.hasTextSelection = s }
+    onTextSelectionRectChanged = { r -> state.textSelectionRect = r }
     onPdfOutlineChanged = { outline -> state.outline = outline }
     onClipboardChanged = { c -> state.hasClipboard = c }
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }
@@ -1700,19 +1701,16 @@ fun EditorPaneView(
                     modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
                 )
             }
-            // The selection's own options ride with the selection instead of sitting at the bottom
-            // of the screen, where a hand holding the stylus has to reach for them. The same bar also
-            // stands in for Paste when nothing is selected (see [SelectionActionAnchor]).
-            if (state.selectionRect != null || canPasteOnCanvas(state, ui)) {
-                SelectionActionAnchor(
-                    pane = state,
-                    ui = ui,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                    canvasSizePx = canvasSizePx,
-                    modifier = Modifier.align(Alignment.TopStart),
-                )
-            }
+            // Both of the pane's selection bars ride with what they act on instead of sitting on the
+            // bottom edge, where a hand holding the stylus has to reach for them (see [PaneSelectionBars]).
+            PaneSelectionBars(
+                pane = state,
+                ui = ui,
+                settings = settings,
+                onSettingsChange = onSettingsChange,
+                canvasSizePx = canvasSizePx,
+                modifier = Modifier.align(Alignment.TopStart),
+            )
             if (ui.editingPlot != null) {
                 PlotInspectorAnchor(
                     pane = state,
