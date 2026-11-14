@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-contents-readable-rows"
+title = "Keep PDF chapter titles and page numbers readable"
+description = "A PDF's Contents now reads as a tree in both shells. A chapter stands in the heading face and its sections under it smaller, each level indented a step further — but the indent stops before the title does, so an eight-deep bookmark with a 96-character title keeps its whole name in a split-screen pane or a narrow sidebar. The page number keeps a column reserved from the widest number in the list, empty on a row that leads nowhere, and the column follows the reader's text scale so four digits still fit at 150 %. Each row announces its title, its page and whether it opens as one sentence, and a row that leads nowhere is dimmed, not clickable and does not light under the pointer. All of it comes from one rule in mobix-core."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "ui"]
+design = "material: the card's list and the sidebar's section keep their surfaces, the rows are restyled inside them; tokens: ContentsRowLayout holds the step, the title floor, the digit width, the gap and the column share, so the per-shell 14 dp and 10 dp literals are gone; states: a live row lights on hover and answers a click, a row that leads nowhere keeps dimmed ink, no hover light and no click, and focus rings are the platform's; copy: one sentence per row — title, page, whether it opens; parity: both shells read the same rule for indent, column and announcement, and each adds its own heading step; docs: the PDF guide and the pdf spoke; tests: 8 cases over the rule plus a scene test laying rows out in a 160 dp sidebar at 100 % and 150 % text"
+
+[[task]]
 id = "pdf-import-accessible-controls"
 title = "Make PDF import usable with keyboard and screen reader"
 description = "The import card answers a keyboard and a screen reader in both shells: Tab and Shift+Tab walk its fields, its two answers and its buttons, Space (or Enter on the tablet) takes the answer that holds focus, and Esc in the window or Back on the tablet closes the card without importing. Each answer is one radio choice that reads as a single sentence, its name and its note, followed by whether it is chosen, so a reader hears a decision instead of two stray lines. An unusable range marks both fields red, carries the message as their own error and greys the confirm button."
