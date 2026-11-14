@@ -62,10 +62,40 @@
       "type": "array",
       "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*/[a-z0-9][a-z0-9.-]*:[1-9][0-9]*$" },
       "default": []
+    },
+    "outline": {
+      "$ref": "#/$defs/outline",
+      "$comment": "the notebook's own Contents tree; absent means the document has none, and the index shown is the source PDF's. Checks only code can make: node ids are unique across the whole tree, nesting stops at 32 levels, and a target names one page it can still find or carries nothing."
     }
   },
   "additionalProperties": true,
   "$defs": {
+    "outline": {
+      "title": "the notebook's Contents tree",
+      "type": "object",
+      "properties": {
+        "version": { "type": "integer", "const": 1, "default": 1 },
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/outlineNode" }, "default": [] }
+      },
+      "additionalProperties": true
+    },
+    "outlineNode": {
+      "title": "one Contents row and the rows under it",
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "default": "" },
+        "target": {
+          "oneOf": [
+            { "type": "object", "required": ["sheet"], "properties": { "sheet": { "type": "integer", "minimum": 0 } } },
+            { "type": "object", "required": ["page"], "properties": { "page": { "type": "string", "minLength": 1 } } }
+          ]
+        },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/outlineNode" }, "default": [] }
+      },
+      "additionalProperties": true
+    },
     "part": {
       "title": "a pages[] or chunks[] entry",
       "$comment": "identity is id; entry is where the bytes are, and sha256 is the digest of those stored bytes (code checks it).",

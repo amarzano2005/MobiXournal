@@ -4,6 +4,7 @@ import com.mobixournal.format.json.JsonNode
 import com.mobixournal.format.json.JsonParser
 import com.mobixournal.format.json.JsonWriter
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.OutlineTree
 
 /**
  * The `.mobix` document envelope: `manifest.json`, the one entry every document has and the only one
@@ -77,6 +78,13 @@ data class MobixManifest(
      */
     val optionalCapabilities: List<MobixCapability> = emptyList(),
 
+    /**
+     * The notebook's Contents tree, when the file carries one ([OutlineTree.EMPTY] otherwise — a `.xopp`
+     * and every `.mobix` written before this key existed open with none). Its node shape is
+     * [MobixOutlineCodec]'s, and `docs/mobix-data-model.md` owns the field table.
+     */
+    val outline: OutlineTree = OutlineTree.EMPTY,
+
     /** Fields this build does not model, in source order, re-emitted unchanged. */
     val extra: Map<String, JsonNode> = emptyMap(),
 ) {
@@ -89,7 +97,7 @@ data class MobixManifest(
         private val KNOWN_KEYS = setOf(
             "formatVersion", "minAppVersion", "documentId", "canvasMode",
             "created", "modified", "title", "pages", "chunks", "defaultPaper",
-            "requiredCapabilities", "optionalCapabilities",
+            "requiredCapabilities", "optionalCapabilities", "outline",
         )
 
         /**
@@ -130,6 +138,15 @@ data class MobixManifest(
                 defaultPaper = root.getObj("defaultPaper")?.let { MobixPageCodec.decodeBackground(it, assets) },
                 requiredCapabilities = capabilitiesOf(root, "requiredCapabilities"),
                 optionalCapabilities = capabilitiesOf(root, "optionalCapabilities"),
+                // A key that is present but is not an object is corrupt, not absent: "there is a tree
+                // here, in a shape I cannot read" is a different document from "there is no tree".
+                outline = when {
+                    !root.has("outline") -> OutlineTree.EMPTY
+                    root.getObj("outline") == null -> throw MobixContainer.MalformedMobixException(
+                        "manifest.json: outline is not a JSON object",
+                    )
+                    else -> MobixOutlineCodec.decode(root.getObj("outline")!!)
+                },
                 extra = root.map.filterKeys { it !in KNOWN_KEYS },
             )
         }
@@ -178,6 +195,7 @@ data class MobixManifest(
             appVersion: String = "0.0.0",
             requiredCapabilities: List<MobixCapability> = emptyList(),
             optionalCapabilities: List<MobixCapability> = emptyList(),
+            outline: OutlineTree = OutlineTree.EMPTY,
         ): MobixManifest = MobixManifest(
             formatVersion = CURRENT_FORMAT_VERSION,
             minAppVersion = appVersion,
@@ -189,6 +207,7 @@ data class MobixManifest(
             defaultPaper = defaultPaper,
             requiredCapabilities = requiredCapabilities,
             optionalCapabilities = optionalCapabilities,
+            outline = outline,
         )
 
         /**
@@ -245,6 +264,8 @@ data class MobixManifest(
                 if (optionalCapabilities.isNotEmpty()) {
                     out["optionalCapabilities"] = JsonNode.arr(optionalCapabilities.map { JsonNode.of(it.toString()) })
                 }
+                // Absent when empty: "this document has no index" and "its index is empty" are one fact.
+                if (!outline.isEmpty) out["outline"] = MobixOutlineCodec.encode(outline)
                 out.putAll(extra)
             },
         ),

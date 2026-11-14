@@ -44,6 +44,27 @@ data class MobixCanvasFile(
          */
         const val DEFAULT_CHUNK_SIZE_PT: Double = 1024.0
 
+        /**
+         * The `canvas.json` a **write** records, given the board [known] it came from.
+         *
+         * A chunked board's geometry is the file's own fact and not a page's: the locked dimension, the tile
+         * size its chunk names were computed against, the printed-sheet origin and whatever fields this build
+         * does not model. A write that rebuilt it from the pages would change the board's geometry and drop
+         * the rest, so a board the session opened is written back as it was read — with the mode the write is
+         * claiming, which is the one field this layer owns. A brand-new board has none of that to keep and
+         * takes the first page's own size ([widthPt], [heightPt]), the only numbers it has.
+         */
+        fun forWrite(
+            known: MobixCanvasFile?,
+            canvasMode: CanvasMode,
+            widthPt: Double,
+            heightPt: Double,
+        ): MobixCanvasFile = known?.copy(mode = canvasMode) ?: MobixCanvasFile(
+            mode = canvasMode,
+            widthPt = widthPt,
+            heightPt = heightPt,
+        )
+
         private val KNOWN_KEYS = setOf("mode", "widthPt", "heightPt", "chunkSizePt", "origin")
 
         /**

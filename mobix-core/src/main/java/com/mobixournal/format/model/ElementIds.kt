@@ -64,6 +64,14 @@ object ElementId {
     const val PAGE = "pg"
 
     /**
+     * A **Contents node**'s id prefix (`docs/mobix-data-model.md` → *The outline tree*). Like a page's, it
+     * is a document part's identity rather than an element's: the row a reader renames or drags is the
+     * same row because of this id, and minting is the same 48 bits of randomness — never the title, never
+     * the position, which both change.
+     */
+    const val BOOKMARK = "bkm"
+
+    /**
      * A fresh id for a new element of kind [prefix]: 48 bits of randomness, hex, prefixed so the kind
      * is readable from the id alone. 48 bits is deliberate — an id only has to be unique *within a
      * document*, and a short one keeps the JSON of a page with thousands of strokes small.

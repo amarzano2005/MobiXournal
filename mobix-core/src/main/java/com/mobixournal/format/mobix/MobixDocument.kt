@@ -216,6 +216,9 @@ class MobixDocument(
         preview = bridge?.preview,
         title = manifest.title,
         documentId = manifest.documentId,
+        // The manifest is where the tree lives, so the model carries it: an open document keeps the index
+        // its file recorded, and a save writes back what the reader did to it.
+        outline = manifest.outline,
     )
 
     // ---- pages -----------------------------------------------------------------------------------
@@ -509,6 +512,7 @@ class MobixDocument(
                     // The document's own set only grows; a save writes it (`MobixCapabilityPaste`).
                     requiredCapabilities = unionCapabilities(it.requiredCapabilities, document.requiredCapabilities),
                     optionalCapabilities = unionCapabilities(it.optionalCapabilities, document.optionalCapabilities),
+                    outline = document.outline,
                 )
             } ?: MobixManifest.forNewDocument(
                 documentId = documentId,
@@ -519,6 +523,7 @@ class MobixDocument(
                 appVersion = appVersion,
                 requiredCapabilities = document.requiredCapabilities,
                 optionalCapabilities = document.optionalCapabilities,
+                outline = document.outline,
             ),
             canvas = if (isPaginated) {
                 MobixCanvasFile(
@@ -527,7 +532,7 @@ class MobixDocument(
                     heightPt = first?.height ?: NO_PAGE_SIZE,
                 )
             } else {
-                boardCanvas(canvas, canvasMode, first)
+                MobixCanvasFile.forWrite(canvas, canvasMode, first?.width ?: NO_PAGE_SIZE, first?.height ?: NO_PAGE_SIZE)
             },
             pages = if (isPaginated) pages else emptyList(),
             chunks = chunks,
@@ -551,14 +556,7 @@ class MobixDocument(
      * claiming, which is the one field this layer owns. A brand-new board has none of that to keep and
      * takes the first page's own size, the only number it has.
      */
-    private fun boardCanvas(known: MobixCanvasFile?, canvasMode: CanvasMode, first: Page?): MobixCanvasFile =
-        known?.copy(mode = canvasMode) ?: MobixCanvasFile(
-            mode = canvasMode,
-            widthPt = first?.width ?: NO_PAGE_SIZE,
-            heightPt = first?.height ?: NO_PAGE_SIZE,
-        )
-
-        /** Create a brand-new infinite canvas document. */
+    /** Create a brand-new infinite canvas document. */
         fun forInfinite(
             documentId: String,
             canvasMode: CanvasMode,

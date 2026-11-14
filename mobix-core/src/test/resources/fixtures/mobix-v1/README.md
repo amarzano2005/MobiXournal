@@ -32,6 +32,7 @@ source of truth for the bytes — a fixture and this table are changed together.
 | `16-capability-additive-order.mobix` | Both lists in a writer's own order, mixing `org.mobixournal` with a foreign namespace and carrying no duplicate: the order survives a save. |
 | `17-third-party-writer.mobix` | A file written elsewhere: no `minAppVersion`, a foreign capability namespace, and a construct with no model. |
 | `18-every-family.mobix` | One page carrying one element of each of the nine modelled families — `stroke`, `text`, `image`, `texImage`, `table`, `plot`, `parametricShape`, `circuit` and `mathBlock` — with their documented fields set: the file the conformance checklist's "model every family" row and the family gate both name. |
+| `19-notebook-outline.mobix` | An editable Contents tree in the manifest's `outline`: nodes naming a PDF sheet, a notebook page id and nothing at all, plus a field this build does not know on the tree and on a node — all of it kept, order included, through a save. |
 
 Every construct in this corpus is asserted as **preserved**: the test says what a
 release must keep, and a change of promise changes this table and the capability

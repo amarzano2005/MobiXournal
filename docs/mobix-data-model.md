@@ -47,9 +47,9 @@ re-serialised into a spelling mismatch.
 
 ### The outline tree
 
-**Planned — no codec reads this key yet**, and a build that does not model a manifest field preserves it
-([rules that are not field-local](#rules-that-are-not-field-local), rule 7), so a file written by the
-future reader still round-trips here today.
+`MobixOutlineCodec` reads and writes this key, `Document.outline` carries it to the shells, and a build
+that does not model a manifest field preserves it
+([rules that are not field-local](#rules-that-are-not-field-local), rule 7).
 
 ```json
 "outline": {
@@ -79,8 +79,8 @@ one page, and its kind decides how to find it**: `sheet` resolves to the first p
 shows that sheet, `page` to the page carrying that id, and neither is ever clamped, rounded or backed off
 to a neighbouring page — a target that no longer resolves leaves the row in place, un-tappable. **Order
 is the array's**, not a sort by title, which is what lets a reader drag a row. A tree nested deeper than
-32 levels, a duplicate `id`, or both target kinds on one node is a corrupt document, not a document with
-two answers.
+16 levels, a duplicate `id`, both target kinds on one node, a target of a kind this build does not know,
+or a `version` newer than 1 is a corrupt document, not a document with two answers.
 
 ## `canvas.json`
 

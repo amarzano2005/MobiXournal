@@ -5,6 +5,7 @@ import com.mobixournal.format.json.JsonParser
 import com.mobixournal.format.json.JsonWriter
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.OutlineTarget
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
@@ -59,6 +60,7 @@ class MobixV1FixturesTest {
         "16-capability-additive-order",
         "17-third-party-writer",
         "18-every-family",
+        "19-notebook-outline",
     )
 
     /**
@@ -138,7 +140,7 @@ class MobixV1FixturesTest {
                 onDisk,
             )
         }
-        assertEquals("the corpus the README documents", 18, corpus.size)
+        assertEquals("the corpus the README documents", 19, corpus.size)
         for (name in corpus) {
             assertTrue("$name is a readable archive", bytes(name).size > 200)
         }
@@ -605,6 +607,40 @@ class MobixV1FixturesTest {
                 "PlotElement", "ParametricShapeElement", "CircuitElement", "MathBlockElement",
             ),
             elements.map { it::class.simpleName }.toSet(),
+        )
+    }
+
+    // ---- 19: the notebook's own Contents tree ------------------------------------------------------
+
+    /**
+     * The tree is a document fact, so it has to survive the whole chain: the manifest that holds it, the
+     * model the app edits, and a save that writes it back with the fields this build does not model.
+     */
+    @Test
+    fun theNotebookOutlineSurvivesASave() {
+        val original = archive("19-notebook-outline")
+        val before = manifestOf(original).outline
+
+        val nodes = before.nodes
+        assertEquals("two top-level rows", listOf("Geometry", "Appendix"), nodes.map { it.title })
+        assertEquals("Geometry opens the PDF's first sheet", OutlineTarget.Sheet(0), nodes[0].target)
+        assertEquals("a section names a notebook page by id", OutlineTarget.Page("pg_2"), nodes[0].children[0].target)
+        assertEquals("a chapter without a page is a group", null, nodes[1].target)
+        assertEquals("four rows in all", 4, before.size)
+
+        val saved = MobixDocument.open(original).toBytes(now)
+        val after = manifestOf(MobixContainer.open(ByteArrayInputStream(saved))).outline
+
+        assertEquals("the tree, node for node, through the model and back", before, after)
+        assertEquals(
+            "a field this build does not know on the tree itself",
+            listOf("writerNote"),
+            after.extra.keys.toList(),
+        )
+        assertEquals(
+            "and one on a node",
+            listOf("futureHint"),
+            after.nodes[0].children[0].extra.keys.toList(),
         )
     }
 }

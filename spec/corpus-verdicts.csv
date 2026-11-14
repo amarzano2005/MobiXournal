@@ -26,6 +26,7 @@
 16-capability-additive-order.mobix,clean
 17-third-party-writer.mobix,clean
 18-every-family.mobix,clean
+19-notebook-outline.mobix,clean
 
 # The hostile corpus: the legal neighbour passes, every threat is refused for its own reason.
 00-smallest.mobix,clean

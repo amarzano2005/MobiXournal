@@ -72,6 +72,15 @@ data class Document(
      * may still edit and save, and must carry the construct it names untouched.
      */
     val optionalCapabilities: List<MobixCapability> = emptyList(),
+
+    /**
+     * The notebook's **Contents tree** — the index its reader edits, as opposed to the one a PDF happens
+     * to carry (`docs/pdf.md`). [OutlineTree.EMPTY] for a document that has none, which is every `.xopp`
+     * and every `.mobix` written before the manifest grew the key, so nothing has to be migrated: a
+     * document's tree is seeded the first time it is imported, and until then the index shown is the
+     * PDF's own.
+     */
+    val outline: OutlineTree = OutlineTree.EMPTY,
 )
 
 /**

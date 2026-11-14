@@ -43,16 +43,23 @@ def sha(data: bytes) -> str:
 
 
 def write_mobix(filename: str, entries: list[tuple[str, bytes]]) -> None:
-    """Write the archive with `mimetype` first and STORED, every other entry DEFLATED."""
+    """Write the archive with `mimetype` first and STORED, every other entry DEFLATED.
+
+    `create_system` is set here rather than left to the interpreter: it is a byte of every entry's
+    header, and the default depends on the platform the script runs on, so a fixture regenerated on a
+    Windows host used to differ from the same fixture regenerated on Linux in that byte alone.
+    """
     path = os.path.join(OUT, filename)
     with zipfile.ZipFile(path, "w") as archive:
         info = zipfile.ZipInfo("mimetype", date_time=FIXED_TIME)
         info.compress_type = zipfile.ZIP_STORED
+        info.create_system = 3
         info.external_attr = 0o644 << 16
         archive.writestr(info, MIMETYPE)
         for name, data in entries:
             info = zipfile.ZipInfo(name, date_time=FIXED_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
+            info.create_system = 3
             info.external_attr = 0o644 << 16
             archive.writestr(info, data)
     print(f"wrote {os.path.relpath(path, ROOT)}")
@@ -683,6 +690,38 @@ def fixture_18():
     ])
 
 
+def fixture_19():
+    """A document carrying an editable Contents tree in its manifest.
+
+    The corpus is otherwise about what the container preserves; this is the one file where a
+    *document-level* structure is the construct. Two nodes name a page of the PDF, one names a notebook
+    page by id, one only groups the rows under it, and a node and the tree each carry a field this build
+    does not know — the retention promise, one level up from the envelope.
+    """
+    first = j(page(layers=[layer([])]))
+    second = j(page(layers=[layer([])]))
+    outline = {
+        "version": 1,
+        "writerNote": "kept",
+        "nodes": [
+            {"id": "bkm_1", "title": "Geometry", "target": {"sheet": 0}, "children": [
+                {"id": "bkm_2", "title": "Angles", "target": {"page": "pg_2"},
+                 "futureHint": 7},
+                {"id": "bkm_3", "title": "Circles", "target": {"sheet": 3}},
+            ]},
+            {"id": "bkm_4", "title": "Appendix"},
+        ],
+    }
+    write_mobix("19-notebook-outline.mobix", [
+        ("manifest.json", j(manifest([
+            part("pg_1", "pages/page-0001.json", first),
+            part("pg_2", "pages/page-0002.json", second),
+        ], extra={"outline": outline}))),
+        ("pages/page-0001.json", first),
+        ("pages/page-0002.json", second),
+    ])
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     for stale in os.listdir(OUT):
@@ -692,6 +731,7 @@ def main() -> None:
         fixture_01, fixture_02, fixture_03, fixture_04, fixture_05, fixture_06,
         fixture_07, fixture_08, fixture_09, fixture_10, fixture_11, fixture_12,
         fixture_13, fixture_14, fixture_15, fixture_16, fixture_17, fixture_18,
+        fixture_19,
     ):
         fixture()
 
