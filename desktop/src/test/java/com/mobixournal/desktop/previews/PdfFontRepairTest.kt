@@ -37,6 +37,23 @@ class PdfFontRepairTest {
     }
 
     @Test
+    fun theRebuiltFontKeepsItsWeightSlantAndSpacing() {
+        PDDocument().use { document ->
+            val bold = pageWith('B', '!', toUnicode = true, baseFont = "QAAAAA+NotoSans-Bold")
+            val mono = pageWith('m', 'o', toUnicode = true, baseFont = "RAAAAA+DejaVuSansMono")
+            val italic = pageWith('i', 't', toUnicode = true, baseFont = "SAAAAA+NotoSans-Italic")
+            listOf(bold, mono, italic).forEach {
+                document.addPage(it)
+                assertEquals(1, PdfFontRepair.repair(it))
+            }
+
+            assertEquals("Helvetica-Bold", standInOf(bold))
+            assertEquals("Courier", standInOf(mono))
+            assertEquals("Helvetica-Oblique", standInOf(italic))
+        }
+    }
+
+    @Test
     fun aFontWithNoToUnicodeIsLeftAlone() {
         PDDocument().use { document ->
             val page = pageWith(code1 = 'H', code2 = 'i', toUnicode = false)
@@ -47,13 +64,18 @@ class PdfFontRepairTest {
     }
 
     /** A 200×100 sheet with one TrueType font that names a program and carries none, and `<code1 code2>`. */
-    private fun pageWith(code1: Char, code2: Char, toUnicode: Boolean): PDPage {
+    private fun pageWith(
+        code1: Char,
+        code2: Char,
+        toUnicode: Boolean,
+        baseFont: String = "ABCDEF+NotoSans-Regular",
+    ): PDPage {
         val page = PDPage(PDRectangle(200f, 100f))
         val fonts = COSDictionary()
         val font = COSDictionary().apply {
             setItem(COSName.TYPE, COSName.FONT)
             setName(COSName.SUBTYPE, "TrueType")
-            setName(COSName.BASE_FONT, "ABCDEF+NotoSans-Regular")
+            setName(COSName.BASE_FONT, baseFont)
             setInt(COSName.FIRST_CHAR, 0)
             setInt(COSName.LAST_CHAR, 2)
             setItem(
@@ -103,6 +125,12 @@ class PdfFontRepairTest {
         """.trimIndent()
         createOutputStream().use { it.write(text.toByteArray(Charsets.ISO_8859_1)) }
     }
+
+    /** The base-14 face the page's one font was rebuilt as. */
+    private fun standInOf(page: PDPage): String? =
+        ((page.resources.cosObject.getDictionaryObject(COSName.FONT) as COSDictionary)
+            .getDictionaryObject(COSName.getPDFName("F1")) as COSDictionary)
+            .getNameAsString(COSName.BASE_FONT)
 
     /** Dark pixels of the page's raster: the cheapest measure of "there is writing on it". */
     private fun ink(document: PDDocument): Int {
