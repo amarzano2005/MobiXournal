@@ -23,9 +23,11 @@ The bundled family is **DejaVu Sans** — regular, **bold**, oblique and bold-ob
 markdown emphasis needs — and **DejaVu Sans Mono** (monospace, which also sets markdown code), chosen
 for broad Unicode coverage at a modest ~3 MB and a permissive licence — Bitstream Vera + Arev, with the
 DejaVu changes in the public domain, compatible with the Apache-2.0/OFL-only rule that already ruled
-out iText. They live in `app/src/main/assets/fonts/` with the full licence text beside them as
-`LICENSE.txt`. Codepoints even DejaVu lacks are **substituted, never fatal**: `GlyphSanitizer` (pure,
-unit-tested; encodability injected as a predicate) maps each unencodable codepoint to U+FFFD — or `?`,
+out iText. The app carries them in `app/src/main/assets/fonts/`; the window carries the **same five
+files** under `desktop/src/main/resources/fonts/`, where `DesktopPdfFonts` reads them off the classpath,
+and each set has the full licence text beside it as `LICENSE.txt`. Codepoints even DejaVu lacks are
+**substituted, never fatal**: `GlyphSanitizer` (pure, unit-tested, in `mobix-core` so both emitters run
+the one rule; encodability injected as a predicate) maps each unencodable codepoint to U+FFFD — or `?`,
 or a space — memoising per codepoint, and iterates by codepoint so an astral character becomes one
 substitute rather than two surrogate halves. `PdfFonts.Embedded.measurer` is also what feeds
 `TextPaginator`'s injected measurement, so wrapping is measured against the exact font that draws.
@@ -41,7 +43,7 @@ characters. A run whose every character encodes in `WinAnsi` — Latin-1's print
 characters CP1252 adds above U+00FF, so `…`, `–`, `€`, `™`, `Š`, `ž`, `ƒ`, `‹`, `›`, `†`, `‡`, `•`, `‰`
 and their neighbours — keeps its base-14 family and costs the file nothing. A run holding anything else
 (`α`, `Ж`, `H₂`, `e` + U+0301, an emoji, a C1 control) asks for the **bundled** DejaVu face of its
-family and slant ([`PdfFontRef.Bundled`]), which the app embeds per document and subsets into it
+family and slant (`PdfFontRef.Bundled`), which each shell embeds per document and subsets into it
 (`PDType0Font.load(doc, stream, subset = true)`): that also writes the `ToUnicode` map, so the run is
 drawn **and** selectable **and** extractable. `PdfBundledFace` names the asset path in `mobix-core`
 (`fonts/DejaVuSans.ttf`, its bold, oblique and bold-oblique companions, and `fonts/DejaVuSansMono.ttf`),
@@ -66,11 +68,13 @@ PDFBox's stripper.
 | `α`, `Ж`, `H₂`, `e` + U+0301, `😀` | bundled DejaVu Sans | drawn, and extracted back character for character |
 | `\u0080` (a C1 control) | bundled DejaVu Sans | a substitute glyph, not `€` |
 
-**The window is the remaining gap.** `DesktopPdfPainter` has no DejaVu beside its resources yet, so a
-`PdfFontRef.Bundled` run is printed there in its base-14 family, with `WinAnsi.safe`'s `?` for each
-character that cannot be carried — exactly what the window printed before the plan learned to name a
-face. `desktop-pdf-unicode-fonts` ships the same faces under `desktop/src/main/resources/fonts` and
-closes it; `pdf-unicode-extraction-test` is the fixture both emitters must pass.
+**Both shells, one fixture.** The window resolves the same reference the same way: `DesktopPdfPainter`
+loads a `PdfFontRef.Bundled` run through `DesktopPdfFonts` (`PDType0Font.load(doc, stream, true)`,
+cached per document), so it embeds, subsets and writes the `ToUnicode` map exactly as the app does, and
+falls back to the same shared `GlyphSanitizer`. The run both are measured against lives in
+`PdfUnicodeFixture` (`mobix-core` test fixtures) and is read by two tests — `PdfUnicodeExportTest` for
+the app's PDFBox port and `DesktopPdfUnicodeTest` for the window's `org.apache.pdfbox` — so a shell that
+drifts is a failing test, not an export the owner finds wrong a release later.
 
 ## PDF text selection
 

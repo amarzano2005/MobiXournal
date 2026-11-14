@@ -13,7 +13,6 @@ import com.mobixournal.render.PdfPath
 import com.mobixournal.render.PdfPoint
 import com.mobixournal.render.PdfFontRef
 import com.mobixournal.render.PdfText
-import com.mobixournal.render.WinAnsi
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
@@ -46,7 +45,7 @@ import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
  * The base-14 constants ([PDType1Font.HELVETICA] and its family) still exist in 2.0.31; a future move to
  * PDFBox 3 replaces them with `Standard14Fonts`, and [fontFor] is the single place to change.
  */
-internal class DesktopPdfPainter {
+internal class DesktopPdfPainter(private val fonts: DesktopPdfFonts = DesktopPdfFonts()) {
 
     fun paint(doc: PDDocument, cs: PDPageContentStream, page: Page, t: PdfPageTransform) =
         paint(doc, cs, PdfPagePlan.of(page, t))
@@ -61,7 +60,7 @@ internal class DesktopPdfPainter {
                 when (op) {
                     is PdfFill -> fill(cs, op)
                     is PdfPath -> path(cs, op)
-                    is PdfText -> text(cs, op)
+                    is PdfText -> text(doc, cs, op)
                     is PdfImage -> image(doc, cs, op)
                 }
             }
@@ -103,26 +102,34 @@ internal class DesktopPdfPainter {
     }
 
     /**
-     * Typeset [op] in the face its plan chose.
+     * Typeset [op] in the face its plan chose — the same rule the tablet's emitter follows.
      *
-     * A [PdfFontRef.Base14] run is the base-14 family, as before. A [PdfFontRef.Bundled] run needs the
-     * DejaVu faces embedded, which this window does not ship yet (`desktop-pdf-unicode-fonts` owns that):
-     * it prints the same family in base-14, with the characters WinAnsi cannot carry reduced to `?` —
-     * exactly what it printed before this plan learned to name a bundled face, so the app gains Unicode
-     * text without the window's export changing under it.
+     * A [PdfFontRef.Base14] run is the base-14 family, and only WinAnsi's characters could ever be in it.
+     * A [PdfFontRef.Bundled] run is a Greek or Cyrillic line, a subscript, a combining accent or an emoji:
+     * [DesktopPdfFonts] embeds that DejaVu face into the document (subset, with its `ToUnicode` map), so
+     * the window's export draws it and a reader can copy it back. A codepoint even DejaVu lacks goes
+     * through the shared `GlyphSanitizer` to a visible U+FFFD, never a `?`.
      */
-    private fun text(cs: PDPageContentStream, op: PdfText) {
+    private fun text(doc: PDDocument, cs: PDPageContentStream, op: PdfText) {
         if (op.lines.isEmpty()) return
+        val sanitize: ((String) -> String)?
+        val font = when (val ref = op.font) {
+            is PdfFontRef.Base14 -> {
+                sanitize = null
+                fontFor(ref.face)
+            }
+            is PdfFontRef.Bundled -> {
+                val embedded = fonts.load(doc, ref.face)
+                sanitize = embedded::sanitize
+                embedded.font
+            }
+        }
         cs.beginText()
         cs.setNonStrokingColor(op.colour.red, op.colour.green, op.colour.blue)
-        val lines = when (val ref = op.font) {
-            is PdfFontRef.Base14 -> op.lines to fontFor(ref.face)
-            is PdfFontRef.Bundled -> op.lines.map { WinAnsi.safe(it) } to fontFor(ref.face.base14)
-        }
-        cs.setFont(lines.second, op.size.toFloat())
+        cs.setFont(font, op.size.toFloat())
         cs.newLineAtOffset(op.x, op.y)
-        for (i in lines.first.indices) {
-            cs.showText(lines.first[i])
+        for (i in op.lines.indices) {
+            cs.showText(sanitize?.invoke(op.lines[i]) ?: op.lines[i])
             if (i < op.lines.lastIndex) cs.newLineAtOffset(0f, -op.lineHeight.toFloat())
         }
         cs.endText()

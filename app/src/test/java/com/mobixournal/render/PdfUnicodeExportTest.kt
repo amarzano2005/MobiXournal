@@ -39,8 +39,8 @@ class PdfUnicodeExportTest {
     private val height = 841.8898f
     private val black = 0xFF000000.toInt()
 
-    /** Everything a base-14 font cannot carry, in one run, plus controls that must survive as themselves. */
-    private val mixed = "café ñ ½ ² — αβγ Ж H₂ e\u0301 😀 …’“”€™•"
+    /** The run both shells are measured against ([PdfUnicodeFixture]), not a second copy of it. */
+    private val mixed = PdfUnicodeFixture.MIXED
 
     @Before
     fun registerFonts() {
@@ -118,7 +118,7 @@ class PdfUnicodeExportTest {
 
     @Test
     fun `a pure-winansi run keeps the base-14 face, and no font file comes with it`() {
-        painted("Hello café ñ ½ ² — “quoted” €5").use { doc ->
+        painted(PdfUnicodeFixture.WIN_ANSI).use { doc ->
             val used = fonts(doc)
             assertTrue("the page names a font", used.isNotEmpty())
             for (font in used) {
@@ -126,7 +126,7 @@ class PdfUnicodeExportTest {
                 // file it always was, byte for byte.
                 if (font !is PDType1Font) fail("a WinAnsi run must stay base-14, got $font")
             }
-            assertEquals("Hello café ñ ½ ² — “quoted” €5", extracted(doc))
+            assertEquals(PdfUnicodeFixture.WIN_ANSI, extracted(doc))
         }
     }
 }

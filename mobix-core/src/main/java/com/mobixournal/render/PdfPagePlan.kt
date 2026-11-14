@@ -180,17 +180,6 @@ object WinAnsi {
         else -> c in EXTRAS
     }
 
-    /**
-     * [text] reduced to what a base-14 font can encode, the rest becoming [substitute].
-     *
-     * Only for a shell that has **no** bundled face to fall back on: the window prints `?` here until
-     * `desktop-pdf-unicode-fonts` ships the same DejaVu faces beside its resources. The app never needs
-     * it — a run that fails [encodes] is typeset in a bundled face, where the last resort is
-     * `GlyphSanitizer`'s visible U+FFFD.
-     */
-    fun safe(text: String, substitute: Char = '?'): String =
-        if (encodes(text)) text else text.map { if (encodes(it)) it else substitute }.joinToString("")
-
     /** CP1252's additions above U+00FF: the members WinAnsi keeps that Latin-1 has no room for. */
     private val EXTRAS: Set<Char> = setOf(
         '\u20AC', '\u201A', '\u0192', '\u201E', '\u2026', '\u2020', '\u2021', '\u02C6', '\u2030',
