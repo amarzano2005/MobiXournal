@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "desktop-pdf-unicode-fonts"
-title = "Embed the same DejaVu faces in the window's PDF export"
-description = "DesktopPdfPainter replays PdfPagePlan through org.apache.pdfbox, but the DejaVu faces live only in the app's assets/fonts, so the window cannot typeset a Greek or Cyrillic run. Ship the same four proportional faces and the monospace face under desktop/src/main/resources/fonts (they are already in the repository: Bitstream Vera + Arev, DejaVu changes in the public domain), carry LICENSE.txt beside them, load per document with PDType0Font.load(doc, stream, true), cache by face, and resolve the plan's font reference exactly as PdfFonts does on Android. Assert that the window's export of a text box holding Greek, Cyrillic, H with a subscript, e + U+0301, an astral emoji and the CP1252 punctuation set produces the same characters the app's export does: one fixture, both emitters. Record the asset path and the licence in docs/pdf.md, which owns the font story."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 100
-created = 2026-11-10
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "pdf-unicode-extraction-test"
 title = "Prove exported Greek, Cyrillic, subscripts and emoji round-trip through extraction"
 description = "Make the audit a round trip. Produce a PDF from one fixture page holding accented Latin, a vulgar fraction, Greek, Cyrillic, a subscript, a combining accent, an astral emoji and the CP1252 punctuation set, then read it back with PDFTextStripper (the desktop test module has org.apache.pdfbox) and assert the extracted text equals what was written, character for character, with the emoji either preserved or consistently U+FFFD and never ?. Cover the four cases today's guard gets wrong: a character WinAnsi encodes above U+00FF, a control character in 0x80..0x9F, a surrogate pair, and a combining mark. Also assert the document embeds subsets with a ToUnicode map, because text that draws but cannot be copied is not the promise this scope made. This is the failing-then-fixed fixture the scope required: it must fail against today's plan and pass once the two font tasks land."
