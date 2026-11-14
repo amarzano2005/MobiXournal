@@ -222,6 +222,17 @@ rasters are cached, so serialising them costs no visible latency. The tablet ser
 same way (`PdfThumbnailCache` renders one page at a time) and needs no wider gate — its `PdfRenderer` draws
 pages through the platform, not through PDFBox's shared caches.
 
+**A font the file names and does not carry is rebuilt from its own ToUnicode.** An export can write a
+TrueType subset and then not write the program it points at (a truncated download, a half-finished
+LibreOffice export), and the file still carries the text operators, the `/Widths` and the `/ToUnicode`: the
+layout comes out exactly right and the letters come out as whatever a substitute font has at those codes —
+a slide of `#` and `&` over a table that reads perfectly, which a reader reports as *the PDF opens broken*.
+`PdfFontRepair` rebuilds such a font as a standard Helvetica whose `/Differences` names come from the font's
+own ToUnicode, leaving `/Widths` in place, before PDFBox parses it. The typeface changes and a code the
+ToUnicode does not name stays blank; those characters are not recoverable from the file. `PdfFontRepairTest`
+holds both halves: a font without its program draws its letters after the repair, and one without a ToUnicode
+is left untouched.
+
 Evidence: these rules are covered by JVM and renderer tests — `DesktopPdfDurabilityTest`,
 `DesktopPdfMergeTest`, `DesktopPdfImportTest`, `DesktopPdfExportTest`, `PdfStoreTest` and
 `PdfExportTest`. The tablet's side of the pin is tested on the store only; driving a joined notebook

@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.imageio.ImageIO
 import org.apache.pdfbox.pdmodel.PDDocument
+import com.mobixournal.desktop.previews.PdfFontRepair
 import com.mobixournal.desktop.previews.PdfRenderGate
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.jetbrains.skia.Image as SkiaImage
@@ -165,6 +166,11 @@ class PageBackdrop(
     private fun renderPdfPage(pdf: PDDocument, pageNo: Int): ImageBitmap? {
         if (pdf.numberOfPages == 0) return null
         val index = pageNo.coerceIn(0, pdf.numberOfPages - 1)
+        // A file that names a font program and does not carry it draws substituted glyphs at the right
+        // advances — a slide of nonsense over the right layout. The page's fonts are rebuilt from their own
+        // ToUnicode before PDFBox parses them ([PdfFontRepair]).
+        val page = pdf.getPage(index)
+        runCatching { PdfFontRepair.repair(page) }
         // PDFBox draws on the JVM's 2D pipeline; the result reaches Skia as PNG because a
         // BufferedImage's pixels are not a layout Compose can wrap directly. The gate is what keeps this
         // raster from being interleaved with the import card's previews of the same file ([PdfRenderGate]).
