@@ -11,6 +11,7 @@ import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.text.PDFTextStripper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -105,6 +106,43 @@ class PdfExportTest {
         assertFalse("no annotation array is in the file", raw.contains("/Annots"))
         listOf("/Highlight", "/Ink", "/Popup").forEach { subtype ->
             assertFalse("nor a $subtype dictionary", raw.contains("/$subtype"))
+        }
+    }
+
+    @Test
+    fun onlyTheChosenPagesAreWrittenInTheDocumentsOwnOrder() {
+        // Two of four pages, named out of order on purpose: the answer is a set of notebook pages, and the
+        // file holds them as the notebook reads them (`ExportPages`), never as they were typed.
+        val out = ByteArrayOutputStream()
+        val pages = listOf("Page one", "Page two", "Page three", "Page four").map { content ->
+            page(pen(), TextElement("Sans", 12.0, 300.0, 300.0, black, content))
+        }
+
+        PdfExporter(null, null).export(Document(pages = pages), out, pages = listOf(3, 1))
+
+        PDDocument.load(out.toByteArray()).use { exported ->
+            assertEquals("only the two pages the answer named", 2, exported.numberOfPages)
+            val words = (0 until exported.numberOfPages).map { index ->
+                PDFTextStripper().apply { startPage = index + 1; endPage = index + 1 }
+                    .getText(exported).trim()
+            }
+            assertEquals("the second page comes first", "Page two", words[0])
+            assertEquals("and the fourth after it", "Page four", words[1])
+            exported.pages.forEach { written ->
+                assertTrue("each page carries its ink", written.contents.use { it.readBytes().isNotEmpty() })
+                assertTrue("and stays page content, with no annotation pane", written.annotations.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun aPageTheDocumentNoLongerHasIsSkippedRatherThanWrittenBlank() {
+        val out = ByteArrayOutputStream()
+
+        PdfExporter(null, null).export(Document(pages = listOf(page(pen()), page(pen()))), out, pages = listOf(0, 7))
+
+        PDDocument.load(out.toByteArray()).use { exported ->
+            assertEquals("the page that exists is written, the one that does not is not", 1, exported.numberOfPages)
         }
     }
 

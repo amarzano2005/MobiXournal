@@ -876,9 +876,19 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** How many pages the backing PDF has — where an appended PDF's pages start once merged in. */
     fun pdfSourcePageCount(): Int = pdfSource?.pageCount ?: 0
 
-    /** Write the current document (backgrounds, PDF pages, and every mark) to a vector PDF. */
-    fun exportPdf(out: java.io.OutputStream) =
-        PdfExporter(pdfSource?.source, imageSource).export(doc, out)
+    /** How many pages the open document has — what an export card counts its answer against. */
+    internal fun pageCount(): Int = doc.pages.size
+
+    /**
+     * Write [pages] of the document (backgrounds, PDF pages, and every mark) to a vector PDF, or every page
+     * when the list is left out.
+     */
+    fun exportPdf(out: java.io.OutputStream, pages: List<Int>? = null) =
+        PdfExporter(pdfSource?.source, imageSource).export(
+            doc,
+            out,
+            pages ?: doc.pages.indices.toList(),
+        )
 
     /** Flatten one page (sheet, ruling, PDF/image background and every annotation) to a PNG. */
     fun exportPagePng(pageIndex: Int, out: java.io.OutputStream): Boolean = writePagePng(pageIndex, out)

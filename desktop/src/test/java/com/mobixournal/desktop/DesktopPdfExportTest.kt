@@ -105,6 +105,51 @@ class DesktopPdfExportTest {
     }
 
     @Test
+    fun onlyTheChosenPagesAreWrittenInTheNotebooksOwnOrder() {
+        val doc = document(
+            sheet("graph", text("Page one"), stroke()),
+            sheet("plain", text("Page two")),
+            sheet("graph", text("Page three"), stroke()),
+            sheet("plain", text("Page four")),
+        )
+        val target = File(temp.root, "picked.pdf")
+
+        // Notebook pages 2 and 4, named last first: the file holds them as the notebook reads them.
+        val written = DesktopPdfExport.write(doc, target, doc.backdrop, only = listOf(3, 1))
+
+        PDDocument.load(target).use { pdf ->
+            assertEquals("the exporter reports what it wrote", 2, written)
+            assertEquals("only the two pages the answer named", 2, pdf.numberOfPages)
+            assertEquals("the second sheet comes first", "Page two", pageText(pdf, 1))
+            assertEquals("and the fourth after it", "Page four", pageText(pdf, 2))
+            listOf(0, 1).forEach { index ->
+                assertTrue(
+                    "each page carries its ink",
+                    pdf.getPage(index).contents.use { it.readBytes().isNotEmpty() },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun anAnswerThatNamesNoPageIsRefusedAndWritesNothing() {
+        val doc = document(sheet("plain", text("Only page")))
+        val target = File(temp.root, "none.pdf")
+        target.writeText("keep me")
+
+        val refused = runCatching {
+            DesktopPdfExport.write(doc, target, doc.backdrop, only = emptyList())
+        }.exceptionOrNull()
+
+        assertTrue("an empty answer is refused in words: $refused", refused is DesktopSaves.SaveRefused)
+        assertEquals("and the file that was there keeps its bytes", "keep me", target.readText())
+    }
+
+    /** The words of page [one] (1-based), as a reader's PDF viewer would copy them. */
+    private fun pageText(pdf: PDDocument, one: Int): String =
+        PDFTextStripper().apply { startPage = one; endPage = one }.getText(pdf).trim()
+
+    @Test
     fun everyPageOfTheDocumentIsAPageOfThePdfAtItsOwnSize() {
         val (_, pdf) = export(
             document(

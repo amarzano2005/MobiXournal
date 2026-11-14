@@ -40,7 +40,8 @@ import org.apache.pdfbox.util.Matrix
 internal object DesktopPdfExport {
 
     /**
-     * Write every page of [document] as [target], and answer how many were written.
+     * Write the pages [only] names — every page when null, always in the notebook's own order — as [target],
+     * and answer how many were written.
      *
      * The pages are read **through the window** ([DesktopDocument.pageCount]/[DesktopDocument.page]), so a
      * paged `.mobix` inflates one sheet at a time and an edit still sitting in the window's overlay is in
@@ -58,7 +59,12 @@ internal object DesktopPdfExport {
      * notice before handing the file on; the bytes are staged, so refusing leaves the file that was there
      * untouched and relinking the PDF is all a retry needs.
      */
-    fun write(document: DesktopDocument, target: File, backdropPage: PageBackdrop): Int {
+    fun write(
+        document: DesktopDocument,
+        target: File,
+        backdropPage: PageBackdrop,
+        only: List<Int>? = null,
+    ): Int {
         if (document.shape.geometry != null) {
             throw DesktopSaves.SaveRefused(
                 "This document is an infinite board, and a PDF needs pages. Open it as pages, or export " +
@@ -66,9 +72,15 @@ internal object DesktopPdfExport {
                     "sheet slicer yet.",
             )
         }
-        val pages = document.pageCount
-        if (pages <= 0) {
+        val count = document.pageCount
+        if (count <= 0) {
             throw DesktopSaves.SaveRefused("This document has no pages, so there is nothing to export.")
+        }
+        // The notebook's own order, deduplicated, without indices the document no longer has: an answer
+        // came from a card that was told a count, and a delete underneath it is not a reason to fail.
+        val pages = only?.filter { it in 0 until count }?.distinct()?.sorted() ?: (0 until count).toList()
+        if (pages.isEmpty()) {
+            throw DesktopSaves.SaveRefused("No page is picked, so there is nothing to export.")
         }
         val folder = target.absoluteFile.parentFile
             ?: throw DesktopSaves.SaveRefused("That destination has no folder to write into.")
@@ -87,7 +99,7 @@ internal object DesktopPdfExport {
             val painter = DesktopPdfPainter()
             val missing = ArrayList<Int>()
             PDDocument().use { doc ->
-                for (index in 0 until pages) {
+                for (index in pages) {
                     val page = document.page(index)
                     // The tablet's first arm: a page over a PDF whose source opens keeps its vectors.
                     val source = page.background as? Background.Pdf
@@ -116,7 +128,7 @@ internal object DesktopPdfExport {
                 temp.outputStream().use { out -> doc.save(out) }
             }
             DesktopSaves.replace(temp, target)
-            return pages
+            return pages.size
         } catch (failure: Throwable) {
             temp.delete()
             throw failure

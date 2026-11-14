@@ -62,6 +62,12 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showSaveAs by mutableStateOf(false)
     /** Whether the hamburger's **Export As** card is showing — one question, three answers. */
     var exportAsOpen by mutableStateOf(false)
+
+    /**
+     * Whether the **Export PDF** card is showing — which pages the file should hold, asked before the system
+     * asks where it goes. Raised by the header's PDF glyph and by the menu's row, which are one command.
+     */
+    var exportPdfOpen by mutableStateOf(false)
     /** Whether the Scalene triangle angles customization dialog is showing. */
     var showScaleneAnglesDialog by mutableStateOf(false)
     /** Whether the Scalene trapezoid angles customization dialog is showing. */

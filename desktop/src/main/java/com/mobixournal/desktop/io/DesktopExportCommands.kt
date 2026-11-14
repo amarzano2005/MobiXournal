@@ -3,6 +3,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.PageBackdrop
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.ExportPdfScope
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,8 +46,14 @@ internal sealed interface ExportOutcome {
 /** One export, as the menu or the key asked for it — before it has chosen a destination. */
 internal sealed interface ExportRequest {
 
-    /** A PDF of the whole document, written to [target]. */
-    data class Pdf(val target: File) : ExportRequest
+    /**
+     * A PDF of the pages [pages] names (every page when null), written to [target].
+     *
+     * The indices are the **notebook's**, in its own order — what the *Export PDF* card's answer comes to
+     * ([ExportPdfScope]). An export of pages 2 and 4 of a reordered notebook writes them as they read, not as
+     * they were imported.
+     */
+    data class Pdf(val target: File, val pages: List<Int>? = null) : ExportRequest
 
     /** One SVG per page, written into [folder] — the document's own folder when null. */
     data class Svg(val folder: File? = null) : ExportRequest
@@ -95,6 +102,49 @@ internal object DesktopExportQueue {
 
     fun take(): ExportRequest? = request.also { request = null }
 
+    /**
+     * The pages the **Export PDF** question answered, held until the system's dialog names a file.
+     *
+     * The picker's answer is a destination and nothing else, so the selection travels beside it rather than
+     * through it; it is consumed by the export it belongs to ([DesktopShellState.exportPdf]) and replaced by
+     * the next answer, so a cancelled dialog cannot leave a stale range behind.
+     */
+    private var pdfPages: List<Int>? = null
+
+    /** The question being asked — which pages, and the answers under consideration — or null. */
+    var scopeRequest: ExportPdfScope? by mutableStateOf(null)
+        private set
+
+    /** Ask *which pages* first: the file's destination is asked once the answer is known. */
+    fun openScope(pageCount: Int, current: Int) {
+        scopeRequest = ExportPdfScope(pageCount = pageCount, current = current)
+    }
+
+    /** Retype one part of the open question — the answer under consideration, or the pages it names. */
+    fun editScope(transform: (ExportPdfScope) -> ExportPdfScope) {
+        scopeRequest = scopeRequest?.let(transform)
+    }
+
+    /** Put the question away without exporting anything. */
+    fun cancelScope() {
+        scopeRequest = null
+    }
+
+    /**
+     * Take the open question's answer: keep its pages for the export the picker is about to name, then ask
+     * where. A refused field keeps the card up — the same guard the card's dead *Export* button shows.
+     */
+    fun confirmScope() {
+        val request = scopeRequest ?: return
+        val chosen = request.chosen ?: return
+        scopeRequest = null
+        pdfPages = chosen
+        askForPdf()
+    }
+
+    /** The pages the next PDF export writes, then forget them: one answer, one file. */
+    internal fun takePdfPages(): List<Int>? = pdfPages.also { pdfPages = null }
+
     /** `Ctrl+E` and the menu's PDF row: ask where, then export. */
     fun askForPdf() {
         pickPdfDestination?.invoke()
@@ -135,7 +185,7 @@ internal fun exportOf(document: DesktopDocument, request: ExportRequest): Export
     runCatching {
         when (request) {
             is ExportRequest.Pdf -> {
-                val written = DesktopPdfExport.write(document, request.target, document.backdrop)
+                val written = DesktopPdfExport.write(document, request.target, document.backdrop, request.pages)
                 ExportOutcome.Written("Exported $written ${pageWord(written)} to ${request.target.name}")
             }
             is ExportRequest.Svg -> {
@@ -166,10 +216,20 @@ internal fun DesktopShellState.applyExport(outcome: ExportOutcome) {
     }
 }
 
+/**
+ * `Export PDF` — the menu row, `Ctrl+E` and the header: ask **which pages** first, then where.
+ *
+ * Nothing is raised on a read-only tab: the window would be asking a question whose answer it cannot act on.
+ */
+internal fun DesktopShellState.askExportPdfPages() {
+    val tab = tabs.active?.takeUnless { it.document.readOnly } ?: return
+    DesktopExportQueue.openScope(tab.document.pageCount, tab.page)
+}
+
 /** `Export PDF` on the active document. Answers what happened, or null with no document open. */
 internal fun DesktopShellState.exportPdf(target: File): ExportOutcome? {
     val tab = tabs.active ?: return null
-    val outcome = exportOf(tab.document, ExportRequest.Pdf(target))
+    val outcome = exportOf(tab.document, ExportRequest.Pdf(target, DesktopExportQueue.takePdfPages()))
     applyExport(outcome)
     return outcome
 }

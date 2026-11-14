@@ -198,6 +198,8 @@ private fun BoxScope.WorkspaceBody(
     ColourPanelHost(state)
     PageSetupHost(state)
     ImportPdfHost(state)
+    // **Export PDF**'s question: which pages, asked before the system's destination picker opens.
+    ExportPdfHost()
     // The menu's **Export As** card: the same three commands its answers name, run through the worker.
     ExportAsHost(
         state = state,

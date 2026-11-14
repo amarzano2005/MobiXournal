@@ -18,8 +18,17 @@ internal class DocumentExportSnapshot(
     private val backgrounds: BackgroundResolver?,
     private val openExternal: (String) -> InputStream?,
 ) {
-    fun writePdf(out: OutputStream) {
-        imageCache().use { pictures -> PdfExporter(pdfFile(), pictures).export(document, out) }
+    /**
+     * Write the pages [pages] names — every page when null — as a vector PDF, in the document's own order.
+     */
+    fun writePdf(out: OutputStream, pages: List<Int>? = null) {
+        imageCache().use { pictures ->
+            PdfExporter(pdfFile(), pictures).export(
+                document,
+                out,
+                pages ?: document.pages.indices.toList(),
+            )
+        }
     }
 
     fun writeSvg(out: OutputStream) {

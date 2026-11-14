@@ -6,6 +6,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.mobixournal.desktop.shell.openInBackground
 import com.mobixournal.desktop.ink.dialFit
 import com.mobixournal.desktop.ink.dialZoom
+import com.mobixournal.desktop.io.askExportPdfPages
 import com.mobixournal.desktop.io.askImportPdf
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.of
@@ -178,7 +179,9 @@ fun FrameWindowScope.DesktopApp(
 private fun installWindowKeys(state: DesktopShellState, dialogs: DocumentDialogs) {
     DisposableEffect(state, dialogs) {
         WindowKeys.onKey = { event ->
-            state.onKey(event, dialogs::openDocument, dialogs::saveAs, dialogs::exportPdf)
+            // Export PDF asks *which pages* in the window's own card before the system asks where — the
+            // command is the same one the menu and Ctrl+E run, so the question is asked on every door.
+            state.onKey(event, dialogs::openDocument, dialogs::saveAs, state::askExportPdfPages)
         }
         onDispose { WindowKeys.onKey = null }
     }

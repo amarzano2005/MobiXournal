@@ -59,6 +59,11 @@ fun BoxScope.EditorOverlays(
     currentSaveFormat: () -> SaveFormat,
     currentSaveName: () -> String,
     onSaveAs: (filename: String, format: SaveFormat) -> Unit,
+    /**
+     * The **Export PDF** card's answer: the notebook indices to write, then the system's destination picker.
+     * The list is the card's — the picker that follows knows only a file name.
+     */
+    onExportPdf: (List<Int>) -> Unit = {},
     /** The **Export As** card's answers: the page as a raster, as a vector, or the notebook as `.pmobix`. */
     onExportPagePng: () -> Unit = {},
     onExportPageSvg: () -> Unit = {},
@@ -131,6 +136,16 @@ fun BoxScope.EditorOverlays(
         onSvg = onExportPageSvg,
         onPortable = onSavePortableCopy,
         onDismiss = { ui.exportAsOpen = false },
+    )
+    ExportPdfHost(
+        open = ui.exportPdfOpen,
+        pageCount = surface?.pageCount() ?: 0,
+        currentPage = surface?.currentPageIndex() ?: 0,
+        onExport = { pages ->
+            ui.exportPdfOpen = false
+            onExportPdf(pages)
+        },
+        onDismiss = { ui.exportPdfOpen = false },
     )
     DialogPresence(exportGaps.isNotEmpty()) {
         // Held so the gaps the dialog lists stay put for the closing animation: the caller clears the

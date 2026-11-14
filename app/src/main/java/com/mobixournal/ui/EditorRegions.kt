@@ -149,7 +149,6 @@ fun EditorTopBar(
     onSave: () -> Unit,
     /** Ask the system for a PDF; its pages are chosen once the file has been read. */
     onImportPdf: () -> Unit,
-    onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
     /** **Save portable copy**: the copy embeds what this notebook only names ([OverflowMenu]). */
@@ -305,7 +304,13 @@ fun EditorTopBar(
                     // A read-only document has nothing to export here, so the glyph wears the same off-state as
                     // Save and the history pair rather than staying a lit mark on an inert button.
                     val exportEnabled = !pane.isReadOnly
-                    IconButton(onClick = onExportPdf, enabled = exportEnabled, modifier = Modifier.size(36.dp)) {
+                    // The glyph asks *which pages* first: the card is the screen's, so the question outlives
+                    // this bar, and the destination picker follows the answer (`ExportPdfHost`).
+                    IconButton(
+                        onClick = { ui.exportPdfOpen = true },
+                        enabled = exportEnabled,
+                        modifier = Modifier.size(36.dp),
+                    ) {
                         Icon(
                             ChromeGlyph.PDF.imageVector(),
                             contentDescription = "Export PDF",
@@ -359,7 +364,7 @@ fun EditorTopBar(
                     canSave = stripTabs.canSave,
                     onSaveAs = { ui.showSaveAs = true },
                     onImportPdf = onImportPdf,
-                    onExportPdf = onExportPdf,
+                    onExportPdf = { ui.exportPdfOpen = true },
                     onExportPagePng = onExportPagePng,
                     onExportPageSvg = onExportPageSvg,
                     onSavePortableCopy = onSavePortableCopy,

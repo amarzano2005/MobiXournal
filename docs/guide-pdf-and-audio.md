@@ -68,6 +68,20 @@ A document holds one PDF. Import a second one onto a document that already has o
 into a single file, so every page's PDF page number still points at the right sheet; the merge and the new
 pages land together, which is what makes undoing it put the document back as it was.
 
+## Getting a PDF out, a page at a time
+
+**Export PDF** — the header's red PDF glyph, or the menu's row — asks *which pages* before the system asks
+where. Three answers: **All pages**, which is what the card opens on because that is what an export always
+was; **This page**, the one in view; and **Pages…**, typed in the same grammar the import card teaches
+(`2,4-6,9`). Under them the card repeats the count it is about to write — *2 pages of 108* — and a page past
+the end is refused with the sentence the import card uses rather than rounded to something else.
+
+The file keeps the **notebook's** order, never the order the pages were typed in: exporting pages 2 and 4 of
+a reordered notebook gives a two-page PDF whose first page is the sheet that reads first on screen. What each
+page already is survives the subset — an imported page stays its source PDF's own vectors and text, the ink
+sits on top as page content, and the ruling, the pictures and the layers are the ones the page shows.
+**Cancel** writes nothing and leaves the notebook exactly as it was.
+
 ## Copying text out of the page
 
 A born-digital PDF's text layer is extracted when you import it, so **Select text (PDF)** can drag a

@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.DesktopExportQueue
 import com.mobixournal.desktop.io.cancelImportPdf
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.sheet.dismissSelection
@@ -36,6 +37,11 @@ internal object WindowEscape {
         // key puts it away and imports nothing, whether the focus is on a page field, an answer or nowhere.
         if (state.importRequest != null) {
             state.cancelImportPdf()
+            return true
+        }
+        // The export's page question answers `Esc` the same way: the key puts it away and writes nothing.
+        if (DesktopExportQueue.scopeRequest != null) {
+            DesktopExportQueue.cancelScope()
             return true
         }
         // A question owns `Esc` before anything else: Cancel is the answer that loses nothing.

@@ -5,8 +5,18 @@ import com.mobixournal.render.DocumentExportSnapshot
 import java.io.File
 import java.io.OutputStream
 
-/** Encoding and provider I/O use captured document state and independent export resources. */
-internal fun MainActivity.exportPdf(uri: Uri) = exportSnapshot(uri, "PDF") { snapshot, out -> snapshot.writePdf(out) }
+/**
+ * Encoding and provider I/O use captured document state and independent export resources.
+ *
+ * The PDF is written with the pages the *Export PDF* card's answer named ([pendingPdfPages]): the launcher's
+ * answer arrives after the card has closed, so the notebook indices travel through the activity rather than
+ * through the picker — which knows only a file name.
+ */
+internal fun MainActivity.exportPdf(uri: Uri) {
+    val pages = pendingPdfPages
+    pendingPdfPages = null
+    exportSnapshot(uri, "PDF") { snapshot, out -> snapshot.writePdf(out, pages) }
+}
 internal fun MainActivity.exportPagePng(uri: Uri) = exportSnapshot(uri, "PNG") { snapshot, out -> snapshot.writePng(out) }
 internal fun MainActivity.exportPageSvg(uri: Uri) = exportSnapshot(uri, "SVG") { snapshot, out -> snapshot.writeSvg(out) }
 

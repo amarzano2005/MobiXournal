@@ -275,7 +275,7 @@ fun EditorScreen(
     currentSaveName: () -> String = { "Untitled.xopp" },
     /** Ask the system for a PDF; the question about its pages is asked once it has been read. */
     onImportPdf: () -> Unit,
-    onExportPdf: () -> Unit,
+    onExportPdf: (List<Int>) -> Unit,   // the Export PDF card's answer: which pages to write
     /** Export the active page alone, as a PNG image or an SVG vector file. */
     onExportPagePng: () -> Unit = {},
     onExportPageSvg: () -> Unit = {},
@@ -381,7 +381,6 @@ fun EditorScreen(
                             onNewTab = { activeTabs.onNew() },
                             onSave = onSave,
                             onImportPdf = onImportPdf,
-                            onExportPdf = onExportPdf,
                             onExportPagePng = onExportPagePng,
                             onExportPageSvg = onExportPageSvg,
                             onSavePortableCopy = onSavePortableCopy,
@@ -464,6 +463,7 @@ fun EditorScreen(
             currentSaveFormat = currentSaveFormat,
             currentSaveName = currentSaveName,
             onSaveAs = onSaveAs,
+            onExportPdf = onExportPdf,
             onExportPagePng = onExportPagePng,
             onExportPageSvg = onExportPageSvg,
             onSavePortableCopy = onSavePortableCopy,

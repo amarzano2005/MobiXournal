@@ -80,6 +80,21 @@ WinAnsi encodes above U+00FF, a C1 control (`\u0085`, which WinAnsi reads as `â€
 combining mark. Both assert the embedded face is a **subset** as well as `ToUnicode`-mapped: a page of
 text that ships a 759 kB face whole is a file nobody can mail.
 
+## Exporting chosen pages
+
+An export used to be the document, always. `ExportPages` (`mobix-core`) is now the one rule for *which* pages
+a shell writes: **all** (the answer both cards open on), **the page in view**, or a set typed in the import
+card's own grammar (`PageRanges.selection`), so `2,4-6,9` means here exactly what it means there.
+
+The answer is a list of **notebook** indices, and both exporters walk it in the notebook's order
+(`distinct().sorted()`) rather than the order the pages were named in: pages 2 and 4 of a reordered notebook
+are written as the sheet that reads first and then the second, whatever sequence the field held. The per-page
+work is untouched by the subset â€” an imported page keeps its source PDF's vectors and text, the ink is still
+page content over it, and the refusal is still the whole file's: a named page whose PDF this export cannot
+read refuses the export in words, with the bytes that were there left alone. A page the document no longer
+has (a delete under an open card) is skipped, and an answer that names nothing is refused before anything is
+staged.
+
 ## PDF text selection
 
 **PDF text selection.** An imported PDF's **text layer** is extracted on import (off the UI thread)

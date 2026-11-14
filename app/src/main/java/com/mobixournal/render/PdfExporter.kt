@@ -41,14 +41,23 @@ internal class PdfExporter(
 
     private val painter = PdfVectorPainter()
 
-    fun export(doc: Document, out: OutputStream) {
+    /**
+     * Write the pages [pages] names — every page when it is left out — in the document's own order.
+     *
+     * The indices are the **notebook's**, so an export of pages 2 and 4 of a reordered notebook writes them
+     * as they read on screen and a refusal names the sheet by the number the counter shows
+     * ([ExportPages]). A page the document no longer has is skipped rather than throwing: the answer came
+     * from a card that was told a count, and a delete underneath it is not a reason to write blank paper.
+     */
+    fun export(doc: Document, out: OutputStream, pages: List<Int> = doc.pages.indices.toList()) {
         val source = pdfSource?.let { runCatching { PDDocument.load(it) }.getOrNull() }
         val outDoc = PDDocument()
         try {
             // A chunked document is written as the pages its parts stand for: a PDF reader can only
             // open pages, and the sheet slicing a board would need is not this exporter's step.
             val missing = ArrayList<Int>()
-            doc.pages.forEachIndexed { index, page ->
+            for (index in pages.distinct().sorted()) {
+                val page = doc.pages.getOrNull(index) ?: continue
                 if (!writePage(outDoc, source, page)) missing += index + 1
             }
             // Nothing has reached `out` yet, so a refused export leaves the destination's bytes alone.

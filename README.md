@@ -17,7 +17,7 @@
 
 <img src="docs/assets/preview.jpg" alt="The MobiXournal editor on an Android tablet: a notebook open on ruled paper, handwriting in ink, and the floating tool strips over the page" width="880" />
 
-*One page holding handwriting, figures and a document — the editor on an Android tablet.*
+*One page holding handwriting, figures and a document — the editor on a tablet.*
 
 </div>
 
@@ -56,7 +56,7 @@ in the folder you choose, with no account between.
 
 #### Documents and research
 
-- **Write on the source.** A PDF becomes the page background — the pages you pick by preview, replacing or appended — its text stays selectable, copyable.
+- **Write on the source.** A PDF becomes the page background — the pages you pick by preview, replacing or appended — its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays exactly as drawn.
 - **Follow the document's contents.** A PDF's outline opens as a tree by its own page numbers, even after a merge.
 - **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.
@@ -113,7 +113,7 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 
 1. Download `MobiXournal-<version>.apk` from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases) and open it.
 2. Allow installs from the app you downloaded it with; the permission can be turned off afterwards.
-3. Notebooks are files you pick with Android's own dialog.
+3. Notebooks are files you open with Android's dialog.
 
 **Windows 11**
 
@@ -121,16 +121,16 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 2. Confirm the SmartScreen prompt; keep or decline the `.mobix`/`.pmobix`/`.xopp` associations and shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
-A new tab is empty until saved: **Save As** picks the format, the system's picker the name; **Save** writes.
+A new tab is empty until saved: **Save As** picks the format, the system's picker the name; **Save** writes;
+**Export PDF** writes all pages, or the ones picked.
 **Export As** writes the page as PNG or SVG, or the notebook as a **`.pmobix`** carrying the files it
 only names — an export, not a working file.
-**Save automatically** writes a saved document a few seconds after you stop; it never picks a name.
-Recents show what you opened; **Restore last session** reopens an unfinished session.
+**Save automatically** writes a saved document seconds after you stop, and never picks a name.
+Recents show what you opened; **Restore last session** reopens the last one.
 
 ## Where the work stands today
 
-Some of it stops part-way: a Typst source is kept but not typeset, and tablet handwriting search needs its model
-downloaded before it answers. Absent: no sync between devices, tilt does not change stroke width, and the
+Some stops part-way: a Typst source is kept but not typeset, and handwriting search needs its model first. Absent: no sync between devices, tilt does not change stroke width, and the
 chemistry palette is gone. Shell differences: [what works, and what is not there](docs/guide-limitations.md).
 
 ## Documentation, by question

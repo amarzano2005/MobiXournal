@@ -340,6 +340,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    internal var pendingPdfPages: List<Int>? = null   // the Export PDF card's answer, until the picker returns
+
     private val exportPdfLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(PDF_MIME)) { uri ->
             uri?.let { exportPdf(it) }
@@ -488,7 +490,8 @@ class MainActivity : ComponentActivity() {
                     currentSaveFormat = { saveFormat },
                     currentSaveName = { suggestedSaveName() },
                     onImportPdf = ::startPdfImport,
-                    onExportPdf = { exportPdfLauncher.launch(suggestedPdfName()) },
+                    // The card answers which pages first; the picker only names where they go.
+                    onExportPdf = { pages -> pendingPdfPages = pages; exportPdfLauncher.launch(suggestedPdfName()) },
                     exportGaps = exportGaps.value,
                     onDismissExportGaps = { exportGaps.value = emptyList() },
                     pendingOpenNotice = pendingNewerAppConsent.value?.notice,
