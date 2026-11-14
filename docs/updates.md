@@ -39,7 +39,11 @@ offer outlives the page that shows it: the launch check may find a release while
 ## The popup and its two answers
 
 When a newer build exists, a card names it and the build in hand, and offers the release's own page as
-**See what changed** — the notes are read where they were written, not summarised in the window.
+**See what changed** — the notes are read where they were written, not summarised in the window. The card is
+a **floating surface** on both shells — the tablet's `FloatingDialog`, the window's `glassSurface` — so it
+arrives and leaves on the glass spring instead of being an opaque dialog over the page, and
+`ColorContractGuardTest` fails the build if the tablet's goes back to one
+([`interface-contract.md`](interface-contract.md) owns that rule).
 Its two answers are the reader's:
 
 - **Remind me later** closes the card. The offer stays on the About page, so the reader can come back to it

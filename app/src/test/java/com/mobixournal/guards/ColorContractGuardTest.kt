@@ -398,6 +398,33 @@ class ColorContractGuardTest {
     }
 
     /**
+     * The **update popup** is a floating surface too, wherever its file sits.
+     *
+     * It lives in `update/`, outside the `ui/` sweep above, and that is exactly how it stayed a plain
+     * Material `AlertDialog` — an opaque card with no glass, no rim and no closing spring — while every
+     * other question in the app wore the one material. Anything the chrome puts over the page takes it, so
+     * this one is checked by name: the shared wrapper, the presence gate, and no raw dialog left behind.
+     */
+    @Test
+    fun theUpdatePopupWearsTheFloatingMaterial() {
+        val file = File(repoRoot(), "app/src/main/java/com/mobixournal/update/UpdateDialog.kt")
+        assertTrue("File must exist: update/UpdateDialog.kt", file.isFile)
+        val text = file.readText().replace("\r\n", "\n")
+        assertTrue(
+            "the update popup must be the app's floating dialog, not a Material card of its own",
+            text.contains("FloatingDialog("),
+        )
+        assertFalse(
+            "a raw AlertDialog( is the opaque card the contract forbids — compose FloatingDialog(",
+            text.contains("AlertDialog("),
+        )
+        assertTrue(
+            "and it must be gated by DialogPresence, so it leaves on the glass spring as well",
+            text.contains("DialogPresence(AppUpdates.dialog)"),
+        )
+    }
+
+    /**
      * **The chrome takes its dark/light answer from the app's `ThemeMode`, never from the OS.**
      *
      * `XoppTheme` picks the colour scheme from `settings.themeMode`, so a band that asked
