@@ -14,11 +14,11 @@ import java.security.MessageDigest
  * the repair lives in a rasteriser's private in-memory document. The copy lands in the app's cache, named
  * after the source's path and bytes, and the renderer opens that.
  *
- * A file whose fonts are all there answers itself, at the cost of one PDFBox load per distinct file (cached
- * for the life of the process by path, size and timestamp, so scrolling never pays it twice). An unreadable
- * or unsaveable file also answers itself: a document that renders with substituted letters is better than one
- * that does not open. [configure] runs at startup, before any renderer exists; it also clears copies left by a
- * previous run.
+ * A file whose fonts are all there answers itself, and the question is answered by [PdfFontProgramScan] over
+ * the bytes — no PDFBox at all; only a file that names a program it does not carry is opened and saved, and
+ * the answer is cached for the life of the process by path, size and timestamp. An unreadable or unsaveable
+ * file also answers itself: a document that renders with substituted letters is better than one that does not
+ * open. [configure] runs at startup, before any renderer exists; it also clears copies left by a previous run.
  */
 object PdfRepairFiles {
 
@@ -48,6 +48,12 @@ object PdfRepairFiles {
         if (!source.isFile) return source
         val key = keyOf(source)
         synchronized(lock) { cache[key]?.let { return it } }
+        // The bytes answer the cheap question first: a file whose programs are all there never costs a PDFBox
+        // parse, which is what a large healthy PDF would otherwise pay on its first open.
+        if (!PdfFontProgramScan.suspectsMissingProgram(source)) {
+            synchronized(lock) { cache[key] = source }
+            return source
+        }
         val renderable = runCatching { repaired(source, key, assets, directory) }.getOrNull() ?: source
         synchronized(lock) { cache[key] = renderable }
         return renderable
