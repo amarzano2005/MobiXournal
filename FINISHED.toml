@@ -25,6 +25,66 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-desktop-crop-geometry"
+title = "Align imported sheet dimensions with the PDF crop"
+description = "DesktopPdfImport.pages sizes a sheet by the page's effective rotated CropBox instead of its MediaBox, which is the box DesktopPdfExport imports the source page by. DesktopPdfImportTest pins the width and height at 0/90/180/270 degrees for an offset crop smaller than the media box, and DesktopPdfExportTest pins that an imported cropped sheet exports a page whose CropBox is the sheet, so a mark drawn on screen stays over its ink. docs/pdf.md records the rule."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "desktop"]
+design = "none: no interface surface, an import geometry change"
+
+[[task]]
+id = "pdf-missing-background-export"
+title = "Report missing PDF backgrounds before replacing an export"
+description = "PdfExporter now writes pages into the output document, collects the sheets whose PDF source is missing, out of range or unreadable, and throws MissingPdfBackgrounds before a byte reaches the destination. DesktopPdfExport does the same and refuses with DesktopSaves.SaveRefused before the staged target is replaced, so the existing file keeps its bytes and relinking is the whole retry. PdfExportTest, DesktopPdfExportTest and the rewritten DesktopPdfExportVectorsTest case pin the refusal, the preserved destination, the out-of-range page and the still-working picture path."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "shared"]
+design = "none: no interface surface, an export refusal and its error copy"
+
+[[task]]
+id = "pdf-desktop-append-source"
+title = "Append to embedded PDFs and notebooks with a cover"
+description = "appendImported now tells three cases apart (paper-only, resolvable, unreachable) instead of reading a null pdfSource as no base: an embedded .mobix background has its bundled bytes written to scratch (DesktopPdfMerge.copyOf) and is joined like any file, and a reference that resolves to nothing is refused with MissingPdfBase, leaving the pages untouched. DesktopPdfImport.retarget re-points the page that carries the reference rather than index zero, and clears bundledAsset so the joined file wins over the bundle. Covered by DesktopPdfDurabilityTest (embedded append with undo, missing original) and a retarget test in DesktopPdfImportTest."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "desktop"]
+design = "none: no interface surface, an import command and model re-point change"
+
+[[task]]
+id = "pdf-desktop-durable-join"
+title = "Isolate joined PDFs across tabs and preserve saved references"
+description = "DesktopPdfMerge.joined now allocates a fresh temp file per join (Files.createTempFile), so two tabs built on one PDF cannot overwrite each other's background, and gained isScratch/copyOf plus the mobixournal.desktop.pdfScratch property. New DesktopPdfSources publishes a merge output out of scratch into APPDATA/MobiXournal/pdf on a gzip .xopp save, re-points the model's reference at the copy, reuses the copy on a second save and never moves a PDF the reader picked. DesktopSaves.stage wires it for SaveFormat.ORIGINAL only. DesktopPdfMergeTest and DesktopPdfDurabilityTest cover distinct outputs, per-tab page counts, and reopening after the scratch folder is emptied."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "desktop"]
+design = "none: no interface surface, a save-path and scratch-file naming change"
+
+[[task]]
+id = "pdf-android-durable-join"
+title = "Keep joined PDF sources after closing a saved Android notebook"
+description = "PdfStore gained a pinned set (pin/unpin, sidecar pinned.tsv): prune keeps pinned files alongside live ones and the byte budget never evicts them, and a pin whose file is gone is dropped. DocumentIo.retainLinkedPdf pins the joined PDF after a successful gzip .xopp save, called from MainActivitySaves.afterSaved before the sweep, so closing the tab no longer deletes the background the saved document names. PdfStoreTest covers pin surviving prune and the budget, unpin, the dropped-file pin, and refusing a file outside the store. docs/pdf.md gained 'Joined PDFs: lifetime, publishing and refusing a blank sheet'. Not done: the emulator pass (flag on) - the store logic is JVM-tested only."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "android"]
+design = "none: no interface surface, a store and save-path change only"
+
+[[task]]
 id = "portable-copy-open-save-policy"
 title = "A portable copy is opened, so say what saving one does"
 description = "A portable copy is opened read-and-edit, but never written in place: Save is Save As on a working `.mobix`. Core: `PortableCopy.EXTENSION` and `PortableCopy.isPortableCopy` are the one predicate both shells use. Desktop: `saveOrPick` opens the Save As window for a `.pmobix` tab, `DesktopTab.saveBack` refuses before releasing the archive, `DesktopSaves.stageSnapshot` refuses a `.pmobix` destination, and auto save skips the tab. Android: `saveActiveTab` opens the picker on `SaveFormat.MOBIX` with `<name>.mobix`, and `saveDocument` refuses any `.pmobix` destination (quietly for auto save). Docs: `.pmobix` is the portable profile in `docs/mobix-format.md`; the save rule is owned by `docs/mobix-assets.md` and placed in the sticky-format policy in `docs/data-path.md`; `docs/guide-limitations.md` has its row; `docs/desktop-documents.md` and `docs/document-session.md` link the rule. Verified on the Windows host: `PortableCopyTest` (5), `SaveTargetTest` (14), `DesktopSaveTest` (16, including the refusal leaving the copy byte-identical), `DocsGuardTest`/`DocClaimsTest` (38), `:app:assembleDebug` and `:desktop:createDistributable`. The manual SAF/Windows passes were not run."

@@ -22,6 +22,244 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
+id = "pdf-android-async-append"
+title = "Keep the Android editor responsive while joining PDFs"
+description = "MainActivityDocuments.confirmPdfImport calls adoptPdf and appendMergedPdf from the dialog handler. Stage file copying and joining in the background, apply the result to the originating tab only if still valid, release scratch on failure and report a recovery action. Exercise a large append, a tab switch and a failed merge on the emulator. Update docs/pdf.md with the verified behaviour."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 60
+created = 2026-11-14
+tags = ["pdf", "android"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-index-single-pass"
+title = "Extract PDF text in one traversal per document"
+description = "PdfTextExtractor.extract and DesktopPdfExtractors call PDFTextStripper.getText for each page. Collect words in a single traversal preserving page indices and geometry. Test an empty middle page, word boxes and one traversal on a long fixture in both shells. Update docs/pdf.md with the verified behaviour."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 70
+created = 2026-11-14
+tags = ["pdf", "shared"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "pdf-android-index-jobs"
+title = "Share in-flight PDF indexing between Android panes"
+description = "MainActivityDocuments starts independent threads on cache misses. Coalesce text extraction by source revision, bound workers and discard stale results after a tab switch. Test two panes requesting one source, switching files, and retry after failure. Update docs/pdf.md with the verified behaviour."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 80
+created = 2026-11-14
+tags = ["pdf", "android"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-unicode-text-ops"
+title = "Typeset an exported text run in the bundled DejaVu face when WinAnsi cannot encode it"
+description = "PdfPagePlan carries a PdfText whose face is one of the base-14 families, and winAnsi decides what survives by code range. Replace the range with an encoding: a CP1252 table for the base-14 path, so ... - quotes, euro, trademark and the rest of WinAnsi punctuation survive instead of becoming ?, and a font reference on the op (base14 or a bundled asset path) chosen per run, so a line holding any character outside WinAnsi is typeset in DejaVu Sans rather than sanitised. The plan stays platform-free: it names the asset; the app emitter loads it through PdfFonts, which already caches PDType0Font per document with subset = true and therefore writes the ToUnicode map. Keep GlyphSanitizer as the last resort for a codepoint even DejaVu lacks, with U+FFFD as the substitute, never ?. Turn PdfTextEncodingAuditTest into round-trip assertions over the produced PDF in the emitter tests, and keep one test proving a pure-WinAnsi export is byte-for-byte what it is today."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 90
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-unicode-fonts"
+title = "Embed the same DejaVu faces in the window's PDF export"
+description = "DesktopPdfPainter replays PdfPagePlan through org.apache.pdfbox, but the DejaVu faces live only in the app's assets/fonts, so the window cannot typeset a Greek or Cyrillic run. Ship the same four proportional faces and the monospace face under desktop/src/main/resources/fonts (they are already in the repository: Bitstream Vera + Arev, DejaVu changes in the public domain), carry LICENSE.txt beside them, load per document with PDType0Font.load(doc, stream, true), cache by face, and resolve the plan's font reference exactly as PdfFonts does on Android. Assert that the window's export of a text box holding Greek, Cyrillic, H with a subscript, e + U+0301, an astral emoji and the CP1252 punctuation set produces the same characters the app's export does: one fixture, both emitters. Record the asset path and the licence in docs/pdf.md, which owns the font story."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 100
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "pdf-unicode-extraction-test"
+title = "Prove exported Greek, Cyrillic, subscripts and emoji round-trip through extraction"
+description = "Make the audit a round trip. Produce a PDF from one fixture page holding accented Latin, a vulgar fraction, Greek, Cyrillic, a subscript, a combining accent, an astral emoji and the CP1252 punctuation set, then read it back with PDFTextStripper (the desktop test module has org.apache.pdfbox) and assert the extracted text equals what was written, character for character, with the emoji either preserved or consistently U+FFFD and never ?. Cover the four cases today's guard gets wrong: a character WinAnsi encodes above U+00FF, a control character in 0x80..0x9F, a surrogate pair, and a combining mark. Also assert the document embeds subsets with a ToUnicode map, because text that draws but cannot be copied is not the promise this scope made. This is the failing-then-fixed fixture the scope required: it must fail against today's plan and pass once the two font tasks land."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 110
+created = 2026-11-10
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "pdf-import-destination-labels"
+title = "Name the actual destination in PDF import choices"
+description = "In Android PdfImportDialog and desktop ImportPdfDialog match each English option to its command: appending, replacing the current pages on Android, or opening a new tab on desktop. Desktop currently calls the last choice Replace this document. Group the filename and page count above the range and destination, allow long names to wrap, and use the chosen action as the confirm label. Verify all command paths, including a desktop import without a mode chooser. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 111
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-import-responsive-layout"
+title = "Keep PDF import controls reachable in compact windows"
+description = "Replace the fixed 420 dp desktop import column and adapt the Android PdfImportDialog body to available height, font scale and the on-screen keyboard. Stack the two range fields when they cannot fit, scroll the body and keep confirm/cancel reachable. Test the minimum supported desktop window, tablet split screen with keyboard open, and large text; neither error text nor buttons may be clipped. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 112
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-import-accessible-controls"
+title = "Make PDF import usable with keyboard and screen reader"
+description = "In desktop ImportModeRow replace pointer-only input with a semantic selectable control; expose the same labeled radio group in Android PdfImportDialog. Associate range validation with the relevant fields, use a visible focus indicator, and preserve focus while typing. Verify Tab/Shift+Tab, Space, Escape and TalkBack announcements for selected mode and invalid bounds. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 113
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-contents-readable-rows"
+title = "Keep PDF chapter titles and page numbers readable"
+description = "Adjust Android PdfContentsDialog.ContentsRow and desktop PdfContentsSidebar row layout: reserve the page-number column, cap indentation on narrow screens, distinguish top-level and nested headings with typography, and announce title, destination and enabled state together. Test a deeply nested outline with long titles and four-digit page numbers in light/dark themes at enlarged font size. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 114
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-selection-toolbar-placement"
+title = "Keep the PDF selection toolbar clear of selected text"
+description = "In Android TextSelectionBar and desktop PdfTextCopyBar measure the actual toolbar and clamp it to the visible pane; prefer above or below the selected lines where space permits. Keep Copy reachable near every edge with zoom, enlarged type and narrow split panes. Verify the highlight remains visible, Copy still copies the original words and keyboard focus is visible. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 115
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-import-page-selection"
+title = "Import nonconsecutive PDF pages in a single action"
+description = "Extend PageRanges with an ordered selection for input such as 2,4-6,9, preserving its existing contiguous API. Wire PdfImportPrompt, both import dialogs and commands to the same selection. Keep the chosen append/replace mode while editing fields, display the selected count, reject invalid pages, and import in source order as one undo step. Test duplicates, invalid bounds and reopen with the correct source pages. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 120
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-import-thumbnails"
+title = "Choose PDF pages visually before importing"
+description = "In PdfImportDialog.kt and desktop ImportPdfDialog.kt show numbered, selectable thumbnails synchronized with pdf-import-page-selection. Render visible previews from the staged source off-thread with a bounded cache; release resources on dismissal. Provide select all, clear and accessible selected states. Verify pages 2/4/7, keyboard and touch selection, cancellation and a 500-page source without rendering the whole file. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 130
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-export-page-selection"
+title = "Export the current page or a chosen set of notebook pages"
+description = "Extend both ExportAsDialog flows with All pages (default), Current page and Selected pages using the shared selector. Pass notebook indices into PdfExporter and DesktopPdfExport, retaining source PDF page mappings, layer semantics and vector overlays. Export pages 2 and 4 of a reordered annotated notebook and reopen the result to check count, order, text and ink. Cancel without changing the notebook or destination. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 140
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-highlight-selection"
+title = "Highlight selected PDF words from the selection toolbar"
+description = "Add Highlight beside Copy in the Android text selection bar and Desktop PdfTextCopyBar. Use PdfTextIndex word boxes and existing magnetic highlighter geometry to emit ordinary highlighter strokes on the editable layer in one undo step. Preserve Copy, enforce layer locks, and verify a multiline selection after undo/redo, .mobix/.xopp reopen and PDF export. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 150
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-outline-navigation"
+title = "Filter PDF contents and expand individual chapters"
+description = "Extend PdfContentsDialog and PdfContentsSidebar with per-branch expansion and a title filter. Derive branch identity from outline position rather than title; retain ancestor context and current destination mapping. Restore expansion after clearing the filter. Test duplicate chapter names, unavailable destinations, keyboard and touch navigation, and that browsing leaves the document clean. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 160
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-text-availability-ui"
+title = "Explain when PDF text selection is ready on the current page"
+description = "Feed extraction status and page-local word availability to the Select text (PDF) UI in both shells. Distinguish indexing, a ready page with no selectable text, and a failed read with a retry action. Keep notices scoped to the active tool and pane. Verify mixed scanned/digital pages, failed indexing, retry and a tab switch during extraction. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 170
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
 id = "stem-netlist-spice-review"
 title = "From connectors to a checkable circuit: ERC and an SPICE subset (F12)"
 description = """
@@ -204,48 +442,6 @@ urgency = "normal"
 order = 590
 created = 2026-11-10
 tags = ["mobix", "performance"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "pdf-unicode-text-ops"
-title = "Typeset an exported text run in the bundled DejaVu face when WinAnsi cannot encode it"
-description = "PdfPagePlan carries a PdfText whose face is one of the base-14 families, and winAnsi decides what survives by code range. Replace the range with an encoding: a CP1252 table for the base-14 path, so ... - quotes, euro, trademark and the rest of WinAnsi punctuation survive instead of becoming ?, and a font reference on the op (base14 or a bundled asset path) chosen per run, so a line holding any character outside WinAnsi is typeset in DejaVu Sans rather than sanitised. The plan stays platform-free: it names the asset; the app emitter loads it through PdfFonts, which already caches PDType0Font per document with subset = true and therefore writes the ToUnicode map. Keep GlyphSanitizer as the last resort for a codepoint even DejaVu lacks, with U+FFFD as the substitute, never ?. Turn PdfTextEncodingAuditTest into round-trip assertions over the produced PDF in the emitter tests, and keep one test proving a pure-WinAnsi export is byte-for-byte what it is today."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "normal"
-order = 600
-created = 2026-11-10
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-pdf-unicode-fonts"
-title = "Embed the same DejaVu faces in the window's PDF export"
-description = "DesktopPdfPainter replays PdfPagePlan through org.apache.pdfbox, but the DejaVu faces live only in the app's assets/fonts, so the window cannot typeset a Greek or Cyrillic run. Ship the same four proportional faces and the monospace face under desktop/src/main/resources/fonts (they are already in the repository: Bitstream Vera + Arev, DejaVu changes in the public domain), carry LICENSE.txt beside them, load per document with PDType0Font.load(doc, stream, true), cache by face, and resolve the plan's font reference exactly as PdfFonts does on Android. Assert that the window's export of a text box holding Greek, Cyrillic, H with a subscript, e + U+0301, an astral emoji and the CP1252 punctuation set produces the same characters the app's export does: one fixture, both emitters. Record the asset path and the licence in docs/pdf.md, which owns the font story."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "normal"
-order = 610
-created = 2026-11-10
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "pdf-unicode-extraction-test"
-title = "Prove exported Greek, Cyrillic, subscripts and emoji round-trip through extraction"
-description = "Make the audit a round trip. Produce a PDF from one fixture page holding accented Latin, a vulgar fraction, Greek, Cyrillic, a subscript, a combining accent, an astral emoji and the CP1252 punctuation set, then read it back with PDFTextStripper (the desktop test module has org.apache.pdfbox) and assert the extracted text equals what was written, character for character, with the emoji either preserved or consistently U+FFFD and never ?. Cover the four cases today's guard gets wrong: a character WinAnsi encodes above U+00FF, a control character in 0x80..0x9F, a surrogate pair, and a combining mark. Also assert the document embeds subsets with a ToUnicode map, because text that draws but cannot be copied is not the promise this scope made. This is the failing-then-fixed fixture the scope required: it must fail against today's plan and pass once the two font tasks land."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "normal"
-order = 620
-created = 2026-11-10
-tags = ["mobix"]
 rebuild = false
 emulator_debug = false
 
