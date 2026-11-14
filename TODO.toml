@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-import-responsive-layout"
-title = "Keep PDF import controls reachable in compact windows"
-description = "Replace the fixed 420 dp desktop import column and adapt the Android PdfImportDialog body to available height, font scale and the on-screen keyboard. Stack the two range fields when they cannot fit, scroll the body and keep confirm/cancel reachable. Test the minimum supported desktop window, tablet split screen with keyboard open, and large text; neither error text nor buttons may be clipped. Apply docs/interface-contract.md and document verified changes in the owning guide."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 112
-created = 2026-11-14
-tags = ["pdf", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-import-accessible-controls"
 title = "Make PDF import usable with keyboard and screen reader"
 description = "In desktop ImportModeRow replace pointer-only input with a semantic selectable control; expose the same labeled radio group in Android PdfImportDialog. Associate range validation with the relevant fields, use a visible focus indicator, and preserve focus while typing. Verify Tab/Shift+Tab, Space, Escape and TalkBack announcements for selected mode and invalid bounds. Apply docs/interface-contract.md and document verified changes in the owning guide."
