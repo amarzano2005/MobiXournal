@@ -32,8 +32,19 @@ internal class PdfAnalysisJobs(
     workers: Int = DEFAULT_WORKERS,
 ) {
 
-    /** What one walk produced, under the [key] of the revision it read. */
-    class Result(val key: String, val text: PdfTextIndex, val outline: PdfOutline)
+    /**
+     * What one walk produced, under the [key] of the revision it read.
+     *
+     * [failure] is the difference the slot could not see before: a PDF that **parsed** and holds no words
+     * (a scan) answers empty layers and no failure, while one whose read **broke** answers the reason — the
+     * two used to look identical, and the reader was told their document had no text either way.
+     */
+    class Result(
+        val key: String,
+        val text: PdfTextIndex,
+        val outline: PdfOutline,
+        val failure: String? = null,
+    )
 
     /** One in-flight walk and everyone waiting on it. */
     private class Job {
@@ -72,7 +83,14 @@ internal class PdfAnalysisJobs(
         }
         pool.execute {
             val result = runCatching { Result(key, text ?: readText(file), outline ?: readOutline(file)) }
-                .getOrElse { Result(key, PdfTextIndex(emptyList()), PdfOutline.EMPTY) }
+                .getOrElse { error ->
+                    Result(
+                        key = key,
+                        text = PdfTextIndex(emptyList()),
+                        outline = PdfOutline.EMPTY,
+                        failure = error.message ?: error.javaClass.simpleName,
+                    )
+                }
             val listeners = synchronized(running) { running.remove(key)?.listeners.orEmpty() }
             listeners.forEach { listener -> listener(result) }
         }

@@ -17,6 +17,7 @@ import com.mobixournal.desktop.sheet.zoomLabel
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -221,10 +222,7 @@ internal fun StatusBar(
         Spacer(Modifier.weight(1f))
         // The PDF text slot's own sentence — `Copied 4 words`, or the reason it could select nothing — in
         // the accent, because it is news about what the press just did (`DesktopPdfTextNotice`).
-        DesktopPdfTextNotice.text?.let { message ->
-            Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
-            Spacer(Modifier.width(14.dp))
-        }
+        DesktopPdfTextNotice.text?.let { message -> PdfTextBandNotice(message) }
         // The last export's own sentence — `Exported 12 pages to notes.pdf` — in the accent, because it is
         // news rather than a reading of the document. A write that worked is worth one line, not a card.
         DesktopExportNotice.text?.let { message ->
@@ -240,6 +238,27 @@ internal fun StatusBar(
         Spacer(Modifier.width(12.dp))
         ProgressBar(pageProgress(tab.page, tab.pageCount))
     }
+}
+
+/**
+ * The PDF text slot's sentence on the band, with the action a failed read offers.
+ *
+ * A sentence that can be acted on carries its own action: **Try again** sits in the same line rather than
+ * sending the reader to a menu (`PdfTextAvailability`).
+ */
+@Composable
+private fun RowScope.PdfTextBandNotice(message: String) {
+    Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
+    DesktopPdfTextNotice.retry?.let { action ->
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = "Try again",
+            color = DesktopTheme.accent,
+            style = DesktopTheme.label,
+            modifier = Modifier.clickable(onClick = action),
+        )
+    }
+    Spacer(Modifier.width(14.dp))
 }
 
 /** The gap two readings keep on the band: closer than a card's, because a band is one line of them. */

@@ -324,6 +324,8 @@ private fun BoxScope.SelectionOverlays(
     onSettingsChange: (AppSettings) -> Unit,
 ) {
     val surface = pane.surface
+    // What Select text (PDF) can do on this page: a pill over the sheet, only while that tool is in hand.
+    PdfTextReadinessNotice(ui, pane)
     // The element selection's own bar is no longer here: it floats beside the selection itself
     // (see [SelectionActionAnchor], rendered by each pane). What stays at the bottom edge are the
     // mode bars — the marquee's paste/region actions, table insert and PDF-text selection —

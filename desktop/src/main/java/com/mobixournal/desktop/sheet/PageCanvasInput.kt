@@ -15,6 +15,9 @@ import com.mobixournal.desktop.ink.shapeFromDrag
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfTextNotice
+import com.mobixournal.desktop.io.pdfTextAvailabilityOf
+import com.mobixournal.desktop.io.retryPdfIndex
+import com.mobixournal.render.PdfTextPhase
 import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.io.PdfIndexLoader
 import com.mobixournal.desktop.shell.DesktopDiagnostics
@@ -619,14 +622,29 @@ internal suspend fun AwaitPointerEventScope.pdfTextDrag(
 ) {
     val (x, y) = pagePointOf(start.position.x, start.position.y, density, view.current())
     if (tab.pdfIndex == null) {
-        // Still being read off the file: a page that has text will answer in a moment, so nothing is
-        // cleared and no failure is claimed.
+        // No index yet: either it is still being read off the file or the read broke, and the two are said
+        // differently — one asks the reader to wait, the other offers the retry (`DesktopPdfTextStatus`).
+        val availability = pdfTextAvailabilityOf(tab)
+        if (availability.canRetry) {
+            DesktopPdfTextNotice.unavailable(availability) { tab.retryPdfIndex() }
+        } else if (availability.phase == PdfTextPhase.INDEXING) {
+            DesktopPdfTextNotice.reading()
+        }
         return
     }
     val begun = DesktopPdfTextSelect.begin(tab, x, y)
     if (begun == null) {
         tab.pdfTextSelection = null
-        DesktopPdfTextNotice.noText()
+        val availability = pdfTextAvailabilityOf(tab)
+        if (availability.canRetry) {
+            DesktopPdfTextNotice.unavailable(availability) { tab.retryPdfIndex() }
+        } else if (availability.wordsOnPage > 0) {
+            // The page has words; the press simply landed between them, which is not the same news as a
+            // page that has none.
+            DesktopPdfTextNotice.missedWord()
+        } else {
+            DesktopPdfTextNotice.noText()
+        }
         return
     }
     DesktopPdfTextNotice.clear()

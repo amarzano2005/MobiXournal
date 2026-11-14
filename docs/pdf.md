@@ -110,7 +110,7 @@ an inclusive reading-order word range: `beginTextSelect`/`textSelectMove` resolv
 to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawTextSelection`), the
 `TextSelectionBar`'s Copy puts the text on the Android system clipboard (`copyTextSelection`), and its
 **Highlight** writes the passage onto the page (`highlightTextSelection`, see [the magnetic
-highlighter](#the-magnetic-highlighter)). The bar
+highlighter](#the-magnetic-highlighter)). While it is in hand the slot names the page's state — reading, ready a scan with no words, or a failed read with a **Try again** — from one `PdfTextAvailability`, so a walk still running is never called a page without text. The bar
 **floats against the words**: the surface reports the selected word boxes' union
 (`textSelectionScreenRect` → `onTextSelectionRectChanged` → `PaneState.textSelectionRect`, from the paint
 pass beside `reportScroll`), and `TextSelectionAnchor` places the measured capsule below that box, above

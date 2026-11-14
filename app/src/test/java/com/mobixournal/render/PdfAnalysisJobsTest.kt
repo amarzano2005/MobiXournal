@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -26,6 +27,41 @@ class PdfAnalysisJobsTest {
     private fun file(name: String) = File(temp.root, name).apply { writeText("%PDF-1.7 test") }
 
     private fun emptyText(): PdfTextIndex = PdfTextIndex(emptyList())
+
+    @Test
+    fun aBrokenReadAnswersItsReasonInsteadOfLookingLikeAScan() {
+        // A PDF that parses and holds no words (a scan) and one whose read broke used to answer the same
+        // empty layers, so the slot told both readers their document had no text. The failure travels now.
+        val answered = CountDownLatch(1)
+        val jobs = PdfAnalysisJobs(
+            readText = { throw IllegalStateException("the file is locked") },
+            readOutline = { PdfOutline.EMPTY },
+        )
+        var failure: String? = null
+        jobs.request(file("broken.pdf")) { result ->
+            failure = result.failure
+            assertFalse("a failed read still answers, so the indexing state ends", result.text.hasAnyText)
+            answered.countDown()
+        }
+        assertTrue(answered.await(5, TimeUnit.SECONDS))
+        assertEquals("the file is locked", failure)
+    }
+
+    @Test
+    fun aScannedFileReadsCleanlyAndClaimsNoFailure() {
+        val answered = CountDownLatch(1)
+        val jobs = PdfAnalysisJobs(
+            readText = { emptyText() },
+            readOutline = { PdfOutline.EMPTY },
+        )
+        var failure: String? = "unset"
+        jobs.request(file("scan.pdf")) { result ->
+            failure = result.failure
+            answered.countDown()
+        }
+        assertTrue(answered.await(5, TimeUnit.SECONDS))
+        assertEquals("a scan is not a failure", null, failure)
+    }
 
     @Test
     fun twoRequestsForOneFileShareOneWalk() {

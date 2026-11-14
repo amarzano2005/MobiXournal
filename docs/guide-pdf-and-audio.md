@@ -91,6 +91,13 @@ pick it, and the slot then keeps it for next time. The
 selection is a view over the PDF, not something written into your notebook: it is never saved, and
 `Esc`, a click off the text or a page change clears it.
 
+**The tool says what it can do here.** With Select text (PDF) in hand a small line over the page says where
+things stand: *Reading this PDF's text…* while the file is being read, nothing at all when the page has words
+and the tool simply works, *No text on this page* for a scan — a picture of text, which this app ships no OCR
+for — and *Could not read this PDF's text* with a **Try again** beside it when the read broke, since the same
+file often reads on the second attempt. The line belongs to the tool and to its own pane: with another tool
+picked, or in a pane showing another document, it is not there.
+
 **Highlight marks the words in place.** Beside Copy the bar carries **Highlight**: the passage you selected
 becomes highlighter ink on the page — one band per line, in the highlighter's own colour, on the layer you are
 writing on — and the whole selection is **one undo step**, so undo takes back every line at once and redo puts

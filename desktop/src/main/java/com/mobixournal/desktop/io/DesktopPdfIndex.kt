@@ -128,15 +128,32 @@ internal fun PdfIndexLoader(tab: DesktopTab) {
     val key = remember(background, bytes) {
         if (background == null || bytes == null) null else DesktopPdfIndexCache.key(background, bytes.size)
     }
-    LaunchedEffect(tab, key) {
+    // The retry token is part of the key: a **Try again** forgets the cached index and bumps it, which is
+    // how an effect that already ran is asked to run once more (`DesktopPdfTextStatus`).
+    val retry = DesktopPdfTextStatus.retryToken
+    LaunchedEffect(tab, key, retry) {
         if (key == null) {
             tab.pdfIndex = null
             tab.pdfIndexKey = null
             return@LaunchedEffect
         }
         if (tab.pdfIndexKey == key && tab.pdfIndex != null) return@LaunchedEffect
-        val index = withContext(Dispatchers.Default) { DesktopPdfIndexCache.load(key) { bytes } }
+        if (bytes == null) {
+            // A reference whose bytes cannot be read is a failed read, not a PDF without text: the slot
+            // then offers the retry instead of calling the document a scan.
+            DesktopPdfTextStatus.failed(key, "the file could not be read")
+            return@LaunchedEffect
+        }
+        DesktopPdfTextStatus.indexing(key)
+        val index = withContext(Dispatchers.Default) {
+            runCatching { DesktopPdfIndexCache.load(key) { bytes } }.getOrNull()
+        }
+        if (index == null) {
+            DesktopPdfTextStatus.failed(key, "the PDF could not be parsed")
+            return@LaunchedEffect
+        }
         tab.pdfIndex = index
         tab.pdfIndexKey = key
+        DesktopPdfTextStatus.ready(key)
     }
 }

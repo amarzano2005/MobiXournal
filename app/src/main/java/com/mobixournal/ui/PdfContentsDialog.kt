@@ -45,8 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
-import com.mobixournal.format.model.Background
-import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.pdfSheetInView
 import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfOutlineEntry
 import com.mobixournal.render.PdfOutlineView
@@ -196,19 +195,10 @@ private fun ContentsFilter(query: String, onQuery: (String) -> Unit, onClear: ()
 internal fun PdfContentsLane(pane: PaneState, onGoToPdfPage: (Int) -> Unit) {
     PdfContentsButton(
         outline = pane.outline,
-        currentPdfPage = pane.surface?.pdfPageInView(),
+        currentPdfPage = pane.surface?.pdfSheetInView(),
         onGoToPdfPage = onGoToPdfPage,
     )
 }
-
-/**
- * The **PDF** sheet number the page in view shows, or null when that page shows no PDF at all.
- *
- * It is the page index a PDF's outline names, not the document's own index: a merged import renumbers the
- * pages it appends, so "where am I, in the file's own words?" has to be asked of the background.
- */
-internal fun DrawingSurfaceView.pdfPageInView(): Int? =
-    (doc.pages.getOrNull(currentPageIndex())?.background as? Background.Pdf)?.pageNo
 
 /** The widest page number the card will print — the number its column is reserved from. */
 private fun largestPageNumber(outline: PdfOutline): Int =

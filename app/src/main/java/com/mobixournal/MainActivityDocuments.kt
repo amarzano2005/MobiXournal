@@ -25,6 +25,7 @@ import com.mobixournal.render.ImageImport
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PdfImport
 import com.mobixournal.render.PdfAnalysisJobs
+import com.mobixournal.render.PdfTextStatus
 import com.mobixournal.render.blankDocument
 import com.mobixournal.render.PdfOutlineCache
 import com.mobixournal.render.PdfOutlineExtractor
@@ -620,13 +621,22 @@ internal fun MainActivity.analyzePdfInBackground(file: File, into: DrawingSurfac
     val cachedText = PdfTextIndexCache.get(file)
     val cachedOutline = PdfOutlineCache.get(file)
     if (cachedText != null && cachedOutline != null) {
+        PdfTextStatus.ready(file)
         view.setPdfTextIndex(cachedText)
         view.setPdfOutline(cachedOutline)
         return
     }
+    PdfTextStatus.indexing(file)
     pdfAnalysis.request(file, cachedText, cachedOutline) { result ->
-        PdfTextIndexCache.put(file, result.text)
-        PdfOutlineCache.put(file, result.outline)
+        // A failed walk is **not** cached: the next attempt must read the bytes again rather than be handed
+        // the empty layers a broken read produced, and the slot's retry depends on exactly that.
+        if (result.failure == null) {
+            PdfTextIndexCache.put(file, result.text)
+            PdfOutlineCache.put(file, result.outline)
+            PdfTextStatus.ready(file)
+        } else {
+            PdfTextStatus.failed(file, result.failure)
+        }
         view.post {
             if (view.pdfSourceFile()?.absoluteFile != file.absoluteFile) return@post
             view.setPdfTextIndex(result.text)

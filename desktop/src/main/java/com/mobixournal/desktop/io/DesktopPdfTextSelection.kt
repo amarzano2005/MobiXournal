@@ -9,9 +9,12 @@ import com.mobixournal.format.XoppColor.withAlpha
 import com.mobixournal.format.model.Stroke
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Background
+import com.mobixournal.render.PdfTextAvailability
+import com.mobixournal.render.PdfTextPhase
 import com.mobixournal.render.PdfWord
 import java.awt.Toolkit
 import java.awt.datatransfer.Clipboard
@@ -208,22 +211,108 @@ internal object DesktopPdfTextNotice {
     var text: String? by mutableStateOf(null)
         private set
 
-    /** `No text on this page` — what the slot says when it can select nothing. */
-    fun noText() {
-        text = "No text on this page: it has no PDF text layer."
+    /**
+     * The action the sentence offers, if any: a **Try again** after a failed read, nothing when the sentence
+     * is just news. The band draws it beside the words (`DesktopStatus`).
+     */
+    var retry: (() -> Unit)? by mutableStateOf(null)
+        private set
+
+    /** Say [sentence], with [retry] when the reader can do something about it. */
+    fun show(sentence: String, retry: (() -> Unit)? = null) {
+        text = sentence
+        this.retry = retry
+    }
+
+    /** `No text on this page` — a scan, which is not a failure and offers nothing. */
+    fun noText() = show(PdfTextAvailability.NO_TEXT_SENTENCE)
+
+    /** `Reading this PDF's text…` — the walk is running, so there is nothing to retry. */
+    fun reading() = show(PdfTextAvailability.INDEXING_SENTENCE)
+
+    /** What the slot says when the press landed between the words of a page that has them. */
+    fun missedWord() = show("Press on a word to select it.")
+
+    /**
+     * The page's own state, from the shared `PdfTextAvailability`: a failed read comes with the one action
+     * that helps.
+     */
+    fun unavailable(availability: PdfTextAvailability, onRetry: () -> Unit = {}) {
+        show(
+            sentence = availability.notice(pageShowsPdf = true) ?: PdfTextAvailability.NO_TEXT_SENTENCE,
+            retry = if (availability.canRetry) onRetry else null,
+        )
     }
 
     /** `Copied 4 words` — the confirmation a silent clipboard never gives. */
-    fun copied(words: Int) {
-        text = if (words == 1) "Copied 1 word" else "Copied $words words"
-    }
+    fun copied(words: Int) = show(if (words == 1) "Copied 1 word" else "Copied $words words")
 
     /** `Highlighted 4 words` — the page changed, and the bar says which words it marked. */
-    fun highlighted(words: Int) {
-        text = if (words == 1) "Highlighted 1 word" else "Highlighted $words words"
-    }
+    fun highlighted(words: Int) = show(if (words == 1) "Highlighted 1 word" else "Highlighted $words words")
 
     fun clear() {
         text = null
+        retry = null
     }
+}
+
+/**
+ * **Where the window's PDF text layer stands**, per cache key — the process half the tab cannot hold.
+ *
+ * `DesktopTab.pdfIndex` is the result, and null means both "still being read" and "no text to be had"; this
+ * keeps the difference, plus the reason a broken read broke. It is the window's reflection of the tablet's
+ * `PdfTextStatus`, and both feed the same `PdfTextAvailability` copy so the two shells cannot tell a reader
+ * two different things about one file.
+ *
+ * [retryToken] is how a **Try again** reaches the loader: the effect that reads the index keys on it, so
+ * bumping it re-runs the read after the cache has been told to forget the failed entry.
+ */
+internal object DesktopPdfTextStatus {
+
+    private val entries = mutableStateMapOf<String, PdfTextAvailability>()
+
+    /** Bumped by a retry; the loader's effect keys on it. */
+    var retryToken by mutableStateOf(0)
+        private set
+
+    fun of(key: String?): PdfTextAvailability = key?.let { entries[it] } ?: PdfTextAvailability()
+
+    fun indexing(key: String) {
+        entries[key] = PdfTextAvailability(PdfTextPhase.INDEXING)
+    }
+
+    fun ready(key: String) {
+        entries[key] = PdfTextAvailability(PdfTextPhase.READY)
+    }
+
+    fun failed(key: String, reason: String?) {
+        entries[key] = PdfTextAvailability(PdfTextPhase.FAILED, failure = reason)
+    }
+
+    /** Ask for the read again: the loader is woken, and the failed entry stops answering. */
+    fun retry() {
+        retryToken++
+    }
+}
+
+/**
+ * The slot's answer for [tab]: the phase of the index it is waiting on, and — once the index is there — how
+ * many words **this sheet** holds, which is what separates a digital page from a scan in one document.
+ *
+ * A tab whose page is not a PDF page answers its phase with no words, and the caller says nothing at all: the
+ * slot is about a PDF sheet, not about a notebook.
+ */
+internal fun pdfTextAvailabilityOf(tab: DesktopTab): PdfTextAvailability {
+    val stored = DesktopPdfTextStatus.of(tab.pdfIndexKey)
+    if (stored.phase != PdfTextPhase.READY) return stored
+    val index = tab.pdfIndex ?: return stored
+    val sheet = DesktopPdfTextSelect.pdfPageOf(tab) ?: return stored.copy(wordsOnPage = 0)
+    return stored.copy(wordsOnPage = index.text.words(sheet).size)
+}
+
+/** Forget the cached index and read this tab's PDF again — what the slot's **Try again** does. */
+internal fun DesktopTab.retryPdfIndex() {
+    pdfIndexKey?.let { key -> DesktopPdfIndexCache.forget(key) }
+    pdfIndex = null
+    DesktopPdfTextStatus.retry()
 }
