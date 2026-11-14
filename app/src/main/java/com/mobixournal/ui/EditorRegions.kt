@@ -1410,8 +1410,6 @@ private fun toolbarPagesCallbacks(
         },
         bookmarks = pane.bookmarks,
         onBookmarkPage = { ui.bookmarkPage = it },
-        outline = pane.outline,
-        onGoToPdfPage = { surface?.goToPdfPage(it) },
         // The sheet's graphics ride the page menu, so its style is the page in view's own.
         backgroundStyle = pane.backgroundStyle,
         onBackgroundStyle = { surface?.setPageBackgroundStyle(it) },

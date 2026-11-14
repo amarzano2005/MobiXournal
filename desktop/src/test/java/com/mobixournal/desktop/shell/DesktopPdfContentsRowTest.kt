@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.mobixournal.desktop.io.OutlineRow
+import com.mobixournal.render.OutlineRow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -30,13 +30,14 @@ import org.junit.Test
 class DesktopPdfContentsRowTest {
 
     private val rows = listOf(
-        OutlineRow(title = "Chapter 1", depth = 0, page = 0),
+        OutlineRow(id = "bkm_1", title = "Chapter 1", depth = 0, page = 0),
         OutlineRow(
+            id = "bkm_2",
             title = "1.4.2 The optics of a thin film, measured at grazing incidence with a monochromator",
             depth = 8,
             page = 1233,
         ),
-        OutlineRow(title = "Part II", depth = 1, page = null),
+        OutlineRow(id = "bkm_3", title = "Part II", depth = 1, page = null),
     )
 
     private class Measured(val rowWidths: List<Int>, val rowHeights: List<Int>) {

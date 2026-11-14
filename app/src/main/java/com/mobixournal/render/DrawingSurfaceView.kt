@@ -1074,21 +1074,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         render()
     }
 
-    /**
-     * Scroll to the document page whose PDF background is **PDF** page [pdfPage] (0-based) — the jump
-     * a Contents entry makes. The two numbering schemes agree only by construction, so the page is
-     * found by its `pageNo` rather than assumed to sit at the same index: merging a second PDF in
-     * renumbers every appended page against the joined file, and a desktop-authored `.xopp` may order
-     * its pages however it likes.
-     */
-    fun goToPdfPage(pdfPage: Int) {
-        documentPageForPdfPage(pdfPage)?.let(::goToPage)
-    }
-
-    /** Index of the document page showing PDF page [pdfPage], or null when none does. */
-    internal fun documentPageForPdfPage(pdfPage: Int): Int? =
-        doc.pages.indexOfFirst { (it.background as? Background.Pdf)?.pageNo == pdfPage }.takeIf { it >= 0 }
-
     /** Set the vertical scroll offset to [y] px from the top, clamped (driven by the right-edge scroll thumb). */
     fun scrollToY(y: Float) {
         viewport.scrollToY(y)

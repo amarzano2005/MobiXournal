@@ -16,6 +16,7 @@ import com.mobixournal.desktop.shell.Header
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.OutlineTree
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfOutlineEntry
@@ -48,6 +49,7 @@ internal object DesktopPdfFixture {
         pages: Int = 1,
         words: List<List<PdfWord>> = listOf(LINE),
         outline: PdfOutline = PdfOutline.EMPTY,
+        outlineTree: OutlineTree = OutlineTree.EMPTY,
     ): DesktopTab {
         val model = Document(
             pages = (0 until pages).map { index ->
@@ -62,8 +64,12 @@ internal object DesktopPdfFixture {
                         domain = "absolute",
                     ),
                     layers = listOf(Layer(emptyList())),
+                    // A document that carries a Contents tree came from a `.mobix`, where pages have ids —
+                    // and a `page` target is meaningless without them, so the two arrive together.
+                    id = if (outlineTree.isEmpty) null else "pg_${index + 1}",
                 )
             },
+            outline = outlineTree,
         )
         val file = File(dir, "fixture.xopp")
         val document = DesktopDocument(

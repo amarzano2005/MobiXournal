@@ -163,23 +163,21 @@ for this verb to bypass: it writes where every other stroke writes.
 ## PDF Contents (the outline)
 
 **PDF Contents (the outline).** The same worker that extracts the text layer also reads the PDF's
-**`/Outlines` bookmark tree** (`PdfOutlineExtractor`, PDFBox's `PDOutlineItem.findDestinationPage`),
-turning it into a flat, Android-free `PdfOutline` of `PdfOutlineEntry(title, pageIndex, depth)` rows.
-The two walks are done in one pass on purpose — they load and parse the same bytes — and both results
-are cached by file (`PdfOutlineCache` mirrors `PdfTextIndexCache`), so mirroring a document into the
-second pane reuses them instead of walking the PDF twice. A destination-less entry inherits the page
-of its nearest descendant that has one, so a chapter header still leads to the chapter's first page;
-an entry that points nowhere at all is shown but not tappable. `setPdfOutline` publishes the outline
-to the chrome through `onPdfOutlineChanged` (pane state), and the page list lane's foot grows a
-**Contents** glyph (`PdfContentsButton`) that opens `PdfContentsDialog` — an indented, page-numbered
-list that folds its chapters and filters by title (`PdfOutlineView`). A tap calls `goToPdfPage`, which picks the page by `Background.Pdf.pageNo` rather than by index
-(a merged PDF renumbers every appended page, and a desktop-authored file may order them freely).
+**`/Outlines` bookmark tree** (`PdfOutlineExtractor`, PDFBox's `PDOutlineItem.findDestinationPage`), and
+both results are cached by file (`PdfOutlineCache` mirrors `PdfTextIndexCache`), so a second pane reuses
+them instead of walking the PDF twice. An entry with no destination inherits the page of its nearest
+descendant that has one; one that points nowhere is shown but not tappable. `setPdfOutline` publishes it
+to the chrome (`onPdfOutlineChanged`), and the page list lane's foot grows a **Contents** glyph
+(`PdfContentsButton`) opening `PdfContentsDialog` — an indented, page-numbered list that folds its chapters
+and filters by title (`PdfOutlineView`). Where a row goes is resolved once for both shells
+(`OutlineResolution`): the document's own tree when it has one, the PDF's outline otherwise, each row an
+`OutlineRow` naming a **document** page — a `sheet` target found by which page shows that sheet (never an
+offset), a `page` target by the page's `.mobix` id — and a target that finds nothing is drawn, dimmed and
+not tappable, because a stale bookmark must not open its neighbour. A tap is a plain `goToPage`.
 
-**What is live today is navigation only**: the `.xopp` format has nowhere to keep a bookmark tree, so the
-outline is read from the PDF and the file is untouched by it — the same reasoning that keeps desktop
-Xournal++'s PDF text selection out of the saved document. The window's **Contents** section (`PageSidebar`,
-under the layers) prints the same rows, indented by depth, only when opened, and resolves a click through
-`Background.Pdf.pageNo` — never an offset — so a merged PDF still lands on the right page.
+**Reading a PDF's index still writes nothing**: the file is untouched by it — the same reasoning that keeps
+desktop Xournal++'s PDF text selection out of the saved document. The window's **Contents** section
+(`PageSidebar`, under the layers) prints the same rows, only when opened, and marks the page it shows.
 
 **Planned: the tree becomes the notebook's.** A manifest key `outline` ([mobix-data-model.md](mobix-data-model.md) → *The outline tree*) keeps a `bkm_` id per node, an explicit order and one target — `sheet` (the PDF page an imported row already means) or `page` (a page id, so paper is bookmarkable) — and a target that stops resolving leaves its row un-tappable rather than aiming at a neighbour.
 

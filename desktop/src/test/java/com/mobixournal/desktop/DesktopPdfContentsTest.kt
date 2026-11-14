@@ -1,13 +1,16 @@
 package com.mobixournal.desktop
 
-import com.mobixournal.desktop.io.OutlineRow
 import com.mobixournal.desktop.io.contentsRowsOf
-import com.mobixournal.desktop.io.outlineRows
 import com.mobixournal.desktop.io.visibleContentsRows
+import com.mobixournal.render.OutlineResolution
+import com.mobixournal.render.OutlineRow
 import com.mobixournal.desktop.shell.Header
 
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.OutlineNode
+import com.mobixournal.format.model.OutlineTarget
+import com.mobixournal.format.model.OutlineTree
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfOutlineEntry
@@ -56,7 +59,7 @@ class DesktopPdfContentsTest {
 
     @Test
     fun `rows keep the outline's order and indentation`() {
-        val rows = outlineRows(outline, listOf(pdfPage(0, carriesReference = true), pdfPage(1)))
+        val rows = OutlineResolution.rows(outline, listOf(pdfPage(0, carriesReference = true), pdfPage(1)))
         assertEquals(listOf("Chapter 1", "Section 1.1", "Header only"), rows.map { it.title })
         assertEquals(listOf(0, 1, 1), rows.map { it.depth })
     }
@@ -65,20 +68,20 @@ class DesktopPdfContentsTest {
     fun `a row leads to the document page showing that sheet, not to its index`() {
         // Two plain sheets first: the PDF's page 0 is the document's page 2.
         val pages = listOf(plainPage(), plainPage(), pdfPage(0, carriesReference = true), pdfPage(1))
-        val rows = outlineRows(outline, pages)
+        val rows = OutlineResolution.rows(outline, pages)
         assertEquals(2, rows[0].page)
         assertEquals(3, rows[1].page)
     }
 
     @Test
     fun `an entry that names no page is listed but not jumpable`() {
-        val rows = outlineRows(outline, listOf(pdfPage(0, carriesReference = true)))
+        val rows = OutlineResolution.rows(outline, listOf(pdfPage(0, carriesReference = true)))
         assertNull(rows.last().page)
     }
 
     @Test
     fun `a sheet no page shows is not jumpable either`() {
-        val rows = outlineRows(outline, listOf(plainPage()))
+        val rows = OutlineResolution.rows(outline, listOf(plainPage()))
         assertEquals(listOf(null, null, null), rows.map { it.page })
     }
 
@@ -125,7 +128,7 @@ class DesktopPdfContentsTest {
     @Test
     fun `the row naming the sheet in view is marked, with the page mapped to the document`() {
         val pages = listOf(plainPage(), pdfPage(0, carriesReference = true), pdfPage(1))
-        val rows = visibleContentsRows(duplicated, pages, currentPdfPage = 1)
+        val rows = visibleContentsRows(duplicated, pages, currentPage = 2)
         assertEquals("the second chapter names sheet 1", listOf(false, false, true, false), rows.map { it.current })
         assertEquals("and it points at the document's page 2", 2, rows[2].page)
     }
@@ -144,6 +147,44 @@ class DesktopPdfContentsTest {
             assertTrue("the filter still finds the section", rows.isNotEmpty())
             assertEquals("browsing is reading, not editing", before, tab.document.edits)
             assertFalse("and it records no undo step", tab.canUndo)
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The tree a reader edits outranks the file's own outline — and each kind of target resolves on its own
+     * terms: a sheet by which page shows it, a page id by identity, and a page that is gone by saying so
+     * rather than by pointing at its neighbour.
+     */
+    @Test
+    fun `a document with its own tree lists the tree, with both kinds of target resolved`() {
+        val tab = DesktopPdfFixture.tab(
+            temp.root,
+            pages = 2,
+            outline = DesktopPdfFixture.outline(),
+            outlineTree = OutlineTree(
+                nodes = listOf(
+                    OutlineNode("bkm_1", "My chapter", OutlineTarget.Sheet(1)),
+                    OutlineNode("bkm_2", "My page", OutlineTarget.Page("pg_2")),
+                    OutlineNode("bkm_3", "A page I deleted", OutlineTarget.Page("pg_gone")),
+                ),
+            ),
+        )
+        try {
+            val rows = contentsRowsOf(tab)
+
+            assertEquals(
+                "the notebook's index, not the PDF's",
+                listOf("My chapter", "My page", "A page I deleted"),
+                rows.map { it.title },
+            )
+            assertEquals(
+                "a sheet resolves to the page showing it, an id to that page, and a dead id to nothing",
+                listOf(1, 1, null),
+                rows.map { it.page },
+            )
+            assertEquals("and the id is the row's identity", listOf("bkm_1", "bkm_2", "bkm_3"), rows.map { it.id })
         } finally {
             tab.document.close()
         }

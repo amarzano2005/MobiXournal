@@ -45,26 +45,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
-import com.mobixournal.render.pdfSheetInView
-import com.mobixournal.render.PdfOutline
-import com.mobixournal.render.PdfOutlineEntry
+import com.mobixournal.render.OutlineResolution
+import com.mobixournal.render.OutlineRow
 import com.mobixournal.render.PdfOutlineView
-import com.mobixournal.render.PdfOutlineVisible
 
 /**
- * The **Contents** door, as the page list's own: one glyph at the lane's foot, the PDF's outline behind it.
+ * The **Contents** door, as the page list's own: one glyph at the lane's foot, the notebook's index behind it.
  *
  * It stands with the page commands because that is what it is — a way of jumping between pages — and it is
- * no longer a row of the Pages menu, which is about the page in front of you. A document with no outline
- * draws no button at all rather than a dead one, so the lane's foot says only what the file can do.
+ * no longer a row of the Pages menu, which is about the page in front of you. A document whose index is empty
+ * draws no button at all rather than a dead one, so the lane's foot says only what the document can do.
  */
 @Composable
 internal fun PdfContentsButton(
-    outline: PdfOutline?,
-    currentPdfPage: Int?,
-    onGoToPdfPage: (Int) -> Unit,
+    rows: List<OutlineRow>,
+    currentPage: Int?,
+    onGoToPage: (Int) -> Unit,
 ) {
-    if (outline == null || outline.entries.isEmpty()) return
+    if (rows.isEmpty()) return
     var open by remember { mutableStateOf(false) }
     IconButton(onClick = { open = true }, modifier = Modifier.size(34.dp)) {
         Icon(
@@ -76,12 +74,12 @@ internal fun PdfContentsButton(
     }
     DialogPresence(open) {
         // The tree survives the flag: closing clears `open`, and the dialog is still on its way out.
-        val tree = rememberClosingArgument(outline)
+        val tree = rememberClosingArgument(rows)
         if (tree != null) {
             PdfContentsDialog(
-                outline = tree,
-                currentPdfPage = currentPdfPage,
-                onGoToPdfPage = onGoToPdfPage,
+                rows = tree,
+                currentPage = currentPage,
+                onGoToPage = onGoToPage,
                 onDismiss = { open = false },
             )
         }
@@ -89,13 +87,14 @@ internal fun PdfContentsButton(
 }
 
 /**
- * A PDF's **Contents** — the outline bookmark tree the file carries — as a filterable, expandable list,
- * opened from the page list's foot ([PdfContentsButton]) of a document with a PDF background.
+ * The document's **Contents** — its own index, or the source PDF's outline while it has none — as a
+ * filterable, expandable list, opened from the page list's foot ([PdfContentsButton]) of a document that has
+ * one.
  *
- * The tree comes straight from the file (`PdfOutlineExtractor`), so it is the same table of contents
- * desktop Xournal++ or any PDF reader would show, and it travels with the document rather than being
- * app-side state. Tapping a row jumps the canvas to the page that entry names; a row with no destination of
- * its own — a chapter header that only groups sections — is shown but not tappable.
+ * The rows arrive **resolved** ([OutlineResolution]): each one already knows the document page it opens, so a
+ * tap is a page jump rather than a search for a sheet number, and a row whose page is gone is shown but not
+ * tappable. That also made the notebook's own bookmarks reachable here without changing this card: a `page`
+ * target and a `sheet` target are the same row to a reader.
  *
  * **A long book needs two controls, and they must not fight.** A chapter's chevron closes it, so a thousand
  * bookmarks become a list a thumb can travel; the filter finds a section by name, showing the chapters above
@@ -105,16 +104,14 @@ internal fun PdfContentsButton(
  */
 @Composable
 internal fun PdfContentsDialog(
-    outline: PdfOutline,
-    currentPdfPage: Int?,
-    onGoToPdfPage: (Int) -> Unit,
+    rows: List<OutlineRow>,
+    currentPage: Int?,
+    onGoToPage: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var query by remember(outline) { mutableStateOf("") }
-    var collapsed by remember(outline) { mutableStateOf(emptySet<Int>()) }
-    val rows = PdfOutlineView.visible(outline.entries, collapsed, query)
-    val branches = remember(outline) { PdfOutlineView.branchRows(outline.entries) }
-    val current = PdfOutlineView.currentRow(outline.entries, currentPdfPage)
+    var query by remember(rows) { mutableStateOf("") }
+    var collapsed by remember(rows) { mutableStateOf(emptySet<Int>()) }
+    val shown = PdfOutlineView.visible(rows, collapsed, query, currentPage)
     FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Contents") },
@@ -127,7 +124,7 @@ internal fun PdfContentsDialog(
                     onClear = { query = "" },
                 )
                 Spacer(Modifier.height(8.dp))
-                if (rows.isEmpty()) {
+                if (shown.isEmpty()) {
                     Text(
                         text = "No contents match \"${query.trim()}\"",
                         style = MaterialTheme.typography.bodyMedium,
@@ -138,19 +135,16 @@ internal fun PdfContentsDialog(
                 // The row's own width, not the screen's: in a split-screen pane the card is what the list has.
                 BoxWithConstraints {
                     val widthDp = maxWidth.value
-                    val widest = largestPageNumber(outline)
+                    val widest = largestPageNumber(rows)
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                        items(rows, key = { it.row }) { row ->
+                        items(shown, key = { it.row }) { row ->
                             ContentsRow(
-                                visible = row,
-                                branched = row.row in branches,
-                                expanded = row.row !in collapsed,
-                                current = row.row == current,
+                                row = row,
                                 rowWidthDp = widthDp,
                                 largestPageNumber = widest,
                                 onToggle = { collapsed = PdfOutlineView.toggled(collapsed, row.row) },
                                 onClick = {
-                                    onGoToPdfPage(row.entry.pageIndex)
+                                    row.page?.let(onGoToPage)
                                     onDismiss()
                                 },
                             )
@@ -188,21 +182,31 @@ private fun ContentsFilter(query: String, onQuery: (String) -> Unit, onClear: ()
 }
 
 /**
- * The Contents door for a **pane**: its outline, plus the sheet the page in view shows, so the card can mark
- * the row the reader already stands on.
+ * The Contents door for a **pane**: the document's index resolved against its own pages, plus the page in
+ * view, so the card can mark the row the reader already stands on.
+ *
+ * Resolved from the canvas's document rather than from the PDF alone, which is what lets a bookmark on an
+ * ordinary sheet appear here at all — and re-resolved when the document changes, since a page deleted or
+ * moved turns a row into one that leads nowhere.
  */
 @Composable
-internal fun PdfContentsLane(pane: PaneState, onGoToPdfPage: (Int) -> Unit) {
+internal fun PdfContentsLane(pane: PaneState, onGoToPage: (Int) -> Unit) {
+    val surface = pane.surface
+    val rows = remember(surface, pane.documentVersion, pane.outline) {
+        surface?.let { OutlineResolution.rowsOf(it.doc.outline, pane.outline, it.doc.pages) }.orEmpty()
+    }
     PdfContentsButton(
-        outline = pane.outline,
-        currentPdfPage = pane.surface?.pdfSheetInView(),
-        onGoToPdfPage = onGoToPdfPage,
+        rows = rows,
+        // The pane's own page state, not a fresh read of the canvas: it is what recomposes when the reader
+        // scrolls or a row is followed, so the mark moves with them instead of staying where the card opened.
+        currentPage = pane.currentPage,
+        onGoToPage = onGoToPage,
     )
 }
 
 /** The widest page number the card will print — the number its column is reserved from. */
-private fun largestPageNumber(outline: PdfOutline): Int =
-    outline.entries.maxOfOrNull { if (it.hasDestination) it.pageIndex + 1 else 0 } ?: 0
+private fun largestPageNumber(rows: List<OutlineRow>): Int =
+    rows.maxOfOrNull { if (it.hasDestination) it.page!! + 1 else 0 } ?: 0
 
 /**
  * One Contents row: its chevron, its title indented by depth, and the page it leads to in a column of its own.
@@ -215,39 +219,35 @@ private fun largestPageNumber(outline: PdfOutline): Int =
  */
 @Composable
 private fun ContentsRow(
-    visible: PdfOutlineVisible,
-    branched: Boolean,
-    expanded: Boolean,
-    current: Boolean,
+    row: OutlineRow,
     rowWidthDp: Float,
     largestPageNumber: Int,
     onToggle: () -> Unit,
     onClick: () -> Unit,
 ) {
-    val entry = visible.entry
     val pageColumnDp = ContentsRowLayout.pageColumnDp(
         largestPageNumber = largestPageNumber,
         rowWidthDp = rowWidthDp,
         fontScale = LocalDensity.current.fontScale,
     )
-    val heading = ContentsRowLayout.isHeading(entry.depth)
-    val number = (entry.pageIndex + 1).takeIf { entry.hasDestination }
+    val heading = ContentsRowLayout.isHeading(row.depth)
+    val number = row.page?.plus(1)
     val ink = when {
-        visible.context -> MaterialTheme.colorScheme.onSurfaceVariant
-        entry.hasDestination -> MaterialTheme.colorScheme.onSurface
+        row.context -> MaterialTheme.colorScheme.onSurfaceVariant
+        row.hasDestination -> MaterialTheme.colorScheme.onSurface
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = entry.hasDestination, role = Role.Button, onClick = onClick)
+            .clickable(enabled = row.hasDestination, role = Role.Button, onClick = onClick)
             // One announcement for the whole row: a title, a page and whether it opens at all, instead of a
             // title with a lone number beside it and a click that may do nothing.
             .semantics(mergeDescendants = true) {
-                contentDescription = ContentsRowLayout.announcement(entry.title, number)
+                contentDescription = ContentsRowLayout.announcement(row.title, number)
             }
             .padding(
-                start = ContentsRowLayout.indentDp(entry.depth, rowWidthDp, pageColumnDp).dp,
+                start = ContentsRowLayout.indentDp(row.depth, rowWidthDp, pageColumnDp).dp,
                 top = 2.dp,
                 bottom = 2.dp,
             ),
@@ -255,9 +255,9 @@ private fun ContentsRow(
         // contents whose figures float between the lines is a table of contents nobody can scan.
         verticalAlignment = Alignment.Top,
     ) {
-        ContentsChevron(branched = branched, expanded = expanded, title = entry.title, onToggle = onToggle)
+        ContentsChevron(branched = row.branch, expanded = row.expanded, title = row.title, onToggle = onToggle)
         Text(
-            text = entry.title,
+            text = row.title,
             style = if (heading) {
                 MaterialTheme.typography.titleSmall
             } else {
@@ -266,7 +266,7 @@ private fun ContentsRow(
             // Inter ships 400, 500 and 700 (`TypeContractGuardTest`): the heading step is the larger face
             // plus the one weight the theme owns, not a 600 the family answers with 700.
             fontWeight = if (heading) FontWeight.Medium else FontWeight.Normal,
-            color = if (current) MaterialTheme.colorScheme.primary else ink,
+            color = if (row.current) MaterialTheme.colorScheme.primary else ink,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),

@@ -64,14 +64,6 @@ data class ToolbarPagesCallbacks(
     /** Open the bookmark editor for a page — adding one, or editing/deleting the one it has. */
     val onBookmarkPage: (Int) -> Unit = {},
     /**
-     * The backing PDF's Contents tree (its bookmark outline), or null when there is no PDF or the
-     * PDF has none. Read off the file by `PdfOutlineExtractor`; it is navigation the *file* carries,
-     * so unlike [bookmarks] it travels with the PDF rather than living in the app stores.
-     */
-    val outline: PdfOutline? = null,
-    /** Jump to the page a Contents entry names — a **PDF** page index, resolved by the canvas. */
-    val onGoToPdfPage: (Int) -> Unit = {},
-    /**
      * The page in view's paper style (`plain`, `lined`, `graph`, …), or null on a PDF/pixmap page that
      * has no solid sheet to re-rule. Drives the Pages menu's **Sheet** section, which is where the rail's
      * retired Background slot went.

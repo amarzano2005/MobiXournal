@@ -14,20 +14,26 @@ import org.junit.Test
  * its matches as context and never touches the collapse state, so clearing the box restores the tree; and
  * the row the reader is standing on is found by **destination**, with a destination-less header naming
  * nothing at all.
+ *
+ * The rows arrive resolved (`OutlineResolution`) — the `page` here is a document page, which is exactly what
+ * the view is handed in both shells.
  */
 class PdfOutlineViewTest {
+
+    private fun row(title: String, page: Int?, depth: Int, index: Int) =
+        OutlineRow(id = "bkm_$index", title = title, depth = depth, page = page, row = index)
 
     /**
      * Chapters "Introduction" and "Introduction" again — the duplicate title — each with a section, plus a
      * header that names no page.
      */
     private val entries = listOf(
-        PdfOutlineEntry("Introduction", 0, 0),
-        PdfOutlineEntry("Getting started", 0, 1),
-        PdfOutlineEntry("Install", 1, 2),
-        PdfOutlineEntry("Introduction", 3, 0),
-        PdfOutlineEntry("Advanced", 4, 1),
-        PdfOutlineEntry("Header only", PdfOutlineEntry.NO_DESTINATION, 1),
+        row("Introduction", 0, 0, 0),
+        row("Getting started", 0, 1, 1),
+        row("Install", 1, 2, 2),
+        row("Introduction", 3, 0, 3),
+        row("Advanced", 4, 1, 4),
+        row("Header only", null, 1, 5),
     )
 
     @Test
@@ -89,16 +95,22 @@ class PdfOutlineViewTest {
 
     @Test
     fun `the current row is the last one naming the page the reader stands on`() {
-        assertEquals("two bookmarks can share a page, and the later one wins", 1, PdfOutlineView.currentRow(entries, 0))
+        assertEquals("three rows name page 0, and the last of them wins", 1, PdfOutlineView.currentRow(entries, 0))
         assertEquals(3, PdfOutlineView.currentRow(entries, 3))
-        assertEquals("two bookmarks can share a page, and the later one wins", 3, PdfOutlineView.currentRow(entries, 3))
-        assertNull("a sheet no bookmark names is no row at all", PdfOutlineView.currentRow(entries, 9))
+        assertNull("a page no row names is no row at all", PdfOutlineView.currentRow(entries, 9))
         assertNull(PdfOutlineView.currentRow(entries, null))
     }
 
     @Test
+    fun `the row naming the page in view is the one the view marks`() {
+        val rows = PdfOutlineView.visible(entries, currentPage = 4)
+
+        assertEquals("only the last chapter names page 4", listOf(false, false, false, false, true, false), rows.map { it.current })
+    }
+
+    @Test
     fun `a missing destination does not make a header the current row`() {
-        val headersOnly = listOf(PdfOutlineEntry("Header only", PdfOutlineEntry.NO_DESTINATION, 0))
+        val headersOnly = listOf(OutlineRow(id = "bkm_h", title = "Header only", depth = 0, page = null))
         assertNull(PdfOutlineView.currentRow(headersOnly, 0))
         assertFalse(PdfOutlineView.isMatch(headersOnly.single(), "  "))
         assertTrue(PdfOutlineView.isMatch(headersOnly.single(), "only"))
