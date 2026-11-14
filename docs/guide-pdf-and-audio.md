@@ -32,6 +32,19 @@ cannot be used. Under a narrow card or a large text scale the two page fields st
 unrelated lines. Both shells share those size rules, so the window and the tablet answer a cramped place
 the same way.
 
+**The card works without a finger.** `Tab` and `Shift+Tab` walk it top-down — the two page fields, the two
+answers, Cancel, then the confirm button — and `Space` takes whichever answer holds focus, so the range and
+the destination can be set from a keyboard alone, in the window and on a tablet with one attached. `Esc` in
+the window and `Back` on the tablet close the card without importing anything. The focused answer draws a
+ring around itself, so where the next `Space` will land is visible and not guessed.
+
+**A screen reader hears one answer at a time.** Each of the two rows is a single radio choice carrying its
+name and its note as one announcement — *Add to this document. Continues after the pages already open, as
+one step you can undo.* — followed by whether it is the chosen one, instead of a radio button announced on
+top of two unrelated lines of text. Double-tapping a row with TalkBack selects it. A range the file cannot
+use marks both fields red, reads *Pages are numbered 1 to 3* as the fields' error rather than as a stray
+label, and the confirm button greys out, so nothing is entered that could not be imported.
+
 A document holds one PDF. Import a second one onto a document that already has one and the two are merged
 into a single file, so every page's PDF page number still points at the right sheet; the merge and the new
 pages land together, which is what makes undoing it put the document back as it was.

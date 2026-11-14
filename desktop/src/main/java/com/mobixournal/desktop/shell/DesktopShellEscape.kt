@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.io.cancelImportPdf
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.sheet.dismissSelection
 
@@ -31,6 +32,12 @@ internal object WindowEscape {
         // The ring lies over everything it floats over, and nothing exists until it is summoned: whatever it
         // covers, it is the newest surface on screen.
         if (state.ring.dismiss()) return true
+        // The import card is a question standing over the page, so it answers `Esc` like its own Cancel: the
+        // key puts it away and imports nothing, whether the focus is on a page field, an answer or nowhere.
+        if (state.importRequest != null) {
+            state.cancelImportPdf()
+            return true
+        }
         // A question owns `Esc` before anything else: Cancel is the answer that loses nothing.
         if (state.closeRequest != null) {
             state.cancelClose()

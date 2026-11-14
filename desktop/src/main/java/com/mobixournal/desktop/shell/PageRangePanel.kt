@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
@@ -145,13 +146,22 @@ private fun noteFor(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-internal fun PageNumberField(value: String, label: String, onValue: (String) -> Unit) {
+internal fun PageNumberField(
+    value: String,
+    label: String,
+    onValue: (String) -> Unit,
+    /** The sentence that makes this field unusable, if any — carried to a screen reader with the field. */
+    errorText: String? = null,
+) {
     Box(
         Modifier
             .width(64.dp)
             .height(32.dp)
             .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
-            .semantics { contentDescription = label }
+            .semantics {
+                contentDescription = label
+                if (errorText != null) this.error(errorText)
+            }
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart,
     ) {

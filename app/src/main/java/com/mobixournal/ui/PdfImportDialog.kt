@@ -7,20 +7,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ImportCardLayout
@@ -59,9 +58,11 @@ fun ImportPdfDialog(
     onConfirm: (ImportPdfMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var mode by remember(request) { mutableStateOf(request.mode) }
-    val range = request.range
-    val usable = range is PageRangePlan.Pages
+    // The answer lives in the request, not in this composable: the card can be re-laid out (a rotation, a
+    // keyboard, a narrower pane) without forgetting what was picked, and the same field is what the window's
+    // card edits — one place, two shells.
+    val mode = request.mode
+    val usable = request.range is PageRangePlan.Pages
     val scroll = rememberScrollState()
     // The buttons are as cramped as the card: at 150 % text and a split-screen pane, Material's own button
     // flow puts them on two right-aligned lines with no air between them. The card decides instead — a row
@@ -76,56 +77,13 @@ fun ImportPdfDialog(
         text = {
             BoxWithConstraints {
                 val stacked = ImportCardLayout.stacked(maxWidth.value, LocalDensity.current.fontScale)
-                Column(
+                ImportQuestions(
+                    request = request,
+                    merging = merging,
+                    stacked = stacked,
+                    onEdit = onEdit,
                     modifier = Modifier.heightIn(max = maxHeight).verticalScroll(scroll),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // The file, as one block above the questions: its name is the longest thing here and a
-                    // scan can be called anything, so it gets a line of its own to wrap in.
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            request.name,
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            pagesLabel(request.pageCount),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Text(
-                        "Which of its pages, and where should they go?",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    if (stacked) {
-                        StackedRange(request = request, onEdit = onEdit)
-                    } else {
-                        InlineRange(request = request, onEdit = onEdit)
-                    }
-                    if (range is PageRangePlan.Invalid) {
-                        Text(
-                            range.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    FormatOption(
-                        selected = mode == ImportPdfMode.APPEND,
-                        title = "Add to this document",
-                        subtitle = if (merging)
-                            "Continues after the pages already open, merging the two PDFs into this document's one background."
-                        else "Continues after the pages already open, as one step you can undo.",
-                        onClick = { mode = ImportPdfMode.APPEND },
-                    )
-                    FormatOption(
-                        selected = mode == ImportPdfMode.REPLACE,
-                        title = "Replace this document's pages",
-                        subtitle = "The PDF's pages become this document, replacing the pages it has now.",
-                        onClick = { mode = ImportPdfMode.REPLACE },
-                    )
-                }
+                )
             }
         },
         confirmButton = {
@@ -152,6 +110,74 @@ fun ImportPdfDialog(
 }
 
 /**
+ * The scrolling half of the card: the file and its page count, the question, the range with the reader's
+ * refusal under it, and the two answers as one group. It is the dialog's scrollable slot, so whatever height
+ * is left goes here and the buttons keep theirs.
+ */
+@Composable
+private fun ImportQuestions(
+    request: PdfImportPrompt,
+    merging: Boolean,
+    stacked: Boolean,
+    onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val mode = request.mode
+    val invalid = (request.range as? PageRangePlan.Invalid)?.message
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // The file, as one block above the questions: its name is the longest thing here and a scan can be
+        // called anything, so it gets a line of its own to wrap in.
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                request.name,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                pagesLabel(request.pageCount),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            "Which of its pages, and where should they go?",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        if (stacked) {
+            StackedRange(request = request, error = invalid, onEdit = onEdit)
+        } else {
+            InlineRange(request = request, error = invalid, onEdit = onEdit)
+        }
+        if (invalid != null) {
+            Text(
+                invalid,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        // One group, so a screen reader counts the answers ("1 of 2") instead of reading two unrelated
+        // radios that happen to sit together.
+        Column(Modifier.selectableGroup()) {
+            FormatOption(
+                selected = mode == ImportPdfMode.APPEND,
+                title = "Add to this document",
+                subtitle = if (merging)
+                    "Continues after the pages already open, merging the two PDFs into this document's one background."
+                else "Continues after the pages already open, as one step you can undo.",
+                onClick = { onEdit { it.copy(mode = ImportPdfMode.APPEND) } },
+            )
+            FormatOption(
+                selected = mode == ImportPdfMode.REPLACE,
+                title = "Replace this document's pages",
+                subtitle = "The PDF's pages become this document, replacing the pages it has now.",
+                onClick = { onEdit { it.copy(mode = ImportPdfMode.REPLACE) } },
+            )
+        }
+    }
+}
+
+/**
  * The card's footer when a row would not fit: the answer that commits on its own line, Cancel a plain word
  * under it. Both full width, so a long answer label (*Replace this document's pages*'s button) is never
  * squeezed and neither button is clipped by the window's edge.
@@ -175,6 +201,7 @@ private fun StackedActions(
 @Composable
 private fun InlineRange(
     request: PdfImportPrompt,
+    error: String?,
     onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
 ) {
     Row(
@@ -184,6 +211,7 @@ private fun InlineRange(
         PageField(
             value = request.first,
             label = "First page",
+            error = error,
             onValue = { typed -> onEdit { it.copy(first = typed) } },
             modifier = Modifier.weight(1f),
         )
@@ -191,6 +219,7 @@ private fun InlineRange(
         PageField(
             value = request.last,
             label = "Last page",
+            error = error,
             onValue = { typed -> onEdit { it.copy(last = typed) } },
             modifier = Modifier.weight(1f),
         )
@@ -201,18 +230,21 @@ private fun InlineRange(
 @Composable
 private fun StackedRange(
     request: PdfImportPrompt,
+    error: String?,
     onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PageField(
             value = request.first,
             label = "First page",
+            error = error,
             onValue = { typed -> onEdit { it.copy(first = typed) } },
             modifier = Modifier.fillMaxWidth(),
         )
         PageField(
             value = request.last,
             label = "Last page",
+            error = error,
             onValue = { typed -> onEdit { it.copy(last = typed) } },
             modifier = Modifier.fillMaxWidth(),
         )
@@ -223,6 +255,10 @@ private fun StackedRange(
  * One typed page number: digits only, so the range reader never has to explain a letter. When the keyboard
  * opens over it the body scrolls it back into view — the card is the dialog's scrolling slot, so the focus
  * request moves the content rather than a cut-off edge.
+ *
+ * A field the range reader has refused carries its `error` both as the field's own error state — so a screen
+ * reader says "error" and reads the sentence with the field it belongs to — and as the one visible message
+ * under the pair, never twice.
  */
 @Composable
 private fun PageField(
@@ -230,13 +266,17 @@ private fun PageField(
     label: String,
     onValue: (String) -> Unit,
     modifier: Modifier = Modifier,
+    error: String? = null,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = { typed -> onValue(typed.filter { it.isDigit() }.take(6)) },
         label = { Text(label) },
         singleLine = true,
-        modifier = modifier,
+        isError = error != null,
+        modifier = modifier.then(
+            if (error == null) Modifier else Modifier.semantics { this.error(error) }
+        ),
     )
 }
 

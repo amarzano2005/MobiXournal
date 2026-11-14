@@ -17,6 +17,7 @@ import com.mobixournal.render.PageRanges
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -32,21 +33,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.desktop.shell.WindowKeys
 import com.mobixournal.render.ImportPdfMode
 
 /**
@@ -79,7 +87,9 @@ internal fun ImportPdfDialog(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var picked by remember(request) { mutableStateOf(request.mode) }
+    // The answer lives in the request, like the tablet's, so it survives a re-layout and the same field is
+    // what both shells read when the card is confirmed.
+    val picked = request.mode
     val range = request.range
     val usable = range is PageRangePlan.Pages
     val scroll = rememberScrollState()
@@ -113,7 +123,10 @@ internal fun ImportPdfDialog(
                 )
                 if (request.chooseMode) {
                     Spacer(Modifier.height(14.dp))
-                    ModeChoices(picked = picked, onPick = { picked = it })
+                    ModeChoices(
+                        picked = picked,
+                        onPick = { mode -> onEdit { it.copy(mode = mode) } },
+                    )
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -194,12 +207,14 @@ private fun RangeSection(
                 label = "First page",
                 value = request.first,
                 field = "First page to import",
+                errorText = invalidMessage,
                 onValue = { typed -> onEdit { it.copy(first = typed) } },
             )
             RangeLine(
                 label = "Last page",
                 value = request.last,
                 field = "Last page to import",
+                errorText = invalidMessage,
                 onValue = { typed -> onEdit { it.copy(last = typed) } },
             )
             Text("of ${request.pageCount}", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
@@ -211,6 +226,7 @@ private fun RangeSection(
             PageNumberField(
                 value = request.first,
                 label = "First page to import",
+                errorText = invalidMessage,
                 onValue = { typed -> onEdit { it.copy(first = typed) } },
             )
             Spacer(Modifier.width(8.dp))
@@ -219,6 +235,7 @@ private fun RangeSection(
             PageNumberField(
                 value = request.last,
                 label = "Last page to import",
+                errorText = invalidMessage,
                 onValue = { typed -> onEdit { it.copy(last = typed) } },
             )
             Spacer(Modifier.width(10.dp))
@@ -237,18 +254,28 @@ private fun RangeSection(
 
 /** One field with its word in front, for a card too narrow (or too large-typed) to hold both. */
 @Composable
-private fun RangeLine(label: String, value: String, field: String, onValue: (String) -> Unit) {
+private fun RangeLine(
+    label: String,
+    value: String,
+    field: String,
+    onValue: (String) -> Unit,
+    errorText: String? = null,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
         Spacer(Modifier.width(10.dp))
-        PageNumberField(value = value, label = field, onValue = onValue)
+        PageNumberField(value = value, label = field, errorText = errorText, onValue = onValue)
     }
 }
 
 /** The two answers, with the accent and the mark on the one that keeps the work. */
 @Composable
 private fun ModeChoices(picked: ImportPdfMode, onPick: (ImportPdfMode) -> Unit) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    // One group, so a screen reader counts the answers ("1 of 2") instead of reading two unrelated radios.
+    Column(
+        Modifier.fillMaxWidth().selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         ImportModeRow(
             title = "Add to this document",
             note = "Continues after the page in view, as one step you can undo.",
@@ -277,10 +304,24 @@ private fun confirmLabel(mode: ImportPdfMode): String = when (mode) {
     ImportPdfMode.REPLACE -> "Open in a new tab"
 }
 
-/** One answer of [ImportPdfDialog]: its name, its sentence, and the mark that says it is the picked one. */
-@OptIn(ExperimentalComposeUiApi::class)
+/**
+ * One answer of [ImportPdfDialog]: its name, its sentence, and the mark that says it is the picked one.
+ *
+ * It is a **radio**, not a row that watches for taps: `selectable` gives it the radio's role and its
+ * selected state in the semantics tree (so a screen reader reads the answer, the sentence and whether it is
+ * the picked one), makes it reachable with Tab, and answers Space and Enter the way every other radio does.
+ * [WindowKeys.focusControl] tells the window that this control owns Enter, Space and the arrows while it is
+ * focused, so pressing Space selects the answer instead of panning the page behind the card.
+ *
+ * The focus ring is drawn on the row's own rim in the accent, the same way the Settings rows draw theirs —
+ * a keyboard reader has to be able to see which of the two answers is about to be taken.
+ */
 @Composable
 private fun ImportModeRow(title: String, note: String, picked: Boolean, onPick: () -> Unit) {
+    val interactions = remember { MutableInteractionSource() }
+    var focused by remember { mutableStateOf(false) }
+    val owner = remember { Any() }
+    DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
     Row(
         Modifier
             .fillMaxWidth()
@@ -289,7 +330,23 @@ private fun ImportModeRow(title: String, note: String, picked: Boolean, onPick: 
                 active = picked,
                 base = if (picked) DesktopTheme.activeSlot else Color.Transparent,
             )
-            .pointerInput(title) { detectTapGestures { onPick() } }
+            .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, DesktopTheme.railSlotShape)
+            .onFocusChanged {
+                focused = it.isFocused
+                WindowKeys.focusControl(owner, it.isFocused)
+            }
+            .selectable(
+                selected = picked,
+                interactionSource = interactions,
+                indication = null,
+                role = Role.RadioButton,
+                onClick = onPick,
+            )
+            // The whole answer reads as one sentence to a screen reader — name, then its note — instead of
+            // the two text runs and a radio between them.
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$title. $note"
+            }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
