@@ -283,10 +283,10 @@ closed **in split view** is one card wearing that glyph, naming both halves, bec
 workspace. Three cards to a line when the width is there and one when it is not. It is the PC window's
 screen, whose design [`desktop-ui-layout.md`](desktop-ui-layout.md) owns: same tokens, no rim, no fill.
 
-Closing the last tab leaves the pane **empty** rather than opening a blank document — that is what
-makes "nothing open" a state at all. Each card carries a red `×` on its corner that takes it out of the recents, and the
-session the last run left open is offered here rather than reopened at launch
-([`document-session.md`](document-session.md) owns that offer). Faces are written at open, so the screen reads a PNG (`EntryPreviews`), and the list holds six, de-duplicated by URI.
+Closing the last tab leaves the pane **empty** rather than opening a blank document — that is what makes
+"nothing open" a state at all — except in split view, where the half closes into a clean sheet instead. Each
+card carries a red `×` on its corner that takes it out of the recents, and the session the last run left open is
+offered here rather than reopened at launch ([`document-session.md`](document-session.md) owns that offer). Faces are written at open, so the screen reads a PNG (`EntryPreviews`), and the list holds six, de-duplicated by URI.
 
 The two states **hand the window over** rather than swap in place: whichever surface arrives grows in from
 94 % on the app's spring and fades over 160 ms, so opening a notebook reads as a page landing on the desk

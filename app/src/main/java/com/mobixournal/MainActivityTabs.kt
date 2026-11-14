@@ -293,9 +293,13 @@ internal fun MainActivity.reorderTab(from: Int, to: Int, p: EditorPane = pane) {
 }
 
 /**
- * Close [p]'s tab at [index]. Closing the **last** one leaves the pane empty, and the window shows the
- * entry screen: a fresh blank document here is what made "nothing open" a state the app could never be
- * in. The canvas is only reloaded when the *showing* tab actually changed.
+ * Close [p]'s tab at [index]. The canvas is only reloaded when the *showing* tab actually changed.
+ *
+ * Closing the **last** tab of a pane is two different situations. In split view the half is never left
+ * empty: the reader is working on two documents, so the last tab closes into a clean sheet in that half
+ * rather than into the entry screen, which would take the workspace away from a tap that only meant "done
+ * with this one". In single-pane mode it leaves the pane empty on purpose — that is what makes "nothing
+ * open" a state the app can be in, and what the entry screen is for.
  */
 internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     audioWork.cancelPlayback()
@@ -315,6 +319,8 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     if (p.tabs.tabs.getOrNull(index)?.id == recordingTabId) stopRecordingTake()
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
+    // A half of a split closes into a sheet of its own (see this function's note).
+    if (splitView.value && p.tabs.isEmpty) p.tabs.open(blankTab(p))
     // A document's stack outlives a tab switch, so it goes only when the **last** view of it closes — asked of
     // every pane, because the other half of a split may still be showing the same document.
     DocumentSessions.shared.retain(panes.flatMap { pane -> pane.tabs.tabs.map { it.docKey } }.toSet())
