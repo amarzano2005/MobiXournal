@@ -176,6 +176,76 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "pdf-import-destination-labels"
+title = "Name the actual destination in PDF import choices"
+description = "In Android PdfImportDialog and desktop ImportPdfDialog match each English option to its command: appending, replacing the current pages on Android, or opening a new tab on desktop. Desktop currently calls the last choice Replace this document. Group the filename and page count above the range and destination, allow long names to wrap, and use the chosen action as the confirm label. Verify all command paths, including a desktop import without a mode chooser. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 111
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-import-responsive-layout"
+title = "Keep PDF import controls reachable in compact windows"
+description = "Replace the fixed 420 dp desktop import column and adapt the Android PdfImportDialog body to available height, font scale and the on-screen keyboard. Stack the two range fields when they cannot fit, scroll the body and keep confirm/cancel reachable. Test the minimum supported desktop window, tablet split screen with keyboard open, and large text; neither error text nor buttons may be clipped. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 112
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-import-accessible-controls"
+title = "Make PDF import usable with keyboard and screen reader"
+description = "In desktop ImportModeRow replace pointer-only input with a semantic selectable control; expose the same labeled radio group in Android PdfImportDialog. Associate range validation with the relevant fields, use a visible focus indicator, and preserve focus while typing. Verify Tab/Shift+Tab, Space, Escape and TalkBack announcements for selected mode and invalid bounds. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 113
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-contents-readable-rows"
+title = "Keep PDF chapter titles and page numbers readable"
+description = "Adjust Android PdfContentsDialog.ContentsRow and desktop PdfContentsSidebar row layout: reserve the page-number column, cap indentation on narrow screens, distinguish top-level and nested headings with typography, and announce title, destination and enabled state together. Test a deeply nested outline with long titles and four-digit page numbers in light/dark themes at enlarged font size. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 114
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-selection-toolbar-placement"
+title = "Keep the PDF selection toolbar clear of selected text"
+description = "In Android TextSelectionBar and desktop PdfTextCopyBar measure the actual toolbar and clamp it to the visible pane; prefer above or below the selected lines where space permits. Keep Copy reachable near every edge with zoom, enlarged type and narrow split panes. Verify the highlight remains visible, Copy still copies the original words and keyboard focus is visible. Apply docs/interface-contract.md and document verified changes in the owning guide."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 115
+created = 2026-11-14
+tags = ["pdf", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
 id = "pdf-import-page-selection"
 title = "Import nonconsecutive PDF pages in a single action"
 description = "Extend PageRanges with an ordered selection for input such as 2,4-6,9, preserving its existing contiguous API. Wire PdfImportPrompt, both import dialogs and commands to the same selection. Keep the chosen append/replace mode while editing fields, display the selected count, reject invalid pages, and import in source order as one undo step. Test duplicates, invalid bounds and reopen with the correct source pages. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
