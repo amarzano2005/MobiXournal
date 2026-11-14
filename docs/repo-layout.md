@@ -61,6 +61,7 @@ it, so it no longer tries.
 - `desktop/src/main/java/com/mobixournal/desktop`
 - `desktop/src/main/java/com/mobixournal/desktop/ink`
 - `desktop/src/main/java/com/mobixournal/desktop/io`
+- `desktop/src/main/java/com/mobixournal/desktop/previews`
 - `desktop/src/main/java/com/mobixournal/desktop/settings`
 - `desktop/src/main/java/com/mobixournal/desktop/sheet`
 - `desktop/src/main/java/com/mobixournal/desktop/shell`

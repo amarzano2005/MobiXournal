@@ -31,6 +31,7 @@ in this table.
 | `com.mobixournal.desktop` | the **entry points only**: `Main.kt`, `DesktopApp.kt` |
 | `…desktop.sheet` | the sheet's pixels, pointer gestures and their overlays: `Page*` painting, `Selection*`, `Guide*`/`DesktopGuide*`, `Living*`, `Circuit*`, `Sheet*`, `Canvas*`, `Viewport` |
 | `…desktop.ink` | the **devices** and the pen's preview: `Tablet*` (Wintab, dial, wheel, area), `PenPacket*`, `WinInk`/`WinRt`, `DesktopInk*`, pressure, smoothing, the probe, the frame meter |
+| `…desktop.previews` | **pictures of pages before they are pages**: `DesktopPdfThumbnails` (the bounded, off-thread raster cache) and `ImportPdfPagesGrid` (the import card's selectable preview grid) |
 | `…desktop.io` | **files in and out**: `DocumentLoader`, save and recovery, PDF (import, merge, export, text), audio (record, play, store), file pickers, PNG/SVG export, the clipboard and the drop target |
 | `…desktop.settings` | the **Settings window** and the stores behind it: `DesktopSettings*`, rows/sections/surface/select, shortcuts, the theme and its glyphs, pen presets |
 | `…desktop.tools` | the **controls** the hand works with: tool strips and groups, the pickers for figures and circuits, colour flyouts, inspector, panel buttons, the glass material, text and math authoring |

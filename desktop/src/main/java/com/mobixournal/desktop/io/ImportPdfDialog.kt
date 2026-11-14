@@ -5,6 +5,7 @@ import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.previews.ImportPdfPagesGrid
 import com.mobixournal.desktop.shell.PageNumberField
 import com.mobixournal.desktop.tools.GlassPresence
 import com.mobixournal.desktop.tools.PanelButton
@@ -129,6 +130,10 @@ internal fun ImportPdfDialog(
                         onPick = { mode -> onEdit { it.copy(mode = mode) } },
                     )
                 }
+                // The previews come after the answers so a keyboard reaches *where the pages go* before a
+                // hundred page cells: the destination is one decision, the grid is a place to browse.
+                Spacer(Modifier.height(12.dp))
+                ImportPdfPagesGrid(request = request, onEdit = onEdit)
             }
             Spacer(Modifier.height(16.dp))
             Actions(

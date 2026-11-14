@@ -37,7 +37,10 @@ class PackageStructureTest {
     private val modules = listOf("app", "mobix-core", "desktop")
 
     /** The window's packages, exactly as [docs/code-structure.md] states them. */
-    private val windowPackages = setOf("desktop", "desktop.sheet", "desktop.ink", "desktop.io", "desktop.settings", "desktop.tools", "desktop.shell")
+    private val windowPackages = setOf(
+        "desktop", "desktop.sheet", "desktop.ink", "desktop.io", "desktop.settings", "desktop.tools",
+        "desktop.shell", "desktop.previews",
+    )
 
     /** The files the window's root package may hold: the entry points, and nothing else. */
     private val windowRootFiles = setOf("DesktopApp.kt", "Main.kt")

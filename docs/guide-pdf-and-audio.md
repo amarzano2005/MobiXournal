@@ -55,6 +55,15 @@ top of two unrelated lines of text. Double-tapping a row with TalkBack selects i
 use marks the field red, reads *Pages are numbered 1 to 3* as the field's error rather than as a stray
 label, and the confirm button greys out, so nothing is entered that could not be imported.
 
+**The pages are also pictures you can look at.** Under the field both cards show a grid of the file's pages,
+numbered, each with its preview: tap one to pick it, tap it again to drop it — the field above rewrites
+itself to match (`2,4-6,9`), and typing in the field lights the same previews up, because the selection is one
+answer seen twice. **Select all** and **Clear** write that answer the short way. Only the previews on screen
+are drawn, a handful are kept, so an eight-hundred-page scan scrolls as a grid rather than loading as a file;
+the pictures and the PDF they came from are released the moment the card is answered or cancelled. Each
+preview is a checkbox to a screen reader — *Page 3, selected* — so `Tab` walks into the grid and `Space` picks
+the page under focus, exactly as a finger does, and the focused cell draws a ring.
+
 A document holds one PDF. Import a second one onto a document that already has one and the two are merged
 into a single file, so every page's PDF page number still points at the right sheet; the merge and the new
 pages land together, which is what makes undoing it put the document back as it was.

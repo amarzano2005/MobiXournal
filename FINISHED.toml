@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-import-thumbnails"
+title = "Choose PDF pages visually before importing"
+description = "Both import cards now show the file's pages as a numbered, selectable grid under the answers, two views of one answer: tapping a preview rewrites the Pages field (2,4-6,9) and typing lights the same previews up, with Select all and Clear writing it the short way. Each cell is a checkbox to a screen reader (Page 3, selected) and takes focus, so Enter or the D-pad centre picks the page under the keyboard; the previews are rasterised off the UI thread by the tablet's PdfThumbnailCache (PdfPageCache, 60 kept) and the window's DesktopPdfThumbnails (PDFBox through Skia, 60 kept), both released with the card, so only the visible cells are ever drawn. Verified on the Pixel Tablet emulator against a 108-page PDF: twelve page previews with their contents, 108 pages picked, Clear to zero, tapping pages 2, 4 and 7 giving 2,4,7 / 3 pages of 108, importing to a 3-page document opening on page 2, Cancel leaving the document untouched and no fatal or OOM in logcat; and against a generated 500-page PDF: the card opened at once, the grid scrolled from pages 1-6 to 7-12 and on to 37-42 with nothing allocated for the pages off screen. The window's grid is covered by a keyboard test (Tab reaches a cell, Space or the buttons change the selection) and the shared rules by ImportPageSelectionTest."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-14
+completed = 2026-11-14
+tags = ["pdf", "ui"]
+design = "material: the grid is cards' own field and hairline/accent tokens, no new surface; states: unselected, selected (tint + accent ring), focused ring, and the live count above it; glyph: none added, each cell is its number and its page; keyboard: cells are focusable checkboxes, Enter or D-pad centre picks, answers stay ahead in the tab order, WindowKeys.focusControl keeps Space off the page; parity: ImportPageSelection is one rule for both shells, each with its own bounded raster cache; docs: guide-pdf-and-audio, README, code-structure and repo-layout for the new previews package; tests: ImportPageSelectionTest 6, DesktopImportPagesGridTest 2"
+
+[[task]]
 id = "pdf-import-page-selection"
 title = "Import nonconsecutive PDF pages in a single action"
 description = "An import can now name nonconsecutive pages in one action: PageRanges.selection reads 2,4-6,9 (spaces free, either end included, duplicates collapsed, always in the source's order) and leaves the contiguous PageRanges.pages API untouched for Manage pages; both import cards — the tablet's and the window's — replace their first/last fields with one Pages field that shows the count it comes to (4 of 108 pages) and refuses a letter, a page past the end or a backwards run with a sentence; the answer picked stays picked while the field is edited; the pages reach PdfImport.pagesFor and DesktopPdfImport.pages as a list, so each sheet keeps its own source page number and the append path shifts every picked page by the base's count. Verified on the Pixel Tablet emulator: '1-108' on open with '108 pages of 108', '2,999' refused with 'Pages are numbered 1 to 108.', '2,4-6' showing '4 pages of 108', Replace staying selected through the edit, and the imported document reading '1 / 4' with page 2's keywords page first; desktop covered by save and reopen of a 4,2 selection (pages 2 and 4)."

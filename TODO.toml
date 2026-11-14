@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-import-thumbnails"
-title = "Choose PDF pages visually before importing"
-description = "In PdfImportDialog.kt and desktop ImportPdfDialog.kt show numbered, selectable thumbnails synchronized with pdf-import-page-selection. Render visible previews from the staged source off-thread with a bounded cache; release resources on dismissal. Provide select all, clear and accessible selected states. Verify pages 2/4/7, keyboard and touch selection, cancellation and a 500-page source without rendering the whole file. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 130
-created = 2026-11-14
-tags = ["pdf", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-export-page-selection"
 title = "Export the current page or a chosen set of notebook pages"
 description = "Extend both ExportAsDialog flows with All pages (default), Current page and Selected pages using the shared selector. Pass notebook indices into PdfExporter and DesktopPdfExport, retaining source PDF page mappings, layer semantics and vector overlays. Export pages 2 and 4 of a reordered annotated notebook and reopen the result to check count, order, text and ink. Cancel without changing the notebook or destination. Follow docs/interface-contract.md and update README.md and docs/guide-pdf-and-audio.md with verified behaviour."

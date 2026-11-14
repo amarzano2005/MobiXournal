@@ -167,6 +167,12 @@ private fun ImportQuestions(
                 onClick = { onEdit { it.copy(mode = ImportPdfMode.REPLACE) } },
             )
         }
+        // The previews come after the answers so a keyboard reaches *where the pages go* before a hundred
+        // page cells: the destination is one decision, the grid is a place to browse.
+        ImportPagesGrid(
+            prompt = request,
+            onPages = { pages -> onEdit { it.copy(pages = pages) } },
+        )
     }
 }
 
