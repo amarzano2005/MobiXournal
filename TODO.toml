@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-import-destination-labels"
-title = "Name the actual destination in PDF import choices"
-description = "In Android PdfImportDialog and desktop ImportPdfDialog match each English option to its command: appending, replacing the current pages on Android, or opening a new tab on desktop. Desktop currently calls the last choice Replace this document. Group the filename and page count above the range and destination, allow long names to wrap, and use the chosen action as the confirm label. Verify all command paths, including a desktop import without a mode chooser. Apply docs/interface-contract.md and document verified changes in the owning guide."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 111
-created = 2026-11-14
-tags = ["pdf", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-import-responsive-layout"
 title = "Keep PDF import controls reachable in compact windows"
 description = "Replace the fixed 420 dp desktop import column and adapt the Android PdfImportDialog body to available height, font scale and the on-screen keyboard. Stack the two range fields when they cannot fit, scroll the body and keep confirm/cancel reachable. Test the minimum supported desktop window, tablet split screen with keyboard open, and large text; neither error text nor buttons may be clipped. Apply docs/interface-contract.md and document verified changes in the owning guide."
