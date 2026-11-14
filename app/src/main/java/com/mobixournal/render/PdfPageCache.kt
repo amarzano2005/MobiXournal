@@ -30,7 +30,10 @@ class PdfPageCache(
     budget: BitmapBudget = BitmapBudget.shared,
 ) : BitmapLruCache<PdfPageCache.Key>(budget, "pdf-raster"), Closeable {
 
-    private val rasterSource = PdfRasterSource(source)
+    // The platform renderer can only be handed a file and cannot be told about a font, so a source that lost
+    // its font programs is opened through a repaired copy ([PdfRepairFiles]) — the document's own bytes stay
+    // the user's own.
+    private val rasterSource = PdfRasterSource(source) { PdfRepairFiles.renderable(it) }
 
     /**
      * Whole-page entries indexed page → cached widths, so [nearest] is a sorted lookup instead of a

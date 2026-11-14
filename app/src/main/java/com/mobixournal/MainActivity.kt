@@ -425,6 +425,8 @@ class MainActivity : ComponentActivity() {
 
     private fun initSubsystems(initialSettings: AppSettings) {
         PDFBoxResourceLoader.init(applicationContext)
+        // A PDF missing its font programs is opened through a repaired copy; its own bytes stay untouched.
+        com.mobixournal.render.PdfRepairFiles.configure(assets, File(cacheDir, "pdf-repair"))
         BitmapBudget.configure(applicationContext)
         com.mobixournal.render.MlKitInkEngine.ensureModelDownloaded()
         // The shell plugs its handwriting engine once: every recognition after this — the search

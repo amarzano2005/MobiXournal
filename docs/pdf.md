@@ -237,7 +237,9 @@ Helvetica is what made a repaired page look bold and stretched in the wrong plac
 not name stays blank, and a family we do not carry changes family — those characters are not recoverable from
 the file. `PdfFontRepairTest` holds the three halves: a font without its program draws its letters after the
 repair, the rebuilt face keeps the weight, slant and spacing of the one it replaces, and a font with no
-ToUnicode is left untouched.
+ToUnicode is left untouched. Both shells repair (`render/PdfFontRepair.kt` on the tablet): the window does it
+on the rasteriser's private document, and the tablet, whose `PdfRenderer` can only be given a file, does it on
+a copy in the app cache (`render/PdfRepairFiles.kt`) — the document's own bytes are never rewritten on either.
 
 Evidence: these rules are covered by JVM and renderer tests — `DesktopPdfDurabilityTest`,
 `DesktopPdfMergeTest`, `DesktopPdfImportTest`, `DesktopPdfExportTest`, `PdfStoreTest` and

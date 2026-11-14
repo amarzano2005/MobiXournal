@@ -19,9 +19,16 @@ import java.io.File
  */
 internal class PdfRasterSource(
     private val source: File,
+    /**
+     * The file to *open* for [source] — normally the same file, and a repaired copy when the source lost the
+     * font programs it names ([PdfRepairFiles]). Asked again on every reopen, because a replaced source wants
+     * a replaced copy.
+     */
+    private val chooseRenderFile: (File) -> File = { it },
 ) : Closeable {
 
-    private var descriptor = ParcelFileDescriptor.open(source, ParcelFileDescriptor.MODE_READ_ONLY)
+    private var renderFile = chooseRenderFile(source)
+    private var descriptor = ParcelFileDescriptor.open(renderFile, ParcelFileDescriptor.MODE_READ_ONLY)
     private var renderer = PdfRenderer(descriptor)
     /** Identity of the bytes [renderer] was opened on, so a rewrite of [source] is detectable. */
     private var stamp = Stamp(source)
@@ -64,7 +71,8 @@ internal class PdfRasterSource(
                 synchronized(renderLock) {
                     renderer.close()
                     descriptor.close()
-                    descriptor = ParcelFileDescriptor.open(source, ParcelFileDescriptor.MODE_READ_ONLY)
+                    renderFile = chooseRenderFile(source)
+                    descriptor = ParcelFileDescriptor.open(renderFile, ParcelFileDescriptor.MODE_READ_ONLY)
                     renderer = PdfRenderer(descriptor)
                     pageCount = renderer.pageCount
                     stamp = now
@@ -72,7 +80,7 @@ internal class PdfRasterSource(
             } catch (e: Exception) {
                 // The replacement isn't a readable PDF (or vanished). Surface it as "no background"
                 // rather than blank white pages: close makes every later call return null.
-                android.util.Log.w("PdfRasterSource", "reopen of ${source.name} failed", e)
+                android.util.Log.w("PdfRasterSource", "reopen of ${renderFile.name} failed", e)
                 close()
                 return
             }
