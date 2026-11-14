@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-unicode-text-ops"
+title = "Typeset an exported text run in the bundled DejaVu face when WinAnsi cannot encode it"
+description = "A page's text ops now carry a font reference and their own characters instead of a sanitised copy. PdfPagePlan decides the face per run: PdfFontRef.Base14 while every character encodes in WinAnsi, PdfFontRef.Bundled(PdfBundledFace) the moment one does not, so Greek, Cyrillic, a subscript, a combining accent, an astral emoji and the CP1252 punctuation set are typeset in the DejaVu face of that family and slant rather than becoming ?. WinAnsi is now a CP1252 set rather than a 0x20..0xFF range — the 27 characters above U+00FF survive, and DEL and the C1 controls no longer pass (0x80 used to print as a euro sign). PdfBundledFace names the five asset paths in mobix-core, so the plan stays platform-free; the app embeds them through PdfFonts, unchanged and still subset = true with the ToUnicode map, and the export seam (useExportFonts) is registered once with the same PdfFonts the text import uses. GlyphSanitizer is the last resort in the emitter (U+FFFD, never ?). The window keeps printing base-14 with WinAnsi.safe until desktop-pdf-unicode-fonts ships its own copies. Tests: PdfTextEncodingAuditTest rewritten as the per-run decision (8 tests, including the pin that a pure-WinAnsi run plans exactly what it planned before), and PdfUnicodeExportTest paints, saves, reloads and extracts with PDFBox's stripper — the mixed fixture returns character for character with a ToUnicode map on every embedded font, and a pure-WinAnsi page still names base-14 fonts only. :app:testDebugUnitTest and :desktop:test green."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-10
+completed = 2026-11-14
+tags = ["mobix"]
+design = "none: a plan op and an emitter take a different argument, and no pixel or control changes"
+
+[[task]]
 id = "pdf-android-async-append"
 title = "Keep the Android editor responsive while joining PDFs"
 description = "The Android PDF import is now a plan built on a worker and applied on the UI thread: preparePdfImport copies the bytes into the store, builds the pages and merges an append onto a PDF-backed document into the joined file, returning a PdfImportPlan; applyPdfImport takes that plan on the canvas as one undoable edit, finds the tab that asked (bringing it back if the reader moved on) and drops the pages only when that tab was closed. The import card, a PDF handed over or dropped, and a PDF opened as a new document all reach the split from where they already hold the bytes. A failure deletes the copy it made, leaves the document untouched and says so. Verified on the Pixel_Tablet emulator: 120- and 1500-page opens, a 3-page append onto a 120-page document (123 pages, page 123 rendering the appended page), 1500+3=1503, the merge behind the progress note with no ANR, and a corrupt PDF refused with the document intact; docs/pdf.md records the split and the tab rule."
