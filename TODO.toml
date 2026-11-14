@@ -22,6 +22,90 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
+id = "pdf-direct-text-hit-testing"
+title = "Resolve direct PDF text hits without selecting distant words"
+description = "In mobix-core/src/main/java/com/mobixournal/render/PdfText.kt, add a strict word hit query alongside PdfTextIndex.anchorWord: entering a selection requires a hit inside a word box with a bounded screen-space tolerance converted to page points; whitespace far from text must return no hit. Preserve nearest-word anchoring for extending an existing range. Add pure endpoint/range helpers that preserve anchor and focus direction when endpoints cross and reject a different PDF sheet. Use Background.Pdf.pageNo and stable source/page identity rather than notebook position; no per-gesture PDF extraction. Test whitespace, word edges, zoom-scaled tolerance, reverse ranges, rotated/cropped PDF coordinate mapping and reordered/repeated PDF sheets using PdfTextTest and shell mapping tests. Update docs/pdf.md in the implementation task. This is the prerequisite for the direct-entry gesture tasks; selection remains transient view state."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 10
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "android", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "pdf-android-long-press-selection"
+title = "Select PDF words with a finger long press while keeping pen tools active"
+description = "After pdf-direct-text-hit-testing, extend DrawingSurfaceInput.kt (handleTouch/beginPointer), CanvasGestureRouter.kt and DrawingSurfaceSelection.kt (beginTextSelect/textSelectMove) so a stationary finger long press on an actual PDF word starts text selection regardless of the active drawing tool, without changing that tool. Use the Android long-press timeout and touch slop; movement before the timeout immediately remains scrolling, a second finger cancels the candidate and preserves pinch zoom, and stylus/eraser events retain their tool route and cancel a pending finger candidate. Arbitrate before irreversible edits: no stray ink or undo entry from a successful long press; preserve configured finger drawing and existing long-press actions when the PDF text gesture does not win. Loading, failed extraction and scan pages must not select a nearest remote word or block ordinary navigation. Cover cancellation, ACTION_CANCEL, palm rejection and pen arrival with router tests; exercise the gestures, scroll and pinch on the emulator. Update README.md, docs/guide-pdf-and-audio.md and docs/pdf.md in the same task, following docs/interface-contract.md. Preserve SelectionDragOut.kt armSelectionDrag priority on an existing object selection. Move the direct-selection route ahead of the DrawingSurfaceInput read-only edit guard so read-only PDFs still permit selection and Copy."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 20
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "android", "desktop"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-desktop-double-click-selection"
+title = "Select PDF words by double click without switching desktop tools"
+description = "After pdf-direct-text-hit-testing, integrate direct word entry into desktop sheet/PageCanvasInput.kt (pageGestureLoop) and sheet/PageCanvasPress.kt (pressAfterPan), reusing io/DesktopPdfTextSelection.kt and the existing pdfTextDrag path. A primary mouse double click on an actual PDF word selects it; dragging while the second press is held extends the reading-order range. A normal single drag still follows the active tool, and pen/Wintab packets keep drawing with that tool. Use platform timing/slop, cancel on pan/page/source changes, and prevent a recognized selection gesture leaving accidental ink or an undo step. Preserve higher-priority live element editing and double click inside an existing object selection; PDF text behind editable foreground content must not steal its gesture. Keep Ctrl+C and Escape working, with no requirement to activate PDF_TEXT_SELECT. Test whitespace, multi-line/reverse drag, high DPI, zoom/pan, foreground text/living elements and tablet packet routing in desktop JVM tests, then verify the packaged window. Update README.md, docs/desktop-editing.md and docs/pdf.md in this implementation task, following docs/interface-contract.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 30
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "android", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "pdf-text-selection-handles"
+title = "Adjust PDF text selections with two draggable endpoints on both shells"
+description = "After the Android and desktop direct-entry tasks, add start/end handles to the existing PDF text overlays, using the endpoint helpers from pdf-direct-text-hit-testing. Extend DrawingSurfaceSelection.kt and io/DesktopPdfTextOverlay.kt / io/DesktopPdfTextSelection.kt through small focused helpers: handles remain a constant usable screen-space size at any zoom, their targets take precedence over pan/drawing, dragging extends by reading-order words, and crossing an endpoint reverses the range without jumping or losing the grabbed handle. Limit the range to its current PDF sheet, keep handles aligned through zoom/pan and clamp interaction to the pane; no implicit cross-page selection in this task. Clear stale selection on document/source replacement or page removal and isolate split panes. Provide accessible endpoint labels and adjust actions with an equivalent keyboard path on desktop. Tests cover reverse/multiline ranges, transformed coordinates, bounds, pane isolation and cancellation; emulator and packaged desktop verification cover handle dragging beside viewport edges. Update docs/pdf.md and docs/guide-pdf-and-audio.md in the same task; apply docs/interface-contract.md tokens, glyphs and interaction states. Android range state is textSelPage/textSelAnchor/textSelFocus in DrawingSurfaceView.kt; paint through DrawingSurfacePaint.kt drawTextSelection and map coordinates via textSelectionScreenRect."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 40
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "android", "desktop"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-selected-text-underline"
+title = "Underline selected PDF text as ordinary interoperable ink"
+description = "Add shared pure underline geometry beside MagneticHighlighter.kt in mobix-core/render: turn a selected PDF word range into one ordinary constant-width pen stroke per text line below the selected word boxes, keeping separate lines/columns separate and deriving placement from existing word geometry. Reuse the selection grouping approach without applying the magnetic drag three-line cap. Wire an underlineTextSelection command beside DrawingSurfaceSelection.kt highlightTextSelection and the desktop counterpart beside DesktopPdfTextHighlight. Each complete underline action is one undoable page edit on the active writable layer, uses a documented existing pen colour/width policy, and is unavailable in read-only documents or locked layers. The transient selection itself remains unsaved. Test multiline/reverse selections and rotated/cropped mapping, undo/redo, .mobix and .xopp save/reopen and PDF export using ordinary stroke paths; do not introduce a PDF-only annotation or new format element. Document the implemented action and its appearance policy in docs/pdf.md and the user guide within this task; the next contextual-actions task exposes it in the UI."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 50
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "android", "desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "pdf-direct-selection-context-actions"
+title = "Make contextual PDF text selection the default without a separate tool"
+description = "After the direct gestures, handles and underline command, extend app ui/EditorActionBars.kt TextSelectionBar, SelectionBars.kt and TextSelectionAnchor.kt and desktop io/PdfTextCopyBar.kt to show Copy, Highlight and Underline next to any live PDF text selection, independent of the active tool. Reuse the current measured positioning, keep the capsule and handles inside the correct pane at large text scales, and keep the selected passage visible. Copy never edits; Highlight and Underline each create one undo step and are disabled with an accessible reason on a read-only/locked target. Outside tap/click and Escape dismiss transient selection; changing pages/documents clears it, and pen contact dismisses it before following the active pen tool. Remove Select text (PDF) from the normal tool menus in both shells only after direct entry and keyboard/accessibility equivalents are working; migrate any persisted TEXT_SELECT/PDF_TEXT_SELECT tool preference to ordinary Select safely and keep stable enum/storage compatibility. Retain Shift+S as a focus/accessibility selection entry, not a required tool switch; expose clear loading/no-text/retry feedback when that entry is invoked. Test stored preferences, focus, TalkBack, keyboard copy/dismiss, foreground editing, split panes and read-only actions; verify long press, double click, handles, all three actions and save/reopen on emulator and packaged desktop. Update README.md, docs/guide-pdf-and-audio.md, docs/desktop-editing.md and docs/pdf.md with the new gestures and scan/OCR limitation in the same task. Follow docs/interface-contract.md for both shells. Include desktop tools/ToolSelection.kt, ToolGroups.kt and StripItems.kt in menu migration, replacing DEFAULT_IMAGE_ANCHOR with a valid retained tool; preserve shared InputClassifier enum compatibility."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 60
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "android", "desktop"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
 id = "pdf-outline-import-seeding"
 title = "Seed the outline from the PDF an import brings in"
 description = "Once a document has a place to keep a tree, an import fills it. On the tablet, the import path (app/src/main/java/com/mobixournal/MainActivityDocuments.kt, io/DocumentIo.kt and the PdfMerger call site) and on the window desktop/src/main/java/com/mobixournal/desktop/io/DesktopPdfMerge.kt: when the document has no outline, turn the extracted PdfOutline into OutlineTree nodes, minting a bkm_ id per row and writing each row's destination explicitly as OutlineTarget.Sheet - including the page a destination-less header inherited from its first pointing descendant, because resolution at read time inherits nothing. When the document already has an outline, append the new PDF's rows under one new node titled after the imported file with no target of its own, so a second import never merges two PDFs by title. The pages and the seeded tree are one undoable operation, and a cancelled or failed import writes nothing. Seeding is a one-time thing: a document that already carries an outline is never re-seeded on open, so an entry the reader deleted stays deleted. Tests: PdfOutlineSeedingTest over PdfOutlineExtractor fixtures (nested rows, a header with no destination, an empty outline), a golden .mobix fixture that must open with the tree it was written with, and the second-import append; then a save/reopen test proving ids survive. Verify on the emulator: import a PDF whose outline has a nested chapter, open Contents, and confirm the rows are the PDF's own and a tap still lands on the right sheet."
