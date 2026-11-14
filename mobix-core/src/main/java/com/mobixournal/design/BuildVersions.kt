@@ -11,5 +11,5 @@ package com.mobixournal.design
 object BuildVersions {
 
     /** The packaged desktop window's version — the one `compose.desktop`'s `packageVersion` carries. */
-    const val DESKTOP = "1.1.0"
+    const val DESKTOP = "1.2.0"
 }
