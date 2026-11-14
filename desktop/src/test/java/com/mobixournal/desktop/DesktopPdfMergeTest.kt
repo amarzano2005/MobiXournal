@@ -86,6 +86,32 @@ class DesktopPdfMergeTest {
         assertEquals("the pages it does not belong to are untouched", 1, after.size)
     }
 
+    /**
+     * Two tabs built on the same PDF append different files: the second join must not overwrite the
+     * first tab's background, which its pages still name by path.
+     */
+    @Test
+    fun `two joins over one base are two files that each keep their own pages`() {
+        val base = pdf("base", 2)
+        val first = DesktopPdfMerge.joined(base, pdf("first", 1))
+        val second = DesktopPdfMerge.joined(base, pdf("second", 3))
+
+        assertTrue("a join output is a fresh allocation: $first / $second", first.absoluteFile != second.absoluteFile)
+        PDDocument.load(first).use { assertEquals("the first tab's background is still its own", 3, it.numberOfPages) }
+        PDDocument.load(second).use { assertEquals("and the second tab's is its own", 5, it.numberOfPages) }
+        PDDocument.load(base).use { assertEquals("the source is untouched", 2, it.numberOfPages) }
+    }
+
+    /** A save publishes a source that is this object's scratch, so the two have to be told apart. */
+    @Test
+    fun `only this object's own join outputs count as scratch`() {
+        val base = pdf("base", 1)
+        val joined = DesktopPdfMerge.joined(base, pdf("added", 1))
+
+        assertTrue("a join output is scratch a save must publish", DesktopPdfMerge.isScratch(joined))
+        assertTrue("a reader's own PDF is not", !DesktopPdfMerge.isScratch(base))
+    }
+
     @Test
     fun `a merge never writes over its own source`() {
         val base = pdf("base", 1)

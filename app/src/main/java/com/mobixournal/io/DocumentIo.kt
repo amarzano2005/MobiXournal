@@ -469,6 +469,21 @@ class DocumentIo(
         imageStore.prune(liveImages, limits.imageCacheBytes)
     }
 
+    /**
+     * Keep the joined PDF a **plain `.xopp` save has just linked to**, so closing its tab does not sweep
+     * the file the saved document names ([PdfStore.pin]).
+     *
+     * Only the gzip `.xopp` depends on a path — a `.mobix` bundles the background and a zipped `.xopp`
+     * attaches it — and only a file this session wrote is pinned: a PDF the reader picked is theirs, and
+     * this store does not own it.
+     */
+    fun retainLinkedPdf(document: Document) {
+        val name = document.pages.firstNotNullOfOrNull { page ->
+            (page.background as? Background.Pdf)?.filename?.takeIf(String::isNotBlank)
+        } ?: return
+        joinedPdfStore.pin(File(name))
+    }
+
     // --- writing --------------------------------------------------------------------------------
 
     /**

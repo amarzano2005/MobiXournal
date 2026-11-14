@@ -23,6 +23,7 @@ import com.mobixournal.render.BackgroundRulings
 import com.mobixournal.render.CanvasGeometry
 import java.awt.image.BufferedImage
 import java.io.File
+import javax.imageio.ImageIO
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -176,6 +177,94 @@ class DesktopPdfExportTest {
         }
     }
 
+    /**
+     * A page whose PDF source is gone prints blank paper today, which is the one output nobody notices
+     * before handing the file on. It is refused instead, by sheet number, and the PDF that was already
+     * at the destination keeps its bytes so the reader can relink and export again.
+     */
+    @Test
+    fun aPageWhosePdfSourceIsGoneIsRefusedAndTheFileThatWasThereKeepsItsBytes() {
+        val source = greyPdf()
+        val page = sheet("plain").copy(
+            background = Background.Pdf(filename = source.absolutePath, pageNo = 0, domain = "absolute"),
+        )
+        val document = document(page)
+        source.delete()
+        val target = File(temp.root, "kept.pdf").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+
+        val refusal = runCatching { DesktopPdfExport.write(document, target, document.backdrop) }.exceptionOrNull()
+
+        assertTrue("a missing sheet is a refusal: $refusal", refusal is DesktopSaves.SaveRefused)
+        val message = refusal?.message.orEmpty()
+        assertTrue(
+            "that names the sheet and what to do: $message",
+            message.contains("Page 1") && message.contains("Import the PDF again"),
+        )
+        assertEquals("and the destination is exactly what it was", listOf<Byte>(1, 2, 3), target.readBytes().toList())
+    }
+
+    /** A page number the source does not have is the same lie as a missing file, so it is reported too. */
+    @Test
+    fun aPageNumberTheSourceDoesNotHaveIsRefusedRatherThanClamped() {
+        val source = greyPdf()
+        val page = sheet("plain").copy(
+            background = Background.Pdf(filename = source.absolutePath, pageNo = 9, domain = "absolute"),
+        )
+        val document = document(page)
+
+        val refusal = runCatching {
+            DesktopPdfExport.write(document, File(temp.root, "past-the-end.pdf"), document.backdrop)
+        }.exceptionOrNull()
+
+        assertTrue("nothing truthful can be printed: $refusal", refusal is DesktopSaves.SaveRefused)
+        assertTrue("and the sheet is named: ${refusal?.message}", refusal?.message?.contains("Page 1") == true)
+    }
+
+    /** The raster fallback is untouched: a page that sits on a picture still prints that picture. */
+    @Test
+    fun aPageOnAPictureStillPrintsThePicture() {
+        val picture = greyPng()
+        val page = sheet("plain").copy(
+            background = Background.Pixmap(domain = "absolute", filename = picture.name, bundledAsset = null),
+        )
+        val document = document(page)
+
+        val (_, pdf) = export(document, "picture.pdf")
+
+        pdf.use {
+            val pixel = PDFRenderer(it).renderImageWithDPI(0, 72f).rgbAt(300, 400)
+            assertEquals("the picture is under the ink", 128, (pixel shr 16) and 0xFF)
+        }
+    }
+
+    /**
+     * The import and the export agree about a cropped page: the sheet an import makes is the box the
+     * export imports the source page by, so a mark drawn on the sheet lands on the same point of the
+     * picture after the export.
+     */
+    @Test
+    fun anImportedCroppedSheetExportsByTheSameBoxItIsDrawnBy() {
+        val file = File(temp.root, "cropped.pdf")
+        PDDocument().use { pdf ->
+            val page = PDPage(PDRectangle(400f, 600f))
+            page.cropBox = PDRectangle(300f, 500f).apply { lowerLeftX = 50f; lowerLeftY = 40f; upperRightX = 350f; upperRightY = 540f }
+            pdf.addPage(page)
+            pdf.save(file)
+        }
+        val sheet = com.mobixournal.desktop.io.DesktopPdfImport.open(file).use { pdf ->
+            com.mobixournal.desktop.io.DesktopPdfImport.pages(pdf, file.absolutePath).single()
+        }
+        val document = document(sheet)
+
+        val (_, exported) = export(document, "cropped-export.pdf")
+
+        exported.use {
+            val box = it.getPage(0).cropBox
+            assertEquals("the printed page is the sheet's width", sheet.width, box.width.toDouble(), 0.01)
+            assertEquals("and its height", sheet.height, box.height.toDouble(), 0.01)
+        }
+    }
+
     /** A board has no pages to print, and saying so is better than printing one tile of it. */
     @Test
     fun aBoardIsRefusedInWords() {
@@ -234,6 +323,15 @@ class DesktopPdfExportTest {
             }
             doc.save(file)
         }
+        return file
+    }
+
+    /** A mid-grey PNG beside the document — a picture background the window can resolve by name. */
+    private fun greyPng(): File {
+        val image = BufferedImage(595, 842, BufferedImage.TYPE_INT_RGB)
+        for (x in 0 until image.width) for (y in 0 until image.height) image.setRGB(x, y, 0x808080)
+        val file = File(temp.root, "picture.png")
+        ImageIO.write(image, "png", file)
         return file
     }
 

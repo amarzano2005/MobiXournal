@@ -59,6 +59,12 @@ internal object DesktopPdfImport {
      * [indices] is the run of **source** pages to bring, 0-based; null brings the whole PDF. A `pageno` is
      * always the source page's own number plus [pageNoOffset], never the run's position, so importing pages
      * 5–20 of a scan still draws pages 5–20 of that scan.
+     *
+     * The sheet is the page's **effective CropBox**, not its MediaBox: the crop is the page a reader sees,
+     * and it is the box the export imports the page by. Taking the media box here made a cropped PDF's
+     * sheet larger than the picture on it, so every annotation landed off its ink — the file printed what
+     * the screen showed in the wrong place. PDFBox answers the media box when the page declares no crop,
+     * so an uncropped PDF is unaffected.
      */
     fun pages(
         pdf: PDDocument,
@@ -70,7 +76,7 @@ internal object DesktopPdfImport {
             .filter { it in 0 until pdf.numberOfPages }
         return wanted.mapIndexed { run, index ->
             val page = pdf.getPage(index)
-            val box = page.mediaBox
+            val box = page.cropBox
             // A rotated page is shown, and drawn on, the way the reader turns it: the sheet follows the
             // rotation rather than standing the writing on its side.
             val quarterTurn = page.rotation % 180 != 0
@@ -98,19 +104,38 @@ internal object DesktopPdfImport {
     class PdfImportRefused(message: String, cause: Throwable? = null) : Exception(message, cause)
 
     /**
-     * What a merge adds to the first page: the reference re-pointed at the joined PDF.
+     * What a merge adds to the document: the reference re-pointed at the joined PDF.
      *
-     * The document keeps one PDF reference (`docs/pdf.md`), so after joining, the page that carries it
-     * names the joined file — `domain="absolute"`, since that file lives wherever the window left it.
+     * The document keeps one PDF reference (`docs/pdf.md`), so after joining, the page that **carries**
+     * it names the joined file — `domain="absolute"`, since that file lives wherever the window left it.
+     *
+     * Two things used to be wrong here. The reference was re-pointed on **page one**, which is a cover in
+     * any notebook that has one: the real holder kept naming the old file and the join was invisible. And
+     * a bundled holder kept its `bundledAsset`, so a `.mobix`'s own copy still won over the joined file
+     * (the bundle is tried first — [PageBackdrop]). Both are the same rule: find the page that carries the
+     * source, and make it name the joined file **instead of** whatever it carried.
      */
-    fun retarget(pages: List<Page>, joined: File): List<Page> = pages.mapIndexed { index, page ->
-        val background = page.background
-        if (index == 0 && background is Background.Pdf) {
-            page.copy(
-                background = background.copy(filename = joined.absolutePath, domain = ABSOLUTE_DOMAIN),
-            )
-        } else {
-            page
+    fun retarget(pages: List<Page>, joined: File): List<Page> {
+        val holder = pages.indexOfFirst { page ->
+            val background = page.background as? Background.Pdf ?: return@indexOfFirst false
+            with(PdfPageReferences) { background.carriesSource() }
+        }.let { if (it >= 0) it else pages.indexOfFirst { page -> page.background is Background.Pdf } }
+        if (holder < 0) return pages
+        return pages.mapIndexed { index, page ->
+            if (index != holder) {
+                page
+            } else {
+                val background = page.background as Background.Pdf
+                page.copy(
+                    background = background.copy(
+                        filename = joined.absolutePath,
+                        domain = ABSOLUTE_DOMAIN,
+                        // The bundle would otherwise be resolved before the file, and the document would
+                        // keep painting the PDF it was joined away from.
+                        bundledAsset = null,
+                    ),
+                )
+            }
         }
     }
 }

@@ -55,10 +55,32 @@ class PdfExportTest {
         layers = listOf(Layer(elements.toList())),
     )
 
+    /** A page over a PDF the export was not handed — the shape a swept or moved source leaves behind. */
+    private fun pdfPage() = Page(
+        width = width,
+        height = height,
+        background = Background.Pdf(filename = "/nowhere/gone.pdf", pageNo = 0, domain = "absolute"),
+        layers = listOf(Layer(emptyList())),
+    )
+
     private fun export(vararg pages: Page): ByteArray {
         val out = ByteArrayOutputStream()
         PdfExporter(null, null).export(Document(pages = pages.toList()), out)
         return out.toByteArray()
+    }
+
+    @Test
+    fun aPageWhosePdfBackgroundIsMissingIsRefusedAndNothingIsWritten() {
+        val out = ByteArrayOutputStream()
+
+        val refused = runCatching {
+            PdfExporter(null, null).export(Document(pages = listOf(page(pen()), pdfPage())), out)
+        }.exceptionOrNull()
+
+        assertTrue("blank paper where a scan belongs is refused: $refused", refused is MissingPdfBackgrounds)
+        assertEquals("and it names the sheet by the number the counter shows", listOf(2), (refused as MissingPdfBackgrounds).sheets)
+        assertTrue("in a sentence that says what to do: ${refused.message}", refused.message!!.contains("Page 2"))
+        assertEquals("the destination kept every byte it had", 0, out.size())
     }
 
     @Test

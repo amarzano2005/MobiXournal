@@ -52,6 +52,11 @@ internal object DesktopPdfExport {
      * Two destinations are refused in words rather than half-honoured: a **board** (a chunked infinite
      * canvas needs the sheet slicing the tablet's exporter does, and writing one sheet of it as the whole
      * document would be a lie), and a document with no pages.
+     *
+     * A page over a PDF whose source is missing, unreadable, or has no such sheet is refused too, and the
+     * refusal names the sheets. Blank paper where a scanned page belongs is the one output a reader cannot
+     * notice before handing the file on; the bytes are staged, so refusing leaves the file that was there
+     * untouched and relinking the PDF is all a retry needs.
      */
     fun write(document: DesktopDocument, target: File, backdropPage: PageBackdrop): Int {
         if (document.shape.geometry != null) {
@@ -80,6 +85,7 @@ internal object DesktopPdfExport {
         val opened = HashMap<String, PDDocument?>()
         try {
             val painter = DesktopPdfPainter()
+            val missing = ArrayList<Int>()
             PDDocument().use { doc ->
                 for (index in 0 until pages) {
                     val page = document.page(index)
@@ -89,6 +95,12 @@ internal object DesktopPdfExport {
                     val preserved = pdf != null && source != null &&
                         preservedPage(doc, pdf, source.pageNo, page, painter)
                     if (preserved) continue
+                    if (source != null) {
+                        // Neither the source nor its picture is usable (a page number the PDF does not
+                        // have included): the sheet is named below instead of printed empty.
+                        missing += index + 1
+                        continue
+                    }
                     val pdPage = PDPage(PDRectangle(page.width.toFloat(), page.height.toFloat()))
                     doc.addPage(pdPage)
                     val t = PdfPageTransform(0f, 0f, page.height.toFloat())
@@ -99,6 +111,8 @@ internal object DesktopPdfExport {
                         painter.paint(doc, cs, page, t)
                     }
                 }
+                // Before a byte reaches [target]: the file on disk keeps what it had.
+                if (missing.isNotEmpty()) throw DesktopSaves.SaveRefused(missingSheets(missing))
                 temp.outputStream().use { out -> doc.save(out) }
             }
             DesktopSaves.replace(temp, target)
@@ -168,6 +182,18 @@ internal object DesktopPdfExport {
             painter.paint(doc, cs, page, PdfPageTransform(0f, 0f, m.visualHeight))
         }
         return true
+    }
+
+    /**
+     * What a refused export tells the reader: which sheets, and what to do about it.
+     *
+     * Sheet numbers are 1-based, because they are the numbers the page counter and the page list show.
+     */
+    private fun missingSheets(sheets: List<Int>): String {
+        val named = if (sheets.size == 1) "Page ${sheets.single()}" else "Pages ${sheets.joinToString(", ")}"
+        return "$named ${if (sheets.size == 1) "has" else "have"} no PDF background this export can read. " +
+            "Import the PDF again so the page has its source, then export once more — the PDF that was " +
+            "there has not been changed."
     }
 
     /**

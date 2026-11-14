@@ -11,6 +11,7 @@ import com.mobixournal.render.PageRangeRequest
 import com.mobixournal.render.PageRanges
 
 import com.mobixournal.format.mobix.PageSource
+import com.mobixournal.format.model.Background
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PageOps
 import java.io.File
@@ -168,6 +169,12 @@ private fun DesktopShellState.openImported(
  * **joined** first ([DesktopPdfMerge]) and its reference re-pointed at the joined file; the arriving pages
  * then continue the joined file's numbering. A document with no PDF background simply references the
  * picked one.
+ *
+ * "Backed by one" means the reference **resolves**, not that a file sits at its path: a `.mobix` carries
+ * its background inside itself, and reading that as "no base" appended the picked PDF to the pages while
+ * the old reference stayed behind them — a document with two PDFs, one of which nothing can open. The
+ * three answers are therefore kept apart: paper-only (name the picked file), resolvable (join), and
+ * named-but-unreachable (refuse, and say what to put back).
  */
 private fun DesktopShellState.appendImported(
     pdf: PDDocument,
@@ -177,7 +184,14 @@ private fun DesktopShellState.appendImported(
 ): Boolean {
     val tab = tabs.active ?: return false
     val before = tab.document.snapshot()
-    val base = tab.document.pdfSource()
+    val held = tab.document.pdfBackground()
+    val base = if (held == null) null else tab.document.pdfSource() ?: embeddedBase(tab, held)
+    if (held != null && base == null) {
+        // Refusing is the only safe answer: appending would re-point the document at the picked PDF and
+        // leave every existing page naming a source that cannot be opened.
+        importFailed(MissingPdfBase(held.filename ?: held.bundledAsset.orEmpty()))
+        return false
+    }
     val wanted = indices ?: 0 until pdf.numberOfPages
     val landing = if (base != null) {
         val joined = DesktopPdfMerge.joined(base, file)
@@ -208,6 +222,27 @@ private fun DesktopShellState.appendImported(
     tab.page = (pages.size - landing.second.size).coerceIn(0, pages.lastIndex)
     return true
 }
+
+/**
+ * The bytes of [background] written to a scratch file, or null when this window cannot reach them.
+ *
+ * A `.mobix` bundles its background and a zipped `.xopp` extracted it on open: both answer bytes and
+ * neither has a path of its own, which is exactly why a join cannot take the file ([DesktopPdfMerge]).
+ */
+private fun embeddedBase(tab: DesktopTab, background: Background.Pdf): File? {
+    val bytes = tab.document.backdrop.pdfBytes(background) ?: return null
+    val name = background.filename?.let { File(it).nameWithoutExtension }
+        ?: background.bundledAsset?.substringAfterLast('/')?.substringBeforeLast('.')
+        ?: "background"
+    return runCatching { DesktopPdfMerge.copyOf(bytes, name) }.getOrNull()
+}
+
+/** A document whose PDF background cannot be found, said as something the reader can do about it. */
+private class MissingPdfBase(source: String) : Exception(
+    "This document's PDF background ($source) cannot be found, so joining another PDF into it would " +
+        "leave its own pages blank. Nothing was changed: put the original PDF back beside this " +
+        "notebook, or export the document as .mobix — which carries its background — and import again.",
+)
 
 /** The name a REPLACE tab is born with: the PDF's own, beside it, and never over a file already there. */
 private fun DesktopShellState.proposedPath(folder: File?, base: String, extension: String): File {

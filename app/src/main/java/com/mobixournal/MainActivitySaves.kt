@@ -128,6 +128,10 @@ private fun MainActivity.afterSaved(
     }
     tabsTick.value++
     owner.persist()
+    // A plain `.xopp` names its background PDF by path, and the sweep below keeps only what a live tab
+    // still refers to: the file this save wrote into the document is pinned first, so closing the tab
+    // does not take the background out from under the document on disk.
+    if (request.format == SaveFormat.ORIGINAL) io.retainLinkedPdf(document)
     prunePdfCache()
     if (request.format != SaveFormat.MOBIX) {
         audioFolder?.let { audio.exportSidecars(it, document) }

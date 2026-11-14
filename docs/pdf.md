@@ -119,3 +119,43 @@ reasoning that keeps desktop Xournal++'s PDF text selection out of the saved doc
 **Contents** section (`PageSidebar`, under the layers) prints the same rows, indented by depth, only
 when opened, and resolves a click through `Background.Pdf.pageNo` — never an offset — so a merged PDF
 still lands on the right page.
+
+## Joined PDFs: lifetime, publishing and refusing a blank sheet
+
+A document holds **one** PDF reference, so a second import is *joined* into the first
+(`DesktopPdfMerge` on the PC, `PdfMerger` on the tablet) and every arriving page keeps the page number it
+has inside the joined file. What that file's lifetime is, and what a save does with it, follows the
+container:
+
+- **`.mobix` and a zipped `.xopp` carry the bytes**, so the joined file is scratch and may go.
+- **A gzip `.xopp` names the PDF by path**, so the file it names has to outlive the session. The tablet
+  pins it in its joined-PDF store (`PdfStore.pin`) once a save in that format succeeded, and the sweep
+  that runs when a tab closes keeps pinned files whatever its byte budget says. The window publishes it
+  instead: a save to a gzip `.xopp` copies a merge output out of the temp folder into
+  `%APPDATA%/MobiXournal/pdf` (`DesktopPdfSources`) and re-points the reference at the copy. A PDF the
+  reader picked is never moved, and saving the same document twice reuses the published copy.
+- **Every join is a new file.** The window's join used to be named after the base PDF, so two tabs built
+  on one source overwrote each other's background; each join now allocates a fresh name.
+
+**Appending to a document that carries its background.** A `.mobix` bundles its PDF and keeps no
+external file for it, so "the reference has no file" is not "this notebook has no PDF": the window
+reads the bundled bytes and joins them like any other source. A notebook whose pages are only paper
+still simply names the picked file. A reference that resolves to **nothing** — the original was moved
+or deleted — is refused with the pages left exactly as they were, because appending would re-point the
+document at the new PDF and leave every existing page naming a file that cannot be opened. The re-point
+lands on the page that *carries* the reference (a notebook with a cover has one) and clears a bundled
+copy, so the joined file wins over it.
+
+**A sheet with no background is refused, not printed blank.** Both exporters name the sheet when a
+PDF-backed page has no source, no such page number, or no readable bytes: the tablet's `PdfExporter`
+throws before writing a byte, and the window's `DesktopPdfExport` refuses before replacing the target,
+so the PDF that was there keeps its contents and relinking the PDF is the whole retry.
+
+**The sheet is the crop.** An import sizes a page by the PDF page's **effective rotated CropBox**, which
+is the box the export imports that page by, so a mark drawn on screen lands over the ink it was drawn
+over. Reading the media box instead made every cropped PDF's sheet larger than its picture.
+
+Evidence: these rules are covered by JVM and renderer tests — `DesktopPdfDurabilityTest`,
+`DesktopPdfMergeTest`, `DesktopPdfImportTest`, `DesktopPdfExportTest`, `PdfStoreTest` and
+`PdfExportTest`. The tablet's side of the pin is tested on the store only; driving a joined notebook
+through close, prune and reopen on an emulator is still owed.

@@ -25,6 +25,11 @@ import java.io.OutputStream
  * visual space, so a [PdfOverlayMatrix] pre-transforms the content stream into the page's unrotated
  * space and the viewer's `/Rotate` cancels back to the drawn position (see [preservedPage]).
  *
+ * A page that names a PDF background this export cannot read — the source is missing, unreadable, or
+ * has no such sheet — is **refused** rather than printed as blank paper ([MissingPdfBackgrounds]).
+ * The refusal comes before anything is written to the destination, so the file that was there keeps
+ * its bytes and the reader can relink the PDF and export again.
+ *
  * The ink is **page content only**: no `/Highlight`, `/Ink` or `/Text` annotation dictionaries are
  * written, exactly as the window writes it, so both shells produce the same file. The marks are still
  * visible in every viewer because they are paint; a reader's annotation pane stays empty.
@@ -42,7 +47,12 @@ internal class PdfExporter(
         try {
             // A chunked document is written as the pages its parts stand for: a PDF reader can only
             // open pages, and the sheet slicing a board would need is not this exporter's step.
-            doc.pages.forEach { page -> writePage(outDoc, source, page) }
+            val missing = ArrayList<Int>()
+            doc.pages.forEachIndexed { index, page ->
+                if (!writePage(outDoc, source, page)) missing += index + 1
+            }
+            // Nothing has reached `out` yet, so a refused export leaves the destination's bytes alone.
+            if (missing.isNotEmpty()) throw MissingPdfBackgrounds(missing)
             outDoc.save(out)
         } finally {
             outDoc.close()
@@ -50,13 +60,18 @@ internal class PdfExporter(
         }
     }
 
-    private fun writePage(outDoc: PDDocument, source: PDDocument?, page: Page) {
+    /** Write [page]; false when it names a PDF background this export has no source for. */
+    private fun writePage(outDoc: PDDocument, source: PDDocument?, page: Page): Boolean {
         val bg = page.background
-        if (bg is Background.Pdf && source != null && bg.pageNo in 0 until source.numberOfPages) {
+        if (bg is Background.Pdf) {
+            // The page number is the source's own sheet, so a number the source does not have is the
+            // same lie as a missing file: the sheet on screen is not there to print.
+            if (source == null || bg.pageNo !in 0 until source.numberOfPages) return false
             preservedPage(outDoc, source, bg.pageNo, page)
         } else {
             freshPage(outDoc, page)
         }
+        return true
     }
 
     /** Import the original page's vector content unchanged, then append the ink overlay. */

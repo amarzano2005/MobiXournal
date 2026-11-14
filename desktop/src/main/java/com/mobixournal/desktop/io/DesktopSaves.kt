@@ -124,16 +124,27 @@ object DesktopSaves {
          * not carry: that omission is what used to delete a document's audio on a PC edit.
          */
         audio: DesktopAudioStore = document.audioStore,
-    ): Staged = stageSnapshot(
-        model = document.model,
-        shape = document.saveShapeFor(target),
-        readOnly = document.readOnly,
-        gateNote = document.gateNote,
-        target = target,
-        format = format,
-        pdf = pdf,
-        audio = audio,
-    )
+    ): Staged {
+        // A plain `.xopp` names its background PDF by **path**, and the join that produced it wrote the
+        // file into scratch: publishing it first is what makes the saved document still resolve after
+        // the temp folder is swept. The other two containers carry the bytes, so there is nothing to
+        // publish — and a PDF the reader picked is never moved.
+        val linked = if (format == SaveFormat.ORIGINAL) {
+            DesktopPdfSources.durable(document.model, pdf)
+        } else {
+            DesktopPdfSources.Linked(document.model, pdf)
+        }
+        return stageSnapshot(
+            model = linked.model,
+            shape = document.saveShapeFor(target),
+            readOnly = document.readOnly,
+            gateNote = document.gateNote,
+            target = target,
+            format = format,
+            pdf = linked.pdf,
+            audio = audio,
+        )
+    }
 
     /**
      * The same write, from a **snapshot** instead of a live document — the form a save uses when the canvas

@@ -23,6 +23,11 @@ import java.io.File
  * between two of those sweeps (a long session can open document after document), so [prune] also
  * takes a byte budget and, once the folder exceeds it, drops the oldest files that nothing live
  * refers to.
+ *
+ * A **joined** PDF is the exception to liveness: a plain `.xopp` names it by path, so the file is a
+ * dependency of a document **saved to disk** rather than of an open tab. [pin] records those, and
+ * [prune] keeps them whether or not a tab is still open and whatever the budget says — deleting one
+ * would leave a document on disk pointing at nothing.
  */
 class PdfStore(private val dir: File) {
 
@@ -63,11 +68,65 @@ class PdfStore(private val dir: File) {
     fun prune(keep: Collection<String?>, maxBytes: Long = UNLIMITED) {
         val live = keep.filterNotNull().toSet()
         val cached = index().values.map { File(dir, it).absolutePath }.toSet()
-        // The index is bookkeeping, not a background: never sweep it away with the PDFs.
-        dir.pruneUnreferenced(live + cached, except = setOf(INDEX_FILE))
-        dir.trimOldestTo(maxBytes, live, except = setOf(INDEX_FILE))
+        // A saved document's dependency is neither live nor cached: no tab refers to it any more and no
+        // cache key regenerates it, but a file on disk names it — so it is kept like a live file, and
+        // the budget may no more take it than it may take one an open tab is drawing.
+        val pinned = pinnedNames().map { File(dir, it) }.filter(File::isFile)
+        val pinnedPaths = pinned.map { it.absolutePath }.toSet()
+        // The two lists are bookkeeping, not backgrounds: never sweep them away with the PDFs.
+        val lists = setOf(INDEX_FILE, PINNED_FILE)
+        dir.pruneUnreferenced(live + cached + pinnedPaths, except = lists)
+        dir.trimOldestTo(maxBytes, live + pinnedPaths, except = lists)
         val surviving = index().filterValues { File(dir, it).isFile }
         writeIndex(surviving)
+        // A pin whose file the OS or the reader removed is dropped: the document that named it is the
+        // one that has to relink, and a pin outliving its file would only grow this list forever.
+        writePinned(pinned.map { it.name }.toSet())
+    }
+
+    /**
+     * Remember [file] as a **dependency of a saved document** — a joined PDF a plain `.xopp` names by
+     * path — so [prune] keeps it once the tab that needed it closes.
+     *
+     * Answers false for a file outside this store: the store sweeps its own folder and has no business
+     * pinning a reader's own PDF in somebody else's.
+     */
+    fun pin(file: File): Boolean {
+        val name = nameIn(file) ?: return false
+        if (!file.isFile) return false
+        val names = pinnedNames()
+        if (name in names) return true
+        writePinned(names + name)
+        return true
+    }
+
+    /** Forget a [pin]. The file itself is left to [prune], which drops it once nothing refers to it. */
+    fun unpin(file: File) {
+        val name = nameIn(file) ?: return
+        val names = pinnedNames()
+        if (name in names) writePinned(names - name)
+    }
+
+    /** [file]'s name inside this store, or null when it is not one of this store's files. */
+    private fun nameIn(file: File): String? = runCatching {
+        val parent = file.parentFile ?: return@runCatching null
+        if (parent.canonicalFile != dir.canonicalFile) return@runCatching null
+        file.name.takeIf { it.isNotBlank() && it != INDEX_FILE && it != PINNED_FILE }
+    }.getOrNull()
+
+    /** The files saved documents depend on, as last written. Missing or corrupt reads as empty. */
+    private fun pinnedNames(): Set<String> = runCatching {
+        File(dir, PINNED_FILE).takeIf(File::isFile)?.readLines().orEmpty()
+            .map(String::trim).filter(String::isNotEmpty).toSet()
+    }.getOrDefault(emptySet())
+
+    private fun writePinned(names: Set<String>) {
+        runCatching {
+            dir.mkdirs()
+            // A lost pin costs a link from one saved document, never the document itself, so failing
+            // to persist it is not fatal.
+            File(dir, PINNED_FILE).writeText(names.sorted().joinToString("\n"))
+        }
     }
 
     /** The content-key → file-name map, as last written. Missing or corrupt reads as empty. */
@@ -93,5 +152,8 @@ class PdfStore(private val dir: File) {
 
         /** Sidecar holding the [cached] key → file-name map. Tab-separated, one entry per line. */
         private const val INDEX_FILE = "index.tsv"
+
+        /** Sidecar holding the [pin]ned file names, one per line — the files saved documents name. */
+        private const val PINNED_FILE = "pinned.tsv"
     }
 }

@@ -92,4 +92,52 @@ class PdfStoreTest {
         store.cached("key1") { regenerated = true; it.writeText("0123456789") }
         assertTrue(regenerated)
     }
+
+    @Test fun pruneKeepsAPinnedFileAfterItsTabHasClosed() {
+        val store = store()
+        val joined = store.newFile().apply { writeText("%PDF") }
+        assertTrue("the store owns the file, so it can pin it", store.pin(joined))
+
+        store.prune(emptyList())
+
+        // Nothing is open and no cache key regenerates it, but the saved document names this path.
+        assertTrue("a saved .xopp still resolves its background", joined.isFile)
+    }
+
+    @Test fun theBudgetNeverEvictsAPinnedFile() {
+        val store = store()
+        val joined = store.newFile().apply { writeText("0123456789") }
+        store.pin(joined)
+
+        store.prune(emptyList(), maxBytes = 1)
+
+        assertTrue("a saved document's dependency outranks the cache budget", joined.isFile)
+    }
+
+    @Test fun aPinSurvivesUntilItIsLiftedAndDropsOutWhenTheFileGoes() {
+        val store = store()
+        val joined = store.newFile().apply { writeText("%PDF") }
+        store.pin(joined)
+        store.unpin(joined)
+        store.prune(emptyList())
+        assertFalse("an unpinned file nothing refers to is swept", joined.exists())
+
+        val gone = store.newFile().apply { writeText("%PDF") }
+        store.pin(gone)
+        gone.delete()
+        store.prune(emptyList())
+        // The pin was dropped with the file, so a later sweep does not keep chasing it.
+        val again = store.newFile().apply { writeText("%PDF") }
+        store.prune(emptyList())
+        assertFalse(again.exists())
+    }
+
+    @Test fun aFileOutsideTheStoreIsNotPinned() {
+        val store = store()
+        val elsewhere = tmp.newFile("reader.pdf").apply { writeText("%PDF") }
+
+        assertFalse("a reader's own PDF is not this store's to keep", store.pin(elsewhere))
+        store.prune(emptyList())
+        assertTrue(elsewhere.isFile)
+    }
 }

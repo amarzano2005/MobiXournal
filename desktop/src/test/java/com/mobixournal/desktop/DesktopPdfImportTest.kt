@@ -6,6 +6,7 @@ import com.mobixournal.desktop.sheet.PageBackdrop
 import com.mobixournal.desktop.sheet.number
 
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.Page
 import com.mobixournal.render.ABSOLUTE_DOMAIN
 import java.io.File
 import org.apache.pdfbox.pdmodel.PDDocument
@@ -81,6 +82,72 @@ class DesktopPdfImportTest {
                 (it.background as Background.Pdf).filename
             })
         }
+    }
+
+    /**
+     * The sheet is the page a reader **sees** — its effective CropBox, turned with the page — because the
+     * export imports the source page by that same box. These two agreeing is what keeps a mark drawn on
+     * screen over the ink it was drawn on.
+     */
+    @Test
+    fun `the sheet is the effective cropped page, at every quarter turn`() {
+        for (quarter in 0..3) {
+            val file = File(temp.root, "cropped-$quarter.pdf")
+            PDDocument().use { document ->
+                val page = PDPage(PDRectangle(400f, 600f))
+                // A crop smaller than the media box and offset inside it, so reading the wrong one shows.
+                page.cropBox = PDRectangle(300f, 500f).apply { lowerLeftX = 50f; lowerLeftY = 40f; upperRightX = 350f; upperRightY = 540f }
+                page.rotation = quarter * 90
+                document.addPage(page)
+                document.save(file)
+            }
+
+            DesktopPdfImport.open(file).use { pdf ->
+                val sheet = DesktopPdfImport.pages(pdf, file.absolutePath).single()
+                val turned = quarter % 2 != 0
+                assertEquals("width at $quarter°", if (turned) 500.0 else 300.0, sheet.width, 0.01)
+                assertEquals("height at $quarter°", if (turned) 300.0 else 500.0, sheet.height, 0.01)
+            }
+        }
+    }
+
+    /**
+     * A notebook with a cover: the page that carries the reference is not necessarily page one, and a
+     * re-point that assumes it is one leaves the old file named and the join invisible.
+     */
+    @Test
+    fun `retarget moves the reference on the page that carries it, and clears the bundled copy`() {
+        val holder = Page(
+            width = 595.0,
+            height = 842.0,
+            background = Background.Pdf(
+                filename = "/somewhere/original.pdf",
+                pageNo = 0,
+                domain = ABSOLUTE_DOMAIN,
+                bundledAsset = "assets/background.pdf",
+            ),
+            layers = emptyList(),
+        )
+        val pages = listOf(
+            Page(width = 595.0, height = 842.0, background = Background.Solid(0xFFFFFFFF.toInt(), "plain"), layers = emptyList()),
+            holder,
+            Page(
+                width = 595.0,
+                height = 842.0,
+                background = Background.Pdf(filename = null, pageNo = 1, domain = null),
+                layers = emptyList(),
+            ),
+        )
+        val joined = File(temp.root, "joined.pdf")
+
+        val after = DesktopPdfImport.retarget(pages, joined)
+
+        assertTrue("the cover stays paper", after[0].background is Background.Solid)
+        val moved = after[1].background as Background.Pdf
+        assertEquals("the holder names the joined file", joined.absolutePath, moved.filename)
+        assertEquals("absolutely, since it lives wherever the window left it", ABSOLUTE_DOMAIN, moved.domain)
+        assertNull("and the bundle no longer wins over it", moved.bundledAsset)
+        assertEquals("the page after it still points into the file by number", 1, (after[2].background as Background.Pdf).pageNo)
     }
 
     @Test

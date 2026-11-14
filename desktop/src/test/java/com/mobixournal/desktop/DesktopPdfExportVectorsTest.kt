@@ -204,21 +204,32 @@ class DesktopPdfExportVectorsTest {
         }
     }
 
-    /** A source this window cannot open is a page, not an error: the fresh sheet carries the ink instead. */
+    /**
+     * A source this window cannot open is **refused**, not printed as paper.
+     *
+     * This used to export the fresh sheet under the ink, on the reasoning that a page is better than an
+     * error. It is not: the file then holds a blank sheet where a scan belongs, and nothing in it says
+     * so — the reader finds out when they hand the notebook on. The refusal names the sheet instead, and
+     * the ink is not lost: it is still in the document, waiting for the PDF to be relinked.
+     */
     @Test
-    fun aMissingSourcePageFallsBackToTheSheetAndKeepsTheInk() {
+    fun aMissingSourcePageIsRefusedRatherThanPrintedAsPaper() {
         val page = page(
             595.0,
             842.0,
             Background.Pdf(filename = "/nowhere/gone.pdf", pageNo = 0, domain = "absolute"),
             text("Fallback words"),
         )
+        val document = document(page)
+        val target = File(temp.root, "refused.pdf")
 
-        export(document(page)).use { pdf ->
-            assertEquals("the document still exports its page", 1, pdf.numberOfPages)
-            val words = PDFTextStripper().getText(pdf)
-            assertTrue("with the ink that was drawn on it: $words", words.contains("Fallback words"))
-        }
+        val refusal = runCatching {
+            DesktopPdfExport.write(document, target, document.backdrop)
+        }.exceptionOrNull()
+
+        assertTrue("a missing source is a refusal: $refusal", refusal is com.mobixournal.desktop.io.DesktopSaves.SaveRefused)
+        assertTrue("that names the sheet: ${refusal?.message}", refusal?.message?.contains("Page 1") == true)
+        assertFalse("and nothing was written", target.exists())
     }
 
     private fun BufferedImage.rgbAt(x: Int, y: Int): Int = getRGB(x, y) and 0xFFFFFF
