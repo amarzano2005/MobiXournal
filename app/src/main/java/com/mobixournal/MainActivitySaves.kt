@@ -3,6 +3,7 @@ package com.mobixournal
 import android.net.Uri
 import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.io.SaveActivity
 import com.mobixournal.io.pdfNameFor
 import com.mobixournal.io.saveNameFor
 import com.mobixournal.portability.PortableCopy
@@ -78,6 +79,9 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     // The canvas reading the bytes are taken at: `afterSaved` compares it with the canvas it finds, which is
     // how it knows whether a stroke landed after the snapshot.
     val revision = view?.edits ?: -1
+    // The top bar's Save control turns while this runs, whether or not it was asked for: the arc is the
+    // control's own state, not the notice above the page (`SaveActivity`, `docs/data-path.md`).
+    SaveActivity.begin()
     inBackground(if (quiet) null else "Saving ${displayName(uri)}.", {
         val encoded = io.encode(document, pdf, request.format, uri, images, audio::recordingFile)
         // Prove the bytes before a SAF copy can replace the document; a refusal keeps the original.
@@ -87,6 +91,7 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
         val verified = try { io.stageOut(encoded.file, uri) } finally { encoded.file.delete() }
         encoded.uncompiled to verified
     }) { result ->
+        SaveActivity.end()
         result.onFailure { toast("Save failed: ${it.message}") }.onSuccess { (uncompiled, verified) ->
             afterSaved(owner, request, uri, document, revision)
             if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
@@ -147,6 +152,7 @@ private fun MainActivity.afterSaved(
  * share), and only fall back to asking for a location when we don't.
  */
 internal fun MainActivity.saveActiveTab() {
+    if (SaveActivity.saving) return
     if (busy.value != null && busy.value?.startsWith("Saving") == true) return
     if (tabs.isEmpty || tabs.active == null || tabs.active?.hydrated == false || tabs.active?.opening == true) return
     if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {

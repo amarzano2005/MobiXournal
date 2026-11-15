@@ -85,6 +85,9 @@ internal fun DesktopShell(
     Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
         Header(
             tabs = state.tabs,
+            // The Save glyph is the window's answer to "is it saved?", so it is the one that turns while
+            // the bytes go out (`SavingArc`); the page keeps its own `SavingBadge` beside it.
+            saving = state.isSaving,
             sidebarVisible = state.sidebarVisible,
             onActivate = { index -> state.tabs.activate(index) },
             onClose = { index -> state.requestCloseTab(index) },

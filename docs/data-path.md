@@ -203,6 +203,12 @@ one function both shells call (`io/AutoSavePolicy.kt` in `mobix-core`, pinned by
 shell adds is only the quiet period — the window on `editRevision` (`DesktopQuiet.kt`), the tablet on the
 canvas's own edit count (`MainActivityAutoSave.kt`).
 
+The window's quiet job **asks again** rather than firing once per burst: a tick that lands while another write
+owns the file waits for it, and a write that was refused leaves the tab dirty, so the next tick is the one that
+publishes. One shot either way is how auto save came to stop for the rest of a session, and turning the switch
+**on** over an already-dirty document now starts the same wait instead of waiting for the next stroke. The
+asking is bounded — a full disk must not become a save every four seconds.
+
 The window's rule is the one a document editor needs, and it has no lock in it: **capture an immutable
 snapshot on the thread that owns the document, hand it to one writer, let the writer own the file.** The
 snapshot is cheap (the page model the tab already holds); encoding and the write happen on the save lane, one
@@ -222,6 +228,12 @@ retried a bounded number of times (40–200 ms) when Windows answers "access den
 what a synchronised folder, its antivirus scan and the search indexer do for tens of milliseconds around
 every write. A refusal that does not clear is reported, the pages stay in memory, and the next quiet moment
 tries again.
+
+While a write is in flight the **Save control itself says so**: both shells replace the glyph with a quarter
+arc turning once per `SavingSpin.TURN_MS` — one specification in `mobix-core`, one drawing adapter per shell —
+inside the same box and in the colour the glyph wore, so the band's right-hand group does not move. It is the
+control's own state rather than a notice: a save nobody asked for turns the same arc, while the notice laid
+beside the page stays for the transfer that interrupts a hand.
 
 ## Shared immutable edit roots
 

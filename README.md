@@ -102,7 +102,7 @@ The shells number separately; [the release index](docs/releases/index.md) record
 
 Opening preserves the format; **Save As** changes it after a successful save, and cancelling leaves the original
 unchanged. An untouched file returns the same XML, while interchange limits affect telemetry and editability. The
-Windows window **refuses** one **packaged** `.xopp` whose background lives inside it, leaving the file untouched.
+window **refuses** a **packaged** `.xopp` whose background lives inside it.
 Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/xopp-bridge.md), [which format your notebook is in](docs/guide-formats-and-conversion.md).
 
 ## Installing, and the first notebook
@@ -119,11 +119,12 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 2. Confirm the SmartScreen prompt; keep or decline the `.mobix`/`.pmobix`/`.xopp` associations and shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
-A new tab is empty until saved: **Save As** picks the format, the system's picker the name; **Save** writes;
+A new tab is empty until saved: **Save As** picks the format, the picker the name; **Save** writes;
 **Export PDF** writes all pages, or the ones picked.
-**Export As** writes the page as PNG or SVG, or the notebook as a **`.pmobix`** carrying the files it
+**Export As** writes PNG or SVG pages, or the notebook as a **`.pmobix`** carrying the files it
 only names — an export, not a working file.
-**Save automatically** writes a saved document seconds after you stop, and never picks a name.
+**Save automatically** writes a saved document seconds after you stop, and never picks a name; while it writes,
+**Save** becomes a turning arc.
 Recents show what you opened; **Restore last session** reopens the last one.
 
 ## Where the work stands today

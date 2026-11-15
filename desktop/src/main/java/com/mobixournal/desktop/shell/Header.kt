@@ -87,6 +87,8 @@ internal fun Header(
     onToggleSidebar: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    /** Whether a save is writing right now — what turns the Save glyph into a turning arc (`SavingArc`). */
+    saving: Boolean = false,
     /** Open the Settings surface — the menu's row, and the window behind `Ctrl+,`. */
     onSettings: () -> Unit,
     /** The menu's Pen block: the door to the Stylus page, behind its heading's glyph. */
@@ -161,7 +163,7 @@ internal fun Header(
         HeaderHistory(tab, onUndo, onRedo)
         Spacer(Modifier.width(HEADER_GROUP_GAP))
         HeaderAudioSlot(audio, tabs, onAudioTap)
-        HeaderFileCommands(tab, onSave, onExportPdf)
+        HeaderFileCommands(tab, saving, onSave, onExportPdf)
     }
 }
 
@@ -171,13 +173,24 @@ internal fun Header(
  * then looked like the history steps beside it (`docs/ui-modernization.md`).
  */
 @Composable
-private fun HeaderFileCommands(tab: DesktopTab?, onSave: () -> Unit, onExportPdf: () -> Unit) {
+private fun HeaderFileCommands(
+    tab: DesktopTab?,
+    saving: Boolean,
+    onSave: () -> Unit,
+    onExportPdf: () -> Unit,
+) {
+    // A write says so **on the control**: the floppy gives way to an arc going round once per
+    // `SavingSpin.TURN_MS`, drawn in the glyph's own box so the two commands beside it do not move. It is
+    // dimmed when the tab has nothing left to write, which is the same tone every unavailable command wears.
+    val turn = rememberSavingTurn(saving)
     HeaderGlyph(
         active = false,
         enabled = tab?.canSave == true,
         colour = DesktopTheme.accent,
         onClick = onSave,
-    ) { color -> drawChromeGlyph(ChromeGlyph.SAVE, color) }
+    ) { color ->
+        if (saving) drawSavingArc(color, turn.value) else drawChromeGlyph(ChromeGlyph.SAVE, color)
+    }
     Spacer(Modifier.width(6.dp))
     HeaderGlyph(
         active = false,
