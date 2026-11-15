@@ -112,9 +112,12 @@ Copy and has no Highlight.
 
 **Copy rides with the words.** The bar does not sit at the bottom of the screen: it floats
 against the passage you selected — under its last line, above it when the page ends there — so the tint
-that shows what is selected is never hidden by the buttons that act on it. Near an edge, or with the
+that shows what is selected is never hidden by the buttons that act on it. It carries two words, each a
+compact pill on a full-size tap target, so it stays small over the page. Near an edge, or with the
 text enlarged or a split-screen pane, the bar is measured and pulled inside the pane instead of hanging
-over its edge, and `Tab` puts a ring around Copy, Highlight or Deselect when a keyboard is attached. The words
+over its edge, and `Tab` puts a ring around Copy or Highlight when a keyboard is attached. There is no
+Deselect word: a tap on the page or `Esc` lets the selection go, and a screen reader finds **Deselect**
+among the bar's actions. The words
 copied are the PDF's own, exactly the ones under the tint: Copy leaves your document untouched, and Highlight
 marks exactly those words.
 

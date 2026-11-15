@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-text-actions-compact-style"
-title = "Replace the oversized PDF text popup with compact contextual controls"
-description = "Refine the existing Android ui/EditorActionBars.kt TextSelectionBar/BarAction and desktop io/PdfTextCopyBar.kt BarWord instead of adding a second popup. Reuse existing floating-surface tokens, catalogue glyphs, typography and the compact action style of the app; remove the visually oversized nested TextButton padding and redundant inner/outer spacing. Keep Copy and Highlight now and allow Underline from pdf-selected-text-underline later; remove the visible Deselect action because outside tap/click and Escape already dismiss the selection, while preserving an accessible dismissal action. Match the action hierarchy and surface treatment across both shells. Compact means lower visual bulk, not smaller input targets: retain the interface contract minimum hit areas, readable labels/tooltips and default/hover/picked/disabled/focus states. Use actual measured size, adapt to large text and narrow split panes with accessible overflow rather than clipping actions, and keep extension through the contextual overflow defined by pdf-direct-selection-context-actions. Maintain existing read-only restrictions and keyboard/TalkBack access. Render tests compare actual bar height, padding and action targets with existing compact controls in light/dark themes and enlarged text; verify screenshots in both shells and no huge panel beneath a short word. Follow docs/interface-contract.md and its motion contract, using only existing GlassMotion for floating-surface presence, never custom animation numbers. This task owns appearance/size; pdf-text-actions-selection-lifecycle owns when and where it appears. Update docs/pdf.md and the relevant user-guide wording in this task; add a shared token only if no existing token expresses the required value."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 12
-created = 2026-11-15
-tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-android-long-press-selection"
 title = "Select PDF words with a finger long press while keeping pen tools active"
 description = """

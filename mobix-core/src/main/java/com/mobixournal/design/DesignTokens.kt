@@ -165,6 +165,13 @@ object DesignTokens {
     /** One compact tool/action button, in dp. */
     const val COMPACT_BUTTON_SIZE_DP: Int = 40
 
+    /**
+     * The face of one action inside a compact floating bar, in dp — the pill a reader sees, drawn on the
+     * [COMPACT_BUTTON_SIZE_DP] target that stays the hit area. Compact is lower bulk, never a smaller
+     * target (`docs/interface-contract.md`).
+     */
+    const val COMPACT_ACTION_HEIGHT_DP: Int = 32
+
     /** A tool slot's own corner — the 10 dp squircle inside the rail's capsule (`RoundedCornerShape(10)`). */
     const val RAIL_SLOT_CORNER_RADIUS_DP: Int = 10
 

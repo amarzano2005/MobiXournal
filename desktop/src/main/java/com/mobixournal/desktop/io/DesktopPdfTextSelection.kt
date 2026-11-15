@@ -2,6 +2,7 @@ package com.mobixournal.desktop.io
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.ink.warmInk
 import com.mobixournal.desktop.ink.withElement
+import com.mobixournal.desktop.sheet.dismissSelection
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.audio.withAudio
@@ -112,6 +113,9 @@ internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi
     bounds = pdfTextSelectionBounds(tab),
     onCopy = { copyPdfTextOf(tab) },
     onHighlight = if (tab.document.readOnly) null else ({ DesktopPdfTextHighlight.highlight(tab, highlightColour) }),
+    // Only the accessibility action calls this: the pointer's own dismissal is the click on the page and
+    // Escape, which never needed a word in the bar — the key and the action run the same command.
+    onDeselect = { dismissSelection(tab) },
 )
 
 /**

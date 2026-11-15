@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import com.mobixournal.desktop.io.PdfTextCopyBar
 import com.mobixournal.desktop.io.PdfTextCopyUi
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.desktop.sheet.selectionBarOffset
 import com.mobixournal.render.Bounds
 import org.junit.Assert.assertTrue
@@ -90,6 +91,37 @@ class PdfTextCopyBarTest {
         )
         // A read-only document passes no `onHighlight`, so the verb does not exist at all.
         assertTrue("Copy alone is the read-only bar: $copying", copying.width > 70f)
+    }
+
+    @Test
+    fun `the bar is compact and every action still sits on the shared target`() {
+        val bar = measuredCapsule(fontScale = 1f, highlightable = true)
+        assertTrue(
+            "the capsule is no taller than a compact control plus its hair of edge air: ${bar.height}",
+            bar.height <= DesignTokens.COMPACT_BUTTON_SIZE_DP + 4,
+        )
+        assertTrue(
+            "and no action is smaller than the shared control: ${bar.height}",
+            bar.height >= DesignTokens.COMPACT_BUTTON_SIZE_DP,
+        )
+    }
+
+    @Test
+    fun `enlarged text widens the bar, and grows it rather than cropping a label that outgrows the pill`() {
+        val plain = measuredCapsule(fontScale = 1f, highlightable = true)
+        val large = measuredCapsule(fontScale = 2f, highlightable = true)
+        assertTrue("200 % text draws a wider bar: $large against $plain", large.width > plain.width)
+        assertTrue(
+            "and stays on the shared target: ${large.height}",
+            large.height >= DesignTokens.COMPACT_BUTTON_SIZE_DP,
+        )
+        // The pill's height is a floor, not a ceiling: text taller than 32 dp grows the bar instead of being
+        // cropped by it, so a reader who enlarges text never loses half a word.
+        val huge = measuredCapsule(fontScale = 4f, highlightable = true)
+        assertTrue(
+            "a label taller than the pill grows the bar: ${huge.height} against ${plain.height}",
+            huge.height > plain.height,
+        )
     }
 
     @Test

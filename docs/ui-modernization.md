@@ -183,6 +183,7 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
     "geometry": {
       "capsuleCornerRadiusDp": 16,
       "compactButtonSizeDp": 40,
+      "compactActionHeightDp": 32,
       "hairlineStrokeWidthDp": 1.0,
       "railSlotCornerRadiusDp": 10,
       "railCapsuleWidthDp": 52,

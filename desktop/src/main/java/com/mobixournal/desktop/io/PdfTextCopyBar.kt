@@ -12,12 +12,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -27,15 +27,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.render.Bounds
 import kotlin.math.roundToInt
 
@@ -51,6 +56,7 @@ internal data class PdfTextCopyUi(
     val bounds: Bounds?,
     val onCopy: () -> Unit,
     val onHighlight: (() -> Unit)? = null,
+    val onDeselect: (() -> Unit)? = null,
 )
 
 /**
@@ -103,18 +109,25 @@ internal fun PdfTextCopyBar(
         Row(
             Modifier
                 .glassCapsule(cornerRadius = DesktopTheme.panelRadius, shadow = DesktopTheme.bandShadow)
-                .border(
-                    width = 1.dp,
-                    color = if (focused) DesktopTheme.accent else Color.Transparent,
-                    shape = RoundedCornerShape(DesktopTheme.panelRadius),
-                )
+                // The capsule shows no Deselect word — a click on the page and Escape already drop the
+                // selection, and a third word was the widest thing in a two-word bar. It stays reachable as
+                // this surface's accessibility action, so a keyboard reader keeps the same door.
+                .semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction(DESELECT_ACTION) {
+                            ui.onDeselect?.invoke()
+                            ui.onDeselect != null
+                        },
+                    )
+                }
                 .onFocusChanged {
                     focused = it.isFocused
                     WindowKeys.focusControl(owner, focused)
                 }
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                // The actions carry their own targets now, so the capsule keeps only a hair of edge air.
+                .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             BarWord(label = "Copy", glyph = ChromeGlyph.COPY, onClick = ui.onCopy)
             // A read-only document keeps its Copy and grows no Highlight: the verb would be a dead button.
@@ -125,28 +138,50 @@ internal fun PdfTextCopyBar(
     }
 }
 
+/** The dismissal the bar no longer spells out, kept for assistive input. */
+private const val DESELECT_ACTION = "Deselect"
+
 /**
  * One word of the bar.
  *
  * The words are the bar's **targets**, so each is its own click — the capsule used to be one button because it
  * had one word, and a second verb inside a single target would have made the whole capsule ambiguous.
+ *
+ * Each word is now a compact pill on the shared 40 dp control: it used to be the bare label, whose own text was
+ * the whole hit area — the smallest target on the window, inside the smallest bar. Its face is
+ * [DesignTokens.COMPACT_ACTION_HEIGHT_DP]; the square around it, and the pill's padding, are what the pointer
+ * actually gets. The focus ring moved onto the pill, so Tab says which **word** it landed on rather than ringing
+ * the whole capsule.
  */
 @Composable
 private fun BarWord(label: String, glyph: ChromeGlyph?, onClick: () -> Unit) {
-    Row(
-        Modifier.clickable(role = Role.Button, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            // A minimum, not a height: at 200 % text the pill grows with its label instead of cropping it,
+            // and the target can only ever be larger than the shared control.
+            .heightIn(min = DesignTokens.COMPACT_BUTTON_SIZE_DP.dp)
+            .onFocusChanged { focused = it.hasFocus }
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        if (glyph != null) {
-            Canvas(Modifier.size(14.dp)) { drawChromeGlyph(glyph, DesktopTheme.inkSecondary) }
-            Spacer(Modifier.width(2.dp))
+        Row(
+            Modifier
+                .heightIn(min = DesignTokens.COMPACT_ACTION_HEIGHT_DP.dp)
+                .clip(CircleShape)
+                .border(
+                    width = 2.dp,
+                    color = if (focused) DesktopTheme.accent else Color.Transparent,
+                    shape = CircleShape,
+                )
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (glyph != null) {
+                Canvas(Modifier.size(14.dp)) { drawChromeGlyph(glyph, DesktopTheme.inkSecondary) }
+            }
+            Text(text = label, color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
         }
-        Text(
-            text = label,
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-            modifier = Modifier.padding(end = 2.dp),
-        )
     }
 }

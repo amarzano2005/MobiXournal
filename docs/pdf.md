@@ -108,7 +108,7 @@ map to the screen through a `PageBox` exactly like strokes. The **Select text (P
 (`EditorTool.TEXT_SELECT` → `ActiveTool.TEXT_SELECT` → `GestureIntent.SELECT_TEXT`) drags to select
 an inclusive reading-order word range: `beginTextSelect`/`textSelectMove` resolve pointer positions
 to word indices (`PdfTextSelection`, below), the range is drawn as one washed band per line (`PdfSelectionSpans`: the line's union height, the spaces between its words inside it, columns never bridged, no border per word, nothing animated — only the boundary advances), the
-`TextSelectionBar`'s Copy puts the text on the Android system clipboard (`copyTextSelection`), and its
+`TextSelectionBar` — two words in compact pills on the shared 40 dp target (`DesignTokens.COMPACT_ACTION_HEIGHT_DP`) rather than a nested Material button, and no Deselect word — puts the text on the Android system clipboard (`copyTextSelection`), and its
 **Highlight** writes the passage onto the page (`highlightTextSelection`, see [the magnetic
 highlighter](#the-magnetic-highlighter)). While it is in hand the slot names the page's state — reading, ready a scan with no words, or a failed read with a **Try again** — from one `PdfTextAvailability`, so a walk still running is never called a page without text. The bar
 **floats against the words**: the surface reports the selected word boxes' union
@@ -116,7 +116,7 @@ highlighter](#the-magnetic-highlighter)). While it is in hand the slot names the
 pass beside `reportScroll`), and `TextSelectionAnchor` places the measured capsule below that box, above
 it when the pane ends below, and inside the pane's edges either way — a bar pinned to the bottom edge sat
 on top of a passage near the foot of the page. The window's `PdfTextCopyBar` does the same with its own
-measured capsule (a hard-coded 78 × 30 dp assumed one text scale); it washes the same `PdfSelectionSpans` bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word, and a passage never slides, fades or scales as one block. The
+measured capsule (a hard-coded 78 × 30 dp assumed one text scale), its words the same compact pills on the same target; it washes the same `PdfSelectionSpans` bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word, and a passage never slides, fades or scales as one block. The
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 
@@ -135,7 +135,7 @@ length in `DesktopPdfIndexCache` and read off the UI thread). Both shells theref
 the In the window, **Select text (PDF)** (`Shift+S`) requires a hit (`hitWord`), drags an
 inclusive reading-order range, washes it and puts the words on the system clipboard (`Ctrl+C` or the
 selection's Copy/Highlight bar); `Esc`, a click off the text or a page change clears it, and **Copy** writes
-nothing.
+nothing. Neither bar carries a **Deselect**: the click on the page and `Esc` are the pointer's dismissal, and both capsules expose a *Deselect* accessibility action so a keyboard or TalkBack reader keeps the same door.
 
 **A press must hit a word; a drag may approach one.** `PdfTextSelection` (`mobix-core`) is the gesture's pure
 half: `begin` answers only when the point lands on a word — inside its box, or within the press radius

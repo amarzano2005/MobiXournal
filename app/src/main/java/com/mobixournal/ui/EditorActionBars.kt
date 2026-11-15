@@ -9,6 +9,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
@@ -50,11 +51,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.ToolGlyph
 import com.mobixournal.render.SelectionOps
 import com.mobixournal.ui.theme.FloatingSurface
@@ -313,10 +317,18 @@ fun SelectModeBar(
 }
 
 /**
- * Shown while PDF text is selected: copy the selection to the system clipboard, or deselect.
+ * Shown while PDF text is selected: copy the selection to the system clipboard, or mark it on the page.
  *
  * It floats against the selected words ([TextSelectionAnchor]) rather than on the pane's bottom edge, and
- * each word wears the focus ring Material does not draw — see [BarAction].
+ * now wears the app's **compact** actions — a 32 dp pill ([DesignTokens.COMPACT_ACTION_HEIGHT_DP]) on the
+ * shared 40 dp target — instead of a nested Material [TextButton], whose own minimum height, 24 dp of inner
+ * padding and the row's padding around it stacked into the bulkiest chrome on the page. The bar adds no air
+ * of its own beyond 2 dp ([FloatingSurface] already owns 6 dp of edge), and two words stand where three did.
+ *
+ * **Deselect is not a word any more.** An outside tap and Escape already drop the selection — a button for
+ * it was the widest thing in a bar of two, and it named a gesture the page's own surface performs. The act
+ * survives as the bar's accessibility custom action, so a keyboard or TalkBack reader keeps the door that a
+ * pointer has.
  */
 @Composable
 fun TextSelectionBar(
@@ -327,43 +339,71 @@ fun TextSelectionBar(
 ) {
     FloatingSurface(modifier = modifier) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier
+                .semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction(DESELECT_ACTION) { onDeselect(); true },
+                    )
+                }
+                .padding(horizontal = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             BarAction(label = "Copy", onClick = onCopy, glyph = ChromeGlyph.COPY)
             BarAction(label = "Highlight", onClick = onHighlight)
-            BarAction(label = "Deselect", onClick = onDeselect)
         }
     }
 }
 
+/** The dismissal the bar no longer spells out, kept for assistive input. */
+private const val DESELECT_ACTION = "Deselect"
+
+/** The pill an action draws: its face, while its hit area stays the 40 dp compact control. */
+private val BarActionHeight = DesignTokens.COMPACT_ACTION_HEIGHT_DP.dp
+
+/** The target under that pill — the shared compact control, so compact action never means smaller hit area. */
+private val BarActionTarget = DesignTokens.COMPACT_BUTTON_SIZE_DP.dp
+
 /**
- * One word of a floating bar, with a focus ring a hardware keyboard can see.
+ * One word of a floating bar: a 32 dp pill inside a [BarActionTarget] tap square, with a focus ring a
+ * hardware keyboard can see.
  *
  * The bars float over the canvas, and Material's text button draws no focus indication of its own: Tab
- * moved focus onto Copy and nothing on screen said where it had landed, so the ring is the bar's job. It
- * is `hasFocus`, not `isFocused`, because the focus target is the button inside the ring's box.
+ * moved focus onto Copy and nothing on screen said where it had landed, so the ring is the bar's job — and
+ * a `clickable` box keeps the 40 dp target while the pill it draws is only as tall as its label needs. It
+ * is `hasFocus`, not `isFocused`, because the focus target is the clickable square and the ring sits on the
+ * pill inside it.
  */
 @Composable
 private fun BarAction(label: String, onClick: () -> Unit, glyph: ChromeGlyph? = null) {
     var focused by remember { mutableStateOf(false) }
     Box(
-        Modifier
+        modifier = Modifier
+            .heightIn(min = BarActionTarget)
             .onFocusChanged { focused = it.hasFocus }
-            .border(
-                width = 2.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = RoundedCornerShape(percent = 50),
-            )
-            .padding(1.dp),
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        TextButton(onClick = onClick) {
+        Row(
+            modifier = Modifier
+                .heightIn(min = BarActionHeight)
+                .clip(CircleShape)
+                .background(
+                    if (focused) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent,
+                )
+                .border(
+                    width = 2.dp,
+                    color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = CircleShape,
+                )
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             if (glyph != null) {
-                Icon(glyph.imageVector(), contentDescription = null)
-                Spacer(Modifier.width(6.dp))
+                Icon(glyph.imageVector(), contentDescription = null, modifier = Modifier.size(16.dp))
             }
-            Text(label)
+            Text(label, style = MaterialTheme.typography.labelLarge)
         }
     }
 }

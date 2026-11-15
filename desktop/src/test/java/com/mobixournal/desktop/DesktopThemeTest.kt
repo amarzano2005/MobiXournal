@@ -67,6 +67,7 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.BLUR_RADIUS_DP, number("blurRadiusDp").toInt())
         assertEquals(DesignTokens.CAPSULE_CORNER_RADIUS_DP, number("capsuleCornerRadiusDp").toInt())
         assertEquals(DesignTokens.COMPACT_BUTTON_SIZE_DP, number("compactButtonSizeDp").toInt())
+        assertEquals(DesignTokens.COMPACT_ACTION_HEIGHT_DP, number("compactActionHeightDp").toInt())
         assertEquals(DesignTokens.HAIRLINE_STROKE_WIDTH_DP, number("hairlineStrokeWidthDp"), 1e-4)
 
         // The raised glass: the lift under a band and a capsule, and the chrome's own ink.
