@@ -83,12 +83,27 @@ internal fun ThumbnailRefresh(state: DesktopShellState) {
  * every gate when it runs, so a document that became read-only, lost its file or was cleaned in the meantime is
  * simply not written.
  */
+/** How many quiet periods one burst may spend on automatic writes before giving up until the next edit. */
+private const val AUTO_SAVE_ATTEMPTS = 12
+
 @Composable
 internal fun AutoSave(state: DesktopShellState) {
-    LaunchedEffect(state.editRevision) {
-        if (state.editRevision == 0) return@LaunchedEffect
-        delay(AutoSavePolicy.QUIET_MS)
-        state.autoSaveNow()
+    // Keyed on the switch as well as the edits: turning auto save **on** over a document that is already
+    // dirty is itself a reason to write, and it used to wait for the next stroke — which read as "the
+    // setting does nothing".
+    LaunchedEffect(state.editRevision, state.prefs.autoSave) {
+        // **Repeated**, not one tick per burst: a tick that lands while another write owns the file skips
+        // this attempt, and a write that is refused leaves the tab dirty — one shot either way, which is
+        // how auto save came to stop for the rest of a session. The loop asks again at the same quiet
+        // cadence, and stops when the document is published, the switch goes off, or a write keeps failing
+        // (bounded: a full disk must not become a save every four seconds).
+        repeat(AUTO_SAVE_ATTEMPTS) {
+            delay(AutoSavePolicy.QUIET_MS)
+            if (!state.autoSaveWanted()) return@LaunchedEffect
+            // The lane is busy with a write the reader asked for, or with the crash snapshot: wait for it.
+            if (state.isSaving) return@repeat
+            state.autoSaveNow()
+        }
     }
 }
 
@@ -100,22 +115,33 @@ internal fun AutoSave(state: DesktopShellState) {
  * automatic save may touch.
  */
 internal fun DesktopShellState.autoSaveNow() {
-    val tab = tabs.active ?: return
-    val due = AutoSavePolicy.due(
-        enabled = prefs.autoSave,
-        edited = tab.isDirty,
-        readOnly = tab.document.readOnly,
-        hasTarget = !tab.unsaved &&
-            !com.mobixournal.portability.PortableCopy.isPortableCopy(tab.file.name),
-        // A save already in flight owns the file: a quiet moment that lands inside a write would stage the same
-        // notebook a second time, and the second stage is pure cost.
-        busy = saveState.request != null,
-    )
-    if (!due) return
+    if (!autoSaveWanted()) return
+    // A save already in flight owns the file: a quiet moment that lands inside a write would stage the same
+    // notebook a second time, and the second stage is pure cost.
+    if (saveState.request != null) return
     // **Through the worker**, when the window is up: `save()` encodes the whole notebook and writes it on the
     // calling thread, and this one is the thread that paints — so auto save ran a full encode and a write
     // inline, which is the freeze a reader sees as "it hangs while it saves", on exactly the documents where
     // the encode is longest. The synchronous path stays for a shell with no composition to hand the request
     // to (the JVM tests), the same choice `saveOrPick` makes for the header's Save.
     if (saveState.uiBound) requestSave() else save()
+}
+
+/**
+ * Whether an automatic write is still **owed**: the switch is on, the showing tab holds edits the file does
+ * not, and it has a file to write them to.
+ *
+ * It is [AutoSavePolicy]'s question without its `busy` answer, because the loop that asks it has to tell
+ * "nothing to write" (stop) from "someone else is writing" (wait): a busy file is not a saved one.
+ */
+internal fun DesktopShellState.autoSaveWanted(): Boolean {
+    val tab = tabs.active ?: return false
+    return AutoSavePolicy.due(
+        enabled = prefs.autoSave,
+        edited = tab.isDirty,
+        readOnly = tab.document.readOnly,
+        hasTarget = !tab.unsaved &&
+            !com.mobixournal.portability.PortableCopy.isPortableCopy(tab.file.name),
+        busy = false,
+    )
 }

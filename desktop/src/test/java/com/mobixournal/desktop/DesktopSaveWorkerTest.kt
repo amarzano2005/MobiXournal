@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.io.*
+import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.shell.*
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.SaveFormat
@@ -74,6 +75,28 @@ class DesktopSaveWorkerTest {
             assertEquals("over the archive the pages were read from", document.pageSource, own.repackOver)
             assertNull("another destination is a whole write", document.saveShapeFor(temp.newFile("elsewhere.mobix")).repackOver)
         } finally { document.close() }
+    }
+
+    @Test fun autoSaveWritesADirtyDocumentAndStopsAskingOnceItLands() {
+        val file = temp.newFile("automatic.mobix")
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(1))
+        val state = DesktopShellState(
+            settings = DesktopSettings(temp.newFile("automatic.properties")),
+            recovery = DesktopRecovery(temp.newFolder()),
+        )
+        try {
+            state.tabs.open(DocumentLoader.load(file))
+            val tab = state.active!!
+            tab.record(tab.document.snapshot())
+            // The switch turned on over a document that is already dirty is itself a reason to write: the
+            // quiet job is keyed on it, so the reader does not have to type again to be saved.
+            state.prefs.pickAutoSave(true)
+            assertTrue("the quiet job has something to write", state.autoSaveWanted())
+            state.autoSaveNow()
+            assertNull("and it wrote the file", state.failure)
+            assertFalse("so the tab is clean", tab.isDirty)
+            assertFalse("and the job stops asking", state.autoSaveWanted())
+        } finally { state.tabs.closeAll() }
     }
 
     @Test fun aRecoveredTabNeverReadsTheSnapshotInPlace() {
