@@ -288,9 +288,10 @@ table, clears failed `QueryInterface` outputs, and uses `CoCreateFreeThreadedMar
 `TabletDialTest` checks zoom and fit commands. These checks do not require a connected controller.
 
 Successful event registration (`dial: rotation hr=0x00000000, button hr=0x00000000`) only proves that
-Windows accepted the handlers; it raises neither event while a **built-in tool** is active or the menu
-is open, so the window re-selects its **MobiXournal** tool whenever it takes the focus and logs the
-first rotation of a turn (`dial: rotation 12.00° (#1)`): a silent log is "Windows sent nothing".
+Windows accepted the handlers; it raises neither event while a **built-in tool** is active, and the
+context's default is Windows' own (**Volume**) — clearing it needs `SetDefaultMenuItems`, whose
+`IIterable` argument a JVM has no projection for — so the window re-selects **MobiXournal** on focus
+and logs the first rotation of a turn: a silent log is "Windows sent nothing".
 The window says what it has in the status bar — `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`, plus `dial` while a
 controller is bound — so "the pen draws at one width" and "the pen is a mouse as far as this window can
 tell" can never be confused. With no device, both readers answer null after logging the step that said
