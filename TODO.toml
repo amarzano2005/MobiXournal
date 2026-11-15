@@ -2236,31 +2236,3 @@ created = 2026-11-11
 tags = ["stem", "definitions", "performance"]
 rebuild = true
 emulator_debug = false
-
-[[task]]
-id = "desktop-radial-delegate-abi"
-title = "Fix Windows Radial controller event dispatch"
-description = "Implemented the four-slot WinRT delegate ABI in TabletDial, rejected IInspectable and unrelated event interfaces, and cleared failed QueryInterface outputs. Added native callback regression tests and updated desktop-tablet.md plus guide-limitations.md. Completion is blocked on Gradle builds and desktop:createDistributable because this session cannot access normal Gradle cache locks or connect to its daemon, and .git/index.lock writes are denied. Verify Gaomon Windows Radial rotation and click on hardware after rebuilding; event registration does not establish hardware success."
-status = "blocked"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 1640
-created = 2026-11-15
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-dial-own-tool-context"
-title = "Clear Windows' built-in radial tools from the window's dial context"
-description = "The desktop window binds a RadialController and adds/selects its own MobiXournal item, but Windows keeps the context's default built-in tool (Volume) active, so turning the Gaomon WH51 dial in Windows Radial mode changes the system volume and the window receives no RotationChanged at all (measured on ANTONIOFISSO-PC: bind, append, SelectMenuItem and both event additions all return S_OK, and the first focus check finds the active tool is not ours). The documented remedy is RadialControllerConfiguration.SetDefaultMenuItems with an empty IIterable<RadialControllerSystemMenuItemKind>, obtained through IRadialControllerConfigurationInterop {787cdaac-3186-476d-87e4-b9374a7b9970} GetForWindow and IRadialControllerConfiguration {a6b79ecb-6a52-4430-910c-56370a9d6b42} slot 6, called after the custom item is appended (clearing the built-ins before adding one restores them) and followed by SelectMenuItem. A hand-built JNA object for that IIterable was attempted and rejected: after answering QueryInterface for the pinterface IID (4516010F-FD98-5E1D-BF3F-AEAF79F1F3DA), IAgileObject, 2132B005-C604-4354-85BD-8F2E24181B0C and IInspectable, WER reported a fail-fast (exit -1073740791, 0xC0000409) inside the call, so the approach needs a real probe process and an hs_err read rather than another blind attempt; it was reverted. Build the empty iterable (IIterable + IIterator with GetIids via CoTaskMemAlloc, one-byte booleans, memory kept referenced), call it before releasing the controller, log the HRESULT, and verify on the hardware that dial rotation produces 'dial: rotation' lines and zooms while the volume stays put; keep the desktop executable rebuilt."
-status = "blocked"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 1650
-created = 2026-11-15
-tags = []
-rebuild = false
-emulator_debug = false

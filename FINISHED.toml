@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-dial-own-tool-context"
+title = "Clear Windows' built-in radial tools from the window's dial context"
+description = "Added desktop/src/main/java/com/mobixournal/desktop/ink/TabletDialConfig.kt with a native EmptySystemMenuItems (IIterable<RadialControllerSystemMenuItemKind> and IIterator<RadialControllerSystemMenuItemKind> implementing IInspectable::GetIids via CoTaskMemAlloc, 1-byte boolean false for get_HasCurrent/MoveNext, E_BOUNDS for get_Current, and strict QueryInterface whitelisting that refuses internal probing IIDs like 2132B005-C604-4354-85BD-8F2E24181B0C). Wired clearDefaultDialMenuItems into TabletDial.menuOf after clearing stale vector items and appending MobiXournal, followed by SelectMenuItem, keeping the native tables pinned for the controller's lifetime. Verified in TabletDialAbiTest that SetDefaultMenuItems succeeds (hr=0x00000000) and isToolActive() is immediately true and survives reopen; updated docs/desktop-tablet.md and docs/guide-limitations.md and rebuilt the desktop distributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-15
+completed = 2026-11-15
+tags = []
+design = "none: Windows RadialControllerConfiguration COM interop with no UI surface changes"
+
+[[task]]
+id = "desktop-radial-delegate-abi"
+title = "Fix Windows Radial controller event dispatch"
+description = "Implemented the four-slot WinRT delegate ABI (IUnknown + Invoke at slot 3) in desktop/src/main/java/com/mobixournal/desktop/ink/TabletDial.kt, refusing IInspectable and unrelated event IIDs while clearing failed QueryInterface outputs and marshaling through CoCreateFreeThreadedMarshaler. Balanced RoUninitialize with S_OK only, added native ABI regression tests in desktop/src/test/java/com/mobixournal/desktop/TabletDialAbiTest.kt, updated docs/desktop-tablet.md and docs/guide-limitations.md, and rebuilt the desktop distributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-15
+completed = 2026-11-15
+tags = []
+design = "none: WinRT COM delegate ABI and native input wiring with no UI surface changes"
+
+[[task]]
 id = "save-control-shows-a-turning-arc"
 title = "The Save control turns while it writes, on both shells"
 description = "A save in flight now says so on the control itself. mobix-core holds the one specification (SavingSpin: 840 ms turn, 90° sweep, 2.4/24 stroke); desktop/shell/SavingArc.kt adapts it for the header, which swaps ChromeGlyph.SAVE for the arc in the same box, and the tablet draws it from ui/SaveControl.kt inside the top bar's existing IconButton, driven by io/SaveActivity (which counts concurrent writes and is set around MainActivitySaves' encode, so auto save turns it too). Save is unavailable while writing on the tablet; the window's page badge stays as the second readout. Docs: docs/data-path.md (the mark, and auto save's retry) and README's save line."

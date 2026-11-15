@@ -284,14 +284,13 @@ constants. The JVM-implemented event delegate has four slots: `IUnknown` followe
 matching [the WinRT delegate ABI](https://learn.microsoft.com/en-us/uwp/winrt-cref/winrt-type-system#delegates).
 It refuses `IInspectable` and unrelated delegate IIDs rather than returning a pointer to an incompatible
 table, clears failed `QueryInterface` outputs, and uses `CoCreateFreeThreadedMarshaler` for `IMarshal`.
-`TabletDialAbiTest` invokes the native event slot with a synthetic event and checks the interface refusals;
-`TabletDialTest` checks zoom and fit commands. These checks do not require a connected controller.
+`TabletDialAbiTest` invokes the native event and `IIterable` slots and checks that `TabletDial.open` clears
+the built-in tools and activates **MobiXournal**; `TabletDialTest` checks zoom and fit commands.
 
-Successful event registration (`dial: rotation hr=0x00000000, button hr=0x00000000`) only proves that
-Windows accepted the handlers; it raises neither event while a **built-in tool** is active, and the
-context's default is Windows' own (**Volume**) — clearing it needs `SetDefaultMenuItems`, whose
-`IIterable` argument a JVM has no projection for — so the window re-selects **MobiXournal** on focus
-and logs the first rotation of a turn: a silent log is "Windows sent nothing".
+Windows raises neither event while a **built-in tool** (**Volume**, **Scroll**, **Zoom**, **Undo**) is
+active, so `TabletDialConfig.kt` clears the window's default set through `RadialControllerConfiguration`'s
+`SetDefaultMenuItems` with a native empty `IIterable<RadialControllerSystemMenuItemKind>` after appending
+**MobiXournal**, then selects it and re-selects it on focus; the first rotation of a turn logs `dial: rotation`.
 The window says what it has in the status bar — `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`, plus `dial` while a
 controller is bound — so "the pen draws at one width" and "the pen is a mouse as far as this window can
 tell" can never be confused. With no device, both readers answer null after logging the step that said

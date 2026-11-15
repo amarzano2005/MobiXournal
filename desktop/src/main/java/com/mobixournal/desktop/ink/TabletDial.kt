@@ -75,7 +75,7 @@ internal fun comGuid(text: String): Memory {
 
 // Slots: 0–5 are IUnknown and IInspectable on every WinRT interface, so a member's slot is its position
 // among the interface's own methods, counted from 6 in declaration order.
-private const val SLOT_RELEASE = 2
+internal const val SLOT_RELEASE = 2
 private const val SLOT_CREATE_FOR_WINDOW = 6 // IRadialControllerInterop
 private const val SLOT_GET_MENU = 6 // IRadialController
 private const val SLOT_PUT_ROTATION_RESOLUTION = 8 // IRadialController
@@ -89,28 +89,29 @@ private const val SLOT_MENU_SELECT_ITEM = 10 // IRadialControllerMenu
 private const val SLOT_CREATE_FROM_KNOWN_ICON = 7 // IRadialControllerMenuItemStatics
 private const val SLOT_VECTOR_APPEND = 13 // IVector<T>: GetAt, get_Size, GetView, IndexOf, SetAt, InsertAt,
 // RemoveAt, then Append
+private const val SLOT_VECTOR_CLEAR = 15 // IVector<T>: ..., Append, RemoveAtEnd, Clear
 private const val SLOT_ROTATION_DELTA = 6 // IRadialControllerRotationChangedEventArgs
 
 /** A WinRT object's method at [slot]: the function pointer, with `this` still to be passed. */
-private fun vtableSlot(objectPointer: Pointer, slot: Int): Pointer =
+internal fun vtableSlot(objectPointer: Pointer, slot: Int): Pointer =
     objectPointer.getPointer(0L).getPointer(slot.toLong() * Native.POINTER_SIZE)
 
 /** Call [slot] of [objectPointer] with [args], answering the `HRESULT`. */
-private fun call(objectPointer: Pointer, slot: Int, vararg args: Any?): Int =
+internal fun call(objectPointer: Pointer, slot: Int, vararg args: Any?): Int =
     Function.getFunction(vtableSlot(objectPointer, slot), Function.ALT_CONVENTION)
         .invokeInt(arrayOf(objectPointer, *args))
 
 /** `IUnknown::Release` — slot 2 of every COM object. */
-private fun release(objectPointer: Pointer?) {
+internal fun release(objectPointer: Pointer?) {
     if (objectPointer == null) return
     runCatching { call(objectPointer, SLOT_RELEASE) }
 }
 
-private fun hresult(value: Int): String = String.format(Locale.ROOT, "0x%08X", value)
+internal fun hresult(value: Int): String = String.format(Locale.ROOT, "0x%08X", value)
 
 // The four interfaces a handler has to answer by name.
-private const val IID_UNKNOWN = "00000000-0000-0000-C000-000000000046"
-private const val IID_AGILE_OBJECT = "94EA2B94-E9CC-49E0-C0FF-EE64CA8F5B90"
+internal const val IID_UNKNOWN = "00000000-0000-0000-C000-000000000046"
+internal const val IID_AGILE_OBJECT = "94EA2B94-E9CC-49E0-C0FF-EE64CA8F5B90"
 private const val IID_MARSHAL = "00000003-0000-0000-C000-000000000046"
 
 /** `INoMarshal`: "this object must never be marshaled" — a claim this handler cannot make, see below. */
@@ -128,16 +129,16 @@ private const val IID_IDENTITY_UNMARSHAL = "0000001B-0000-0000-C000-000000000046
 private const val IID_ROTATION_HANDLER = "8FE73AC9-8A36-5152-815D-03310EE8BF85"
 private const val IID_BUTTON_HANDLER = "D09D9FCC-EDB8-56C0-856D-70E477A9DDF3"
 
-private const val HRESULT_OK = 0
-private const val HRESULT_NO_INTERFACE = 0x80004002.toInt()
+internal const val HRESULT_OK = 0
+internal const val HRESULT_NO_INTERFACE = 0x80004002.toInt()
 
 /** `QueryInterface(self, REFIID, void**)`. */
-private fun interface ComQueryInterface : StdCallLibrary.StdCallCallback {
+internal fun interface ComQueryInterface : StdCallLibrary.StdCallCallback {
     fun callback(self: Pointer, iid: Pointer, out: Pointer): Int
 }
 
 /** `AddRef` and `Release`, which for a handler that never dies are counters no one reads. */
-private fun interface ComRefCount : StdCallLibrary.StdCallCallback {
+internal fun interface ComRefCount : StdCallLibrary.StdCallCallback {
     fun callback(self: Pointer): Int
 }
 
@@ -146,9 +147,11 @@ private fun interface ComInvoke : StdCallLibrary.StdCallCallback {
     fun callback(self: Pointer, sender: Pointer, args: Pointer): Int
 }
 
-/** `ole32!CoCreateFreeThreadedMarshaler` — the standard `IMarshal` for a free-threaded object. */
-private interface Ole32Library : StdCallLibrary {
+/** `ole32!CoCreateFreeThreadedMarshaler` and task-memory allocator for `IInspectable::GetIids`. */
+internal interface Ole32Library : StdCallLibrary {
     fun CoCreateFreeThreadedMarshaler(outer: Pointer?, marshaler: PointerByReference): Int
+    fun CoTaskMemAlloc(cb: Long): Pointer?
+    fun CoTaskMemFree(pv: Pointer?)
 }
 
 /**
@@ -251,7 +254,7 @@ internal class ComHandler(
 }
 
 /** A GUID as text, for the diagnostics log: `Data1`–`Data3` big-endian, `Data4` as bytes. */
-private fun Pointer.guidText(): String = buildString {
+internal fun Pointer.guidText(): String = buildString {
     append(String.format(Locale.ROOT, "%08X-%04X-%04X-", getInt(0), getShort(4).toInt() and 0xFFFF, getShort(6).toInt() and 0xFFFF))
     for (index in 8..15) {
         append(String.format(Locale.ROOT, "%02X", getByte(index.toLong()).toInt() and 0xFF))
@@ -260,7 +263,7 @@ private fun Pointer.guidText(): String = buildString {
 }
 
 /** `16` bytes of [iid] compared with a GUID built by [comGuid]. */
-private fun Pointer.isGuid(expected: Memory): Boolean {
+internal fun Pointer.isGuid(expected: Memory): Boolean {
     for (offset in 0 until 16) {
         if (getByte(offset.toLong()) != expected.getByte(offset.toLong())) return false
     }
@@ -318,8 +321,13 @@ private fun rotationHandler(onRotation: (Double) -> Unit, log: (String) -> Unit)
 internal fun dialZoomFactor(degrees: Double): Float =
     exp(degrees * 0.002).toFloat().coerceIn(0.5f, 2f)
 
-/** The dial's menu as this window holds it: the menu, its item vector, and this window's own item. */
-private class DialMenu(val menu: Pointer, val items: Pointer, val item: Pointer)
+/** The dial's menu as this window holds it: the menu, its item vector, this window's own item, and the empty built-in set. */
+private class DialMenu(
+    val menu: Pointer,
+    val items: Pointer,
+    val item: Pointer,
+    val emptyItems: EmptySystemMenuItems,
+)
 
 /**
  * A live `RadialController` bound to [TabletDial.open]'s window.
@@ -334,6 +342,8 @@ internal class TabletDial private constructor(
     private val menu: Pointer,
     private val items: Pointer,
     private val item: Pointer,
+    @Suppress("unused") // Keeps the native IIterable/IIterator tables alive for the controller's lifetime.
+    private val emptyItems: EmptySystemMenuItems,
     private val handlers: List<ComHandler>,
     private val rotationToken: Long,
     private val buttonToken: Long,
@@ -378,7 +388,7 @@ internal class TabletDial private constructor(
         release(menu)
         release(controller)
         // The apartment this thread opened for WinRT goes back with the reader: balanced with the
-        // RoInitialize below, and only when that call is the one that created it.
+        // RoInitialize below, and only when that call is the one that created it (S_OK, not S_FALSE).
         if (initializedApartment) runCatching { combase.RoUninitialize() }
     }
 
@@ -463,7 +473,7 @@ internal class TabletDial private constructor(
             val resolution = call(controller, SLOT_PUT_ROTATION_RESOLUTION, ROTATION_RESOLUTION_DEGREES)
             log("dial: rotation resolution 1°, hr=${hresult(resolution)}")
 
-            val wired = menuOf(combase, controller, log)
+            val wired = menuOf(combase, controller, hwnd, log)
             if (wired == null) {
                 release(controller)
                 return null
@@ -484,6 +494,8 @@ internal class TabletDial private constructor(
             val buttonHr = call(controller, SLOT_ADD_BUTTON_CLICKED, button.objectPointer, buttonToken)
             log("dial: rotation hr=${hresult(rotationHr)}, button hr=${hresult(buttonHr)}")
             if (rotationHr < 0) {
+                rotation.releaseMarshaler()
+                button.releaseMarshaler()
                 release(wired.items)
                 release(wired.menu)
                 release(wired.item)
@@ -492,11 +504,12 @@ internal class TabletDial private constructor(
             }
             return TabletDial(
                 combase = combase,
-                initializedApartment = apartment >= 0,
+                initializedApartment = apartment == HRESULT_OK,
                 controller = controller,
                 menu = wired.menu,
                 items = wired.items,
                 item = wired.item,
+                emptyItems = wired.emptyItems,
                 handlers = listOf(rotation, button),
                 rotationToken = rotationToken.getLong(0),
                 buttonToken = buttonToken.getLong(0),
@@ -505,14 +518,20 @@ internal class TabletDial private constructor(
         }
 
         /**
-         * Append this window's tool to the dial's menu and **select** it, or answer null.
+         * Append this window's tool to the dial's menu, clear Windows' built-in tools from the context,
+         * and **select** our tool, or answer null.
          *
-         * Both steps belong to opening the dial rather than being a nicety: Windows raises no rotation
-         * at all until a *custom* tool is active, so without the selection the first turn of the wheel
-         * goes to whatever built-in tool was active before — its HRESULT is also what tells "the menu was
-         * refused" apart from "the handler was refused".
+         * All three steps belong to opening the dial rather than being a nicety: Windows raises no
+         * rotation at all while a built-in tool (such as **Volume**) is active, and `SelectMenuItem`
+         * alone leaves **Volume** active until the built-in tools are removed via
+         * `RadialControllerConfiguration::SetDefaultMenuItems` after the custom item is appended.
          */
-        private fun menuOf(combase: CombaseLibrary, controller: Pointer, log: (String) -> Unit): DialMenu? {
+        private fun menuOf(
+            combase: CombaseLibrary,
+            controller: Pointer,
+            hwnd: Pointer,
+            log: (String) -> Unit,
+        ): DialMenu? {
             val item = menuItem(combase, log)
             val menuRef = PointerByReference()
             val menuHr = call(controller, SLOT_GET_MENU, menuRef)
@@ -526,6 +545,7 @@ internal class TabletDial private constructor(
             val itemsRef = PointerByReference()
             val itemsHr = call(menu, SLOT_MENU_GET_ITEMS, itemsRef)
             val items = itemsRef.value
+            if (items != null) runCatching { call(items, SLOT_VECTOR_CLEAR) }
             val appended = if (items != null) call(items, SLOT_VECTOR_APPEND, item) else itemsHr
             log("dial: menu item appended hr=${hresult(appended)}")
             if (items == null || appended < 0) {
@@ -534,9 +554,11 @@ internal class TabletDial private constructor(
                 release(item)
                 return null
             }
+            val emptyItems = EmptySystemMenuItems(log)
+            clearDefaultDialMenuItems(combase, hwnd, emptyItems, log)
             val selected = call(menu, SLOT_MENU_SELECT_ITEM, item)
             log("dial: menu item selected hr=${hresult(selected)}")
-            return DialMenu(menu, items, item)
+            return DialMenu(menu, items, item, emptyItems)
         }
 
         /** The dial's menu entry, created through the item runtime class's statics. */
@@ -555,7 +577,7 @@ internal class TabletDial private constructor(
         }
 
         /** `RoGetActivationFactory` for [runtimeClass], asking for the interop interface [iid]. */
-        private fun activationFactory(
+        internal fun activationFactory(
             combase: CombaseLibrary,
             runtimeClass: String,
             iid: String,
