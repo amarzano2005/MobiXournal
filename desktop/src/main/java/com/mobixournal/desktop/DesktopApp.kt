@@ -5,7 +5,8 @@ import com.mobixournal.desktop.shell.WindowKeys
 import androidx.compose.runtime.rememberCoroutineScope
 import com.mobixournal.desktop.shell.openInBackground
 import com.mobixournal.desktop.ink.dialFit
-import com.mobixournal.desktop.ink.dialZoom
+import com.mobixournal.desktop.ink.DialNotchAccumulator
+import com.mobixournal.desktop.ink.dialWheelZoom
 import com.mobixournal.desktop.io.askExportPdfPages
 import com.mobixournal.desktop.io.askImportPdf
 import com.mobixournal.desktop.ink.DesktopTablet
@@ -321,18 +322,36 @@ internal class DocumentDialogs(
 @Composable
 private fun rememberTablet(window: Frame, state: DesktopShellState): DesktopTablet {
     val tablet = remember { DesktopTablet() }
+    val notches = remember { DialNotchAccumulator() }
     val penStream = state.prefs.penStream
     val windowArea = state.prefs.windowArea
     DisposableEffect(penStream, windowArea) {
+        val pendingLock = Any()
+        var pendingDegrees = 0.0
+        val flushScheduled = java.util.concurrent.atomic.AtomicBoolean(false)
         tablet.open(
             window = window,
-            onRotation = { degrees -> EventQueue.invokeLater { state.dialZoom(degrees) } },
-            onClick = { EventQueue.invokeLater { state.dialFit() } },
+            onRotation = { degrees ->
+                synchronized(pendingLock) { pendingDegrees += degrees }
+                if (flushScheduled.compareAndSet(false, true)) {
+                    EventQueue.invokeLater {
+                        val delta = synchronized(pendingLock) {
+                            flushScheduled.set(false)
+                            val d = pendingDegrees
+                            pendingDegrees = 0.0
+                            d
+                        }
+                        val stepNotches = notches.add(delta)
+                        if (stepNotches != 0) state.dialWheelZoom(stepNotches)
+                    }
+                }
+            },
+            onClick = { EventQueue.invokeLater { notches.reset(); state.dialFit() } },
             log = { println("MobiXournal tablet: $it") },
             prefer = penStream,
             area = windowArea,
         )
-        onDispose { tablet.close() }
+        onDispose { notches.reset(); tablet.close() }
     }
     return tablet
 }

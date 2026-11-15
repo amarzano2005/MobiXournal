@@ -10,9 +10,11 @@ import com.sun.jna.ptr.PointerByReference
 import com.sun.jna.win32.StdCallLibrary
 import java.awt.Window
 import java.util.Locale
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.math.exp
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * **The Windows wheel dial** — a rotary control read through the WinRT `RadialController`, which is the
@@ -23,8 +25,8 @@ import kotlin.math.exp
  * the Win32 pointer types have no dial in them (`PT_POINTER`, `PT_TOUCH`, `PT_PEN`, `PT_MOUSE`,
  * `PT_TOUCHPAD`, and that is the list). A dial is a *wheel* device, and Windows hands it to the app as a
  * `RadialController`, bound to a window by `IRadialControllerInterop::CreateForWindow`. Rotation then
- * arrives as a `RotationChanged` event carrying `RotationDeltaInDegrees` — in degrees, which is what
- * [dialZoomFactor] turns into a zoom step.
+ * arrives as a `RotationChanged` event carrying `RotationDeltaInDegrees` — in degrees, which
+ * `DialNotchAccumulator` folds into whole notches of the wheel's own zoom step.
  *
  * Everything here is called **by vtable slot**, because a JVM has no C++ headers: the slot numbers and
  * the two GUIDs this file needs are copied from the SDK's generated
@@ -210,7 +212,6 @@ internal class ComHandler(
             null
         }
         val query = ComQueryInterface { pointer, iid, out ->
-            log("dial: handler asked for ${iid.guidText()}")
             val answer = when {
                 // The whitelist is deliberate: answering `S_OK` to an interface this table does not
                 // implement is a promise to answer its methods, and this table has four slots. Two
@@ -310,23 +311,16 @@ private fun rotationHandler(onRotation: (Double) -> Unit, log: (String) -> Unit)
 }
 
 /**
- * The dial's rotation, as a zoom step: **exponential**, so a nudge at 400 % moves the same proportion as
- * one at 40 %, and one full turn is about two-fold.
- *
- * [degrees] is the signed delta Windows reports — positive for clockwise. 0.002 per degree is one turn
- * (360°) = e^0.72 ≈ 2.05×, and one degree (the resolution this file asks for) ≈ 0.2 %, which is a zoom
- * that reads as smooth rather than as steps. Clamped per event so a driver that reports a whole turn at
- * once cannot jump the page to the end of its range.
+ * The dial's menu as this window holds it: the menu, its item vector, this window's own item, the
+ * configuration object that keeps the built-in tools cleared, and the empty iterable handed to it — an
+ * object the WinRT call may still marshal, so it stays alive as long as the menu does.
  */
-internal fun dialZoomFactor(degrees: Double): Float =
-    exp(degrees * 0.002).toFloat().coerceIn(0.5f, 2f)
-
-/** The dial's menu as this window holds it: the menu, its item vector, this window's own item, and the empty built-in set. */
 private class DialMenu(
     val menu: Pointer,
     val items: Pointer,
     val item: Pointer,
-    val emptyItems: EmptySystemMenuItems,
+    val config: Pointer?,
+    @Suppress("unused") val emptyItems: EmptySystemMenuItems?,
 )
 
 /**
@@ -336,17 +330,10 @@ private class DialMenu(
  * rotation. Whether a dial is on the desk is Windows' business — rotation simply arrives when one is.
  */
 internal class TabletDial private constructor(
-    private val combase: CombaseLibrary,
-    private val initializedApartment: Boolean,
-    private val controller: Pointer,
+    private val staLoop: DialStaLoop,
+    private val closedLatch: CountDownLatch,
     private val menu: Pointer,
-    private val items: Pointer,
     private val item: Pointer,
-    @Suppress("unused") // Keeps the native IIterable/IIterator tables alive for the controller's lifetime.
-    private val emptyItems: EmptySystemMenuItems,
-    private val handlers: List<ComHandler>,
-    private val rotationToken: Long,
-    private val buttonToken: Long,
     private val log: (String) -> Unit,
 ) : AutoCloseable {
 
@@ -363,33 +350,28 @@ internal class TabletDial private constructor(
      * window whose tool has been switched underneath it. Re-selecting it is what turns that silence back
      * into a zoom.
      */
-    fun selectTool(): Boolean {
+    fun selectTool(): Boolean = staLoop.invoke(false) {
         val hr = call(menu, SLOT_MENU_SELECT_ITEM, item)
         log("dial: tool re-selected hr=${hresult(hr)}")
-        return hr >= 0
+        hr >= 0
     }
 
     /** True when the menu's active custom tool is this window's own item (a built-in tool answers false). */
-    fun isToolActive(): Boolean {
+    fun isToolActive(): Boolean = staLoop.invoke(false) {
         val out = PointerByReference()
-        if (call(menu, SLOT_MENU_GET_SELECTED_ITEM, out) < 0) return false
-        val selected = out.value ?: return false
+        if (call(menu, SLOT_MENU_GET_SELECTED_ITEM, out) < 0) return@invoke false
+        val selected = out.value ?: return@invoke false
         val ours = selected == item
         release(selected)
-        return ours
+        ours
     }
 
     override fun close() {
-        runCatching { call(controller, SLOT_REMOVE_ROTATION_CHANGED, rotationToken) }
-        runCatching { call(controller, SLOT_REMOVE_BUTTON_CLICKED, buttonToken) }
-        handlers.forEach { it.releaseMarshaler() }
-        release(item)
-        release(items)
-        release(menu)
-        release(controller)
-        // The apartment this thread opened for WinRT goes back with the reader: balanced with the
-        // RoInitialize below, and only when that call is the one that created it (S_OK, not S_FALSE).
-        if (initializedApartment) runCatching { combase.RoUninitialize() }
+        staLoop.quit()
+        // Waiting for the pump from inside the pump would only wait for itself; the resources are released
+        // by `runPump`'s own exit either way.
+        if (staLoop.isPumpThread()) return
+        runCatching { closedLatch.await(2, TimeUnit.SECONDS) }
     }
 
     companion object {
@@ -444,19 +426,106 @@ internal class TabletDial private constructor(
                 log("dial: combase unavailable (${it.message})")
                 return null
             }
+            val user32 = runCatching {
+                Native.load("user32", DialUser32::class.java) as DialUser32
+            }.getOrElse {
+                log("dial: user32 unavailable (${it.message})")
+                return null
+            }
+            val kernel32 = runCatching {
+                Native.load("kernel32", DialKernel32::class.java) as DialKernel32
+            }.getOrElse {
+                log("dial: kernel32 unavailable (${it.message})")
+                return null
+            }
             val hwnd = runCatching { Native.getWindowPointer(window) }.getOrNull()
             if (hwnd == null) {
                 log("dial: the window has no handle yet")
                 return null
             }
-            // WinRT activation needs an initialized apartment on the calling thread, and a plain AWT
-            // thread has none: without this call every factory answers CO_E_NOTINITIALIZED
-            // (0x800401F0), which is exactly what the first probe run measured.
+            val readyLatch = CountDownLatch(1)
+            val closedLatch = CountDownLatch(1)
+            val result = AtomicReference<TabletDial?>(null)
+            val thread = Thread(
+                {
+                    runStaThread(combase, user32, kernel32, hwnd, onRotation, onClick, log, readyLatch, closedLatch, result)
+                },
+                "mobix-dial-sta",
+            )
+            thread.isDaemon = true
+            thread.start()
+            runCatching { readyLatch.await(5, TimeUnit.SECONDS) }
+            return result.get()
+        }
+
+        private fun runStaThread(
+            combase: CombaseLibrary,
+            user32: DialUser32,
+            kernel32: DialKernel32,
+            hwnd: Pointer,
+            onRotation: (Double) -> Unit,
+            onClick: () -> Unit,
+            log: (String) -> Unit,
+            readyLatch: CountDownLatch,
+            closedLatch: CountDownLatch,
+            result: AtomicReference<TabletDial?>,
+        ) {
+            // WinRT activation and RadialController's hidden InteractiveObjectDeviceManager window
+            // require an STA thread that actively pumps a Win32 message loop (GetMessageW/DispatchMessageW).
             val apartment = combase.RoInitialize(RO_INIT_SINGLETHREADED)
             if (apartment < 0 && apartment != RPC_E_CHANGED_MODE) {
                 log("dial: RoInitialize refused (${hresult(apartment)})")
-                return null
+                readyLatch.countDown()
+                closedLatch.countDown()
+                return
             }
+            val initializedApartment = apartment == HRESULT_OK
+            // Force Windows to create this thread's message queue before any PostThreadMessageW call.
+            user32.PeekMessageW(Memory(DialStaLoop.MSG_BYTES), null, 0, 0, DialStaLoop.PM_NOREMOVE)
+            val staLoop = DialStaLoop(user32, kernel32.GetCurrentThreadId())
+
+            val resources = openOnStaThread(combase, hwnd, onRotation, onClick, log)
+            if (resources == null) {
+                if (initializedApartment) runCatching { combase.RoUninitialize() }
+                readyLatch.countDown()
+                closedLatch.countDown()
+                return
+            }
+            result.set(TabletDial(staLoop, closedLatch, resources.menu.menu, resources.menu.item, log))
+            readyLatch.countDown()
+            staLoop.runPump {
+                resources.releaseAll()
+                if (initializedApartment) runCatching { combase.RoUninitialize() }
+                closedLatch.countDown()
+            }
+        }
+
+        private class DialResources(
+            val controller: Pointer,
+            val menu: DialMenu,
+            val handlers: List<ComHandler>,
+            val rotationToken: Long,
+            val buttonToken: Long,
+        ) {
+            fun releaseAll() {
+                runCatching { call(controller, SLOT_REMOVE_ROTATION_CHANGED, rotationToken) }
+                runCatching { call(controller, SLOT_REMOVE_BUTTON_CLICKED, buttonToken) }
+                handlers.forEach { it.releaseMarshaler() }
+                release(menu.config)
+                release(menu.item)
+                release(menu.items)
+                release(menu.menu)
+                release(controller)
+            }
+        }
+
+        private fun openOnStaThread(
+            combase: CombaseLibrary,
+            hwnd: Pointer,
+            onRotation: (Double) -> Unit,
+            onClick: () -> Unit,
+            log: (String) -> Unit,
+        ): DialResources? {
             val interop = activationFactory(combase, CLASS_CONTROLLER, IID_INTEROP, log) ?: return null
             val controllerRef = PointerByReference()
             val created = call(interop, SLOT_CREATE_FOR_WINDOW, hwnd, comGuid(IID_CONTROLLER), controllerRef)
@@ -496,24 +565,19 @@ internal class TabletDial private constructor(
             if (rotationHr < 0) {
                 rotation.releaseMarshaler()
                 button.releaseMarshaler()
+                release(wired.config)
                 release(wired.items)
                 release(wired.menu)
                 release(wired.item)
                 release(controller)
                 return null
             }
-            return TabletDial(
-                combase = combase,
-                initializedApartment = apartment == HRESULT_OK,
+            return DialResources(
                 controller = controller,
-                menu = wired.menu,
-                items = wired.items,
-                item = wired.item,
-                emptyItems = wired.emptyItems,
+                menu = wired,
                 handlers = listOf(rotation, button),
                 rotationToken = rotationToken.getLong(0),
                 buttonToken = buttonToken.getLong(0),
-                log = log,
             )
         }
 
@@ -555,10 +619,10 @@ internal class TabletDial private constructor(
                 return null
             }
             val emptyItems = EmptySystemMenuItems(log)
-            clearDefaultDialMenuItems(combase, hwnd, emptyItems, log)
+            val config = clearDefaultDialMenuItems(combase, hwnd, emptyItems, log)
             val selected = call(menu, SLOT_MENU_SELECT_ITEM, item)
             log("dial: menu item selected hr=${hresult(selected)}")
-            return DialMenu(menu, items, item, emptyItems)
+            return DialMenu(menu, items, item, config, emptyItems)
         }
 
         /** The dial's menu entry, created through the item runtime class's statics. */

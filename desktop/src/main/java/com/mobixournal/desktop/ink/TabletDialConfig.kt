@@ -6,6 +6,10 @@ import com.sun.jna.Memory
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.ptr.PointerByReference
+import com.sun.jna.win32.StdCallLibrary
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.TimeUnit
 
 /**
  * Clears Windows' built-in radial tools (`Volume`, `Scroll`, `Zoom`, `Undo`) from the window's dial
@@ -211,15 +215,22 @@ internal class EmptySystemMenuItems(private val log: (String) -> Unit = {}) {
 /**
  * Remove Windows' built-in tools (`Volume`, `Scroll`, `Zoom`, `Undo`) from [hwnd]'s radial menu
  * configuration so only this window's custom **MobiXournal** item remains in the context.
+ *
+ * Passes `null` first so `twinapi.appcore` constructs its own native WinRT empty
+ * `Vector<RadialControllerSystemMenuItemKind>` (which implements `IMarshal` for the out-of-process
+ * `ImmersiveShellBroker` call to `explorer.exe`); when that is refused, [emptyItems] is handed over
+ * instead, because "no menu items" must not be left to whichever of the two the build in front of us
+ * accepts. Returns the live `IRadialControllerConfiguration` pointer so the caller keeps its
+ * window-activation hook alive until `close()`.
  */
 internal fun clearDefaultDialMenuItems(
     combase: CombaseLibrary,
     hwnd: Pointer,
-    emptyItems: EmptySystemMenuItems,
+    emptyItems: EmptySystemMenuItems?,
     log: (String) -> Unit,
-): Boolean {
+): Pointer? {
     val interop = TabletDial.activationFactory(combase, CLASS_CONFIGURATION, IID_CONFIGURATION_INTEROP, log)
-        ?: return false
+        ?: return null
     val configRef = PointerByReference()
     val got = call(interop, SLOT_GET_FOR_WINDOW, hwnd, comGuid(IID_CONFIGURATION), configRef)
     release(interop)
@@ -227,10 +238,111 @@ internal fun clearDefaultDialMenuItems(
     if (got < 0 || config == null) {
         log("dial: GetForWindow configuration refused (${hresult(got)})")
         release(config)
-        return false
+        return null
     }
-    val cleared = call(config, SLOT_SET_DEFAULT_MENU_ITEMS, emptyItems.iterablePointer)
-    log("dial: default menu items cleared hr=${hresult(cleared)}")
-    release(config)
-    return cleared >= 0
+    var cleared = call(config, SLOT_SET_DEFAULT_MENU_ITEMS, null)
+    log("dial: default menu items cleared with null hr=${hresult(cleared)}")
+    if (cleared < 0 && emptyItems != null) {
+        cleared = call(config, SLOT_SET_DEFAULT_MENU_ITEMS, emptyItems.iterablePointer)
+        log("dial: default menu items cleared with an empty vector hr=${hresult(cleared)}")
+    }
+    if (cleared < 0) {
+        release(config)
+        return null
+    }
+    return config
+}
+
+internal interface DialUser32 : StdCallLibrary {
+    fun PeekMessageW(msg: Pointer, hwnd: Pointer?, minFilter: Int, maxFilter: Int, removeMsg: Int): Boolean
+    fun GetMessageW(msg: Pointer, hwnd: Pointer?, minFilter: Int, maxFilter: Int): Int
+    fun TranslateMessage(msg: Pointer): Boolean
+    fun DispatchMessageW(msg: Pointer): Pointer?
+    fun PostThreadMessageW(threadId: Int, msg: Int, wParam: Long, lParam: Long): Boolean
+}
+
+internal interface DialKernel32 : StdCallLibrary {
+    fun GetCurrentThreadId(): Int
+}
+
+/**
+ * Dedicated Win32 Single-Threaded Apartment (STA) message pump for [TabletDial].
+ *
+ * AWT's `AWT-EventQueue-0` blocks in Java `Unsafe.park` and never pumps Win32 messages, so any WinRT
+ * `InteractiveObjectDeviceManager` hidden `HWND_MESSAGE` window or `RadialControllerMenu` STA callback
+ * created on `AWT-EventQueue-0` would never receive `ImmersiveShellBroker` (`explorer.exe`) item
+ * selection calls or interactive-object rotation/click messages. Running all controller/menu/config
+ * operations on this dedicated thread ensures both COM STA marshaling and Win32 `GetMessageW`
+ * dispatching work continuously for the lifetime of the dial.
+ */
+internal class DialStaLoop(
+    private val user32: DialUser32,
+    private val threadId: Int,
+) {
+    private val staThread: Thread = Thread.currentThread()
+    private val tasks = ConcurrentLinkedQueue<Runnable>()
+
+    @Volatile
+    private var stopped = false
+
+    fun runPump(onStop: () -> Unit) {
+        val msg = Memory(MSG_BYTES)
+        try {
+            while (!stopped) {
+                val ret = user32.GetMessageW(msg, null, 0, 0)
+                if (ret <= 0) break
+                val messageId = msg.getInt(Native.POINTER_SIZE.toLong())
+                if (messageId == WM_DIAL_TASK) {
+                    drainTasks()
+                } else {
+                    user32.TranslateMessage(msg)
+                    user32.DispatchMessageW(msg)
+                }
+            }
+        } finally {
+            stopped = true
+            drainTasks()
+            onStop()
+        }
+    }
+
+    /** True on the pump's own thread — where a call must run inline, and where waiting on the loop would deadlock. */
+    fun isPumpThread(): Boolean = Thread.currentThread() === staThread
+
+    fun <T> invoke(defaultValue: T, block: () -> T): T {
+        if (stopped) return defaultValue
+        if (isPumpThread()) return runCatching(block).getOrDefault(defaultValue)
+        val future = CompletableFuture<T>()
+        tasks.add(
+            Runnable {
+                runCatching(block)
+                    .onSuccess { future.complete(it) }
+                    .onFailure { future.completeExceptionally(it) }
+            },
+        )
+        if (!user32.PostThreadMessageW(threadId, WM_DIAL_TASK, 0L, 0L)) {
+            return defaultValue
+        }
+        return runCatching { future.get(2, TimeUnit.SECONDS) }.getOrDefault(defaultValue)
+    }
+
+    fun quit() {
+        if (stopped) return
+        stopped = true
+        user32.PostThreadMessageW(threadId, WM_QUIT, 0L, 0L)
+    }
+
+    private fun drainTasks() {
+        while (true) {
+            val task = tasks.poll() ?: break
+            runCatching { task.run() }
+        }
+    }
+
+    companion object {
+        const val PM_NOREMOVE = 0
+        const val WM_QUIT = 0x0012
+        private const val WM_DIAL_TASK = 0x8001 // WM_APP + 1
+        const val MSG_BYTES = 64L
+    }
 }

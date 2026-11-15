@@ -263,8 +263,8 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   wheel's own message, its own unit, no modifier, and `GetMessageExtraInfo` empty (`extra=-`), so the
   extra-info signature does not name the device either. The WinRT `RadialController` route therefore has
   nothing to bind to here (`TabletDial` still binds one and adds its **MobiXournal** item, so a real
-  radial controller can deliver its rotation to `DesktopShellState.dialZoom`, `exp(0.002 × degrees)`,
-  and its button `dialFit`).
+  radial controller can deliver its rotation to `DesktopShellState.dialWheelZoom` — `DialNotchAccumulator`
+  folds Windows' uneven degree bursts into whole notches of the wheel's own step (`prefs.navigation.zoomStepWheel`) — and its button `dialFit`).
 - **Raw Input is where the two wheels part company.** `WM_INPUT` carries the `RAWINPUTHEADER.hDevice` the
   report came from, and `GetRawInputDeviceInfoW` turns that handle into the device's interface path
   (`\\?\HID#TABLETHID&COL01#…` for this tablet's virtual mouse, `\\?\HID#VID_046D…` for the Logitech),
@@ -284,12 +284,11 @@ constants. The JVM-implemented event delegate has four slots: `IUnknown` followe
 matching [the WinRT delegate ABI](https://learn.microsoft.com/en-us/uwp/winrt-cref/winrt-type-system#delegates).
 It refuses `IInspectable` and unrelated delegate IIDs rather than returning a pointer to an incompatible
 table, clears failed `QueryInterface` outputs, and uses `CoCreateFreeThreadedMarshaler` for `IMarshal`.
-`TabletDialAbiTest` invokes the native event and `IIterable` slots and checks that `TabletDial.open` clears
-the built-in tools and activates **MobiXournal**; `TabletDialTest` checks zoom and fit commands.
+Everything it owns runs on the window's own **STA thread** with a Win32 message pump (`DialStaLoop`), because AWT's event queue never pumps a Win32 message, so the controller's hidden message window and its menu would never be called; every call into it from the window is marshalled onto that thread. `DialStaLoopTest` drives the pump with a fake Win32 — a posted task runs on the pump's thread and answers its caller, a window message is translated and dispatched, `quit` ends the loop — `TabletDialAbiTest` invokes the native event and `IIterable` slots and checks that `TabletDial.open` clears the built-in tools and activates **MobiXournal**, and `TabletDialTest` checks the notch mapping and the two commands.
 
 Windows raises neither event while a **built-in tool** (**Volume**, **Scroll**, **Zoom**, **Undo**) is
 active, so `TabletDialConfig.kt` clears the window's default set through `RadialControllerConfiguration`'s
-`SetDefaultMenuItems` with a native empty `IIterable<RadialControllerSystemMenuItemKind>` after appending
+`SetDefaultMenuItems` with `null` first and a native empty `IIterable<RadialControllerSystemMenuItemKind>` if that is refused, after appending
 **MobiXournal**, then selects it and re-selects it on focus; the first rotation of a turn logs `dial: rotation`.
 The window says what it has in the status bar — `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`, plus `dial` while a
 controller is bound — so "the pen draws at one width" and "the pen is a mouse as far as this window can

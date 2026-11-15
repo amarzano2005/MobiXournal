@@ -122,8 +122,11 @@ class TabletDialAbiTest {
                 if (first != null) {
                     try {
                         assertTrue(
-                            "SetDefaultMenuItems(empty) must succeed: $logs",
-                            logs.any { it.contains("dial: default menu items cleared hr=0x00000000") },
+                            "SetDefaultMenuItems must reject the built-in tools: $logs",
+                            logs.any {
+                                it.contains("dial: default menu items cleared with null hr=0x00000000") ||
+                                    it.contains("dial: default menu items cleared with an empty vector hr=0x00000000")
+                            },
                         )
                         assertTrue(
                             "MobiXournal tool must be active immediately after clearing built-in tools",

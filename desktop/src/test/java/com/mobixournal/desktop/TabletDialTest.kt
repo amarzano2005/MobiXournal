@@ -1,30 +1,30 @@
 package com.mobixournal.desktop
-import com.mobixournal.desktop.ink.dialZoom
 
-import com.mobixournal.desktop.ink.dialFit
+import com.mobixournal.desktop.ink.DialNotchAccumulator
 import com.mobixournal.desktop.ink.comGuid
-import com.mobixournal.desktop.ink.dialZoomFactor
-import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.ink.dialFit
+import com.mobixournal.desktop.ink.dialWheelZoom
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.shell.DesktopShellState
-
 import com.mobixournal.format.mobix.SyntheticNotebook
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import kotlin.math.exp
 
 /**
  * The dial, as arithmetic and as the shell's command.
  *
  * A radial controller cannot be faked on a build machine, so what is checked is everything around it:
  * the **bytes** a GUID becomes (a `Data1` written big-endian would make every activation call fail on
- * the user's machine and pass here, so the byte order is asserted rather than assumed), the **zoom
- * mapping**, and the two commands the dial's rotation and button run in the shell.
+ * the user's machine and pass here, so the byte order is asserted rather than assumed), the **notch
+ * mapping** between Windows' degree bursts and the wheel's step, and the two commands the dial's
+ * rotation and button run in the shell.
  */
 class TabletDialTest {
 
@@ -45,33 +45,38 @@ class TabletDialTest {
     }
 
     @Test
-    fun `dial rotation is an exponential zoom, symmetric around still`() {
-        assertEquals("no rotation, no zoom", 1f, dialZoomFactor(0.0), 1e-6f)
-        assertTrue("clockwise zooms in", dialZoomFactor(12.0) > 1f)
-        assertTrue("anticlockwise zooms out", dialZoomFactor(-12.0) < 1f)
-        assertEquals(
-            "the same turn either way cancels out",
-            1f,
-            dialZoomFactor(18.0) * dialZoomFactor(-18.0),
-            1e-5f,
-        )
-        assertEquals("one event cannot jump the page", 2f, dialZoomFactor(4000.0), 1e-6f)
-        assertEquals(0.5f, dialZoomFactor(-4000.0), 1e-6f)
+    fun `uneven degree bursts become whole notches, and a reversal drops the remainder`() {
+        val acc = DialNotchAccumulator()
+        assertEquals("4° is not a notch yet", 0, acc.add(4.0))
+        assertEquals("4° + 6° is", 1, acc.add(6.0))
+        assertEquals("21° is two notches with 1° kept", 2, acc.add(21.0))
+        assertEquals("no degrees, no notch", 0, acc.add(0.0))
+        // Reversing direction discards the +1° remainder and fires immediately on -10°.
+        assertEquals(-1, acc.add(-10.0))
+        // The same turn the other way leaves no notch behind: 9.99° is still nothing.
+        assertEquals(0, acc.add(-9.99))
+        acc.reset()
+        assertEquals("reset drops the remainder", 0, acc.add(9.99))
+        assertEquals(1, acc.add(0.01))
     }
 
     @Test
-    fun `a turn of the dial zooms the tab and its button restores the automatic fit`() {
+    fun `a turn of the dial zooms the tab by the wheel's step and its button restores the automatic fit`() {
+        val settings = DesktopSettings(temp.newFile("dial-settings.properties"))
         val file = temp.newFile("dial.mobix")
         SyntheticNotebook.write(file, SyntheticNotebook.pages(3))
-        val state = DesktopShellState(DesktopSettings(temp.newFile("dial-settings.properties")))
+        val state = DesktopShellState(settings)
         state.tabs.open(DocumentLoader.load(file))
         val tab = state.active!!
         tab.fit = FitMode.PAGE
         tab.viewport = Viewport(1f, 0f, 0f)
 
-        state.dialZoom(36.0)
+        state.dialWheelZoom(1)
         assertEquals("a free zoom is no longer a fit", FitMode.NONE, tab.fit)
-        assertTrue("and it zoomed in (${tab.viewport.zoom})", tab.viewport.zoom > 1f)
+        assertEquals("one notch is Ctrl+wheel's step", exp(settings.navigation.zoomStepWheel), tab.viewport.zoom, 1e-4f)
+
+        state.dialWheelZoom(-1)
+        assertEquals("and the other way undoes it", 1f, tab.viewport.zoom, 1e-4f)
 
         state.dialFit()
         assertEquals("the button asks what the page is", FitMode.AUTO, tab.fit)
@@ -80,10 +85,55 @@ class TabletDialTest {
     }
 
     @Test
-    fun `a dial with nothing open does nothing instead of failing`() {
-        val state = DesktopShellState(DesktopSettings(temp.newFile("empty-settings.properties")))
-        state.dialZoom(90.0)
-        state.dialFit()
-        assertEquals(null, state.active)
+    fun `a burst of notches is one clamped step, never a jump`() {
+        // 400 notches in one event would be e^48; the step is clamped to 2× before it reaches the view,
+        // and then to the readout's own limits — the same path `Ctrl + wheel` takes.
+        fun fresh(name: String): com.mobixournal.desktop.shell.DesktopTab {
+            val file = temp.newFile("$name.mobix")
+            SyntheticNotebook.write(file, SyntheticNotebook.pages(1))
+            val state = DesktopShellState(DesktopSettings(temp.newFile("$name.properties")))
+            state.tabs.open(DocumentLoader.load(file))
+            val tab = state.active!!
+            tab.fit = FitMode.NONE
+            tab.viewport = Viewport(1f, 0f, 0f)
+            state.dialWheelZoom(if (name == "dial-in") 400 else -800)
+            return tab
+        }
+
+        val inward = fresh("dial-in")
+        assertEquals(
+            "one event stops at twice the zoom, then at the ceiling",
+            Viewport.clampZoom(2f, inward.widthFitZoom),
+            inward.viewport.zoom,
+            1e-4f,
+        )
+        val outward = fresh("dial-out")
+        assertEquals(
+            "and the other way stops at half, then at the floor",
+            Viewport.clampZoom(0.5f, outward.widthFitZoom),
+            outward.viewport.zoom,
+            1e-4f,
+        )
+    }
+
+    @Test
+    fun `no notches and no document are both a no-op`() {
+        val file = temp.newFile("dial-quiet.mobix")
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(1))
+        val state = DesktopShellState(DesktopSettings(temp.newFile("dial-quiet.properties")))
+        state.tabs.open(DocumentLoader.load(file))
+        val tab = state.active!!
+        tab.fit = FitMode.PAGE
+        tab.viewport = Viewport(1f, 0f, 0f)
+
+        state.dialWheelZoom(0)
+        assertEquals("a remainder is not a turn", FitMode.PAGE, tab.fit)
+        assertEquals(1f, tab.viewport.zoom, 1e-4f)
+
+        val empty = DesktopShellState(DesktopSettings(temp.newFile("dial-empty.properties")))
+        empty.dialWheelZoom(3)
+        empty.dialFit()
+        assertEquals(null, empty.active)
+        assertTrue("nothing was opened", empty.tabs.all.isEmpty())
     }
 }
