@@ -2236,3 +2236,17 @@ created = 2026-11-11
 tags = ["stem", "definitions", "performance"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "desktop-radial-delegate-abi"
+title = "Fix Windows Radial controller event dispatch"
+description = "Implemented the four-slot WinRT delegate ABI in TabletDial, rejected IInspectable and unrelated event interfaces, and cleared failed QueryInterface outputs. Added native callback regression tests and updated desktop-tablet.md plus guide-limitations.md. Completion is blocked on Gradle builds and desktop:createDistributable because this session cannot access normal Gradle cache locks or connect to its daemon, and .git/index.lock writes are denied. Verify Gaomon Windows Radial rotation and click on hardware after rebuilding; event registration does not establish hardware success."
+status = "blocked"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 1640
+created = 2026-11-15
+tags = []
+rebuild = false
+emulator_debug = false

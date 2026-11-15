@@ -1,6 +1,7 @@
 # The desktop tablet: Wintab packets, Windows Ink, and the dial
 
 > Read when you change how the desktop window reads the pen or the dial: the two Windows streams, the packet path that draws a stroke, the ink-latency probe, or the radial controller's COM handler.
+> For the task: [What works, and what is not there](guide-limitations.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md). The window that uses these readers is [desktop-workstation.md](desktop-workstation.md)._
 
@@ -262,7 +263,7 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   wheel's own message, its own unit, no modifier, and `GetMessageExtraInfo` empty (`extra=-`), so the
   extra-info signature does not name the device either. The WinRT `RadialController` route therefore has
   nothing to bind to here (`TabletDial` still binds one and adds its **MobiXournal** item, so a real
-  radial controller would work; its rotation becomes `DesktopShellState.dialZoom`, `exp(0.002 × degrees)`,
+  radial controller can deliver its rotation to `DesktopShellState.dialZoom`, `exp(0.002 × degrees)`,
   and its button `dialFit`).
 - **Raw Input is where the two wheels part company.** `WM_INPUT` carries the `RAWINPUTHEADER.hDevice` the
   report came from, and `GetRawInputDeviceInfoW` turns that handle into the device's interface path
@@ -279,19 +280,17 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
 
 The calls are **COM by vtable slot**, because a JVM has no C++ headers: the slots and the interop GUIDs
 are quoted from the SDK's generated `windows.ui.input.h` and `RadialControllerInterop.h` in the file's
-constants. The handler is a JVM-implemented WinRT object, and three measurement runs found what it has to
-be — each one is a comment at the slot it fixed:
+constants. The JVM-implemented event delegate has four slots: `IUnknown` followed by `Invoke` at slot 3,
+matching [the WinRT delegate ABI](https://learn.microsoft.com/en-us/uwp/winrt-cref/winrt-type-system#delegates).
+It refuses `IInspectable` and unrelated delegate IIDs rather than returning a pointer to an incompatible
+table, clears failed `QueryInterface` outputs, and uses `CoCreateFreeThreadedMarshaler` for `IMarshal`.
+`TabletDialAbiTest` invokes the native event slot with a synthetic event and checks the interface refusals;
+`TabletDialTest` checks zoom and fit commands. These checks do not require a connected controller.
 
-1. **seven slots**, `IInspectable` + `Invoke`: a four-slot table died with `Invalid memory access` when
-   WinRT asked it for `GetIids`;
-2. `IMarshal` answered by a **free-threaded marshaler** (`CoCreateFreeThreadedMarshaler`), not by writing
-   the interface out;
-3. a **whitelist** in `QueryInterface` — `IUnknown`, `IInspectable`, `IAgileObject`, `IMarshal`, and the
-   two delegate IIDs the probe logged — with `INoMarshal` and `IdentityUnmarshal` refused. Claiming
-   `INoMarshal` (a promise never to be marshaled) produced `CO_E_NOT_SUPPORTED` from both registrations,
-   and claiming `IdentityUnmarshal` sent COM into slot 6 of the table, which holds `Invoke`.
-
-The live run registers both events and reports it: `dial: rotation hr=0x00000000, button hr=0x00000000`.
+Successful event registration (`dial: rotation hr=0x00000000, button hr=0x00000000`) only proves that
+Windows accepted the handlers; it raises neither event while a **built-in tool** is active or the menu
+is open, so the window re-selects its **MobiXournal** tool whenever it takes the focus and logs the
+first rotation of a turn (`dial: rotation 12.00° (#1)`): a silent log is "Windows sent nothing".
 The window says what it has in the status bar — `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`, plus `dial` while a
 controller is bound — so "the pen draws at one width" and "the pen is a mouse as far as this window can
 tell" can never be confused. With no device, both readers answer null after logging the step that said

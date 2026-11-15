@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.awt.Window
+import java.awt.event.WindowEvent
+import java.awt.event.WindowFocusListener
 import javax.swing.Timer
 
 /**
@@ -98,6 +100,16 @@ internal class DesktopTablet {
         private set
 
     private var dialReader: TabletDial? = null
+
+    /**
+     * The window the dial's focus hook is on, and the hook itself.
+     *
+     * Windows raises neither dial event while a **built-in tool** is active, and the active tool changes
+     * with the context: another window taking the controller, the radial menu being opened, a driver
+     * restart. So the window puts its own tool back every time it takes the focus back — the one moment
+     * the reader is about to turn the dial again.
+     */
+    private var dialFocus: Pair<Window, WindowFocusListener>? = null
 
     /** True when a radial controller is bound to this window (a dial itself may or may not be present). */
     var dial by mutableStateOf(false)
@@ -199,6 +211,31 @@ internal class DesktopTablet {
         }
         dialReader = TabletDial.open(wanted.window, wanted.onRotation, wanted.onClick, log)
         dial = dialReader?.attached == true
+        attachDialFocus(wanted.window)
+    }
+
+    /**
+     * Re-assert the dial's own tool whenever this window takes the focus.
+     *
+     * The custom tool is per *context*, not per window: a built-in tool that the reader picked up
+     * elsewhere stays active, and Windows then sends this window no rotation at all. Asking the menu
+     * whether its active tool is still ours — and selecting ours only when it is not — costs one COM call
+     * on a focus change and never fights a tool the reader has just chosen on purpose.
+     */
+    private fun attachDialFocus(window: Window) {
+        dialFocus?.let { (held, listener) -> held.removeWindowFocusListener(listener) }
+        dialFocus = null
+        if (dialReader == null) return
+        val listener = object : WindowFocusListener {
+            override fun windowGainedFocus(event: WindowEvent?) {
+                val reader = dialReader ?: return
+                if (!reader.isToolActive()) reader.selectTool()
+            }
+
+            override fun windowLostFocus(event: WindowEvent?) = Unit
+        }
+        window.addWindowFocusListener(listener)
+        dialFocus = window to listener
     }
 
     /**
@@ -232,6 +269,8 @@ internal class DesktopTablet {
 
     /** Close every reader and forget what they had read. */
     private fun detach() {
+        dialFocus?.let { (window, listener) -> window.removeWindowFocusListener(listener) }
+        dialFocus = null
         dialReader?.close()
         dialReader = null
         wintab?.close()
