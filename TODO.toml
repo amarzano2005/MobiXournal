@@ -36,6 +36,34 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
+id = "pdf-text-selection-native-feedback"
+title = "Make PDF selection respond like native text rather than a moving block"
+description = "After pdf-direct-text-hit-testing, replace the PDF text selection feedback in Android DrawingSurfacePaint.kt drawTextSelection and desktop io/DesktopPdfTextOverlay.kt drawPdfTextSelection. Add pure shared display geometry beside mobix-core/render/PdfText.kt: form consistent-height per-line spans from the selected word boxes, include ordinary spaces between contiguous selected words, and never bridge columns or unrelated lines. Preserve rangeText and extraction reading order; this is presentation, not a change to document ink or clipboard text. Remove desktop per-word hairline boxes and use a shared theme-aware selection wash through DesignTokens and the shell theme/CanvasChrome adapters. During selection, keep the starting endpoint fixed and update the focus immediately from pointer events: no interpolation, spring, scale, fade or translation of the selected passage as one block, no replayed arrival animation on each move. Only the range boundary advances as words/lines are crossed; use existing range reducers and consume pdf-text-selection-handles when it lands rather than implementing another handle system. Compare against native Android/Windows text selection behavior for word/line transitions, reverse drag and endpoint crossing. Tests cover inter-word spaces, columns, short/long words, baseline variation, zoom and reverse ranges; shell render tests verify continuous spans and readable text without word borders. Verify rapid forward/backward selection and multiline drag on emulator and packaged desktop with frame captures; no per-move PDF extraction or full-document scan. Apply docs/interface-contract.md: the selection wash is content feedback, not a floating surface. Update docs/pdf.md and docs/guide-pdf-and-audio.md in the same task; document that these gestures still operate on extracted PDF text, not OCR."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 11
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-text-actions-compact-style"
+title = "Replace the oversized PDF text popup with compact contextual controls"
+description = "Refine the existing Android ui/EditorActionBars.kt TextSelectionBar/BarAction and desktop io/PdfTextCopyBar.kt BarWord instead of adding a second popup. Reuse existing floating-surface tokens, catalogue glyphs, typography and the compact action style of the app; remove the visually oversized nested TextButton padding and redundant inner/outer spacing. Keep Copy and Highlight now and allow Underline from pdf-selected-text-underline later; remove the visible Deselect action because outside tap/click and Escape already dismiss the selection, while preserving an accessible dismissal action. Match the action hierarchy and surface treatment across both shells. Compact means lower visual bulk, not smaller input targets: retain the interface contract minimum hit areas, readable labels/tooltips and default/hover/picked/disabled/focus states. Use actual measured size, adapt to large text and narrow split panes with accessible overflow rather than clipping actions, and keep extension through the contextual overflow defined by pdf-direct-selection-context-actions. Maintain existing read-only restrictions and keyboard/TalkBack access. Render tests compare actual bar height, padding and action targets with existing compact controls in light/dark themes and enlarged text; verify screenshots in both shells and no huge panel beneath a short word. Follow docs/interface-contract.md and its motion contract, using only existing GlassMotion for floating-surface presence, never custom animation numbers. This task owns appearance/size; pdf-text-actions-selection-lifecycle owns when and where it appears. Update docs/pdf.md and the relevant user-guide wording in this task; add a shared token only if no existing token expresses the required value."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 12
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
 id = "pdf-android-long-press-selection"
 title = "Select PDF words with a finger long press while keeping pen tools active"
 description = """
@@ -72,7 +100,10 @@ emulator_debug = false
 [[task]]
 id = "pdf-text-selection-handles"
 title = "Adjust PDF text selections with two draggable endpoints on both shells"
-description = "After the Android and desktop direct-entry tasks, add start/end handles to the existing PDF text overlays, using the endpoint helpers from pdf-direct-text-hit-testing. Extend DrawingSurfaceSelection.kt and io/DesktopPdfTextOverlay.kt / io/DesktopPdfTextSelection.kt through small focused helpers: handles remain a constant usable screen-space size at any zoom, their targets take precedence over pan/drawing, dragging extends by reading-order words, and crossing an endpoint reverses the range without jumping or losing the grabbed handle. Limit the range to its current PDF sheet, keep handles aligned through zoom/pan and clamp interaction to the pane; no implicit cross-page selection in this task. Clear stale selection on document/source replacement or page removal and isolate split panes. Provide accessible endpoint labels and adjust actions with an equivalent keyboard path on desktop. Tests cover reverse/multiline ranges, transformed coordinates, bounds, pane isolation and cancellation; emulator and packaged desktop verification cover handle dragging beside viewport edges. Update docs/pdf.md and docs/guide-pdf-and-audio.md in the same task; apply docs/interface-contract.md tokens, glyphs and interaction states. Android range state is textSelPage/textSelAnchor/textSelFocus in DrawingSurfaceView.kt; paint through DrawingSurfacePaint.kt drawTextSelection and map coordinates via textSelectionScreenRect."
+description = """
+After the Android and desktop direct-entry tasks, add start/end handles to the existing PDF text overlays, using the endpoint helpers from pdf-direct-text-hit-testing. Extend DrawingSurfaceSelection.kt and io/DesktopPdfTextOverlay.kt / io/DesktopPdfTextSelection.kt through small focused helpers: handles remain a constant usable screen-space size at any zoom, their targets take precedence over pan/drawing, dragging extends by reading-order words, and crossing an endpoint reverses the range without jumping or losing the grabbed handle. Limit the range to its current PDF sheet, keep handles aligned through zoom/pan and clamp interaction to the pane; no implicit cross-page selection in this task. Clear stale selection on document/source replacement or page removal and isolate split panes. Provide accessible endpoint labels and adjust actions with an equivalent keyboard path on desktop. Tests cover reverse/multiline ranges, transformed coordinates, bounds, pane isolation and cancellation; emulator and packaged desktop verification cover handle dragging beside viewport edges. Update docs/pdf.md and docs/guide-pdf-and-audio.md in the same task; apply docs/interface-contract.md tokens, glyphs and interaction states. Android range state is textSelPage/textSelAnchor/textSelFocus in DrawingSurfaceView.kt; paint through DrawingSurfacePaint.kt drawTextSelection and map coordinates via textSelectionScreenRect.
+
+Use pdf-text-selection-native-feedback for the selection wash and immediate endpoint feedback; handles must not animate or translate the selected passage as one block. Delegate popup visibility while dragging and release anchoring to pdf-text-actions-selection-lifecycle; keep this task focused on endpoint interaction and accessibility."""
 status = "active"
 level = "task"
 category = "feature"
@@ -80,6 +111,20 @@ urgency = "high"
 order = 40
 created = 2026-11-15
 tags = ["pdf", "direct-text-selection", "android", "desktop"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "pdf-text-actions-selection-lifecycle"
+title = "Show PDF text actions after selection settles beside the visible endpoint"
+description = "After pdf-text-actions-compact-style, the direct-entry gestures and pdf-text-selection-handles, integrate one explicit per-pane selecting/adjusting/settled lifecycle across Android DrawingSurfaceSelection.kt, PaneState, SelectionBars.kt and TextSelectionAnchor.kt and desktop DesktopPdfTextSelection.kt/PdfTextCopyUi and PdfTextCopyBar.kt. While the pointer or a handle is extending the selection, keep the range and endpoints responsive but hide the action bar; show it on release for a nonempty settled range. Cancel, Escape, outside click, page/source replacement and pen contact follow pdf-direct-selection-context-actions; changing keyboard focus must not copy a stale background range. Anchor the measured bar near the active visible endpoint/line, using visible line spans from pdf-text-selection-native-feedback, rather than the center/bottom of the entire multiline union. Prefer an unobscured location above or below the active line, clamp within the correct pane, avoid the handle/touch target and page chrome, and hide when the selection has no visible portion; use a visible selected span as fallback if the focus line is offscreen. Update position directly with viewport changes, without a spring chasing the pointer or repeated popup remounts; floating-surface enter/exit still uses the existing contract presence mechanism once per visibility transition. Preserve keyboard extension and focus when the settled toolbar is reachable. Test state transitions, release/cancel, handle crossing, partially/offscreen multiline ranges, zoom/scroll, split panes and large text using existing TextSelectionBarAnchorTest/PdfTextCopyBarTest plus focused reducer tests. Emulator and packaged desktop verification must cover drag, reverse drag, release, re-grab and scrolling to ensure no flashing or oversized disconnected panel. Record the behavior in docs/pdf.md, docs/guide-pdf-and-audio.md and docs/desktop-editing.md; follow docs/interface-contract.md. This task owns bar lifecycle/placement, not selection geometry or action semantics."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 45
+created = 2026-11-15
+tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
 rebuild = true
 emulator_debug = true
 
@@ -103,7 +148,9 @@ title = "Make contextual PDF text selection the default without a separate tool"
 description = """
 After the direct gestures, handles and underline command, extend app ui/EditorActionBars.kt TextSelectionBar, SelectionBars.kt and TextSelectionAnchor.kt and desktop io/PdfTextCopyBar.kt to show Copy, Highlight and Underline next to any live PDF text selection, independent of the active tool. Reuse the current measured positioning, keep the capsule and handles inside the correct pane at large text scales, and keep the selected passage visible. Copy never edits; Highlight and Underline each create one undo step and are disabled with an accessible reason on a read-only/locked target. Outside tap/click and Escape dismiss transient selection; changing pages/documents clears it, and pen contact dismisses it before following the active pen tool. Remove Select text (PDF) from the normal tool menus in both shells only after direct entry and keyboard/accessibility equivalents are working; migrate any persisted TEXT_SELECT/PDF_TEXT_SELECT tool preference to ordinary Select safely and keep stable enum/storage compatibility. Retain Shift+S as a focus/accessibility selection entry, not a required tool switch; expose clear loading/no-text/retry feedback when that entry is invoked. Test stored preferences, focus, TalkBack, keyboard copy/dismiss, foreground editing, split panes and read-only actions; verify long press, double click, handles, all three actions and save/reopen on emulator and packaged desktop. Update README.md, docs/guide-pdf-and-audio.md, docs/desktop-editing.md and docs/pdf.md with the new gestures and scan/OCR limitation in the same task. Follow docs/interface-contract.md for both shells. Include desktop tools/ToolSelection.kt, ToolGroups.kt and StripItems.kt in menu migration, replacing DEFAULT_IMAGE_ANCHOR with a valid retained tool; preserve shared InputClassifier enum compatibility.
 
-Selection/action ownership contract for later tasks: distinguish a transient PDF word range (source, visible notebook page, PDF sheet, endpoints and plain-text projection), a model-element selection (stable element refs), and a focused editor range. Keep one active canvas selection owner per pane, clear the conflicting canvas selection on entry, and route Copy/Ctrl+C to the focused editor first, otherwise the active canvas owner, never a hidden stale range. Do not turn PDF words into editable model elements or add them to the object clipboard. Copy/Highlight/Underline are the base PDF commands, not an exhaustive fixed action list: later Calculate/Define variable/Create study card actions reuse an extensible contextual overflow with eligibility checks; typed object actions require their actual model target. A failed/cancelled contextual command leaves the selection and history intact. Test ownership switches, keyboard focus, target eligibility, read-only mutation refusal and split panes. Put this contract in docs/pdf.md and link docs/selection-actions.md to it during implementation."""
+Selection/action ownership contract for later tasks: distinguish a transient PDF word range (source, visible notebook page, PDF sheet, endpoints and plain-text projection), a model-element selection (stable element refs), and a focused editor range. Keep one active canvas selection owner per pane, clear the conflicting canvas selection on entry, and route Copy/Ctrl+C to the focused editor first, otherwise the active canvas owner, never a hidden stale range. Do not turn PDF words into editable model elements or add them to the object clipboard. Copy/Highlight/Underline are the base PDF commands, not an exhaustive fixed action list: later Calculate/Define variable/Create study card actions reuse an extensible contextual overflow with eligibility checks; typed object actions require their actual model target. A failed/cancelled contextual command leaves the selection and history intact. Test ownership switches, keyboard focus, target eligibility, read-only mutation refusal and split panes. Put this contract in docs/pdf.md and link docs/selection-actions.md to it during implementation.
+
+Visual prerequisites: reuse the compact controls delivered by pdf-text-actions-compact-style and the per-pane bar lifecycle/visible-endpoint anchoring delivered by pdf-text-actions-selection-lifecycle; do not reintroduce a large TextButton panel, a toolbar during an active range drag or a spring that animates the whole selected block. This task owns command integration, tool retirement and selection/action eligibility, not a separate popup redesign."""
 status = "active"
 level = "task"
 category = "feature"
