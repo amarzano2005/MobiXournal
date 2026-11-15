@@ -39,14 +39,21 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
             )
             beginPointer(event, 0); beginHandTap(event); armSelectionDrag(event)
+            // A finger held still on a PDF word selects it, whatever tool the pen is on (`PdfLongPress.kt`).
+            // Armed after the press was classified, so a grip, a placement or a guide that took this touch is
+            // already known and wins.
+            armPdfTextPress(event)
         }
         MotionEvent.ACTION_POINTER_DOWN -> {
-            taps.cancelHand(); cancelSelectionDrag(); onPointerDown(event)
+            // A second finger is a pinch, not a hold.
+            taps.cancelHand(); cancelSelectionDrag(); cancelPdfTextPress(); onPointerDown(event)
         }
         MotionEvent.ACTION_MOVE -> {
             taps.handMove(event.x, event.y)
             multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)
             trackSelectionDragArm(event)
+            // Past the slop the hold was a pan, and the pan keeps the gesture it already began.
+            trackPdfTextPress(event)
             // The guide is dragged by its own finger and runs *alongside* the other gestures —
             // holding it steady while the pen rules along it is the whole point.
             if (guideDrag.dragging) guideDrag.move(event)
@@ -86,6 +93,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             backgroundSelecting -> commitBackgroundSelect()
             else -> {
                 cancelSelectionDrag()
+                cancelPdfTextPress()
                 if (scroll.active && finishMultiFingerTap(event)) { cancelGesture(); render(); return true }
                 captureReleaseVelocity(event); handleHandTapUp()
                 // The router hears the lift too, so its contact map is empty for the next gesture.
@@ -94,7 +102,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             }
         }
         MotionEvent.ACTION_CANCEL -> {
-            taps.cancelHand(); cancelSelectionDrag(); cancelGesture()
+            taps.cancelHand(); cancelSelectionDrag(); cancelPdfTextPress(); cancelGesture()
         }
         else -> return null
     }
@@ -295,6 +303,8 @@ internal fun DrawingSurfaceView.abandonInProgress() {
     scroll.stopAutoScroll(); holdSnap.reset()
     ink.current = null; ink.currentStrokes = null; shapeDraft.finish(); erasing = false; placing = false
     scroll.active = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
+    // A pen that has taken the gesture also takes back a pending finger hold.
+    cancelPdfTextPress()
     gestures.reset(); multiTap.reset()
     // The gesture is gone, so its contacts are too: a router left holding them would read the next
     // sample as a two-finger navigation.

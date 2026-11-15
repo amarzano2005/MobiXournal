@@ -69,10 +69,7 @@ PDFBox's stripper.
 | `\u0080` (a C1 control) | bundled DejaVu Sans | a substitute glyph, not `€` |
 
 **Both shells, one fixture.** The window resolves the same reference the same way: `DesktopPdfPainter`
-loads a `PdfFontRef.Bundled` run through `DesktopPdfFonts` (`PDType0Font.load(doc, stream, true)`,
-cached per document), so it embeds, subsets and writes the `ToUnicode` map exactly as the app does, and
-falls back to the same shared `GlyphSanitizer`. The run both are measured against lives in
-`PdfUnicodeFixture` (`mobix-core` test fixtures) and is read by two tests — `PdfUnicodeExportTest` for
+loads a `PdfFontRef.Bundled` run through `DesktopPdfFonts` (`PDType0Font.load(doc, stream, true)`, cached per document), so it embeds, subsets and writes the `ToUnicode` map exactly as the app does, and falls back to the same shared `GlyphSanitizer`. The run both are measured against lives in `PdfUnicodeFixture` (`mobix-core` test fixtures) and is read by two tests — `PdfUnicodeExportTest` for
 the app's PDFBox port and `DesktopPdfUnicodeTest` for the window's `org.apache.pdfbox` — so a shell that
 drifts is a failing test, not an export the owner finds wrong a release later. Both also take the four
 cases the old range guard got wrong **one at a time**, so a failure names the one that broke: a character
@@ -106,7 +103,7 @@ for born-digital PDFs; a scanned image-only page yields no words (`hasAnyText` f
 that case is a tracked follow-up. Boxes are page-local top-left points (the `.xopp` frame), so they
 map to the screen through a `PageBox` exactly like strokes. The **Select text (PDF)** tool
 (`EditorTool.TEXT_SELECT` → `ActiveTool.TEXT_SELECT` → `GestureIntent.SELECT_TEXT`) drags to select
-an inclusive reading-order word range: `beginTextSelect`/`textSelectMove` resolve pointer positions
+an inclusive reading-order word range — and a **finger held still on a word** selects that same range with whatever tool the pen is on (`PdfLongPress.kt`): the press is only a candidate for the platform's long-press window, a move past the touch slop hands it back to the pan, a second finger hands it to the pinch, a pen keeps its own route, and whatever the press began is dropped uncommitted, so no stroke and no undo step survive it. `beginTextSelect`/`textSelectMove` resolve pointer positions
 to word indices (`PdfTextSelection`, below), the range is drawn as one washed band per line (`PdfSelectionSpans`: the line's union height, the spaces between its words inside it, columns never bridged, no border per word, nothing animated — only the boundary advances), the
 `TextSelectionBar` — two words in compact pills on the shared 40 dp target (`DesignTokens.COMPACT_ACTION_HEIGHT_DP`) rather than a nested Material button, and no Deselect word — puts the text on the Android system clipboard (`copyTextSelection`), and its
 **Highlight** writes the passage onto the page (`highlightTextSelection`, see [the magnetic
@@ -119,6 +116,8 @@ a pointer or a handle is still moving the range, so nothing chases the finger or
 and `PdfTextBarPlacement` hangs it from the **band the endpoint is on** — above it when the pane ends below, clear of the handle, inside the pane, and nowhere when no selected line is visible. The window's `PdfTextCopyBar` reads the same rule from `PdfTextCopyUi.spans`/`active`/`settled` (its `pdfTextSelecting` is cleared in `finally`), its words the same compact pills on the same target; it washes the same `PdfSelectionSpans` bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word, and a passage never slides, fades or scales as one block. The
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
+
+**The hold's precedence is the canvas's own** (`CanvasGestureRouter`'s order): a foreground grip, an object selection's lift (a finger inside its outline), an in-progress placement, a dragged guide, the marquee and the grab line keep their press, and a pen, a second finger or a wordless spot never arm at all — the hold takes only an otherwise unclaimed word. Because it writes nothing it also runs ahead of the read-only guard.
 
 The geometry is **shared, not forked**: `CharBox`, `PdfWord`, `PdfWordGrouper`, `PdfTextIndex` and the
 outline tree live in `mobix-core/src/main/java/com/mobixournal/render/`, and each shell keeps only its

@@ -55,18 +55,18 @@ in the folder you choose, with no account between.
 #### Documents and research
 
 - **Write on the source.** A PDF becomes the page background — the pages you pick by preview, replacing or appended — its text stays selectable and copyable.
-- **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band; a margin mark stays as drawn. Select text and **Highlight** writes the same bands.
+- **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band. Select text and **Highlight** writes the same bands. On the tablet a finger held still on a word selects it with any tool.
 - **Follow the document's contents.** A PDF's outline is a tree by its own page numbers, even after a merge; filter or fold it. Selecting text says when a page has none.
 - **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.
-- **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline — on Windows, and on the tablet once its model downloads.
+- **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline on Windows, and on the tablet once the model downloads.
 
 ### One workspace, two shells
 
-- **The same notebook, two surfaces.** One file and one core: the tablet built around a pen in hand, the window around tabs, panels and export; [the limitations page](docs/guide-limitations.md) says where the tools differ.
-- **The window is a workstation.** Tabs that keep their own page and zoom, a sidebar of thumbnails and layers, and export to PDF, PNG or SVG.
+- **The same notebook, two surfaces.** One file and one core: the tablet for a pen in hand, the window for tabs and export; [the limitations page](docs/guide-limitations.md) says where the tools differ.
+- **The window is a workstation.** Tabs that keep their page and zoom, a sidebar of thumbnails and layers, and export to PDF, PNG or SVG.
 - **The tablet is the paper.** Split view, the Ring at the pen, palm rejection, and pages sized for a hand.
-- **Nothing converts behind your back.** A document keeps its format; nothing needs an account or a connection.
-- **Arrange it your way.** Drag a swatch's handle to reorder the palette, or a tool slot to reorder the rail.
+- **Nothing converts behind your back.** A document keeps its format, with no account and no connection.
+- **Arrange it your way.** Drag a swatch or a tool slot by its handle to move it.
 
 ## Screens from the real app
 
@@ -89,7 +89,7 @@ in the folder you choose, with no account between.
 | Platform | What you need, and what you get |
 |---|---|
 | **Android 8.0 or newer** | The release APK from [GitHub Releases](https://github.com/amarzano2005/MobiXournal/releases). A stylus makes it a notebook; a finger does the rest. |
-| **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build that needs no install. |
+| **Windows 11, 64-bit** | A per-user installer, with no Java to install first and a folder build needing no install. |
 
 The shells number separately; [the release index](docs/releases/index.md) records both. The installer is **unsigned**, so Windows warns about the publisher: that is deliberate. Both shells offer newer builds in About.
 

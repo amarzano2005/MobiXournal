@@ -543,6 +543,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The pending long-press that lifts the selection as a drag (`SelectionDragOut.kt`). */
     internal val selectionDragOut = SelectionDragOut()
 
+    /**
+     * The long press that selects PDF words with a finger while another tool stays active
+     * (`PdfLongPress.kt`): a candidate timer, not a mode - nothing about it changes the tool.
+     */
+    internal val pdfTextPress = PdfTextPress()
+
     // Live background-copy marquee (view px). Unlike Select, this is rectangle-only and never
     // selects elements; release copies a flattened bitmap region into [clipboard].
     internal var backgroundSelecting = false

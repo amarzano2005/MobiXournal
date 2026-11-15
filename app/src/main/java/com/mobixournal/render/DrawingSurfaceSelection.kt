@@ -188,30 +188,41 @@ private fun DrawingSurfaceView.pasteOnto(pageIndex: Int, elements: List<Element>
 
 /** Down with the text-select tool: anchor the selection at the word the touch actually hits. */
 internal fun DrawingSurfaceView.beginTextSelect(event: MotionEvent) {
+    beginTextSelectAt(event.x, event.y)
+}
+
+/**
+ * Anchor a PDF text selection at the word under ([x], [y]) in this view's px, answering whether the press
+ * actually landed on one. The text-select tool and the **finger's long press** (`PdfLongPress.kt`) both enter
+ * here, so a gesture that never had to pick a tool selects exactly what the tool would have.
+ *
+ * Entering is strict: a press in whitespace starts nothing, instead of grabbing the nearest word from across
+ * the page. The slack is a press radius of screen dp, converted at this page's zoom and bounded in page points
+ * by `PdfHitTolerance`. Nothing is written, so this is also the route a read-only document keeps.
+ */
+internal fun DrawingSurfaceView.beginTextSelectAt(x: Float, y: Float): Boolean {
     scroll.active = false; erasing = false; placing = false; ink.current = null
-    val index = pdfTextIndex ?: return
-    val pageIndex = layout.pageAt(event.x + scrollX, event.y + scrollY)?.index ?: return
-    val box = layout.boxes.getOrNull(pageIndex) ?: return
-    val sheet = PdfSheetRef.of(pageAt(pageIndex) ?: return) ?: return
-    // Entering is strict: a press in whitespace starts nothing, instead of grabbing the nearest word from
-    // across the page. The slack is a press radius of screen dp, converted at this page's zoom and bounded
-    // in page points by `PdfHitTolerance`.
+    val index = pdfTextIndex ?: return false
+    val pageIndex = layout.pageAt(x + scrollX, y + scrollY)?.index ?: return false
+    val box = layout.boxes.getOrNull(pageIndex) ?: return false
+    val sheet = PdfSheetRef.of(pageAt(pageIndex) ?: return false) ?: return false
     val range = PdfTextSelection.begin(
         index,
         sheet,
-        box.toPtX(event.x, scrollX),
-        box.toPtY(event.y, scrollY),
+        box.toPtX(x, scrollX),
+        box.toPtY(y, scrollY),
         PdfHitTolerance.ofScreenPx(
             PdfHitTolerance.PRESS_SLOP_DP * resources.displayMetrics.density.toDouble(),
             box.scale.toDouble(),
         ),
-    ) ?: return
+    ) ?: return false
     textSelecting = true
     textSelPage = pageIndex
     textSelAnchor = range.anchor
     textSelFocus = range.focus
     onTextSelectionChanged?.invoke(true)
     render()
+    return true
 }
 
 /** Drag: extend the selection to the word nearest the touch, on the sheet the anchor's page draws. */

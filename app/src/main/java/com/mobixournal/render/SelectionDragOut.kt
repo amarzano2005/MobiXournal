@@ -27,15 +27,11 @@ internal class SelectionDragOut {
 /** Arm the long-press that lifts the current selection, for a finger down inside its outline. */
 internal fun DrawingSurfaceView.armSelectionDrag(event: MotionEvent) {
     cancelSelectionDrag()
-    if (!selectMode || event.pointerCount != 1) return
+    if (event.pointerCount != 1) return
     if (pointerKindOf(event, 0) != PointerKind.FINGER) return
-    val sel = selection ?: return
-    val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
-    val page = pageAt(sel.pageIndex) ?: return
-    val bounds = SelectionTester.boundsOf(page, sel.refs) ?: return
-    val x = box.toPtX(event.x, scrollX)
-    val y = box.toPtY(event.y, scrollY)
-    if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) return
+    // The outline is the rule (`fingerInsideObjectSelection`), shared with the PDF word hold so a press inside
+    // a selection is the selection's in both paths: this lift wins, and no word beneath it takes the hold.
+    if (!fingerInsideObjectSelection(event.x, event.y)) return
     val out = selectionDragOut
     out.armed = true
     out.downX = event.x

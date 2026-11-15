@@ -86,8 +86,11 @@ sits on top as page content, and the ruling, the pictures and the layers are the
 
 A born-digital PDF's text layer is extracted when you import it, so **Select text (PDF)** can drag a
 reading-order range and **Copy** puts it on the clipboard — `Shift+S` and `Ctrl+C` in the window. On the
-tablet it is the third entry of the Select slot's menu: press and hold the Select button in the rail to
-pick it, and the slot then keeps it for next time. The
+tablet you do not have to pick that tool to read a paper: **hold a finger still on a word** and the range
+starts under it with whatever tool the pen is on — drag to extend it, let go for the Copy/Highlight bar, and
+a finger that moves instead still pans or pinches as before. The tool is still there for a deliberate switch:
+it is the third entry of the Select slot's menu, press and hold the Select button in the rail to pick it,
+and the slot then keeps it for next time. The
 selection is a view over the PDF, not something written into your notebook: it is never saved, and
 `Esc`, a click off the text or a page change clears it.
 
