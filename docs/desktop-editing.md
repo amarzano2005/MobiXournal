@@ -150,8 +150,9 @@ Two gestures treat a PDF page as **text** rather than as paper, and neither writ
   converted at the window's zoom and bounded in page points, so a press in whitespace starts nothing) and the
   drag extends the focus word by nearest-word anchoring on the same PDF sheet, so the range is the page's own
   reading order. The overlay
-  washes each word box (`drawPdfTextSelection`), `Ctrl+C` or the selection's **Copy** bar puts
-  `rangeText` on the system clipboard, and `Esc`, a click off the text or a page change drops it. It is
+  washes each line of it (`drawPdfTextSelection`), the **Copy** bar appears once the drag ends — beside the line
+  the pointer last touched, hidden while the range is still being made (`PdfTextActionPhase`, `PdfTextBarPlacement`)
+  — `Ctrl+C` or that bar puts `rangeText` on the system clipboard, and `Esc`, a click off the text or a page change drops it. It is
   **view state**: no page edit, no undo step, and a select-copy-save leaves the file byte-identical.
 - **The highlighter is magnetic** over a page whose background is a PDF with a text layer: while the
   drag crosses text, `MagneticHighlighter.bands` are previewed as flat bands **in place of** the freehand

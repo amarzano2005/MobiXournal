@@ -403,7 +403,9 @@ internal fun DrawingSurfaceView.endGesture() {
         wasMoving -> gestures.commitMove() // applied live; re-home if dropped on another page
         wasTransforming -> Unit  // resize/rotate applied live; finishGesture records them
         wasBanding -> gestures.commitBand()
-        wasTextSelecting -> Unit // the word range is updated live; the selection just stays put
+        // The word range is updated live and the selection stays put; the repaint is what tells the chrome
+        // the gesture is over, so the action bar becomes due on this release and not on the next one.
+        wasTextSelecting -> render()
         // The shift is applied live and finishGesture records it as one undo step; the repaint is
         // what clears the grab-line overlay, which would otherwise stay drawn after the release.
         wasVspacing -> render()

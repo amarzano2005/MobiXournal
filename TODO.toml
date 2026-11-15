@@ -73,20 +73,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "pdf-text-actions-selection-lifecycle"
-title = "Show PDF text actions after selection settles beside the visible endpoint"
-description = "After pdf-text-actions-compact-style, the direct-entry gestures and pdf-text-selection-handles, integrate one explicit per-pane selecting/adjusting/settled lifecycle across Android DrawingSurfaceSelection.kt, PaneState, SelectionBars.kt and TextSelectionAnchor.kt and desktop DesktopPdfTextSelection.kt/PdfTextCopyUi and PdfTextCopyBar.kt. While the pointer or a handle is extending the selection, keep the range and endpoints responsive but hide the action bar; show it on release for a nonempty settled range. Cancel, Escape, outside click, page/source replacement and pen contact follow pdf-direct-selection-context-actions; changing keyboard focus must not copy a stale background range. Anchor the measured bar near the active visible endpoint/line, using visible line spans from pdf-text-selection-native-feedback, rather than the center/bottom of the entire multiline union. Prefer an unobscured location above or below the active line, clamp within the correct pane, avoid the handle/touch target and page chrome, and hide when the selection has no visible portion; use a visible selected span as fallback if the focus line is offscreen. Update position directly with viewport changes, without a spring chasing the pointer or repeated popup remounts; floating-surface enter/exit still uses the existing contract presence mechanism once per visibility transition. Preserve keyboard extension and focus when the settled toolbar is reachable. Test state transitions, release/cancel, handle crossing, partially/offscreen multiline ranges, zoom/scroll, split panes and large text using existing TextSelectionBarAnchorTest/PdfTextCopyBarTest plus focused reducer tests. Emulator and packaged desktop verification must cover drag, reverse drag, release, re-grab and scrolling to ensure no flashing or oversized disconnected panel. Record the behavior in docs/pdf.md, docs/guide-pdf-and-audio.md and docs/desktop-editing.md; follow docs/interface-contract.md. This task owns bar lifecycle/placement, not selection geometry or action semantics."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 45
-created = 2026-11-15
-tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-selected-text-underline"
 title = "Underline selected PDF text as ordinary interoperable ink"
 description = "Add shared pure underline geometry beside MagneticHighlighter.kt in mobix-core/render: turn a selected PDF word range into one ordinary constant-width pen stroke per text line below the selected word boxes, keeping separate lines/columns separate and deriving placement from existing word geometry. Reuse the selection grouping approach without applying the magnetic drag three-line cap. Wire an underlineTextSelection command beside DrawingSurfaceSelection.kt highlightTextSelection and the desktop counterpart beside DesktopPdfTextHighlight. Each complete underline action is one undoable page edit on the active writable layer, uses a documented existing pen colour/width policy, and is unavailable in read-only documents or locked layers. The transient selection itself remains unsaved. Test multiline/reverse selections and rotated/cropped mapping, undo/redo, .mobix and .xopp save/reopen and PDF export using ordinary stroke paths; do not introduce a PDF-only annotation or new format element. Document the implemented action and its appearance policy in docs/pdf.md and the user guide within this task; the next contextual-actions task exposes it in the UI."

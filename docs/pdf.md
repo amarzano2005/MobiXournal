@@ -112,11 +112,11 @@ to word indices (`PdfTextSelection`, below), the range is drawn as one washed ba
 **Highlight** writes the passage onto the page (`highlightTextSelection`, see [the magnetic
 highlighter](#the-magnetic-highlighter)). While it is in hand the slot names the page's state — reading, ready a scan with no words, or a failed read with a **Try again** — from one `PdfTextAvailability`, so a walk still running is never called a page without text. The bar
 **floats against the words**: the surface reports the selected word boxes' union
-(`textSelectionScreenRect` → `onTextSelectionRectChanged` → `PaneState.textSelectionRect`, from the paint
-pass beside `reportScroll`), and `TextSelectionAnchor` places the measured capsule below that box, above
-it when the pane ends below, and inside the pane's edges either way — a bar pinned to the bottom edge sat
-on top of a passage near the foot of the page. The window's `PdfTextCopyBar` does the same with its own
-measured capsule (a hard-coded 78 × 30 dp assumed one text scale), its words the same compact pills on the same target; it washes the same `PdfSelectionSpans` bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word, and a passage never slides, fades or scales as one block. The
+(`textSelectionScreenRect` → `onTextSelectionReport` → `PaneState.textSelectionRect` beside
+`textSelectionSpans`, `textSelectionActiveSpan` and `textSelectionPhase`, from the paint pass beside
+`reportScroll`). The capsule exists only once the range has **settled**: `PdfTextActionPhase` keeps it away while
+a pointer or a handle is still moving the range, so nothing chases the finger or covers the words being selected,
+and `PdfTextBarPlacement` hangs it from the **band the endpoint is on** — above it when the pane ends below, clear of the handle, inside the pane, and nowhere when no selected line is visible. The window's `PdfTextCopyBar` reads the same rule from `PdfTextCopyUi.spans`/`active`/`settled` (its `pdfTextSelecting` is cleared in `finally`), its words the same compact pills on the same target; it washes the same `PdfSelectionSpans` bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word, and a passage never slides, fades or scales as one block. The
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 

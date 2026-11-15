@@ -501,13 +501,15 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onSelectionRectChanged: ((android.graphics.RectF?) -> Unit)? = null
 
     /**
-     * Notified whenever the **PDF text** selection's on-screen box changes — it appears, its range
-     * extends, it clears, or the view scrolls or zooms under it. View px, exactly like
-     * [onSelectionRectChanged], so the chrome can float the Copy bar beside the words that were
-     * selected instead of parking it on the bottom edge of the pane, where a selection near the foot of
-     * the page sat underneath its own toolbar.
+     * Notified whenever the **PDF text** selection's report changes — it appears, its range extends, it
+     * clears, its phase settles, or the view scrolls or zooms under it. View px, exactly like
+     * [onSelectionRectChanged], and carrying the washed bands and the endpoint's line as well as the
+     * union (see [TextSelectionReport]): the chrome floats the action bar beside the line the reader is
+     * on, hides it while the range is still being made, and never parks it on the pane's bottom edge,
+     * where a selection near the foot of the page sat underneath its own toolbar. `null` is "nothing
+     * selected".
      */
-    var onTextSelectionRectChanged: ((android.graphics.RectF?) -> Unit)? = null
+    var onTextSelectionReport: ((TextSelectionReport?) -> Unit)? = null
 
     /** Notified when the copy/cut clipboard gains or loses content (drives the Paste affordance). */
     var onClipboardChanged: ((Boolean) -> Unit)? = null

@@ -611,10 +611,7 @@ internal suspend fun AwaitPointerEventScope.verticalSpaceDrag(
 /*
  * The PDF text slot's drag: press to anchor a word, drag to extend the selection, lift to keep it.
  *
- * The words come from the tab's own index (`PdfIndexLoader`), so the anchor is the shared
- * `PdfTextIndex.hitWord` — inside the word under the pointer, or within one bounded press radius of it —
- * and a press in whitespace starts nothing; the range is read in the page's reading order. A page with no
- * text layer says so in one sentence instead of swallowing the gesture.
+ * The words come from the tab's own index (`PdfIndexLoader`), so the anchor is the shared `PdfTextIndex.hitWord` — inside the word under the pointer, or within one bounded press radius of it — and a press in whitespace starts nothing; the range is read in the page's reading order, and a page with no text layer says so in one sentence instead of swallowing the gesture.
  */
 internal suspend fun AwaitPointerEventScope.pdfTextDrag(
     start: PointerInputChange,
@@ -660,13 +657,18 @@ internal suspend fun AwaitPointerEventScope.pdfTextDrag(
     }
     DesktopPdfTextNotice.clear()
     tab.pdfTextSelection = begun
-    while (true) {
-        val change = awaitPointerEvent().changes.firstOrNull() ?: break
-        val (px, py) = pagePointOf(change.position.x, change.position.y, density, view.current())
-        tab.pdfTextSelection = DesktopPdfTextSelect.extend(tab, begun, px, py)
-        if (change.changedToUpIgnoreConsumed() || !change.pressed) break
-        change.consume()
-    }
+    // The capsule is due only on the release: the bar reads this flag, and `finally` clears it even when the
+    // drag is cancelled, so a settled range cannot be left without its actions.
+    tab.pdfTextSelecting = true
+    try {
+        while (true) {
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            val (px, py) = pagePointOf(change.position.x, change.position.y, density, view.current())
+            tab.pdfTextSelection = DesktopPdfTextSelect.extend(tab, begun, px, py)
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+            change.consume()
+        }
+    } finally { tab.pdfTextSelecting = false }
 }
 
 /** The pointer a preview sample carries — a shape has no pressure of its own, so it reads as a pen. */

@@ -1471,7 +1471,12 @@ private fun DrawingSurfaceView.bindTo(state: PaneState, onSelected: () -> Unit) 
     onSelectionChanged = { s -> state.hasSelection = s; if (s) onSelected() }
     onSelectionRectChanged = { r -> state.selectionRect = r }
     onTextSelectionChanged = { s -> state.hasTextSelection = s }
-    onTextSelectionRectChanged = { r -> state.textSelectionRect = r }
+    onTextSelectionReport = { r ->
+        state.textSelectionRect = r?.union
+        state.textSelectionSpans = r?.spans ?: emptyList()
+        state.textSelectionActiveSpan = r?.active
+        state.textSelectionPhase = r?.phase ?: com.mobixournal.render.PdfTextActionPhase.ABSENT
+    }
     onPdfOutlineChanged = { outline -> state.outline = outline }
     onClipboardChanged = { c -> state.hasClipboard = c }
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }

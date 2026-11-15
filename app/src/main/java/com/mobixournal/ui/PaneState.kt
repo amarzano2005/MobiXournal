@@ -63,6 +63,18 @@ class PaneState {
      * beside the words instead of on the pane's bottom edge.
      */
     var textSelectionRect by mutableStateOf<android.graphics.RectF?>(null)
+    /**
+     * The washed line bands of that selection, in view px and in reading order — what the action bar hangs
+     * from, one band per line, exactly as the page is painted.
+     */
+    var textSelectionSpans by mutableStateOf<List<android.graphics.RectF>>(emptyList())
+    /** The band under the selection's focus end (the reader's finger), or null when it cannot be mapped. */
+    var textSelectionActiveSpan by mutableStateOf<android.graphics.RectF?>(null)
+    /**
+     * Where that selection is in its life: absent, still being made, or settled. Only a settled range shows
+     * the action bar — see [com.mobixournal.render.PdfTextActionPhase].
+     */
+    var textSelectionPhase by mutableStateOf(com.mobixournal.render.PdfTextActionPhase.ABSENT)
     /** Whether there is content on the clipboard (cut or copied selection/pages). */
     var hasClipboard by mutableStateOf(false)
     /** Whether a released background-select region is waiting to be copied or cut. */

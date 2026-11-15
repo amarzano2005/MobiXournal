@@ -3,7 +3,6 @@ import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.glyph
-import com.mobixournal.desktop.sheet.selectionBarOffset
 import com.mobixournal.desktop.shell.WindowKeys
 
 import androidx.compose.foundation.Canvas
@@ -42,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.render.Bounds
+import com.mobixournal.render.PdfBarBox
+import com.mobixournal.render.PdfSelectionSpan
+import com.mobixournal.render.PdfTextBarPlacement
 import kotlin.math.roundToInt
 
 /**
@@ -57,6 +59,19 @@ internal data class PdfTextCopyUi(
     val onCopy: () -> Unit,
     val onHighlight: (() -> Unit)? = null,
     val onDeselect: (() -> Unit)? = null,
+    /**
+     * The washed bands of the selection, in page points — what the capsule hangs from, one per line, exactly
+     * as the page is washed. Empty falls back to [bounds] as a single band, which is what a caller that only
+     * knows the union (a test, a future shell) can hand over.
+     */
+    val spans: List<PdfSelectionSpan> = emptyList(),
+    /** The band under the focus end of the range — the line the reader's pointer last touched. */
+    val active: PdfSelectionSpan? = null,
+    /**
+     * False while a drag is still making the range: the range stays live and the capsule waits for the
+     * release, so nothing chases the pointer and nothing covers the words being selected.
+     */
+    val settled: Boolean = true,
 )
 
 /**
@@ -87,24 +102,33 @@ internal fun PdfTextCopyBar(
     canvas: Size,
     modifier: Modifier = Modifier,
 ) {
-    if (ui.bounds == null || canvas.width <= 0f || canvas.height <= 0f) return
+    if (ui.bounds == null || !ui.settled || canvas.width <= 0f || canvas.height <= 0f) return
     var barPx by remember { mutableStateOf(Size.Zero) }
     var focused by remember { mutableStateOf(false) }
     val owner = remember { Any() }
     DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
+    val pxPerPt = zoom * density
+    val origin = Offset(offsetX * density, offsetY * density)
+    val bands = ui.spans.ifEmpty {
+        ui.bounds?.let { listOf(PdfSelectionSpan(it.left, it.top, it.right, it.bottom)) } ?: emptyList()
+    }
+    // Placed beside the line the pointer last touched, from the measured capsule and the **current** bands: a
+    // scroll or a zoom moves it with the page, and no spring is sent chasing anything. Null means no selected
+    // line is visible in the pane, and the capsule is not drawn at all.
+    val placed = PdfTextBarPlacement.offset(
+        spans = bands.map { it.toBox(pxPerPt, origin) },
+        active = ui.active?.toBox(pxPerPt, origin),
+        barWidth = barPx.width,
+        barHeight = barPx.height,
+        canvasWidth = canvas.width,
+        canvasHeight = canvas.height,
+        gapPx = 8f * density,
+        marginPx = 6f * density,
+    ) ?: return
     Box(
         modifier
             .onSizeChanged { barPx = Size(it.width.toFloat(), it.height.toFloat()) }
-            .offset {
-                selectionBarOffset(
-                    bounds = ui.bounds,
-                    pxPerPt = zoom * density,
-                    originPx = Offset(offsetX * density, offsetY * density),
-                    canvas = canvas,
-                    bar = barPx,
-                    gapPx = 8f * density,
-                )
-            },
+            .offset { IntOffset(placed.x.roundToInt(), placed.y.roundToInt()) },
     ) {
         Row(
             Modifier
@@ -140,6 +164,14 @@ internal fun PdfTextCopyBar(
 
 /** The dismissal the bar no longer spells out, kept for assistive input. */
 private const val DESELECT_ACTION = "Deselect"
+
+/** A page-point band in window pixels, which is the placement's own currency. */
+private fun PdfSelectionSpan.toBox(pxPerPt: Float, origin: Offset): PdfBarBox = PdfBarBox(
+    left = (left * pxPerPt).toFloat() + origin.x,
+    top = (top * pxPerPt).toFloat() + origin.y,
+    right = (right * pxPerPt).toFloat() + origin.x,
+    bottom = (bottom * pxPerPt).toFloat() + origin.y,
+)
 
 /**
  * One word of the bar.

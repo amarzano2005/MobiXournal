@@ -14,6 +14,8 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Background
+import com.mobixournal.render.PdfSelectionSpan
+import com.mobixournal.render.PdfSelectionSpans
 import com.mobixournal.render.PdfTextAvailability
 import com.mobixournal.render.PdfTextPhase
 import com.mobixournal.render.PdfWord
@@ -109,14 +111,43 @@ internal object DesktopPdfTextSelect {
  * [highlightColour] is the highlighter's ink, so *Highlight* writes the marker's own colour even while the
  * pen is the picked tool — the tablet reads `AppSettings.highlighterColor` for the same word.
  */
-internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi = PdfTextCopyUi(
-    bounds = pdfTextSelectionBounds(tab),
-    onCopy = { copyPdfTextOf(tab) },
-    onHighlight = if (tab.document.readOnly) null else ({ DesktopPdfTextHighlight.highlight(tab, highlightColour) }),
-    // Only the accessibility action calls this: the pointer's own dismissal is the click on the page and
-    // Escape, which never needed a word in the bar — the key and the action run the same command.
-    onDeselect = { dismissSelection(tab) },
-)
+internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi {
+    val selection = tab.pdfTextSelection
+    val words = if (selection == null) emptyList() else DesktopPdfTextSelect.boxes(tab, selection)
+    val bands = PdfSelectionSpans.of(words)
+    return PdfTextCopyUi(
+        bounds = pdfTextSelectionBounds(tab),
+        onCopy = { copyPdfTextOf(tab) },
+        onHighlight = if (tab.document.readOnly) null else ({ DesktopPdfTextHighlight.highlight(tab, highlightColour) }),
+        // Only the accessibility action calls this: the pointer's own dismissal is the click on the page and
+        // Escape, which never needed a word in the bar — the key and the action run the same command.
+        onDeselect = { dismissSelection(tab) },
+        // The bar hangs from the washed bands, one per line, exactly as the page is washed (the same
+        // `PdfSelectionSpans` the overlay draws), and from the line the pointer last touched.
+        spans = bands,
+        active = selection?.let { focusSpanOf(it, words, bands) },
+        // Due only once the drag that made the range has ended: while it is still being made the capsule
+        // would chase the pointer and cover the words it is selecting.
+        settled = !tab.pdfTextSelecting,
+    )
+}
+
+/**
+ * The washed band the selection's **focus** end is on — the line under the reader's pointer.
+ *
+ * The bar is anchored to this line rather than to the union of a multiline passage, which put it under the last
+ * line however far the endpoint was. Null when the focus word's box cannot be found, and the bar then falls back
+ * to the nearest visible band.
+ */
+private fun focusSpanOf(
+    selection: DesktopPdfTextSelection,
+    words: List<PdfWord>,
+    bands: List<PdfSelectionSpan>,
+): PdfSelectionSpan? {
+    val focus = words.getOrNull(selection.focus) ?: return null
+    val middle = (focus.top + focus.bottom) / 2.0
+    return bands.firstOrNull { middle >= it.top && middle <= it.bottom }
+}
 
 /**
  * **Highlight** the words a PDF text selection covers: ordinary highlighter bands on the tab's active layer,

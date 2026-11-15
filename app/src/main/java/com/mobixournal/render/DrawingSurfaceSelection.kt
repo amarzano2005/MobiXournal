@@ -232,28 +232,77 @@ internal fun DrawingSurfaceView.textSelectMove(event: MotionEvent) {
 }
 
 /**
- * The union of the selected words' boxes, in this view's own px, or null when nothing is selected. The
- * same mapping [drawTextSelection] paints with, so the Copy bar is anchored to what the reader sees
- * highlighted rather than to an approximation of it.
+ * The washed **bands** of the current selection, in this view's own px, in reading order.
+ *
+ * They come from [PdfSelectionSpans] — the very bands [drawTextSelection] paints — through the page's own
+ * box, so the chrome hangs the action bar off the shape the reader sees highlighted instead of off an
+ * approximation of it. One rect per line, columns never merged: the bar can be attached to *a line*.
+ */
+internal fun DrawingSurfaceView.textSelectionScreenSpans(): List<android.graphics.RectF> {
+    val index = pdfTextIndex ?: return emptyList()
+    if (textSelPage < 0 || textSelAnchor < 0) return emptyList()
+    val box = layout.boxes.getOrNull(textSelPage) ?: return emptyList()
+    val sheet = textSelectionSheet() ?: return emptyList()
+    val words = PdfTextSelection.boxes(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))
+    return PdfSelectionSpans.of(words).map { span ->
+        android.graphics.RectF(
+            (span.left * box.scale + box.leftPx - scrollX).toFloat(),
+            (span.top * box.scale + box.topPx - scrollY).toFloat(),
+            (span.right * box.scale + box.leftPx - scrollX).toFloat(),
+            (span.bottom * box.scale + box.topPx - scrollY).toFloat(),
+        )
+    }
+}
+
+/**
+ * The union of the selected passages' bands — the whole passage's box, or null when nothing is selected.
+ * The bar no longer hangs from it (it follows the endpoint's line), but the chrome still needs the box for
+ * `PaneState` and for a reader that has to know *whether* something is selected.
  */
 internal fun DrawingSurfaceView.textSelectionScreenRect(): android.graphics.RectF? {
+    val spans = textSelectionScreenSpans()
+    if (spans.isEmpty()) return null
+    val union = android.graphics.RectF(spans.first())
+    for (i in 1 until spans.size) union.union(spans[i])
+    return union
+}
+
+/**
+ * The band the **focus** end of the range is on — the line under the reader's finger — or null when that
+ * word's box cannot be mapped. This is what the bar is anchored to: a passage of six lines puts its actions
+ * beside the line being extended, not under the middle of the block.
+ */
+internal fun DrawingSurfaceView.textSelectionActiveScreenSpan(): android.graphics.RectF? {
     val index = pdfTextIndex ?: return null
-    if (textSelPage < 0 || textSelAnchor < 0) return null
+    if (textSelPage < 0 || textSelFocus < 0) return null
     val box = layout.boxes.getOrNull(textSelPage) ?: return null
     val sheet = textSelectionSheet() ?: return null
-    val boxes = PdfTextSelection.boxes(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))
-    if (boxes.isEmpty()) return null
-    var left = Float.MAX_VALUE
-    var top = Float.MAX_VALUE
-    var right = -Float.MAX_VALUE
-    var bottom = -Float.MAX_VALUE
-    for (w in boxes) {
-        left = minOf(left, (w.left * box.scale + box.leftPx - scrollX).toFloat())
-        top = minOf(top, (w.top * box.scale + box.topPx - scrollY).toFloat())
-        right = maxOf(right, (w.right * box.scale + box.leftPx - scrollX).toFloat())
-        bottom = maxOf(bottom, (w.bottom * box.scale + box.topPx - scrollY).toFloat())
-    }
-    return android.graphics.RectF(left, top, right, bottom)
+    val word = index.words(sheet.pageNo).getOrNull(textSelFocus) ?: return null
+    val middle = ((word.top + word.bottom) / 2.0 * box.scale + box.topPx - scrollY).toFloat()
+    return textSelectionScreenSpans().firstOrNull { middle >= it.top && middle <= it.bottom }
+}
+
+/**
+ * The phase the bar reads: absent with no range, **being made** while a pointer holds it, settled once the
+ * pointer is let go. The transitions themselves are the shared [PdfTextActionLifecycle]; the surface only
+ * reports which state it is in.
+ */
+internal fun DrawingSurfaceView.textSelectionActionPhase(): PdfTextActionPhase = when {
+    !hasTextSelection() -> PdfTextActionPhase.ABSENT
+    textSelecting -> PdfTextActionPhase.EXTENDING
+    else -> PdfTextActionPhase.SETTLED
+}
+
+/** Everything the chrome needs about the PDF text selection, or null when there is none. */
+internal fun DrawingSurfaceView.textSelectionReport(): TextSelectionReport? {
+    val spans = textSelectionScreenSpans()
+    val union = textSelectionScreenRect() ?: return null
+    return TextSelectionReport(
+        union = union,
+        spans = spans,
+        active = textSelectionActiveScreenSpan(),
+        phase = textSelectionActionPhase(),
+    )
 }
 
 /**
@@ -504,7 +553,7 @@ internal fun DrawingSurfaceView.fallbackReplaceCircuitOn(page: Page, pageIndex: 
 /** The boxes last reported to the chrome, so a frame that moved neither selection reports nothing. */
 internal class SelectionReports {
     var strokes: android.graphics.RectF? = null
-    var text: android.graphics.RectF? = null
+    var text: TextSelectionReport? = null
 }
 
 /**
@@ -535,11 +584,11 @@ internal fun DrawingSurfaceView.reportSelectionRect() {
     }
 }
 
-/** Emit [onTextSelectionRectChanged] if the PDF text selection's box moved since the last report. */
+/** Emit [onTextSelectionReport] if anything about the text selection changed since the last report. */
 internal fun DrawingSurfaceView.reportTextSelectionRect() {
-    val rect = textSelectionScreenRect()
-    if (rect != selectionReports.text) {
-        selectionReports.text = rect
-        onTextSelectionRectChanged?.invoke(rect)
+    val report = textSelectionReport()
+    if (report != selectionReports.text) {
+        selectionReports.text = report
+        onTextSelectionReport?.invoke(report)
     }
 }

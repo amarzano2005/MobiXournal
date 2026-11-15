@@ -224,6 +224,13 @@ class DesktopTab(
     internal var pdfTextSelection: DesktopPdfTextSelection? by mutableStateOf(null)
 
     /**
+     * True while a pointer is still **making** that selection: the range and its wash update live, and the
+     * Copy/Highlight capsule waits for the release (see `PdfTextActionPhase`). It is a drag flag, not view
+     * state of the document, and it is reset by every path that ends a gesture.
+     */
+    internal var pdfTextSelecting by mutableStateOf(false)
+
+    /**
      * The header's search field, per tab: what the reader typed on **this** document.
      *
      * Per tab like the page and the zoom, because two documents have two different answers — switching

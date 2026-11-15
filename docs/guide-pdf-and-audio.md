@@ -110,9 +110,10 @@ them back. It is ordinary highlighter ink, not a PDF annotation object: it saves
 `.xopp`, and reaches an exported PDF the way any drawn highlight does. A document opened read-only keeps its
 Copy and has no Highlight.
 
-**Copy rides with the words.** The bar does not sit at the bottom of the screen: it floats
-against the passage you selected — under its last line, above it when the page ends there — so the tint
-that shows what is selected is never hidden by the buttons that act on it. It carries two words, each a
+**Copy rides with the words.** The bar does not sit at the bottom of the screen, and it does not follow your
+finger: it appears when you let go of the drag, beside the line you last touched — below it, above it when the
+page ends there — so the tint that shows what is selected is never hidden by the buttons that act on it, and
+nothing chases the pointer while you are still choosing words. It carries two words, each a
 compact pill on a full-size tap target, so it stays small over the page. Near an edge, or with the
 text enlarged or a split-screen pane, the bar is measured and pulled inside the pane instead of hanging
 over its edge, and `Tab` puts a ring around Copy or Highlight when a keyboard is attached. There is no
