@@ -86,6 +86,15 @@ object DesignTokens {
     /** Backdrop blur radius behind the glass, in dp. */
     const val BLUR_RADIUS_DP: Int = 24
 
+    /**
+     * How opaque a **text selection's wash** is: the theme's selection accent at this alpha.
+     *
+     * A washed passage is content feedback, not a floating surface: it marks the words a reader chose without
+     * hiding them, so one band per line at one alpha is the whole treatment on both shells
+     * (`PdfSelectionSpans` supplies the geometry).
+     */
+    const val TEXT_SELECTION_WASH_ALPHA: Float = 0.22f
+
     // --- The raised glass: what lifts a surface off the desk -------------------------------------
     //
     // A band (the header, the status bar, the sidebar, a tool lane) and a floating capsule (the rail,

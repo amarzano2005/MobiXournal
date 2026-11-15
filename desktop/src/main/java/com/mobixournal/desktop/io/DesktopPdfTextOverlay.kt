@@ -8,36 +8,36 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.render.MagneticHighlighter
+import com.mobixournal.render.PdfSelectionSpans
 import com.mobixournal.render.PdfWord
 
 /**
- * A PDF text selection drawn **over the page**: a wash and a hairline per word box.
+ * A PDF text selection drawn **over the page**: one washed band per line, the spaces between its words inside
+ * it and no border per word.
  *
- * It is chrome, in the selection's own colour (`DesktopTheme.accent`, the one the marquee's outline
- * wears), and never the page's ink: nothing here is in the document, so `<Esc>` simply drops it and a
- * save writes the file it read. The wash is translucent because a selection must not hide the words it
- * selected.
+ * The geometry is `PdfSelectionSpans`' — shared with the tablet — because the boxes a text layer reports are
+ * the wrong shape for feedback: painted one per word they read as a row of tiles, a moving block rather than a
+ * passage. A line at its union height looks like the selection a reader knows from native text, and nothing in
+ * the band's interior moves as the pointer crosses words: only the boundary advances, with no spring, fade or
+ * scale anywhere in this function.
  *
- * [pxPerPt] is the sheet's own scale (`zoom × density`), so the boxes follow a zoom while the hairline
- * stays one screen pixel — the rule the marquee's handles follow.
+ * The colour is the theme's own selection accent at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so both shells
+ * wash a passage with one material. It is content feedback, not a floating surface, and never the page's ink:
+ * nothing here is in the document, so `<Esc>` simply drops it and a save writes the file it read.
+ *
+ * [pxPerPt] is the sheet's own scale (`zoom × density`), so the bands follow a zoom exactly as the sheet does.
  */
 internal fun DrawScope.drawPdfTextSelection(words: List<PdfWord>, pxPerPt: Float) {
-    for (word in words) {
-        val topLeft = Offset((word.left * pxPerPt).toFloat(), (word.top * pxPerPt).toFloat())
-        val size = Size(
-            ((word.right - word.left) * pxPerPt).toFloat(),
-            ((word.bottom - word.top) * pxPerPt).toFloat(),
-        )
+    for (span in PdfSelectionSpans.of(words)) {
+        val size = Size((span.width * pxPerPt).toFloat(), (span.height * pxPerPt).toFloat())
         if (size.width <= 0f || size.height <= 0f) continue
-        drawRect(color = DesktopTheme.accent.copy(alpha = 0.20f), topLeft = topLeft, size = size)
         drawRect(
-            color = DesktopTheme.accent.copy(alpha = 0.55f),
-            topLeft = topLeft,
+            color = DesktopTheme.accent.copy(alpha = DesignTokens.TEXT_SELECTION_WASH_ALPHA),
+            topLeft = Offset((span.left * pxPerPt).toFloat(), (span.top * pxPerPt).toFloat()),
             size = size,
-            style = Stroke(width = 1f),
         )
     }
 }

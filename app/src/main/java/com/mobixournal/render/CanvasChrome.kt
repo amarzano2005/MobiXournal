@@ -264,6 +264,9 @@ internal class CanvasChrome {
         hudGlyph.color = ink
         hudInk.color = ink
         hudRim.color = ink.withAlpha(HUD_RIM_ALPHA)
+        // The PDF text selection washes a passage in the theme's own selection accent at the shared wash
+        // alpha, so the two shells mark a passage with one material instead of a colour per file.
+        textSelect.color = selection.withAlpha(TEXT_SELECT_WASH_ALPHA)
         hudSwatchRim.color = ink.withAlpha(HUD_SWATCH_RIM_ALPHA)
         pageOutline.color = outline
         selectionStroke.color = selection
@@ -313,8 +316,15 @@ internal class CanvasChrome {
 
         const val SELECTION_FILL = 0x142060E0
         const val BAND_FILL = 0x222060E0
-        /** Translucent blue wash over selected PDF-text word boxes (like a text highlight). */
-        const val TEXT_SELECT_FILL = 0x552196F3
+        /** The wash's alpha as a byte: `DesignTokens.TEXT_SELECTION_WASH_ALPHA` of 255. */
+        val TEXT_SELECT_WASH_ALPHA: Int = Math.round(DesignTokens.TEXT_SELECTION_WASH_ALPHA * 255f)
+
+        /**
+         * The PDF-text selection's wash before the theme pushes its accent in: the accent blue at the shared
+         * wash alpha. One band per line (`PdfSelectionSpans`), never a box per word.
+         */
+        val TEXT_SELECT_FILL: Int =
+            (DesignTokens.ACCENT_LIGHT_RGB and 0xFFFFFF) or (TEXT_SELECT_WASH_ALPHA shl 24)
         /** Translucent yellow wash over document/PDF search results. */
         const val SEARCH_HIT_FILL = 0x66FFD54F
         const val SEARCH_CURRENT_STROKE = 0xFFFF8F00.toInt()

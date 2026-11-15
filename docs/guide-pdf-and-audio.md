@@ -91,6 +91,11 @@ pick it, and the slot then keeps it for next time. The
 selection is a view over the PDF, not something written into your notebook: it is never saved, and
 `Esc`, a click off the text or a page change clears it.
 
+**The passage looks like selected text, not a row of tiles.** The tint covers each line whole, the spaces
+between its words included, and it stops at a column gap instead of running across it. As you drag, only the
+edge of the tint moves — nothing fades in, scales or slides as one block — and the words stay readable
+underneath. It is still the text the PDF carries, not a reading of a picture: a scan selects nothing here.
+
 **The tool says what it can do here.** With Select text (PDF) in hand a small line over the page says where
 things stand: *Reading this PDF's text…* while the file is being read, nothing at all when the page has words
 and the tool simply works, *No text on this page* for a scan — a picture of text, which this app ships no OCR

@@ -107,7 +107,7 @@ that case is a tracked follow-up. Boxes are page-local top-left points (the `.xo
 map to the screen through a `PageBox` exactly like strokes. The **Select text (PDF)** tool
 (`EditorTool.TEXT_SELECT` → `ActiveTool.TEXT_SELECT` → `GestureIntent.SELECT_TEXT`) drags to select
 an inclusive reading-order word range: `beginTextSelect`/`textSelectMove` resolve pointer positions
-to word indices (`PdfTextSelection`, below), the range is highlighted (`drawTextSelection`), the
+to word indices (`PdfTextSelection`, below), the range is drawn as one washed band per line (`PdfSelectionSpans`: the line's union height, the spaces between its words inside it, columns never bridged, no border per word, nothing animated — only the boundary advances), the
 `TextSelectionBar`'s Copy puts the text on the Android system clipboard (`copyTextSelection`), and its
 **Highlight** writes the passage onto the page (`highlightTextSelection`, see [the magnetic
 highlighter](#the-magnetic-highlighter)). While it is in hand the slot names the page's state — reading, ready a scan with no words, or a failed read with a **Try again** — from one `PdfTextAvailability`, so a walk still running is never called a page without text. The bar
@@ -116,7 +116,7 @@ highlighter](#the-magnetic-highlighter)). While it is in hand the slot names the
 pass beside `reportScroll`), and `TextSelectionAnchor` places the measured capsule below that box, above
 it when the pane ends below, and inside the pane's edges either way — a bar pinned to the bottom edge sat
 on top of a passage near the foot of the page. The window's `PdfTextCopyBar` does the same with its own
-measured capsule (a hard-coded 78 × 30 dp assumed one text scale). The
+measured capsule (a hard-coded 78 × 30 dp assumed one text scale); it washes the same `PdfSelectionSpans` bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word, and a passage never slides, fades or scales as one block. The
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 

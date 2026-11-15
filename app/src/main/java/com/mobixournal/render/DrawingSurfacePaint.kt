@@ -424,11 +424,15 @@ internal fun DrawingSurfaceView.drawTextSelection(canvas: Canvas) {
     val box = layout.boxes.getOrNull(textSelPage) ?: return
     val sheet = textSelectionSheet() ?: return
     // The words come from the sheet this page draws (`Background.Pdf.pageNo`), not from the page's position.
-    for (w in PdfTextSelection.boxes(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))) {
-        val l = (w.left * box.scale + box.leftPx - scrollX).toFloat()
-        val t = (w.top * box.scale + box.topPx - scrollY).toFloat()
-        val r = (w.right * box.scale + box.leftPx - scrollX).toFloat()
-        val b = (w.bottom * box.scale + box.topPx - scrollY).toFloat()
+    val words = PdfTextSelection.boxes(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))
+    // One band per line, the spaces between its words included: a box per word reads as a row of tiles
+    // rather than a passage. Nothing here is animated — only the boundary advances as the pointer crosses
+    // words, which is what a native selection does.
+    for (span in PdfSelectionSpans.of(words)) {
+        val l = (span.left * box.scale + box.leftPx - scrollX).toFloat()
+        val t = (span.top * box.scale + box.topPx - scrollY).toFloat()
+        val r = (span.right * box.scale + box.leftPx - scrollX).toFloat()
+        val b = (span.bottom * box.scale + box.topPx - scrollY).toFloat()
         canvas.drawRect(l, t, r, b, chrome.textSelect)
     }
 }

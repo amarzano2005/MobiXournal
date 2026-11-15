@@ -177,7 +177,8 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
       "bandShadowDp": 4,
       "capsuleShadowDp": 6,
       "chromeInkDark": "#FFFFFF",
-      "hoverSlotAlpha": 0.45
+      "hoverSlotAlpha": 0.45,
+      "textSelectionWashAlpha": 0.22
     },
     "geometry": {
       "capsuleCornerRadiusDp": 16,
