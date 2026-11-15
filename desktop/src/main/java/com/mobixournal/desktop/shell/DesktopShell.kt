@@ -606,7 +606,7 @@ class DesktopShellState(
         onSavePicker: () -> Unit = {},
         onExportPicker: () -> Unit = {},
     ): Boolean {
-        if (isSaving) return false
+        if (saveBlocks(command)) return false
         when (command) {
             ShellCommand.DISMISS_FAILURE -> return WindowEscape.dismiss(this)
             ShellCommand.OPEN_SETTINGS -> {

@@ -213,7 +213,11 @@ a tab onto another file, the two writers that must not be starved. A save over a
 nothing, because the bytes come from the snapshot and the tab reads its own copy.
 
 Nothing on the window's input is gated while a save runs: the canvas takes strokes throughout, including the
-commit's rename. The write is a **staged sibling encoded first**, then one replace — and that replace is
+commit's rename, and the commands stay live — Settings, the tools, the sidebar. A guard at the top of the
+command table used to answer **nothing** for the length of a write, which reads as a hung window. A **close**
+asked for during the write (a tab's ×, `Ctrl+W`, the window's X) is kept rather than refused and answered the
+moment the save clears (`flushPendingClose`); only Save As waits, because its answer encodes inline on the
+thread that paints. The write is a **staged sibling encoded first**, then one replace — and that replace is
 retried a bounded number of times (40–200 ms) when Windows answers "access denied" or "in use", which is
 what a synchronised folder, its antivirus scan and the search indexer do for tens of milliseconds around
 every write. A refusal that does not clear is reported, the pages stay in memory, and the next quiet moment

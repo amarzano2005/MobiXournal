@@ -39,9 +39,15 @@ class CloseRequest internal constructor(val tab: DesktopTab, val exit: Boolean)
  * `Ctrl+W` and the close glyph need to know.
  */
 fun DesktopShellState.requestCloseTab(index: Int): Boolean {
-    if (isSaving) return false
     if (closeRequest != null) return false
     val tab = tabs.all.getOrNull(index) ?: return false
+    // A save owns this tab's document: the close is **kept**, not refused. The glyph, `Ctrl+W` and the
+    // window's X all answered nothing for as long as a write lasted, which is the one thing a reader
+    // quitting the window reads as a freeze ([flushPendingClose] answers them the moment the save lands).
+    if (isSaving) {
+        saveState.closeAfterSave = tab
+        return false
+    }
     if (tab.isDirty) {
         closeRequest = CloseRequest(tab, exit = false)
         return false
@@ -60,9 +66,13 @@ fun DesktopShellState.requestCloseActive(): Boolean = requestCloseTab(tabs.activ
  * asks about: a question about a document the user cannot see is a question about the wrong document.
  */
 fun DesktopShellState.requestExit(): Boolean {
-    if (isSaving) return false
     if (exitAllowed) return true
     if (closeRequest != null) return false
+    // The same promise as a tab's close: the X waits for the write instead of going dead.
+    if (isSaving) {
+        saveState.exitAfterSave = true
+        return false
+    }
     val dirty = tabs.all.firstOrNull { it.isDirty }
     if (dirty == null) {
         exitAllowed = true
@@ -199,6 +209,25 @@ internal fun DesktopShellState.settle(tab: DesktopTab) {
         DesktopAudioSession.forget(tab)
         tabs.close(index)
     }
+}
+
+/**
+ * Answer a close that was asked for while a save owned the document.
+ *
+ * `SaveWorker` calls this once the write has cleared, because only then is the question answerable: a
+ * save that landed has made the tab clean, so the tab simply goes, and one that failed is reported first.
+ * Without it the close glyph and the X were dead buttons for the length of a write — the difference
+ * between "the window is busy" and "the window has hung" is exactly this answer.
+ */
+internal fun DesktopShellState.flushPendingClose() {
+    val pending = saveState.closeAfterSave
+    val exit = saveState.exitAfterSave
+    saveState.closeAfterSave = null
+    saveState.exitAfterSave = false
+    // The window's X outranks a tab's glyph: it asks about this tab and then every other dirty one.
+    if (exit) { requestExit(); return }
+    val index = pending?.let { tabs.all.indexOf(it) } ?: -1
+    if (index >= 0) requestCloseTab(index)
 }
 
 /** After a closed tab: with the window closing, ask about the next dirty one, or let it go. */

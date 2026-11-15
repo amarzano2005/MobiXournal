@@ -88,9 +88,13 @@ with a full baseline followed by native deltas as described below. A start that 
 the entry screen — a badged card, and *Restore last session* under *New sheet* — instead of adopting it
 behind the reader's back (`DesktopEntryCards.kt`). Restoring it, or opening that file at all, lands on
 `… (recovered)`, dirty, standing for the original path: `loadRecovered` keeps the **origin** as the save
-target and the **snapshot** as the repack source, so a save rebuilds the pages from the recovered copy
-instead of copying the file's older ones back over them, and it is encoded on a background thread — a whole
-notebook on the UI thread froze the window in the middle of a pause. The card's **×** and *New sheet* drop
+target and a **copy of the snapshot** as the repack source, so a save rebuilds the pages from the recovered
+edits instead of copying the file's older ones back over them, and it is encoded on a background thread — a
+whole notebook on the UI thread froze the window in the middle of a pause. The copy is not ceremony:
+`recovery/` is replaced after every quiet burst and deleted once the edits land, so a tab reading the
+snapshot in place made its own save repack from a file another lane was rewriting — Windows answered
+*access denied* naming a `%APPDATA%` path the reader never chose — and kept the snapshot undeletable, so a
+document that had just been saved was still offered as recovered. The card's **×** and *New sheet* drop
 the offer with the snapshot; saving, discarding or closing the tab deletes it too. Nothing in `recovery/`
 is a save.
 

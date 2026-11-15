@@ -412,6 +412,12 @@ object DocumentLoader {
      * back when the file itself is reopened.
      */
     fun loadRecovered(snapshot: File, origin: File): DesktopDocument {
+        // Read from a **copy** of the snapshot, exactly as any `.mobix` is read (`DesktopReadCopies`).
+        // The file in `recovery/` is not a document: the quiet writer replaces it after every burst of
+        // edits and deletes it the moment the edits reach their file, so a tab holding it made its own
+        // save repack from a file another lane was rewriting — Windows answers that with *access denied*
+        // naming a path in `%APPDATA%` the reader never chose — and left the snapshot undeletable while
+        // the tab lived, so a saved document kept being offered as recovered.
         val recovered = load(snapshot)
         return DesktopDocument(
             file = canonical(origin),
@@ -422,7 +428,9 @@ object DocumentLoader {
             shape = recovered.shape,
             // The pages are the snapshot's: a save must rebuild from them, never repack the origin's
             // entries over the edits (which would write the old page back under a clean-looking save).
-            pageSource = snapshot,
+            pageSource = recovered.pageSource,
+            // The copy is this tab's litter: closing the tab releases the handle and deletes it.
+            aside = recovered.aside,
         )
     }
 

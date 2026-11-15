@@ -74,9 +74,28 @@ internal class SaveRequest(val tab: DesktopTab, val target: File, val format: Sa
 internal class SaveState {
     var request: SaveRequest? by mutableStateOf(null)
     var uiBound = false
+
+    /** A tab close asked for while this save owned the document ([flushPendingClose]). */
+    var closeAfterSave: DesktopTab? = null
+
+    /** The window's X, pressed while this save owned the document. */
+    var exitAfterSave = false
 }
 
 internal val DesktopShellState.isSaving: Boolean get() = saveState.request != null
+
+/**
+ * Whether [command] has to wait for the save in flight — and only **Save As** does.
+ *
+ * The window used to refuse **every** command while a save ran, because the guard stood at the top of the
+ * command table: Settings, the tools and the sidebar answered nothing until the bytes landed, which is what
+ * a reader meets as "the window hangs while it saves". Encoding takes its own lane from an immutable
+ * snapshot, and Save already declines downstream (`requestSave`); Save As is the one command that would
+ * encode the same document a second time, inline, on the thread that paints. A close is neither refused nor
+ * lost: it is kept and answered when the write clears (`flushPendingClose`).
+ */
+internal fun DesktopShellState.saveBlocks(command: ShellCommand): Boolean =
+    isSaving && command == ShellCommand.SAVE_AS
 
 internal fun DesktopShellState.requestSave(target: File? = null, format: SaveFormat? = null,
     completed: () -> Unit = {}, origin: DesktopTab? = active) {
@@ -201,6 +220,9 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
             state.saveState.request = null
             state.failure = result.failure?.let(::describeSaveFailure)
             if (result.failure == null && ownsResult) request.completed()
+            // A close asked for during the write was kept, not refused: it is answered now that the lane
+            // is free — and after a failure with the reason already on screen.
+            state.flushPendingClose()
         }
     }
 }

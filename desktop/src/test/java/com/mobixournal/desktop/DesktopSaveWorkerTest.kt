@@ -8,6 +8,7 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 import java.util.concurrent.*
 
 class DesktopSaveWorkerTest {
@@ -73,6 +74,48 @@ class DesktopSaveWorkerTest {
             assertEquals("over the archive the pages were read from", document.pageSource, own.repackOver)
             assertNull("another destination is a whole write", document.saveShapeFor(temp.newFile("elsewhere.mobix")).repackOver)
         } finally { document.close() }
+    }
+
+    @Test fun aRecoveredTabNeverReadsTheSnapshotInPlace() {
+        val recovery = temp.newFolder("recovery")
+        val snapshot = File(recovery, "926ea51b.mobix")
+        SyntheticNotebook.write(snapshot, SyntheticNotebook.pages(2))
+        val origin = temp.newFile("note.mobix")
+        SyntheticNotebook.write(origin, SyntheticNotebook.pages(2))
+        val document = DocumentLoader.loadRecovered(snapshot, origin)
+        try {
+            assertEquals("the save target is the file the reader knows", origin.canonicalFile, document.file)
+            // `recovery/` is rewritten after every quiet burst and deleted once the edits land: a tab that
+            // read it in place made its save repack from a file another lane was replacing, which Windows
+            // answered with "access denied" naming a `%APPDATA%` path the reader never chose.
+            assertNotEquals("the pages come from a copy, not from the recovery folder", snapshot, document.pageSource)
+            assertEquals("and that copy is the tab's to delete", document.pageSource, document.aside)
+            assertEquals(
+                "so a save to the recovered file repacks over the copy",
+                document.pageSource,
+                document.saveShapeFor(document.file).repackOver,
+            )
+        } finally { document.close() }
+    }
+
+    @Test fun aCloseAskedDuringASaveIsAnsweredWhenItLands() {
+        val file = temp.newFile("close.mobix")
+        SyntheticNotebook.write(file, SyntheticNotebook.pages(1))
+        val state = DesktopShellState()
+        try {
+            state.tabs.open(DocumentLoader.load(file))
+            val tab = state.active!!
+            tab.record(tab.document.snapshot())
+            state.requestSave()
+            assertTrue("a write owns the document", state.isSaving)
+            // The glyph and the X used to answer nothing at all until the bytes landed, which reads as a
+            // hung window: the close is kept and asked again by the worker when its lane is free.
+            assertFalse("the close waits rather than refusing", state.requestCloseTab(0))
+            assertSame(tab, state.saveState.closeAfterSave)
+            state.saveState.request = null
+            state.flushPendingClose()
+            assertSame("and it is the question asked now", tab, state.closeRequest?.tab)
+        } finally { state.tabs.closeAll() }
     }
 
     @Test fun closeSaveCapturesTheRequestedTabEvenWhenAnotherTabIsActive() {
