@@ -45,6 +45,33 @@ data class PdfWord(
 }
 
 /**
+ * How far a press may sit outside a word's box and still count as a press on that word, in page points.
+ *
+ * A finger or a mouse never lands on a glyph's exact box, so *entering* a selection gets a small slack —
+ * bounded twice, because an unbounded slack turns "press on text" into "select the nearest paragraph".
+ * [ofScreenPx] converts a screen-space press radius into page points at the view's zoom and caps it at
+ * [MAX_PT]; [PdfTextIndex.hitWord] then caps each word's own slack at [WORD_HEIGHT_RATIO] of its height.
+ * Bounded this way, a press far from any text is a **miss** — which is what lets a direct-entry gesture
+ * decide the press was not about text at all — while a press on the edge of a letter still hits it.
+ */
+object PdfHitTolerance {
+    /** The press radius a direct text gesture gets, in screen dp — one number for both shells. */
+    const val PRESS_SLOP_DP = 8.0
+
+    /** The widest slack any press is given, in page points. */
+    const val MAX_PT = 6.0
+
+    /** A word's own slack, as a fraction of its height — the grouper's gap ratio, so two words never merge. */
+    const val WORD_HEIGHT_RATIO = 0.35
+
+    /** [screenPx] of screen-space slop in page points, for a view where [pxPerPt] pixels are one point. */
+    fun ofScreenPx(screenPx: Double, pxPerPt: Double): Double {
+        if (!(pxPerPt > 0.0) || !(screenPx > 0.0)) return 0.0
+        return (screenPx / pxPerPt).coerceAtMost(MAX_PT)
+    }
+}
+
+/**
  * Groups a run of positioned glyphs (in reading order) into words. Breaks on whitespace glyphs and
  * — because many PDFs encode inter-word spacing as a gap rather than a space glyph — also on a wide
  * horizontal gap or a vertical line change relative to the glyph height.
@@ -118,6 +145,34 @@ class PdfTextIndex(private val pages: List<List<PdfWord>>) {
             if (d < bestD) { bestD = d; best = i }
         }
         return best
+    }
+
+    /**
+     * Strict hit: the index of the word under ([x], [y]) — inside its box, or within [tolerancePt] of it —
+     * or null when the point lands in whitespace. This is the **entering** query: a press on empty paper
+     * must not start a selection on the nearest word from across the page.
+     *
+     * [tolerancePt] is bounded, not trusted ([PdfHitTolerance]), and a word's slack is capped by its own
+     * height, so a generous press radius can never reach a word across the gutter. When two boxes are within
+     * one slack of the point the nearer centre answers, so the result never depends on list order.
+     */
+    fun hitWord(page: Int, x: Double, y: Double, tolerancePt: Double = 0.0): Int? {
+        val ws = words(page)
+        if (ws.isEmpty()) return null
+        val slack = tolerancePt.coerceIn(0.0, PdfHitTolerance.MAX_PT)
+        var best = -1
+        var bestD = Double.MAX_VALUE
+        for (i in ws.indices) {
+            val w = ws[i]
+            val h = (w.bottom - w.top).coerceAtLeast(1.0)
+            val t = slack.coerceAtMost(PdfHitTolerance.WORD_HEIGHT_RATIO * h)
+            if (x < w.left - t || x > w.right + t || y < w.top - t || y > w.bottom + t) continue
+            val dx = w.centerX - x
+            val dy = w.centerY - y
+            val d = dx * dx + dy * dy
+            if (d < bestD) { bestD = d; best = i }
+        }
+        return if (best >= 0) best else null
     }
 
     /** The words in the inclusive reading-order range [a]..[b] (either order), to highlight. */

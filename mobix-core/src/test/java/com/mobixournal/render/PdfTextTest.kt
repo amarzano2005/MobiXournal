@@ -68,6 +68,80 @@ class PdfTextTest {
         assertEquals("The quick brown fox", index.rangeText(0, -5, 99))
     }
 
+    private val sheet = PdfSheetRef("mobix.pdf", 0)
+
+    @Test fun beginHitsTheWordUnderThePoint() {
+        val range = PdfTextSelection.begin(index, sheet, 35.0, 6.0, tolerancePt = 0.0)!!
+        assertEquals(1, range.anchor)
+        assertEquals(1, range.focus)
+        assertEquals("quick", PdfTextSelection.text(index, range))
+    }
+
+    @Test fun beginInWhitespaceSelectsNothing() {
+        // Five points from "The" (0..20) and from "quick" (30..50): no word is under the point.
+        assertNull(PdfTextSelection.begin(index, sheet, 25.0, 6.0, tolerancePt = 0.0))
+        // Far below the line, in the page's empty half.
+        assertNull(PdfTextSelection.begin(index, sheet, 300.0, 400.0, tolerancePt = 0.0))
+        // The nearest-word query still answers there — which is exactly what extending keeps using.
+        assertEquals(1, index.anchorWord(0, 26.0, 6.0))
+    }
+
+    @Test fun aPressAtAWordEdgeHitsWithAToleranceAndMissesWithoutOne() {
+        assertNull(index.hitWord(0, 29.5, 6.0))
+        assertEquals(1, index.hitWord(0, 29.5, 6.0, tolerancePt = 1.0))
+    }
+
+    @Test fun theToleranceIsBoundedByTheZoomAndByTheWordHeight() {
+        // A screen-space radius becomes page points at the view's zoom...
+        assertEquals(4.0, PdfHitTolerance.ofScreenPx(screenPx = 8.0, pxPerPt = 2.0), 1e-9)
+        assertEquals(2.0, PdfHitTolerance.ofScreenPx(screenPx = 8.0, pxPerPt = 4.0), 1e-9)
+        // ...is capped in page points, so zooming far out cannot select half the page...
+        assertEquals(PdfHitTolerance.MAX_PT, PdfHitTolerance.ofScreenPx(screenPx = 120.0, pxPerPt = 1.0), 1e-9)
+        assertEquals(0.0, PdfHitTolerance.ofScreenPx(screenPx = 8.0, pxPerPt = 0.0), 1e-9)
+        // ...and each word's own slack is bounded by its height (12 pt here, so at most 4.2 pt).
+        assertEquals(1, index.hitWord(0, 53.0, 6.0, tolerancePt = 100.0))
+        assertNull(index.hitWord(0, 55.0, 6.0, tolerancePt = 100.0))
+    }
+
+    @Test fun crossingTheAnchorReversesTheRangeWithoutMovingTheGrab() {
+        val begun = PdfTextSelection.begin(index, sheet, 35.0, 6.0, tolerancePt = 0.0)!!   // "quick"
+        val forward = PdfTextSelection.extend(index, begun, sheet, 115.0, 6.0)            // to "fox"
+        assertEquals(1, forward.anchor)
+        assertEquals(3, forward.focus)
+        assertEquals(1, forward.start)
+        assertEquals(3, forward.end)
+        assertFalse(forward.reversed)
+        val back = PdfTextSelection.extend(index, forward, sheet, 5.0, 6.0)               // back past the grab
+        assertEquals("the grab stays on the word the press took", 1, back.anchor)
+        assertEquals(0, back.focus)
+        assertEquals(0, back.start)
+        assertEquals(1, back.end)
+        assertTrue(back.reversed)
+        assertEquals("The quick", PdfTextSelection.text(index, back))
+        assertEquals("grabbing the other end keeps the span", 0, back.anchorOn(sheet, 0).anchor)
+    }
+
+    @Test fun anotherSheetIsRefusedRatherThanExtended() {
+        val begun = PdfTextSelection.begin(index, sheet, 35.0, 6.0, tolerancePt = 0.0)!!
+        val other = PdfSheetRef("mobix.pdf", 1)
+        assertEquals(begun, PdfTextSelection.extend(index, begun, other, 115.0, 6.0))
+        assertEquals(begun.focus, begun.focusOn(other, 3).focus)
+    }
+
+    @Test fun theRangeReadsItsOwnSheetNotItsNotebookPosition() {
+        // Page 0 is a cover; the sheet the reader is on is page 1 of the PDF, drawn by the second page.
+        val reordered = PdfTextIndex(
+            listOf(
+                listOf(word("cover", 0.0)),
+                listOf(word("The", 0.0), word("quick", 30.0)),
+            ),
+        )
+        val range = PdfTextSelection.begin(reordered, PdfSheetRef("mobix.pdf", 1), 35.0, 6.0, tolerancePt = 0.0)!!
+        assertEquals(1, range.sheet.pageNo)
+        assertEquals("quick", PdfTextSelection.text(reordered, range))
+        assertEquals(1, PdfTextSelection.boxes(reordered, range).size)
+    }
+
     @Test fun hasAnyTextReflectsWhetherAnyPageHadText() {
         assertTrue(index.hasAnyText)
         assertFalse(PdfTextIndex(listOf(emptyList(), emptyList())).hasAnyText)

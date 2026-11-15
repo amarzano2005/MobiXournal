@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-direct-text-hit-testing"
-title = "Resolve direct PDF text hits without selecting distant words"
-description = "In mobix-core/src/main/java/com/mobixournal/render/PdfText.kt, add a strict word hit query alongside PdfTextIndex.anchorWord: entering a selection requires a hit inside a word box with a bounded screen-space tolerance converted to page points; whitespace far from text must return no hit. Preserve nearest-word anchoring for extending an existing range. Add pure endpoint/range helpers that preserve anchor and focus direction when endpoints cross and reject a different PDF sheet. Use Background.Pdf.pageNo and stable source/page identity rather than notebook position; no per-gesture PDF extraction. Test whitespace, word edges, zoom-scaled tolerance, reverse ranges, rotated/cropped PDF coordinate mapping and reordered/repeated PDF sheets using PdfTextTest and shell mapping tests. Update docs/pdf.md in the implementation task. This is the prerequisite for the direct-entry gesture tasks; selection remains transient view state."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 10
-created = 2026-11-15
-tags = ["pdf", "direct-text-selection", "android", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "pdf-text-selection-native-feedback"
 title = "Make PDF selection respond like native text rather than a moving block"
 description = "After pdf-direct-text-hit-testing, replace the PDF text selection feedback in Android DrawingSurfacePaint.kt drawTextSelection and desktop io/DesktopPdfTextOverlay.kt drawPdfTextSelection. Add pure shared display geometry beside mobix-core/render/PdfText.kt: form consistent-height per-line spans from the selected word boxes, include ordinary spaces between contiguous selected words, and never bridge columns or unrelated lines. Preserve rangeText and extraction reading order; this is presentation, not a change to document ink or clipboard text. Remove desktop per-word hairline boxes and use a shared theme-aware selection wash through DesignTokens and the shell theme/CanvasChrome adapters. During selection, keep the starting endpoint fixed and update the focus immediately from pointer events: no interpolation, spring, scale, fade or translation of the selected passage as one block, no replayed arrival animation on each move. Only the range boundary advances as words/lines are crossed; use existing range reducers and consume pdf-text-selection-handles when it lands rather than implementing another handle system. Compare against native Android/Windows text selection behavior for word/line transitions, reverse drag and endpoint crossing. Tests cover inter-word spaces, columns, short/long words, baseline variation, zoom and reverse ranges; shell render tests verify continuous spans and readable text without word borders. Verify rapid forward/backward selection and multiline drag on emulator and packaged desktop with frame captures; no per-move PDF extraction or full-document scan. Apply docs/interface-contract.md: the selection wash is content feedback, not a floating surface. Update docs/pdf.md and docs/guide-pdf-and-audio.md in the same task; document that these gestures still operate on extracted PDF text, not OCR."

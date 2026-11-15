@@ -17,6 +17,7 @@ import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfTextNotice
 import com.mobixournal.desktop.io.pdfTextAvailabilityOf
 import com.mobixournal.desktop.io.retryPdfIndex
+import com.mobixournal.render.PdfHitTolerance
 import com.mobixournal.render.PdfTextPhase
 import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.io.PdfIndexLoader
@@ -611,9 +612,9 @@ internal suspend fun AwaitPointerEventScope.verticalSpaceDrag(
  * The PDF text slot's drag: press to anchor a word, drag to extend the selection, lift to keep it.
  *
  * The words come from the tab's own index (`PdfIndexLoader`), so the anchor is the shared
- * `PdfTextIndex.anchorWord` — inside the word under the pointer, or the nearest one when the press
- * lands between words — and the range is read in the page's reading order. A page with no text layer
- * says so in one sentence instead of swallowing the gesture.
+ * `PdfTextIndex.hitWord` — inside the word under the pointer, or within one bounded press radius of it —
+ * and a press in whitespace starts nothing; the range is read in the page's reading order. A page with no
+ * text layer says so in one sentence instead of swallowing the gesture.
  */
 internal suspend fun AwaitPointerEventScope.pdfTextDrag(
     start: PointerInputChange,
@@ -632,7 +633,17 @@ internal suspend fun AwaitPointerEventScope.pdfTextDrag(
         }
         return
     }
-    val begun = DesktopPdfTextSelect.begin(tab, x, y)
+    // Entering is a strict hit with one press radius — the same 8 dp the tablet uses — converted at this
+    // window's zoom (px per page point) and bounded in page points by `PdfHitTolerance`.
+    val begun = DesktopPdfTextSelect.begin(
+        tab,
+        x,
+        y,
+        tolerancePt = PdfHitTolerance.ofScreenPx(
+            PdfHitTolerance.PRESS_SLOP_DP * density,
+            (view.current().zoom * density).toDouble(),
+        ),
+    )
     if (begun == null) {
         tab.pdfTextSelection = null
         val availability = pdfTextAvailabilityOf(tab)

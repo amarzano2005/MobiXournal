@@ -64,18 +64,23 @@ internal object DesktopPdfTextSelect {
     /**
      * Anchor a selection at page point ([x], [y]), or null when there is nothing to select there.
      *
-     * The point goes through the shared `PdfTextIndex.anchorWord`, so the word under the pointer — and
-     * the nearest one when the press lands between words — is the tablet's own answer.
+     * The point goes through the shared `PdfTextIndex.hitWord`, so the word under the pointer is the tablet's
+     * own answer — and a press in whitespace answers null, because a direct-entry gesture must not start a
+     * selection on the nearest word from across the page. [tolerancePt] is the bounded press radius
+     * `PdfHitTolerance.ofScreenPx` converts from screen dp for the window's zoom.
      */
-    fun begin(tab: DesktopTab, x: Double, y: Double): DesktopPdfTextSelection? {
+    fun begin(tab: DesktopTab, x: Double, y: Double, tolerancePt: Double = 0.0): DesktopPdfTextSelection? {
         val index = tab.pdfIndex ?: return null
         val pdfPage = pdfPageOf(tab) ?: return null
-        val word = index.text.anchorWord(pdfPage, x, y) ?: return null
+        val word = index.text.hitWord(pdfPage, x, y, tolerancePt) ?: return null
         return DesktopPdfTextSelection(tab.page, anchor = word, focus = word)
     }
 
     /** Extend [selection] to the word under ([x], [y]), keeping its anchor. */
     fun extend(tab: DesktopTab, selection: DesktopPdfTextSelection, x: Double, y: Double): DesktopPdfTextSelection {
+        // The range names words of one sheet: a selection left on the page it was made on is not extended by
+        // a drag that has moved to another one.
+        if (selection.page != tab.page) return selection
         val index = tab.pdfIndex ?: return selection
         val pdfPage = pdfPageOf(tab) ?: return selection
         val word = index.text.anchorWord(pdfPage, x, y) ?: return selection

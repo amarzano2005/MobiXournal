@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-direct-text-hit-testing"
+title = "Resolve direct PDF text hits without selecting distant words"
+description = "Added PdfHitTolerance and PdfTextIndex.hitWord to mobix-core/render/PdfText.kt: entering a selection now needs a word hit, and the slack is a screen-space press radius (PdfHitTolerance.PRESS_SLOP_DP, 8 dp) converted at the view's zoom, capped at 6 pt and per word at 0.35 of its height, so whitespace far from text answers null while nearest-word anchoring stays for extending. New mobix-core/render/PdfTextRange.kt holds PdfSheetRef (source identity plus Background.Pdf.pageNo, resolved from the page's own background, never its notebook position), PdfTextRange (anchor and focus kept apart so crossing them reverses the range and not the grab, with focusOn/anchorOn and another-sheet refusal) and PdfTextSelection.begin/extend/boxes/text over the already-extracted index, so no gesture reads the PDF. Both shells wired: the tablet's beginTextSelect/textSelectMove and every reader (drawTextSelection, textSelectionScreenRect, copyTextSelection, highlightTextSelection) resolve words through the sheet the page draws, fixing reordered and repeated sheets; the window's DesktopPdfTextSelect.begin takes the bounded tolerance from pdfTextDrag at the window's zoom and extend refuses a selection left on another page. Tests: PdfTextTest (strict hit, whitespace miss, word edge, bounded tolerance, crossing endpoints, another sheet refused, range reading its own sheet not its position) and the new PdfSheetRefTest (pageNo, paper page, reordering, one sheet on two pages, bundled asset identity). Docs: docs/pdf.md gained the hit-versus-approach rule and the sheet identity (trimmed elsewhere to stay at the 300-line budget) and docs/desktop-editing.md now says the press must hit a word. Not done here, by design: the direct-entry gestures, the handles and the compact popup are their own tasks."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-15
+completed = 2026-11-15
+tags = ["pdf", "direct-text-selection", "android", "desktop"]
+design = "none: no interface surface, the selection wash and its capsule are untouched and only the admission of a press changed"
+
+[[task]]
 id = "desktop-dial-own-tool-context"
 title = "Clear Windows' built-in radial tools from the window's dial context"
 description = "Added desktop/src/main/java/com/mobixournal/desktop/ink/TabletDialConfig.kt with a native EmptySystemMenuItems (IIterable<RadialControllerSystemMenuItemKind> and IIterator<RadialControllerSystemMenuItemKind> implementing IInspectable::GetIids via CoTaskMemAlloc, 1-byte boolean false for get_HasCurrent/MoveNext, E_BOUNDS for get_Current, and strict QueryInterface whitelisting that refuses internal probing IIDs like 2132B005-C604-4354-85BD-8F2E24181B0C). Wired clearDefaultDialMenuItems into TabletDial.menuOf after clearing stale vector items and appending MobiXournal, followed by SelectMenuItem, keeping the native tables pinned for the controller's lifetime. Verified in TabletDialAbiTest that SetDefaultMenuItems succeeds (hr=0x00000000) and isToolActive() is immediately true and survives reopen; updated docs/desktop-tablet.md and docs/guide-limitations.md and rebuilt the desktop distributable."

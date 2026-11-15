@@ -186,27 +186,49 @@ private fun DrawingSurfaceView.pasteOnto(pageIndex: Int, elements: List<Element>
 
 // --- PDF text selection -------------------------------------------------------------------------
 
-/** Down with the text-select tool: anchor the selection at the word nearest the touch. */
+/** Down with the text-select tool: anchor the selection at the word the touch actually hits. */
 internal fun DrawingSurfaceView.beginTextSelect(event: MotionEvent) {
     scroll.active = false; erasing = false; placing = false; ink.current = null
     val index = pdfTextIndex ?: return
     val pageIndex = layout.pageAt(event.x + scrollX, event.y + scrollY)?.index ?: return
     val box = layout.boxes.getOrNull(pageIndex) ?: return
-    val anchor = index.anchorWord(pageIndex, box.toPtX(event.x, scrollX), box.toPtY(event.y, scrollY)) ?: return
+    val sheet = PdfSheetRef.of(pageAt(pageIndex) ?: return) ?: return
+    // Entering is strict: a press in whitespace starts nothing, instead of grabbing the nearest word from
+    // across the page. The slack is a press radius of screen dp, converted at this page's zoom and bounded
+    // in page points by `PdfHitTolerance`.
+    val range = PdfTextSelection.begin(
+        index,
+        sheet,
+        box.toPtX(event.x, scrollX),
+        box.toPtY(event.y, scrollY),
+        PdfHitTolerance.ofScreenPx(
+            PdfHitTolerance.PRESS_SLOP_DP * resources.displayMetrics.density.toDouble(),
+            box.scale.toDouble(),
+        ),
+    ) ?: return
     textSelecting = true
     textSelPage = pageIndex
-    textSelAnchor = anchor
-    textSelFocus = anchor
+    textSelAnchor = range.anchor
+    textSelFocus = range.focus
     onTextSelectionChanged?.invoke(true)
     render()
 }
 
-/** Drag: extend the selection to the word nearest the touch (kept on the anchor's page). */
+/** Drag: extend the selection to the word nearest the touch, on the sheet the anchor's page draws. */
 internal fun DrawingSurfaceView.textSelectMove(event: MotionEvent) {
     val index = pdfTextIndex ?: return
     val box = layout.boxes.getOrNull(textSelPage) ?: return
-    val focus = index.anchorWord(textSelPage, box.toPtX(event.x, scrollX), box.toPtY(event.y, scrollY)) ?: return
-    if (focus != textSelFocus) { textSelFocus = focus; render() }
+    val sheet = PdfSheetRef.of(pageAt(textSelPage) ?: return) ?: return
+    // Extending keeps the nearest-word answer (a drag over a line's gap must not lose the range), and a
+    // pointer over another sheet extends nothing at all.
+    val extended = PdfTextSelection.extend(
+        index,
+        PdfTextRange(sheet, textSelAnchor, textSelFocus),
+        sheet,
+        box.toPtX(event.x, scrollX),
+        box.toPtY(event.y, scrollY),
+    )
+    if (extended.focus != textSelFocus) { textSelFocus = extended.focus; render() }
 }
 
 /**
@@ -218,7 +240,8 @@ internal fun DrawingSurfaceView.textSelectionScreenRect(): android.graphics.Rect
     val index = pdfTextIndex ?: return null
     if (textSelPage < 0 || textSelAnchor < 0) return null
     val box = layout.boxes.getOrNull(textSelPage) ?: return null
-    val boxes = index.rangeBoxes(textSelPage, textSelAnchor, textSelFocus)
+    val sheet = textSelectionSheet() ?: return null
+    val boxes = PdfTextSelection.boxes(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))
     if (boxes.isEmpty()) return null
     var left = Float.MAX_VALUE
     var top = Float.MAX_VALUE
@@ -233,6 +256,14 @@ internal fun DrawingSurfaceView.textSelectionScreenRect(): android.graphics.Rect
     return android.graphics.RectF(left, top, right, bottom)
 }
 
+/**
+ * The PDF **sheet** this view's text selection reads its words from: the selected page's own
+ * `Background.Pdf.pageNo`, never its position in the notebook — a reordered or repeated sheet would answer
+ * another page's words (`PdfSheetRef`).
+ */
+internal fun DrawingSurfaceView.textSelectionSheet(): PdfSheetRef? =
+    if (textSelPage < 0) null else pageAt(textSelPage)?.let { PdfSheetRef.of(it) }
+
 /** True while a PDF-text selection is active (drives the Copy affordance). */
 fun DrawingSurfaceView.hasTextSelection(): Boolean = textSelPage >= 0 && textSelAnchor >= 0
 
@@ -240,7 +271,8 @@ fun DrawingSurfaceView.hasTextSelection(): Boolean = textSelPage >= 0 && textSel
 fun DrawingSurfaceView.copyTextSelection() {
     val index = pdfTextIndex ?: return
     if (!hasTextSelection()) return
-    val text = index.rangeText(textSelPage, textSelAnchor, textSelFocus)
+    val sheet = textSelectionSheet() ?: return
+    val text = PdfTextSelection.text(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))
     if (text.isEmpty()) return
     val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
     manager.setPrimaryClip(ClipData.newPlainText("PDF text", text))
@@ -263,7 +295,8 @@ fun DrawingSurfaceView.copyTextSelection() {
 fun DrawingSurfaceView.highlightTextSelection(color: Int): Boolean {
     val index = pdfTextIndex ?: return false
     if (isReadOnly || !hasTextSelection()) return false
-    val words = index.rangeBoxes(textSelPage, textSelAnchor, textSelFocus)
+    val sheet = textSelectionSheet() ?: return false
+    val words = PdfTextSelection.boxes(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))
     if (words.isEmpty()) return false
     val ink = if ((color ushr 24) == 0xFF) color.withAlpha(XoppColor.HIGHLIGHTER_ALPHA) else color
     val strokes = MagneticHighlighter.selectionStrokes(words, ink)
