@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "save-control-shows-a-turning-arc"
+title = "The Save control turns while it writes, on both shells"
+description = "A save in flight now says so on the control itself. mobix-core holds the one specification (SavingSpin: 840 ms turn, 90° sweep, 2.4/24 stroke); desktop/shell/SavingArc.kt adapts it for the header, which swaps ChromeGlyph.SAVE for the arc in the same box, and the tablet draws it from ui/SaveControl.kt inside the top bar's existing IconButton, driven by io/SaveActivity (which counts concurrent writes and is set around MainActivitySaves' encode, so auto save turns it too). Save is unavailable while writing on the tablet; the window's page badge stays as the second readout. Docs: docs/data-path.md (the mark, and auto save's retry) and README's save line."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-15
+completed = 2026-11-15
+tags = ["desktop", "ui", "save"]
+design = "material: the mark stands inside the existing floating dock capsule and the header's own capsule, so no new surface class; states: resting floppy, unavailable at 0.38, writing (turning arc), and the clean document keeps the muted glyph on both shells; glyph: ChromeGlyph.SAVE at 20 dp, with the arc drawn in the same box from SavingSpin (TURN_MS 840, sweep 90, stroke 2.4 of 24) so nothing shifts; tokens: MaterialTheme.colorScheme.secondary on the tablet and DesktopTheme.accent in the window, no literals; copy: the arc carries contentDescription Saving on the tablet, and the window's band needs none beyond the badge already on the page."
+
+[[task]]
+id = "desktop-auto-save-keeps-asking"
+title = "Auto save keeps asking until the document lands"
+description = "The window's auto save asks again instead of firing one tick per burst: AutoSave is keyed on the edit count and the switch, loops at AutoSavePolicy.QUIET_MS (12 attempts), waits out a write that owns the lane, and stops on autoSaveWanted() — the policy's question without its busy answer. Turning the switch on over an already-dirty document now saves it without another stroke. Test: DesktopSaveWorkerTest.autoSaveWritesADirtyDocumentAndStopsAskingOnceItLands. Doc: docs/data-path.md (Auto save)."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-15
+completed = 2026-11-15
+tags = ["desktop", "autosave"]
+design = "none: no interface surface — the change is when an existing quiet job asks again, so no control, material, colour or glyph is added."
+
+[[task]]
 id = "desktop-save-does-not-freeze-the-window"
 title = "A save leaves the window usable, and a recovered tab never reads the snapshot in place"
 description = "A save no longer freezes the window and a recovered tab no longer reads its crash snapshot from the recovery folder. LoadRecovered opens a DesktopReadCopies copy of the snapshot (pageSource and aside are that copy), so a save repacks from a file nothing else rewrites — the wire was Windows' 'access denied' naming %APPDATA%\\MobiXournal\\recovery\\<key>.mobix — and the snapshot is deletable while the tab lives, so a saved document stops being offered as recovered. The blanket isSaving guard at the top of DesktopShellState.apply is gone; saveBlocks(command) waits only for Save As, and requestCloseTab/requestExit keep a close asked for during a write, which SaveWorker answers through flushPendingClose. Tests: DesktopSaveWorkerTest.aRecoveredTabNeverReadsTheSnapshotInPlace and .aCloseAskedDuringASaveIsAnsweredWhenItLands. Docs: desktop-documents.md (the copy is why a recovered save never touches recovery/) and data-path.md (commands stay live, a close waits, only Save As encodes behind a save)."
