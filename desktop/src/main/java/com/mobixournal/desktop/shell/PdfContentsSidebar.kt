@@ -11,6 +11,7 @@ import com.mobixournal.desktop.settings.drawChromeGlyph
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.TooltipPlacement
 import androidx.compose.foundation.border
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -58,14 +60,51 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.render.PdfOutlineView
 
+/** Which view a tab's navigation sidebar shows: the page thumbnails, or the document's Contents. */
+enum class DesktopSidebarView {
+    PAGES,
+    CONTENTS,
+}
+
 /**
- * The PDF's **Contents** in the page sidebar: a collapsible section under the page list, filled from the
- * document's outline.
+ * The sidebar's **Pages / Contents** switch: one persistent control above either list, so the two navigation
+ * views are a choice rather than a section folded under three others. The choice belongs to the tab
+ * ([DesktopTab.contentsView]), so switching tabs and coming back finds the view where it was left.
+ */
+@Composable
+internal fun SidebarViewSwitch(view: DesktopSidebarView, onView: (DesktopSidebarView) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        DesktopSidebarView.entries.forEach { option ->
+            val picked = option == view
+            Text(
+                text = if (option == DesktopSidebarView.PAGES) "Pages" else "Contents",
+                color = if (picked) DesktopTheme.accent else DesktopTheme.inkSecondary,
+                style = DesktopTheme.eyebrow,
+                modifier = Modifier
+                    .weight(1f)
+                    .hoverFill(RoundedCornerShape(8.dp), active = picked)
+                    .then(
+                        if (picked) Modifier.background(DesktopTheme.activeSlot, RoundedCornerShape(8.dp))
+                        else Modifier,
+                    )
+                    .clickable(role = Role.Tab) { onView(option) }
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The document's **Contents** as the sidebar's own view: its header and **Add bookmark**, a compact filter, and
+ * the outline using the height the sidebar has left — no 260 dp cap, and no second panel over the page the
+ * reader is annotating.
  *
- * The rows are read **only when the section is opened** — a thousand bookmarks cost nothing until someone
- * asks for them, and a document with no outline (or no PDF at all) shows no section rather than an empty
- * one. Each row is indented by its outline depth and prints the page it leads to; an entry that names no
- * page is dimmed and cannot be clicked, exactly as `docs/pdf.md` says for the tablet.
+ * A document with no bookmarks still shows the view, because this is also where a bookmark is made: the empty
+ * state says so and the header's command stays reachable. Each row prints the page it leads to; an entry that
+ * names no page is dimmed and cannot be clicked, exactly as `docs/pdf.md` says for the tablet.
  *
  * A long book gets the same two controls the tablet's card has, from the same rules (`PdfOutlineView`): a
  * chapter's chevron closes its branch, and the filter finds a section by name while keeping the chapters
@@ -76,66 +115,52 @@ import com.mobixournal.render.PdfOutlineView
  * document byte-identical.
  */
 @Composable
-internal fun PdfContentsSection(
+internal fun ContentsPanel(
     tab: DesktopTab,
     onSelectPage: (Int) -> Unit,
-    onAdd: (String) -> OutlineEdits.Result,
-    onRename: (String, String) -> OutlineEdits.Result,
-    onDelete: (String) -> OutlineEdits.Result,
+    contentsEdits: ContentsEdits,
+    modifier: Modifier = Modifier,
 ) {
-    // Read only when opened: the walk over the page list is what this section must not pay for by merely
-    // existing (`docs/desktop-workstation.md`).
-    var open by remember(tab) { mutableStateOf(false) }
     var query by remember(tab) { mutableStateOf("") }
     var collapsed by remember(tab) { mutableStateOf(emptySet<Int>()) }
-    val rows = if (open) {
-        remember(tab, tab.pdfIndex, tab.document.edits, collapsed, query) {
-            contentsRowsOf(tab, collapsed, query)
-        }
-    } else {
-        emptyList()
+    val rows = remember(tab, tab.pdfIndex, tab.document.edits, collapsed, query) {
+        contentsRowsOf(tab, collapsed, query)
     }
-    // One Contents edit at a time: naming a row for the page in view, retitling one, or asking about a
-    // removal. A document with no index still shows the section, because this is also where a bookmark is
-    // added and an ordinary sheet deserves an index too.
+    // One Contents edit at a time: naming a row for the page in view, retitling one, or asking about a removal.
     val editing = remember(tab) { ContentsEditHost() }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .hoverFill(RoundedCornerShape(8.dp))
-                .clickable { open = !open }
-                .padding(vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Canvas(Modifier.size(14.dp)) {
-                drawChromeGlyph(
-                    if (open) ChromeGlyph.CHEVRON_DOWN else ChromeGlyph.CHEVRON_UP,
-                    DesktopTheme.inkSecondary,
-                )
-            }
-            Spacer(Modifier.width(6.dp))
-            Text("Contents", color = DesktopTheme.inkSecondary, style = DesktopTheme.eyebrow)
+    Column(modifier.padding(horizontal = 10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Contents",
+                color = DesktopTheme.inkSecondary,
+                style = DesktopTheme.eyebrow,
+                modifier = Modifier.weight(1f),
+            )
+            ContentsHeaderAction("Add bookmark") { editing.adding() }
         }
-        if (!open) return@Column
-        Spacer(Modifier.height(6.dp))
-        if (editing.pane(onAdd, onRename, onDelete)) return@Column
+        if (editing.pane(
+                onAdd = { title -> contentsEdits.add(title) },
+                onRename = { id, title -> contentsEdits.rename(id, title) },
+                onDelete = { id -> contentsEdits.remove(id) },
+            )
+        ) return@Column
         ContentsFilterField(query = query, onQuery = { query = it })
         Spacer(Modifier.height(4.dp))
         if (rows.isEmpty()) {
             Text(
-                text = if (query.isBlank()) "No contents" else "No contents match \"${query.trim()}\"",
+                text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
                 color = DesktopTheme.inkMuted,
                 style = DesktopTheme.label,
             )
             return@Column
         }
         // The row's own width, not the window's: the sidebar is a column the reader can narrow, and the
-        // indentation gives way to the title rather than the other way round.
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
+        // indentation gives way to the title rather than the other way round. The list takes every dp the
+        // sidebar has left, so a thousand bookmarks are read at the height of the window, not a 260 dp box.
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val widthDp = maxWidth.value
             val widest = largestPageNumber(rows)
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
+            LazyColumn(Modifier.fillMaxSize()) {
                 items(rows, key = { it.row }) { row ->
                     OutlineRowView(
                         row = row,
@@ -152,6 +177,20 @@ internal fun PdfContentsSection(
             }
         }
     }
+}
+
+/** The Contents header's own command: a word on a full-height slot, so the action is reachable by thumb and pen. */
+@Composable
+private fun ContentsHeaderAction(label: String, onClick: () -> Unit) {
+    Text(
+        label,
+        color = DesktopTheme.inkSecondary,
+        style = DesktopTheme.label,
+        modifier = Modifier
+            .hoverFill(RoundedCornerShape(8.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 12.dp),
+    )
 }
 
 /**
@@ -396,19 +435,8 @@ private fun ContentsEditPane(
     onDelete: (String) -> OutlineEdits.Result,
     onCancel: () -> Unit,
 ): Boolean = when (edit) {
-    null -> {
-        Text(
-            "Add bookmark",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-            modifier = Modifier
-                .hoverFill(RoundedCornerShape(6.dp))
-                .clickable(role = Role.Button, onClick = onStartAdd)
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-        )
-        Spacer(Modifier.height(4.dp))
-        false
-    }
+    // Add is the panel's own header command, not a row of this pane: an idle pane draws nothing.
+    null -> false
     is ContentsEditState.Deleting -> {
         ContentsDeleteQuestion(
             row = edit.row,
@@ -436,6 +464,13 @@ internal class ContentsEditHost {
     private var edit by mutableStateOf<ContentsEditState?>(null)
     private var title by mutableStateOf("")
     private var error by mutableStateOf<String?>(null)
+
+    /** Naming a new row for the page in view. */
+    fun adding() {
+        title = ""
+        error = null
+        edit = ContentsEditState.Naming(null)
+    }
 
     /** Retitling [row]: the field opens on the title it already has. */
     fun renaming(row: OutlineRow) {

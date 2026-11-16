@@ -73,6 +73,13 @@ class DesktopTab(
     var page: Int by mutableStateOf(page)
     var viewport: Viewport by mutableStateOf(viewport)
     var fit: FitMode by mutableStateOf(fit)
+
+    /**
+     * Which view this tab's navigation sidebar shows — page thumbnails or the document's Contents. View
+     * state, like a selection: switching tabs and coming back finds the view where it was left.
+     */
+    var contentsView: DesktopSidebarView by mutableStateOf(DesktopSidebarView.PAGES)
+
     var viewWidth: Float by mutableStateOf(0f)
     var viewHeight: Float by mutableStateOf(0f)
 

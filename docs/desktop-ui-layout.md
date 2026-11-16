@@ -36,10 +36,13 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   [desktop-workstation.md](desktop-workstation.md)). Both doors are the header's own 36 dp pill, each in a
   slot of that size, with **no seam between them**: the divider that used to stand there made two shrunken
   buttons out of one object. The tool strip ends with its last tool.
-- **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
-  per layer that hides it without writing to the document; it opens itself only when the document has
-  **more than one page**. A Contents row the notebook owns wears a **⋯** glyph that opens the same neutral
-  Rename/Delete menu as the tablet; the PDF's own rows leave that gutter empty.
+- **Collapsible navigation sidebar (`Ctrl+B`)**: one sidebar, two views chosen by a persistent **Pages /
+  Contents** switch that each tab remembers. **Pages** holds the thumbnails, the current page's layers (with an
+  eye per layer that hides it without writing to the document) and the search results; it opens itself only
+  when the document has **more than one page**. **Contents** is the document's index at the sidebar's full
+  height — Add bookmark, a filter and the outline — not a folded section under the thumbnails, and a row the
+  notebook owns wears a **⋯** glyph with the tablet's neutral Rename/Delete menu (the PDF's own rows leave
+  that gutter empty).
 - **The sheet alone on the desk**: one page at a time, opened at **100 % — the page's width filling the
   window**, the scale the tablet opens a page at (`FitOnOpen.DEFAULT` is fit width), with the fit mode named
   in the status bar.

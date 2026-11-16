@@ -190,16 +190,9 @@ only one side has is kept, a shared one keeps the local title and place with chi
 duplicate mints a page id, a delete keeps the row untargeted (`OutlinePageOps`), and the rows themselves are edited by
 `OutlineEdits` — a title is required, a deleted chapter promotes its children, a refusal records no step.
 
-A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): its width is budgeted whole — a 40 dp
-branch gutter, a bounded indent, the title, a page column reserved from the widest number in the list, and one 40 dp
-action gutter — so every number sits on one edge and on the title's first baseline, and the indent gives way first (a
-narrow sidebar hands the title everything its controls leave, and a roomy one keeps the title's minimum);
-the heading face separates a chapter, a two-line ellipsis keeps a long name readable with the whole of it a long press
-(tablet) or a hover away (window), and a row announces its title and page; `ContentsRowLayoutTest` and the window's
-`DesktopPdfContentsRowTest` hold it. A row the notebook owns does not
-act on a tap of its own controls: its **⋯** opens a neutral menu whose Rename and Delete are the only doors to an edit,
-and Delete adds nothing but a question above the list (the rows stay behind it), while a source-PDF row keeps the same
-action gutter empty because the file gives it no command this app may run.
+A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): its width is budgeted whole — a 40 dp branch gutter, a bounded indent, the title, a page column reserved from the widest number in the list and one 40 dp action gutter — so every number sits on one edge and on the title's first baseline while the indent gives way first (a narrow sidebar hands the title everything its controls leave, a roomy one keeps the title's minimum); the heading face separates a chapter, a two-line ellipsis keeps a long name readable with the whole of it a long press (tablet) or a hover away (window), and a row announces its title and page (`ContentsRowLayoutTest`, `DesktopPdfContentsRowTest`).
+
+A row the notebook owns opens its **⋯** menu: Rename and Delete are the only doors to an edit, Delete adds only a question above the list (whose rows stay behind it), and a source-PDF row leaves that gutter empty because the file gives it no command this app may run.
 
 ## Joined PDFs: lifetime, publishing and refusing a blank sheet
 

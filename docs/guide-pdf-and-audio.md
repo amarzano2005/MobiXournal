@@ -175,7 +175,8 @@ one pixel: they get taller.
 
 **A long book folds, and a word finds it.** Each chapter with sections under it wears a chevron: close it and
 its sections leave the list, open it and they come back — one chapter at a time, even when two of them share
-a title. The **Filter** box finds a section by name; the chapters above the hit stay in the list as the path
+a title. In the window the Contents are a view of their own: the **Pages / Contents** switch at the top of
+the sidebar, and the index gets the sidebar's whole height instead of a folded section under the thumbnails. The **Filter** box finds a section by name; the chapters above the hit stay in the list as the path
 to it, quieter than the hit itself, and the row naming the page you are reading wears the accent. Clearing
 the box puts the tree back exactly as you left it: filtering never folds or unfolds anything on its own.
 

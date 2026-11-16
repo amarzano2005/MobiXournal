@@ -169,12 +169,17 @@ fun PageSidebar(
             }
             .padding(vertical = 12.dp),
     ) {
-        Text(
-            text = "Pages",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.eyebrow,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
-        )
+        // Pages or Contents: one persistent switch, and the view it names fills the sidebar. The choice lives
+        // on the tab, so two tabs can read two different views and neither loses its own.
+        SidebarViewSwitch(view = tab.contentsView, onView = { tab.contentsView = it })
+        when (tab.contentsView) {
+            DesktopSidebarView.CONTENTS -> ContentsPanel(
+                tab = tab,
+                onSelectPage = onSelectPage,
+                contentsEdits = contentsEdits,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+            DesktopSidebarView.PAGES -> {
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -213,8 +218,9 @@ fun PageSidebar(
             onCutPages = onCutPages,
             onPastePages = onPastePages,
             onSearchHit = onSearchHit,
-            contentsEdits = contentsEdits,
         )
+            }
+        }
     }
 }
 
@@ -528,7 +534,6 @@ private fun SidebarSections(
     onCutPages: () -> Unit,
     onPastePages: () -> Unit,
     onSearchHit: (Int) -> Unit,
-    contentsEdits: ContentsEdits,
 ) {
     Spacer(Modifier.height(6.dp))
     if (selection.isEmpty) {
@@ -546,17 +551,9 @@ private fun SidebarSections(
             onPaste = onPastePages,
         )
     }
-    // The search's own list, above the PDF's Contents: while a query is up, the matches are what the reader
-    // is looking for, and the outline is still one heading below.
+    // The search's own list: while a query is up, the matches are what the reader is looking for. The
+    // Contents are their own view now ([ContentsPanel]), not a section under these three.
     SearchResultsSection(tab, onSearchHit)
-    // The PDF's own Contents, under the layers: navigation only, and only for a PDF that has one.
-    PdfContentsSection(
-        tab = tab,
-        onSelectPage = onSelectPage,
-        onAdd = { title -> contentsEdits.add(title) },
-        onRename = { id, title -> contentsEdits.rename(id, title) },
-        onDelete = { id -> contentsEdits.remove(id) },
-    )
 }
 
 /**
