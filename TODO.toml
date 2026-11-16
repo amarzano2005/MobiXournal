@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-outline-document-roundtrip"
-title = "Keep the outline through save, merge and page operations"
-description = "Make the tree behave like the page list everywhere a document is rewritten. Thread Document.outline through format/mobix/MobixDocument.kt (of, openPaged, save), MobixIncrementalSaver so an incremental save neither drops it nor rewrites it needlessly, and MobixMergeEngine: two sides merge by node id, a node only one side has is kept (a merge never deletes, exactly as it never deletes a page), a node both sides have keeps the local title and position with the union of its children, and the result is written back with stable ids. Then the page operations in mobix-core/src/main/java/com/mobixournal/render/PageOps.kt: a move keeps every Page target because page ids do not move with them, a delete leaves the node in place with no destination (the page op must not silently rewrite the reader's tree), and a duplicate mints a new page id so the copy inherits no bookmark. Tests: MobixOutlineRoundtripTest (incremental save, full save, reopen), MobixOutlineMergeTest over two branches with added, renamed, deleted and moved nodes, and OutlinePageOpsTest for move/delete/duplicate; each states in its own words what a deletion means after a merge. Document the outcome in docs/pdf.md, replacing the Planned paragraph with what the code does."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 184
-created = 2026-11-14
-tags = ["pdf", "bookmarks"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "pdf-outline-xopp-bridge"
 title = "Carry the outline through the .xopp bridge block"
 description = "A .xopp has no bookmark tree, so the tree travels in the mobix:meta comment beside the living entities. Extend format/mobix/MobixMeta.kt with an optional outline key (same version 1, additive: a block without it decodes as it does today) and put the encode/verify half in a new format/mobix/MobixMetaOutline.kt: the export writes each node as id, title, children plus a target written in the checkable form - sheet for a page that shows a PDF sheet, index together with sha256 of that page's elements (MobixMetaDigest, the digest the entity claims already use) for a plain page - and the import honours a target only where the document in front of us still proves it: a sheet while some page still shows that sheet, an index while the page at that position still hashes to the recorded value. A target that fails arrives absent, with its title and children intact, so the row is shown un-tappable and nothing lands on a page that merely happens to be nearby; a block this build cannot read revives nothing, as today. Wire the export (XoppSynthesis call site) and the import (MobixMetaRevival, which returns the tree alongside the revived pages). Tests: MobixMetaOutlineTest for the export shape, a reordered page list, an edited page, an index past the end and a block with no outline; a round trip .mobix to .xopp to .mobix that keeps every id and target; and a fixture standing in for a file desktop Xournal++ resaved, whose block is gone and whose import therefore has no notebook outline. Update docs/xopp-bridge.md: the outline section stops saying planned and lists what the import refuses."
