@@ -29,11 +29,44 @@ class ContentsRowLayoutTest {
     @Test
     fun `a deep outline stops indenting before the title is squeezed`() {
         val column = ContentsRowLayout.pageColumnDp(9999, sidebar)
-        val cap = (sidebar - column - ContentsRowLayout.MIN_TITLE_DP).coerceAtLeast(0f)
-        val deep = ContentsRowLayout.indentDp(8, sidebar, column)
-        assertEquals("the eight-deep row takes exactly the room it has", cap, deep, 0.01f)
-        assertEquals("and its neighbour past the cap is no deeper", deep, ContentsRowLayout.indentDp(12, sidebar, column), 0.01f)
-        assertTrue("the title keeps its minimum", sidebar - deep - column >= ContentsRowLayout.MIN_TITLE_DP - 0.01f)
+        val cap = (
+            sidebar - ContentsRowLayout.BRANCH_DP - ContentsRowLayout.ACTION_DP - column -
+                ContentsRowLayout.MIN_TITLE_DP
+            ).coerceAtLeast(0f)
+        val deep = ContentsRowLayout.indentInRow(8, sidebar, column)
+        assertEquals("the eight-deep row takes exactly the room its controls leave", cap, deep, 0.01f)
+        assertEquals("and its neighbour past the cap is no deeper", deep, ContentsRowLayout.indentInRow(12, sidebar, column), 0.01f)
+        // A 200 dp row with two 40 dp gutters and a page column may have less than the title's minimum to
+        // give: the indent then takes nothing, and the title gets every dp the controls leave.
+        val left = sidebar - ContentsRowLayout.BRANCH_DP - ContentsRowLayout.ACTION_DP - column
+        assertEquals(
+            "what the controls leave is the title's",
+            left,
+            ContentsRowLayout.titleWidthDp(8, sidebar, column),
+            0.01f,
+        )
+        // On a roomy row the same rule keeps the full minimum.
+        val roomyColumn = ContentsRowLayout.pageColumnDp(9999, roomy)
+        assertTrue(
+            "a wide row still leaves the title its minimum",
+            ContentsRowLayout.titleWidthDp(8, roomy, roomyColumn) >= ContentsRowLayout.MIN_TITLE_DP - 0.01f,
+        )
+    }
+
+    @Test
+    fun `a row's budget is the sum of its parts and never spends more than it has`() {
+        val column = ContentsRowLayout.pageColumnDp(1234, sidebar)
+        val indent = ContentsRowLayout.indentInRow(0, sidebar, column)
+        val title = ContentsRowLayout.titleWidthDp(0, sidebar, column)
+        assertEquals(
+            "branch, action, column, indent and title add up to the row",
+            sidebar,
+            ContentsRowLayout.BRANCH_DP + ContentsRowLayout.ACTION_DP + column + indent + title,
+            0.01f,
+        )
+        // A row too narrow for its controls gives the title nothing rather than a negative width.
+        assertEquals(0f, ContentsRowLayout.titleWidthDp(4, 60f, ContentsRowLayout.pageColumnDp(1234, 60f)), 0.01f)
+        assertEquals(0f, ContentsRowLayout.indentInRow(4, 60f, ContentsRowLayout.pageColumnDp(1234, 60f)), 0.01f)
     }
 
     @Test

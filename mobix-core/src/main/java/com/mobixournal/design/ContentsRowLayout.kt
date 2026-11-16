@@ -48,6 +48,9 @@ object ContentsRowLayout {
     /** The page column never takes more than this share of a narrow row: the title matters more. */
     const val MAX_COLUMN_SHARE: Float = 0.3f
 
+    /** How many lines a row's title may take before it ends in an ellipsis (the whole title is inspectable). */
+    const val TITLE_MAX_LINES: Int = 2
+
     /** A chapter heading (depth 0) rather than a section under it — the one typographic step. */
     fun isHeading(depth: Int): Boolean = depth <= 0
 

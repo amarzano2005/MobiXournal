@@ -1,5 +1,7 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -73,12 +75,13 @@ internal fun PdfContentsButton(
     // The door is always there, even with no index yet: the card is also where a bookmark is added, and a
     // document with an ordinary page still has a Contents worth opening.
     var open by remember { mutableStateOf(false) }
-    IconButton(onClick = { open = true }, modifier = Modifier.size(34.dp)) {
+    // A full contract slot, not a 34 dp dot a thumb has to find (docs/interface-contract.md).
+    IconButton(onClick = { open = true }, modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
         Icon(
             Icons.AutoMirrored.Outlined.Toc,
             contentDescription = "Contents",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
         )
     }
     DialogPresence(open) {
@@ -255,6 +258,7 @@ private fun largestPageNumber(rows: List<OutlineRow>): Int =
  * (a chapter's row still jumps to the chapter), and an ancestor kept only for the filter's context is drawn
  * dimmer than the hit, so a search shows its one answer instead of shouting the path to it.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ContentsRow(
     row: OutlineRow,
@@ -277,6 +281,10 @@ private fun ContentsRow(
         row.hasDestination -> MaterialTheme.colorScheme.onSurface
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val titleStyle = if (heading) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium
+    // A title that ends in an ellipsis must still be readable: a long press opens the whole name. The row's
+    // own tap stays the page jump, so inspecting a title never navigates.
+    var fullTitle by remember(row.id) { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -286,8 +294,10 @@ private fun ContentsRow(
             .semantics(mergeDescendants = true) {
                 contentDescription = ContentsRowLayout.announcement(row.title, number)
             }
+            // The indent is what the **whole** row leaves it: the branch gutter, the action gutter, the page
+            // column and the title's minimum are room the hierarchy cannot spend.
             .padding(
-                start = ContentsRowLayout.indentDp(row.depth, rowWidthDp, pageColumnDp).dp,
+                start = ContentsRowLayout.indentInRow(row.depth, rowWidthDp, pageColumnDp).dp,
                 top = 2.dp,
                 bottom = 2.dp,
             ),
@@ -296,23 +306,31 @@ private fun ContentsRow(
         verticalAlignment = Alignment.Top,
     ) {
         ContentsChevron(branched = row.branch, expanded = row.expanded, title = row.title, onToggle = onToggle)
-        Text(
-            text = row.title,
-            style = if (heading) {
-                MaterialTheme.typography.titleSmall
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            // Inter ships 400, 500 and 700 (`TypeContractGuardTest`): the heading step is the larger face
-            // plus the one weight the theme owns, not a 600 the family answers with 700.
-            fontWeight = if (heading) FontWeight.Medium else FontWeight.Normal,
-            color = if (row.current) MaterialTheme.colorScheme.primary else ink,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        Box(Modifier.weight(1f)) {
+            Text(
+                text = row.title,
+                style = titleStyle,
+                // Inter ships 400, 500 and 700 (`TypeContractGuardTest`): the heading step is the larger face
+                // plus the one weight the theme owns, not a 600 the family answers with 700.
+                fontWeight = if (heading) FontWeight.Medium else FontWeight.Normal,
+                color = if (row.current) MaterialTheme.colorScheme.primary else ink,
+                maxLines = ContentsRowLayout.TITLE_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(onClick = onClick, enabled = row.hasDestination, onLongClick = { fullTitle = true }),
+            )
+            DropdownMenu(expanded = fullTitle, onDismissRequest = { fullTitle = false }) {
+                Text(
+                    row.title.ifBlank { "Bookmark" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+            }
+        }
         // The column is kept on every row, empty where a row leads nowhere, so the titles end on one line
-        // and a four-digit page does not narrow its neighbours.
+        // and a four-digit page does not narrow its neighbours. Its line height is the title's own, so the
+        // number sits on the title's **first** baseline rather than floating between two lines.
         Box(
             modifier = Modifier.width(pageColumnDp.dp),
             contentAlignment = Alignment.TopEnd,
@@ -320,7 +338,10 @@ private fun ContentsRow(
             if (number != null) {
                 Text(
                     text = "$number",
-                    style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFeatureSettings = "tnum",
+                        lineHeight = titleStyle.lineHeight,
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End,
                 )
@@ -394,13 +415,13 @@ private fun ContentsRowMenu(
 @Composable
 private fun ContentsChevron(branched: Boolean, expanded: Boolean, title: String, onToggle: () -> Unit) {
     if (!branched) {
-        Spacer(Modifier.width(CHEVRON_DP))
+        Spacer(Modifier.width(ContentsRowLayout.BRANCH_DP.dp))
         return
     }
     IconButton(
         onClick = onToggle,
         modifier = Modifier
-            .size(CHEVRON_DP)
+            .size(ContentsRowLayout.BRANCH_DP.dp)
             .semantics {
                 contentDescription = if (expanded) "Collapse $title" else "Expand $title"
             },
@@ -409,10 +430,7 @@ private fun ContentsChevron(branched: Boolean, expanded: Boolean, title: String,
             imageVector = (if (expanded) ChromeGlyph.CHEVRON_DOWN else ChromeGlyph.CHEVRON_UP).imageVector(),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
-
-/** The width a chevron (or its empty gutter) takes on every row. */
-private val CHEVRON_DP = 28.dp

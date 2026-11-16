@@ -10,6 +10,9 @@ import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.TooltipArea
+import androidx.compose.foundation.TooltipPlacement
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +50,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -201,6 +206,7 @@ private fun largestPageNumber(rows: List<OutlineRow>): Int = (rows.maxOfOrNull {
  * gutter empty so the titles share one left edge, and an ancestor shown only for a filter's context is dimmed
  * so the match reads as the answer.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun OutlineRowView(
     row: OutlineRow,
@@ -233,8 +239,10 @@ internal fun OutlineRowView(
             .semantics(mergeDescendants = true) {
                 contentDescription = ContentsRowLayout.announcement(row.title, number)
             }
+            // The indent is what the **whole** row leaves it: the branch gutter, the action gutter, the page
+            // column and the title's minimum are room the hierarchy cannot spend.
             .padding(
-                start = ContentsRowLayout.indentDp(row.depth, rowWidthDp, pageColumnDp).dp,
+                start = ContentsRowLayout.indentInRow(row.depth, rowWidthDp, pageColumnDp).dp,
                 top = 2.dp,
                 bottom = 2.dp,
                 end = 4.dp,
@@ -244,6 +252,20 @@ internal fun OutlineRowView(
         verticalAlignment = Alignment.Top,
     ) {
         ContentsChevron(row = row, onToggle = onToggle)
+        TooltipArea(
+            tooltip = {
+                Box(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                    Text(
+                        row.title.ifBlank { "Bookmark" },
+                        color = DesktopTheme.ink,
+                        style = DesktopTheme.label,
+                        modifier = Modifier.widthIn(max = 260.dp),
+                    )
+                }
+            },
+            delayMillis = 500,
+            tooltipPlacement = TooltipPlacement.CursorPoint(offset = DpOffset(0.dp, 18.dp)),
+        ) {
         Text(
             text = row.title,
             // An entry with no page is shown but not jumpable: dimmed, as the tablet draws it; the row the
@@ -254,14 +276,20 @@ internal fun OutlineRowView(
                 else -> DesktopTheme.ink
             },
             style = if (heading) DesktopTheme.tab else DesktopTheme.label,
-            maxLines = 2,
+            maxLines = ContentsRowLayout.TITLE_MAX_LINES,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        }
         // Reserved on every row, empty where there is no page, so the titles end on one line.
         Box(Modifier.width(pageColumnDp.dp), contentAlignment = Alignment.TopEnd) {
             if (number != null) {
-                Text(text = "$number", color = DesktopTheme.inkMuted, style = DesktopTheme.numeric)
+                // The number's line height is the title's, so it sits on the title's first baseline.
+                Text(
+                    text = "$number",
+                    color = DesktopTheme.inkMuted,
+                    style = DesktopTheme.numeric.copy(lineHeight = if (heading) DesktopTheme.tab.lineHeight else DesktopTheme.label.lineHeight),
+                )
             }
         }
         // One action gutter on every row — empty on a row the file owns, so the titles still end on one
@@ -527,12 +555,12 @@ private fun ContentsDeleteQuestion(
 @Composable
 private fun ContentsChevron(row: OutlineRow, onToggle: (() -> Unit)?) {
     if (!row.branch || onToggle == null) {
-        Spacer(Modifier.width(CHEVRON_DP))
+        Spacer(Modifier.width(ContentsRowLayout.BRANCH_DP.dp))
         return
     }
     Box(
         Modifier
-            .size(CHEVRON_DP)
+            .size(ContentsRowLayout.BRANCH_DP.dp)
             .hoverFill(RoundedCornerShape(6.dp))
             .clickable(role = Role.Button, onClick = onToggle)
             .semantics {
@@ -549,5 +577,3 @@ private fun ContentsChevron(row: OutlineRow, onToggle: (() -> Unit)?) {
     }
 }
 
-/** The width a chevron (or its empty gutter) takes on every row. */
-private val CHEVRON_DP = 20.dp
