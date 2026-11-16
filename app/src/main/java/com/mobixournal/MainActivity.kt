@@ -595,8 +595,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Run [work] off the UI thread behind a progress note — a **null** label is the quiet transfer, which auto
-     * save uses so it puts no note above the Save control — then hand its result to [done] back on the UI thread.
+     * Run [work] off the UI thread behind a progress note — a **null** label is a transfer whose caller draws
+     * its own mark (a save marks itself, `SAVING_MARKER`) — then hand its result to [done] back on the UI thread.
      * Every document transfer goes through here: a remote share can stall for seconds, and doing that inline
      * would freeze (and eventually kill) the app.
      */

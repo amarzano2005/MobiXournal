@@ -13,6 +13,14 @@ import com.mobixournal.panes.EditorPane
 import java.io.File
 
 /**
+ * The internal marker for a write in flight. It is **not** copy: nothing draws it, because the Save
+ * control's own arc already says the document is being written (`SaveActivity`, `ui/SaveControl.kt`). It
+ * stands in [MainActivity.busy] only so the guards that read "is something being written?" keep working —
+ * the back press stays refused for the length of a save, and auto save does not start a second write.
+ */
+internal const val SAVING_MARKER = "Saving"
+
+/**
  * Handle a URI returned from the system document picker. If the active tab is not yet hydrated, defer
  * saving until it has finished loading onto the canvas.
  */
@@ -52,8 +60,9 @@ private fun MainActivity.captureSave(format: SaveFormat = saveFormat, name: Stri
 /**
  * Write the document to [uri].
  *
- * [quiet] is auto save's door: same snapshot, same encoder, same worker — only without the note above the Save
- * control, because a save the reader did not ask for must not announce itself (`docs/ui-modernization.md`).
+ * [quiet] is auto save's door: same snapshot, same encoder, same worker — the one difference is that a
+ * refusal a reader-pressed save can toast is not said for a write nobody asked for
+ * (`docs/ui-modernization.md`).
  */
 internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = captureSave(), quiet: Boolean = false) {
     request ?: return
@@ -80,9 +89,10 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     // how it knows whether a stroke landed after the snapshot.
     val revision = view?.edits ?: -1
     // The top bar's Save control turns while this runs, whether or not it was asked for: the arc is the
-    // control's own state, not the notice above the page (`SaveActivity`, `docs/data-path.md`).
+    // only thing a save draws, and [busy] carries a marker for the guards rather than text for the page
+    // (`SaveActivity`, `docs/data-path.md`).
     SaveActivity.begin()
-    inBackground(if (quiet) null else "Saving ${displayName(uri)}.", {
+    inBackground(SAVING_MARKER, {
         // The take being recorded right now is not bundleable — its file is still growing under the
         // content hash the entry would be named by ([AudioSession.bundleableRecording]).
         val encoded = io.encode(document, pdf, request.format, uri, images, audio::bundleableRecording)
@@ -99,11 +109,6 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
             if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
             if (!verified) {
                 toast("The file was written but could not be read back: the save may be incomplete.")
-            }
-            // Said plainly rather than silently: the take that is still being recorded is not in this
-            // file, and the next save carries it.
-            if (request.format == SaveFormat.MOBIX && audio.isRecording) {
-                toast("The recording in progress is not in this file yet — the next save will add it.")
             }
         }
     }

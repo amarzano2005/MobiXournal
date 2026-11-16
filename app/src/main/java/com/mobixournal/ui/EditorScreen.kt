@@ -460,9 +460,9 @@ fun EditorScreen(
             )
         }
 
-        // A document moving to or from storage may need a slow share and swallows taps until it lands; a
-        // **save** writes a snapshot the canvas is no longer part of, so it says so in the corner instead.
-        if (busy != null) if (busy.startsWith("Saving")) SavingNotice(busy) else TransferOverlay(busy)
+        // A document moving to or from storage swallows taps until it lands; a **save** is already said by
+        // the Save control's own arc (`SaveActivity`), so nothing is drawn over the sheet for it.
+        if (busy != null && !busy.startsWith("Saving")) TransferOverlay(busy)
 
         EditorOverlays(
             ui = ui,

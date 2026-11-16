@@ -219,16 +219,16 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   still-composed editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector —
   overlaid by a `DialogPresence(ui.showSettings)` gate, so the departure is drawn too instead of the
   screen vanishing on the frame the flag cleared (`SettingsPresenceTest` holds the gate and the spring).
-- **A save is said in the corner, not over the page**: the transfer overlay belongs to a document moving to
+- **A save says nothing over the page**: the transfer overlay belongs to a document moving to
   or from storage, where the canvas must not be edited mid-transfer. A save encodes an immutable snapshot the
-  canvas is no longer part of, so the tablet puts one line in the accent at the top-right (`SavingNotice`)
-  and leaves the sheet in view — the same behaviour the window has worn since it stopped covering itself.
+  canvas is no longer part of, so it draws nothing on the sheet: the Save control's own arc is the whole
+  readout (`SaveActivity`) and the page stays in view — the same behaviour the window has worn since it stopped covering itself.
   The file's own truth follows it: a tab whose file does not hold its newest strokes wears the strip's accent
   dot from its first stroke (`OpenTab.unsavedEdits`, the window's `DesktopTab.unsaved`), and a save leaves that dot on when a
   stroke landed while the bytes were going out. It also decides whether Save can be pressed at all: the
   control greys out when the file already holds the page, and stays live for a document that has no file yet,
-  because pressing it there asks where the notebook lives. An **automatic** save wears no notice — it is the
-  one write the reader did not ask for, so it does not put a line above the control.
+  because pressing it there asks where the notebook lives. An **automatic** save looks
+  exactly the same: it is the one write the reader did not ask for, and the arc is still all that says so.
 - **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own
   monoline icon in a tinted disc at the head of its row (`SectionRow`), and the same glyph follows the row
   into the search results. The glyph is part of the enum, so a new section cannot be added without one.

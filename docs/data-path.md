@@ -232,8 +232,8 @@ tries again.
 While a write is in flight the **Save control itself says so**: both shells replace the glyph with a quarter
 arc turning once per `SavingSpin.TURN_MS` — one specification in `mobix-core`, one drawing adapter per shell —
 inside the same box and in the colour the glyph wore, so the band's right-hand group does not move. It is the
-control's own state rather than a notice: a save nobody asked for turns the same arc, while the notice laid
-beside the page stays for the transfer that interrupts a hand.
+control's own state and the only thing a save draws — nothing is laid beside the page for it, while the
+overlay stays for the transfer that interrupts a hand.
 
 ## Shared immutable edit roots
 

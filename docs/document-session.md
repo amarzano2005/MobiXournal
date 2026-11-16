@@ -17,7 +17,8 @@ from a remote `DocumentsProvider` — the only difference is **latency**. So eve
 is staged through a local file by `io/UriStaging.kt` — driven by `io/DocumentIo.kt`, which owns the
 whole document-I/O policy (staging, both background-PDF stores, and the sniff/read, encode and merge
 steps) so the activity is left with intent plumbing — and run off the UI thread by
-`MainActivity.inBackground`, which shows the editor's blocking "Opening…/Saving…" overlay:
+`MainActivity.inBackground`, which runs behind the editor's overlay — the blocking one for a read or a
+move, and nothing at all for a save, which the Save control's turning arc already announces:
 
 - **Read** — the bytes come down once into a staging file; sniff/parse/rasterise then work against
   a local file that can be re-read at will. A failed fetch closes the half-built tab and reports it.

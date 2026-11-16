@@ -78,7 +78,7 @@ internal fun MainActivity.startAutoSaveLoop() {
             quietMs = 0
             writtenEdits = edits
             // The same path plain Save takes with a file already chosen — never the picker: the app may not
-            // name a notebook — and **quiet**, so no note appears above the Save control.
+            // name a notebook — and **quiet**, so a refusal is not toasted for a write nobody asked for.
             saveDocument(target, quiet = true)
         }
     }

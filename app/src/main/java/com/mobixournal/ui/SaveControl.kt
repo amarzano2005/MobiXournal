@@ -37,9 +37,9 @@ import com.mobixournal.io.SaveActivity
  * document's answer (a read-only tab never offers a save, a clean one has nothing to write); the mark is the
  * save's own.
  *
- * A save the reader did **not** ask for — auto save — turns the same arc. It still announces nothing on the
- * page: the notice over the canvas is for a save that interrupts a hand, while the control the person keeps
- * looking at is exactly where "is it saved?" is asked (`docs/data-path.md`).
+ * A save the reader did **not** ask for — auto save — turns the same arc. A save says nothing else at all: no
+ * line is laid over the canvas for it, asked for or not, because the control the person keeps looking at is
+ * exactly where "is it saved?" is asked (`docs/data-path.md`).
  */
 @Composable
 internal fun SaveControl(enabled: Boolean, onSave: () -> Unit) {
