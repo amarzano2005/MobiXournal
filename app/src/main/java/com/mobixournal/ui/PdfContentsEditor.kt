@@ -146,6 +146,16 @@ internal class ContentsEditHost {
     }
 }
 
+/**
+ * What the card's own dismiss means — Android's **Back**, a tap outside the card. An edit in progress goes
+ * first: a name being typed or a delete being asked is the most transient thing on screen, and cancelling it
+ * leaves the list exactly as it was. Only a card with nothing in progress closes (`EditorBackHandler`'s own
+ * order, on the card's own door).
+ */
+internal fun ContentsEditHost.dismissOrCancel(onDismiss: () -> Unit): () -> Unit = {
+    if (draft == null && deleting == null) onDismiss() else cancel()
+}
+
 /** The sentence a refusal is shown as — the reason in the reader's words, never a class name. */
 internal fun refusalCopy(reason: OutlineEdits.Refusal): String = when (reason) {
     OutlineEdits.Refusal.EMPTY_TITLE -> "A bookmark needs a title."

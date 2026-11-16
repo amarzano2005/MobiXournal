@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -387,35 +388,7 @@ internal fun OutlineRowView(
                 modifier = Modifier.weight(1f).padding(vertical = 2.dp),
             )
         } else {
-        TooltipArea(
-            tooltip = {
-                Box(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                    Text(
-                        row.title.ifBlank { "Bookmark" },
-                        color = DesktopTheme.ink,
-                        style = DesktopTheme.label,
-                        modifier = Modifier.widthIn(max = 260.dp),
-                    )
-                }
-            },
-            delayMillis = 500,
-            tooltipPlacement = TooltipPlacement.CursorPoint(offset = DpOffset(0.dp, 18.dp)),
-        ) {
-        Text(
-            text = row.title,
-            // An entry with no page is shown but not jumpable: dimmed, as the tablet draws it; the row the
-            // reader stands on wears the accent instead, so "where am I" is one glance.
-            color = when {
-                row.current -> DesktopTheme.accent
-                row.context || target == null -> DesktopTheme.inkMuted
-                else -> DesktopTheme.ink
-            },
-            style = if (heading) DesktopTheme.tab else DesktopTheme.label,
-            maxLines = ContentsRowLayout.TITLE_MAX_LINES,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        }
+            OutlineRowTitle(row = row, heading = heading, target = target)
         // Reserved on every row, empty where there is no page, so the titles end on one line.
         Box(Modifier.width(pageColumnDp.dp), contentAlignment = Alignment.TopEnd) {
             if (number != null) {
@@ -513,6 +486,44 @@ internal fun ContentsRowAction(label: String, title: String, onClick: () -> Unit
             .semantics { contentDescription = "$label ${title.ifBlank { "bookmark" }}" }
             .padding(horizontal = 4.dp, vertical = 2.dp),
     )
+}
+
+/**
+ * A row's title, with the whole name behind a hover: the pointer rests on a title that ended in an ellipsis and
+ * the tooltip reads all of it, without the row's own click being spent on inspecting rather than jumping.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun RowScope.OutlineRowTitle(row: OutlineRow, heading: Boolean, target: Int?) {
+    TooltipArea(
+        tooltip = {
+            Box(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                Text(
+                    row.title.ifBlank { "Bookmark" },
+                    color = DesktopTheme.ink,
+                    style = DesktopTheme.label,
+                    modifier = Modifier.widthIn(max = 260.dp),
+                )
+            }
+        },
+        delayMillis = 500,
+        tooltipPlacement = TooltipPlacement.CursorPoint(offset = DpOffset(0.dp, 18.dp)),
+    ) {
+        Text(
+            text = row.title,
+            // An entry with no page is shown but not jumpable: dimmed, as the tablet draws it; the row the
+            // reader stands on wears the accent instead, so "where am I" is one glance.
+            color = when {
+                row.current -> DesktopTheme.accent
+                row.context || target == null -> DesktopTheme.inkMuted
+                else -> DesktopTheme.ink
+            },
+            style = if (heading) DesktopTheme.tab else DesktopTheme.label,
+            maxLines = ContentsRowLayout.TITLE_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
 }
 
 /** The branch control, or the gutter it would take — an empty one, so titles share a left edge. */

@@ -155,7 +155,8 @@ internal fun PdfContentsDialog(
         session.navigation = session.navigation.scrolledTo(row.id, rows.indexOfFirst { it.id == row.id })
     }
     FloatingDialog(
-        onDismissRequest = onDismiss,
+        // Back is the edit's door before it is the card's: cancelling a name being typed keeps the list open.
+        onDismissRequest = editing.dismissOrCancel(onDismiss),
         title = { Text("Contents") },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         text = {
