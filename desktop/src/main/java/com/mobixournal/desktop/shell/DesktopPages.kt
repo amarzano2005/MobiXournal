@@ -61,6 +61,7 @@ import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.OutlineTree
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.OutlinePageOps
+import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.PageOps
 import com.mobixournal.render.PageSizeStep
 import com.mobixournal.render.PageSizeUnit
@@ -176,6 +177,57 @@ internal class DesktopPages(
      * take the PDF out of the document: the reference moves to the first pdf page that survives
      * ([PdfPageReferences.keep]), and every remaining page still draws the sheet it names.
      */
+    // --- Contents -------------------------------------------------------------------------------
+
+    /**
+     * Add a bookmark on the page in view, as one undo step. The destination is the page's own answer
+     * ([OutlineEdits.targetOf]): the PDF sheet it shows, or the page's id when it is paper.
+     */
+    fun addBookmark(title: String): OutlineEdits.Result {
+        val tab = active() ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+        val at = tab.page
+        val page = tab.document.model.pages.getOrNull(at)
+            ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+        val (identified, target) = OutlineEdits.identifiable(page)
+        target ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NO_TARGET)
+        val result = OutlineEdits.add(tab.document.model.outline, title, target)
+        if (result !is OutlineEdits.Result.Ok || result.tree == tab.document.model.outline) return result
+        // The page's new id and the row that names it are one step: a refusal above wrote neither.
+        val before = tab.document.snapshot()
+        if (identified !== page) {
+            tab.document.replacePages(tab.document.model.pages.toMutableList().also { it[at] = identified })
+        }
+        tab.document.replaceOutline(result.tree)
+        tab.record(before)
+        return result
+    }
+
+    /** Retitle the row [id], keeping its node, destination and children ([OutlineEdits.rename]). */
+    fun renameBookmark(id: String, title: String): OutlineEdits.Result {
+        val tab = active() ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+        return editOutline(tab) { tree -> OutlineEdits.rename(tree, id, title) }
+    }
+
+    /** Remove the row [id]; its children take its place and its page stays ([OutlineEdits.delete]). */
+    fun deleteBookmark(id: String): OutlineEdits.Result {
+        val tab = active() ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+        return editOutline(tab) { tree -> OutlineEdits.delete(tree, id) }
+    }
+
+    /**
+     * One undoable Contents edit: the row set is replaced and the tab records the step before it, so
+     * `Ctrl+Z` takes a bookmark back exactly as it takes a page back. A refusal writes nothing.
+     */
+    private fun editOutline(tab: DesktopTab, edit: (OutlineTree) -> OutlineEdits.Result): OutlineEdits.Result {
+        val result = edit(tab.document.model.outline)
+        if (result is OutlineEdits.Result.Ok && result.tree != tab.document.model.outline) {
+            val before = tab.document.snapshot()
+            tab.document.replaceOutline(result.tree)
+            tab.record(before)
+        }
+        return result
+    }
+
     /**
      * The Contents tree a delete leaves behind: every row that opened one of the deleted pages keeps its
      * place and loses its destination ([OutlinePageOps]), and a rows-only tree is handed back untouched.

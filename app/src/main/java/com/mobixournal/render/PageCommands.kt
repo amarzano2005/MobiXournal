@@ -147,6 +147,41 @@ internal class PageCommands(
         editPages(PageOps.removeAll(doc.pages, indices), OutlinePageOps.afterRemoval(doc.outline, removed))
     }
 
+    // --- Contents -------------------------------------------------------------------------------
+
+    /**
+     * Add a bookmark on the page in view as one undoable edit. What it opens is the page's own answer
+     * ([OutlineEdits.targetOf]): the PDF sheet it shows, or the page's id when it is paper.
+     */
+    fun addBookmark(title: String): OutlineEdits.Result {
+        val doc = document()
+        val at = currentPage()
+        val page = doc.pages.getOrNull(at)
+            ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+        val (identified, target) = OutlineEdits.identifiable(page)
+        target ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NO_TARGET)
+        val pages = if (identified === page) doc.pages else doc.pages.toMutableList().also { it[at] = identified }
+        return editOutline(doc.copy(pages = pages)) { tree -> OutlineEdits.add(tree, title, target) }
+    }
+
+    /** Retitle the row [id], keeping its node, destination and children ([OutlineEdits.rename]). */
+    fun renameBookmark(id: String, title: String): OutlineEdits.Result =
+        editOutline(document()) { tree -> OutlineEdits.rename(tree, id, title) }
+
+    /** Remove the row [id]; its children take its place ([OutlineEdits.delete]). The page stays. */
+    fun deleteBookmark(id: String): OutlineEdits.Result =
+        editOutline(document()) { tree -> OutlineEdits.delete(tree, id) }
+
+    /**
+     * One undoable Contents edit: a refusal writes nothing, and an edit that changed nothing records no
+     * step. The page list is untouched, so nothing keyed by page index has to be reset.
+     */
+    private fun editOutline(doc: Document, edit: (OutlineTree) -> OutlineEdits.Result): OutlineEdits.Result {
+        val result = edit(doc.outline)
+        if (result is OutlineEdits.Result.Ok && result.tree != doc.outline) commit(doc.copy(outline = result.tree))
+        return result
+    }
+
     /**
      * Set the visible page's paper [style] (plain/lined/ruled/graph/dotted/isograph) as one undoable
      * edit. No-op on PDF/pixmap pages, whose background isn't a solid sheet.

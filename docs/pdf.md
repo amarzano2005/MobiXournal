@@ -177,23 +177,23 @@ chrome (`onPdfOutlineChanged`), and the page list lane's foot grows a **Contents
 audio.md)). Where a row goes is resolved once for both shells (`OutlineResolution`); what a target means, and why one
 that finds nothing leaves its row dimmed, is [mobix-data-model.md](mobix-data-model.md#the-outline-tree)'s.
 
-**Reading a PDF's index still writes nothing**: the file is untouched by it, the same reasoning that keeps desktop Xournal++'s
-PDF text selection out of the saved document; the window's section is [desktop-workstation.md](desktop-workstation.md)'s.
+**Reading a PDF's index still writes nothing**: the PDF file itself is untouched by it.
 
-**The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree` nodes:
-every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included, with the page it
-inherited from its first pointing descendant, since resolution inherits nothing at read time — shifted by the base's page count
-on a joined import. A document that already has an outline files the arriving rows under **one** target-less node titled after
-the file; pages and tree are one undoable edit, a failed import writes neither, and opening never re-seeds.
+**The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree`
+nodes: every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included,
+with the page it inherited from its first pointing descendant — shifted by the base's page count on a joined import. A
+document that already has an outline files the arriving rows under **one** target-less node titled after the file; pages
+and tree are one undoable edit, a failed import writes neither, and opening never re-seeds.
 
-**A merge keeps every chapter; a page edit never removes a row.** Branches merge their Contents by node id
-(`MobixOutlineMerge`): a node only one side has is kept, a shared one keeps the local title and position with the union of its
-children; a move changes no target, a duplicate mints a new page id, a delete keeps the row untargeted (`OutlinePageOps`).
+**A merge keeps every chapter; a page edit never removes a row.** Branches merge by node id (`MobixOutlineMerge`): a node
+only one side has is kept, a shared one keeps the local title and place with children unioned; a move changes no target, a
+duplicate mints a page id, a delete keeps the row untargeted (`OutlinePageOps`), and the rows themselves are edited by
+`OutlineEdits` — a title is required, a deleted chapter promotes its children, a refusal records no step.
 
-A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): the indent a level buys is capped by the row's
-own width so the title never drops under its minimum, the page number keeps a column reserved from the widest number in the list
-(even on a row that leads nowhere, so the titles' right edge stays straight), depth 0 is the heading face, and a row announces
-its title and its page; `ContentsRowLayoutTest` and the window's `DesktopPdfContentsRowTest` hold it.
+A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): the indent a level buys is capped by the
+row's own width so the title never drops under its minimum, the page number keeps a column reserved from the widest
+number in the list so no title shifts the numbers, depth 0 is the heading face, and a row announces its title and its
+page; `ContentsRowLayoutTest` and the window's `DesktopPdfContentsRowTest` hold it.
 
 ## Joined PDFs: lifetime, publishing and refusing a blank sheet
 
