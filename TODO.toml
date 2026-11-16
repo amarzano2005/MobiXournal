@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-selected-text-underline"
-title = "Underline selected PDF text as ordinary interoperable ink"
-description = "Add shared pure underline geometry beside MagneticHighlighter.kt in mobix-core/render: turn a selected PDF word range into one ordinary constant-width pen stroke per text line below the selected word boxes, keeping separate lines/columns separate and deriving placement from existing word geometry. Reuse the selection grouping approach without applying the magnetic drag three-line cap. Wire an underlineTextSelection command beside DrawingSurfaceSelection.kt highlightTextSelection and the desktop counterpart beside DesktopPdfTextHighlight. Each complete underline action is one undoable page edit on the active writable layer, uses a documented existing pen colour/width policy, and is unavailable in read-only documents or locked layers. The transient selection itself remains unsaved. Test multiline/reverse selections and rotated/cropped mapping, undo/redo, .mobix and .xopp save/reopen and PDF export using ordinary stroke paths; do not introduce a PDF-only annotation or new format element. Document the implemented action and its appearance policy in docs/pdf.md and the user guide within this task; the next contextual-actions task exposes it in the UI."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 50
-created = 2026-11-15
-tags = ["pdf", "direct-text-selection", "android", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "pdf-direct-selection-context-actions"
 title = "Make contextual PDF text selection the default without a separate tool"
 description = """
