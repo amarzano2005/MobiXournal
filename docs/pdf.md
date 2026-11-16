@@ -170,25 +170,25 @@ as ink. Copy writes nothing, a read-only document has neither verb, and the mode
 ## PDF Contents (the outline)
 
 **PDF Contents (the outline).** The same worker that extracts the text layer also reads the PDF's **`/Outlines` bookmark
-tree** (`PdfOutlineExtractor`, PDFBox's `PDOutlineItem.findDestinationPage`), and both results are cached by file
-(`PdfOutlineCache` mirrors `PdfTextIndexCache`). An entry with no destination inherits the page of its nearest descendant
-that has one; one that points nowhere is shown but not tappable. `setPdfOutline` publishes it to the chrome
-(`onPdfOutlineChanged`), and the page list lane's foot grows a **Contents** glyph (`PdfContentsButton`) opening
-`PdfContentsDialog` — an indented, page-numbered list that folds its chapters and filters by title (`PdfOutlineView`). Where
-a row goes is resolved once for both shells (`OutlineResolution`): the document's own tree when it has one, the PDF's
-outline otherwise, each row an `OutlineRow` naming a **document** page — a `sheet` target found by which page shows that
-sheet (never an offset), a `page` target by the page's `.mobix` id — and a target that finds nothing is drawn dimmed, never
-tappable, because a stale bookmark must not open its neighbour.
+tree** (`PdfOutlineExtractor`), and both results are cached by file (`PdfOutlineCache` mirrors `PdfTextIndexCache`). An
+entry with no destination inherits the page of its nearest descendant that has one. `setPdfOutline` publishes it to the
+chrome (`onPdfOutlineChanged`), and the page list lane's foot grows a **Contents** glyph (`PdfContentsButton`) opening
+`PdfContentsDialog`, an indented, page-numbered list that folds and filters ([guide-pdf-and-audio.md](guide-pdf-and-
+audio.md)). Where a row goes is resolved once for both shells (`OutlineResolution`); what a target means, and why one
+that finds nothing leaves its row dimmed, is [mobix-data-model.md](mobix-data-model.md#the-outline-tree)'s.
 
-**Reading a PDF's index still writes nothing**: the file is untouched by it, the same reasoning that keeps desktop
-Xournal++'s PDF text selection out of the saved document. The window's **Contents** section (`PageSidebar`, under
-the layers) prints the same rows, only when opened, and marks the page it shows.
+**Reading a PDF's index still writes nothing**: the file is untouched by it, the same reasoning that keeps desktop Xournal++'s
+PDF text selection out of the saved document; the window's section is [desktop-workstation.md](desktop-workstation.md)'s.
 
 **The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree` nodes:
 every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included, with the page it
 inherited from its first pointing descendant, since resolution inherits nothing at read time — shifted by the base's page count
 on a joined import. A document that already has an outline files the arriving rows under **one** target-less node titled after
 the file; pages and tree are one undoable edit, a failed import writes neither, and opening never re-seeds.
+
+**A merge keeps every chapter; a page edit never removes a row.** Branches merge their Contents by node id
+(`MobixOutlineMerge`): a node only one side has is kept, a shared one keeps the local title and position with the union of its
+children; a move changes no target, a duplicate mints a new page id, a delete keeps the row untargeted (`OutlinePageOps`).
 
 A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): the indent a level buys is capped by the row's
 own width so the title never drops under its minimum, the page number keeps a column reserved from the widest number in the list

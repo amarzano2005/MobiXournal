@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 
@@ -42,11 +43,14 @@ object PageOps {
     /**
      * A copy of [pages] with page [index] duplicated straight after itself — content and all, unlike
      * [addAfter]. The background is kept verbatim, so a duplicated PDF page still shows its source.
+     *
+     * The copy is a page of its own: it is born with a fresh id ([ElementId.PAGE]), which is what keeps
+     * it out of the original's bookmark and what lets the two pages be saved as two manifest parts.
      */
     fun duplicateAt(pages: List<Page>, index: Int): List<Page> {
         if (pages.isEmpty()) return pages
         val i = index.coerceIn(0, pages.lastIndex)
-        return pages.toMutableList().apply { add(i + 1, pages[i].copy()) }
+        return pages.toMutableList().apply { add(i + 1, pages[i].copy(id = ElementId.mint(ElementId.PAGE))) }
     }
 
     /**

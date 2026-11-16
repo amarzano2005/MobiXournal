@@ -122,7 +122,12 @@ internal class PageCommands(
      * Delete the page currently in view. No-op when only one page remains.
      * Invariant: document always has at least one page.
      */
-    fun removePage() = editPages(PageOps.removeAt(document().pages, currentPage()))
+    fun removePage() {
+        val doc = document()
+        val at = currentPage()
+        val removed = doc.pages.getOrNull(at)?.id?.let { setOf(it) }.orEmpty()
+        editPages(PageOps.removeAt(doc.pages, at), OutlinePageOps.afterRemoval(doc.outline, removed))
+    }
 
     /**
      * Move the pages in [indices] so the first of them lands at [target], as one undoable edit — the
@@ -136,7 +141,11 @@ internal class PageCommands(
      * Delete every page in [indices] as one undoable edit ([PageOps.removeAll]: a pick covering the whole
      * document is refused rather than emptied, so the page list's delete can share the rule).
      */
-    fun removePages(indices: Set<Int>) = editPages(PageOps.removeAll(document().pages, indices))
+    fun removePages(indices: Set<Int>) {
+        val doc = document()
+        val removed = indices.mapNotNull { doc.pages.getOrNull(it)?.id }.toSet()
+        editPages(PageOps.removeAll(doc.pages, indices), OutlinePageOps.afterRemoval(doc.outline, removed))
+    }
 
     /**
      * Set the visible page's paper [style] (plain/lined/ruled/graph/dotted/isograph) as one undoable

@@ -164,6 +164,9 @@ object MobixMergeEngine {
                     local.manifest.optionalCapabilities,
                     remote.manifest.optionalCapabilities,
                 ),
+                // The Contents tree travels with the manifest, so it merges by node id like the pages: a
+                // chapter only one side has is kept, and a chapter both sides have keeps the local rows.
+                outline = MobixOutlineMerge.merge(local.manifest.outline, remote.manifest.outline),
             ),
             canvas = local.canvas,
             pages = pagePlan.pages,

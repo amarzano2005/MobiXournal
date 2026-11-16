@@ -58,6 +58,9 @@ import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.ElementId
+import com.mobixournal.format.model.OutlineTree
+import com.mobixournal.format.model.Page
+import com.mobixournal.render.OutlinePageOps
 import com.mobixournal.render.PageOps
 import com.mobixournal.render.PageSizeStep
 import com.mobixournal.render.PageSizeUnit
@@ -173,6 +176,16 @@ internal class DesktopPages(
      * take the PDF out of the document: the reference moves to the first pdf page that survives
      * ([PdfPageReferences.keep]), and every remaining page still draws the sheet it names.
      */
+    /**
+     * The Contents tree a delete leaves behind: every row that opened one of the deleted pages keeps its
+     * place and loses its destination ([OutlinePageOps]), and a rows-only tree is handed back untouched.
+     */
+    private fun removedTargets(tab: DesktopTab, kept: List<Page>): OutlineTree {
+        val surviving = kept.mapTo(HashSet()) { it.id }
+        val removed = tab.document.model.pages.mapNotNullTo(HashSet()) { it.id.takeUnless { id -> id in surviving } }
+        return OutlinePageOps.afterRemoval(tab.document.model.outline, removed)
+    }
+
     fun removePageAt(index: Int): Boolean {
         val tab = active() ?: return false
         val count = tab.document.pageCount
@@ -182,7 +195,7 @@ internal class DesktopPages(
         val kept = PageOps.removeAt(tab.document.model.pages, at)
         if (kept === tab.document.model.pages) return false
         val pages = PdfPageReferences.keep(tab.document.model.pages, kept)
-        tab.document.replacePages(pages)
+        tab.document.replacePages(pages, removedTargets(tab, kept))
         tab.record(before)
         onStructure(tab)
         selectPage(tab, at.coerceAtMost(tab.document.pageCount - 1))
@@ -205,7 +218,7 @@ internal class DesktopPages(
         val kept = PageOps.removeAll(tab.document.model.pages, indices)
         if (kept === tab.document.model.pages) return false
         val pages = PdfPageReferences.keep(tab.document.model.pages, kept)
-        tab.document.replacePages(pages)
+        tab.document.replacePages(pages, removedTargets(tab, kept))
         tab.record(before)
         tab.pickedPages = PageSelection()
         onStructure(tab)
@@ -484,7 +497,7 @@ internal class DesktopPages(
         val kept = PageOps.removeAll(tab.document.model.pages, (pages.first..pages.last).toSet())
         if (kept === tab.document.model.pages) return false
         val remaining = PdfPageReferences.keep(tab.document.model.pages, kept)
-        tab.document.replacePages(remaining)
+        tab.document.replacePages(remaining, removedTargets(tab, kept))
         tab.record(before)
         onStructure(tab)
         selectPage(tab, pages.first.coerceIn(0, tab.document.pageCount - 1))
