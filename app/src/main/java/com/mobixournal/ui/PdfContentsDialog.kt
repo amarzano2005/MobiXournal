@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Toc
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,8 +46,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
+import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineResolution
 import com.mobixournal.render.OutlineRow
+import com.mobixournal.render.PdfOutlineSeeding
 import com.mobixournal.render.PdfOutlineView
 
 /**
@@ -61,8 +64,12 @@ internal fun PdfContentsButton(
     rows: List<OutlineRow>,
     currentPage: Int?,
     onGoToPage: (Int) -> Unit,
+    onAdd: (String) -> OutlineEdits.Result,
+    onRename: (String, String) -> OutlineEdits.Result,
+    onDelete: (String) -> OutlineEdits.Result,
 ) {
-    if (rows.isEmpty()) return
+    // The door is always there, even with no index yet: the card is also where a bookmark is added, and a
+    // document with an ordinary page still has a Contents worth opening.
     var open by remember { mutableStateOf(false) }
     IconButton(onClick = { open = true }, modifier = Modifier.size(34.dp)) {
         Icon(
@@ -80,6 +87,9 @@ internal fun PdfContentsButton(
                 rows = tree,
                 currentPage = currentPage,
                 onGoToPage = onGoToPage,
+                onAdd = onAdd,
+                onRename = onRename,
+                onDelete = onDelete,
                 onDismiss = { open = false },
             )
         }
@@ -107,10 +117,15 @@ internal fun PdfContentsDialog(
     rows: List<OutlineRow>,
     currentPage: Int?,
     onGoToPage: (Int) -> Unit,
+    onAdd: (String) -> OutlineEdits.Result,
+    onRename: (String, String) -> OutlineEdits.Result,
+    onDelete: (String) -> OutlineEdits.Result,
     onDismiss: () -> Unit,
 ) {
     var query by remember(rows) { mutableStateOf("") }
     var collapsed by remember(rows) { mutableStateOf(emptySet<Int>()) }
+    // One edit at a time: a new row being named, an existing one retitled, or one being asked about.
+    val editing = remember(rows) { ContentsEditHost() }
     val shown = PdfOutlineView.visible(rows, collapsed, query, currentPage)
     FloatingDialog(
         onDismissRequest = onDismiss,
@@ -118,6 +133,9 @@ internal fun PdfContentsDialog(
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         text = {
             Column(Modifier.fillMaxWidth()) {
+                // An edit in progress takes the card over: the list is not what the reader is doing.
+                if (editing.slot(onAdd, onRename, onDelete)) return@Column
+                ContentsAddRow { editing.adding() }
                 ContentsFilter(
                     query = query,
                     onQuery = { query = it },
@@ -126,7 +144,7 @@ internal fun PdfContentsDialog(
                 Spacer(Modifier.height(8.dp))
                 if (shown.isEmpty()) {
                     Text(
-                        text = "No contents match \"${query.trim()}\"",
+                        text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -147,6 +165,9 @@ internal fun PdfContentsDialog(
                                     row.page?.let(onGoToPage)
                                     onDismiss()
                                 },
+                                // Only the notebook's own rows can be edited: a row read out of the PDF is the
+                                // file's bookmark, and it becomes the notebook's the moment one is added.
+                                onActions = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
                             )
                         }
                     }
@@ -195,14 +216,25 @@ internal fun PdfContentsLane(pane: PaneState, onGoToPage: (Int) -> Unit) {
     val rows = remember(surface, pane.documentVersion, pane.outline) {
         surface?.let { OutlineResolution.rowsOf(it.doc.outline, pane.outline, it.doc.pages) }.orEmpty()
     }
+    // A document still showing the PDF's index is seeded with it when the first bookmark arrives, so the rows
+    // the reader is looking at stay on screen instead of being replaced by the one row just named.
+    val seed = remember(pane.outline) { pane.outline?.let { PdfOutlineSeeding.tree(it) } }
+    val commands = surface?.pageCommands
     PdfContentsButton(
         rows = rows,
         // The pane's own page state, not a fresh read of the canvas: it is what recomposes when the reader
         // scrolls or a row is followed, so the mark moves with them instead of staying where the card opened.
         currentPage = pane.currentPage,
         onGoToPage = onGoToPage,
+        onAdd = { title -> commands?.addBookmark(title, seed) ?: missingCommands() },
+        onRename = { id, title -> commands?.renameBookmark(id, title) ?: missingCommands() },
+        onDelete = { id -> commands?.deleteBookmark(id) ?: missingCommands() },
     )
 }
+
+/** The answer a card without a surface gets: there is no document to write to. */
+private fun missingCommands(): OutlineEdits.Result =
+    OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
 
 /** The widest page number the card will print — the number its column is reserved from. */
 private fun largestPageNumber(rows: List<OutlineRow>): Int =
@@ -224,6 +256,7 @@ private fun ContentsRow(
     largestPageNumber: Int,
     onToggle: () -> Unit,
     onClick: () -> Unit,
+    onActions: (() -> Unit)?,
 ) {
     val pageColumnDp = ContentsRowLayout.pageColumnDp(
         largestPageNumber = largestPageNumber,
@@ -283,6 +316,16 @@ private fun ContentsRow(
                     style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End,
+                )
+            }
+        }
+        if (onActions != null) {
+            IconButton(onClick = onActions, modifier = Modifier.size(CHEVRON_DP)) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "Actions for ${row.title}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }

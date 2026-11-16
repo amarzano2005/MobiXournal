@@ -14,6 +14,7 @@ import com.mobixournal.desktop.sheet.PageSelectionRules
 import com.mobixournal.desktop.sheet.drawPageContent
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.sheet.rememberSelectionTap
+import com.mobixournal.render.OutlineEdits
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -80,6 +81,25 @@ import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import kotlin.math.roundToInt
 
+/** The three Contents edits the sidebar runs, kept together so the sidebar's own signature stays about pages. */
+class ContentsEdits(
+    val add: (String) -> OutlineEdits.Result = { OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
+    val rename: (String, String) -> OutlineEdits.Result = { _, _ -> OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
+    val remove: (String) -> OutlineEdits.Result = { OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
+)
+
+/** The list's scroll gestures, measured here so [PageSidebar] stays a function that arranges its parts. */
+@Composable
+private fun PageListGestures(listState: LazyListState, drag: PageDragHandle) {
+    val density = LocalDensity.current
+    PageListScrolling(
+        listState,
+        drag,
+        with(density) { PageDragMetrics.EDGE.toPx() },
+        with(density) { PageDragMetrics.MAX_STEP.toPx() },
+    )
+}
+
 /**
  * The navigation sidebar: page thumbnails and the current page's layers.
  *
@@ -122,6 +142,8 @@ fun PageSidebar(
     onPastePages: () -> Unit = {},
     /** A row of the search results: the page goes there and that match becomes the one in view. */
     onSearchHit: (Int) -> Unit = {},
+    /** The Contents section's own edits: a row named for the page in view, retitled, or removed. */
+    contentsEdits: ContentsEdits = ContentsEdits(),
     modifier: Modifier = Modifier,
 ) {
     val listState = remember(tab) {
@@ -129,12 +151,8 @@ fun PageSidebar(
     }
     val current = tab.page
     val drag = remember(listState) { PageDragHandle(listState) }
-    val density = LocalDensity.current
-    val edgePx = with(density) { PageDragMetrics.EDGE.toPx() }
-    val maxStepPx = with(density) { PageDragMetrics.MAX_STEP.toPx() }
     val selection = tab.pickedPages.sanitized(tab.pageCount)
-
-    PageListScrolling(listState, drag, edgePx, maxStepPx)
+    PageListGestures(listState, drag)
 
     Column(
         modifier
@@ -195,6 +213,7 @@ fun PageSidebar(
             onCutPages = onCutPages,
             onPastePages = onPastePages,
             onSearchHit = onSearchHit,
+            contentsEdits = contentsEdits,
         )
     }
 }
@@ -509,6 +528,7 @@ private fun SidebarSections(
     onCutPages: () -> Unit,
     onPastePages: () -> Unit,
     onSearchHit: (Int) -> Unit,
+    contentsEdits: ContentsEdits,
 ) {
     Spacer(Modifier.height(6.dp))
     if (selection.isEmpty) {
@@ -530,7 +550,13 @@ private fun SidebarSections(
     // is looking for, and the outline is still one heading below.
     SearchResultsSection(tab, onSearchHit)
     // The PDF's own Contents, under the layers: navigation only, and only for a PDF that has one.
-    PdfContentsSection(tab, onSelectPage)
+    PdfContentsSection(
+        tab = tab,
+        onSelectPage = onSelectPage,
+        onAdd = { title -> contentsEdits.add(title) },
+        onRename = { id, title -> contentsEdits.rename(id, title) },
+        onDelete = { id -> contentsEdits.remove(id) },
+    )
 }
 
 /**

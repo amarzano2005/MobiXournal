@@ -183,14 +183,17 @@ internal class DesktopPages(
      * Add a bookmark on the page in view, as one undo step. The destination is the page's own answer
      * ([OutlineEdits.targetOf]): the PDF sheet it shows, or the page's id when it is paper.
      */
-    fun addBookmark(title: String): OutlineEdits.Result {
+    fun addBookmark(title: String, seed: OutlineTree? = null): OutlineEdits.Result {
         val tab = active() ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
         val at = tab.page
         val page = tab.document.model.pages.getOrNull(at)
             ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
         val (identified, target) = OutlineEdits.identifiable(page)
         target ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NO_TARGET)
-        val result = OutlineEdits.add(tab.document.model.outline, title, target)
+        // A document still showing the PDF's own index is seeded with it, so the new row joins the tree the
+        // reader sees instead of replacing it.
+        val start = if (tab.document.model.outline.isEmpty) seed ?: tab.document.model.outline else tab.document.model.outline
+        val result = OutlineEdits.add(start, title, target)
         if (result !is OutlineEdits.Result.Ok || result.tree == tab.document.model.outline) return result
         // The page's new id and the row that names it are one step: a refusal above wrote neither.
         val before = tab.document.snapshot()

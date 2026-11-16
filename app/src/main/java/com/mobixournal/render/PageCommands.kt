@@ -153,7 +153,7 @@ internal class PageCommands(
      * Add a bookmark on the page in view as one undoable edit. What it opens is the page's own answer
      * ([OutlineEdits.targetOf]): the PDF sheet it shows, or the page's id when it is paper.
      */
-    fun addBookmark(title: String): OutlineEdits.Result {
+    fun addBookmark(title: String, seed: OutlineTree? = null): OutlineEdits.Result {
         val doc = document()
         val at = currentPage()
         val page = doc.pages.getOrNull(at)
@@ -161,7 +161,10 @@ internal class PageCommands(
         val (identified, target) = OutlineEdits.identifiable(page)
         target ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NO_TARGET)
         val pages = if (identified === page) doc.pages else doc.pages.toMutableList().also { it[at] = identified }
-        return editOutline(doc.copy(pages = pages)) { tree -> OutlineEdits.add(tree, title, target) }
+        // A document whose index is still the PDF's own (no tree yet) is seeded with it first, so the new row
+        // joins the index the reader is looking at instead of replacing it.
+        val start = if (doc.outline.isEmpty) seed ?: doc.outline else doc.outline
+        return editOutline(doc.copy(pages = pages, outline = start)) { tree -> OutlineEdits.add(tree, title, target) }
     }
 
     /** Retitle the row [id], keeping its node, destination and children ([OutlineEdits.rename]). */

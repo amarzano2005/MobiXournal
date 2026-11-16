@@ -173,6 +173,12 @@ a title. The **Filter** box finds a section by name; the chapters above the hit 
 to it, quieter than the hit itself, and the row naming the page you are reading wears the accent. Clearing
 the box puts the tree back exactly as you left it: filtering never folds or unfolds anything on its own.
 
+**The index is yours to edit.** Above the list, **Add bookmark** names a row on the page you are on. A row
+that belongs to the notebook answers with **Rename** and **Delete**; deleting asks first, says the sections
+under it move up, and says the page stays in the notebook — a bookmark is a signpost, never the page. Rows
+read out of the PDF cannot be edited: the first bookmark you add copies them into the notebook first, so the
+list you were reading stays where it is, in one undo step. Every add, rename and removal is one undo step.
+
 **An import writes the tree into the notebook.** A PDF's bookmarks are copied into the notebook's own Contents
 when it is imported — one undo step together with its pages — so they can be renamed or deleted and they survive
 a save; a second PDF arrives under a node named after its file, and opening the notebook later never re-reads the

@@ -6,6 +6,7 @@ import com.mobixournal.desktop.ink.TabletInk
 import com.mobixournal.desktop.ink.TabletWintab
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.PdfIndexLoader
+import com.mobixournal.render.PdfOutlineSeeding
 import com.mobixournal.desktop.settings.InspectorPolicy
 import com.mobixournal.desktop.settings.LocalNavigationState
 import com.mobixournal.desktop.settings.RailSide
@@ -179,6 +180,13 @@ private fun WorkspaceSidebar(state: DesktopShellState, tab: DesktopTab) {
         onPastePages = { state.pastePages() },
         // A row of the search results: that match becomes the one in view, and its page the page on screen.
         onSearchHit = { index -> state.showSearchHit(index) },
+        // The Contents section's three edits: a row on the page in view, a retitle, a removal — one undo step
+        // each, through the same commands the Pages section runs.
+        contentsEdits = ContentsEdits(
+            add = { title -> state.pagesSection.addBookmark(title, tab.pdfIndex?.outline?.let(PdfOutlineSeeding::tree)) },
+            rename = { id, title -> state.pagesSection.renameBookmark(id, title) },
+            remove = { id -> state.pagesSection.deleteBookmark(id) },
+        ),
         // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
         revision = state.thumbnailRevision,
     )
