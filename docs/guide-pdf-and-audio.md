@@ -173,8 +173,10 @@ a title. The **Filter** box finds a section by name; the chapters above the hit 
 to it, quieter than the hit itself, and the row naming the page you are reading wears the accent. Clearing
 the box puts the tree back exactly as you left it: filtering never folds or unfolds anything on its own.
 
-Navigation only: the notebook format has nowhere to keep a bookmark tree, so the outline is read from the
-PDF and your file is untouched by it.
+**An import writes the tree into the notebook.** A PDF's bookmarks are copied into the notebook's own Contents
+when it is imported — one undo step together with its pages — so they can be renamed or deleted and they survive
+a save; a second PDF arrives under a node named after its file, and opening the notebook later never re-reads the
+PDF's outline, because by then the tree is the notebook's.
 
 ## Text and Markdown, laid out into pages
 

@@ -226,9 +226,10 @@ class DesktopDocument(
      * 200-page notebook still inflates only the page someone reads. The caller records its undo step
      * before calling (`DesktopTab.record`), exactly as for an edit to one page.
      */
-    @Synchronized fun replacePages(pages: List<Page>) {
+    @Synchronized fun replacePages(pages: List<Page>, outline: com.mobixournal.format.model.OutlineTree = model.outline) {
         invalidatePageRevisions()
-        model = model.copy(pages = pages)
+        // An import brings pages **and** a seeded Contents tree: one call, because they are one undo step.
+        model = model.copy(pages = pages, outline = outline)
         window = PageWindow(PageSource.of(pages))
         edits++
     }

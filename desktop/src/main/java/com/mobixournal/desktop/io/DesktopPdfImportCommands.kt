@@ -14,6 +14,7 @@ import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PageOps
+import com.mobixournal.render.PdfOutlineSeeding
 import java.io.File
 import org.apache.pdfbox.pdmodel.PDDocument
 
@@ -219,7 +220,15 @@ private fun DesktopShellState.appendImported(
     }
     val pages = PageOps.appendPages(landing.first, landing.second)
     if (pages === tab.document.model.pages || pages.size == landing.first.size) return false
-    tab.document.replacePages(pages)
+    // The arriving PDF's bookmarks seed the Contents too, inside the same undo step as its pages. A joined
+    // import's rows are shifted into the joined file's numbering, exactly as its pages were.
+    val pageOffset = if (base != null) DesktopPdfImport.pageCount(base) else 0
+    val seeded = PdfOutlineSeeding.merged(
+        tab.document.model.outline,
+        PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf), pageOffset = pageOffset),
+        file.nameWithoutExtension,
+    )
+    tab.document.replacePages(pages, seeded)
     tab.record(before)
     pagesChanged(tab)
     // A merge writes a joined PDF, so any index read from the files it joined is stale.

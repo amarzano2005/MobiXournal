@@ -27,8 +27,11 @@ import com.mobixournal.render.PdfImport
 import com.mobixournal.render.PdfAnalysisJobs
 import com.mobixournal.render.PdfTextStatus
 import com.mobixournal.render.blankDocument
+import com.mobixournal.format.model.OutlineTree
+import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfOutlineCache
 import com.mobixournal.render.PdfOutlineExtractor
+import com.mobixournal.render.PdfOutlineSeeding
 import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.PdfTextExtractor
@@ -455,6 +458,13 @@ internal class PdfImportPlan(
     /** APPEND: the pages that land after the current last one. */
     val added: List<Page>? = null,
     /**
+     * APPEND: the Contents rows the arriving PDF seeds, already shifted into the document's own page
+     * numbering. Null when the PDF has no bookmarks; applied in the **same** undo step as [added].
+     */
+    val outline: OutlineTree? = null,
+    /** APPEND: the file name the seeded rows are grouped under when the document already has a tree. */
+    val title: String = "Imported PDF",
+    /**
      * True when the pages landed in a **joined** file, so the document's one PDF reference has to move
      * there. False means the arriving pages name the picked PDF themselves (a notebook of paper).
      */
@@ -478,7 +488,14 @@ internal fun MainActivity.preparePdfImport(
     indices: List<Int>?,
     base: File?,
     inStore: Boolean = false,
+    /** The imported file's own name, for the Contents group a second import is filed under. */
+    title: String? = null,
 ): PdfImportPlan {
+    // The PDF's bookmarks are read once, here, with the pages: the document's Contents is seeded from them and
+    // from then on belongs to the reader (`PdfOutlineSeeding`, `docs/pdf.md`). A file with no outline answers
+    // empty, and a read that breaks is an outline-less import rather than a failed one.
+    val pdfOutline = runCatching { PdfOutlineExtractor().extract(source) }.getOrDefault(PdfOutline.EMPTY)
+    val groupTitle = title?.takeIf { it.isNotBlank() } ?: source.nameWithoutExtension
     if (mode == ImportPdfMode.APPEND && base != null) {
         // A `.xopp` holds one reference, so the two PDFs become one file. The arriving bytes are read
         // by the merge itself, so there is no need for a store copy of them on the way.
@@ -493,20 +510,36 @@ internal fun MainActivity.preparePdfImport(
         // The merge rewrote these bytes: any text or outline read from the files it joined is stale.
         PdfTextIndexCache.forget(joined)
         PdfOutlineCache.forget(joined)
-        return PdfImportPlan(mode, joined, added = added, joined = true)
+        return PdfImportPlan(
+            mode,
+            joined,
+            added = added,
+            outline = PdfOutlineSeeding.tree(pdfOutline, pageOffset = offset),
+            title = groupTitle,
+            joined = true,
+        )
     }
     val copy = if (inStore) source else io.adoptPdf(source)
     try {
         if (mode == ImportPdfMode.REPLACE) {
+            // A replacing import is a new document, so its Contents is the PDF's own tree — never wrapped in a
+            // file-name node, which is the shape a second import into an existing notebook takes.
             val document = PdfPageCache(copy).use { cache -> PdfImport.documentFor(cache, reference, indices) }
+            val seeded = document.copy(outline = PdfOutlineSeeding.tree(pdfOutline))
             PdfTextIndexCache.forget(copy)
-            return PdfImportPlan(mode, copy, document = document)
+            return PdfImportPlan(mode, copy, document = seeded)
         }
         val added = PdfPageCache(copy).use { cache ->
             PdfImport.pagesFor(cache, reference, indices = indices)
         }
         PdfTextIndexCache.forget(copy)
-        return PdfImportPlan(mode, copy, added = added)
+        return PdfImportPlan(
+            mode,
+            copy,
+            added = added,
+            outline = PdfOutlineSeeding.tree(pdfOutline),
+            title = groupTitle,
+        )
     } catch (failure: Throwable) {
         if (!inStore) copy.delete()
         throw failure
@@ -541,8 +574,8 @@ internal fun MainActivity.applyPdfImport(plan: PdfImportPlan, tabId: String?, p:
             view.setImageSources(emptyMap())
             plan.document?.let { view.load(it) }
         }
-        plan.joined -> plan.added?.let { view.appendPdfPages(it, plan.file.absolutePath) }
-        else -> plan.added?.let { view.appendPages(it) }
+        plan.joined -> plan.added?.let { view.appendPdfPages(it, plan.file.absolutePath, plan.outline, plan.title) }
+        else -> plan.added?.let { view.appendPages(it, plan.outline, plan.title) }
     }
     analyzePdfInBackground(plan.file, view)
 }
@@ -567,7 +600,10 @@ internal fun MainActivity.adoptPdf(
     } else {
         null
     }
-    val plan = preparePdfImport(source, mode, reference, indices, base, inStore)
+    val plan = preparePdfImport(
+        source, mode, reference, indices, base, inStore,
+        title = reference.substringAfterLast('/').substringBeforeLast('.').takeIf { it.isNotBlank() },
+    )
     applyPdfImport(plan, tabId, p)
 }
 

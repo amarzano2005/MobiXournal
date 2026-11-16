@@ -5,6 +5,7 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.OutlineTree
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.Tool
@@ -90,7 +91,8 @@ internal class PageCommands(
      * PDF import (see [PageOps.appendPages]). Unlike a load this keeps the current annotations and
      * undo history, so an accidental import is one undo away.
      */
-    fun appendPages(pages: List<Page>) = editPages(PageOps.appendPages(document().pages, pages))
+    fun appendPages(pages: List<Page>, outline: OutlineTree? = null, importedTitle: String = "") =
+        editPages(PageOps.appendPages(document().pages, pages), seeded(outline, importedTitle))
 
     /**
      * Append [pages] *and* re-point the document's PDF background reference at [reference] in one
@@ -98,10 +100,23 @@ internal class PageCommands(
      * [PdfMerger]). Both halves have to move together: the appended pages' `pageno` values index the
      * joined PDF, so a document holding the old reference with the new pages wouldn't round-trip.
      */
-    fun appendPdfPages(pages: List<Page>, reference: String) {
+    fun appendPdfPages(
+        pages: List<Page>,
+        reference: String,
+        outline: OutlineTree? = null,
+        importedTitle: String = "",
+    ) {
         val retargeted = documentWithPdfReference(document(), reference, ABSOLUTE_DOMAIN)
-        editPages(PageOps.appendPages(retargeted.pages, pages))
+        editPages(PageOps.appendPages(retargeted.pages, pages), seeded(outline, importedTitle))
     }
+
+    /**
+     * The Contents tree an appended import leaves behind: the PDF's rows, filed under the imported file's name
+     * when the document already has a tree of its own ([PdfOutlineSeeding]). Null means the import brought no
+     * bookmarks, so the document's outline is left exactly as it was.
+     */
+    private fun seeded(outline: OutlineTree?, importedTitle: String): OutlineTree? =
+        outline?.let { PdfOutlineSeeding.merged(document().outline, it, importedTitle.ifBlank { "Imported PDF" }) }
 
     /**
      * Delete the page currently in view. No-op when only one page remains.
@@ -246,12 +261,13 @@ internal class PageCommands(
      * Side effects: resets layer visibility and active layer, refreshes layout.
      * @param pages New page list; no-op if identical to current.
      */
-    fun editPages(pages: List<Page>) {
+    fun editPages(pages: List<Page>, outline: OutlineTree? = null) {
         val doc = document()
-        if (pages === doc.pages) return
+        if (pages === doc.pages && (outline == null || outline == doc.outline)) return
         // Page indices shifted, so a window keyed by index no longer describes this document.
         window.reset()
-        commit(doc.copy(pages = pages))
+        // Pages and the seeded Contents are one edit: an import is one undo step, not a page edit plus a tree.
+        commit(if (outline == null) doc.copy(pages = pages) else doc.copy(pages = pages, outline = outline))
         onPageCountChanged(pages.size)
         // Page indices shifted: view state keyed by page index is no longer valid.
         resetLayerVisibility()

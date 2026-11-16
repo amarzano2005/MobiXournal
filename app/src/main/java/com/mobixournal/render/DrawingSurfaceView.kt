@@ -20,6 +20,7 @@ import com.mobixournal.format.XoppColor.withAlpha
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.OutlineTree
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.LineStyle
@@ -965,10 +966,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun goToPreviousPage() = goToPage(currentPageIndex() - 1)
 
     /** Append [newPages] after the document's existing pages as one undoable edit (PDF import). */
-    fun appendPages(newPages: List<Page>) = pages.appendPages(newPages)
+    fun appendPages(newPages: List<Page>, outline: OutlineTree? = null, title: String = "") =
+        pages.appendPages(newPages, outline, title)
 
     /** Append [newPages] and re-point the document's PDF reference at [reference] in one edit. */
-    fun appendPdfPages(newPages: List<Page>, reference: String) = pages.appendPdfPages(newPages, reference)
+    fun appendPdfPages(newPages: List<Page>, reference: String, outline: OutlineTree? = null, title: String = "") =
+        pages.appendPdfPages(newPages, reference, outline, title)
 
     /** True when any page is backed by an imported PDF — i.e. the document already has a PDF source. */
     fun hasPdfBackground(): Boolean = doc.pages.any { it.background is Background.Pdf }

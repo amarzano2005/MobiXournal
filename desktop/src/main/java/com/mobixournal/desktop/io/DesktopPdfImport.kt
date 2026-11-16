@@ -8,6 +8,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.ABSOLUTE_DOMAIN
+import com.mobixournal.render.PdfOutlineSeeding
 import java.io.File
 import org.apache.pdfbox.pdmodel.PDDocument
 
@@ -95,9 +96,15 @@ internal object DesktopPdfImport {
         }
     }
 
-    /** The whole document an import makes: the PDF's pages ([indices], or all), and nothing else. */
-    fun document(pdf: PDDocument, reference: String, indices: List<Int>? = null): Document =
-        Document(pages = pages(pdf, reference, indices = indices))
+    /**
+     * The whole document an import makes: the PDF's pages ([indices], or all) and, when the file has them, its
+     * bookmarks as the notebook's own Contents ([PdfOutlineSeeding]). A replacing import is a new document, so
+     * the rows are the tree itself rather than a group under the file's name.
+     */
+    fun document(pdf: PDDocument, reference: String, indices: List<Int>? = null): Document = Document(
+        pages = pages(pdf, reference, indices = indices),
+        outline = PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf)),
+    )
 
     /** How many pages [file] has, without building anything — the question card's readout. */
     fun pageCount(file: File): Int = open(file).use { it.numberOfPages }

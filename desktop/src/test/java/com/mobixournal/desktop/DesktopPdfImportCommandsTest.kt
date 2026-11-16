@@ -17,9 +17,13 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.render.ImportPdfMode
 import java.io.File
 import java.util.zip.ZipFile
+import com.mobixournal.format.model.OutlineTarget
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.common.PDRectangle
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -80,6 +84,108 @@ class DesktopPdfImportCommandsTest {
                 imported.file.name.endsWith(".mobix"),
             )
             assertNull(state.failure)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    /**
+     * A PDF of [pages] pages whose bookmarks are a chapter on page 1 and — with more than one page — a section
+     * on the last one, so a seed has a nested row to write and a real destination to shift.
+     */
+    private fun pdfWithOutline(pages: Int, folder: File = temp.root, name: String = "outlined"): File =
+        File(folder, "$name-${System.nanoTime()}.pdf").also { file ->
+            PDDocument().use { document ->
+                repeat(pages) { document.addPage(PDPage(PDRectangle.A4)) }
+                val chapter = PDOutlineItem().apply {
+                    title = "Chapter one"
+                    destination = PDPageFitDestination().apply { page = document.getPage(0) }
+                }
+                if (pages > 1) {
+                    chapter.addLast(
+                        PDOutlineItem().apply {
+                            title = "Section"
+                            destination = PDPageFitDestination().apply { page = document.getPage(pages - 1) }
+                        },
+                    )
+                }
+                document.documentCatalog.documentOutline = PDDocumentOutline().apply { addLast(chapter) }
+                document.save(file)
+            }
+        }
+
+    @Test
+    fun `a replacing import seeds the Contents from the PDF's own bookmarks`() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            assertTrue(state.importPdf(pdfWithOutline(2, name = "outlined"), ImportPdfMode.REPLACE))
+            val outline = state.tabs.active!!.document.model.outline
+
+            assertEquals("the PDF's chapter, not a group", listOf("Chapter one"), outline.nodes.map { it.title })
+            assertEquals("its destination is written down", OutlineTarget.Sheet(0), outline.nodes.single().target)
+            assertEquals(
+                "and so is the section's, nested under it",
+                OutlineTarget.Sheet(1),
+                outline.nodes.single().children.single().target,
+            )
+            assertTrue("every seeded row has a bookmark id", outline.nodes.single().id.startsWith("bkm_"))
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `a second import files its bookmarks under the arriving file, and one undo takes both back`() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            assertTrue(state.importPdf(pdfWithOutline(2, name = "first"), ImportPdfMode.APPEND))
+            val tab = state.tabs.active!!
+            assertEquals("the first import is the tree itself", 1, tab.document.model.outline.nodes.size)
+
+            assertTrue(state.importPdf(pdfWithOutline(1, name = "second"), ImportPdfMode.APPEND))
+
+            val outline = tab.document.model.outline
+            assertEquals("the existing rows, plus one group", 2, outline.nodes.size)
+            val group = outline.nodes.last()
+            assertTrue("filed under the arriving file's name: ${group.title}", group.title.startsWith("second"))
+            assertNull("the group opens nothing itself", group.target)
+            assertEquals(
+                "its rows are shifted into the joined file, exactly as the pages were",
+                OutlineTarget.Sheet(2),
+                group.children.single().target,
+            )
+
+            assertTrue("pages and tree are one step", tab.undo())
+            assertEquals("the tree goes back with the pages", 1, tab.document.model.outline.nodes.size)
+            assertEquals(2, tab.document.pageCount)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `a save and reopen keeps the seeded ids and destinations`() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            assertTrue(state.importPdf(pdfWithOutline(2, name = "kept"), ImportPdfMode.REPLACE))
+            val seeded = state.tabs.active!!.document.model.outline
+            val target = File(temp.root, "seeded.mobix")
+
+            state.saveAs(target, SaveFormat.MOBIX)
+            assertNull(state.failure)
+
+            DocumentLoader.load(target).use { reopened ->
+                val kept = reopened.model.outline
+                assertEquals("the ids are the file's, not the import's", seeded.nodes.map { it.id }, kept.nodes.map { it.id })
+                assertEquals(
+                    "and the destinations read back as written",
+                    OutlineTarget.Sheet(1),
+                    kept.nodes.single().children.single().target,
+                )
+            }
         } finally {
             state.tabs.closeAll()
         }
