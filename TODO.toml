@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-bookmark-edit-ui"
-title = "Manage the index from Android and desktop"
-description = "After pdf-bookmark-edit-commands, extend PdfContentsDialog and PdfContentsSidebar with Add bookmark, Rename and Delete actions for both user and imported PDF entries. Expose the index and Add even when the PDF has no outline or the page is ordinary paper. Provide title editor, current page indication, cancel, keyboard focus and TalkBack semantics; deletion states that the page stays in the notebook. Integrate pdf-outline-navigation so filtering/expansion follows stable node identity. Verify creation, rename, removal and undo on both shells. Follow docs/interface-contract.md for UI work and update README.md and docs/guide-pdf-and-audio.md when wired end to end."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 200
-created = 2026-11-14
-tags = ["pdf", "bookmarks"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-import-default-bookmark"
 title = "Offer a bookmark named after every imported PDF"
 description = "After persistent bookmark commands, add an enabled-by-default Create bookmark option in both import dialogs. Initialize its editable title from PdfImportPrompt.name / the original desktop filename, stripping only the final .pdf extension case-insensitively. Target the first actually imported page, including subsets; append the new bookmark and pages as one undoable operation. Keep source chapter hierarchy under the PDF marker when available. Respect the toggle, preserve existing bookmarks and distinguish duplicate filenames by identity. Test new document, append, replace, subset, cancellation, failed import, undo/redo and reopen. Follow docs/interface-contract.md for UI work and update README.md and docs/guide-pdf-and-audio.md when wired end to end."
