@@ -136,6 +136,25 @@ class DesktopPdfContentsTest {
     }
 
     @Test
+    fun `moving to another bookmarked page marks a different row without an edit`() {
+        val pages = listOf(pdfPage(0, carriesReference = true), pdfPage(1))
+        val resolved = OutlineResolution.rows(duplicated, pages)
+        val onFirst = visibleContentsRows(resolved, currentPage = 0)
+        val onSecond = visibleContentsRows(resolved, currentPage = 1)
+        // The same resolved rows, marked twice: only the page changed, so nothing had to be read again.
+        assertEquals(
+            "the section under the chapter is the last row naming page 0",
+            listOf(false, true, false, false),
+            onFirst.map { it.current },
+        )
+        assertEquals(
+            "and turning the page moves it to the next chapter",
+            listOf(false, false, true, false),
+            onSecond.map { it.current },
+        )
+    }
+
+    @Test
     fun `a search no bookmark answers is an empty list, not the whole outline`() {
         assertTrue(visibleContentsRows(duplicated, twoSheets, query = "bibliography").isEmpty())
     }

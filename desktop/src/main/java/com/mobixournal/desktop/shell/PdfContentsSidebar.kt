@@ -4,7 +4,7 @@ import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.io.contentsResolved
-import com.mobixournal.desktop.io.contentsRowsOf
+import com.mobixournal.desktop.io.visibleContentsRows
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -133,11 +133,13 @@ internal fun ContentsPanel(
     // (docs/pdf.md).
     val navigation = tab.contentsNavigation
     val query = navigation.query
-    LaunchedEffect(tab, tab.document.edits, tab.pdfIndex) {
-        tab.contentsNavigation = tab.contentsNavigation.against(contentsResolved(tab))
-    }
-    val rows = remember(tab, tab.pdfIndex, tab.document.edits, navigation.collapsed, query) {
-        contentsRowsOf(tab, navigation.collapsed, query)
+    // Resolving an outline costs a walk over every page's background; marking "you are here" costs nothing.
+    // So the rows are resolved once per document edit and the view is decorated per page — scrolling a long
+    // index must not re-resolve it, and turning a page must not load a notebook page to move one accent.
+    val resolved = remember(tab, tab.pdfIndex, tab.document.edits) { contentsResolved(tab) }
+    LaunchedEffect(resolved) { tab.contentsNavigation = tab.contentsNavigation.against(resolved) }
+    val rows = remember(resolved, navigation.collapsed, query, tab.page) {
+        visibleContentsRows(resolved, navigation.collapsed, query, tab.page)
     }
     // One Contents edit at a time: naming a row for the page in view, retitling one, or asking about a removal.
     val editing = remember(tab) { ContentsEditHost() }

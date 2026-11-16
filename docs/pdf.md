@@ -177,7 +177,7 @@ chrome (`onPdfOutlineChanged`), and the page list lane's foot grows a **Contents
 audio.md)). Where a row goes is resolved once for both shells (`OutlineResolution`); what a target means, and why one
 that finds nothing leaves its row dimmed, is [mobix-data-model.md](mobix-data-model.md#the-outline-tree)'s.
 
-**Reading a PDF's index still writes nothing**, and reading never forgets: the filter, the folded branches and the place in the list belong to the open document, so renaming, adding, deleting, an undo or reopening the card cannot reset them, a new document inherits nothing, and a fold is keyed by row id — an insert above a closed chapter cannot close another (`ContentsNavigation`, `ContentsNavigationTest`).
+**Reading a PDF's index still writes nothing**, and reading never forgets: the filter, the folded branches and the place in the list belong to the open document, so renaming, adding, deleting, an undo or reopening the card cannot reset them, a new document inherits nothing, and a fold is keyed by row id — an insert above a closed chapter cannot close another (`ContentsNavigation`, `ContentsNavigationTest`). The mark for the page in view follows the canvas page while the card stays open, decorated onto rows already resolved so scrolling does not re-read the outline.
 
 **The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree`
 nodes: every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included,

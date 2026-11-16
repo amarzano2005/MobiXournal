@@ -39,10 +39,10 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 - **Collapsible navigation sidebar (`Ctrl+B`)**: one sidebar, two views chosen by a persistent **Pages /
   Contents** switch that each tab remembers. **Pages** holds the thumbnails, the current page's layers (with an
   eye per layer that hides it without writing to the document) and the search results; it opens itself only
-  when the document has **more than one page**. **Contents** is the document's index at the sidebar's full
-  height — Add bookmark, a filter and the outline — not a folded section under the thumbnails, and a row the
-  notebook owns wears a **⋯** glyph with the tablet's neutral Rename/Delete menu (the PDF's own rows leave
-  that gutter empty).
+  when the document has **more than one page**. **Contents** is the index at the sidebar's full height — Add
+  bookmark, a filter and the outline, with the row naming the page in view moving with the page without
+  re-reading the outline — not a folded section under the thumbnails; a row the notebook owns wears a **⋯**
+  glyph with the tablet's neutral Rename/Delete menu (the PDF's own rows leave that gutter empty).
 - **The sheet alone on the desk**: one page at a time, opened at **100 % — the page's width filling the
   window**, the scale the tablet opens a page at (`FitOnOpen.DEFAULT` is fit width), with the fit mode named
   in the status bar.
