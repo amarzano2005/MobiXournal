@@ -5,6 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -68,7 +69,7 @@ internal fun PdfContentsButton(
     rows: List<OutlineRow>,
     currentPage: Int?,
     onGoToPage: (Int) -> Unit,
-    onAdd: (String) -> OutlineEdits.Result,
+    onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
     onDelete: (String) -> OutlineEdits.Result,
 ) {
@@ -122,7 +123,7 @@ internal fun PdfContentsDialog(
     rows: List<OutlineRow>,
     currentPage: Int?,
     onGoToPage: (Int) -> Unit,
-    onAdd: (String) -> OutlineEdits.Result,
+    onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
     onDelete: (String) -> OutlineEdits.Result,
     onDismiss: () -> Unit,
@@ -138,19 +139,28 @@ internal fun PdfContentsDialog(
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         text = {
             Column(Modifier.fillMaxWidth()) {
-                // An edit in progress takes the card over: the list is not what the reader is doing.
-                if (editing.form(onAdd, onRename)) return@Column
                 // A delete question sits above the list, not in place of it: the rows the reader was reading
                 // stay behind the answer, so cancelling costs them nothing.
-                editing.question(onDelete)
-                ContentsAddRow { editing.adding() }
+                val deleting = editing.deleting
+                if (deleting != null) {
+                    DeleteQuestion(
+                        title = deleting.row.title,
+                        error = editing.error,
+                        onDelete = { editing.submit(onDelete(deleting.row.id)) },
+                        onCancel = editing::cancel,
+                    )
+                }
+                // Renaming is in the row it names and a new bookmark is a draft above its neighbours: the
+                // filter and the surrounding rows stay where they were while a name is typed.
+                val adding = editing.draft is ContentsEdit.Adding
+                ContentsAddRow(enabled = !adding) { editing.adding(currentPage) }
                 ContentsFilter(
                     query = query,
                     onQuery = { query = it },
                     onClear = { query = "" },
                 )
                 Spacer(Modifier.height(8.dp))
-                if (shown.isEmpty()) {
+                if (shown.isEmpty() && !adding) {
                     Text(
                         text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
                         style = MaterialTheme.typography.bodyMedium,
@@ -162,8 +172,27 @@ internal fun PdfContentsDialog(
                 BoxWithConstraints {
                     val widthDp = maxWidth.value
                     val widest = largestPageNumber(rows)
+                    val pageColumnDp = ContentsRowLayout.pageColumnDp(
+                        largestPageNumber = widest,
+                        rowWidthDp = widthDp,
+                        fontScale = LocalDensity.current.fontScale,
+                    )
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        if (adding) {
+                            item(key = "add-draft") {
+                                AddDraftRow(
+                                    page = editing.addPage,
+                                    pageColumnDp = pageColumnDp,
+                                    title = editing.title,
+                                    error = editing.error,
+                                    onTitle = editing::typed,
+                                    onSave = { editing.submit(onAdd(editing.title, editing.addPage)) },
+                                    onCancel = editing::cancel,
+                                )
+                            }
+                        }
                         items(shown, key = { it.row }) { row ->
+                            val renaming = (editing.draft as? ContentsEdit.Renaming)?.takeIf { it.row.id == row.id }
                             ContentsRow(
                                 row = row,
                                 rowWidthDp = widthDp,
@@ -177,6 +206,12 @@ internal fun PdfContentsDialog(
                                 // file's bookmark, and it becomes the notebook's the moment one is added.
                                 onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
                                 onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                                renaming = renaming != null,
+                                title = editing.title,
+                                error = editing.error,
+                                onTitle = editing::typed,
+                                onSaveDraft = { editing.submit(onRename(row.id, editing.title)) },
+                                onCancelDraft = editing::cancel,
                             )
                         }
                     }
@@ -235,7 +270,7 @@ internal fun PdfContentsLane(pane: PaneState, onGoToPage: (Int) -> Unit) {
         // scrolls or a row is followed, so the mark moves with them instead of staying where the card opened.
         currentPage = pane.currentPage,
         onGoToPage = onGoToPage,
-        onAdd = { title -> commands?.addBookmark(title, seed) ?: missingCommands() },
+        onAdd = { title, page -> commands?.addBookmark(title, seed, page) ?: missingCommands() },
         onRename = { id, title -> commands?.renameBookmark(id, title) ?: missingCommands() },
         onDelete = { id -> commands?.deleteBookmark(id) ?: missingCommands() },
     )
@@ -268,6 +303,12 @@ private fun ContentsRow(
     onClick: () -> Unit,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    renaming: Boolean = false,
+    title: String = "",
+    error: String? = null,
+    onTitle: (String) -> Unit = {},
+    onSaveDraft: () -> Unit = {},
+    onCancelDraft: () -> Unit = {},
 ) {
     val pageColumnDp = ContentsRowLayout.pageColumnDp(
         largestPageNumber = largestPageNumber,
@@ -288,7 +329,7 @@ private fun ContentsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = row.hasDestination, role = Role.Button, onClick = onClick)
+            .clickable(enabled = row.hasDestination && !renaming, role = Role.Button, onClick = onClick)
             // One announcement for the whole row: a title, a page and whether it opens at all, instead of a
             // title with a lone number beside it and a click that may do nothing.
             .semantics(mergeDescendants = true) {
@@ -306,6 +347,19 @@ private fun ContentsRow(
         verticalAlignment = Alignment.Top,
     ) {
         ContentsChevron(branched = row.branch, expanded = row.expanded, title = row.title, onToggle = onToggle)
+        if (renaming) {
+            // Retitling happens **in the row it names**: the name is typed where the old one was read, between
+            // the same paragraphs, not in a form that replaces the list.
+            ContentsTitleField(
+                value = title,
+                error = error,
+                placeholder = "Title",
+                onValue = onTitle,
+                onSave = onSaveDraft,
+                onCancel = onCancelDraft,
+                modifier = Modifier.weight(1f).padding(vertical = 2.dp),
+            )
+        } else {
         Box(Modifier.weight(1f)) {
             Text(
                 text = row.title,
@@ -354,6 +408,7 @@ private fun ContentsRow(
                 ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
             }
         }
+        }
     }
 }
 
@@ -400,6 +455,80 @@ private fun ContentsRowMenu(
                     },
                 )
             }
+        }
+    }
+}
+
+/**
+ * The draft **Add bookmark** opens: a compact row above its neighbours, holding the name being typed and the
+ * page it captured when the command was pressed. A page turned while typing cannot move the bookmark, because
+ * the destination was fixed before the first letter.
+ */
+@Composable
+private fun AddDraftRow(
+    page: Int?,
+    pageColumnDp: Float,
+    title: String,
+    error: String?,
+    onTitle: (String) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Spacer(Modifier.width(ContentsRowLayout.BRANCH_DP.dp))
+        ContentsTitleField(
+            value = title,
+            error = error,
+            placeholder = "New bookmark",
+            onValue = onTitle,
+            onSave = onSave,
+            onCancel = onCancel,
+            modifier = Modifier.weight(1f),
+        )
+        Box(Modifier.width(pageColumnDp.dp), contentAlignment = Alignment.TopEnd) {
+            if (page != null) {
+                Text(
+                    text = "${page + 1}",
+                    style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The delete question: asked **above** the list, which keeps its rows, its filter and its scroll behind the
+ * answer. It says what actually happens — the sections under the row move up and the page stays in the
+ * notebook — because the one thing a reader must not fear from a bookmark is losing the page with it.
+ */
+@Composable
+private fun DeleteQuestion(
+    title: String,
+    error: String?,
+    onDelete: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        Text(
+            "Delete \"${title.ifBlank { "this bookmark" }}\"? The sections under it move up, and the page stays in the notebook.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        if (error != null) {
+            Text(
+                error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onDelete) { Text("Delete") }
         }
     }
 }

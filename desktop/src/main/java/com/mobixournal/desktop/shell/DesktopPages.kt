@@ -183,9 +183,11 @@ internal class DesktopPages(
      * Add a bookmark on the page in view, as one undo step. The destination is the page's own answer
      * ([OutlineEdits.targetOf]): the PDF sheet it shows, or the page's id when it is paper.
      */
-    fun addBookmark(title: String, seed: OutlineTree? = null): OutlineEdits.Result {
+    fun addBookmark(title: String, seed: OutlineTree? = null, page: Int? = null): OutlineEdits.Result {
         val tab = active() ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
-        val at = tab.page
+        // [page] is the page the reader was on when the command was pressed: a page turned while the bookmark
+        // is being named must not silently retarget it.
+        val at = page ?: tab.page
         val page = tab.document.model.pages.getOrNull(at)
             ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
         val (identified, target) = OutlineEdits.identifiable(page)

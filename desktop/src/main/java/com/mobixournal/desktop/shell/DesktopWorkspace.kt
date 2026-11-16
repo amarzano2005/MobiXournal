@@ -183,7 +183,9 @@ private fun WorkspaceSidebar(state: DesktopShellState, tab: DesktopTab) {
         // The Contents section's three edits: a row on the page in view, a retitle, a removal — one undo step
         // each, through the same commands the Pages section runs.
         contentsEdits = ContentsEdits(
-            add = { title -> state.pagesSection.addBookmark(title, tab.pdfIndex?.outline?.let(PdfOutlineSeeding::tree)) },
+            add = { title, page ->
+                state.pagesSection.addBookmark(title, tab.pdfIndex?.outline?.let(PdfOutlineSeeding::tree), page)
+            },
             rename = { id, title -> state.pagesSection.renameBookmark(id, title) },
             remove = { id -> state.pagesSection.deleteBookmark(id) },
         ),

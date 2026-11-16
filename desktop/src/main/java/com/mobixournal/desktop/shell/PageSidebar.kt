@@ -83,7 +83,10 @@ import kotlin.math.roundToInt
 
 /** The three Contents edits the sidebar runs, kept together so the sidebar's own signature stays about pages. */
 class ContentsEdits(
-    val add: (String) -> OutlineEdits.Result = { OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
+    /** [page] is the page the reader was on when the command was pressed — captured, never assumed. */
+    val add: (String, Int?) -> OutlineEdits.Result = { _, _ ->
+        OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+    },
     val rename: (String, String) -> OutlineEdits.Result = { _, _ -> OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
     val remove: (String) -> OutlineEdits.Result = { OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
 )

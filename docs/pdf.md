@@ -192,7 +192,7 @@ duplicate mints a page id, a delete keeps the row untargeted (`OutlinePageOps`),
 
 A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): its width is budgeted whole — a 40 dp branch gutter, a bounded indent, the title, a page column reserved from the widest number in the list and one 40 dp action gutter — so every number sits on one edge and on the title's first baseline while the indent gives way first (a narrow sidebar hands the title everything its controls leave, a roomy one keeps the title's minimum); the heading face separates a chapter, a two-line ellipsis keeps a long name readable with the whole of it a long press (tablet) or a hover away (window), and a row announces its title and page (`ContentsRowLayoutTest`, `DesktopPdfContentsRowTest`).
 
-A row the notebook owns opens its **⋯** menu: Rename and Delete are the only doors to an edit, Delete adds only a question above the list (whose rows stay behind it), and a source-PDF row leaves that gutter empty because the file gives it no command this app may run.
+A row the notebook owns opens its **⋯** menu: Rename and Delete are the only doors to an edit, Delete adds only a question above the list (whose rows stay behind it), and a source-PDF row leaves that gutter empty because the file gives it no command this app may run. The edit itself is inline — retitling turns that row into a field, Add opens a draft row over its neighbours — and a new bookmark carries the page captured when the command was pressed, so a page turned while the name is typed cannot retarget it.
 
 ## Joined PDFs: lifetime, publishing and refusing a blank sheet
 

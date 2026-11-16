@@ -185,7 +185,10 @@ that belongs to the notebook wears a **⋯** button that opens a small menu with
 opening it, closing it or picking Rename writes nothing — and Delete only *asks* first, above the list, saying
 the sections under it move up and the page stays in the notebook: a bookmark is a signpost, never the page.
 Rows read out of the PDF cannot be edited and show the empty slot instead: the first bookmark you add copies
-them into the notebook first, so the list you were reading stays where it is, in one undo step. Every add,
+them into the notebook first, so the list you were reading stays where it is, in one undo step. The name is
+typed where the bookmark is: **Rename** turns that row into a field, **Add bookmark** opens a draft row above
+its neighbours showing the page it captured, **Enter** saves, and the cross (or Escape on the window) leaves
+the tree exactly as it was; a blank name cannot be saved and a refusal is printed under the field. Every add,
 rename and removal is one undo step.
 
 **An import writes the tree into the notebook.** A PDF's bookmarks are copied into the notebook's own Contents

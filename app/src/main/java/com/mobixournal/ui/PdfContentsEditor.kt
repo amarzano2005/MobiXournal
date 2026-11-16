@@ -1,27 +1,39 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
 
@@ -34,8 +46,11 @@ import com.mobixournal.render.OutlineRow
  */
 internal sealed interface ContentsEdit {
 
-    /** Naming a row that does not exist yet. */
-    data object Adding : ContentsEdit
+    /**
+     * Naming a row for [page] — the page the reader was on when **Add bookmark** was pressed. Captured then,
+     * so a page turned while the name is typed cannot silently retarget the bookmark being written.
+     */
+    data class Adding(val page: Int?) : ContentsEdit
 
     /** Retitling [row]; its id is what the edit names. */
     data class Renaming(val row: OutlineRow) : ContentsEdit
@@ -47,105 +62,66 @@ internal sealed interface ContentsEdit {
 /**
  * The card's one edit at a time, kept in one object so the dialog's body stays the list it arranges.
  *
- * A refusal is shown where the reader is: under the title field, or under the delete question — the card only
- * closes its form when the command actually wrote something. The delete question is drawn **above the list**
- * rather than in place of it, so the rows the reader was reading stay behind the answer.
+ * The edit is **inline**: retitling happens where the row is, and a new bookmark is a draft row above its
+ * neighbours, so the filter, the branches and the pages around it stay on screen while a name is typed. A
+ * refusal is shown beside the draft — the card only closes the edit when the command actually wrote.
  */
 internal class ContentsEditHost {
 
     private var edit by mutableStateOf<ContentsEdit?>(null)
-    private var title by mutableStateOf("")
-    private var error by mutableStateOf<String?>(null)
+    private var typedTitle by mutableStateOf("")
+    private var refusal by mutableStateOf<String?>(null)
+
+    /** The edit in progress, or null when the list is only being read. */
+    val draft: ContentsEdit? get() = edit
+
+    /** The name being typed. */
+    val title: String get() = typedTitle
+
+    /** The refusal under the draft, once a command has answered. */
+    val error: String? get() = refusal
+
+    /** The page the add draft was opened on — what the bookmark will point at. */
+    val addPage: Int? get() = (edit as? ContentsEdit.Adding)?.page
 
     /** The row being asked about, or null when no delete question is up. */
     val deleting: ContentsEdit.Deleting? get() = edit as? ContentsEdit.Deleting
 
-    /** The title a form is holding — the name being typed, or the row's own while that is retitled. */
-    val typedTitle: String get() = title
-
-    /** Naming a new row for the page in view. */
-    fun adding() {
-        title = ""
-        error = null
-        edit = ContentsEdit.Adding
+    /** Naming a new row for [page], the page in view when Add was pressed. */
+    fun adding(page: Int?) {
+        typedTitle = ""
+        refusal = null
+        edit = ContentsEdit.Adding(page)
     }
 
     /** Retitling [row]: the field opens on the title it already has. */
     fun renaming(row: OutlineRow) {
-        title = row.title
-        error = null
+        typedTitle = row.title
+        refusal = null
         edit = ContentsEdit.Renaming(row)
     }
 
     /** Asking about [row] before it goes. */
     fun deleting(row: OutlineRow) {
-        title = row.title
-        error = null
+        typedTitle = row.title
+        refusal = null
         edit = ContentsEdit.Deleting(row)
+    }
+
+    /** The name as it is now typed. */
+    fun typed(value: String) {
+        typedTitle = value
     }
 
     /** Closing whatever the card is doing, leaving the tree exactly as it was. */
     fun cancel() {
         edit = null
-        error = null
+        refusal = null
     }
 
-    /** The card's rename field — true when it drew one instead of the list. */
-    @Composable
-    fun form(
-        onAdd: (String) -> OutlineEdits.Result,
-        onRename: (String, String) -> OutlineEdits.Result,
-    ): Boolean = when (val current = edit) {
-        is ContentsEdit.Adding, is ContentsEdit.Renaming -> {
-            val renaming = current as? ContentsEdit.Renaming
-            ContentsTitleEditor(
-                title = title,
-                heading = if (renaming == null) "New bookmark" else "Rename bookmark",
-                error = error,
-                onTitle = { title = it },
-                onSave = { settle(if (renaming == null) onAdd(title) else onRename(renaming.row.id, title)) },
-                onCancel = ::cancel,
-            )
-            true
-        }
-        else -> false
-    }
-
-    /**
-     * The delete question, drawn above the list it is about (the question never takes the card over): the
-     * sections under the row move up, and the page stays in the notebook.
-     */
-    @Composable
-    fun question(onDelete: (String) -> OutlineEdits.Result) {
-        val current = deleting ?: return
-        Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-            Text(
-                "Delete \"${current.row.title.ifBlank { "this bookmark" }}\"? The sections under it move up, and the page stays in the notebook.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (error != null) {
-                Text(
-                    error.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = ::cancel) { Text("Cancel") }
-                TextButton(onClick = { settle(onDelete(current.row.id)) }) { Text("Delete") }
-            }
-        }
-    }
-
-    /** A command's answer: a refusal stays on screen in the reader's words, a write closes the form. */
-    private fun settle(result: OutlineEdits.Result) {
-        if (result is OutlineEdits.Result.Refused) {
-            error = refusalCopy(result.reason)
-        } else {
-            edit = null
-            error = null
-        }
+    /** A command's answer: a refusal stays beside the draft in the reader's words, a write closes it. */
+    fun submit(result: OutlineEdits.Result) {
+        if (result is OutlineEdits.Result.Refused) refusal = refusalCopy(result.reason) else cancel()
     }
 }
 
@@ -157,32 +133,84 @@ internal fun refusalCopy(reason: OutlineEdits.Refusal): String = when (reason) {
 }
 
 /**
- * The title field a bookmark is named in: one line, **Save** only once there is something to save, and
- * **Cancel** leaving the tree exactly as it was. Enter saves, so a keyboard user never has to reach for the
- * button. A refusal is shown under the field instead of closing it, so the reader can fix the title.
+ * The one-line field a bookmark is named in, wherever the name is typed: inside the row being retitled or in
+ * the draft the **Add bookmark** command opens. **Enter** saves, the check saves, the cross abandons, and a
+ * blank name cannot be saved at all. A refusal is printed under the field so the name can be fixed in place.
  */
 @Composable
-internal fun ContentsTitleEditor(
-    title: String,
-    heading: String,
+internal fun ContentsTitleField(
+    value: String,
     error: String?,
-    onTitle: (String) -> Unit,
+    placeholder: String,
+    onValue: (String) -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val focus = LocalFocusManager.current
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(heading, style = MaterialTheme.typography.titleSmall)
-        OutlinedTextField(
-            value = title,
-            onValueChange = onTitle,
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-            singleLine = true,
-            label = { Text("Title") },
-            isError = error != null,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { focus.clearFocus(); onSave() }),
-        )
+    Column(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValue,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (value.isNotBlank()) {
+                            focus.clearFocus()
+                            onSave()
+                        }
+                    },
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .border(
+                        width = 1.dp,
+                        color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(6.dp),
+                    )
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                decorationBox = { field ->
+                    Box {
+                        if (value.isEmpty()) {
+                            Text(
+                                placeholder,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        field()
+                    }
+                },
+            )
+            IconButton(onClick = onCancel, modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Cancel",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            IconButton(
+                onClick = onSave,
+                enabled = value.isNotBlank(),
+                modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp),
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Save bookmark",
+                    tint = if (value.isNotBlank()) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
         if (error != null) {
             Text(
                 error,
@@ -191,17 +219,22 @@ internal fun ContentsTitleEditor(
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
-            TextButton(onClick = onSave, enabled = title.isNotBlank()) { Text("Save") }
-        }
     }
 }
 
-/** The **Add bookmark** row above the list: the door to naming a row for the page in view. */
+/**
+ * The **Add bookmark** row above the list: the door to naming a row for the page in view. It stays reachable
+ * while a name is being typed (the draft sits in the list, not over it), and it names the page it captured.
+ */
 @Composable
-internal fun ContentsAddRow(onAdd: () -> Unit) {
+internal fun ContentsAddRow(enabled: Boolean, onAdd: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-        TextButton(onClick = onAdd, modifier = Modifier.semantics { role = Role.Button }) { Text("Add bookmark") }
+        TextButton(
+            onClick = onAdd,
+            enabled = enabled,
+            modifier = Modifier
+                .semantics { role = Role.Button }
+                .padding(vertical = 2.dp),
+        ) { Text("Add bookmark") }
     }
 }

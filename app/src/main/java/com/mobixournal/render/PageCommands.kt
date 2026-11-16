@@ -161,9 +161,11 @@ internal class PageCommands(
      * Add a bookmark on the page in view as one undoable edit. What it opens is the page's own answer
      * ([OutlineEdits.targetOf]): the PDF sheet it shows, or the page's id when it is paper.
      */
-    fun addBookmark(title: String, seed: OutlineTree? = null): OutlineEdits.Result {
+    fun addBookmark(title: String, seed: OutlineTree? = null, page: Int? = null): OutlineEdits.Result {
         val doc = document()
-        val at = currentPage()
+        // [page] is the page the reader was on when the command was pressed: a page turned while the bookmark
+        // is being named must not silently retarget it.
+        val at = page ?: currentPage()
         val page = doc.pages.getOrNull(at)
             ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
         val (identified, target) = OutlineEdits.identifiable(page)

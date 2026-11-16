@@ -46,6 +46,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -128,6 +133,10 @@ internal fun ContentsPanel(
     }
     // One Contents edit at a time: naming a row for the page in view, retitling one, or asking about a removal.
     val editing = remember(tab) { ContentsEditHost() }
+    // A new bookmark is a draft row in the list; retitling is in the row it names. Either way the filter and
+    // the neighbouring rows stay where they were.
+    val naming = editing.draft as? ContentsEditState.Naming
+    val adding = naming != null && naming.row == null
     Column(modifier.padding(horizontal = 10.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -136,17 +145,20 @@ internal fun ContentsPanel(
                 style = DesktopTheme.eyebrow,
                 modifier = Modifier.weight(1f),
             )
-            ContentsHeaderAction("Add bookmark") { editing.adding() }
+            ContentsHeaderAction("Add bookmark", enabled = !adding) { editing.adding(tab.page) }
         }
-        if (editing.pane(
-                onAdd = { title -> contentsEdits.add(title) },
-                onRename = { id, title -> contentsEdits.rename(id, title) },
-                onDelete = { id -> contentsEdits.remove(id) },
+        val deleting = editing.deleting
+        if (deleting != null) {
+            ContentsDeleteQuestion(
+                row = deleting.row,
+                error = editing.error,
+                onDelete = { editing.submit(contentsEdits.remove(deleting.row.id)) },
+                onCancel = editing::cancel,
             )
-        ) return@Column
+        }
         ContentsFilterField(query = query, onQuery = { query = it })
         Spacer(Modifier.height(4.dp))
-        if (rows.isEmpty()) {
+        if (rows.isEmpty() && !adding) {
             Text(
                 text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
                 color = DesktopTheme.inkMuted,
@@ -160,8 +172,27 @@ internal fun ContentsPanel(
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val widthDp = maxWidth.value
             val widest = largestPageNumber(rows)
+            val pageColumnDp = ContentsRowLayout.pageColumnDp(
+                largestPageNumber = widest,
+                rowWidthDp = widthDp,
+                fontScale = LocalDensity.current.fontScale,
+            )
             LazyColumn(Modifier.fillMaxSize()) {
+                if (adding) {
+                    item(key = "add-draft") {
+                        ContentsAddDraft(
+                            page = editing.addPage,
+                            pageColumnDp = pageColumnDp,
+                            title = editing.title,
+                            error = editing.error,
+                            onTitle = editing::typed,
+                            onSave = { editing.submit(contentsEdits.add(editing.title, editing.addPage)) },
+                            onCancel = editing::cancel,
+                        )
+                    }
+                }
                 items(rows, key = { it.row }) { row ->
+                    val renaming = (editing.draft as? ContentsEditState.Naming)?.takeIf { it.row?.id == row.id }
                     OutlineRowView(
                         row = row,
                         rowWidthDp = widthDp,
@@ -172,6 +203,12 @@ internal fun ContentsPanel(
                         // first bookmark seeds the tree from them so they stay in the list.
                         onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
                         onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                        renaming = renaming != null,
+                        title = editing.title,
+                        error = editing.error,
+                        onTitle = editing::typed,
+                        onSaveDraft = { editing.submit(contentsEdits.rename(row.id, editing.title)) },
+                        onCancelDraft = editing::cancel,
                     )
                 }
             }
@@ -181,14 +218,14 @@ internal fun ContentsPanel(
 
 /** The Contents header's own command: a word on a full-height slot, so the action is reachable by thumb and pen. */
 @Composable
-private fun ContentsHeaderAction(label: String, onClick: () -> Unit) {
+private fun ContentsHeaderAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     Text(
         label,
-        color = DesktopTheme.inkSecondary,
+        color = if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted,
         style = DesktopTheme.label,
         modifier = Modifier
-            .hoverFill(RoundedCornerShape(8.dp))
-            .clickable(role = Role.Button, onClick = onClick)
+            .hoverFill(RoundedCornerShape(8.dp), active = !enabled)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 12.dp),
     )
 }
@@ -256,6 +293,12 @@ internal fun OutlineRowView(
     onToggle: (() -> Unit)? = null,
     onRename: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    renaming: Boolean = false,
+    title: String = "",
+    error: String? = null,
+    onTitle: (String) -> Unit = {},
+    onSaveDraft: () -> Unit = {},
+    onCancelDraft: () -> Unit = {},
 ) {
     val pageColumnDp = ContentsRowLayout.pageColumnDp(
         largestPageNumber = largestPageNumber,
@@ -291,6 +334,18 @@ internal fun OutlineRowView(
         verticalAlignment = Alignment.Top,
     ) {
         ContentsChevron(row = row, onToggle = onToggle)
+        if (renaming) {
+            // The name is typed where the old one was read: the row itself, between the same neighbours.
+            ContentsTitleField(
+                value = title,
+                onValue = onTitle,
+                error = error,
+                placeholder = "Title",
+                onSave = onSaveDraft,
+                onCancel = onCancelDraft,
+                modifier = Modifier.weight(1f).padding(vertical = 2.dp),
+            )
+        } else {
         TooltipArea(
             tooltip = {
                 Box(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
@@ -337,6 +392,7 @@ internal fun OutlineRowView(
             if (onRename != null || onDelete != null) {
                 ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
             }
+        }
         }
     }
 }
@@ -418,107 +474,77 @@ private fun ContentsRowAction(label: String, title: String, onClick: () -> Unit)
     )
 }
 
-/**
- * The section while one row is being named, retitled or asked about — true when it drew that instead of the list.
- * Pulled out so the section reads as the list and the filter it arranges, not the three forms beside them.
- */
-@Composable
-private fun ContentsEditPane(
-    edit: ContentsEditState?,
-    title: String,
-    error: String?,
-    onTitle: (String) -> Unit,
-    onSettle: (OutlineEdits.Result) -> Unit,
-    onStartAdd: () -> Unit,
-    onAdd: (String) -> OutlineEdits.Result,
-    onRename: (String, String) -> OutlineEdits.Result,
-    onDelete: (String) -> OutlineEdits.Result,
-    onCancel: () -> Unit,
-): Boolean = when (edit) {
-    // Add is the panel's own header command, not a row of this pane: an idle pane draws nothing.
-    null -> false
-    is ContentsEditState.Deleting -> {
-        ContentsDeleteQuestion(
-            row = edit.row,
-            error = error,
-            onDelete = { onSettle(onDelete(edit.row.id)) },
-            onCancel = onCancel,
-        )
-        true
-    }
-    is ContentsEditState.Naming -> {
-        ContentsTitleField(
-            value = title,
-            onValue = onTitle,
-            error = error,
-            onSave = { onSettle(if (edit.row == null) onAdd(title) else onRename(edit.row.id, title)) },
-            onCancel = onCancel,
-        )
-        true
-    }
+/** What the panel is doing to the tree right now: naming a row (null for a new one) or asking about a removal. */
+internal sealed interface ContentsEditState {
+
+    /** Naming a new row ([row] null) for [page], or retitling [row]. */
+    data class Naming(val row: OutlineRow?, val page: Int?) : ContentsEditState
+
+    /** Asking whether to remove [row]. */
+    data class Deleting(val row: OutlineRow) : ContentsEditState
 }
 
-/** The section's one edit at a time, so the section's body stays the list and the filter it arranges. */
+/**
+ * The panel's one edit at a time, so the list stays the list it arranges: the draft, the name being typed, and
+ * the page a new bookmark captured when **Add bookmark** was pressed (a page turned while typing cannot move it).
+ */
 internal class ContentsEditHost {
 
     private var edit by mutableStateOf<ContentsEditState?>(null)
-    private var title by mutableStateOf("")
-    private var error by mutableStateOf<String?>(null)
+    private var typedTitle by mutableStateOf("")
+    private var refusal by mutableStateOf<String?>(null)
 
-    /** Naming a new row for the page in view. */
-    fun adding() {
-        title = ""
-        error = null
-        edit = ContentsEditState.Naming(null)
+    /** The edit in progress, or null when the list is only being read. */
+    val draft: ContentsEditState? get() = edit
+
+    /** The name being typed. */
+    val title: String get() = typedTitle
+
+    /** The refusal beside the draft, once a command has answered. */
+    val error: String? get() = refusal
+
+    /** The page the add draft was opened on. */
+    val addPage: Int? get() = (edit as? ContentsEditState.Naming)?.page
+
+    /** The row being asked about, or null when no delete question is up. */
+    val deleting: ContentsEditState.Deleting? get() = edit as? ContentsEditState.Deleting
+
+    /** Naming a new row for [page]. */
+    fun adding(page: Int?) {
+        typedTitle = ""
+        refusal = null
+        edit = ContentsEditState.Naming(row = null, page = page)
     }
 
     /** Retitling [row]: the field opens on the title it already has. */
     fun renaming(row: OutlineRow) {
-        title = row.title
-        error = null
-        edit = ContentsEditState.Naming(row)
+        typedTitle = row.title
+        refusal = null
+        edit = ContentsEditState.Naming(row = row, page = row.page)
     }
 
     /** Asking about [row] before it goes. */
     fun deleting(row: OutlineRow) {
-        error = null
+        typedTitle = row.title
+        refusal = null
         edit = ContentsEditState.Deleting(row)
     }
 
-    /** The pane's own composable — true when it drew an edit instead of the list. */
-    @Composable
-    fun pane(
-        onAdd: (String) -> OutlineEdits.Result,
-        onRename: (String, String) -> OutlineEdits.Result,
-        onDelete: (String) -> OutlineEdits.Result,
-    ): Boolean = ContentsEditPane(
-        edit = edit,
-        title = title,
-        error = error,
-        onTitle = { title = it },
-        onSettle = { result ->
-            if (result is OutlineEdits.Result.Refused) error = contentsRefusal(result.reason) else edit = null
-        },
-        onStartAdd = {
-            title = ""
-            error = null
-            edit = ContentsEditState.Naming(null)
-        },
-        onAdd = onAdd,
-        onRename = onRename,
-        onDelete = onDelete,
-        onCancel = { edit = null; error = null },
-    )
-}
+    /** The name as it is now typed. */
+    fun typed(value: String) {
+        typedTitle = value
+    }
 
-/** What the section is doing to the tree right now. */
-internal sealed interface ContentsEditState {
+    /** Closing whatever the panel is doing, leaving the tree exactly as it was. */
+    fun cancel() {
+        edit = null
+        refusal = null
+    }
 
-    /** Naming a new row (null) or retitling [row]. */
-    data class Naming(val row: OutlineRow?) : ContentsEditState
-
-    /** Asking whether to remove [row]. */
-    data class Deleting(val row: OutlineRow) : ContentsEditState
+    /** A command's answer: a refusal stays beside the draft in the reader's words, a write closes it. */
+    fun submit(result: OutlineEdits.Result) {
+        if (result is OutlineEdits.Result.Refused) refusal = contentsRefusal(result.reason) else cancel()
+    }
 }
 
 /** A refusal in the reader's words — never a class or an enum name on screen. */
@@ -528,16 +554,25 @@ private fun contentsRefusal(reason: OutlineEdits.Refusal): String = when (reason
     OutlineEdits.Refusal.NO_TARGET -> "This page cannot hold a bookmark."
 }
 
-/** The title a row is named in, with Save, Cancel and the refusal under it instead of a silent close. */
+/**
+ * The one-line field a bookmark is named in — inside the row being retitled, or in the draft the header's
+ * command opens. **Enter** saves, **Escape** abandons, a blank name cannot be saved, and the refusal is printed
+ * under the field. While it has focus [WindowKeys.focusControl] tells the shell the keyboard is typing, so a
+ * name may contain a tool's letter without the window reading it as a shortcut.
+ */
 @Composable
 private fun ContentsTitleField(
     value: String,
     onValue: (String) -> Unit,
     error: String?,
+    placeholder: String,
     onSave: () -> Unit,
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+    val owner = remember { Any() }
+    DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
+    Column(modifier) {
         BasicTextField(
             value = value,
             onValueChange = onValue,
@@ -546,12 +581,27 @@ private fun ContentsTitleField(
             cursorBrush = androidx.compose.ui.graphics.SolidColor(DesktopTheme.accent),
             modifier = Modifier
                 .fillMaxWidth()
+                .onFocusChanged { WindowKeys.focusControl(owner, it.isFocused) }
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (event.key) {
+                        Key.Enter, Key.NumPadEnter -> {
+                            if (value.isNotBlank()) onSave()
+                            true
+                        }
+                        Key.Escape -> {
+                            onCancel()
+                            true
+                        }
+                        else -> false
+                    }
+                }
                 .glassCapsule(cornerRadius = 8.dp)
                 .border(1.dp, if (error != null) DesktopTheme.danger else DesktopTheme.accent, RoundedCornerShape(8.dp))
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             decorationBox = { field ->
                 Box {
-                    if (value.isEmpty()) Text("Title", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+                    if (value.isEmpty()) Text(placeholder, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
                     field()
                 }
             },
@@ -564,7 +614,43 @@ private fun ContentsTitleField(
     }
 }
 
-/** The delete question: says the page stays in the notebook before the row goes. */
+/**
+ * The draft **Add bookmark** opens: a compact row above its neighbours, holding the name being typed and the
+ * page it captured when the command was pressed.
+ */
+@Composable
+private fun ContentsAddDraft(
+    page: Int?,
+    pageColumnDp: Float,
+    title: String,
+    error: String?,
+    onTitle: (String) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Spacer(Modifier.width(ContentsRowLayout.BRANCH_DP.dp))
+        ContentsTitleField(
+            value = title,
+            onValue = onTitle,
+            error = error,
+            placeholder = "New bookmark",
+            onSave = onSave,
+            onCancel = onCancel,
+            modifier = Modifier.weight(1f),
+        )
+        Box(Modifier.width(pageColumnDp.dp), contentAlignment = Alignment.TopEnd) {
+            if (page != null) {
+                Text(text = "${page + 1}", color = DesktopTheme.inkMuted, style = DesktopTheme.numeric)
+            }
+        }
+    }
+}
+
+/** The delete question: asked above the list (which keeps its rows), and says the page stays in the notebook. */
 @Composable
 private fun ContentsDeleteQuestion(
     row: OutlineRow,
