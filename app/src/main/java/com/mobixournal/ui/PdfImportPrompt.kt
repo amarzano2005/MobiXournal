@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PageRanges
+import com.mobixournal.render.PdfOutlineSeeding
 import java.io.File
 
 /**
@@ -35,6 +36,13 @@ data class PdfImportPrompt(
     val mode: ImportPdfMode = ImportPdfMode.APPEND,
     /** The pages to bring, as typed (1-based); the whole PDF until told otherwise. */
     val pages: String = PageRanges.whole(pageCount),
+    /**
+     * Whether the import adds a Contents row named after the file. On by default: an imported book should be
+     * findable in the index without the reader having to name it first.
+     */
+    val bookmark: Boolean = true,
+    /** The title that row carries — the file's name without its `.pdf`, and the reader's to change. */
+    val bookmarkTitle: String = PdfOutlineSeeding.defaultTitle(name),
 ) {
     /** What the field names, or the sentence saying why it cannot be used. */
     val range: PageRangePlan get() = PageRanges.selection(pages, pageCount)

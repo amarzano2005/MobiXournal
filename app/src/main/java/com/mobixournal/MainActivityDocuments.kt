@@ -409,7 +409,15 @@ internal fun MainActivity.confirmPdfImport(mode: ImportPdfMode) {
         null
     }
     inBackground("Importing ${prompt.name}…", {
-        preparePdfImport(source, mode, prompt.reference, chosen, base)
+        preparePdfImport(
+            source,
+            mode,
+            prompt.reference,
+            chosen,
+            base,
+            title = prompt.bookmarkTitle,
+            bookmark = prompt.bookmark,
+        )
     }) { result ->
         // The staged copy has done its job either way: the plan holds the store's own file.
         source.delete()
@@ -488,14 +496,16 @@ internal fun MainActivity.preparePdfImport(
     indices: List<Int>?,
     base: File?,
     inStore: Boolean = false,
-    /** The imported file's own name, for the Contents group a second import is filed under. */
+    /** The title of the Contents row the import adds — the file's name unless the reader renamed it. */
     title: String? = null,
+    /** Whether the import adds that row at all: the card's option, on by default. */
+    bookmark: Boolean = true,
 ): PdfImportPlan {
     // The PDF's bookmarks are read once, here, with the pages: the document's Contents is seeded from them and
     // from then on belongs to the reader (`PdfOutlineSeeding`, `docs/pdf.md`). A file with no outline answers
     // empty, and a read that breaks is an outline-less import rather than a failed one.
     val pdfOutline = runCatching { PdfOutlineExtractor().extract(source) }.getOrDefault(PdfOutline.EMPTY)
-    val groupTitle = title?.takeIf { it.isNotBlank() } ?: source.nameWithoutExtension
+    val groupTitle = title?.takeIf { it.isNotBlank() } ?: PdfOutlineSeeding.defaultTitle(source.name)
     if (mode == ImportPdfMode.APPEND && base != null) {
         // A `.xopp` holds one reference, so the two PDFs become one file. The arriving bytes are read
         // by the merge itself, so there is no need for a store copy of them on the way.
@@ -515,7 +525,7 @@ internal fun MainActivity.preparePdfImport(
             joined,
             added = added,
             outline = PdfOutlineSeeding.tree(pdfOutline, pageOffset = offset),
-            title = groupTitle,
+            title = groupTitle.takeIf { bookmark }.orEmpty(),
             joined = true,
         )
     }
@@ -525,7 +535,11 @@ internal fun MainActivity.preparePdfImport(
             // A replacing import is a new document, so its Contents is the PDF's own tree — never wrapped in a
             // file-name node, which is the shape a second import into an existing notebook takes.
             val document = PdfPageCache(copy).use { cache -> PdfImport.documentFor(cache, reference, indices) }
-            val seeded = document.copy(outline = PdfOutlineSeeding.tree(pdfOutline))
+            // A replacing import is a new document, so its first page is page 0 and the file's row is the tree's
+            // root; the PDF's own chapters hang under it.
+            val chapters = PdfOutlineSeeding.tree(pdfOutline)
+            val outline = PdfOutlineSeeding.imported(com.mobixournal.format.model.OutlineTree.EMPTY, chapters, groupTitle.takeIf { bookmark }, 0)
+            val seeded = document.copy(outline = outline)
             PdfTextIndexCache.forget(copy)
             return PdfImportPlan(mode, copy, document = seeded)
         }
@@ -538,7 +552,7 @@ internal fun MainActivity.preparePdfImport(
             copy,
             added = added,
             outline = PdfOutlineSeeding.tree(pdfOutline),
-            title = groupTitle,
+            title = groupTitle.takeIf { bookmark }.orEmpty(),
         )
     } catch (failure: Throwable) {
         if (!inStore) copy.delete()

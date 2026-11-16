@@ -181,9 +181,9 @@ that finds nothing leaves its row dimmed, is [mobix-data-model.md](mobix-data-mo
 
 **The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree`
 nodes: every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included,
-with the page it inherited from its first pointing descendant — shifted by the base's page count on a joined import. A
-document that already has an outline files the arriving rows under **one** target-less node titled after the file; pages
-and tree are one undoable edit, a failed import writes neither, and opening never re-seeds.
+with the page it inherited from its first pointing descendant — shifted by the base's page count on a joined import. `imported` adds **one** node titled after the file (final `.pdf` dropped, editable in the card) opening the first page
+that arrived, the PDF's rows under it — option off and they join the tree at the top; pages and tree are one undoable
+edit, a failed import writes neither, and opening never re-seeds.
 
 **A merge keeps every chapter; a page edit never removes a row.** Branches merge by node id (`MobixOutlineMerge`): a node
 only one side has is kept, a shared one keeps the local title and place with children unioned; a move changes no target, a

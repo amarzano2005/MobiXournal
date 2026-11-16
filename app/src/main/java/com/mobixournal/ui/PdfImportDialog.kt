@@ -11,6 +11,9 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -149,6 +152,7 @@ private fun ImportQuestions(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+        BookmarkField(request = request, onEdit = onEdit)
         // One group, so a screen reader counts the answers ("1 of 2") instead of reading two unrelated
         // radios that happen to sit together.
         Column(Modifier.selectableGroup()) {
@@ -172,6 +176,39 @@ private fun ImportQuestions(
         ImportPagesGrid(
             prompt = request,
             onPages = { pages -> onEdit { it.copy(pages = pages) } },
+        )
+    }
+}
+
+/**
+ * **The index row the import offers**, and its title: on by default, named after the file, editable.
+ *
+ * The title starts as the file's own name with only its `.pdf` dropped, so the common answer needs no typing;
+ * turning the switch off leaves the PDF's own chapters joining the index at the top level, which is what an
+ * import did before this row existed. The field is disabled — not hidden — while the switch is off, so the
+ * card does not change height under a finger reaching for it.
+ */
+@Composable
+private fun BookmarkField(
+    request: PdfImportPrompt,
+    onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = request.bookmark,
+                onCheckedChange = { on -> onEdit { it.copy(bookmark = on) } },
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Add a bookmark for this file", style = MaterialTheme.typography.bodyMedium)
+        }
+        OutlinedTextField(
+            value = request.bookmarkTitle,
+            onValueChange = { title -> onEdit { it.copy(bookmarkTitle = title.take(80)) } },
+            label = { Text("Bookmark title") },
+            singleLine = true,
+            enabled = request.bookmark,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

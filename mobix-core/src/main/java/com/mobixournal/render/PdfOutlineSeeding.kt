@@ -55,24 +55,40 @@ object PdfOutlineSeeding {
     }
 
     /**
-     * [existing] with [incoming] added under one group node titled [importedTitle] (no target), or [incoming]
-     * itself when the document had no outline — a first import is the tree, not a tree wrapped in a file name.
+     * [existing] plus **one row named after the imported file**, pointing at [firstPage], with [chapters]
+     * under it — the bookmark every import offers by default.
+     *
+     * The row is the file's own signpost: it says which book these pages came from and opens the first page
+     * that actually arrived (a subset's first pick, not the file's page 1). The chapters keep their hierarchy
+     * under it, so a book with bookmarks reads as one object and a book without them is still one row instead
+     * of nothing. A null or blank [title] is the reader turning the option off: those rows then join [existing]
+     * at the top level, exactly as an import used to.
      */
-    fun merged(
+    fun imported(
         existing: OutlineTree,
-        incoming: OutlineTree,
-        importedTitle: String,
+        chapters: OutlineTree?,
+        title: String?,
+        firstPage: Int,
         mint: (String) -> String = { ElementId.mint(ElementId.BOOKMARK) },
     ): OutlineTree {
-        if (incoming.isEmpty) return existing
-        if (existing.isEmpty) return incoming
-        val group = OutlineNode(
+        val rows = chapters?.nodes.orEmpty()
+        if (title.isNullOrBlank()) return existing.copy(nodes = existing.nodes + rows)
+        val marker = OutlineNode(
             id = mint(ElementId.BOOKMARK),
-            title = importedTitle,
-            target = null,
-            children = incoming.nodes,
+            title = title.trim(),
+            target = OutlineTarget.Sheet(firstPage),
+            children = rows,
         )
-        return existing.copy(nodes = existing.nodes + group)
+        return OutlineTree(nodes = existing.nodes + marker)
+    }
+
+    /**
+     * The bookmark title an imported file offers: its own name with **only** the final `.pdf` dropped, in any
+     * case, and nothing else rewritten — `notes.final.PDF` is *notes.final*, and a file called `.pdf` keeps it.
+     */
+    fun defaultTitle(fileName: String): String {
+        val name = fileName.trim()
+        return if (name.length > 4 && name.endsWith(".pdf", ignoreCase = true)) name.dropLast(4) else name
     }
 
     /** One pre-order walk of the flattened rows, nesting by the depth each entry carries. */

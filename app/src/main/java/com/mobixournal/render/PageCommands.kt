@@ -111,12 +111,20 @@ internal class PageCommands(
     }
 
     /**
-     * The Contents tree an appended import leaves behind: the PDF's rows, filed under the imported file's name
-     * when the document already has a tree of its own ([PdfOutlineSeeding]). Null means the import brought no
-     * bookmarks, so the document's outline is left exactly as it was.
+     * The Contents tree an appended import leaves behind: one row named after the file, pointing at the first
+     * page that arrived, with the PDF's own rows under it ([PdfOutlineSeeding.imported]).
+     *
+     * The row is offered even when the PDF has no bookmarks ([outline] null) — a shelf of scans is navigable
+     * by file even when not one of them is bookmarked. A blank [importedTitle] is the reader turning the option
+     * off: the PDF's rows then join the tree as they are, and an outline-less import leaves it alone.
      */
-    private fun seeded(outline: OutlineTree?, importedTitle: String): OutlineTree? =
-        outline?.let { PdfOutlineSeeding.merged(document().outline, it, importedTitle.ifBlank { "Imported PDF" }) }
+    private fun seeded(outline: OutlineTree?, importedTitle: String): OutlineTree? {
+        if (outline == null && importedTitle.isBlank()) return null
+        val doc = document()
+        // The first page that actually arrived: an append starts at the count the document has now, whatever
+        // subset of the file was picked.
+        return PdfOutlineSeeding.imported(doc.outline, outline, importedTitle, firstPage = doc.pages.size)
+    }
 
     /**
      * Delete the page currently in view. No-op when only one page remains.

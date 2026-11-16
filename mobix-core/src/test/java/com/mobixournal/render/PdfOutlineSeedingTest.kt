@@ -88,29 +88,69 @@ class PdfOutlineSeedingTest {
     }
 
     @Test
-    fun `a first import is the tree itself, not a tree wrapped in its file name`() {
-        val incoming = PdfOutlineSeeding.tree(PdfOutline(listOf(entry("Chapter", 0, 0))))
-        assertEquals(incoming, PdfOutlineSeeding.merged(OutlineTree.EMPTY, incoming, "chapter.pdf"))
+    fun `a first import is one row named after the file, opening its first arrived page`() {
+        val chapters = PdfOutlineSeeding.tree(PdfOutline(listOf(entry("Chapter", 0, 0))))
+        val tree = PdfOutlineSeeding.imported(OutlineTree.EMPTY, chapters, "chapter", firstPage = 4)
+
+        val marker = tree.nodes.single()
+        assertEquals("chapter", marker.title)
+        assertEquals("the row opens the page the import actually landed on", OutlineTarget.Sheet(4), marker.target)
+        assertEquals("the PDF's own rows hang under it", chapters.nodes, marker.children)
     }
 
     @Test
-    fun `a second import goes under one node named after the file, with no target`() {
+    fun `a second import is another row, and the first one is untouched`() {
         val first = PdfOutlineSeeding.tree(PdfOutline(listOf(entry("Chapter", 0, 0))))
         val second = PdfOutlineSeeding.tree(PdfOutline(listOf(entry("Chapter", 5, 0))), pageOffset = 3)
-        val merged = PdfOutlineSeeding.merged(first, second, "appendix.pdf")
+        val before = PdfOutlineSeeding.imported(OutlineTree.EMPTY, first, "book", firstPage = 0)
+        val after = PdfOutlineSeeding.imported(before, second, "appendix", firstPage = 8)
 
-        assertEquals("the existing rows are untouched", first.nodes, merged.nodes.take(1))
-        val group = merged.nodes.last()
-        assertEquals("appendix.pdf", group.title)
-        assertNull("the group opens nothing itself", group.target)
-        assertEquals("it carries the arriving rows, at their joined pages", second.nodes, group.children)
-        assertEquals(OutlineTarget.Sheet(8), group.children.single().target)
+        assertEquals("the existing rows are untouched", before.nodes, after.nodes.take(1))
+        val marker = after.nodes.last()
+        assertEquals("appendix", marker.title)
+        assertEquals(OutlineTarget.Sheet(8), marker.target)
+        assertEquals("it carries the arriving rows, at their joined pages", second.nodes, marker.children)
+        assertEquals(OutlineTarget.Sheet(8), marker.children.single().target)
     }
 
     @Test
-    fun `an import with no outline leaves an existing tree alone`() {
+    fun `two files with the same name stay two rows`() {
+        val chapters = PdfOutlineSeeding.tree(PdfOutline(listOf(entry("Chapter", 0, 0))))
+        val one = PdfOutlineSeeding.imported(OutlineTree.EMPTY, chapters, "scan", firstPage = 0)
+        val two = PdfOutlineSeeding.imported(one, chapters, "scan", firstPage = 6)
+
+        assertEquals(2, two.nodes.size)
+        assertEquals("a shared name is not a shared row", 2, two.nodes.map { it.id }.distinct().size)
+        assertEquals(OutlineTarget.Sheet(6), two.nodes.last().target)
+    }
+
+    @Test
+    fun `turning the row off leaves only the chapters`() {
+        val chapters = PdfOutlineSeeding.tree(PdfOutline(listOf(entry("Chapter", 0, 0))))
+        assertEquals(chapters, PdfOutlineSeeding.imported(OutlineTree.EMPTY, chapters, null, firstPage = 0))
+    }
+
+    @Test
+    fun `an import with no bookmarks still gets its own row`() {
+        val tree = PdfOutlineSeeding.imported(OutlineTree.EMPTY, null, "scan", firstPage = 2)
+        val marker = tree.nodes.single()
+        assertEquals("scan", marker.title)
+        assertEquals(OutlineTarget.Sheet(2), marker.target)
+        assertTrue(marker.children.isEmpty())
+    }
+
+    @Test
+    fun `the offered title drops only its final pdf, in any case`() {
+        assertEquals("notes.final", PdfOutlineSeeding.defaultTitle("notes.final.PDF"))
+        assertEquals("scan", PdfOutlineSeeding.defaultTitle(" scan.pdf "))
+        assertEquals(".pdf", PdfOutlineSeeding.defaultTitle(".pdf"))
+        assertEquals("report.pdfx", PdfOutlineSeeding.defaultTitle("report.pdfx"))
+    }
+
+    @Test
+    fun `an import with no outline leaves an existing tree alone when the row is off`() {
         val existing = PdfOutlineSeeding.tree(PdfOutline(listOf(entry("Chapter", 0, 0))))
-        assertEquals(existing, PdfOutlineSeeding.merged(existing, OutlineTree.EMPTY, "scan.pdf"))
+        assertEquals(existing, PdfOutlineSeeding.imported(existing, null, null, firstPage = 9))
     }
 
     @Test

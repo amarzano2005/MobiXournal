@@ -1,5 +1,7 @@
 package com.mobixournal.desktop.io
 import com.mobixournal.desktop.tools.glassSurface
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.tools.glassSpring
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
@@ -123,6 +125,8 @@ internal fun ImportPdfDialog(
                     invalidMessage = (range as? PageRangePlan.Invalid)?.message,
                     onEdit = onEdit,
                 )
+                Spacer(Modifier.height(12.dp))
+                BookmarkSection(request = request, onEdit = onEdit)
                 if (request.chooseMode) {
                     Spacer(Modifier.height(14.dp))
                     ModeChoices(
@@ -144,6 +148,61 @@ internal fun ImportPdfDialog(
                 onCancel = onCancel,
             )
         }
+    }
+}
+
+/**
+ * **The index row the import offers**, and its title: on by default, named after the file, editable.
+ *
+ * The title starts as the file's own name with only its `.pdf` dropped, so the common answer needs no typing;
+ * turning the row off leaves the PDF's chapters joining the index at the top level, which is what an import
+ * did before this row existed. The field stays visible but disabled when the row is off, so the card does not
+ * change height under a pointer reaching for it.
+ */
+@Composable
+private fun BookmarkSection(
+    request: ImportPdfRequest,
+    onEdit: ((ImportPdfRequest) -> ImportPdfRequest) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PanelButton(
+                label = if (request.bookmark) "Bookmark added" else "No bookmark",
+                primary = request.bookmark,
+                enabled = true,
+                onClick = { onEdit { it.copy(bookmark = !it.bookmark) } },
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "A Contents row for this file",
+                color = DesktopTheme.inkSecondary,
+                style = DesktopTheme.label,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        BasicTextField(
+            value = request.bookmarkTitle,
+            onValueChange = { title -> onEdit { it.copy(bookmarkTitle = title.take(80)) } },
+            singleLine = true,
+            enabled = request.bookmark,
+            textStyle = DesktopTheme.label.copy(
+                color = if (request.bookmark) DesktopTheme.ink else DesktopTheme.inkMuted,
+            ),
+            cursorBrush = SolidColor(DesktopTheme.accent),
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassCapsule(cornerRadius = 8.dp)
+                .border(1.dp, if (request.bookmark) DesktopTheme.accent else Color.Transparent, RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            decorationBox = { field ->
+                Box {
+                    if (request.bookmarkTitle.isEmpty()) {
+                        Text("Bookmark title", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+                    }
+                    field()
+                }
+            },
+        )
     }
 }
 

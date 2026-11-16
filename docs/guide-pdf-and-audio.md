@@ -181,8 +181,11 @@ list you were reading stays where it is, in one undo step. Every add, rename and
 
 **An import writes the tree into the notebook.** A PDF's bookmarks are copied into the notebook's own Contents
 when it is imported — one undo step together with its pages — so they can be renamed or deleted and they survive
-a save; a second PDF arrives under a node named after its file, and opening the notebook later never re-reads the
-PDF's outline, because by then the tree is the notebook's.
+a save. The import card also offers a row named after the file, opened on the first page that actually arrived
+(the first page you picked, not the file's page 1) and carrying those bookmarks under it; its title starts as the
+file's name with only the `.pdf` dropped, and turning the option off leaves the bookmarks joining the index at
+the top level. A second PDF is another such row, so two files that happen to share a name stay two rows.
+Opening the notebook later never re-reads the PDF's outline, because by then the tree is the notebook's.
 
 ## Text and Markdown, laid out into pages
 

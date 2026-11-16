@@ -122,14 +122,18 @@ class DesktopPdfImportCommandsTest {
             assertTrue(state.importPdf(pdfWithOutline(2, name = "outlined"), ImportPdfMode.REPLACE))
             val outline = state.tabs.active!!.document.model.outline
 
-            assertEquals("the PDF's chapter, not a group", listOf("Chapter one"), outline.nodes.map { it.title })
-            assertEquals("its destination is written down", OutlineTarget.Sheet(0), outline.nodes.single().target)
+            val root = outline.nodes.single()
+            assertTrue("one row named after the file: ${root.title}", root.title.startsWith("outlined"))
+            assertEquals("opening the first page that arrived", OutlineTarget.Sheet(0), root.target)
+            val chapter = root.children.single()
+            assertEquals("the PDF's own chapter hangs under it", "Chapter one", chapter.title)
+            assertEquals("its destination is written down", OutlineTarget.Sheet(0), chapter.target)
             assertEquals(
                 "and so is the section's, nested under it",
                 OutlineTarget.Sheet(1),
-                outline.nodes.single().children.single().target,
+                chapter.children.single().target,
             )
-            assertTrue("every seeded row has a bookmark id", outline.nodes.single().id.startsWith("bkm_"))
+            assertTrue("every seeded row has a bookmark id", chapter.id.startsWith("bkm_"))
         } finally {
             state.tabs.closeAll()
         }
@@ -150,7 +154,7 @@ class DesktopPdfImportCommandsTest {
             assertEquals("the existing rows, plus one group", 2, outline.nodes.size)
             val group = outline.nodes.last()
             assertTrue("filed under the arriving file's name: ${group.title}", group.title.startsWith("second"))
-            assertNull("the group opens nothing itself", group.target)
+            assertEquals("the arriving file opens its first page", OutlineTarget.Sheet(2), group.target)
             assertEquals(
                 "its rows are shifted into the joined file, exactly as the pages were",
                 OutlineTarget.Sheet(2),
@@ -183,7 +187,7 @@ class DesktopPdfImportCommandsTest {
                 assertEquals(
                     "and the destinations read back as written",
                     OutlineTarget.Sheet(1),
-                    kept.nodes.single().children.single().target,
+                    kept.nodes.single().children.single().children.single().target,
                 )
             }
         } finally {

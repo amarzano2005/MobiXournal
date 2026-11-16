@@ -58,7 +58,14 @@ data class ImportPdfRequest(
      * the card only asks which page range to bring.
      */
     val chooseMode: Boolean = true,
+    /** Whether the import adds a Contents row named after the file — on by default, as on the tablet. */
+    val bookmark: Boolean = true,
+    /** The title that row carries: the file's name without its `.pdf`, and the reader's to change. */
+    val bookmarkTitle: String = PdfOutlineSeeding.defaultTitle(file.name),
 ) {
+
+    /** The title the import will write, or null when the reader turned the row off. */
+    internal val bookmarkName: String? get() = bookmarkTitle.takeIf { bookmark }
     /** The selection this card asks for, or the sentence saying why it cannot be used ([PageRanges]). */
     internal val range: PageRangePlan get() = PageRanges.selection(pages, pageCount)
 
@@ -111,20 +118,25 @@ fun DesktopShellState.confirmImportPdf(mode: ImportPdfMode = importRequest?.mode
     val chosen = request.chosen ?: return
     val resolved = if (request.chooseMode) mode else ImportPdfMode.REPLACE
     importRequest = null
-    importPdf(request.file, resolved, chosen)
+    importPdf(request.file, resolved, chosen, bookmark = request.bookmarkName)
 }
 
 /**
  * Turn [file] into pages, per [mode]. True when something landed; a PDF that cannot be read leaves the
  * window as it was and says why through the failure card.
  */
-fun DesktopShellState.importPdf(file: File, mode: ImportPdfMode, indices: List<Int>? = null): Boolean {
+fun DesktopShellState.importPdf(
+    file: File,
+    mode: ImportPdfMode,
+    indices: List<Int>? = null,
+    bookmark: String? = PdfOutlineSeeding.defaultTitle(file.name),
+): Boolean {
     val reference = file.absolutePath
     return try {
         DesktopPdfImport.open(file).use { pdf ->
             when (mode) {
-                ImportPdfMode.REPLACE -> openImported(pdf, file, reference, indices)
-                ImportPdfMode.APPEND -> appendImported(pdf, file, reference, indices)
+                ImportPdfMode.REPLACE -> openImported(pdf, file, reference, indices, bookmark)
+                ImportPdfMode.APPEND -> appendImported(pdf, file, reference, indices, bookmark)
             }
         }
     } catch (refused: DesktopPdfImport.PdfImportRefused) {
@@ -145,8 +157,9 @@ private fun DesktopShellState.openImported(
     file: File,
     reference: String,
     indices: List<Int>?,
+    bookmark: String?,
 ): Boolean {
-    val model = DesktopPdfImport.document(pdf, reference, indices)
+    val model = DesktopPdfImport.document(pdf, reference, indices, bookmark)
     val format = prefs.newDocumentFormat
     val folder = file.absoluteFile.parentFile
     val proposed = proposedPath(folder, file.nameWithoutExtension, format.extension)
@@ -189,6 +202,7 @@ private fun DesktopShellState.appendImported(
     file: File,
     reference: String,
     indices: List<Int>?,
+    bookmark: String?,
 ): Boolean {
     val tab = tabs.active ?: return false
     val before = tab.document.snapshot()
@@ -223,10 +237,13 @@ private fun DesktopShellState.appendImported(
     // The arriving PDF's bookmarks seed the Contents too, inside the same undo step as its pages. A joined
     // import's rows are shifted into the joined file's numbering, exactly as its pages were.
     val pageOffset = if (base != null) DesktopPdfImport.pageCount(base) else 0
-    val seeded = PdfOutlineSeeding.merged(
-        tab.document.model.outline,
-        PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf), pageOffset = pageOffset),
-        file.nameWithoutExtension,
+    // The file's own row opens the first page that arrived — the count before the append, not the file's
+    // page 1, so a subset still lands on what the reader picked.
+    val seeded = PdfOutlineSeeding.imported(
+        existing = tab.document.model.outline,
+        chapters = PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf), pageOffset = pageOffset).takeUnless { bookmark == null },
+        title = bookmark,
+        firstPage = landing.first.size,
     )
     tab.document.replacePages(pages, seeded)
     tab.record(before)

@@ -101,9 +101,21 @@ internal object DesktopPdfImport {
      * bookmarks as the notebook's own Contents ([PdfOutlineSeeding]). A replacing import is a new document, so
      * the rows are the tree itself rather than a group under the file's name.
      */
-    fun document(pdf: PDDocument, reference: String, indices: List<Int>? = null): Document = Document(
+    fun document(
+        pdf: PDDocument,
+        reference: String,
+        indices: List<Int>? = null,
+        /** The file's own Contents row, or null when the reader turned it off. */
+        bookmark: String? = null,
+    ): Document = Document(
         pages = pages(pdf, reference, indices = indices),
-        outline = PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf)),
+        // A new document's first page is page 0, so the file's row opens it; the PDF's chapters hang under it.
+        outline = PdfOutlineSeeding.imported(
+            existing = com.mobixournal.format.model.OutlineTree.EMPTY,
+            chapters = PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf)),
+            title = bookmark,
+            firstPage = 0,
+        ),
     )
 
     /** How many pages [file] has, without building anything — the question card's readout. */
