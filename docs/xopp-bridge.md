@@ -235,8 +235,8 @@ the ink is read as the ordinary strokes it is:
 ### The outline in the bridge block
 
 A `.xopp` has no bookmark tree, and desktop Xournal++ will drop any that it does not understand, so the
-notebook's Contents tree travels in the same comment as the living entities — one more **planned** key
-beside `elements`, carrying the same node shape as the manifest's `outline`
+notebook's Contents tree travels in the same comment as the living entities — one more key beside `elements`
+(`MobixMetaOutline`), carrying the same node shape as the manifest's `outline`
 ([mobix-data-model.md](mobix-data-model.md) → *The outline tree*), with each target written in the form the
 import can check:
 
@@ -253,7 +253,9 @@ the file in front of us still proves it: a `sheet` while some page still shows t
 the page at that position still hashes to the recorded value. Anything else — a page inserted or reordered
 in Xournal++, an edited page, an index past the end — arrives with **no destination**: the title and the
 children stay, the row is shown un-tappable, and nothing lands on a page that merely happens to be nearby.
-That is the same discipline the claims above follow, applied to a target instead of to ink.
+That is the same discipline the claims above follow, applied to a target instead of to ink. A block without
+the key — every export written before it existed, and every file desktop Xournal++ resaved, since its save
+drops the comment — imports with **no** notebook tree, so such a file opens as the drawing it already was.
 
 That is what "lossless" means for this bridge, and it is deliberately narrower than "bit-identical":
 geometry is always preserved exactly (it is compiled into real elements), and semantics are recovered

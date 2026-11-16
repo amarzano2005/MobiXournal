@@ -51,6 +51,13 @@ data class MobixMetaBlock(
 
     /** The claims, in document order (page, then layer, then position). */
     val claims: List<MobixMetaClaim> = emptyList(),
+
+    /**
+     * The notebook's Contents tree, in the checkable form a `.xopp` forces ([MobixMetaOutline]), or null
+     * when the exported document had none. Additive: a block written before the key existed decodes with
+     * it absent, and one written now still opens in a build that ignores it.
+     */
+    val outline: MobixMetaOutline.Tree? = null,
 ) {
 
     /** This block as its JSON payload — the text that goes into the comment. */
@@ -58,6 +65,7 @@ data class MobixMetaBlock(
         MobixJson.obj { out ->
             out["version"] = JsonNode.of(version)
             doc?.let { out["doc"] = JsonNode.of(it) }
+            outline?.let { out["outline"] = MobixMetaOutline.encode(it) }
             out["elements"] = JsonNode.arr(claims.map(::claimNode))
         },
     )
@@ -92,6 +100,9 @@ data class MobixMetaBlock(
             return MobixMetaBlock(
                 version = root.getInt("version", CURRENT_VERSION),
                 doc = root.getStrOrNull("doc"),
+                // Unreadable means absent: the rows are a claim like the entities, and one that cannot be
+                // read simply revives nothing (`docs/xopp-bridge.md`).
+                outline = MobixMetaOutline.decode(root.getObj("outline")),
                 claims = entries.list.mapNotNull { entry -> (entry as? JsonNode.Obj)?.let(::claim) },
             )
         }

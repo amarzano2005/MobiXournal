@@ -485,7 +485,7 @@ class MobixDocument(
         // passes rather than overruling it here. [reuse] decides **which pages are asked**: the ones
         // this save writes and no others, the same choice the editor makes on the model it snapshots
         // (`MobixPageReuse.identified`, reached through `DocumentIo.identifyForSave`).
-        val revived = MobixMetaRevival.apply(document)
+        val revived = MobixMetaRevival.apply(document).document
         val identified = reuse.identified(revived)
         val documentId = requireNotNull(identified.documentId) {
             "withIdentity() mints the document id when a document has none"
@@ -512,7 +512,7 @@ class MobixDocument(
                     // The document's own set only grows; a save writes it (`MobixCapabilityPaste`).
                     requiredCapabilities = unionCapabilities(it.requiredCapabilities, document.requiredCapabilities),
                     optionalCapabilities = unionCapabilities(it.optionalCapabilities, document.optionalCapabilities),
-                    outline = document.outline,
+                    outline = revived.outline,
                 )
             } ?: MobixManifest.forNewDocument(
                 documentId = documentId,
@@ -523,7 +523,7 @@ class MobixDocument(
                 appVersion = appVersion,
                 requiredCapabilities = document.requiredCapabilities,
                 optionalCapabilities = document.optionalCapabilities,
-                outline = document.outline,
+                outline = revived.outline,
             ),
             canvas = if (isPaginated) {
                 MobixCanvasFile(

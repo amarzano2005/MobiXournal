@@ -4,6 +4,7 @@ import com.mobixournal.format.mobix.MobixMetaBlock
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.MobixMetaClaim
 import com.mobixournal.format.mobix.MobixMetaDigest
+import com.mobixournal.format.mobix.MobixMetaOutline
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
@@ -85,7 +86,7 @@ object XoppSynthesis {
             )
         }
         return SynthesisResult(
-            document = document.copy(pages = pages, bridge = block(document, claims, documentId)),
+            document = document.copy(pages = pages, bridge = block(document, pages, claims, documentId)),
             uncompiled = gaps,
         )
     }
@@ -131,8 +132,22 @@ object XoppSynthesis {
      * *did* produce claims gets a block describing this synthesis: the ink it was built from is the ink
      * being written, so any earlier claims are about a drawing that no longer exists.
      */
-    private fun block(document: Document, claims: List<MobixMetaClaim>, documentId: String?): String? =
-        if (claims.isEmpty()) document.bridge else MobixMetaBlock(doc = documentId, claims = claims).encode()
+    private fun block(
+        document: Document,
+        pages: List<Page>,
+        claims: List<MobixMetaClaim>,
+        documentId: String?,
+    ): String? {
+        // The Contents tree travels beside the entities, in the checkable form a `.xopp` allows
+        // ([MobixMetaOutline]): a sheet target by its sheet, a plain page by its index and the digest of the
+        // ink this export is writing there.
+        val outline = MobixMetaOutline.of(document, pages)
+        if (claims.isEmpty() && outline == null) return document.bridge
+        // A document that produced no claims had already been flattened; the block it carried still names
+        // ink this synthesis did not touch, so those claims are kept and only the outline is refreshed.
+        val carried = if (claims.isEmpty()) document.bridge?.let(MobixMetaBlock::decode)?.claims.orEmpty() else claims
+        return MobixMetaBlock(doc = documentId, claims = carried, outline = outline).encode()
+    }
 
     /**
      * The ink [element] becomes: itself when it is already ink (or markup the `.xopp` writer can carry),
