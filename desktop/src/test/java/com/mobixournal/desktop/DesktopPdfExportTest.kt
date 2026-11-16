@@ -11,6 +11,9 @@ import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.OutlineNode
+import com.mobixournal.format.model.OutlineTarget
+import com.mobixournal.format.model.OutlineTree
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
@@ -28,12 +31,14 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination
 import org.apache.pdfbox.pdmodel.graphics.color.PDColor
 import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.pdfbox.text.PDFTextStripper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -84,8 +89,9 @@ class DesktopPdfExportTest {
         vararg pages: Page,
         backdrop: PageBackdrop = PageBackdrop(bundled = { null }, documentDir = temp.root),
         shape: DocumentEncoder.SaveShape = DocumentEncoder.SaveShape(),
+        outline: OutlineTree = OutlineTree.EMPTY,
     ): DesktopDocument {
-        val model = Document(pages = pages.toList())
+        val model = Document(pages = pages.toList(), outline = outline)
         return DesktopDocument(
             file = File(temp.root, "notes.xopp"),
             source = PageSource.of(model),
@@ -128,6 +134,42 @@ class DesktopPdfExportTest {
                     pdf.getPage(index).contents.use { it.readBytes().isNotEmpty() },
                 )
             }
+        }
+    }
+
+    @Test
+    fun theIndexIsWrittenAsBookmarksOnTheExportedPages() {
+        val one = sheet("plain", text("Page one")).copy(id = "pg_one")
+        val two = sheet("plain", text("Page two")).copy(id = "pg_two")
+        val three = sheet("plain", text("Page three")).copy(id = "pg_three")
+        val outline = OutlineTree(
+            nodes = listOf(
+                OutlineNode(
+                    "bkm_1", "Chapter", OutlineTarget.Page("pg_three"),
+                    listOf(OutlineNode("bkm_2", "Section", OutlineTarget.Page("pg_one"))),
+                ),
+                OutlineNode("bkm_3", "Not exported", OutlineTarget.Page("pg_two")),
+            ),
+        )
+        val doc = document(one, two, three, outline = outline)
+        val target = File(temp.root, "index.pdf")
+
+        // Pages 1 and 3: written in the notebook's order, so page 3 is the file's second sheet.
+        DesktopPdfExport.write(doc, target, doc.backdrop, only = listOf(2, 0))
+
+        PDDocument.load(target).use { pdf ->
+            val root = pdf.documentCatalog.documentOutline ?: error("no outline was written")
+            val chapter = root.firstChild
+            assertEquals("the reader's title", "Chapter", chapter.title)
+            assertEquals(
+                "it opens the sheet notebook page 3 was written as",
+                1,
+                pdf.pages.indexOf((chapter.destination as PDPageFitDestination).page),
+            )
+            val section = chapter.firstChild
+            assertEquals("Section", section.title)
+            assertEquals(0, pdf.pages.indexOf((section.destination as PDPageFitDestination).page))
+            assertNull("a row whose page was not exported is left out", chapter.nextSibling)
         }
     }
 

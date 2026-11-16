@@ -4,6 +4,9 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.OutlineNode
+import com.mobixournal.format.model.OutlineTarget
+import com.mobixournal.format.model.OutlineTree
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
@@ -83,6 +86,47 @@ class PdfExportTest {
         assertTrue("in a sentence that says what to do: ${refused.message}", refused.message!!.contains("Page 2"))
         assertEquals("the destination kept every byte it had", 0, out.size())
     }
+
+    @Test
+    fun theNotebooksIndexIsWrittenAsBookmarksOnTheExportedPages() {
+        val one = page(pen()).copy(id = "pg_one")
+        val two = page(pen()).copy(id = "pg_two")
+        val three = page(pen()).copy(id = "pg_three")
+        val document = Document(
+            pages = listOf(one, two, three),
+            outline = OutlineTree(
+                nodes = listOf(
+                    OutlineNode(
+                        "bkm_1", "Chapter", OutlineTarget.Page("pg_three"),
+                        listOf(OutlineNode("bkm_2", "Section", OutlineTarget.Page("pg_one"))),
+                    ),
+                    OutlineNode("bkm_3", "Not exported", OutlineTarget.Page("pg_two")),
+                ),
+            ),
+        )
+        val out = ByteArrayOutputStream()
+
+        // Pages 1 and 3: the export writes the notebook's own order, so page 1 is the first sheet and page 3
+        // the second — and each bookmark opens the sheet its own page was written as.
+        PdfExporter(null, null).export(document, out, pages = listOf(2, 0))
+
+        PDDocument.load(out.toByteArray()).use { exported ->
+            val outline = exported.documentCatalog.documentOutline ?: error("no outline was written")
+            val chapter = outline.firstChild
+            assertEquals("the reader's title, not a placeholder", "Chapter", chapter.title)
+            assertEquals("it opens the sheet notebook page 3 was written as", 1, writtenSheet(exported, chapter))
+            val section = chapter.firstChild
+            assertEquals("Section", section.title)
+            assertEquals("the nested row opens its own sheet", 0, writtenSheet(exported, section))
+            assertNull("a row whose page was not exported is left out", chapter.nextSibling)
+        }
+    }
+
+    /** The exported sheet [item] opens, counted the way the file counts. */
+    private fun writtenSheet(pdf: PDDocument, item: com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem): Int =
+        pdf.pages.indexOf(
+            (item.destination as com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination).page,
+        )
 
     @Test
     fun theExportedPageCarriesItsPaintAndNoAnnotationDictionaries() {

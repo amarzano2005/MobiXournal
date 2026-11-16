@@ -82,6 +82,12 @@ page already is survives the subset — an imported page stays its source PDF's 
 sits on top as page content, and the ruling, the pictures and the layers are the ones the page shows.
 **Cancel** writes nothing and leaves the notebook exactly as it was.
 
+The exported file carries the **Contents** too: its bookmark pane lists the index you edited — renamed and
+reordered rows included, in the order they read — and each row opens the sheet its page was written as, so a
+bookmark follows its page through a subset export. A chapter whose own page you left out stays in the list as
+a heading for the sections that did make it; one with nothing exported under it is left out rather than
+pointing at a sheet you did not pick.
+
 ## Copying text out of the page
 
 A born-digital PDF's text layer is extracted when you import it, so a passage can be selected and **Copy**

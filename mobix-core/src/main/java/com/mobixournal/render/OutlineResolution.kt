@@ -112,7 +112,7 @@ object OutlineResolution {
     }
 
     /** Where one target leads in [pages], or null when it leads nowhere any more. */
-    private fun pageOf(pages: List<Page>, target: OutlineTarget): Int? = when (target) {
+    fun pageOf(pages: List<Page>, target: OutlineTarget): Int? = when (target) {
         is OutlineTarget.Sheet -> pageOfSheet(pages, target.pageNo)
         is OutlineTarget.Page -> pages.indexOfFirst { it.id == target.pageId }.takeIf { it >= 0 }
     }

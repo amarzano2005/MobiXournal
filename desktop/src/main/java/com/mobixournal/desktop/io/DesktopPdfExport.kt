@@ -6,6 +6,7 @@ import com.mobixournal.desktop.sheet.number
 import androidx.compose.ui.graphics.toAwtImage
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.PdfOutlineExport
 import com.mobixournal.render.PdfOverlayMatrix
 import com.mobixournal.render.PdfPagePlan
 import com.mobixournal.render.PdfPageTransform
@@ -14,6 +15,9 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.util.Matrix
 
@@ -125,6 +129,7 @@ internal object DesktopPdfExport {
                 }
                 // Before a byte reaches [target]: the file on disk keeps what it had.
                 if (missing.isNotEmpty()) throw DesktopSaves.SaveRefused(missingSheets(missing))
+                writeOutline(doc, document, pages)
                 temp.outputStream().use { out -> doc.save(out) }
             }
             DesktopSaves.replace(temp, target)
@@ -135,6 +140,33 @@ internal object DesktopPdfExport {
         } finally {
             // After the save, never before it: the pages just written point into these documents.
             sources.forEach { runCatching { it.close() } }
+        }
+    }
+
+    /**
+     * The notebook's Contents, in the exported file's own bookmark pane.
+     *
+     * The rows are the notebook's — renamed, reordered and deleted rows included — and where they lead comes
+     * from [PdfOutlineExport], the rule both shells share, so the window's PDF opens its index exactly where
+     * the tablet's does: a row whose page was not exported keeps its place as a heading while exported rows
+     * still hang under it, and the nesting is rebuilt from the rows' depths.
+     */
+    private fun writeOutline(doc: PDDocument, document: DesktopDocument, written: List<Int>) {
+        val rows = PdfOutlineExport.rows(document.model.outline, document.model.pages, written)
+        if (rows.isEmpty()) return
+        val outline = PDDocumentOutline()
+        doc.documentCatalog.documentOutline = outline
+        // The open branch per depth: the row one level up is this row's parent.
+        val open = ArrayList<PDOutlineItem>()
+        for (row in rows) {
+            val item = PDOutlineItem()
+            item.title = row.title
+            row.page?.let { position ->
+                item.destination = PDPageFitDestination().apply { page = doc.getPage(position) }
+            }
+            while (open.size > row.depth) open.removeAt(open.lastIndex)
+            (open.lastOrNull() ?: outline).addLast(item)
+            open.add(item)
         }
     }
 

@@ -79,18 +79,18 @@ text that ships a 759 kB face whole is a file nobody can mail.
 
 ## Exporting chosen pages
 
-An export used to be the document, always. `ExportPages` (`mobix-core`) is now the one rule for *which* pages
-a shell writes: **all** (the answer both cards open on), **the page in view**, or a set typed in the import
-card's own grammar (`PageRanges.selection`), so `2,4-6,9` means here exactly what it means there.
+An export used to be the document, always. `ExportPages` (`mobix-core`) is the rule for *which* pages a shell writes:
+**all** (the answer both cards open on), **the page in view**, or a set typed in the import card's own grammar
+(`PageRanges.selection`). The answer is a list of **notebook** indices, walked in the notebook's order rather than the
+order the pages were named in; the per-page work is untouched by the subset — an imported page keeps its source PDF's
+vectors and text — and a page whose PDF this export cannot read still refuses the whole file in words, with the bytes
+that were there left alone. A page the document no longer has is skipped, and an answer that names nothing is refused
+before anything is staged.
 
-The answer is a list of **notebook** indices, and both exporters walk it in the notebook's order
-(`distinct().sorted()`) rather than the order the pages were named in: pages 2 and 4 of a reordered notebook
-are written as the sheet that reads first and then the second, whatever sequence the field held. The per-page
-work is untouched by the subset — an imported page keeps its source PDF's vectors and text, the ink is still
-page content over it, and the refusal is still the whole file's: a named page whose PDF this export cannot
-read refuses the export in words, with the bytes that were there left alone. A page the document no longer
-has (a delete under an open card) is skipped, and an answer that names nothing is refused before anything is
-staged.
+**The index goes with them.** `PdfOutlineExport` (`mobix-core`) turns the notebook's tree into the rows both exporters
+write as the file's bookmark pane: a destination is the notebook page's **position among the pages written**, so a
+reorder reorders the outline with it. A row whose page was not exported keeps its place as a heading while exported
+rows still hang under it, and is dropped when nothing does — a bookmark never becomes a link to a sheet the reader did not choose. Titles are the reader's, duplicates included.
 
 ## PDF text selection
 

@@ -4,6 +4,9 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination
+import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline
+import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem
 import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
 import com.tom_roush.pdfbox.util.Matrix
 import com.mobixournal.format.model.Background
@@ -56,16 +59,46 @@ internal class PdfExporter(
             // A chunked document is written as the pages its parts stand for: a PDF reader can only
             // open pages, and the sheet slicing a board would need is not this exporter's step.
             val missing = ArrayList<Int>()
+            val written = ArrayList<Int>()
             for (index in pages.distinct().sorted()) {
                 val page = doc.pages.getOrNull(index) ?: continue
-                if (!writePage(outDoc, source, page)) missing += index + 1
+                if (writePage(outDoc, source, page)) written += index else missing += index + 1
             }
             // Nothing has reached `out` yet, so a refused export leaves the destination's bytes alone.
             if (missing.isNotEmpty()) throw MissingPdfBackgrounds(missing)
+            writeOutline(outDoc, doc, written)
             outDoc.save(out)
         } finally {
             outDoc.close()
             source?.close()
+        }
+    }
+
+    /**
+     * The notebook's Contents, written into the file's own bookmark pane.
+     *
+     * The rows are the notebook's — renamed, reordered, deleted rows included — and where they lead comes
+     * from [PdfOutlineExport], the rule both shells share: a row whose page is not in this export keeps its
+     * place as a heading when something exported still hangs under it, and is left out otherwise. Nesting is
+     * rebuilt from the rows' depths rather than from the tree, so the file's outline is exactly what
+     * [PdfOutlineExport] answered.
+     */
+    private fun writeOutline(outDoc: PDDocument, doc: Document, written: List<Int>) {
+        val rows = PdfOutlineExport.rows(doc.outline, doc.pages, written)
+        if (rows.isEmpty()) return
+        val outline = PDDocumentOutline()
+        outDoc.documentCatalog.documentOutline = outline
+        // The open branch per depth: the row above this one at one level up is its parent.
+        val open = ArrayList<PDOutlineItem>()
+        for (row in rows) {
+            val item = PDOutlineItem()
+            item.title = row.title
+            row.page?.let { position ->
+                item.destination = PDPageFitDestination().apply { page = outDoc.getPage(position) }
+            }
+            while (open.size > row.depth) open.removeAt(open.lastIndex)
+            (open.lastOrNull() ?: outline).addLast(item)
+            open.add(item)
         }
     }
 
