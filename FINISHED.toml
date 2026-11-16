@@ -25,6 +25,90 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "bookmarks-visual-interaction-pass"
+title = "Verify the redesigned bookmark flows on Android and Windows"
+description = "Emulator pass on Pixel_Tablet with deep-outline.mobix over a 9-level outline: the overflow menu opens Rename and Delete, retitling switches the row to a field, Back cancels the edit and keeps the card open, a collapsed chapter stays folded while the rest of the session runs, Add opens the draft row with the page captured at press time and the header command disabled while naming. The pass found one defect - Back taking the whole card mid-word - fixed in 0d2502c9 with PdfContentsBackTest. The packaged window was rebuilt and launched with the new Contents sidebar; the APK and the desktop distributable are current."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-16
+completed = 2026-11-17
+tags = ["bookmarks", "navigation", "ui", "p1"]
+design = "states: the five states were exercised on the device - idle rows, hover in the window, the pressed and focused rename field, the disabled Add command and the empty action gutter; copy: every string read on screen was English and sentence case; tokens: the row budget held at every depth with the numbers aligned in their column; parity: the same outline reads the same way in the card and the sidebar; docs: docs/pdf.md and docs/desktop-ui-layout.md; tests: PdfContentsBackTest, ContentsNavigationTest, DesktopPdfContentsTest."
+
+[[task]]
+id = "bookmarks-current-page-feedback"
+title = "Refresh the current bookmark when the desktop page changes"
+description = "PdfOutlineView.visible decorates rows that are already resolved, so the card marks the page in view per currentPage and the desktop panel resolves rows once per document edit and decorates per tab.page - the accent moves as the page turns without re-reading the outline. DesktopPdfContentsTest proves moving between two bookmarked pages marks a different row with no edit; docs/pdf.md and docs/desktop-ui-layout.md."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-16
+completed = 2026-11-17
+tags = ["bookmarks", "navigation", "ui", "p1"]
+design = "tokens: the current row wears the theme accent in the same face, no new colour or size; states: the marked row and the dimmed context row are two of the five; copy: unchanged, the announcement still names the page; parity: the mark is the resolved row rule shared by card and sidebar; docs: docs/pdf.md and docs/desktop-ui-layout.md; tests: DesktopPdfContentsTest."
+
+[[task]]
+id = "bookmarks-preserve-navigation-state"
+title = "Keep bookmark filters, expanded branches and scroll position through edits"
+description = "mobix-core render/ContentsNavigation.kt is one value - query, collapsed folded by row id, anchorId and anchorIndex, with withQuery, toggled, scrolledTo and against - and PdfOutlineView folds by OutlineRow.id with pruned to forget a removed branch and to fall back to the nearest surviving row. ContentsSession holds it per document on the tablet and DesktopTab.contentsNavigation plus contentsList on the window, so a rename, an add, a delete, an undo or a reopened card cannot clear the filter, open the branches or jump the list. ContentsNavigationTest and PdfOutlineViewTest cover each of those; docs/pdf.md and docs/guide-pdf-and-audio.md."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-16
+completed = 2026-11-17
+tags = ["bookmarks", "navigation", "ui", "p1"]
+design = "none: the value is navigation state, not a surface - it draws no pixel and changes no material, token or copy, so the card and the sidebar keep exactly the surfaces the contract already judged."
+
+[[task]]
+id = "bookmarks-inline-editing"
+title = "Add and rename bookmarks without replacing the outline"
+description = "PdfContentsEditor.kt carries ContentsSession, ContentsEditHost and the one-line ContentsTitleField: retitling turns the row into a field, Add opens a draft row above its neighbours, and the page is captured when the command is pressed (PageCommands.addBookmark(title, seed, page), DesktopPages.addBookmark, ContentsEdits.add(title, page)) so a page turned mid-name cannot retarget it. Enter or the check saves, the cross abandons, a blank name cannot be saved, the desktop field takes focus through WindowKeys and Escape abandons. New PdfContentsBackTest; docs/pdf.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-16
+completed = 2026-11-17
+tags = ["bookmarks", "navigation", "ui", "p1"]
+design = "material: the field is inline on the row, no dialog and no sheet; tokens: ACTION_DP slots for the check and the cross, the card inset for the draft; glyph: the catalogue check and cross; copy: English Title, New bookmark, Save; states: focused field outlined in the accent, empty name disabling Save, the refusal printed under the field; keyboard: Enter saves and Escape abandons on the window, Back abandons before it closes the card; parity: the same field, the same draft row and the same keys on tablet and window; docs: docs/pdf.md; tests: PdfContentsBackTest."
+
+[[task]]
+id = "bookmarks-desktop-navigation-panel"
+title = "Give desktop Contents a full-height navigation view beside page thumbnails"
+description = "desktop shell: DesktopSidebarView and SidebarViewSwitch put Pages and Contents in one sidebar, each tab remembering its view on DesktopTab.contentsView, and ContentsPanel takes the sidebar full height (the 260 dp cap is gone). PageSidebar and DesktopPdfContents threads the state; DesktopSidebarTest and DesktopPdfContentsTest cover the switch, the remembered view and the resolved rows."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-16
+completed = 2026-11-17
+tags = ["bookmarks", "navigation", "ui", "p1"]
+design = "material: the panel is the sidebar lane, the switch a segmented capsule on it; tokens: header control height, the existing sidebar inset, no new spacing; glyph: none added; copy: English Pages and Contents; states: idle, hover, pressed, focused and the chosen view are drawn; keyboard: Tab reaches the switch and Ctrl+B still toggles the sidebar; parity: the tablet card view maps onto the same two views; docs: docs/desktop-ui-layout.md; tests: DesktopSidebarTest and DesktopPdfContentsTest."
+
+[[task]]
+id = "bookmarks-readable-row-layout"
+title = "Reserve space for readable bookmark titles and accessible row controls"
+description = "mobix-core design/ContentsRowLayout.kt owns the row budget - STEP_DP, MIN_TITLE_DP, DIGIT_DP, BRANCH_DP, GAP_DP, ACTION_DP, MAX_COLUMN_SHARE, TITLE_MAX_LINES and indentInRow, titleWidthDp, pageColumnDp - and both shells draw from it: the page number sits in a column reserved from the widest number, right-aligned in tabular figures on the title first baseline, a title takes two lines then an ellipsis, and the indent gives way before the title does in a narrow pane. ContentsRowLayoutTest covers the budget, the narrow pane and the 150 percent text scale."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-16
+completed = 2026-11-17
+tags = ["bookmarks", "navigation", "ui", "p1"]
+design = "tokens: every number is the token (40 dp branch and action slots, 96 dp minimum title, column capped at 30 percent of the row) instead of a close one; tokens: ink, inset ink and the accent out of the theme; glyph: the existing chevron, no new mark; copy: no new text, the announcement is the existing sentence with its page; states: heading and section faces differ by one step, context rows dimmed, the current row in the accent; parity: one rule measured from each shell own width; docs: docs/pdf.md; tests: ContentsRowLayoutTest."
+
+[[task]]
+id = "bookmarks-contextual-actions"
+title = "Give bookmarks a neutral contextual menu on Android and desktop"
+description = "Docs/pdf.md and docs/guide-pdf-and-audio.md; PdfContentsDialog.kt and the desktop PdfContentsSidebar.kt give every notebook-owned row a 40 dp action gutter with a neutral overflow menu (Rename, Delete), a source-PDF row leaves the gutter empty, and Delete only asks - a question drawn above a list whose rows stay behind it. ContentsRowLayout carries ACTION_DP so both shells reserve one slot."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-16
+completed = 2026-11-17
+tags = ["bookmarks", "navigation", "ui", "p1"]
+design = "material: no new surface - rows stay on the card fill and the popup is the shared menu; tokens: ACTION_DP 40 dp slot on every row, onSurfaceVariant for the glyph, the document colour only on the confirming command; glyph: the catalogue MENU mark, no bespoke dots; copy: English Rename, Delete, Keep bookmark; states: idle, hover, pressed, focused and the empty gutter are all drawn; parity: same menu and same above-the-list question on tablet and window; docs: docs/pdf.md and docs/guide-pdf-and-audio.md; tests: ContentsRowLayoutTest."
+
+[[task]]
 id = "pdf-export-bookmarks"
 title = "Carry the edited notebook index into exported PDFs"
 description = "`PdfOutlineExport` (`mobix-core`) is the shared rule turning the notebook tree into exported outline rows: each row gets the notebook page's position among the pages actually written, resolved through `OutlineResolution.pageOf` (now public) so both `Sheet` and `Page` targets work after a reorder; a row whose page is not exported becomes a heading when exported rows hang under it and is dropped otherwise. `PdfExporter` (tablet) and `DesktopPdfExport` (window) write those rows as a `PDDocumentOutline` with `PDPageFitDestination`, rebuilt by depth, only after the missing-source refusal so a refused export still writes no bytes. Tests: `PdfOutlineExportTest` (nesting, reorder, excluded pages, missing targets, duplicate titles, empty tree), `PdfExportTest.theNotebooksIndexIsWrittenAsBookmarksOnTheExportedPages` and `DesktopPdfExportTest.theIndexIsWrittenAsBookmarksOnTheExportedPages`, both reopening the produced PDF and checking titles, nesting and destination sheets. Docs: `docs/pdf.md`, `docs/guide-pdf-and-audio.md`. Checks: `:mobix-core:test`, guards, `:app:assembleDebug`, `:desktop:createDistributable`, `:app:testDebugUnitTest --tests *PdfExportTest*`, `:desktop:test --tests *DesktopPdfExportTest*`."
