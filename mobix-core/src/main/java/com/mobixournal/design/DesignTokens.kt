@@ -95,6 +95,21 @@ object DesignTokens {
      */
     const val TEXT_SELECTION_WASH_ALPHA: Float = 0.22f
 
+    /**
+     * A PDF text selection **handle**'s drawn diameter, in dp — the same number of screen pixels at every zoom,
+     * so a dot on a passage shown at a fifth of its size is still a dot and not a stray word.
+     */
+    const val TEXT_SELECTION_HANDLE_DP: Double = 11.0
+
+    /**
+     * A PDF text selection handle's **grab target**, in dp.
+     *
+     * Larger than the dot and smaller than the 40 dp of a button slot, because a handle is a grip rather than a
+     * button: the same exception the inspector divider's resize target takes (`docs/interface-contract.md`), and
+     * it comes with the keyboard path a grip owes a reader who cannot drag.
+     */
+    const val TEXT_SELECTION_HANDLE_TOUCH_DP: Double = 24.0
+
     // --- The raised glass: what lifts a surface off the desk -------------------------------------
     //
     // A band (the header, the status bar, the sidebar, a tool lane) and a floating capsule (the rail,

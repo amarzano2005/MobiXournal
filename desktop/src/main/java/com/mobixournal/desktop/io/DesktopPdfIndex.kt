@@ -135,6 +135,8 @@ internal fun PdfIndexLoader(tab: DesktopTab) {
         if (key == null) {
             tab.pdfIndex = null
             tab.pdfIndexKey = null
+            // The page stopped showing a PDF: its words, and any range over them, went with it.
+            tab.pdfTextSelection = null
             return@LaunchedEffect
         }
         if (tab.pdfIndexKey == key && tab.pdfIndex != null) return@LaunchedEffect
@@ -154,6 +156,8 @@ internal fun PdfIndexLoader(tab: DesktopTab) {
         }
         tab.pdfIndex = index
         tab.pdfIndexKey = key
+        // The words were replaced: a range left over names indices into a text layer that is gone.
+        tab.pdfTextSelection = null
         DesktopPdfTextStatus.ready(key)
     }
 }

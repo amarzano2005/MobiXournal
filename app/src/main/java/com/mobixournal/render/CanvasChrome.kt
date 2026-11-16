@@ -182,6 +182,16 @@ internal class CanvasChrome {
         style = Paint.Style.FILL
         color = TEXT_SELECT_FILL
     }
+    /**
+     * A PDF-text selection **handle**'s dot: the theme's selection accent, opaque.
+     *
+     * The wash beside it is translucent because it lies over the words; the dot does not, and a translucent dot
+     * on a grey scan would read as a smudge rather than as something a finger can take hold of.
+     */
+    val textSelectHandle = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = TEXT_SELECT_HANDLE
+    }
     /** Document/PDF search result highlight: translucent yellow wash. */
     val searchHit = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -267,6 +277,7 @@ internal class CanvasChrome {
         // The PDF text selection washes a passage in the theme's own selection accent at the shared wash
         // alpha, so the two shells mark a passage with one material instead of a colour per file.
         textSelect.color = selection.withAlpha(TEXT_SELECT_WASH_ALPHA)
+        textSelectHandle.color = selection
         hudSwatchRim.color = ink.withAlpha(HUD_SWATCH_RIM_ALPHA)
         pageOutline.color = outline
         selectionStroke.color = selection
@@ -325,6 +336,9 @@ internal class CanvasChrome {
          */
         val TEXT_SELECT_FILL: Int =
             (DesignTokens.ACCENT_LIGHT_RGB and 0xFFFFFF) or (TEXT_SELECT_WASH_ALPHA shl 24)
+
+        /** The handle dot's fallback colour: the same accent, opaque, until the theme pushes its own in. */
+        val TEXT_SELECT_HANDLE: Int = (DesignTokens.ACCENT_LIGHT_RGB and 0xFFFFFF) or (0xFF shl 24)
         /** Translucent yellow wash over document/PDF search results. */
         const val SEARCH_HIT_FILL = 0x66FFD54F
         const val SEARCH_CURRENT_STROKE = 0xFFFF8F00.toInt()

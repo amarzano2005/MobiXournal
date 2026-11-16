@@ -435,6 +435,7 @@ internal fun DrawingSurfaceView.drawTextSelection(canvas: Canvas) {
         val b = (span.bottom * box.scale + box.topPx - scrollY).toFloat()
         canvas.drawRect(l, t, r, b, chrome.textSelect)
     }
+    drawTextSelectionHandles(canvas)
 }
 
 /**

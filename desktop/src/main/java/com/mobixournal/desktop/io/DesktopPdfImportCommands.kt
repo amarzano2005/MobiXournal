@@ -227,6 +227,8 @@ private fun DesktopShellState.appendImported(
     failure = null
     // Land on the first page that arrived: the reader asked for these pages, not for the ones above them.
     tab.page = (pages.size - landing.second.size).coerceIn(0, pages.lastIndex)
+    // A join renumbers the sheets, so a text range made against the old numbering names another passage.
+    tab.pdfTextSelection = null
     return true
 }
 

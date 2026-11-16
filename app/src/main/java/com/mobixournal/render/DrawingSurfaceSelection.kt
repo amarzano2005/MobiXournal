@@ -375,6 +375,7 @@ fun DrawingSurfaceView.highlightTextSelection(color: Int): Boolean {
 fun DrawingSurfaceView.clearTextSelection() {
     val had = textSelPage >= 0
     textSelecting = false
+    textHandleDrag.grab = null
     textSelPage = -1
     textSelAnchor = -1
     textSelFocus = -1

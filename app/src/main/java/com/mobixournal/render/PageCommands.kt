@@ -38,6 +38,12 @@ internal class PageCommands(
     private val resetLayerVisibility: () -> Unit,
     /** Reset the active layer to "the top one" — same reason. */
     private val clearActiveLayer: () -> Unit,
+    /**
+     * Drop view state keyed by a page's identity — the PDF text range, whose words belong to one sheet. A page
+     * list that added, removed, duplicated or reordered pages has no reason to keep it, and keeping it would
+     * wash and copy whatever text the new page at that index happens to draw.
+     */
+    private val onPagesChanged: () -> Unit,
     /** Re-fit the layout, re-clamp the viewport and repaint after a committed edit. */
     private val refresh: () -> Unit,
     /** Notified with the new page count whenever the page list changes. */
@@ -250,6 +256,7 @@ internal class PageCommands(
         // Page indices shifted: view state keyed by page index is no longer valid.
         resetLayerVisibility()
         clearActiveLayer()
+        onPagesChanged()
         refresh()
         onLayersChanged()
     }

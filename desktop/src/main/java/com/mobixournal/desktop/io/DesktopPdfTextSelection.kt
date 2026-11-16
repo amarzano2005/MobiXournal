@@ -16,7 +16,13 @@ import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Background
 import com.mobixournal.render.PdfSelectionSpan
 import com.mobixournal.render.PdfSelectionSpans
+import com.mobixournal.render.PdfSheetRef
 import com.mobixournal.render.PdfTextAvailability
+import com.mobixournal.render.PdfTextHandle
+import com.mobixournal.render.PdfTextHandleGrab
+import com.mobixournal.render.PdfTextHandlePoint
+import com.mobixournal.render.PdfTextHandles
+import com.mobixournal.render.PdfTextRange
 import com.mobixournal.render.PdfTextPhase
 import com.mobixournal.render.PdfWord
 import java.awt.Toolkit
@@ -115,6 +121,9 @@ internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi
     val selection = tab.pdfTextSelection
     val words = if (selection == null) emptyList() else DesktopPdfTextSelect.boxes(tab, selection)
     val bands = PdfSelectionSpans.of(words)
+    // The endpoint dots, from the same shared rule the canvas drags by: page points here, screen pixels in the
+    // overlay (`PdfTextHandlesOverlay`). Nothing is computed a second time for the bar.
+    val handles = if (selection == null) emptyList() else DesktopPdfTextHandles.points(tab)
     return PdfTextCopyUi(
         bounds = pdfTextSelectionBounds(tab),
         onCopy = { copyPdfTextOf(tab) },
@@ -129,6 +138,10 @@ internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi
         // Due only once the drag that made the range has ended: while it is still being made the capsule
         // would chase the pointer and cover the words it is selecting.
         settled = !tab.pdfTextSelecting,
+        handles = handles,
+        // The dot on the focus end — the one the capsule stands clear of.
+        focusHandle = selection?.let { picked -> handles.lastOrNull { it.word == picked.focus } },
+        onHandleNudge = { handle, delta -> DesktopPdfTextHandles.nudge(tab, handle, delta) },
     )
 }
 
@@ -355,4 +368,89 @@ internal fun DesktopTab.retryPdfIndex() {
     pdfIndexKey?.let { key -> DesktopPdfIndexCache.forget(key) }
     pdfIndex = null
     DesktopPdfTextStatus.retry()
+}
+
+/**
+ * The window's half of the PDF text selection's **endpoint handles**: the tab's range as the shared
+ * [PdfTextHandles] rules take it, and the writes a grab, a drag or a key makes back onto the tab.
+ *
+ * The geometry is not forked here. `PdfTextHandles` decides where the two dots sit, which one a press grabs,
+ * how a crossing keeps the grabbed end, and how far a key's step may go — all of it in page points, tested on
+ * the JVM; this object only supplies the sheet of the page in view and stores the answer on
+ * [DesktopTab.pdfTextSelection], which stays view state (no page edit, no undo step).
+ *
+ * The pen is deliberately not a handle device: a stylus press keeps the tool in hand, exactly as it does for
+ * the reading double click, so a stroke drawn across a dot is still a stroke (`docs/pdf.md`). A mouse or a
+ * touch drag adjusts the passage; the keyboard reaches the same move through the handles' own arrow keys.
+ */
+internal object DesktopPdfTextHandles {
+
+    /**
+     * The tab's selection as a shared [PdfTextRange] with the **sheet** its page draws, or null when there is
+     * no selection, it was made on another page, or that page shows no PDF.
+     */
+    fun rangeOf(tab: DesktopTab): PdfTextRange? {
+        val selection = tab.pdfTextSelection ?: return null
+        if (selection.page != tab.page) return null
+        val page = runCatching { tab.document.page(tab.page) }.getOrNull() ?: return null
+        // `PdfSheetRef.of` answers null for a page with no PDF background, and names the sheet by the page's own
+        // `Background.Pdf.pageNo` rather than by its position in the notebook.
+        val sheet = PdfSheetRef.of(page) ?: return null
+        return PdfTextRange(sheet, selection.anchor, selection.focus)
+    }
+
+    /** The two dots of [tab]'s selection, in page points — empty when nothing is selected. */
+    fun points(tab: DesktopTab): List<PdfTextHandlePoint> {
+        val index = tab.pdfIndex ?: return emptyList()
+        val range = rangeOf(tab) ?: return emptyList()
+        return PdfTextHandles.points(index.text, range)
+    }
+
+    /**
+     * The handle a press at page point ([x], [y]) grabs, with this window's screen-sized target converted at
+     * [zoom] and [density] (`PdfTextHandles.touchRadiusPt`).
+     */
+    fun grab(tab: DesktopTab, x: Double, y: Double, density: Float, zoom: Float): PdfTextHandleGrab? {
+        val index = tab.pdfIndex ?: return null
+        val range = rangeOf(tab) ?: return null
+        val radius = PdfTextHandles.touchRadiusPt(
+            PdfTextHandles.touchRadiusPx(density).toDouble(),
+            (zoom * density).toDouble(),
+        )
+        return PdfTextHandles.grab(index.text, range, x, y, radius)
+    }
+
+    /**
+     * Drag [grab] to page point ([x], [y]); true when the range actually moved.
+     *
+     * The tab keeps its page, anchor and focus; only the grabbed end's word changes, so crossing the other end
+     * reverses the passage without the grabbed dot leaving the hand.
+     */
+    fun dragTo(tab: DesktopTab, grab: PdfTextHandleGrab, x: Double, y: Double): Boolean {
+        val index = tab.pdfIndex ?: return false
+        val selection = tab.pdfTextSelection ?: return false
+        val range = rangeOf(tab) ?: return false
+        val moved = PdfTextHandles.drag(index.text, range, grab, x, y)
+        return adopt(tab, selection.anchor, selection.focus, moved)
+    }
+
+    /**
+     * Move one end of the selection by [delta] words — the accessible and keyboard path to the same adjustment a
+     * drag makes. True when the range changed; a step past the sheet's first or last word changes nothing.
+     */
+    fun nudge(tab: DesktopTab, handle: PdfTextHandle, delta: Int): Boolean {
+        val index = tab.pdfIndex ?: return false
+        val selection = tab.pdfTextSelection ?: return false
+        val range = rangeOf(tab) ?: return false
+        val moved = PdfTextHandles.nudge(index.text, range, handle, delta)
+        return adopt(tab, selection.anchor, selection.focus, moved)
+    }
+
+    /** Store [moved]'s two word indices on the tab, keeping its page and saying whether anything changed. */
+    private fun adopt(tab: DesktopTab, anchor: Int, focus: Int, moved: PdfTextRange): Boolean {
+        if (moved.anchor == anchor && moved.focus == focus) return false
+        val selection = tab.pdfTextSelection ?: return false
+        tab.pdfTextSelection = selection.copy(anchor = moved.anchor, focus = moved.focus)
+        return true
+    }
 }

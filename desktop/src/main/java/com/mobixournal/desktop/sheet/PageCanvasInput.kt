@@ -222,6 +222,8 @@ private suspend fun PointerInputScope.pageGestureLoop(
             hud.onRelease()
             return@awaitEachGesture
         }
+        // A press on a selection handle adjusts the passage, ahead of the pan and the tool (`PdfTextHandleDrag`).
+        if (pdfTextHandleDrag(down, tab, dragView)) return@awaitEachGesture
         // The packets own the pen only for the slots they draw (`inksByPackets`), never while Space is held:
         // that is the hand's pan (`PenPacketPan`). Standing aside for every slot would leave a
         // vertical-space drag or a figure unanswered by the stylus.

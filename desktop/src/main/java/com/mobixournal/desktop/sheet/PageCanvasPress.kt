@@ -5,6 +5,7 @@ import com.mobixournal.desktop.ink.activeTool
 import com.mobixournal.desktop.ink.inkTool
 import com.mobixournal.desktop.ink.pagePointOf
 import com.mobixournal.desktop.ink.shapeKind
+import com.mobixournal.desktop.io.DesktopPdfTextHandles
 import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DesktopTool
@@ -217,4 +218,44 @@ private suspend fun AwaitPointerEventScope.holdReadingClick(
             return true
         }
     }
+}
+
+/**
+ * A drag that **adjusts** an existing PDF text selection by one of its endpoint handles.
+ *
+ * It is asked before the pan and before the tool in hand, because a press on a dot is a press on a control:
+ * panning the page or drawing under the very handle the reader is reaching for is the gesture the range's
+ * handles exist to prevent. False when the press missed both dots, and then the gesture carries on exactly as
+ * it would have — the check costs a hit test and changes nothing else.
+ *
+ * A **pen** never grabs a handle. A stylus press is the tool's, the rule the reading double click already keeps
+ * (the workstation's tablet reaches Compose as a mouse copy, so preventing a stray stroke is the pen's owner's
+ * job); a mouse or a touch drag moves the passage, and the keyboard reaches the same move from the handle's
+ * focus.
+ *
+ * The capsule waits for the lift: [DesktopTab.pdfTextSelecting] is set for the drag and cleared in `finally`, so
+ * the Copy/Highlight bar is [com.mobixournal.render.PdfTextActionPhase.EXTENDING] until the range is settled
+ * again — the same phase a range being drawn passes through, not a second flag.
+ */
+internal suspend fun AwaitPointerEventScope.pdfTextHandleDrag(
+    down: PointerInputChange,
+    tab: DesktopTab,
+    view: DragView,
+): Boolean {
+    if (down.type == PointerType.Stylus) return false
+    val (x, y) = pagePointOf(down.position.x, down.position.y, density, view.current())
+    val grab = DesktopPdfTextHandles.grab(tab, x, y, density, view.current().zoom) ?: return false
+    tab.pdfTextSelecting = true
+    try {
+        while (true) {
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            val (px, py) = pagePointOf(change.position.x, change.position.y, density, view.current())
+            DesktopPdfTextHandles.dragTo(tab, grab, px, py)
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+            change.consume()
+        }
+    } finally {
+        tab.pdfTextSelecting = false
+    }
+    return true
 }

@@ -99,6 +99,13 @@ between its words included, and it stops at a column gap instead of running acro
 edge of the tint moves — nothing fades in, scales or slides as one block — and the words stay readable
 underneath. It is still the text the PDF carries, not a reading of a picture: a scan selects nothing here.
 
+**You can adjust a passage instead of selecting it again.** A range keeps two dots, one at its first word and one at
+its last: drag either dot to add or drop words, in reading order, and if you drag a dot past the other end the
+selection simply turns around — the dot stays under your finger and nothing jumps. The dots are the same size at
+any zoom, so an end is as easy to take at 30 % as at 300 %. In the window, `Tab` reaches a dot and the arrow keys
+move that end one word at a time, and the same two moves sit among the dot's screen-reader actions; on the tablet
+the bar stays out of the way until you let go, exactly as it does while you are still dragging out a range.
+
 **The tool says what it can do here.** With Select text (PDF) in hand a small line over the page says where
 things stand: *Reading this PDF's text…* while the file is being read, nothing at all when the page has words
 and the tool simply works, *No text on this page* for a scan — a picture of text, which this app ships no OCR

@@ -34,21 +34,17 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 else dismissRadialHud(commit = false)
                 return true
             }
-            multiTap.onDown(
-                event.eventTime, event.x, event.y, event.getPointerId(0),
-                maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
-            )
-            beginPointer(event, 0); beginHandTap(event); armSelectionDrag(event)
-            // A finger held still on a PDF word selects it, whatever tool the pen is on (`PdfLongPress.kt`).
-            // Armed after the press was classified, so a grip, a placement or a guide that took this touch is
-            // already known and wins.
-            armPdfTextPress(event)
+            // A press on a selection **handle** is the handle's, before the press is classified.
+            if (beginTextHandleDrag(event)) return true
+            beginDownGesture(event)
         }
         MotionEvent.ACTION_POINTER_DOWN -> {
             // A second finger is a pinch, not a hold.
             taps.cancelHand(); cancelSelectionDrag(); cancelPdfTextPress(); onPointerDown(event)
         }
         MotionEvent.ACTION_MOVE -> {
+            // A grabbed handle owns every move of its gesture until it lifts.
+            if (textHandleDrag.grab != null) { textHandleMove(event); return true }
             taps.handMove(event.x, event.y)
             multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)
             trackSelectionDragArm(event)
@@ -90,6 +86,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
         }
         MotionEvent.ACTION_POINTER_UP -> onPointerUp(event)
         MotionEvent.ACTION_UP -> when {
+            textHandleDrag.grab != null -> endTextHandleDrag()
             backgroundSelecting -> commitBackgroundSelect()
             else -> {
                 cancelSelectionDrag()
@@ -102,11 +99,34 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             }
         }
         MotionEvent.ACTION_CANCEL -> {
-            taps.cancelHand(); cancelSelectionDrag(); cancelPdfTextPress(); cancelGesture()
+            taps.cancelHand(); cancelSelectionDrag(); cancelPdfTextPress()
+            // A cancelled grab leaves the range where the last move put it — the gesture is view state, so
+            // there is nothing to roll back and nothing written.
+            textHandleDrag.grab = null
+            cancelGesture()
         }
         else -> return null
     }
     return true
+}
+
+/**
+ * A fresh single-finger press, once no handle took it: track the tap, classify the tool, and arm the two holds
+ * that may claim an otherwise unclaimed word or selection.
+ *
+ * A function of its own so the action switch stays a switch and `handleTouch` stays inside its measured length
+ * (`SourceStructureTest`).
+ */
+internal fun DrawingSurfaceView.beginDownGesture(event: MotionEvent) {
+    multiTap.onDown(
+        event.eventTime, event.x, event.y, event.getPointerId(0),
+        maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
+    )
+    beginPointer(event, 0); beginHandTap(event); armSelectionDrag(event)
+    // A finger held still on a PDF word selects it, whatever tool the pen is on (`PdfLongPress.kt`).
+    // Armed after the press was classified, so a grip, a placement or a guide that took this touch is
+    // already known and wins.
+    armPdfTextPress(event)
 }
 
 /**
@@ -302,7 +322,8 @@ internal fun DrawingSurfaceView.abandonInProgress() {
     dismissRadialHud(commit = false)
     scroll.stopAutoScroll(); holdSnap.reset()
     ink.current = null; ink.currentStrokes = null; shapeDraft.finish(); erasing = false; placing = false
-    scroll.active = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
+    scroll.active = false; textSelecting = false; textHandleDrag.grab = null
+    backgroundSelecting = false; vspace.reset()
     // A pen that has taken the gesture also takes back a pending finger hold.
     cancelPdfTextPress()
     gestures.reset(); multiTap.reset()
@@ -318,7 +339,7 @@ internal fun DrawingSurfaceView.cancelGesture() {
     ink.current = null; ink.currentStrokes = null; shapeDraft.finish()
     scroll.active = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset()
-    textSelecting = false; vspace.reset()
+    textSelecting = false; textHandleDrag.grab = null; vspace.reset()
     // Nothing a cancelled gesture did is undoable, and it leaves no owner behind for the next one.
     session.abort(); multiTap.reset()
     ink.pointerRouter.reset()

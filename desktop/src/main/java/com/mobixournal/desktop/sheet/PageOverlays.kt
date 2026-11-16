@@ -2,6 +2,7 @@ package com.mobixournal.desktop.sheet
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.PdfTextCopyBar
 import com.mobixournal.desktop.io.PdfTextCopyUi
+import com.mobixournal.desktop.io.PdfTextHandlesOverlay
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.tools.TextBoxHost
 import com.mobixournal.desktop.tools.TextBoxUi
@@ -49,14 +50,27 @@ internal fun SheetOverlays(
         offsetY = offsetY,
         onChange = text.onChange,
     )
+    // One canvas size for the selection's chrome: the handles and the capsule must agree about the pane they
+    // are clamped to, so neither computes its own fallback while the sheet has not been measured yet.
+    val surface = if (canvas == Size.Zero) Size(viewW * density, viewH * density) else canvas
     pdfText?.let { copy ->
+        // The dots first: they are the range's own controls, and the bar below stands clear of the one the reader
+        // last touched.
+        PdfTextHandlesOverlay(
+            ui = copy,
+            zoom = zoom,
+            density = density,
+            offsetX = offsetX,
+            offsetY = offsetY,
+            canvas = surface,
+        )
         PdfTextCopyBar(
             ui = copy,
             zoom = zoom,
             density = density,
             offsetX = offsetX,
             offsetY = offsetY,
-            canvas = if (canvas == Size.Zero) Size(viewW * density, viewH * density) else canvas,
+            canvas = surface,
         )
     }
     // The bar exists for a selection, and — with nothing caught — as a bare **paste button** for the tools
@@ -69,7 +83,7 @@ internal fun SheetOverlays(
         density = density,
         offsetX = offsetX,
         offsetY = offsetY,
-        canvas = if (canvas == Size.Zero) Size(viewW * density, viewH * density) else canvas,
+        canvas = surface,
     )
 }
 

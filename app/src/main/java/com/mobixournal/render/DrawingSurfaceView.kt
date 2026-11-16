@@ -278,6 +278,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         currentPage = { currentPageIndex() },
         resetLayerVisibility = { hiddenLayers.clear() },
         clearActiveLayer = { activeLayerIndex = -1 },
+        // The page list moved under the range: the words it names belong to a sheet that is no longer at that
+        // index, so a selection left over would wash and copy another page's text.
+        onPagesChanged = { clearTextSelection() },
         // A page's height (or the count) may have changed, so clamp through the viewport: its clamps
         // are per mode, and a strip's running axis has no range.
         refresh = { relayout(); viewport.clamp(); render() },
@@ -590,6 +593,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var textSelPage = -1
     internal var textSelAnchor = -1
     internal var textSelFocus = -1
+
+    /** The handle this gesture is dragging (`PdfTextHandles`); view state like the range, cleared with it. */
+    internal val textHandleDrag = PdfTextHandleDragState()
 
     /** Notified when search count/current changes so the top bar can show navigation state. */
     var onSearchChanged: ((SearchStatus) -> Unit)? = null

@@ -44,6 +44,8 @@ import com.mobixournal.render.Bounds
 import com.mobixournal.render.PdfBarBox
 import com.mobixournal.render.PdfSelectionSpan
 import com.mobixournal.render.PdfTextBarPlacement
+import com.mobixournal.render.PdfTextHandle
+import com.mobixournal.render.PdfTextHandlePoint
 import kotlin.math.roundToInt
 
 /**
@@ -72,6 +74,15 @@ internal data class PdfTextCopyUi(
      * release, so nothing chases the pointer and nothing covers the words being selected.
      */
     val settled: Boolean = true,
+    /**
+     * The selection's two endpoint **handles**, in page points — the dots the pointer drags and a keyboard
+     * moves (`PdfTextHandles`). Empty when the range has no handles to offer (no text layer, a replaced index).
+     */
+    val handles: List<PdfTextHandlePoint> = emptyList(),
+    /** The dot on the end the reader last touched, so the capsule can stand clear of it. */
+    val focusHandle: PdfTextHandlePoint? = null,
+    /** A counted move of one end (left/right arrow on the focused handle); true when the range changed. */
+    val onHandleNudge: ((PdfTextHandle, Int) -> Boolean)? = null,
 )
 
 /**
@@ -124,6 +135,9 @@ internal fun PdfTextCopyBar(
         canvasHeight = canvas.height,
         gapPx = 8f * density,
         marginPx = 6f * density,
+        // The endpoint's dot is a target, not a place to stand: a capsule over it would hide the grip the reader
+        // is about to drag again (`PdfTextBarPlacement`).
+        avoid = ui.focusHandle?.toBox(pxPerPt, origin),
     ) ?: return
     Box(
         modifier
@@ -171,6 +185,14 @@ private fun PdfSelectionSpan.toBox(pxPerPt: Float, origin: Offset): PdfBarBox = 
     top = (top * pxPerPt).toFloat() + origin.y,
     right = (right * pxPerPt).toFloat() + origin.x,
     bottom = (bottom * pxPerPt).toFloat() + origin.y,
+)
+
+/** A handle's dot in the placement's currency: its screen target around the page-point centre. */
+private fun PdfTextHandlePoint.toBox(pxPerPt: Float, origin: Offset): PdfBarBox = PdfBarBox(
+    left = (x * pxPerPt).toFloat() + origin.x,
+    top = (y * pxPerPt).toFloat() + origin.y,
+    right = (x * pxPerPt).toFloat() + origin.x,
+    bottom = (y * pxPerPt).toFloat() + origin.y,
 )
 
 /**
