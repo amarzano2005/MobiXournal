@@ -33,6 +33,9 @@ pressed; everything else in the app works without it.
 
 ### Bundled audio (`assets/`)
 
+- A take the recorder is **still writing** is not bundled by a save: its entry would be named by a hash computed before
+  the file stopped growing, so the archive's own asset check would refuse the write. The stroke keeps its sidecar name and
+  the next save bundles the finished file (`audio/AudioBundleRule.kt`).
 - A recording the app's stores hold is **bundled** into the archive by content hash
   (`assets/aud_<sha256>.<ext>`, [mobix-assets.md](mobix-assets.md)), so the same recording
   referenced twice is stored once: a save and an open go through

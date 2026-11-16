@@ -83,7 +83,9 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     // control's own state, not the notice above the page (`SaveActivity`, `docs/data-path.md`).
     SaveActivity.begin()
     inBackground(if (quiet) null else "Saving ${displayName(uri)}.", {
-        val encoded = io.encode(document, pdf, request.format, uri, images, audio::recordingFile)
+        // The take being recorded right now is not bundleable — its file is still growing under the
+        // content hash the entry would be named by ([AudioSession.bundleableRecording]).
+        val encoded = io.encode(document, pdf, request.format, uri, images, audio::bundleableRecording)
         // Prove the bytes before a SAF copy can replace the document; a refusal keeps the original.
         if (request.format == SaveFormat.MOBIX) {
             com.mobixournal.format.mobix.MobixPublishValidation.validate(encoded.file, BuildConfig.VERSION_NAME)
@@ -97,6 +99,11 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
             if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
             if (!verified) {
                 toast("The file was written but could not be read back: the save may be incomplete.")
+            }
+            // Said plainly rather than silently: the take that is still being recorded is not in this
+            // file, and the next save carries it.
+            if (request.format == SaveFormat.MOBIX && audio.isRecording) {
+                toast("The recording in progress is not in this file yet — the next save will add it.")
             }
         }
     }

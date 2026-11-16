@@ -220,6 +220,18 @@ class AudioSession(
      */
     fun recordingFile(name: String): File? = deferred.resolve(name)
 
+    /**
+     * The file a **save** may bundle for [name], or null while that recording is the one being written.
+     *
+     * A bundled recording is named by the hash of its bytes ([com.mobixournal.format.mobix.MobixPayload]),
+     * so a file the recorder is still appending to cannot be bundled: the name and the copied bytes would
+     * come from different lengths and the archive's asset check would refuse the save. That take is left
+     * out of this save and bundled by the next one, once the recorder has finished it
+     * ([AudioBundleRule]).
+     */
+    fun bundleableRecording(name: String): File? =
+        AudioBundleRule.bundleable(name, currentFile, isRecording, recordingFile(name))
+
     suspend fun preparePlayback(ref: AudioRef): Boolean = player.prepare(store.local(ref.filename), ref.startMs)
 
     fun playPrepared(ref: AudioRef): Boolean {

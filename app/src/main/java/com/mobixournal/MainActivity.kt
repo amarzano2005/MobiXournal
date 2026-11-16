@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
             // tab snapshots into its own container, which is the only shape that can carry the bundled
             // picture or recording its pages name ([MobixTabSnapshots]).
             EditorPane(
-                store = TabStore(File(filesDir, it), MobixTabSnapshots(io, audio::recordingFile, { audio.isRecording }, {
+                store = TabStore(File(filesDir, it), MobixTabSnapshots(io, audio::bundleableRecording, { audio.isRecording }, {
             File(filesDir, "audio").listFiles()?.associate { it.name to (it.length() to it.lastModified()) }
         }, { tab -> io.openedArchiveFor(tab) })),
                 // The canvas holds the imported picture; the document I/O layer knows what to do
