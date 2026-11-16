@@ -18,6 +18,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Toc
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -134,7 +136,10 @@ internal fun PdfContentsDialog(
         text = {
             Column(Modifier.fillMaxWidth()) {
                 // An edit in progress takes the card over: the list is not what the reader is doing.
-                if (editing.slot(onAdd, onRename, onDelete)) return@Column
+                if (editing.form(onAdd, onRename)) return@Column
+                // A delete question sits above the list, not in place of it: the rows the reader was reading
+                // stay behind the answer, so cancelling costs them nothing.
+                editing.question(onDelete)
                 ContentsAddRow { editing.adding() }
                 ContentsFilter(
                     query = query,
@@ -167,7 +172,8 @@ internal fun PdfContentsDialog(
                                 },
                                 // Only the notebook's own rows can be edited: a row read out of the PDF is the
                                 // file's bookmark, and it becomes the notebook's the moment one is added.
-                                onActions = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                                onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
+                                onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
                             )
                         }
                     }
@@ -256,7 +262,8 @@ private fun ContentsRow(
     largestPageNumber: Int,
     onToggle: () -> Unit,
     onClick: () -> Unit,
-    onActions: (() -> Unit)?,
+    onRename: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
 ) {
     val pageColumnDp = ContentsRowLayout.pageColumnDp(
         largestPageNumber = largestPageNumber,
@@ -319,13 +326,57 @@ private fun ContentsRow(
                 )
             }
         }
-        if (onActions != null) {
-            IconButton(onClick = onActions, modifier = Modifier.size(CHEVRON_DP)) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "Actions for ${row.title}",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
+        // One action gutter on every row — empty on a row the file owns, so the titles still end on one
+        // edge and a source-PDF row offers no command it cannot run.
+        Box(Modifier.width(ContentsRowLayout.ACTION_DP.dp), contentAlignment = Alignment.TopEnd) {
+            if (onRename != null || onDelete != null) {
+                ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
+            }
+        }
+    }
+}
+
+/**
+ * A row's **neutral menu**: one overflow glyph that opens **Rename** and **Delete**, and nothing else.
+ *
+ * The menu is the row's own, anchored under its glyph, and every answer is a separate act: opening it,
+ * dismissing it or choosing Rename writes nothing and leaves the row focus where it was. Delete only
+ * *asks* — the question above the list is where the removal is confirmed — so a mis-tap cannot lose a
+ * bookmark.
+ */
+@Composable
+private fun ContentsRowMenu(
+    title: String,
+    onRename: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }, modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = "Actions for ${title.ifBlank { "bookmark" }}",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (onRename != null) {
+                DropdownMenuItem(
+                    text = { Text("Rename") },
+                    onClick = {
+                        open = false
+                        onRename()
+                    },
+                )
+            }
+            if (onDelete != null) {
+                DropdownMenuItem(
+                    text = { Text("Delete") },
+                    onClick = {
+                        open = false
+                        onDelete()
+                    },
                 )
             }
         }

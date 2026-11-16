@@ -1,5 +1,7 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.glassCapsule
+import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.io.contentsRowsOf
 import com.mobixournal.render.OutlineEdits
@@ -44,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobixournal.design.ChromeGlyph
@@ -137,7 +140,7 @@ internal fun PdfContentsSection(
                         onToggle = { collapsed = PdfOutlineView.toggled(collapsed, row.row) },
                         // Only the notebook's own rows can be edited: the PDF's rows are the file's, and a
                         // first bookmark seeds the tree from them so they stay in the list.
-                        onEdit = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
+                        onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
                         onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
                     )
                 }
@@ -206,7 +209,7 @@ internal fun OutlineRowView(
     onSelectPage: (Int) -> Unit,
     modifier: Modifier = Modifier,
     onToggle: (() -> Unit)? = null,
-    onEdit: (() -> Unit)? = null,
+    onRename: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
 ) {
     val pageColumnDp = ContentsRowLayout.pageColumnDp(
@@ -261,9 +264,76 @@ internal fun OutlineRowView(
                 Text(text = "$number", color = DesktopTheme.inkMuted, style = DesktopTheme.numeric)
             }
         }
-        if (onEdit != null) ContentsRowAction("Rename", row.title, onEdit)
-        if (onDelete != null) ContentsRowAction("Delete", row.title, onDelete)
+        // One action gutter on every row — empty on a row the file owns, so the titles still end on one
+        // edge and a source-PDF row offers no command it cannot run.
+        Box(Modifier.width(ContentsRowLayout.ACTION_DP.dp), contentAlignment = Alignment.TopEnd) {
+            if (onRename != null || onDelete != null) {
+                ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
+            }
+        }
     }
+}
+
+/**
+ * A row's **neutral menu**: one overflow glyph that opens **Rename** and **Delete**, and nothing else.
+ *
+ * Anchored under its own glyph, it is a question rather than an act: dismissing it or picking Rename leaves the
+ * tree untouched, and Delete only *asks* — the section's delete question is where a bookmark actually goes.
+ */
+@Composable
+private fun ContentsRowMenu(
+    title: String,
+    onRename: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Box(
+            Modifier
+                .size(ContentsRowLayout.ACTION_DP.dp)
+                .hoverFill(RoundedCornerShape(8.dp))
+                .clickable(role = Role.Button) { open = true }
+                .semantics { contentDescription = "Actions for ${title.ifBlank { "bookmark" }}" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.size(16.dp)) { drawChromeGlyph(ChromeGlyph.MENU, DesktopTheme.inkSecondary) }
+        }
+        val drop = with(LocalDensity.current) { ContentsRowLayout.ACTION_DP.dp.roundToPx() }
+        GlassPopup(visible = open, onDismissRequest = { open = false }, offset = IntOffset(0, drop)) {
+            Column(
+                Modifier.glassSurface().padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                if (onRename != null) {
+                    ContentsMenuRow("Rename", title) {
+                        open = false
+                        onRename()
+                    }
+                }
+                if (onDelete != null) {
+                    ContentsMenuRow("Delete", title) {
+                        open = false
+                        onDelete()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One answer of a row's menu: its word, on a hoverable slot, announced with the row it belongs to. */
+@Composable
+private fun ContentsMenuRow(label: String, title: String, onClick: () -> Unit) {
+    Text(
+        label,
+        color = DesktopTheme.ink,
+        style = DesktopTheme.label,
+        modifier = Modifier
+            .hoverFill(RoundedCornerShape(6.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "$label ${title.ifBlank { "bookmark" }}" }
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    )
 }
 
 /** One word of a row's own actions, named together with its row so two chapters stay distinguishable. */

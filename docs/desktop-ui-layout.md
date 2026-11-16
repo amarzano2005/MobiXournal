@@ -38,7 +38,8 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   buttons out of one object. The tool strip ends with its last tool.
 - **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
   per layer that hides it without writing to the document; it opens itself only when the document has
-  **more than one page**.
+  **more than one page**. A Contents row the notebook owns wears a **⋯** glyph that opens the same neutral
+  Rename/Delete menu as the tablet; the PDF's own rows leave that gutter empty.
 - **The sheet alone on the desk**: one page at a time, opened at **100 % — the page's width filling the
   window**, the scale the tablet opens a page at (`FitOnOpen.DEFAULT` is fit width), with the fit mode named
   in the status bar.

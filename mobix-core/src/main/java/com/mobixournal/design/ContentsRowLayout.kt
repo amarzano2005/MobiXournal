@@ -30,8 +30,20 @@ object ContentsRowLayout {
     /** One digit of a page number at the row's label size, tabular figures included. */
     const val DIGIT_DP: Float = 8f
 
+    /**
+     * The branch control's slot — the interface contract's own touch target, not a smaller arrow the thumb
+     * has to find.
+     */
+    const val BRANCH_DP: Float = 40f
+
     /** The air between the title and the page number's column. */
     const val GAP_DP: Float = 10f
+
+    /**
+     * The gutter a row's own action control keeps — one slot, reserved on **every** row so the titles end on
+     * one edge, and empty on a row the file owns (a source-PDF row offers no command it cannot run).
+     */
+    const val ACTION_DP: Float = 40f
 
     /** The page column never takes more than this share of a narrow row: the title matters more. */
     const val MAX_COLUMN_SHARE: Float = 0.3f
@@ -61,6 +73,36 @@ object ContentsRowLayout {
         val room = (rowWidthDp - pageColumnDp - MIN_TITLE_DP).coerceAtLeast(0f)
         return (depth.coerceAtLeast(0) * STEP_DP).coerceAtMost(room)
     }
+
+    /**
+     * The indentation a row takes once its **whole** budget is written down: the branch gutter, the action
+     * gutter and the page column are room the indent cannot spend, and the title keeps [MIN_TITLE_DP].
+     */
+    fun indentInRow(
+        depth: Int,
+        rowWidthDp: Float,
+        pageColumnDp: Float,
+        branchDp: Float = BRANCH_DP,
+        actionDp: Float = ACTION_DP,
+    ): Float {
+        val room = (rowWidthDp - branchDp - actionDp - pageColumnDp - MIN_TITLE_DP).coerceAtLeast(0f)
+        return (depth.coerceAtLeast(0) * STEP_DP).coerceAtMost(room)
+    }
+
+    /**
+     * The width a title actually gets: what the controls, the indent and the page column leave of the row —
+     * never a negative number, which is what tells a caller the row is too narrow to hold its row.
+     */
+    fun titleWidthDp(
+        depth: Int,
+        rowWidthDp: Float,
+        pageColumnDp: Float,
+        branchDp: Float = BRANCH_DP,
+        actionDp: Float = ACTION_DP,
+    ): Float = (
+        rowWidthDp - branchDp - actionDp - pageColumnDp -
+            indentInRow(depth, rowWidthDp, pageColumnDp, branchDp, actionDp)
+        ).coerceAtLeast(0f)
 
     /**
      * What a screen reader hears for one row: the title, the page it leads to, and — when it leads nowhere

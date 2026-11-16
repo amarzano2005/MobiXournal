@@ -193,7 +193,10 @@ duplicate mints a page id, a delete keeps the row untargeted (`OutlinePageOps`),
 A row is drawn by one rule for both shells, `ContentsRowLayout` (`mobix-core`): the indent a level buys is capped by the
 row's own width so the title never drops under its minimum, the page number keeps a column reserved from the widest
 number in the list so no title shifts the numbers, depth 0 is the heading face, and a row announces its title and its
-page; `ContentsRowLayoutTest` and the window's `DesktopPdfContentsRowTest` hold it.
+page; `ContentsRowLayoutTest` and the window's `DesktopPdfContentsRowTest` hold it. A row the notebook owns does not
+act on a tap of its own controls: its **⋯** opens a neutral menu whose Rename and Delete are the only doors to an edit,
+and Delete adds nothing but a question above the list (the rows stay behind it), while a source-PDF row keeps the same
+action gutter empty because the file gives it no command this app may run.
 
 ## Joined PDFs: lifetime, publishing and refusing a blank sheet
 

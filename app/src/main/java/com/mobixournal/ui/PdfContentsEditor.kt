@@ -24,11 +24,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
-import com.mobixournal.ui.theme.FloatingDialog
 
 /**
  * What the Contents card is doing to one row: naming a new one, retitling an existing one, or asking whether
  * to delete it. Kept beside the card rather than inside it so the row list stays about reading.
+ *
+ * Nothing here is reached by tapping a row: a row's own overflow opens a **neutral menu**, and only the
+ * answers of that menu start an edit — so a row can be inspected without the card turning into a form.
  */
 internal sealed interface ContentsEdit {
 
@@ -45,14 +47,21 @@ internal sealed interface ContentsEdit {
 /**
  * The card's one edit at a time, kept in one object so the dialog's body stays the list it arranges.
  *
- * A refusal is shown where the reader is: under the title field, or in the delete question — the card only
- * closes its form when the command actually wrote something.
+ * A refusal is shown where the reader is: under the title field, or under the delete question — the card only
+ * closes its form when the command actually wrote something. The delete question is drawn **above the list**
+ * rather than in place of it, so the rows the reader was reading stay behind the answer.
  */
 internal class ContentsEditHost {
 
     private var edit by mutableStateOf<ContentsEdit?>(null)
     private var title by mutableStateOf("")
     private var error by mutableStateOf<String?>(null)
+
+    /** The row being asked about, or null when no delete question is up. */
+    val deleting: ContentsEdit.Deleting? get() = edit as? ContentsEdit.Deleting
+
+    /** The title a form is holding — the name being typed, or the row's own while that is retitled. */
+    val typedTitle: String get() = title
 
     /** Naming a new row for the page in view. */
     fun adding() {
@@ -75,24 +84,18 @@ internal class ContentsEditHost {
         edit = ContentsEdit.Deleting(row)
     }
 
-    /** The editor or the delete question — true when it drew one instead of the list. */
+    /** Closing whatever the card is doing, leaving the tree exactly as it was. */
+    fun cancel() {
+        edit = null
+        error = null
+    }
+
+    /** The card's rename field — true when it drew one instead of the list. */
     @Composable
-    fun slot(
+    fun form(
         onAdd: (String) -> OutlineEdits.Result,
         onRename: (String, String) -> OutlineEdits.Result,
-        onDelete: (String) -> OutlineEdits.Result,
     ): Boolean = when (val current = edit) {
-        null -> false
-        is ContentsEdit.Deleting -> {
-            ContentsRowActions(
-                row = current.row,
-                error = error,
-                onRename = { renaming(current.row) },
-                onDelete = { settle(onDelete(current.row.id)) },
-                onDismiss = { edit = null; error = null },
-            )
-            true
-        }
         is ContentsEdit.Adding, is ContentsEdit.Renaming -> {
             val renaming = current as? ContentsEdit.Renaming
             ContentsTitleEditor(
@@ -101,9 +104,37 @@ internal class ContentsEditHost {
                 error = error,
                 onTitle = { title = it },
                 onSave = { settle(if (renaming == null) onAdd(title) else onRename(renaming.row.id, title)) },
-                onCancel = { edit = null; error = null },
+                onCancel = ::cancel,
             )
             true
+        }
+        else -> false
+    }
+
+    /**
+     * The delete question, drawn above the list it is about (the question never takes the card over): the
+     * sections under the row move up, and the page stays in the notebook.
+     */
+    @Composable
+    fun question(onDelete: (String) -> OutlineEdits.Result) {
+        val current = deleting ?: return
+        Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+            Text(
+                "Delete \"${current.row.title.ifBlank { "this bookmark" }}\"? The sections under it move up, and the page stays in the notebook.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (error != null) {
+                Text(
+                    error.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = ::cancel) { Text("Cancel") }
+                TextButton(onClick = { settle(onDelete(current.row.id)) }) { Text("Delete") }
+            }
         }
     }
 
@@ -165,46 +196,6 @@ internal fun ContentsTitleEditor(
             TextButton(onClick = onSave, enabled = title.isNotBlank()) { Text("Save") }
         }
     }
-}
-
-/**
- * The two answers a row offers once it is picked: **Rename** and **Delete**.
- *
- * Delete is asked about in the same card, and the question says what actually happens — *its sections move
- * up; the page stays in the notebook* — because the one thing a reader must not fear from a bookmark is that
- * their page goes with it.
- */
-@Composable
-internal fun ContentsRowActions(
-    row: OutlineRow,
-    error: String?,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    FloatingDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(row.title.ifBlank { "Bookmark" }) },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        confirmButton = { TextButton(onClick = onDelete) { Text("Delete") } },
-        text = {
-            Column(Modifier.fillMaxWidth()) {
-                Text(
-                    "Delete this bookmark? The sections under it move up, and the page stays in the notebook.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                if (error != null) {
-                    Text(
-                        error,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-                TextButton(onClick = onRename, modifier = Modifier.padding(top = 2.dp)) { Text("Rename instead") }
-            }
-        },
-    )
 }
 
 /** The **Add bookmark** row above the list: the door to naming a row for the page in view. */
