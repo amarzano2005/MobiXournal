@@ -5,6 +5,9 @@
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
 What a selection *is* — the marquee, the lasso, the handles and the transforms — is [selection.md](selection.md)'s.
+A **PDF page's words** are not elements: that transient range, its Copy/Highlight/Underline bar and the
+one-owner routing rule between a word range, an element selection and a focused editor are
+[pdf.md](pdf.md)'s, and nothing here puts a word in the element clipboard.
 
 ## Copying and dropping a selection
 

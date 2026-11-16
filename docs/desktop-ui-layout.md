@@ -213,7 +213,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Eraser (whole stroke) | `Shift + E` | The eraser slot's second member |
 | | Lasso Select | `V` | Barrel button hold + drag |
 | | Marquee Rect Select | `S` | Selection mode toggle |
-| | Select text (PDF) | `Shift + S` | The tablet's PDF text tool: drag across real text to select and copy it |
+| | Select text (PDF) | `Shift + S` | The named entry for reading a PDF's text layer; a double click does it with any tool, so no slot is drawn |
 | | Text Box | `X` | Screen double-tap with finger |
 | | Formula (LaTeX / Typst) | `Shift + T` | The Text slot's second member (the tablet's LaTeX tool); asks its source first |
 | | Hand Tool | `G` | A slot of the rail: a primary drag moves the page |

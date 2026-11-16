@@ -33,7 +33,10 @@ import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
  */
 @Composable
 internal fun BoxScope.PdfTextReadinessNotice(ui: EditorUiState, pane: PaneState) {
-    if (ui.tool != EditorTool.TEXT_SELECT) return
+    // The retired tool's own slot is gone from the rail, but `Shift+S`'s entry can still put it in hand — and a
+    // long press that found no words asks for the same pill through `pdfTextEntryMissed`, so the direct entry
+    // explains itself without a mode to pick first.
+    if (ui.tool != EditorTool.TEXT_SELECT && !pane.pdfTextEntryMissed) return
     val surface = pane.surface ?: return
     val availability = surface.pdfTextAvailability()
     val sentence = availability.notice(pageShowsPdf = surface.pdfSheetInView() != null) ?: return

@@ -145,14 +145,17 @@ drag copy the whole sheet per pointer event fails that test instead of reaching 
 
 Two gestures treat a PDF page as **text** rather than as paper, and neither writes to the file:
 
-- **Select text (PDF)** (`Shift+S`) is the tablet's slot: the press must **hit** a word
+- **Reading a PDF's words is a gesture, not a slot.** A mouse double click on a word selects it with
+  whatever ink tool is in hand, and `Shift+S` still names the entry for a keyboard or screen-reader reader —
+  the strip no longer carries a `Select text (PDF)` button to pick first. A press must **hit** a word
   (`PdfTextIndex.hitWord` — inside its box, or within one press radius, `PdfHitTolerance.PRESS_SLOP_DP`
   converted at the window's zoom and bounded in page points, so a press in whitespace starts nothing) and the
   drag extends the focus word by nearest-word anchoring on the same PDF sheet, so the range is the page's own
-  reading order. The overlay
-  washes each line of it (`drawPdfTextSelection`), the **Copy** bar appears once the drag ends — beside the line
-  the pointer last touched, hidden while the range is still being made (`PdfTextActionPhase`, `PdfTextBarPlacement`)
-  — `Ctrl+C` or that bar puts `rangeText` on the system clipboard, and `Esc`, a click off the text or a page change drops it. It is
+  reading order. The overlay washes each line of it (`drawPdfTextSelection`); the **Copy, Highlight and
+  Underline** bar appears once the drag ends — beside the line the pointer last touched, hidden while the
+  range is still being made (`PdfTextActionPhase`, `PdfTextBarPlacement`) — and `Ctrl+C` or that bar copies
+  `rangeText`, while `Esc`, a click off the text, a stroke or a page change drops the range. On a read-only
+  document the two writing words stay in the bar, dimmed, with the reason a screen reader reads. It is
   **view state**: no page edit, no undo step, and a select-copy-save leaves the file byte-identical.
 - **A mouse double click reads a word** without switching tools (`Shift+S` not needed): the first click of
   the pair inks nothing, so reading leaves no dot and no undo step, while a click that travels is a drag and

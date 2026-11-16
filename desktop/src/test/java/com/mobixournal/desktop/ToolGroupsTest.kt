@@ -13,6 +13,7 @@ import com.mobixournal.desktop.tools.groupOf
 import com.mobixournal.desktop.tools.slotClick
 import com.mobixournal.desktop.tools.toggledPicker
 import com.mobixournal.desktop.tools.toolForShortcut
+import com.mobixournal.desktop.tools.toolNamed
 
 import androidx.compose.ui.input.key.Key
 import org.junit.Assert.assertEquals
@@ -41,6 +42,28 @@ class ToolGroupsTest {
                 assertTrue("$tool has a slot but the canvas ignores it", tool in DESKTOP_TOOLS_THAT_ACT)
             }
         }
+    }
+
+    @Test
+    fun `the retired PDF text tool keeps its shortcut and loses its slot`() {
+        // Reading a PDF's words is a double click with any ink tool, so the strip must not offer a mode for it.
+        assertNull("no slot draws Select text (PDF)", groupOf(DesktopTool.PDF_TEXT_SELECT))
+        assertTrue("but the entry still acts on the page", DesktopTool.PDF_TEXT_SELECT in DESKTOP_TOOLS_THAT_ACT)
+        assertTrue("and Shift+S still names it", DesktopTool.PDF_TEXT_SELECT in DESKTOP_TOOLS_WITHOUT_A_SLOT)
+        assertEquals(
+            "the keyboard entry the shortcut table prints",
+            DesktopTool.PDF_TEXT_SELECT,
+            toolForShortcut("Shift+S"),
+        )
+    }
+
+    @Test
+    fun `a stored PDF text preference comes back on the ordinary Select`() {
+        // A window that saved the retired tool opens on the marquee — the ordinary Select — not on a tool no
+        // strip can show and not on the pen.
+        assertEquals(DesktopTool.MARQUEE, toolNamed("PDF_TEXT_SELECT", DesktopTool.PEN))
+        assertEquals(DesktopTool.MARQUEE, toolNamed(" MARQUEE ", DesktopTool.PEN))
+        assertEquals(DesktopTool.PEN, toolNamed("SOMETHING_GONE", DesktopTool.PEN))
     }
 
     @Test

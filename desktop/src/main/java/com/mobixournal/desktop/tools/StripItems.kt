@@ -31,11 +31,12 @@ internal sealed interface StripItem {
 }
 
 /**
- * The slot **Insert image** stands under on a fresh install: the PDF text select slot, where the factory
- * order draws it — a picture is placed beside the commands that read or type on the page, not among the
- * ink. One value, so the store's default and the strips' fallback cannot disagree.
+ * The slot **Insert image** stands under on a fresh install: the marquee slot, where the factory order draws
+ * it — a picture is placed beside the commands that select or type on the page, not among the ink. One value,
+ * so the store's default and the strips' fallback cannot disagree. It replaced the retired PDF text slot,
+ * which no strip draws any more, so a fresh install keeps the button on a slot that exists.
  */
-internal val DEFAULT_IMAGE_ANCHOR: DesktopTool = DesktopTool.PDF_TEXT_SELECT
+internal val DEFAULT_IMAGE_ANCHOR: DesktopTool = DesktopTool.MARQUEE
 
 /**
  * The strip's contents, in the order they draw.

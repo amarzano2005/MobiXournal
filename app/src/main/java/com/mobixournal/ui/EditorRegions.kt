@@ -1463,6 +1463,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState, onSelected: () -> Unit) 
     onPageCountChanged = { n -> state.pageCount = n }
     onCurrentPageChanged = { page ->
         state.currentPage = page
+        state.pdfTextEntryMissed = false
         state.backgroundStyle = visiblePageBackgroundStyle()
         state.backgroundConfig = visiblePageBackgroundConfig()
         state.pageSize = visiblePageSize()
@@ -1476,7 +1477,11 @@ private fun DrawingSurfaceView.bindTo(state: PaneState, onSelected: () -> Unit) 
         state.textSelectionSpans = r?.spans ?: emptyList()
         state.textSelectionActiveSpan = r?.active
         state.textSelectionPhase = r?.phase ?: com.mobixournal.render.PdfTextActionPhase.ABSENT
+        // The range exists, so the missed-press pill has nothing left to explain.
+        if (r != null) state.pdfTextEntryMissed = false
     }
+    // A long press that found no words asks the pane for the availability pill, with its Try again.
+    pdfTextPress.onMissed = { state.pdfTextEntryMissed = true }
     onPdfOutlineChanged = { outline -> state.outline = outline }
     onClipboardChanged = { c -> state.hasClipboard = c }
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }
@@ -1487,6 +1492,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState, onSelected: () -> Unit) 
     }
     onDocumentLoaded = {
         state.documentVersion++
+        state.pdfTextEntryMissed = false
     }
 }
 

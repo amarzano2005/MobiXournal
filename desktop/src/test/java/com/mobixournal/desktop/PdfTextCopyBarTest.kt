@@ -18,6 +18,7 @@ import com.mobixournal.render.PdfBarBox
 import com.mobixournal.render.PdfBarOffset
 import com.mobixournal.render.PdfSelectionSpan
 import com.mobixournal.render.PdfTextBarPlacement
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -117,15 +118,18 @@ class PdfTextCopyBarTest {
     }
 
     @Test
-    fun `the bar carries Highlight beside Copy, and only where the page may be written`() {
-        val copying = measuredCapsule(fontScale = 1f)
-        val both = measuredCapsule(fontScale = 1f, highlightable = true)
-        assertTrue(
-            "Highlight is a second word in the capsule: $both against $copying",
-            both.width > copying.width + 20f,
+    fun `the bar carries Highlight and Underline beside Copy, and a read-only page dims them in place`() {
+        val writable = measuredCapsule(fontScale = 1f, highlightable = true)
+        val readOnly = measuredCapsule(fontScale = 1f, highlightable = false)
+        // Three verbs, so the capsule is a bar of words rather than a pair: Copy and the two writing verbs
+        // (`Read-only` callers pass no command, which is what the bar draws dimmed).
+        assertTrue("Copy, Highlight and Underline are all there: $writable", writable.width > 150f)
+        assertEquals(
+            "a read-only page keeps every word in place, dimmed, instead of shrinking the bar",
+            writable.width.toDouble(),
+            readOnly.width.toDouble(),
+            1.0,
         )
-        // A read-only document passes no `onHighlight`, so the verb does not exist at all.
-        assertTrue("Copy alone is the read-only bar: $copying", copying.width > 70f)
     }
 
     @Test

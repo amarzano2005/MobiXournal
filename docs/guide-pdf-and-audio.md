@@ -84,15 +84,13 @@ sits on top as page content, and the ruling, the pictures and the layers are the
 
 ## Copying text out of the page
 
-A born-digital PDF's text layer is extracted when you import it, so **Select text (PDF)** can drag a
-reading-order range and **Copy** puts it on the clipboard — `Shift+S` and `Ctrl+C` in the window. On the
-tablet you do not have to pick that tool to read a paper: **hold a finger still on a word** and the range
-starts under it with whatever tool the pen is on — drag to extend it, let go for the Copy/Highlight bar, and
-a finger that moves instead still pans or pinches as before. The tool is still there for a deliberate switch:
-it is the third entry of the Select slot's menu, press and hold the Select button in the rail to pick it,
-and the slot then keeps it for next time. The
-selection is a view over the PDF, not something written into your notebook: it is never saved, and
-`Esc`, a click off the text or a page change clears it.
+A born-digital PDF's text layer is extracted when you import it, so a passage can be selected and **Copy**
+puts it on the clipboard. There is no mode to pick first: **hold a finger still on a word** and the range
+starts under it with whatever tool the pen is on — drag to extend it, let go for the Copy/Highlight/Underline
+bar, and a finger that moves instead still pans or pinches as before. In the window a **double click** on a
+word does the same with any ink tool in hand; `Shift+S` is the keyboard and screen-reader entry, and `Ctrl+C`
+copies. The selection is a view over the PDF, not something written into your notebook: it is never saved, and
+`Esc`, a tap or click off the text, a drawn stroke or a page change clears it.
 
 **The passage looks like selected text, not a row of tiles.** The tint covers each line whole, the spaces
 between its words included, and it stops at a column gap instead of running across it. As you drag, only the
@@ -106,12 +104,12 @@ any zoom, so an end is as easy to take at 30 % as at 300 %. In the window, `Tab`
 move that end one word at a time, and the same two moves sit among the dot's screen-reader actions; on the tablet
 the bar stays out of the way until you let go, exactly as it does while you are still dragging out a range.
 
-**The tool says what it can do here.** With Select text (PDF) in hand a small line over the page says where
-things stand: *Reading this PDF's text…* while the file is being read, nothing at all when the page has words
-and the tool simply works, *No text on this page* for a scan — a picture of text, which this app ships no OCR
-for — and *Could not read this PDF's text* with a **Try again** beside it when the read broke, since the same
-file often reads on the second attempt. The line belongs to the tool and to its own pane: with another tool
-picked, or in a pane showing another document, it is not there.
+**The page says what it can do here.** A hold that lands on no words brings a small line over the page, so
+the gesture never fails silently: *Reading this PDF's text…* while the file is still being read, *No text on
+this page* for a scan — a picture of text, which this app ships no OCR for — and *Could not read this PDF's
+text* with a **Try again** beside it when the read broke, since the same file often reads on the second
+attempt. A page with words says nothing: the hold simply works. The line belongs to its own pane, so a second
+pane showing another document never explains itself on the first.
 
 **Highlight marks the words in place.** Beside Copy the bar carries **Highlight**: the passage you selected
 becomes highlighter ink on the page — one band per line, in the highlighter's own colour, on the layer you are
@@ -126,8 +124,8 @@ on one line get two, never a stroke across the gutter — drawn in your **pen's*
 you are writing on. The whole passage is still **one undo step**, so undo takes back every line at once and redo
 puts them back. It is ordinary pen ink, not a PDF annotation: it saves and reopens in `.mobix` and `.xopp`, and
 an exported PDF carries it exactly like a line you drew by hand. A document opened read-only keeps its Copy and
-takes no Underline either. The button joins the selection bar with the contextual-actions work; the command
-behind it is in place already.
+takes no Underline either — its two writing words stay in the bar, dimmed, and a screen reader is told why.
+The bar carries all three verbs whatever tool the pen is holding.
 
 **Copy rides with the words.** The bar does not sit at the bottom of the screen, and it does not follow your
 finger: it appears when you let go of the drag, beside the line you last touched — below it, above it when the

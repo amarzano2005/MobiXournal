@@ -88,5 +88,14 @@ fun toolForShortcut(shortcut: String): DesktopTool? =
  * The tool a settings file names — its [DesktopTool.name] — or [fallback] when the name is absent or was
  * written by a build that no longer has that tool.
  */
-internal fun toolNamed(name: String?, fallback: DesktopTool): DesktopTool =
-    DesktopTool.entries.firstOrNull { it.name == name?.trim() } ?: fallback
+internal fun toolNamed(name: String?, fallback: DesktopTool): DesktopTool {
+    val trimmed = name?.trim()
+    // `Select text (PDF)` left the strips: reading a PDF's words is a gesture now, and the window's read-only
+    // migration is to the **ordinary Select** — the marquee the reader would have used anyway — rather than to
+    // a tool no menu offers. The enum keeps its name so nothing else about the stored file has to change.
+    if (trimmed == RETIRED_PDF_TEXT_SELECT) return DesktopTool.MARQUEE
+    return DesktopTool.entries.firstOrNull { it.name == trimmed } ?: fallback
+}
+
+/** The retired tool's storage name: stable, because a settings file written by an older build carries it. */
+internal const val RETIRED_PDF_TEXT_SELECT: String = "PDF_TEXT_SELECT"

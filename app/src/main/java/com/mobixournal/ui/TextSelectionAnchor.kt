@@ -47,7 +47,9 @@ internal fun TextSelectionAnchor(
     canvasSizePx: IntSize,
     onCopy: () -> Unit,
     onHighlight: () -> Unit,
+    onUnderline: () -> Unit,
     onDeselect: () -> Unit,
+    canEdit: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     // Measured before the gates, so a settled range that reappears (another selection, a scroll back into view)
@@ -69,7 +71,9 @@ internal fun TextSelectionAnchor(
     TextSelectionBar(
         onCopy = onCopy,
         onHighlight = onHighlight,
+        onUnderline = onUnderline,
         onDeselect = onDeselect,
+        canEdit = canEdit,
         modifier = modifier
             .offset { IntOffset(placed.x.roundToInt(), placed.y.roundToInt()) }
             // The app's one floating-surface motion, in place: the layer holds the glass and not just its rows.

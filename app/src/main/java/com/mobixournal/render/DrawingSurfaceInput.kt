@@ -123,6 +123,10 @@ internal fun DrawingSurfaceView.beginDownGesture(event: MotionEvent) {
         maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
     )
     beginPointer(event, 0); beginHandTap(event); armSelectionDrag(event)
+    // A fresh contact that is not the text tool drops a PDF range before the tool acts (`docs/pdf.md`): the
+    // wash and the bar must not sit under the stroke about to be drawn, and a long press that follows starts
+    // a new range from this word. Handles took their press before this function was called, so a grip is safe.
+    if (!textSelectMode) clearTextSelection()
     // A finger held still on a PDF word selects it, whatever tool the pen is on (`PdfLongPress.kt`).
     // Armed after the press was classified, so a grip, a placement or a guide that took this touch is
     // already known and wins.

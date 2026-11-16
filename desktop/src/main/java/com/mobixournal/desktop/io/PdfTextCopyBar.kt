@@ -35,7 +35,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
@@ -52,14 +54,21 @@ import kotlin.math.roundToInt
  * What a PDF text selection carries on screen: the box its bar is anchored to, and what the bar does.
  *
  * A value rather than three parameters, so a canvas that has no text selection passes one `null` and the
- * bar does not exist — a Copy button over nothing would be chrome pretending to be a feature. [onHighlight]
- * is null on a document the window opened read-only: the words can still be copied, but nothing may be
- * written on the page.
+ * bar does not exist — a Copy button over nothing would be chrome pretending to be a feature.
+ *
+ * The two **writing** verbs ([onHighlight], [onUnderline]) are null on a document the window opened
+ * read-only and [editBlockedReason] then says why: the words can still be copied, and the bar keeps both
+ * verbs in place, **disabled with the reason a screen reader reads** rather than silently removing them —
+ * a reader who wonders where Underline went is told it is the page, not the button.
  */
 internal data class PdfTextCopyUi(
     val bounds: Bounds?,
     val onCopy: () -> Unit,
     val onHighlight: (() -> Unit)? = null,
+    /** The pen's own ink, written under each line of the passage by **Underline**. */
+    val onUnderline: (() -> Unit)? = null,
+    /** Why the writing verbs are unavailable, when they are — `Read-only document` for a locked page. */
+    val editBlockedReason: String? = null,
     val onDeselect: (() -> Unit)? = null,
     /**
      * The washed bands of the selection, in page points — what the capsule hangs from, one per line, exactly
@@ -168,10 +177,20 @@ internal fun PdfTextCopyBar(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             BarWord(label = "Copy", glyph = ChromeGlyph.COPY, onClick = ui.onCopy)
-            // A read-only document keeps its Copy and grows no Highlight: the verb would be a dead button.
-            ui.onHighlight?.let { highlight ->
-                BarWord(label = "Highlight", glyph = null, onClick = highlight)
-            }
+            // Both writing verbs keep their place on a read-only page, dimmed and explained: hiding them made
+            // a reader wonder whether the app had the verb at all.
+            BarWord(
+                label = "Highlight",
+                glyph = null,
+                onClick = ui.onHighlight,
+                blockedReason = ui.editBlockedReason,
+            )
+            BarWord(
+                label = "Underline",
+                glyph = null,
+                onClick = ui.onUnderline,
+                blockedReason = ui.editBlockedReason,
+            )
         }
     }
 }
@@ -208,15 +227,24 @@ private fun PdfTextHandlePoint.toBox(pxPerPt: Float, origin: Offset): PdfBarBox 
  * the whole capsule.
  */
 @Composable
-private fun BarWord(label: String, glyph: ChromeGlyph?, onClick: () -> Unit) {
+private fun BarWord(label: String, glyph: ChromeGlyph?, onClick: (() -> Unit)?, blockedReason: String? = null) {
     var focused by remember { mutableStateOf(false) }
+    val enabled = onClick != null
     Box(
         modifier = Modifier
             // A minimum, not a height: at 200 % text the pill grows with its label instead of cropping it,
             // and the target can only ever be larger than the shared control.
             .heightIn(min = DesignTokens.COMPACT_BUTTON_SIZE_DP.dp)
-            .onFocusChanged { focused = it.hasFocus }
-            .clickable(role = Role.Button, onClick = onClick),
+            .onFocusChanged { focused = enabled && it.hasFocus }
+            .semantics {
+                // The reason is part of the word, not a tooltip: a reader with a screen reader hears why the
+                // action is unavailable instead of finding a button that does nothing.
+                if (!enabled) {
+                    disabled()
+                    stateDescription = blockedReason ?: "Unavailable"
+                }
+            }
+            .clickable(enabled = enabled, role = Role.Button, onClick = { onClick?.invoke() }),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -235,7 +263,11 @@ private fun BarWord(label: String, glyph: ChromeGlyph?, onClick: () -> Unit) {
             if (glyph != null) {
                 Canvas(Modifier.size(14.dp)) { drawChromeGlyph(glyph, DesktopTheme.inkSecondary) }
             }
-            Text(text = label, color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
+            Text(
+                text = label,
+                color = if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkSecondary.copy(alpha = 0.45f),
+                style = DesktopTheme.label,
+            )
         }
     }
 }

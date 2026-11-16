@@ -41,6 +41,14 @@ internal class PdfTextPress {
 
     /** The pending timer, so a release, a second finger or a pen can take it back. */
     var fire: Runnable? = null
+
+    /**
+     * Notified when the hold fired and the point hit no word (a scan, a page still being read, a failed read).
+     * The pane answers with its availability pill, so the direct entry never fails silently — carried here, with
+     * the press's own state, rather than as one more mutable member on the view
+     * (`PackageStructureTest` caps those).
+     */
+    var onMissed: (() -> Unit)? = null
 }
 
 /**
@@ -151,7 +159,12 @@ private fun DrawingSurfaceView.firePdfTextPress() {
     press.fire = null
     press.armed = false
     abandonInProgress()
-    if (!beginTextSelectAt(press.downX, press.downY)) return
+    if (!beginTextSelectAt(press.downX, press.downY)) {
+        // Nothing under the finger: the pane says why (reading, no text on this page, or a failed read with a
+        // Try again) instead of the hold looking like a gesture the app did not hear.
+        press.onMissed?.invoke()
+        return
+    }
     performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
 }
 

@@ -88,14 +88,15 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup("highlighter", "Highlighter", listOf(EditorTool.HIGHLIGHTER)),
     ToolGroup("eraser", "Eraser", listOf(EditorTool.ERASER_WHOLE, EditorTool.ERASER)),
     ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),
-    // The slot's three marquees: a rectangle, a freehand lasso, and — over an imported PDF — its text.
-    // The text tool was a member of no group at all, so the one way to select a passage was missing from
-    // the rail while `applyTool`, the gesture router and the Copy bar all waited for it.
+    // The slot's two marquees: a rectangle and a freehand lasso. Selecting a PDF's **words** is a gesture now
+    // (a finger held on a word, whatever the tool), so the text marquee left the rail — picking a mode before
+    // the words would let themselves be selected was the thing this removal fixes (`docs/pdf.md`). The enum
+    // entry stays so a stored selection or a shortcut decodes, and a stored TEXT_SELECT falls back to Select.
     ToolGroup(
         "select", "Select",
-        listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT),
+        listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
         pickerLayout = listOf(
-            listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT),
+            listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
         ),
     ),
     // Text authoring lives in a slot of its own (below), so Insert is only about pictures.

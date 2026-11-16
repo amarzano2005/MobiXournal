@@ -55,7 +55,9 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.DesignTokens
@@ -329,12 +331,19 @@ fun SelectModeBar(
  * it was the widest thing in a bar of two, and it named a gesture the page's own surface performs. The act
  * survives as the bar's accessibility custom action, so a keyboard or TalkBack reader keeps the door that a
  * pointer has.
+ *
+ * **Three verbs, and only the two writing ones can be unavailable.** Copy reads the words and always works;
+ * Highlight marks them in the highlighter's ink and Underline draws the pen's rule under each line, and both
+ * are refused (and drawn dimmed, with the reason a screen reader announces) on a read-only document. They
+ * stay in place rather than vanishing so the bar does not change shape from one file to the next.
  */
 @Composable
 fun TextSelectionBar(
     onCopy: () -> Unit,
     onHighlight: () -> Unit,
+    onUnderline: () -> Unit,
     onDeselect: () -> Unit,
+    canEdit: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     FloatingSurface(modifier = modifier) {
@@ -350,13 +359,17 @@ fun TextSelectionBar(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             BarAction(label = "Copy", onClick = onCopy, glyph = ChromeGlyph.COPY)
-            BarAction(label = "Highlight", onClick = onHighlight)
+            BarAction(label = "Highlight", onClick = onHighlight, enabled = canEdit, blockedReason = READ_ONLY_REASON)
+            BarAction(label = "Underline", onClick = onUnderline, enabled = canEdit, blockedReason = READ_ONLY_REASON)
         }
     }
 }
 
 /** The dismissal the bar no longer spells out, kept for assistive input. */
 private const val DESELECT_ACTION = "Deselect"
+
+/** Why the two writing verbs are dimmed: the page is read-only, not the button. */
+private const val READ_ONLY_REASON = "Read-only document"
 
 /** The pill an action draws: its face, while its hit area stays the 40 dp compact control. */
 private val BarActionHeight = DesignTokens.COMPACT_ACTION_HEIGHT_DP.dp
@@ -375,13 +388,26 @@ private val BarActionTarget = DesignTokens.COMPACT_BUTTON_SIZE_DP.dp
  * pill inside it.
  */
 @Composable
-private fun BarAction(label: String, onClick: () -> Unit, glyph: ChromeGlyph? = null) {
+private fun BarAction(
+    label: String,
+    onClick: () -> Unit,
+    glyph: ChromeGlyph? = null,
+    enabled: Boolean = true,
+    blockedReason: String = READ_ONLY_REASON,
+) {
     var focused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .heightIn(min = BarActionTarget)
-            .onFocusChanged { focused = it.hasFocus }
-            .clickable(role = Role.Button, onClick = onClick),
+            .onFocusChanged { focused = enabled && it.hasFocus }
+            .semantics {
+                // A dimmed word still has to explain itself to assistive input.
+                if (!enabled) {
+                    disabled()
+                    stateDescription = blockedReason
+                }
+            }
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -403,7 +429,15 @@ private fun BarAction(label: String, onClick: () -> Unit, glyph: ChromeGlyph? = 
             if (glyph != null) {
                 Icon(glyph.imageVector(), contentDescription = null, modifier = Modifier.size(16.dp))
             }
-            Text(label, style = MaterialTheme.typography.labelLarge)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                },
+            )
         }
     }
 }

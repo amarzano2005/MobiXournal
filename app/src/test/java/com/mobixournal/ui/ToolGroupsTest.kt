@@ -6,6 +6,7 @@ import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -112,13 +113,23 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `select group holds the two marquees and the PDF text tool`() {
+    fun `select group holds the two marquees and no PDF text mode`() {
         val select = groupOf(EditorTool.SELECT)
         assertEquals("select", select?.id)
-        assertEquals(listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT), select?.tools)
-        // The text marquee is only reachable through this slot's picker: without it the tool, the gesture
-        // router and the Copy bar were all present and unreachable.
-        assertEquals("select", groupOf(EditorTool.TEXT_SELECT)?.id)
+        assertEquals(listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT), select?.tools)
+        // Selecting a PDF's words is a gesture now, so the retired mode is in no slot at all — a rail button
+        // that must be picked first was the reason the old workflow needed a tool switch.
+        assertNull(groupOf(EditorTool.TEXT_SELECT))
+    }
+
+    @Test
+    fun `a stored PDF text selection degrades to the ordinary marquee`() {
+        // A build before this one wrote `select:TEXT_SELECT`. The tool is in no group any more, so the decoder
+        // drops it and the slot comes up on its first member instead of on a mode the rail cannot show.
+        val decoded = decodeToolGroupSelections("select:TEXT_SELECT")
+        assertTrue("the stale row is dropped, not kept: $decoded", decoded.isEmpty())
+        val select = groupOf(EditorTool.SELECT)!!
+        assertEquals(EditorTool.SELECT, select.selected(decoded))
     }
 
     @Test

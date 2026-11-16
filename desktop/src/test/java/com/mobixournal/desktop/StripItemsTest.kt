@@ -32,8 +32,10 @@ class StripItemsTest {
 
     @Test
     fun `insert image follows the slot it was put under`() {
-        // Three real slot faces: an unknown name is the fallback case below, not an anchor.
-        for (anchor in listOf(DesktopTool.TEXT, DesktopTool.PDF_TEXT_SELECT, DesktopTool.ERASER)) {
+        // Three real slot faces: an unknown name is the fallback case below, not an anchor. The retired PDF
+        // text slot is not one of them any more — `DEFAULT_IMAGE_ANCHOR` and this list moved to slots the
+        // strips actually draw.
+        for (anchor in listOf(DesktopTool.TEXT, DesktopTool.MARQUEE, DesktopTool.ERASER)) {
             val (image, slot) = indices(anchor.name)
             assertTrue("the image slot is on the strip under $anchor", image > 0)
             assertEquals("it stands right after $anchor", slot + 1, image)

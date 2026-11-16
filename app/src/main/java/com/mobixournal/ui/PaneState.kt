@@ -75,6 +75,12 @@ class PaneState {
      * the action bar — see [com.mobixournal.render.PdfTextActionPhase].
      */
     var textSelectionPhase by mutableStateOf(com.mobixournal.render.PdfTextActionPhase.ABSENT)
+    /**
+     * Whether a direct selection attempt found no words — a long press on a scan, a page still being read, or a
+     * read that failed. The availability pill is shown while it is true, so the entry explains itself; a
+     * successful selection or a page change clears it.
+     */
+    var pdfTextEntryMissed by mutableStateOf(false)
     /** Whether there is content on the clipboard (cut or copied selection/pages). */
     var hasClipboard by mutableStateOf(false)
     /** Whether a released background-select region is waiting to be copied or cut. */

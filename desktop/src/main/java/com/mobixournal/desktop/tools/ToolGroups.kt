@@ -174,9 +174,11 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     // Typing on the page: a slot of its own, because a text box is neither ink nor a figure. It carries the
     // tablet's two members — prose and a formula — with Text as its face.
     ToolGroup(listOf(DesktopTool.TEXT, DesktopTool.MATH)),
-    // Reading a PDF's text layer: a slot of its own, because it selects rather than inks — it draws no
-    // stroke and writes nothing to the page (`docs/pdf.md`), so it cannot be a member of the ink slots.
-    ToolGroup(listOf(DesktopTool.PDF_TEXT_SELECT)),
+    // **No PDF text slot.** Reading a PDF's text layer is a gesture now, not a tool: a double click selects a
+    // word with whatever ink is in hand and a drag extends it, so a slot that must be picked before the words
+    // become selectable was a mode the reader had to remember (`docs/pdf.md`). `Shift+S` still names the entry
+    // for a keyboard or screen-reader reader (`DESKTOP_TOOLS_WITHOUT_A_SLOT`), and the enum keeps its name so a
+    // stored selection or a shortcut table still decodes.
     // Vertical space reflows a page rather than inking it, so it stands after the commands that read or type
     // on the page and before the figures.
     ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
@@ -280,7 +282,12 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
  * button beside it was the same act twice. Removing it is a decision about **where** a tool is reached,
  * not about whether it works: the tool still acts on the page (`docs/audio.md`).
  */
-val DESKTOP_TOOLS_WITHOUT_A_SLOT: Set<DesktopTool> = setOf(DesktopTool.AUDIO)
+val DESKTOP_TOOLS_WITHOUT_A_SLOT: Set<DesktopTool> = setOf(
+    DesktopTool.AUDIO,
+    // Select text (PDF) acts on the page but has no strip slot any more: a double click reads a word with
+    // whatever ink is in hand, and `Shift+S` names this entry for a keyboard or screen-reader reader.
+    DesktopTool.PDF_TEXT_SELECT,
+)
 
 /**
  * [DESKTOP_TOOL_GROUPS] in the reader's own order.

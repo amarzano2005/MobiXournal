@@ -85,7 +85,7 @@ What it does today:
   notebook as a `.pmobix`; all use the shared plan and see the window's unsaved pages.
 - **Reads a PDF's text and outline** — one `PDDocument.load` per file feeds `DesktopPdfText`/`DesktopPdfOutline`
   off the UI thread, cached by reference and length (`DesktopPdfIndexCache`, soft-referenced), and published on
-  the tab as `DesktopPdfIndex`: the words **Select text (PDF)** selects and the magnetic highlighter snaps to,
+  the tab as `DesktopPdfIndex`: the words a double click selects (Shift+S names the entry) and the magnetic highlighter snaps to,
   and the Contents rows above. A scanned, corrupt or missing PDF answers an empty index, never an exception.
 - **Owns the PDF's pages as the document's pages** — the sidebar lists every sheet with the PDF page it
   carries drawn on it, a row's close glyph drops that sheet, **Move page up / Move page down** in the Pages

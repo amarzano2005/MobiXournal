@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.IntSize
 import com.mobixournal.render.clearTextSelection
 import com.mobixournal.render.copyTextSelection
 import com.mobixournal.render.highlightTextSelection
+import com.mobixournal.render.underlineTextSelection
 
 /**
  * **Both of a pane's selection bars**, in one place: the element selection's action bar and the PDF text
@@ -37,14 +38,18 @@ internal fun PaneSelectionBars(
             modifier = modifier,
         )
     }
-    // The PDF text bar: two verbs, against the words they act on.
+    // The PDF text bar: three verbs, against the words they act on, whatever tool the pen is holding.
     if (pane.textSelectionRect != null) {
         TextSelectionAnchor(
             pane = pane,
             canvasSizePx = canvasSizePx,
             onCopy = { pane.surface?.copyTextSelection() },
             onHighlight = { pane.surface?.highlightTextSelection(settings.highlighterColor) },
+            // Underline writes the **pen's** own ink, not the highlighter's (`docs/pdf.md`).
+            onUnderline = { pane.surface?.underlineTextSelection(ui.color, ui.width.toDouble()) },
             onDeselect = { pane.surface?.clearTextSelection() },
+            // A read-only document keeps all three words and dims the two writing verbs, with the reason.
+            canEdit = !pane.isReadOnly,
             modifier = modifier,
         )
     }

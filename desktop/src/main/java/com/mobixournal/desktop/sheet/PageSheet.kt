@@ -127,7 +127,7 @@ internal fun PageSheet(
         onEdited = onEdited,
         hud = hud,
     )
-    SheetOverlaysOf(tab, text, sheet, density, selectionBar, extent, highlightInk)
+    SheetOverlaysOf(tab, text, sheet, density, selectionBar, extent, highlightInk, ink)
 }
 
 /**
@@ -145,6 +145,7 @@ private fun SheetOverlaysOf(
     selectionBar: SelectionBarUi,
     extent: () -> Size,
     highlightInk: DesktopInk,
+    penInk: DesktopInk,
 ) {
     SheetOverlays(
         text = text,
@@ -157,7 +158,7 @@ private fun SheetOverlaysOf(
         canvas = extent(),
         viewW = sheet.viewW,
         viewH = sheet.viewH,
-        pdfText = pdfTextCopyUi(tab, highlightInk.colour),
+        pdfText = pdfTextCopyUi(tab, highlightInk.colour, penInk),
     )
 }
 

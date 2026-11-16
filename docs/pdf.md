@@ -101,40 +101,36 @@ line changes) — into a `PdfTextIndex` threaded to the surface via `setPdfTextI
 `setPdfSource`). This reuses the **same PDFBox dependency** as export, so **no OCR engine** is needed
 for born-digital PDFs; a scanned image-only page yields no words (`hasAnyText` false), and OCR for
 that case is a tracked follow-up. Boxes are page-local top-left points (the `.xopp` frame), so they
-map to the screen through a `PageBox` exactly like strokes. The **Select text (PDF)** tool
-(`EditorTool.TEXT_SELECT` → `ActiveTool.TEXT_SELECT` → `GestureIntent.SELECT_TEXT`) drags to select
-an inclusive reading-order word range — and a **finger held still on a word** selects that same range with whatever tool the pen is on (`PdfLongPress.kt`): the press is only a candidate for the platform's long-press window, a move past the touch slop hands it back to the pan, a second finger hands it to the pinch, a pen keeps its own route, and whatever the press began is dropped uncommitted, so no stroke and no undo step survive it. The window reads the same way by **mouse double click** (`PageCanvasPress.kt`): the first click of the pair inks nothing whatever tool is in hand, a click that travels is a drag and hands the stroke to that tool from its own press, and the second press anchors the word and a held drag extends it — with a text box, a figure or a placed element under the pointer answering first. `beginTextSelect`/`textSelectMove` resolve pointer positions
+map to the screen through a `PageBox` exactly like strokes. Selecting a passage is a **gesture, not a mode**:
+a finger held still on a word selects an inclusive reading-order range with whatever tool the pen is on
+(`PdfLongPress.kt`), so no rail slot has to be picked first. `EditorTool.TEXT_SELECT` and its
+`ActiveTool.TEXT_SELECT`/`GestureIntent.SELECT_TEXT` mappings stay decodable for a stored selection or a shortcut (the window's `Shift+S` entry), but the tablet's Select slot no longer offers the tool. The hold is: the press is only a candidate for the platform's long-press window, a move past the touch slop hands it back to the pan, a second finger hands it to the pinch, a pen keeps its own route, and whatever the press began is dropped uncommitted, so no stroke and no undo step survive it. The window reads the same way by **mouse double click** (`PageCanvasPress.kt`): the first click of the pair inks nothing whatever tool is in hand, a click that travels is a drag and hands the stroke to that tool from its own press, and the second press anchors the word and a held drag extends it — with a text box, a figure or a placed element under the pointer answering first. `beginTextSelect`/`textSelectMove` resolve pointer positions
 to word indices (`PdfTextSelection`, below), the range is drawn as one washed band per line (`PdfSelectionSpans`: the line's union height, the spaces between its words inside it, columns never bridged, no border per word, nothing animated — only the boundary advances), the
-`TextSelectionBar` — two words in compact pills on the shared 40 dp target (`DesignTokens.COMPACT_ACTION_HEIGHT_DP`) rather than a nested Material button, and no Deselect word — puts the text on the Android system clipboard (`copyTextSelection`), and its
-**Highlight** writes the passage onto the page (`highlightTextSelection`, see [the magnetic
-highlighter](#the-magnetic-highlighter)). While it is in hand the slot names the page's state — reading, ready a scan with no words, or a failed read with a **Try again** — from one `PdfTextAvailability`, so a walk still running is never called a page without text. The bar
-**floats against the words**: the surface reports the selected word boxes' union
-(`textSelectionScreenRect` → `onTextSelectionReport` → `PaneState.textSelectionRect` beside
-`textSelectionSpans`, `textSelectionActiveSpan` and `textSelectionPhase`, from the paint pass beside
-`reportScroll`). The capsule exists only once the range has **settled**: `PdfTextActionPhase` keeps it away while
-a pointer or a handle is still moving the range, so nothing chases the finger or covers the words being selected,
-and `PdfTextBarPlacement` hangs it from the **band the endpoint is on** — above it when the pane ends below, clear of the handle, inside the pane, and nowhere when no selected line is visible. The window's `PdfTextCopyBar` reads the same rule from `PdfTextCopyUi.spans`/`active`/`settled` (its `pdfTextSelecting` is cleared in `finally`), its words the same compact pills on the same target; it washes the same `PdfSelectionSpans` bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word, and a passage never slides, fades or scales as one block. The
-selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
-it doesn't affect round-trip (matching how desktop selects a PDF background's text).
+`TextSelectionBar` — **Copy, Highlight and Underline** in compact pills on the shared 40 dp target (`DesignTokens.COMPACT_ACTION_HEIGHT_DP`) rather than a nested Material button, and no Deselect word — puts the text on the Android system clipboard (`copyTextSelection`), **Highlight** writes the passage in the highlighter's ink (`highlightTextSelection`, see [the magnetic highlighter](#the-magnetic-highlighter)) and **Underline** rules it in the pen's (`underlineTextSelection`); on a read-only document the two writing words stay in place, dimmed, with the reason assistive input reads. A **hold that finds no words** brings the pane's own line — reading, a scan with no words, or a failed read with a **Try again** — from one `PdfTextAvailability`, so a walk still running is never called a page without text. The bar
+**floats against the words** and waits for the range to **settle**: the surface reports the selected
+word boxes' union (`textSelectionScreenRect` → `onTextSelectionReport` → `PaneState`), and
+`PdfTextActionPhase` keeps the capsule away while a pointer or a handle still moves the range.
+`PdfTextBarPlacement` hangs it from the **band the endpoint is on** — above it when the pane ends below,
+clear of the handle, inside the pane, nowhere when no selected line is visible — and the window's
+`PdfTextCopyBar` reads the same rule from `PdfTextCopyUi.spans`/`active`/`settled` and washes the same
+bands at `DesignTokens.TEXT_SELECTION_WASH_ALPHA`, so neither shell draws a box per word and a passage
+never slides or fades as one block. The selection is a **view-only** overlay derived from the PDF,
+never part of the `.xopp` document, so it does not affect round-trip.
 
-**The hold's precedence is the canvas's own** (`CanvasGestureRouter`'s order): a foreground grip, an object selection's lift (a finger inside its outline), an in-progress placement, a dragged guide, the marquee and the grab line keep their press, and a pen, a second finger or a wordless spot never arm at all — the hold takes only an otherwise unclaimed word. Because it writes nothing it also runs ahead of the read-only guard.
+**The hold's precedence is the canvas's own** (`CanvasGestureRouter`'s order): a grip, an object
+selection's lift, a placement, a guide, the marquee and the grab line keep their press, and a pen, a
+second finger or a wordless spot never arm; because it writes nothing it runs ahead of the read-only guard.
 
 The geometry is **shared, not forked**: `CharBox`, `PdfWord`, `PdfWordGrouper`, `PdfTextIndex` and the
-outline tree live in `mobix-core/src/main/java/com/mobixournal/render/`, and each shell keeps only its
-own PDFBox glue. A document's text is read in **one traversal** on both sides: PDFBox's stripper is
-handed the whole page range and each line is filed under the page it came from, where asking it page
-by page re-parsed the file once per page. The tablet also coalesces requests by **source revision** —
-path, length and modification time (`PdfAnalysisJobs`) — so two panes asking about one file join a
-single walk, the walks run on a two-thread pool, and a merge (new bytes) is a new key rather than an
-answer left over from the old file. A result whose canvas has moved to another PDF is dropped. Each
-shell's glue is only that: the reader (`PdfTextExtractor`/`PdfOutlineExtractor` over `pdfbox-android`;
-`DesktopPdfText`/
-`DesktopPdfOutline` over `org.apache.pdfbox`, one `PDDocument.load` per file, cached by reference and
-length in `DesktopPdfIndexCache` and read off the UI thread). Both shells therefore resolve a pointer on
-the In the window, **Select text (PDF)** (`Shift+S`) requires a hit (`hitWord`), drags an
-inclusive reading-order range, washes it and puts the words on the system clipboard (`Ctrl+C` or the
-selection's Copy/Highlight bar); `Esc`, a click off the text or a page change clears it, and **Copy** writes
-nothing. Neither bar carries a **Deselect**: the click on the page and `Esc` are the pointer's dismissal, and both capsules expose a *Deselect* accessibility action so a keyboard or TalkBack reader keeps the same door.
+outline tree live in `mobix-core/src/main/java/com/mobixournal/render/`, each shell keeping only its
+PDFBox glue — `PdfTextExtractor`/`PdfOutlineExtractor` over `pdfbox-android`,
+`DesktopPdfText`/`DesktopPdfOutline` over `org.apache.pdfbox` with one `PDDocument.load` per file in
+`DesktopPdfIndexCache`, off the UI thread. Text is read in **one traversal** on both sides, and the
+tablet coalesces requests by **source revision** (`PdfAnalysisJobs`) so two panes asking about one file
+join a single walk on a two-thread pool. In the window a press must hit a word (`hitWord`), drags an
+inclusive reading-order range and copies it (`Ctrl+C` or the bar); `Esc`, a click off the text, a stroke
+and a page change clear it, and neither bar carries a **Deselect** — both offer it as an accessibility
+action.
 
 **A press must hit a word; a drag may approach one.** `PdfTextSelection` (`mobix-core`) is the gesture's pure
 half: `begin` answers only when the point lands on a word — inside its box, or within the press radius
@@ -143,6 +139,11 @@ nearest-word anchoring for a drag over a line's gap. A `PdfTextRange` keeps the 
 apart (crossing them reverses the range, not the grab), names the `PdfSheetRef` a page draws — its source plus
 `Background.Pdf.pageNo`, never its place in the notebook — and refuses another sheet (`PdfSheetRefTest`).
 **The passage's ends are handles.** `PdfTextHandles` (`mobix-core`) puts a dot at the reading start's left edge and one at the reading end's right edge, each drawn at `DesignTokens.TEXT_SELECTION_HANDLE_DP` screen dp and grabbed inside `TEXT_SELECTION_HANDLE_TOUCH_DP` converted at the page's own scale, so the grip is the same at 30 % and at 300 %; dragging one moves that end to `PdfTextIndex.anchorWord`'s nearest word — crossing the other end reverses the passage while the grabbed dot stays the one in the hand, and a counted nudge (the window's arrow key and its accessibility actions) is the same move by one word. A press on a dot is asked before the pan and before the tool (`beginTextHandleDrag`, `pdfTextHandleDrag`), the tablet paints the dots from `PdfTextSelectionHandles`, the window from the focusable `Selection start`/`Selection end` nodes in `DesktopPdfTextOverlay`, whose `avoid` box also keeps the capsule off the endpoint the reader just released. The range never leaves its sheet, and it is dropped when the page list, the PDF source or the page changes (`PageCommands.onPagesChanged`, `DesktopPdfIndex`), with one range per pane.
+
+**Selection ownership.** A PDF word range (sheet, endpoints, plain-text projection) is neither a model-element
+selection (stable element refs) nor a focused editor range: one canvas owner per pane, Copy goes to the focused
+editor then the active owner and never a stale range; words never become elements or clipboard objects, and
+Copy/Highlight/Underline are the base commands of an extensible bar ([selection-actions.md](selection-actions.md)).
 
 ## The magnetic highlighter
 
@@ -154,8 +155,7 @@ lines and each line becomes one constant-width band as tall as its glyph boxes p
 canvas previews those bands during the drag (`DrawingSurfacePaint.drawCurrent`) and commits them at
 lift-off as ordinary highlighter strokes, so one gesture is still one undo step and the band round-trips
 through `.mobix` and `.xopp` as ink. Snapping is a convenience, never a correction the user did not ask
-for: a margin mark is not silently turned into a sentence. The window commits and previews the same
-bands from the same object (`DesktopPdfIndex`'s words, `PenPointer.pdfBands` as the live preview), so a
+for: a margin mark is not silently turned into a sentence. The window commits and previews the same bands from the same object (`DesktopPdfIndex`'s words, `PenPointer.pdfBands` as the live preview), so a
 stylus highlight snaps exactly as a mouse one does.
 
 **Highlight and Underline are one selection's two doors.** The words a selection covers become ordinary strokes on

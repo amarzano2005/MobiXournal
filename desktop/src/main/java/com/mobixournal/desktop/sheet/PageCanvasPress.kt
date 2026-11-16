@@ -58,6 +58,10 @@ internal suspend fun AwaitPointerEventScope.pressAfterPan(
     // A slot whose product is not ink **clicks** instead of drawing — the Text box it opens, the take the
     // Audio slot replays — so the gesture ends at the press and no page edit is recorded.
     if (clickSlotTakesThePress(down, tool, tab, viewport, density, pageW, pageH, targets)) return
+    // A press on the page that begins something else drops a PDF range first: a click off the text and Escape
+    // are the same command, and ink must never be laid over the wash (`docs/pdf.md`). The PDF text entry is its
+    // own dismissal — its press re-anchors or misses, and a miss clears the range with the notice that says why.
+    if (tab.pdfTextSelection != null && tool != DesktopTool.PDF_TEXT_SELECT) dismissSelection(tab)
     // The **PDF text** slot reads instead of drawing: a press anchors the word under it and the drag
     // extends the range in the page's own reading order. Nothing is written — the selection is view
     // state (`docs/pdf.md`) — so the gesture ends at the lift and no page edit is recorded.

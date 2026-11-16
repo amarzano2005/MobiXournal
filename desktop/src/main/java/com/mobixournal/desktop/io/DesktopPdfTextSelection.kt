@@ -117,7 +117,7 @@ internal object DesktopPdfTextSelect {
  * [highlightColour] is the highlighter's ink, so *Highlight* writes the marker's own colour even while the
  * pen is the picked tool — the tablet reads `AppSettings.highlighterColor` for the same word.
  */
-internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi {
+internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int, pen: com.mobixournal.desktop.ink.DesktopInk): PdfTextCopyUi {
     val selection = tab.pdfTextSelection
     val words = if (selection == null) emptyList() else DesktopPdfTextSelect.boxes(tab, selection)
     val bands = PdfSelectionSpans.of(words)
@@ -128,6 +128,10 @@ internal fun pdfTextCopyUi(tab: DesktopTab, highlightColour: Int): PdfTextCopyUi
         bounds = pdfTextSelectionBounds(tab),
         onCopy = { copyPdfTextOf(tab) },
         onHighlight = if (tab.document.readOnly) null else ({ DesktopPdfTextHighlight.highlight(tab, highlightColour) }),
+        // The pen's own ink, not the highlighter's: Underline writes the rule a hand would have drawn.
+        onUnderline = if (tab.document.readOnly) null else ({ DesktopPdfTextUnderline.underline(tab, pen.colour, pen.width.toDouble()) }),
+        // Why the two writing verbs are dimmed, when they are: the page, never the button.
+        editBlockedReason = if (tab.document.readOnly) "Read-only document" else null,
         // Only the accessibility action calls this: the pointer's own dismissal is the click on the page and
         // Escape, which never needed a word in the bar — the key and the action run the same command.
         onDeselect = { dismissSelection(tab) },
