@@ -33,8 +33,8 @@ class DesktopAudioToolTest {
         val slots = DESKTOP_TOOL_GROUPS.filter { DesktopTool.AUDIO in it.members }
         assertEquals("the strip carries no second door to audio", 0, slots.size)
         assertEquals(
-            "the pill and `Y` are its doors, named in one place",
-            setOf(DesktopTool.AUDIO),
+            "the pill and `Y` are its doors; the other slotless entry is Select text, reached by its own key",
+            setOf(DesktopTool.AUDIO, DesktopTool.PDF_TEXT_SELECT),
             DESKTOP_TOOLS_WITHOUT_A_SLOT,
         )
         assertTrue("and it still acts on the page", DesktopTool.AUDIO in DESKTOP_TOOLS_THAT_ACT)

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -189,56 +190,86 @@ internal fun PdfContentsDialog(
                     return@Column
                 }
                 // The row's own width, not the screen's: in a split-screen pane the card is what the list has.
-                BoxWithConstraints {
-                    val widthDp = maxWidth.value
-                    val widest = largestPageNumber(rows)
-                    val pageColumnDp = ContentsRowLayout.pageColumnDp(
-                        largestPageNumber = widest,
-                        rowWidthDp = widthDp,
-                        fontScale = LocalDensity.current.fontScale,
-                    )
-                    LazyColumn(state = session.list, modifier = Modifier.fillMaxWidth()) {
-                        if (adding) {
-                            item(key = "add-draft") {
-                                AddDraftRow(
-                                    page = editing.addPage,
-                                    pageColumnDp = pageColumnDp,
-                                    title = editing.title,
-                                    error = editing.error,
-                                    onTitle = editing::typed,
-                                    onSave = { editing.submit(onAdd(editing.title, editing.addPage)) },
-                                    onCancel = editing::cancel,
-                                )
-                            }
-                        }
-                        items(shown, key = { it.row }) { row ->
-                            val renaming = (editing.draft as? ContentsEdit.Renaming)?.takeIf { it.row.id == row.id }
-                            ContentsRow(
-                                row = row,
-                                rowWidthDp = widthDp,
-                                largestPageNumber = widest,
-                                onToggle = { session.navigation = session.navigation.toggled(row.id) },
-                                onClick = {
-                                    row.page?.let(onGoToPage)
-                                    onDismiss()
-                                },
-                                // Only the notebook's own rows can be edited: a row read out of the PDF is the
-                                // file's bookmark, and it becomes the notebook's the moment one is added.
-                                onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
-                                onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
-                                renaming = renaming != null,
-                                title = editing.title,
-                                error = editing.error,
-                                onTitle = editing::typed,
-                                onSaveDraft = { editing.submit(onRename(row.id, editing.title)) },
-                                onCancelDraft = editing::cancel,
-                            )
-                        }
-                    }
-                }
+                ContentsRowsBlock(
+                    rows = rows,
+                    shown = shown,
+                    adding = adding,
+                    session = session,
+                    onGoToPage = onGoToPage,
+                    onDismiss = onDismiss,
+                    onAdd = onAdd,
+                    onRename = onRename,
+                    onDelete = onDelete,
+                )
             }
         },
     )
+}
+
+/**
+ * The list the card draws: an add draft when one is open, then the visible rows — the width being the card's
+ * own, so a split-screen pane measures its own indent and its own page column.
+ */
+@Composable
+private fun ContentsRowsBlock(
+    rows: List<OutlineRow>,
+    shown: List<OutlineRow>,
+    adding: Boolean,
+    session: ContentsSession,
+    onGoToPage: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    onAdd: (String, Int?) -> OutlineEdits.Result,
+    onRename: (String, String) -> OutlineEdits.Result,
+    onDelete: (String) -> OutlineEdits.Result,
+) {
+    val editing = session.editing
+    BoxWithConstraints {
+        val widthDp = maxWidth.value
+        val widest = largestPageNumber(rows)
+        val pageColumnDp = ContentsRowLayout.pageColumnDp(
+            largestPageNumber = widest,
+            rowWidthDp = widthDp,
+            fontScale = LocalDensity.current.fontScale,
+        )
+        LazyColumn(state = session.list, modifier = Modifier.fillMaxWidth()) {
+            if (adding) {
+                item(key = "add-draft") {
+                    AddDraftRow(
+                        page = editing.addPage,
+                        pageColumnDp = pageColumnDp,
+                        title = editing.title,
+                        error = editing.error,
+                        onTitle = editing::typed,
+                        onSave = { editing.submit(onAdd(editing.title, editing.addPage)) },
+                        onCancel = editing::cancel,
+                    )
+                }
+            }
+            items(shown, key = { it.row }) { row ->
+                val renaming = (editing.draft as? ContentsEdit.Renaming)?.takeIf { it.row.id == row.id }
+                ContentsRow(
+                    row = row,
+                    rowWidthDp = widthDp,
+                    largestPageNumber = widest,
+                    onToggle = { session.navigation = session.navigation.toggled(row.id) },
+                    onClick = {
+                        row.page?.let(onGoToPage)
+                        onDismiss()
+                    },
+                    // Only the notebook's own rows can be edited: a row read out of the PDF is the file's
+                    // bookmark, and it becomes the notebook's the moment one is added.
+                    onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
+                    onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                    renaming = renaming != null,
+                    title = editing.title,
+                    error = editing.error,
+                    onTitle = editing::typed,
+                    onSaveDraft = { editing.submit(onRename(row.id, editing.title)) },
+                    onCancelDraft = editing::cancel,
+                )
+            }
+        }
+    }
 }
 
 /**
@@ -347,9 +378,6 @@ private fun ContentsRow(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val titleStyle = if (heading) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium
-    // A title that ends in an ellipsis must still be readable: a long press opens the whole name. The row's
-    // own tap stays the page jump, so inspecting a title never navigates.
-    var fullTitle by remember(row.id) { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -384,54 +412,96 @@ private fun ContentsRow(
                 modifier = Modifier.weight(1f).padding(vertical = 2.dp),
             )
         } else {
-        Box(Modifier.weight(1f)) {
-            Text(
-                text = row.title,
-                style = titleStyle,
-                // Inter ships 400, 500 and 700 (`TypeContractGuardTest`): the heading step is the larger face
-                // plus the one weight the theme owns, not a 600 the family answers with 700.
-                fontWeight = if (heading) FontWeight.Medium else FontWeight.Normal,
-                color = if (row.current) MaterialTheme.colorScheme.primary else ink,
-                maxLines = ContentsRowLayout.TITLE_MAX_LINES,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(onClick = onClick, enabled = row.hasDestination, onLongClick = { fullTitle = true }),
+            ContentsRowTitle(
+                row = row,
+                titleStyle = titleStyle,
+                heading = heading,
+                ink = ink,
+                onClick = onClick,
             )
-            DropdownMenu(expanded = fullTitle, onDismissRequest = { fullTitle = false }) {
-                Text(
-                    row.title.ifBlank { "Bookmark" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
-            }
+            ContentsRowTrailing(
+                row = row,
+                titleStyle = titleStyle,
+                pageColumnDp = pageColumnDp,
+                number = number,
+                onRename = onRename,
+                onDelete = onDelete,
+            )
         }
-        // The column is kept on every row, empty where a row leads nowhere, so the titles end on one line
-        // and a four-digit page does not narrow its neighbours. Its line height is the title's own, so the
-        // number sits on the title's **first** baseline rather than floating between two lines.
-        Box(
-            modifier = Modifier.width(pageColumnDp.dp),
-            contentAlignment = Alignment.TopEnd,
-        ) {
-            if (number != null) {
-                Text(
-                    text = "$number",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontFeatureSettings = "tnum",
-                        lineHeight = titleStyle.lineHeight,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.End,
-                )
-            }
+    }
+}
+
+/**
+ * A row's title, and the way to read all of it: two lines then an ellipsis, with a long press opening the whole
+ * name. The row's own tap stays the page jump, so inspecting a title never navigates.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun RowScope.ContentsRowTitle(
+    row: OutlineRow,
+    titleStyle: androidx.compose.ui.text.TextStyle,
+    heading: Boolean,
+    ink: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
+    var fullTitle by remember(row.id) { mutableStateOf(false) }
+    Box(Modifier.weight(1f)) {
+        Text(
+            text = row.title,
+            style = titleStyle,
+            // Inter ships 400, 500 and 700 (`TypeContractGuardTest`): the heading step is the larger face plus
+            // the one weight the theme owns, not a 600 the family answers with 700.
+            fontWeight = if (heading) FontWeight.Medium else FontWeight.Normal,
+            color = if (row.current) MaterialTheme.colorScheme.primary else ink,
+            maxLines = ContentsRowLayout.TITLE_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(onClick = onClick, enabled = row.hasDestination, onLongClick = { fullTitle = true }),
+        )
+        DropdownMenu(expanded = fullTitle, onDismissRequest = { fullTitle = false }) {
+            Text(
+                row.title.ifBlank { "Bookmark" },
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
         }
-        // One action gutter on every row — empty on a row the file owns, so the titles still end on one
-        // edge and a source-PDF row offers no command it cannot run.
-        Box(Modifier.width(ContentsRowLayout.ACTION_DP.dp), contentAlignment = Alignment.TopEnd) {
-            if (onRename != null || onDelete != null) {
-                ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
-            }
+    }
+}
+
+/**
+ * The page column and the one action gutter: the column is kept on every row (empty where a row leads nowhere)
+ * so the titles end on one line and a four-digit page never narrows its neighbours, and the gutter stays empty on
+ * a row the file owns because a source-PDF bookmark offers no command this app may run.
+ */
+@Composable
+private fun ContentsRowTrailing(
+    row: OutlineRow,
+    titleStyle: androidx.compose.ui.text.TextStyle,
+    pageColumnDp: Float,
+    number: Int?,
+    onRename: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
+) {
+    Box(
+        modifier = Modifier.width(pageColumnDp.dp),
+        contentAlignment = Alignment.TopEnd,
+    ) {
+        if (number != null) {
+            Text(
+                text = "$number",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFeatureSettings = "tnum",
+                    lineHeight = titleStyle.lineHeight,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+            )
         }
+    }
+    Box(Modifier.width(ContentsRowLayout.ACTION_DP.dp), contentAlignment = Alignment.TopEnd) {
+        if (onRename != null || onDelete != null) {
+            ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
         }
     }
 }

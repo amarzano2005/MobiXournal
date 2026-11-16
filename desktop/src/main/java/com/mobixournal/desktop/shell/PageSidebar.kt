@@ -27,6 +27,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -183,35 +184,20 @@ fun PageSidebar(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             )
             DesktopSidebarView.PAGES -> {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(count = tab.pageCount) { index ->
-                PageRow(
-                    tab = tab,
-                    index = index,
-                    current = current,
-                    picked = index in selection.pages,
-                    revision = revision,
-                    cache = cache,
-                    drag = drag,
-                    onPick = { ctrl, shift ->
-                        tab.pickedPages = PageSelectionRules.click(selection, index, ctrl, shift, tab.pageCount)
-                        onSelectPage(index)
-                    },
-                    onRemovePage = onRemovePage,
-                    onMovePage = { from, to ->
-                        val carried = PageSelectionRules.dragging(selection, from)
-                        if (carried.size <= 1) onMovePage(from, to) else onMovePages(carried, to)
-                    },
-                )
-            }
-            // The list's own `+`: a blank sheet where the pages end (`docs/desktop-workstation.md`).
-            item { AddPageRow(onAdd = { onInsertPage(tab.pageCount) }) }
-        }
+        PageThumbnailList(
+            tab = tab,
+            listState = listState,
+            current = current,
+            selection = selection,
+            revision = revision,
+            cache = cache,
+            drag = drag,
+            onSelectPage = onSelectPage,
+            onRemovePage = onRemovePage,
+            onMovePage = onMovePage,
+            onMovePages = onMovePages,
+            onInsertPage = onInsertPage,
+        )
         SidebarSections(
             tab = tab,
             selection = selection,
@@ -224,6 +210,56 @@ fun PageSidebar(
         )
             }
         }
+    }
+}
+
+/**
+ * The page thumbnails and the row that adds one: the Pages view's own list, pulled out so [PageSidebar] reads
+ * as the view it chooses and the sections under it, not as eight parameters of a row.
+ */
+@Composable
+private fun ColumnScope.PageThumbnailList(
+    tab: DesktopTab,
+    listState: LazyListState,
+    current: Int,
+    selection: PageSelection,
+    revision: Int,
+    cache: MutableMap<Int, ImageBitmap>,
+    drag: PageDragHandle,
+    onSelectPage: (Int) -> Unit,
+    onRemovePage: (Int) -> Unit,
+    onMovePage: (Int, Int) -> Unit,
+    onMovePages: (Set<Int>, Int) -> Unit,
+    onInsertPage: (Int) -> Unit,
+) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.weight(1f).fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(count = tab.pageCount) { index ->
+            PageRow(
+                tab = tab,
+                index = index,
+                current = current,
+                picked = index in selection.pages,
+                revision = revision,
+                cache = cache,
+                drag = drag,
+                onPick = { ctrl, shift ->
+                    tab.pickedPages = PageSelectionRules.click(selection, index, ctrl, shift, tab.pageCount)
+                    onSelectPage(index)
+                },
+                onRemovePage = onRemovePage,
+                onMovePage = { from, to ->
+                    val carried = PageSelectionRules.dragging(selection, from)
+                    if (carried.size <= 1) onMovePage(from, to) else onMovePages(carried, to)
+                },
+            )
+        }
+        // The list's own `+`: a blank sheet where the pages end (`docs/desktop-workstation.md`).
+        item { AddPageRow(onAdd = { onInsertPage(tab.pageCount) }) }
     }
 }
 
