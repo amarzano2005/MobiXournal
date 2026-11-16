@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-export-bookmarks"
-title = "Carry the edited notebook index into exported PDFs"
-description = "After persisted editable bookmarks, emit PDDocumentOutline in PdfExporter and DesktopPdfExport using final output page indices. Export user-created entries and effective imported entries, including rename/delete overrides and automatic PDF markers. Integrate pdf-export-page-selection: omit destinations to excluded pages and keep valid descendant hierarchy according to a documented rule. Test reorder, duplicate titles, missing target, subset export and nested entries by reopening the produced PDF and checking each destination. Follow docs/interface-contract.md for UI work and update README.md and docs/guide-pdf-and-audio.md when wired end to end."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 220
-created = 2026-11-14
-tags = ["pdf", "bookmarks"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "stem-netlist-spice-review"
 title = "From connectors to a checkable circuit: ERC and an SPICE subset (F12)"
 description = """
