@@ -7,6 +7,7 @@ import com.mobixournal.desktop.io.DesktopPdfIndex
 import com.mobixournal.desktop.io.DesktopPdfTextHighlight
 import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.io.DesktopPdfTextSelection
+import com.mobixournal.desktop.io.DesktopPdfTextUnderline
 import com.mobixournal.desktop.sheet.PageBackdrop
 import com.mobixournal.desktop.shell.DesktopTabs
 
@@ -127,6 +128,46 @@ class DesktopPdfTextSelectionTest {
         val tab = DesktopPdfFixture.tab(temp.root)
         try {
             assertFalse(DesktopPdfTextHighlight.highlight(tab, 0xFFFFFF00.toInt()))
+            assertFalse(tab.canUndo)
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `Underline writes one thin pen rule under the line, and one undo takes it back`() {
+        val tab = DesktopPdfFixture.tab(temp.root)
+        try {
+            tab.pdfTextSelection = DesktopPdfTextSelection(page = 0, anchor = 0, focus = 1)
+            assertTrue(DesktopPdfTextUnderline.underline(tab, 0xFF1A237E.toInt(), 1.2))
+            val rules = tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>()
+            assertEquals("one rule over the one selected line", 1, rules.size)
+            val rule = rules.single()
+            assertEquals("ordinary pen ink, not a highlighter band", Tool.PEN, rule.tool)
+            assertTrue("a constant width, never a pressure profile", rule.uniformWidth)
+            assertEquals(2, rule.points.size)
+            assertEquals("the rule is level", rule.points[0].y, rule.points[1].y, 1e-9)
+            assertEquals("in the pen's own colour", 0xFF1A237E.toInt(), rule.color)
+            assertEquals(1.2, rule.points[0].width, 1e-9)
+            assertEquals(1, tab.document.edits)
+            assertTrue("the whole underline is one undo step", tab.canUndo)
+            assertTrue(tab.undo())
+            assertTrue(
+                "undo takes the rule back",
+                tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>().isEmpty(),
+            )
+            assertTrue("and redo puts it back", tab.redo())
+            assertEquals(1, tab.document.page(0).layers.flatMap { it.elements }.filterIsInstance<Stroke>().size)
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `Underline without a selection writes nothing`() {
+        val tab = DesktopPdfFixture.tab(temp.root)
+        try {
+            assertFalse(DesktopPdfTextUnderline.underline(tab, 0xFF000000.toInt(), 1.2))
             assertFalse(tab.canUndo)
         } finally {
             tab.document.close()

@@ -147,6 +147,27 @@ class PdfExportTest {
     }
 
     @Test
+    fun anUnderlineReachesThePageAsOrdinaryInkAndNotAnAnnotation() {
+        val words = listOf(
+            PdfWord("Magnetic", 40.0, 96.0, 90.0, 108.0),
+            PdfWord("highlighter", 96.0, 96.0, 160.0, 108.0),
+            PdfWord("rules", 40.0, 116.0, 70.0, 128.0),
+        )
+        val rules = PdfTextUnderline.strokes(words, black, 1.2)
+        assertEquals("one rule per selected line", 2, rules.size)
+
+        val bytes = export(page(*rules.toTypedArray()))
+
+        PDDocument.load(bytes).use { exported ->
+            val written = exported.getPage(0)
+            assertTrue("the rules are painted page content", written.contents.use { it.readBytes().isNotEmpty() })
+            assertTrue("and no annotation carries them", written.annotations.isEmpty())
+            assertNull(written.cosObject.getDictionaryObject(COSName.ANNOTS))
+        }
+        assertFalse("nothing in the file is an annotation array", String(bytes, Charsets.ISO_8859_1).contains("/Annots"))
+    }
+
+    @Test
     fun everyPageIsWrittenAndNoneOfThemIsAnnotated() {
         val bytes = export(page(pen()), page(highlighter()))
 

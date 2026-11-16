@@ -203,6 +203,46 @@ internal object DesktopPdfTextHighlight {
 }
 
 /**
+ * **Underline** the words a PDF text selection covers: one ordinary pen rule per line segment, on the tab's
+ * active layer, as **one** undo step.
+ *
+ * The geometry is `PdfTextUnderline`'s — the same shared rule the tablet runs — so the window writes the ink a
+ * hand would have drawn, not a PDF annotation: it saves in `.mobix` and `.xopp`, reopens as a [Stroke], and
+ * reaches an exported PDF through the ordinary stroke path. [colour] and [widthPt] are the **pen's** own colour
+ * and width slot (`DesktopInks.pen`), never the highlighter's, which is the appearance policy `docs/pdf.md`
+ * states for this verb.
+ *
+ * One snapshot names the whole underline, so `Ctrl+Z` takes back every line of a multi-line selection at once
+ * and a redo puts them all back. A read-only document refuses it, exactly as Highlight does.
+ */
+internal object DesktopPdfTextUnderline {
+
+    /** Write the selection's rules; false when there is nothing to write or the page took no edit. */
+    fun underline(tab: DesktopTab, colour: Int, widthPt: Double): Boolean {
+        if (tab.document.readOnly) return false
+        val selection = tab.pdfTextSelection ?: return false
+        val words = DesktopPdfTextSelect.boxes(tab, selection)
+        val strokes = com.mobixournal.render.PdfTextUnderline.strokes(words, colour, widthPt)
+        if (strokes.isEmpty()) return false
+        val page = tab.page
+        val before = tab.document.snapshot()
+        // A take that is running stamps the same `fn`/`ts` every committed stroke carries.
+        val stamp = DesktopAudioSession.stamp(tab)
+        val edited = tab.document.editPage(page) { editedPage ->
+            strokes.fold(editedPage) { grown, stroke ->
+                val rule = if (stamp != null) stroke.withAudio(stamp) else stroke
+                grown.withElement(rule, tab.inkLayer(grown))
+            }
+        }
+        if (edited == null) return false
+        tab.record(before)
+        tab.warmInk()
+        DesktopPdfTextNotice.underlined(words.size)
+        return true
+    }
+}
+
+/**
  * The union box of [tab]'s text selection, in page points — where its Copy bar is placed — or null when
  * nothing is selected.
  */
@@ -302,6 +342,9 @@ internal object DesktopPdfTextNotice {
 
     /** `Highlighted 4 words` — the page changed, and the bar says which words it marked. */
     fun highlighted(words: Int) = show(if (words == 1) "Highlighted 1 word" else "Highlighted $words words")
+
+    /** `Underlined 4 words` — the same confirmation for the ink's other verb. */
+    fun underlined(words: Int) = show(if (words == 1) "Underlined 1 word" else "Underlined $words words")
 
     fun clear() {
         text = null

@@ -371,6 +371,37 @@ fun DrawingSurfaceView.highlightTextSelection(color: Int): Boolean {
     return true
 }
 
+/**
+ * **Underline** the selected PDF words: one ordinary pen rule under each line, on the page's active layer, as
+ * **one** undo step.
+ *
+ * The geometry is [PdfTextUnderline]'s — one two-point [com.mobixournal.format.model.Tool.PEN] stroke per line
+ * and column segment, placed just below that segment's own word boxes — so the mark is ink rather than a PDF
+ * annotation: it round-trips through `.mobix` and `.xopp` and reaches an exported PDF through the ordinary
+ * stroke path. [color] and [widthPt] are the **pen's** own colour and slot (not the highlighter's), the policy
+ * `docs/pdf.md` states for this verb.
+ *
+ * Like Highlight it is an act of writing, so it is refused on a read-only document, and the selection stays
+ * where it was — a reader who wants it again does not have to select the passage twice. The transient range
+ * itself is never saved.
+ */
+fun DrawingSurfaceView.underlineTextSelection(color: Int, widthPt: Double): Boolean {
+    val index = pdfTextIndex ?: return false
+    if (isReadOnly || !hasTextSelection()) return false
+    val sheet = textSelectionSheet() ?: return false
+    val words = PdfTextSelection.boxes(index, PdfTextRange(sheet, textSelAnchor, textSelFocus))
+    val strokes = PdfTextUnderline.strokes(words, color, widthPt)
+    if (strokes.isEmpty()) return false
+    // One snapshot for the whole underline, taken before the first rule lands: many strokes, one undo step.
+    val before = doc
+    strokes.forEach { appendStroke(textSelPage, it) }
+    history.record(before)
+    relayout()
+    render()
+    notifyHistory()
+    return true
+}
+
 /** Drop the current PDF-text selection (view-only). */
 fun DrawingSurfaceView.clearTextSelection() {
     val had = textSelPage >= 0

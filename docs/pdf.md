@@ -158,14 +158,14 @@ for: a margin mark is not silently turned into a sentence. The window commits an
 bands from the same object (`DesktopPdfIndex`'s words, `PenPointer.pdfBands` as the live preview), so a
 stylus highlight snaps exactly as a mouse one does.
 
-**Highlighting a selection is the same geometry's other door.** The words a text selection covers go to
-`MagneticHighlighter.selectionStrokes` — the drag's bands, without its three-line cap, because a selection may
-run down a page — and land on the tab's **active layer** through the ordinary commit path
-(`highlightTextSelection` on the tablet, `DesktopPdfTextHighlight` in the window): one undo step for the whole
-multi-line selection, and the same drawn band in a PDF export. The colour is the highlighter's own, not
-the picked tool's, on both shells; Copy still writes nothing and a read-only document has no Highlight. The
-model has **no layer lock** — a layer carries elements, a name and its extra attributes — so there is nothing
-for this verb to bypass: it writes where every other stroke writes.
+**Highlight and Underline are one selection's two doors.** The words a selection covers become ordinary strokes on
+the tab's **active layer** through the normal commit path, as **one** undo step for a multi-line selection and
+the same ink in a PDF export: Highlight takes `MagneticHighlighter.selectionStrokes` — the drag's bands, without
+its three-line cap, because a selection may run down a page — in the highlighter's colour; Underline takes
+`PdfTextUnderline.strokes`, one constant-width, plain, round-capped `Tool.PEN` rule per line segment, `GAP_PT`
+below that segment's own word boxes, in the **pen's** colour and width (`underlineTextSelection`,
+`DesktopPdfTextUnderline`). No PDF annotation, no format element: `.mobix`, `.xopp` and an exported PDF carry both
+as ink. Copy writes nothing, a read-only document has neither verb, and the model has **no layer lock** to bypass.
 
 ## PDF Contents (the outline)
 

@@ -120,6 +120,15 @@ them back. It is ordinary highlighter ink, not a PDF annotation object: it saves
 `.xopp`, and reaches an exported PDF the way any drawn highlight does. A document opened read-only keeps its
 Copy and has no Highlight.
 
+**Underline draws the passage instead.** **Underline** is Highlight's sibling and works on the same selection:
+each line of the passage gets one thin, level pen rule just under its words — one rule per line, and two columns
+on one line get two, never a stroke across the gutter — drawn in your **pen's** colour and width, on the layer
+you are writing on. The whole passage is still **one undo step**, so undo takes back every line at once and redo
+puts them back. It is ordinary pen ink, not a PDF annotation: it saves and reopens in `.mobix` and `.xopp`, and
+an exported PDF carries it exactly like a line you drew by hand. A document opened read-only keeps its Copy and
+takes no Underline either. The button joins the selection bar with the contextual-actions work; the command
+behind it is in place already.
+
 **Copy rides with the words.** The bar does not sit at the bottom of the screen, and it does not follow your
 finger: it appears when you let go of the drag, beside the line you last touched — below it, above it when the
 page ends there — so the tint that shows what is selected is never hidden by the buttons that act on it, and
