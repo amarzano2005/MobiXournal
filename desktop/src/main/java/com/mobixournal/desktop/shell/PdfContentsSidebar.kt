@@ -3,6 +3,7 @@ import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
+import com.mobixournal.desktop.io.contentsResolved
 import com.mobixournal.desktop.io.contentsRowsOf
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
@@ -37,6 +38,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -126,10 +128,16 @@ internal fun ContentsPanel(
     contentsEdits: ContentsEdits,
     modifier: Modifier = Modifier,
 ) {
-    var query by remember(tab) { mutableStateOf("") }
-    var collapsed by remember(tab) { mutableStateOf(emptySet<Int>()) }
-    val rows = remember(tab, tab.pdfIndex, tab.document.edits, collapsed, query) {
-        contentsRowsOf(tab, collapsed, query)
+    // The filter, the folds and the place in the list belong to the **tab**, not to the rows: an edit replaces
+    // the rows on every keystroke of a rename, and none of those may clear a filter or move the reader
+    // (docs/pdf.md).
+    val navigation = tab.contentsNavigation
+    val query = navigation.query
+    LaunchedEffect(tab, tab.document.edits, tab.pdfIndex) {
+        tab.contentsNavigation = tab.contentsNavigation.against(contentsResolved(tab))
+    }
+    val rows = remember(tab, tab.pdfIndex, tab.document.edits, navigation.collapsed, query) {
+        contentsRowsOf(tab, navigation.collapsed, query)
     }
     // One Contents edit at a time: naming a row for the page in view, retitling one, or asking about a removal.
     val editing = remember(tab) { ContentsEditHost() }
@@ -156,8 +164,18 @@ internal fun ContentsPanel(
                 onCancel = editing::cancel,
             )
         }
-        ContentsFilterField(query = query, onQuery = { query = it })
+        ContentsFilterField(query = query, onQuery = { tab.contentsNavigation = tab.contentsNavigation.withQuery(it) })
         Spacer(Modifier.height(4.dp))
+        LaunchedEffect(rows) {
+            val at = rows.indexOfFirst { it.id == tab.contentsNavigation.anchorId }
+            if (rows.isNotEmpty() && at >= 0 && at != tab.contentsList.firstVisibleItemIndex) {
+                tab.contentsList.scrollToItem(at)
+            }
+        }
+        LaunchedEffect(tab.contentsList.firstVisibleItemIndex, rows) {
+            val row = rows.getOrNull(tab.contentsList.firstVisibleItemIndex) ?: return@LaunchedEffect
+            tab.contentsNavigation = tab.contentsNavigation.scrolledTo(row.id, row.row)
+        }
         if (rows.isEmpty() && !adding) {
             Text(
                 text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
@@ -177,7 +195,7 @@ internal fun ContentsPanel(
                 rowWidthDp = widthDp,
                 fontScale = LocalDensity.current.fontScale,
             )
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(state = tab.contentsList, modifier = Modifier.fillMaxSize()) {
                 if (adding) {
                     item(key = "add-draft") {
                         ContentsAddDraft(
@@ -198,7 +216,7 @@ internal fun ContentsPanel(
                         rowWidthDp = widthDp,
                         largestPageNumber = widest,
                         onSelectPage = onSelectPage,
-                        onToggle = { collapsed = PdfOutlineView.toggled(collapsed, row.row) },
+                        onToggle = { tab.contentsNavigation = tab.contentsNavigation.toggled(row.id) },
                         // Only the notebook's own rows can be edited: the PDF's rows are the file's, and a
                         // first bookmark seeds the tree from them so they stay in the list.
                         onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,

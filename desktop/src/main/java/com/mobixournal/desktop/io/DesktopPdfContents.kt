@@ -19,7 +19,7 @@ import com.mobixournal.render.PdfOutlineView
 internal fun visibleContentsRows(
     outline: PdfOutline,
     pages: List<Page>,
-    collapsed: Set<Int> = emptySet(),
+    collapsed: Set<String> = emptySet(),
     query: String = "",
     currentPage: Int? = null,
 ): List<OutlineRow> = visibleContentsRows(
@@ -36,7 +36,7 @@ internal fun visibleContentsRows(
  */
 internal fun visibleContentsRows(
     rows: List<OutlineRow>,
-    collapsed: Set<Int> = emptySet(),
+    collapsed: Set<String> = emptySet(),
     query: String = "",
     currentPage: Int? = null,
 ): List<OutlineRow> = PdfOutlineView.visible(
@@ -53,9 +53,17 @@ internal fun visibleContentsRows(
  * The notebook's own tree wins when it has one; the PDF's outline is the fallback for a document that has
  * never been imported into, and is what the reader was seeing before the format could hold a tree.
  */
+/**
+ * The tab's resolved rows, before any filter or fold: what the session's folds and its anchor are checked
+ * against, so a branch that was removed is forgotten rather than shadowing a later row (
+ * [com.mobixournal.render.ContentsNavigation]).
+ */
+internal fun contentsResolved(tab: DesktopTab): List<OutlineRow> =
+    OutlineResolution.rowsOf(tab.document.model.outline, tab.pdfIndex?.outline, tab.document.model.pages)
+
 internal fun contentsRowsOf(
     tab: DesktopTab,
-    collapsed: Set<Int> = emptySet(),
+    collapsed: Set<String> = emptySet(),
     query: String = "",
 ): List<OutlineRow> {
     val pages = tab.document.model.pages

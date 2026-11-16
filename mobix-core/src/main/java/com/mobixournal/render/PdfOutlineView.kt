@@ -7,8 +7,9 @@ package com.mobixournal.render
  * The rows are already flat and already resolved ([OutlineResolution]); what this owns is the *view* of them,
  * and the one rule that made a filter and an expansion fight each other. A bookmark's **title is not its
  * identity**: a book can carry two chapters called "Introduction", and a `Set<String>` of collapsed titles
- * would collapse both at once. So every row is addressed by its **position** in the resolved list ([OutlineRow.row]),
- * which is stable while the document is open, and a branch is that position plus the span of rows under it.
+ * would collapse both at once. So a branch is addressed by its **row id** ([OutlineRow.id]) — a `bkm_` node id,
+ * or the `pdf:<position>` id a source PDF's rows get — which survives an insert above it and an undo, where a
+ * position in the resolved list does not.
  *
  * The two rules, in one place:
  * - **Expansion** hides a row when any of its ancestors is collapsed. A branch is a row whose next row is
@@ -39,9 +40,23 @@ object PdfOutlineView {
         return next
     }
 
-    /** [collapsed] with [row]'s branch flipped: the one state a chevron changes. */
-    fun toggled(collapsed: Set<Int>, row: Int): Set<Int> =
-        if (row in collapsed) collapsed - row else collapsed + row
+    /**
+     * [collapsed] with the branch of the row whose **id** is [id] flipped — the one state a chevron changes.
+     *
+     * A branch is addressed by its node id, never by its position: inserting a bookmark above a closed chapter,
+     * renaming one, or undoing an edit shifts every position after it, and a position-keyed set would then close
+     * a different chapter. A row read out of the PDF has no node id of its own; its `pdf:<position>` id is
+     * deterministic for that source, which is the fallback the resolvers write.
+     */
+    fun toggled(collapsed: Set<String>, id: String): Set<String> =
+        if (id in collapsed) collapsed - id else collapsed + id
+
+    /** [collapsed] cut down to the rows that still exist, so a removed branch cannot shadow a later one. */
+    fun pruned(collapsed: Set<String>, rows: List<OutlineRow>): Set<String> {
+        if (collapsed.isEmpty()) return collapsed
+        val live = rows.mapTo(HashSet(rows.size)) { it.id }
+        return collapsed.intersect(live)
+    }
 
     /**
      * The rows to draw, in order, for a [collapsed] set, a [query] and the page the reader stands on.
@@ -55,7 +70,7 @@ object PdfOutlineView {
      */
     fun visible(
         rows: List<OutlineRow>,
-        collapsed: Set<Int> = emptySet(),
+        collapsed: Set<String> = emptySet(),
         query: String = "",
         currentPage: Int? = null,
     ): List<OutlineRow> {
@@ -80,7 +95,7 @@ object PdfOutlineView {
             rows[index].copy(
                 row = index,
                 branch = index in branches,
-                expanded = index !in collapsed,
+                expanded = rows[index].id !in collapsed,
                 context = matched != null && index !in hits,
                 matched = index in hits,
                 current = index == current,
@@ -104,15 +119,15 @@ object PdfOutlineView {
     }
 
     /** The indices the tree shows with its branches closed: what a reader sees before searching. */
-    private fun withinBranches(rows: List<OutlineRow>, collapsed: Set<Int>): List<Int> {
+    private fun withinBranches(rows: List<OutlineRow>, collapsed: Set<String>): List<Int> {
         if (collapsed.isEmpty()) return rows.indices.toList()
         val drawn = ArrayList<Int>(rows.size)
         // One cursor: everything up to [skipUntil] is inside a closed branch and is not drawn.
         var skipUntil = 0
-        rows.forEachIndexed { row, _ ->
+        rows.forEachIndexed { row, entry ->
             if (row < skipUntil) return@forEachIndexed
             drawn += row
-            if (row in collapsed) skipUntil = endOfBranch(rows, row)
+            if (entry.id in collapsed) skipUntil = endOfBranch(rows, row)
         }
         return drawn
     }

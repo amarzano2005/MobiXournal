@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.io.contentsResolved
 import com.mobixournal.desktop.io.contentsRowsOf
 import com.mobixournal.desktop.io.visibleContentsRows
 import com.mobixournal.render.OutlineResolution
@@ -98,8 +99,9 @@ class DesktopPdfContentsTest {
     private val twoSheets = listOf(pdfPage(0, carriesReference = true), pdfPage(1))
 
     @Test
-    fun `a branch folds by position, so two chapters called Introduction fold one at a time`() {
-        val collapsed = visibleContentsRows(duplicated, twoSheets, collapsed = setOf(0))
+    fun `a branch folds by id, so two chapters called Introduction fold one at a time`() {
+        val firstChapter = OutlineResolution.rows(duplicated, twoSheets)[0].id
+        val collapsed = visibleContentsRows(duplicated, twoSheets, collapsed = setOf(firstChapter))
         assertEquals(listOf("Introduction", "Introduction", "Header only"), collapsed.map { it.title })
         assertEquals("the second chapter keeps its section", listOf(0, 2, 3), collapsed.map { it.row })
         assertTrue("and it is still open", collapsed[1].expanded)
@@ -118,7 +120,7 @@ class DesktopPdfContentsTest {
 
     @Test
     fun `filtering does not move the collapse state, so clearing the box gives the tree back`() {
-        val collapsed = setOf(0)
+        val collapsed = setOf(OutlineResolution.rows(duplicated, twoSheets)[0].id)
         val before = visibleContentsRows(duplicated, twoSheets, collapsed)
         val filtered = visibleContentsRows(duplicated, twoSheets, collapsed, query = "getting")
         assertEquals("the folded section is found anyway", listOf(0, 1), filtered.map { it.row })
@@ -143,7 +145,7 @@ class DesktopPdfContentsTest {
         val tab = DesktopPdfFixture.tab(temp.root, pages = 2, outline = DesktopPdfFixture.outline())
         try {
             val before = tab.document.edits
-            val rows = contentsRowsOf(tab, collapsed = setOf(0), query = "section")
+            val rows = contentsRowsOf(tab, collapsed = setOf(contentsResolved(tab)[0].id), query = "section")
             assertTrue("the filter still finds the section", rows.isNotEmpty())
             assertEquals("browsing is reading, not editing", before, tab.document.edits)
             assertFalse("and it records no undo step", tab.canUndo)

@@ -16,6 +16,7 @@ import com.mobixournal.desktop.sheet.DesktopGuidePose
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.Viewport
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -23,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.CircuitSnapping
+import com.mobixournal.render.ContentsNavigation
 import com.mobixournal.render.EditHistory
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.Uncompilable
@@ -79,6 +81,15 @@ class DesktopTab(
      * state, like a selection: switching tabs and coming back finds the view where it was left.
      */
     var contentsView: DesktopSidebarView by mutableStateOf(DesktopSidebarView.PAGES)
+
+    /**
+     * What the reader has done to this tab's Contents and where the list was left — view state, kept on the tab
+     * so switching to Pages and back, or renaming a bookmark, does not clear the filter or lose the place.
+     */
+    var contentsNavigation: ContentsNavigation by mutableStateOf(ContentsNavigation())
+
+    /** The Contents list's own scroll position, kept for the same reason. */
+    val contentsList: LazyListState = LazyListState()
 
     var viewWidth: Float by mutableStateOf(0f)
     var viewHeight: Float by mutableStateOf(0f)

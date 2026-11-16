@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,8 +35,28 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ContentsRowLayout
+import com.mobixournal.render.ContentsNavigation
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
+
+/**
+ * The card's **session**: what the reader has done to this document's Contents and where the list was left.
+ *
+ * Remembered against the **document**, not against the rows, so renaming a bookmark, adding one, undoing an
+ * edit or closing and reopening the card cannot clear the filter, open every branch or throw the list back to
+ * the top. A new document gets a new session and inherits nothing.
+ */
+internal class ContentsSession {
+
+    /** The filter, the folded branches and the row at the top of the list. */
+    var navigation by mutableStateOf(ContentsNavigation())
+
+    /** The one edit in progress, if any. */
+    val editing = ContentsEditHost()
+
+    /** The list's own scroll position, kept so reopening the card lands where it was left. */
+    val list = LazyListState()
+}
 
 /**
  * What the Contents card is doing to one row: naming a new one, retitling an existing one, or asking whether

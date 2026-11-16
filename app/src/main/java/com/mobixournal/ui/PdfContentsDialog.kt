@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +69,7 @@ import com.mobixournal.render.PdfOutlineView
 internal fun PdfContentsButton(
     rows: List<OutlineRow>,
     currentPage: Int?,
+    session: ContentsSession,
     onGoToPage: (Int) -> Unit,
     onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
@@ -92,6 +94,7 @@ internal fun PdfContentsButton(
             PdfContentsDialog(
                 rows = tree,
                 currentPage = currentPage,
+                session = session,
                 onGoToPage = onGoToPage,
                 onAdd = onAdd,
                 onRename = onRename,
@@ -122,17 +125,34 @@ internal fun PdfContentsButton(
 internal fun PdfContentsDialog(
     rows: List<OutlineRow>,
     currentPage: Int?,
+    session: ContentsSession,
     onGoToPage: (Int) -> Unit,
     onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
     onDelete: (String) -> OutlineEdits.Result,
     onDismiss: () -> Unit,
 ) {
-    var query by remember(rows) { mutableStateOf("") }
-    var collapsed by remember(rows) { mutableStateOf(emptySet<Int>()) }
-    // One edit at a time: a new row being named, an existing one retitled, or one being asked about.
-    val editing = remember(rows) { ContentsEditHost() }
-    val shown = PdfOutlineView.visible(rows, collapsed, query, currentPage)
+    // The session belongs to the **document**: an edit that replaces the rows must not clear the filter, open
+    // every branch or lose the reader's place (docs/pdf.md).
+    val navigation = session.navigation
+    val query = navigation.query
+    val editing = session.editing
+    // The folds and the anchor follow the rows as they change: a removed branch is forgotten, a vanished anchor
+    // falls back to the surviving row nearest where it stood.
+    LaunchedEffect(rows) { session.navigation = session.navigation.against(rows) }
+    val shown = PdfOutlineView.visible(rows, navigation.collapsed, query, currentPage)
+    // Back to where the list was left, and remember where it is now — an edit, a filter or a rename moves the
+    // rows but never the reader.
+    LaunchedEffect(shown) {
+        val at = shown.indexOfFirst { it.id == session.navigation.anchorId }
+        if (shown.isNotEmpty() && at >= 0 && at != session.list.firstVisibleItemIndex) {
+            session.list.scrollToItem(at)
+        }
+    }
+    LaunchedEffect(session.list.firstVisibleItemIndex, shown) {
+        val row = shown.getOrNull(session.list.firstVisibleItemIndex) ?: return@LaunchedEffect
+        session.navigation = session.navigation.scrolledTo(row.id, rows.indexOfFirst { it.id == row.id })
+    }
     FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Contents") },
@@ -156,8 +176,8 @@ internal fun PdfContentsDialog(
                 ContentsAddRow(enabled = !adding) { editing.adding(currentPage) }
                 ContentsFilter(
                     query = query,
-                    onQuery = { query = it },
-                    onClear = { query = "" },
+                    onQuery = { session.navigation = session.navigation.withQuery(it) },
+                    onClear = { session.navigation = session.navigation.withQuery("") },
                 )
                 Spacer(Modifier.height(8.dp))
                 if (shown.isEmpty() && !adding) {
@@ -177,7 +197,7 @@ internal fun PdfContentsDialog(
                         rowWidthDp = widthDp,
                         fontScale = LocalDensity.current.fontScale,
                     )
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    LazyColumn(state = session.list, modifier = Modifier.fillMaxWidth()) {
                         if (adding) {
                             item(key = "add-draft") {
                                 AddDraftRow(
@@ -197,7 +217,7 @@ internal fun PdfContentsDialog(
                                 row = row,
                                 rowWidthDp = widthDp,
                                 largestPageNumber = widest,
-                                onToggle = { collapsed = PdfOutlineView.toggled(collapsed, row.row) },
+                                onToggle = { session.navigation = session.navigation.toggled(row.id) },
                                 onClick = {
                                     row.page?.let(onGoToPage)
                                     onDismiss()
@@ -264,11 +284,15 @@ internal fun PdfContentsLane(pane: PaneState, onGoToPage: (Int) -> Unit) {
     // the reader is looking at stay on screen instead of being replaced by the one row just named.
     val seed = remember(pane.outline) { pane.outline?.let { PdfOutlineSeeding.tree(it) } }
     val commands = surface?.pageCommands
+    // One session per open document: closing the card keeps its filter and place, opening another notebook
+    // does not inherit them.
+    val session = remember(surface) { ContentsSession() }
     PdfContentsButton(
         rows = rows,
         // The pane's own page state, not a fresh read of the canvas: it is what recomposes when the reader
         // scrolls or a row is followed, so the mark moves with them instead of staying where the card opened.
         currentPage = pane.currentPage,
+        session = session,
         onGoToPage = onGoToPage,
         onAdd = { title, page -> commands?.addBookmark(title, seed, page) ?: missingCommands() },
         onRename = { id, title -> commands?.renameBookmark(id, title) ?: missingCommands() },

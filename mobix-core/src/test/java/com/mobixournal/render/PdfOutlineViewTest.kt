@@ -48,8 +48,8 @@ class PdfOutlineViewTest {
     }
 
     @Test
-    fun `collapsing by position closes one duplicate chapter and leaves the other open`() {
-        val collapsed = PdfOutlineView.toggled(emptySet(), row = 0)
+    fun `collapsing by id closes one duplicate chapter and leaves the other open`() {
+        val collapsed = PdfOutlineView.toggled(emptySet(), entries[0].id)
         val rows = PdfOutlineView.visible(entries, collapsed)
         assertEquals(
             listOf(0, 3, 4, 5),
@@ -79,11 +79,11 @@ class PdfOutlineViewTest {
 
     @Test
     fun `a filter overrides a collapse but does not change it, so clearing restores the tree`() {
-        val collapsed = setOf(0)
+        val collapsed = setOf(entries[0].id)
         val before = PdfOutlineView.visible(entries, collapsed)
         val filtered = PdfOutlineView.visible(entries, collapsed, query = "install")
         assertEquals("the hidden section is found anyway", listOf(0, 1, 2), filtered.map { it.row })
-        assertEquals("and the collapse state never moved", collapsed, setOf(0))
+        assertEquals("and the collapse state never moved", collapsed, setOf(entries[0].id))
         assertEquals("clearing the box gives back exactly what it showed", before, PdfOutlineView.visible(entries, collapsed))
     }
 
@@ -106,6 +106,22 @@ class PdfOutlineViewTest {
         val rows = PdfOutlineView.visible(entries, currentPage = 4)
 
         assertEquals("only the last chapter names page 4", listOf(false, false, false, false, true, false), rows.map { it.current })
+    }
+
+    @Test
+    fun `a branch folded by id stays folded when a row is inserted above it`() {
+        val folded = PdfOutlineView.toggled(emptySet(), entries[3].id)
+        val afterInsert = listOf(row("Preface", null, 0, 6)) + entries.mapIndexed { index, entry -> entry.copy(row = index + 1) }
+        val rows = PdfOutlineView.visible(afterInsert, folded)
+        assertTrue("the inserted row is not folded", rows.first { it.id == afterInsert[0].id }.expanded)
+        assertTrue("the chapter that was closed still is", rows.none { it.title == "Advanced" })
+    }
+
+    @Test
+    fun `folds of rows that no longer exist are dropped`() {
+        val gone = "bkm_gone"
+        assertEquals(emptySet<String>(), PdfOutlineView.pruned(setOf(gone), entries))
+        assertEquals(setOf(entries[0].id), PdfOutlineView.pruned(setOf(entries[0].id, gone), entries))
     }
 
     @Test
