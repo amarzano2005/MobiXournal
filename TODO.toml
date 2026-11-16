@@ -22,23 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-desktop-double-click-selection"
-title = "Select PDF words by double click without switching desktop tools"
-description = """
-After pdf-direct-text-hit-testing, integrate direct word entry into desktop sheet/PageCanvasInput.kt (pageGestureLoop) and sheet/PageCanvasPress.kt (pressAfterPan), reusing io/DesktopPdfTextSelection.kt and the existing pdfTextDrag path. A primary mouse double click on an actual PDF word selects it; dragging while the second press is held extends the reading-order range. A normal single drag still follows the active tool, and pen/Wintab packets keep drawing with that tool. Use platform timing/slop, cancel on pan/page/source changes, and prevent a recognized selection gesture leaving accidental ink or an undo step. Preserve higher-priority live element editing and double click inside an existing object selection; PDF text behind editable foreground content must not steal its gesture. Keep Ctrl+C and Escape working, with no requirement to activate PDF_TEXT_SELECT. Test whitespace, multi-line/reverse drag, high DPI, zoom/pan, foreground text/living elements and tablet packet routing in desktop JVM tests, then verify the packaged window. Update README.md, docs/desktop-editing.md and docs/pdf.md in this implementation task, following docs/interface-contract.md.
-
-Use the same gesture-ownership contract as pdf-android-long-press-selection: a focused native editor, foreground grip or explicit in-progress placement/calibration owns its input before background PDF text. A recognized double click must cancel/defer any first-click edit in its own candidate stream so a PDF text selection never leaves a stray pen dot. Test the first-click history as well as the final range. Record the shared precedence in docs/pdf.md rather than duplicating it in each STEM feature."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 30
-created = 2026-11-15
-tags = ["pdf", "direct-text-selection", "android", "desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "pdf-text-selection-handles"
 title = "Adjust PDF text selections with two draggable endpoints on both shells"
 description = """
