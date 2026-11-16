@@ -22,23 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-text-selection-handles"
-title = "Adjust PDF text selections with two draggable endpoints on both shells"
-description = """
-After the Android and desktop direct-entry tasks, add start/end handles to the existing PDF text overlays, using the endpoint helpers from pdf-direct-text-hit-testing. Extend DrawingSurfaceSelection.kt and io/DesktopPdfTextOverlay.kt / io/DesktopPdfTextSelection.kt through small focused helpers: handles remain a constant usable screen-space size at any zoom, their targets take precedence over pan/drawing, dragging extends by reading-order words, and crossing an endpoint reverses the range without jumping or losing the grabbed handle. Limit the range to its current PDF sheet, keep handles aligned through zoom/pan and clamp interaction to the pane; no implicit cross-page selection in this task. Clear stale selection on document/source replacement or page removal and isolate split panes. Provide accessible endpoint labels and adjust actions with an equivalent keyboard path on desktop. Tests cover reverse/multiline ranges, transformed coordinates, bounds, pane isolation and cancellation; emulator and packaged desktop verification cover handle dragging beside viewport edges. Update docs/pdf.md and docs/guide-pdf-and-audio.md in the same task; apply docs/interface-contract.md tokens, glyphs and interaction states. Android range state is textSelPage/textSelAnchor/textSelFocus in DrawingSurfaceView.kt; paint through DrawingSurfacePaint.kt drawTextSelection and map coordinates via textSelectionScreenRect.
-
-Use pdf-text-selection-native-feedback for the selection wash and immediate endpoint feedback; handles must not animate or translate the selected passage as one block. Delegate popup visibility while dragging and release anchoring to pdf-text-actions-selection-lifecycle; keep this task focused on endpoint interaction and accessibility."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 40
-created = 2026-11-15
-tags = ["pdf", "direct-text-selection", "android", "desktop"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-selected-text-underline"
 title = "Underline selected PDF text as ordinary interoperable ink"
 description = "Add shared pure underline geometry beside MagneticHighlighter.kt in mobix-core/render: turn a selected PDF word range into one ordinary constant-width pen stroke per text line below the selected word boxes, keeping separate lines/columns separate and deriving placement from existing word geometry. Reuse the selection grouping approach without applying the magnetic drag three-line cap. Wire an underlineTextSelection command beside DrawingSurfaceSelection.kt highlightTextSelection and the desktop counterpart beside DesktopPdfTextHighlight. Each complete underline action is one undoable page edit on the active writable layer, uses a documented existing pen colour/width policy, and is unavailable in read-only documents or locked layers. The transient selection itself remains unsaved. Test multiline/reverse selections and rotated/cropped mapping, undo/redo, .mobix and .xopp save/reopen and PDF export using ordinary stroke paths; do not introduce a PDF-only annotation or new format element. Document the implemented action and its appearance policy in docs/pdf.md and the user guide within this task; the next contextual-actions task exposes it in the UI."
