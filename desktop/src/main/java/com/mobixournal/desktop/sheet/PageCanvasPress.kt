@@ -2,15 +2,22 @@ package com.mobixournal.desktop.sheet
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.InkSample
 import com.mobixournal.desktop.ink.activeTool
+import com.mobixournal.desktop.ink.inkTool
+import com.mobixournal.desktop.ink.pagePointOf
 import com.mobixournal.desktop.ink.shapeKind
+import com.mobixournal.desktop.io.DesktopPdfTextSelect
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.pickForDrag
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import com.mobixournal.render.ActiveTool
+import com.mobixournal.render.PdfHitTolerance
 import com.mobixournal.render.SelectionRegion
 
 /**
@@ -41,6 +48,8 @@ internal suspend fun AwaitPointerEventScope.pressAfterPan(
     previewRegion: MutableState<SelectionRegion?>?,
     onEdited: (Int) -> Unit,
     taps: TapTracker,
+    /** The canvas's own pairing for the PDF text's double click, kept apart from the selection tools' one. */
+    pdfTaps: TapTracker,
     draft: SnapshotStateList<InkSample>,
     gesture: PageInkGesture,
     packetsOwn: () -> Boolean,
@@ -78,5 +87,134 @@ internal suspend fun AwaitPointerEventScope.pressAfterPan(
         verticalSpaceDrag(down, tab, dragView, grabLine, liveShift, onEdited)
         return
     }
+    // A mouse **double click** on a PDF word reads it, with whatever ink tool is in hand: reading must not
+    // cost a tool switch. Asked last, so every gesture above keeps its press — a grip, an element in front of
+    // the text, a figure or the reflow rule outrank the words behind them — and the first click of the pair
+    // inks nothing (`PageCanvasPress.kt`, `docs/pdf.md`).
+    if (tool.inkTool() != null && pdfWordPress(down, tab, dragView, density, pdfTaps, packetsOwn, gesture)) return
     inkDrag(down, gesture, packetsOwn)
+}
+
+/**
+ * **Reading a PDF with the mouse**, without picking a tool: a double click on a word selects it.
+ *
+ * The window's form of the tablet's finger hold, and deliberately the same rule — the *owner* of a press is
+ * decided before any ink ([PdfWordPresses.read]), so a grip, a placement, a guide or an element in front of
+ * the text keeps its gesture, and the text only answers what nothing else claimed.
+ *
+ * Two things make it a reading gesture rather than a drawing one:
+ *  - the **first click of the pair writes nothing**. A click on a word that drew a dot would leave exactly
+ *    the mark a selection must never leave, and withdrawing it afterwards would be an undo step the reader
+ *    never asked for. A click *is* the reading press; ink needs a stroke, which is a drag, and a drag is
+ *    handed to the tool from the press (`holdReadingClick`);
+ *  - only the **mouse** reads this way. The pen's packets keep drawing with the tool in hand, so a pen that
+ *    lands on a word is still a pen.
+ */
+
+/** What one press on a PDF page is: a reading candidate, and maybe the second of a pair. */
+internal data class PdfWordPress(
+    /** The press belongs to the page's text, not to the tool: it inks nothing. */
+    val reading: Boolean,
+    /** The second press of a double click: the reading range starts here and a held drag extends it. */
+    val second: Boolean,
+)
+
+/**
+ * The rule, as a value — the same shape the tablet's `pdfTextPressAllowed` takes, so the two shells can be
+ * read side by side and a test can name each condition instead of driving a pointer.
+ */
+internal object PdfWordPresses {
+
+    /**
+     * The press radius, in page points, for this window: the tablet's own 8 dp, at the window's DPI, divided
+     * by the zoom so a word is as easy to hit at 30 % as at 300 % (`PdfHitTolerance` bounds the result).
+     */
+    fun tolerancePt(density: Float, zoom: Float): Double =
+        PdfHitTolerance.ofScreenPx(PdfHitTolerance.PRESS_SLOP_DP * density, (zoom * density).toDouble())
+
+    /**
+     * Read one press.
+     *
+     * [isMouse] is the device; [hasPackets] is the pen owning the stroke (`DesktopTool.inksByPackets` while
+     * the tablet streams), and a pen that draws never reads. [elementInFront] is a text box, a figure or a
+     * living element under the pointer — PDF text lies *behind* the page's own content, so whatever is in
+     * front of it answers first. [wordUnder] is the strict hit: whitespace is not a word, and a press there
+     * leaves the press to the tool rather than starting a range on the nearest word from across the page.
+     * [second] is the double-click tracker's answer, which only means something for a reading press.
+     */
+    fun read(
+        isMouse: Boolean,
+        hasPackets: Boolean,
+        elementInFront: Boolean,
+        wordUnder: Boolean,
+        second: Boolean,
+    ): PdfWordPress {
+        val reading = isMouse && !hasPackets && !elementInFront && wordUnder
+        return PdfWordPress(reading = reading, second = reading && second)
+    }
+}
+
+/**
+ * Take the press for the page's text when it is a mouse reading press. True means this gesture owns it.
+ *
+ * [taps] is the canvas's **own** tracker for this gesture (not the selection tools' one): the two pairings
+ * must not consume each other's presses, or a click with the pen followed by a click with the marquee would
+ * read as one double click.
+ */
+@Suppress("LongParameterList")
+internal suspend fun AwaitPointerEventScope.pdfWordPress(
+    down: PointerInputChange,
+    tab: DesktopTab,
+    view: DragView,
+    density: Float,
+    taps: TapTracker,
+    packetsOwn: () -> Boolean,
+    gesture: PageInkGesture,
+): Boolean {
+    if (down.type != PointerType.Mouse) return false
+    if (tab.pdfIndex == null) return false
+    val viewport = view.current()
+    val (x, y) = pagePointOf(down.position.x, down.position.y, density, viewport)
+    if (x !in 0.0..view.pageW.toDouble() || y !in 0.0..view.pageH.toDouble()) return false
+    val tol = PdfWordPresses.tolerancePt(density, viewport.zoom)
+    val page = runCatching { tab.document.page(tab.page) }.getOrNull()
+    val pxPerPt = viewport.zoom * density
+    val press = PdfWordPresses.read(
+        isMouse = true,
+        hasPackets = packetsOwn(),
+        elementInFront = page != null && pickForDrag(page, x, y, tol) != null,
+        wordUnder = DesktopPdfTextSelect.begin(tab, x, y, tol) != null,
+        second = taps.isSecond(System.currentTimeMillis(), x * pxPerPt, y * pxPerPt),
+    )
+    if (!press.reading) return false
+    if (press.second) {
+        // The second press anchors the word under it and a held drag extends the range in reading order —
+        // the text slot's own gesture, verbatim, so the two doors cannot disagree about what a selection is.
+        pdfTextDrag(down, tab, view)
+        return true
+    }
+    return holdReadingClick(down, gesture, packetsOwn)
+}
+
+/**
+ * The first click of the pair: it writes nothing, until it turns out to be a drag.
+ *
+ * A drag is the tool's — the same stroke it would have drawn had it started anywhere — so it is handed to the
+ * ink router **from the press**, which is why the stroke still contains its first sample. A lift without
+ * travel ends the gesture with nothing written: no dot, no page edit, no undo step.
+ */
+private suspend fun AwaitPointerEventScope.holdReadingClick(
+    down: PointerInputChange,
+    gesture: PageInkGesture,
+    packetsOwn: () -> Boolean,
+): Boolean {
+    val slop = viewConfiguration.touchSlop
+    while (true) {
+        val change = awaitPointerEvent().changes.firstOrNull() ?: return true
+        if (change.changedToUpIgnoreConsumed() || !change.pressed) return true
+        if ((change.position - down.position).getDistance() > slop) {
+            inkDrag(down, gesture, packetsOwn)
+            return true
+        }
+    }
 }

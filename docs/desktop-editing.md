@@ -154,6 +154,11 @@ Two gestures treat a PDF page as **text** rather than as paper, and neither writ
   the pointer last touched, hidden while the range is still being made (`PdfTextActionPhase`, `PdfTextBarPlacement`)
   — `Ctrl+C` or that bar puts `rangeText` on the system clipboard, and `Esc`, a click off the text or a page change drops it. It is
   **view state**: no page edit, no undo step, and a select-copy-save leaves the file byte-identical.
+- **A mouse double click reads a word** without switching tools (`Shift+S` not needed): the first click of
+  the pair inks nothing, so reading leaves no dot and no undo step, while a click that travels is a drag and
+  hands the stroke to the tool from its own press. The second press anchors the word under it and a held drag
+  extends the range exactly as the slot's does; the text only answers when nothing is in front of it — a text
+  box, a figure or a placed element under the pointer keeps the double click (`PdfWordPresses.read`).
 - **The highlighter is magnetic** over a page whose background is a PDF with a text layer: while the
   drag crosses text, `MagneticHighlighter.bands` are previewed as flat bands **in place of** the freehand
   path (`PenPointer.pdfBands`), and the lift commits `MagneticHighlighter.strokes` — ordinary two-point

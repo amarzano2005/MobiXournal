@@ -100,14 +100,10 @@ internal suspend fun PointerInputScope.pageGestures(
     /**
      * True while the tablet's own packets are drawing a stroke.
      *
-     * The pen reaches this window twice — as the tablet's packets and as the mouse Windows emulates it
-     * as — and a stroke drawn from both would land twice. The packets are authoritative
-     * (`PenPacketStroke`), so a Compose gesture that begins while they own the pen does nothing, and one
-     * that is already running drops its draft and leaves.
-     *
-     * Only while the packets could be drawing this slot's product ([DesktopTool.inksByPackets]): a slot
-     * that builds its figure or reflows the page from the drag keeps the Compose pointer even with the
-     * pen in proximity, which is what makes the vertical-space grab line answer a stylus at all.
+     * The pen reaches this window twice — as the packets and as the mouse Windows emulates — and a stroke
+     * drawn from both would land twice, so the packets are authoritative (`PenPacketStroke`). Only while
+     * they could draw this slot's product ([DesktopTool.inksByPackets]): a slot that builds its figure or
+     * reflows the page keeps the Compose pointer, which is what makes the grab line answer a stylus.
      */
     penActive: () -> Boolean = { false },
     /**
@@ -139,6 +135,8 @@ internal suspend fun PointerInputScope.pageGestures(
     val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
     // One tracker per canvas, so two clicks on the same element are a double-click even across gestures.
     val taps = TapTracker()
+    // The PDF text's own pairing: a click with the marquee must not pair with one on a word (`PageCanvasPress.kt`).
+    val pdfTaps = TapTracker()
     val gesture = PageInkGesture(
         tab = tab,
         tool = tool,
@@ -154,8 +152,8 @@ internal suspend fun PointerInputScope.pageGestures(
         recognition = targets.recognition,
     )
     // The edge scroll's clock, running for as long as this canvas has a pointer handler: a drag registers
-    // itself with [DragView.beginDrag] and is called back while the sheet travels. It has to live out here
-    // because a drag itself runs inside Compose's restricted pointer scope, where no timer can be launched.
+    // with [DragView.beginDrag] and is called back while the sheet travels; no timer can live inside
+    // Compose's restricted pointer scope.
     coroutineScope {
         launch {
             while (true) {
@@ -165,7 +163,7 @@ internal suspend fun PointerInputScope.pageGestures(
         }
         pageGestureLoop(
             tab = tab, panMode = panMode, tool = tool, ink = ink, shapeInk = shapeInk, targets = targets,
-            taps = taps, dragView = dragView, gesture = gesture,
+            taps = taps, pdfTaps = pdfTaps, dragView = dragView, gesture = gesture,
             draft = draft, grabLine = grabLine, liveShift = liveShift, previewRegion = previewRegion,
             guideAim = guideAim, onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
@@ -185,6 +183,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
     shapeInk: DesktopInk,
     targets: PagePressTargets,
     taps: TapTracker,
+    pdfTaps: TapTracker,
     dragView: DragView,
     gesture: PageInkGesture,
     draft: SnapshotStateList<InkSample>,
@@ -258,7 +257,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
             down = down, tool = tool, tab = tab, viewport = vp, density = density,
             pageW = pageW, pageH = pageH, shapeInk = shapeInk, dragView = dragView, targets = targets,
             guideAim = guideAim, grabLine = grabLine, liveShift = liveShift,
-            previewRegion = previewRegion, onEdited = onEdited, taps = taps, draft = draft,
+            previewRegion = previewRegion, onEdited = onEdited, taps = taps, pdfTaps = pdfTaps, draft = draft,
             gesture = gesture, packetsOwn = packetsOwn,
         )
         return@awaitEachGesture
