@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "pdf-import-default-bookmark"
+title = "Offer a bookmark named after every imported PDF"
+description = "`PdfOutlineSeeding.imported(existing, chapters, title, firstPage)` replaces the old `merged` rule: every import adds one row named after the file, opening the first page that actually arrived, with the PDF's chapters as children; a blank title (the option off) leaves them joining the tree at the top. `PdfOutlineSeeding.defaultTitle` drops only a final `.pdf`, in any case. Tablet: `PdfImportPrompt` gains `bookmark`/`bookmarkTitle`, `ImportPdfDialog` adds `BookmarkField` (switch + editable title, on by default), `confirmPdfImport` passes both into `preparePdfImport(..., title, bookmark)` and the replace path seeds through `imported`. Desktop: `ImportPdfRequest` gains the same fields, `ImportPdfDialog` gains `BookmarkSection`, `importPdf`/`openImported`/`appendImported` thread the title, and the append marker targets `landing.first.size`. Test: `PdfOutlineSeedingTest` covers first/second import, duplicate names, option off, no chapters, default title; `DesktopPdfImportCommandsTest` follows the new shape. Docs: `docs/guide-pdf-and-audio.md`, `docs/pdf.md`. Checks: `:mobix-core:test`, guards `DocsGuardTest`/`SourceStructureTest`, `:app:assembleDebug`, `:desktop:createDistributable`, `:desktop:test --tests *DesktopPdfImportCommandsTest*`."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-14
+completed = 2026-11-16
+tags = ["pdf", "bookmarks"]
+design = "states: the row is offered on both cards, on by default, and its title field stays visible but disabled when the switch is off — so the card does not change height under a hand reaching for it.; copy: the row opens the first page that actually arrived rather than the file's page 1, its title starts as the file name minus only a final .pdf in any case, and two files sharing a name stay two rows because each mints its own bkm_ id.; parity: the tablet card and the window card ask the same question with the same defaults, and both append paths write the marker inside the same undo step as the pages.; tests: PdfOutlineSeedingTest covers first and second import, duplicate names, the option off, a file with no bookmarks and the title rule, and DesktopPdfImportCommandsTest covers replace seeding, the second import and the save/reopen shape.; docs: docs/pdf.md owns the rule and docs/guide-pdf-and-audio.md the reader's side, both updated with the change."
+
+[[task]]
 id = "pdf-bookmark-edit-ui"
 title = "Manage the index from Android and desktop"
 description = "Tablet: `PdfContentsDialog` + `PdfContentsEditor.kt` (Add bookmark, Rename, Delete, refusal copy, MoreVert actions on notebook rows only, empty state, card always available). Desktop: `PdfContentsSidebar` + `ContentsEditHost` (Add, Rename, Delete questions, title field, per-row actions), `PageSidebar`/`DesktopWorkspace` wiring. Commands: `PageCommands.addBookmark(title, seed)` and `DesktopPages.addBookmark(title, seed)` seed the tree from the PDF outline in the same undo step. Docs: README and docs/guide-pdf-and-audio.md. Checks: `:app:compileDebugKotlin`, `:desktop:compileKotlin`, guards `DocsGuardTest`/`SourceStructureTest`, `:app:assembleDebug`, `:desktop:createDistributable`, `:mobix-core:test`, `DesktopBookmarkCommandsTest`."
