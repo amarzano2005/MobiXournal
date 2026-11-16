@@ -22,20 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "pdf-outline-import-seeding"
-title = "Seed the outline from the PDF an import brings in"
-description = "Once a document has a place to keep a tree, an import fills it. On the tablet, the import path (app/src/main/java/com/mobixournal/MainActivityDocuments.kt, io/DocumentIo.kt and the PdfMerger call site) and on the window desktop/src/main/java/com/mobixournal/desktop/io/DesktopPdfMerge.kt: when the document has no outline, turn the extracted PdfOutline into OutlineTree nodes, minting a bkm_ id per row and writing each row's destination explicitly as OutlineTarget.Sheet - including the page a destination-less header inherited from its first pointing descendant, because resolution at read time inherits nothing. When the document already has an outline, append the new PDF's rows under one new node titled after the imported file with no target of its own, so a second import never merges two PDFs by title. The pages and the seeded tree are one undoable operation, and a cancelled or failed import writes nothing. Seeding is a one-time thing: a document that already carries an outline is never re-seeded on open, so an entry the reader deleted stays deleted. Tests: PdfOutlineSeedingTest over PdfOutlineExtractor fixtures (nested rows, a header with no destination, an empty outline), a golden .mobix fixture that must open with the tree it was written with, and the second-import append; then a save/reopen test proving ids survive. Verify on the emulator: import a PDF whose outline has a nested chapter, open Contents, and confirm the rows are the PDF's own and a tap still lands on the right sheet."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 183
-created = 2026-11-14
-tags = ["pdf", "bookmarks"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "pdf-outline-document-roundtrip"
 title = "Keep the outline through save, merge and page operations"
 description = "Make the tree behave like the page list everywhere a document is rewritten. Thread Document.outline through format/mobix/MobixDocument.kt (of, openPaged, save), MobixIncrementalSaver so an incremental save neither drops it nor rewrites it needlessly, and MobixMergeEngine: two sides merge by node id, a node only one side has is kept (a merge never deletes, exactly as it never deletes a page), a node both sides have keeps the local title and position with the union of its children, and the result is written back with stable ids. Then the page operations in mobix-core/src/main/java/com/mobixournal/render/PageOps.kt: a move keeps every Page target because page ids do not move with them, a delete leaves the node in place with no destination (the page op must not silently rewrite the reader's tree), and a duplicate mints a new page id so the copy inherits no bookmark. Tests: MobixOutlineRoundtripTest (incremental save, full save, reopen), MobixOutlineMergeTest over two branches with added, renamed, deleted and moved nodes, and OutlinePageOpsTest for move/delete/duplicate; each states in its own words what a deletion means after a merge. Document the outcome in docs/pdf.md, replacing the Planned paragraph with what the code does."
