@@ -13,11 +13,9 @@ import com.mobixournal.format.model.OutlineTree
  * this is a **seed**, never a mirror — a document that already carries an outline is never re-seeded, and an
  * entry the reader deleted stays deleted ([OutlineTree] is the notebook's own index, `docs/pdf.md`).
  *
- * Two shapes, because a document may import a second PDF:
- * - **no outline yet** — the rows become the tree, in the PDF's reading order and nesting;
- * - **an outline already** — the arriving rows go under **one** new node titled after the imported file, with
- *   no target of its own. A second import therefore never merges two books by chapter title, and the reader
- *   can delete one import's rows as a unit.
+ * Original chapter roots append directly in reading order and nesting. An explicit filename marker can
+ * group them under one destination-bearing row; both shells leave that option off by default. Existing
+ * authored trees are never flattened by guessing whether a title once came from a filename.
  *
  * Three things this rule pins, each of them a way a seed can look right and behave wrong:
  * 1. **Every row mints its own `bkm_` id** ([ElementId.BOOKMARK]). Ids are the row's identity — the thing a
@@ -56,7 +54,7 @@ object PdfOutlineSeeding {
 
     /**
      * [existing] plus **one row named after the imported file**, pointing at [firstPage], with [chapters]
-     * under it — the bookmark every import offers by default.
+     * under it — an optional marker the reader explicitly requests.
      *
      * The row is the file's own signpost: it says which book these pages came from and opens the first page
      * that actually arrived (a subset's first pick, not the file's page 1). The chapters keep their hierarchy

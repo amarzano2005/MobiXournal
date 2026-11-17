@@ -19,15 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,11 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.collect
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -194,7 +189,11 @@ private fun ContentsRowsBlock(
             fontScale = LocalDensity.current.fontScale,
         )
         BookmarkDragList(rows, shown, session.list, editing.draft == null,
-            { id, delta -> editing.submit(onMove(id, delta)) }) { listModifier, dragging ->
+            { id, delta ->
+                val result = onMove(id, delta)
+                if (result is OutlineEdits.Result.Ok) session.revealId = id
+                editing.submit(result)
+            }) { listModifier, dragging ->
             LazyColumn(state = session.list, modifier = listModifier, userScrollEnabled = !dragging) {
                 if (adding) {
                     item(key = "add-draft") {
@@ -249,31 +248,6 @@ private fun ContentsRowsBlock(
     }
 }
 
-/**
- * The Contents filter: one roomy field, a Clear button once it has words, and a keyboard that closes on Done
- * so the list is reachable again — a search box that keeps the IME over its own results is a search box
- * nobody can use with a keyboard attached.
- */
-@Composable
-private fun ContentsFilter(query: String, onQuery: (String) -> Unit, onClear: () -> Unit, modifier: Modifier) {
-    val focus = LocalFocusManager.current
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQuery,
-        modifier = modifier.fillMaxWidth(),
-        singleLine = true,
-        label = { Text("Filter") },
-        placeholder = { Text("Chapter or section") },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                TextButton(onClick = onClear) { Text("Clear") }
-            }
-        },
-    )
-}
-
 /** The widest page number the card will print — the number its column is reserved from. */
 private fun largestPageNumber(rows: List<OutlineRow>): Int =
     rows.maxOfOrNull { if (it.hasDestination) it.page!! + 1 else 0 } ?: 0
@@ -323,7 +297,8 @@ private fun ContentsRow(
             .fillMaxWidth()
             .heightIn(min = ContentsRowLayout.MOBILE_ROW_DP.dp)
             .background(if (row.current) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent)
-            .clickable(enabled = row.hasDestination && !renaming, role = Role.Button, onClick = onClick)
+            // A disabled clickable ancestor also blocks the inline field's focus.
+            .then(if (renaming) Modifier else Modifier.clickable(enabled = row.hasDestination, role = Role.Button, onClick = onClick))
             // One announcement for the whole row: a title, a page and whether it opens at all, instead of a
             // title with a lone number beside it and a click that may do nothing.
             .semantics(mergeDescendants = true) {

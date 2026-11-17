@@ -58,8 +58,8 @@ data class ImportPdfRequest(
      * the card only asks which page range to bring.
      */
     val chooseMode: Boolean = true,
-    /** Whether the import adds a Contents row named after the file — on by default, as on the tablet. */
-    val bookmark: Boolean = true,
+    /** Whether the reader explicitly adds a filename marker; original PDF chapters need no wrapper. */
+    val bookmark: Boolean = false,
     /** The title that row carries: the file's name without its `.pdf`, and the reader's to change. */
     val bookmarkTitle: String = PdfOutlineSeeding.defaultTitle(file.name),
 ) {
@@ -129,7 +129,7 @@ fun DesktopShellState.importPdf(
     file: File,
     mode: ImportPdfMode,
     indices: List<Int>? = null,
-    bookmark: String? = PdfOutlineSeeding.defaultTitle(file.name),
+    bookmark: String? = null,
 ): Boolean {
     val reference = file.absolutePath
     return try {
@@ -241,7 +241,7 @@ private fun DesktopShellState.appendImported(
     // page 1, so a subset still lands on what the reader picked.
     val seeded = PdfOutlineSeeding.imported(
         existing = tab.document.model.outline,
-        chapters = PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf), pageOffset = pageOffset).takeUnless { bookmark == null },
+        chapters = PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf), pageOffset = pageOffset),
         title = bookmark,
         firstPage = landing.first.size,
     )

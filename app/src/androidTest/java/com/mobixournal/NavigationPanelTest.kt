@@ -48,6 +48,53 @@ class NavigationPanelTest {
     private val context get() = instrumentation.targetContext
     private val automation get() = instrumentation.uiAutomation
     private lateinit var activity: Activity
+    private var previousImeSetting: String? = null
+
+    @org.junit.After fun cleanup() {
+        previousImeSetting?.let {
+            if (it == "0" || it == "1") shell("settings put secure show_ime_with_hard_keyboard $it")
+            else shell("settings delete secure show_ime_with_hard_keyboard")
+        }
+        if (::activity.isInitialized) instrumentation.runOnMainSync { activity.finish() }
+    }
+
+    @Test fun renameOpensTheSoftwareKeyboardWithoutTouchingTheField() = checkRenameKeyboard("tablet")
+
+    @Test fun compactRenameOpensTheSoftwareKeyboardWithoutTouchingTheField() {
+        val size = shell("wm size").substringAfter("Override size: ", "reset").trim()
+        val density = shell("wm density").substringAfter("Override density: ", "reset").trim()
+        try {
+            shell("wm size 1080x1920")
+            shell("wm density 420")
+            checkRenameKeyboard("phone")
+        } finally { shell("wm size $size"); shell("wm density $density") }
+    }
+
+    private fun checkRenameKeyboard(layout: String) {
+        previousImeSetting = shell("settings get secure show_ime_with_hard_keyboard").trim()
+        shell("settings put secure show_ime_with_hard_keyboard 1")
+        context.getSharedPreferences("xopp_settings", Context.MODE_PRIVATE).edit().putBoolean("has_seen_onboarding", true).commit()
+        shell("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS")
+        shell("pm grant ${context.packageName} android.permission.RECORD_AUDIO")
+        val file = heavyNativeFixture()
+        activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        instrumentation.runOnMainSync { (activity as MainActivity).openDocument(Uri.fromFile(file)) }
+        await("bookmarked native document") { document()?.outline?.nodes?.size == 800 }
+        click("Bookmarks")
+        click("Actions for Heavy chapter 0")
+        click("Rename")
+        await("automatic software keyboard") {
+            var visible = false
+            instrumentation.runOnMainSync {
+                visible = activity.window.decorView.rootWindowInsets?.isVisible(android.view.WindowInsets.Type.ime()) == true
+            }
+            visible
+        }
+        screenshot("bookmark-rename-keyboard-$layout.png")
+        typeBookmark("Keyboard confirmed")
+        click("Save bookmark")
+        await("renamed entry appears") { find("Actions for Keyboard confirmed") != null }
+    }
 
     @Test fun suppliedPdfOpensBookmarksOnEachFirstTap() {
         val remote = InstrumentationRegistry.getArguments().getString("navigationPdf")
@@ -239,16 +286,18 @@ class NavigationPanelTest {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
         instrumentation.runOnMainSync { (activity as MainActivity).openDocument(Uri.fromFile(source)) }
-        await("the PDF is imported") { document()?.outline?.nodes?.firstOrNull()?.title == "Navigation" }
+        await("the PDF is imported") { document()?.outline?.nodes?.firstOrNull()?.title == chapter(1) }
         val original = document()!!
         assertEquals(36, original.pages.size)
-        assertEquals(160, original.outline.nodes.single().children.size)
-        assertFalse(original.outline.nodes.single().title.endsWith(".tmp"))
+        assertEquals(160, original.outline.nodes.size)
+        assertFalse(original.outline.nodes.any { it.title.endsWith(".tmp") })
 
         click("Bookmarks")
-        await("closed file group") { find("Expand Navigation") != null }
-        click("Expand Navigation")
-        await("chapters are visible") { find("Expand ${chapter(1)}") != null }
+        await("chapter roots are directly visible") { find("Expand ${chapter(1)}") != null }
+        assertNull("the filename is not a bookmark", find("Actions for Navigation"))
+        val filterBounds = Rect().also { find("Filter bookmarks")!!.getBoundsInScreen(it) }
+        val addBounds = Rect().also { find("Add bookmark")!!.getBoundsInScreen(it) }
+        assertTrue("the compact filter aligns with its adjacent action", filterBounds.height() <= addBounds.height() + 8)
         assertNull("subsections start closed", find("Section 001.01"))
         screenshot("bookmarks-tablet.png")
         checkAlignedRowTargets()
@@ -261,9 +310,9 @@ class NavigationPanelTest {
         val gripFrom = Rect().also { find("Reorder ${chapter(2)}")!!.getBoundsInScreen(it) }
         val gripTo = Rect().also { find("Reorder ${chapter(1)}")!!.getBoundsInScreen(it) }
         shell("input swipe ${gripFrom.centerX()} ${gripFrom.centerY()} ${gripTo.centerX()} ${gripTo.centerY()} 600")
-        await("the whole second chapter moved") { document()?.outline?.nodes?.single()?.children?.firstOrNull()?.title == chapter(2) }
+        await("the whole second chapter moved") { document()?.outline?.nodes?.firstOrNull()?.title == chapter(2) }
         val moved = document()!!
-        assertEquals(original.outline.nodes.single().children[1], moved.outline.nodes.single().children[0])
+        assertEquals(original.outline.nodes[1], moved.outline.nodes[0])
         assertEquals(original.pages, moved.pages)
         val bytes = ByteArrayOutputStream().also { Xopp.save(XoppSynthesis.synthesize(moved).document, it) }.toByteArray()
         assertEquals("reorder survives save/reopen", moved.outline, MobixDocument.of(Xopp.open(ByteArrayInputStream(bytes)).withIdentity(), appVersion = "2.2.0", nowMillis = 1L).toDocument().outline)
@@ -283,7 +332,7 @@ class NavigationPanelTest {
         repeat(6) { shell("input swipe $x ${height - 180} $x ${height / 3} 180") }
         SystemClock.sleep(500)
         assertNull("a long fling really left the first chapter behind", find("Actions for ${chapter(1)}"))
-        Log.i("NavigationQa", "six index flings completed in ${SystemClock.uptimeMillis() - elapsed} ms; 801 outline rows")
+        Log.i("NavigationQa", "six index flings completed in ${SystemClock.uptimeMillis() - elapsed} ms; 800 outline rows")
         screenshot("bookmarks-scrolled.png")
         click("Add bookmark")
         await("the add draft is shown without leaving Bookmarks") { find("Save bookmark") != null }
@@ -291,7 +340,17 @@ class NavigationPanelTest {
         click("Save bookmark")
         await("new bookmark appears immediately in the open list") { find("Actions for New visible bookmark") != null }
         click("Actions for New visible bookmark")
+        previousImeSetting = shell("settings get secure show_ime_with_hard_keyboard").trim()
+        shell("settings put secure show_ime_with_hard_keyboard 1")
         click("Rename")
+        await("Rename automatically shows the software keyboard") {
+            var visible = false
+            instrumentation.runOnMainSync {
+                visible = activity.window.decorView.rootWindowInsets?.isVisible(android.view.WindowInsets.Type.ime()) == true
+            }
+            visible
+        }
+        screenshot("bookmark-rename-keyboard.png")
         typeBookmark("Renamed immediately")
         click("Save bookmark")
         await("renamed bookmark updates immediately") { find("Actions for Renamed immediately") != null }
@@ -345,7 +404,7 @@ class NavigationPanelTest {
         val compact = context.resources.configuration.screenWidthDp < 600
         val before = if (compact) canvasState() else null
         click(if (tab == "Pages") "Page list" else "Bookmarks")
-        await("$tab view after configuration change") { find(if (tab == "Pages") "Pick page 1" else "Filter") != null }
+        await("$tab view after configuration change") { find(if (tab == "Pages") "Pick page 1" else "Filter bookmarks") != null }
         if (compact) {
             SystemClock.sleep(200)
             assertEquals("opening compact navigation keeps the full canvas viewport and current page", before, canvasState())

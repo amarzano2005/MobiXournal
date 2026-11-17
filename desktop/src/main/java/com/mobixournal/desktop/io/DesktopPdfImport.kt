@@ -109,7 +109,7 @@ internal object DesktopPdfImport {
         bookmark: String? = null,
     ): Document = Document(
         pages = pages(pdf, reference, indices = indices),
-        // A new document's first page is page 0, so the file's row opens it; the PDF's chapters hang under it.
+        // Original chapters are roots; an explicitly requested file marker groups them and opens the first page.
         outline = PdfOutlineSeeding.imported(
             existing = com.mobixournal.format.model.OutlineTree.EMPTY,
             chapters = PdfOutlineSeeding.tree(DesktopPdfOutline.of(pdf)),

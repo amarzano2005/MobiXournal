@@ -122,11 +122,8 @@ class DesktopPdfImportCommandsTest {
             assertTrue(state.importPdf(pdfWithOutline(2, name = "outlined"), ImportPdfMode.REPLACE))
             val outline = state.tabs.active!!.document.model.outline
 
-            val root = outline.nodes.single()
-            assertTrue("one row named after the file: ${root.title}", root.title.startsWith("outlined"))
-            assertEquals("opening the first page that arrived", OutlineTarget.Sheet(0), root.target)
-            val chapter = root.children.single()
-            assertEquals("the PDF's own chapter hangs under it", "Chapter one", chapter.title)
+            val chapter = outline.nodes.single()
+            assertEquals("chapter roots are not wrapped in a filename bookmark", "Chapter one", chapter.title)
             assertEquals("its destination is written down", OutlineTarget.Sheet(0), chapter.target)
             assertEquals(
                 "and so is the section's, nested under it",
@@ -140,7 +137,7 @@ class DesktopPdfImportCommandsTest {
     }
 
     @Test
-    fun `a second import files its bookmarks under the arriving file, and one undo takes both back`() {
+    fun `a second import appends original chapters without a filename wrapper and undoes with its pages`() {
         val state = DesktopShellState()
         try {
             state.newDocument()
@@ -151,15 +148,10 @@ class DesktopPdfImportCommandsTest {
             assertTrue(state.importPdf(pdfWithOutline(1, name = "second"), ImportPdfMode.APPEND))
 
             val outline = tab.document.model.outline
-            assertEquals("the existing rows, plus one group", 2, outline.nodes.size)
-            val group = outline.nodes.last()
-            assertTrue("filed under the arriving file's name: ${group.title}", group.title.startsWith("second"))
-            assertEquals("the arriving file opens its first page", OutlineTarget.Sheet(2), group.target)
-            assertEquals(
-                "its rows are shifted into the joined file, exactly as the pages were",
-                OutlineTarget.Sheet(2),
-                group.children.single().target,
-            )
+            assertEquals("both PDFs keep their chapter roots", 2, outline.nodes.size)
+            val chapter = outline.nodes.last()
+            assertEquals("Chapter one", chapter.title)
+            assertEquals("the arriving chapter uses the joined PDF numbering", OutlineTarget.Sheet(2), chapter.target)
 
             assertTrue("pages and tree are one step", tab.undo())
             assertEquals("the tree goes back with the pages", 1, tab.document.model.outline.nodes.size)
@@ -167,6 +159,21 @@ class DesktopPdfImportCommandsTest {
         } finally {
             state.tabs.closeAll()
         }
+    }
+
+    @Test fun `a filename marker is explicit and later imports preserve existing bookmark trees`() {
+        val state = DesktopShellState()
+        try {
+            state.newDocument()
+            assertTrue(state.importPdf(pdfWithOutline(2), ImportPdfMode.REPLACE, bookmark = "Chosen marker"))
+            val marker = state.tabs.active!!.document.model.outline.nodes.single()
+            assertEquals("Chosen marker", marker.title)
+            assertEquals("Chapter one", marker.children.single().title)
+            assertTrue(state.importPdf(pdfWithOutline(1), ImportPdfMode.APPEND))
+            val nodes = state.tabs.active!!.document.model.outline.nodes
+            assertEquals("existing markers are authored data", marker, nodes.first())
+            assertEquals("new imports keep chapter roots", "Chapter one", nodes.last().title)
+        } finally { state.tabs.closeAll() }
     }
 
     @Test
@@ -187,7 +194,7 @@ class DesktopPdfImportCommandsTest {
                 assertEquals(
                     "and the destinations read back as written",
                     OutlineTarget.Sheet(1),
-                    kept.nodes.single().children.single().children.single().target,
+                    kept.nodes.single().children.single().target,
                 )
             }
         } finally {

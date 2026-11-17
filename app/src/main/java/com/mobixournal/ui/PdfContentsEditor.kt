@@ -22,6 +22,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -187,6 +195,18 @@ internal fun ContentsTitleField(
     modifier: Modifier = Modifier,
 ) {
     val focus = LocalFocusManager.current
+    val requester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val window = LocalWindowInfo.current
+    var placed by remember { mutableStateOf(false) }
+    LaunchedEffect(window.isWindowFocused, placed) {
+        if (!window.isWindowFocused || !placed) return@LaunchedEffect
+        withFrameNanos { }
+        requester.requestFocus()
+        withFrameNanos { }
+        keyboard?.show()
+    }
+    fun finish(action: () -> Unit) { focus.clearFocus(); keyboard?.hide(); action() }
     Column(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BasicTextField(
@@ -199,13 +219,14 @@ internal fun ContentsTitleField(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         if (value.isNotBlank()) {
-                            focus.clearFocus()
-                            onSave()
+                            finish(onSave)
                         }
                     },
                 ),
                 modifier = Modifier
                     .weight(1f)
+                    .focusRequester(requester)
+                    .onGloballyPositioned { placed = it.isAttached && it.size.height > 0 }
                     .semantics { contentDescription = "Bookmark title" }
                     .border(
                         width = 1.dp,
@@ -226,7 +247,7 @@ internal fun ContentsTitleField(
                     }
                 },
             )
-            IconButton(onClick = onCancel, modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
+            IconButton(onClick = { finish(onCancel) }, modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
                 Icon(
                     Icons.Default.Close,
                     contentDescription = "Cancel",
@@ -235,7 +256,7 @@ internal fun ContentsTitleField(
                 )
             }
             IconButton(
-                onClick = onSave,
+                onClick = { finish(onSave) },
                 enabled = value.isNotBlank(),
                 modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp),
             ) {

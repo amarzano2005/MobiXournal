@@ -192,18 +192,18 @@ drag the handle on Android, or the row on Windows, to reorder a chapter with its
 the sections under it move up and the page stays in the notebook: a bookmark is a signpost, never the page.
 Rows read out of the PDF cannot be edited and show the empty slot instead: the first bookmark you add copies
 them into the notebook first, so the list you were reading stays where it is, in one undo step. The name is
-typed where the bookmark is: **Rename** turns that row into a field, **Add bookmark** opens a draft row above
+typed where the bookmark is: **Rename** turns that row into a field and opens the Android keyboard automatically; **Add bookmark** opens a draft row above
 its neighbours showing the page it captured, **Enter** saves, and the cross (or Escape on the window) leaves
 the tree exactly as it was; a blank name cannot be saved and a refusal is printed under the field. Every add,
 rename, reorder and removal is one undo step. Adding shows the draft immediately and reveals the saved bookmark without leaving the list; a filter is cleared so the new title stays visible.
 
 **An import writes the tree into the notebook.** A PDF's bookmarks are copied into the notebook's own Contents
 when it is imported — one undo step together with its pages — so they can be renamed or deleted and they survive
-a save. The import card also offers a row named after the file, opened on the first page that actually arrived
-(the first page you picked, not the file's page 1) and carrying those bookmarks under it; its title starts as the
-original file's display name with only the `.pdf` dropped, and turning the option off leaves the bookmarks joining the index at
-the top level. A second PDF is another such row, so two files that happen to share a name stay two rows.
-Opening the notebook later never re-reads the PDF's outline, because by then the tree is the notebook's. Titles already saved by an older build are kept; use **Rename** to correct an old temporary-file label.
+a save. The index starts directly with the PDF's chapters, without an automatic bookmark named after the file.
+The import card's **Add a bookmark for this file** option is off by default. Turn it on only when you want
+one marker grouping that file's chapters. Appending another PDF normally adds its chapters at the top level.
+Saved notebooks keep their existing bookmarks. To remove an old filename marker, use **Delete** on that row;
+its chapters remain and move up a level. Opening the notebook never re-reads or rebuilds an authored index.
 
 ## Text and Markdown, laid out into pages
 

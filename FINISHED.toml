@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "bookmark-outline-filter-ime"
+title = "Remove automatic PDF wrapper and polish Android bookmark editing"
+description = "Android and desktop PDF opens/imports now keep original chapter roots without an automatic filename wrapper; the import marker remains explicit opt-in. Desktop append retains real PDF chapters independently of that option, and existing authored trees remain intact. Android bookmark Add/Rename waits for placement/window focus, requests the keyboard, and removes the disabled clickable row ancestor that blocked touch focus; Save/Cancel clears focus and hides IME. Replaced the oversized floating-label filter with a minimum-40dp chrome search field, theme border/fill, catalogue search/clear glyphs and accessible label. Kept dragged roots visible and updated PDF seeding/guide documentation. Verified 1668 Android JVM tests, 1166 core tests (one existing skip), 41 desktop tests, required guards, tablet/phone automatic IME tests and raw-PDF drag/add/filter/undo/reopen screenshots in both themes. Built and installed signed release APK and refreshed desktop distributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: compact existing search control within the navigation band; tokens: shared 40dp target capsule corner rim and theme field colors; glyph: catalogue SEARCH and CLOSE; states: default hover focused populated clear and disabled draft actions verified; copy: English Filter bookmarks and Clear filter labels; keyboard: touch focus and automatic IME opening verified on tablet and phone with save dismissal; parity: both shells default to direct PDF chapter roots while Android filter follows its chrome search treatment; docs: PDF owner import guide and seeding contract updated with existing-tree preservation; tests: full Android/core suites required guards desktop import/editor tests and emulator keyboard plus light/dark compact/tablet screenshots"
+
+[[task]]
 id = "bookmark-drag-live-refresh"
 title = "Drag bookmarks and refresh edits immediately"
 description = "Added list-owned bookmark dragging on Android and desktop with Pages lift/highlight, insertion rule and edge scrolling; shared OutlineDragOrder preserves sibling hierarchy and carries descendants in one undo step. Removed Move up/down overflow entries, retaining accessibility actions and desktop Alt+Up/Down. Outline mutations now invalidate both open projections; Add reveals the draft and saved row despite filtering, and renaming reveals its controls. Moved desktop drag arithmetic into navigation, updated PDF guide/README/package owners. Verified 1668 Android JVM tests, 1166 core tests (one existing skip), 20 desktop tests, DocsGuardTest/SourceStructureTest, emulator drag/cancel/edge scrolling/add/filter/rename/undo/roundtrip in compact/tablet and both themes; final APK passed six first-tap openings of the supplied 449-page PDF. Built signed Android APK and desktop distributable."

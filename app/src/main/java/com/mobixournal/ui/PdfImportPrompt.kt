@@ -37,10 +37,9 @@ data class PdfImportPrompt(
     /** The pages to bring, as typed (1-based); the whole PDF until told otherwise. */
     val pages: String = PageRanges.whole(pageCount),
     /**
-     * Whether the import adds a Contents row named after the file. On by default: an imported book should be
-     * findable in the index without the reader having to name it first.
+     * Whether the reader explicitly adds a Contents row named after the file. The PDF chapters need no wrapper.
      */
-    val bookmark: Boolean = true,
+    val bookmark: Boolean = false,
     /** The title that row carries — the file's name without its `.pdf`, and the reader's to change. */
     val bookmarkTitle: String = PdfOutlineSeeding.defaultTitle(name),
 ) {

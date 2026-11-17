@@ -33,6 +33,7 @@ class PdfImportPromptTest {
         assertEquals(108, fresh.count)
         assertEquals((0 until 108).toList(), fresh.chosen)
         assertEquals(ImportPdfMode.APPEND, fresh.mode)
+        assertEquals("filename markers require explicit opt-in", false, fresh.bookmark)
     }
 
     @Test

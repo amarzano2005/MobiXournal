@@ -501,8 +501,8 @@ internal fun MainActivity.preparePdfImport(
     inStore: Boolean = false,
     /** The title of the Contents row the import adds — the file's name unless the reader renamed it. */
     title: String? = null,
-    /** Whether the import adds that row at all: the card's option, on by default. */
-    bookmark: Boolean = true,
+    /** A file marker is explicit opt-in; original PDF chapters are always retained. */
+    bookmark: Boolean = false,
 ): PdfImportPlan {
     // The PDF's bookmarks are read once, here, with the pages: the document's Contents is seeded from them and
     // from then on belongs to the reader (`PdfOutlineSeeding`, `docs/pdf.md`). A file with no outline answers
@@ -535,11 +535,8 @@ internal fun MainActivity.preparePdfImport(
     val copy = if (inStore) source else io.adoptPdf(source)
     try {
         if (mode == ImportPdfMode.REPLACE) {
-            // A replacing import is a new document, so its Contents is the PDF's own tree — never wrapped in a
-            // file-name node, which is the shape a second import into an existing notebook takes.
+            // Original chapter roots stay at the top unless the reader explicitly asks for a file marker.
             val document = PdfPageCache(copy).use { cache -> PdfImport.documentFor(cache, reference, indices) }
-            // A replacing import is a new document, so its first page is page 0 and the file's row is the tree's
-            // root; the PDF's own chapters hang under it.
             val chapters = PdfOutlineSeeding.tree(pdfOutline)
             val outline = PdfOutlineSeeding.imported(com.mobixournal.format.model.OutlineTree.EMPTY, chapters, groupTitle.takeIf { bookmark }, 0)
             val seeded = document.copy(outline = outline)
