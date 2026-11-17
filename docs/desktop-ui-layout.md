@@ -26,8 +26,8 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 ```
 
 ### 1. Window layout & workspace panes
-- **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one text tab per open
-  document (ink and underline mark its state; each keeps its page, zoom and fit), the `+` for another, and right **Pages and Layers** in one
+- **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one glass tab per open
+  document (each keeps its page, zoom and fit), the `+` for another, and right **Pages and Layers** in one
   capsule, the search field, **undo, redo, Save, PDF**. The field stands there always beside the tabs, so
   using it never moves them or the file commands, and it keeps the **same gap either side** (12 dp to the
   capsule and to the history pair), so it reads as a group of its own rather than the capsule's tail;

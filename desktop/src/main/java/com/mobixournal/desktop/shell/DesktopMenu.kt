@@ -1,5 +1,4 @@
 package com.mobixournal.desktop.shell
-import com.mobixournal.desktop.tools.desktopTextFeedback
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverCapsule
 import com.mobixournal.desktop.tools.hoverFill
@@ -489,7 +488,11 @@ private fun MenuChip(
     Row(
         modifier
             .height(MenuMetrics.chipHeight)
-            .desktopTextFeedback(enabled = enabled)
+            .hoverCapsule(
+                cornerRadius = MenuMetrics.chipRadius,
+                fill = DesktopTheme.control,
+                active = !enabled,
+            )
             .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

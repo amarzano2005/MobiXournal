@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.settings
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
@@ -119,7 +120,7 @@ internal fun <T> SettingsChoiceChip(
             // out of a panel whose column ends at the page's edge.
             val shift = with(LocalDensity.current) { (menuWidth - anchor.width.toDp()).roundToPx() }
             GlassPopup(
-                offset = IntOffset(-shift, anchor.height + 4),
+                offset = IntOffset(-shift, anchor.height + with(LocalDensity.current) { DesktopTheme.popupInset.roundToPx() }),
                 onDismissRequest = {
                     guard.closed(Unit)
                     open = false
@@ -194,12 +195,11 @@ private fun SettingsSelectCapsule(
 /**
  * The list a select opens: one row per answer, the picked one on the steel and in the accent.
  *
- * The rows are **inset capsules**, not bands, because the list is a popup: its own rounded air is the edge,
- * and a row that filled the popup would be cut by that edge on its first and last line — the "line of
- * selection with its end sliced off" that a full-bleed row draws in a floating surface.
+ * Compact desktop rows reserve a checkmark column for the current answer. Hover follows the small
+ * row corner inside an opaque popup rather than a second capsule inside a translucent card.
  */
 @Composable
-private fun <T> SettingsSelectMenu(
+internal fun <T> SettingsSelectMenu(
     options: List<T>,
     picked: T,
     optionLabel: (T) -> String,
@@ -210,22 +210,27 @@ private fun <T> SettingsSelectMenu(
         Modifier
             .width(width)
             .glassSurface(fill = DesktopTheme.settingsPanel)
-            .padding(horizontal = 6.dp, vertical = 6.dp),
+            .padding(DesktopTheme.popupInset),
     ) {
         for (option in options) {
             val chosen = option == picked
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 30.dp)
+                    .heightIn(min = DesktopTheme.popupRowHeight)
                     .hoverFill(
-                        DesktopTheme.railSlotShape,
-                        base = if (chosen) DesktopTheme.activeSlot.copy(alpha = 0.35f) else Color.Transparent,
+                        RoundedCornerShape(DesktopTheme.popupRowRadius),
+                        base = Color.Transparent,
                     )
                     .pointerInput(option) { detectTapGestures { onPick(option) } }
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Box(Modifier.width(16.dp), contentAlignment = Alignment.CenterStart) {
+                    if (chosen) Canvas(Modifier.size(12.dp)) {
+                        drawChromeGlyph(ChromeGlyph.CHECK, DesktopTheme.accent)
+                    }
+                }
                 Text(
                     optionLabel(option),
                     color = if (chosen) DesktopTheme.accent else DesktopTheme.ink,
@@ -260,7 +265,7 @@ private fun selectMenuWidth(labels: List<String>): Dp {
  * would have to be scrolled to read a name it exists to show whole.
  */
 internal fun selectMenuWidthFor(widest: Dp): Dp =
-    (widest + SELECT_ROW_INSET * 2 + SELECT_MENU_AIR * 2).coerceIn(SELECT_MIN_WIDTH, SELECT_MAX_WIDTH)
+    (widest + 16.dp + SELECT_ROW_INSET * 2 + SELECT_MENU_AIR * 2).coerceIn(SELECT_MIN_WIDTH, SELECT_MAX_WIDTH)
 
 /** The answer [delta] places away from [picked] in [options], wrapping at both ends. */
 internal fun <T> nextChoice(options: List<T>, picked: T, delta: Int): T {
@@ -272,10 +277,10 @@ internal fun <T> nextChoice(options: List<T>, picked: T, delta: Int): T {
 }
 
 /** A row's own horizontal inset inside the list: the air between the popup's edge and an answer's word. */
-private val SELECT_ROW_INSET = 12.dp
+private val SELECT_ROW_INSET = 8.dp
 
 /** The list's inner air around its rows, as every flyout of the window has. */
-private val SELECT_MENU_AIR = 6.dp
+private val SELECT_MENU_AIR = DesktopTheme.popupInset
 
 /** A list of one word still opens wider than the word; a list of phrases stops short of the panel's edge. */
 private val SELECT_MIN_WIDTH = 150.dp

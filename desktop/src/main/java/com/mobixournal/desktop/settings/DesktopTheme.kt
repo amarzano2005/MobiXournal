@@ -103,21 +103,7 @@ object DesktopTheme {
     val rimAlphaBottom: Float get() =
         if (light) DesignTokens.RIM_ALPHA_BOTTOM_LIGHT else DesignTokens.RIM_ALPHA_BOTTOM
 
-    /**
-     * What floats over the page: the bands' own RGB with the see-through turned down to
-     * `floatingPanelAlpha`, so a message or a menu is the same material as the bar it belongs to.
-     *
-     * **Glass on paper too.** The light theme's *bands* are solid ([glass]); a floating surface is not.
-     * It keeps that white at the token's alpha, so an open menu still lies over the page as a pane rather
-     * than as a card painted onto it — the owner's answer once the window was read beside the tablet,
-     * whose floating fill never stopped carrying the alpha. It used to pass [panel] here, and a solid
-     * panel is exactly the one thing a floating surface must not be (`Modifier.glassSurface`'s own
-     * contract): with it, the light theme had the rim and none of the glass.
-     *
-     * Legibility is the bound rather than taste: the token is the most see-through the body ink allows in
-     * both themes (`ColorContractGuardTest` recomputes both ratios), and `LightMaterialTest` measures the
-     * claim in pixels — the sheet's tone reaches the panel while the handwriting behind it does not.
-     */
+    /** Legacy translucent glass for capsule chrome; desktop popup bodies use [popupSurface]. */
     val floating: Color get() = glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
 
     /**
@@ -135,29 +121,18 @@ object DesktopTheme {
     val tabFillResting: Color get() =
         floating.copy(alpha = if (light) TAB_RESTING_ALPHA_LIGHT else TAB_RESTING_ALPHA)
 
-    /**
-     * The failed-open card's fill: [glass] at **full** opacity.
-     *
-     * It is the one deliberate departure from the floating material, and it is about geometry rather
-     * than taste: the card sits at the top of the canvas and therefore straddles the edge where the desk
-     * meets the sheet, so a translucent fill came out a tone lighter over the paper than over the black
-     * and the panel read as two materials split down its middle. A message to be read once is solid.
-     */
+    /** Opaque palette body for desktop popups, dialogs and failure cards. */
     val panel: Color get() = tokenColour(if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB)
 
-    /**
-     * The **Settings** surface's fill: [panel] with a hair of the page showing through.
-     *
-     * The settings panel is read, not glanced at: over a sheet its rows are small text on a translucent
-     * card, and at `floatingPanelAlpha` the page's own ink came through the labels. It is almost solid —
-     * 0.97 leaves the material legible as glass at the rim, where the edge is, and makes the inside a
-     * page that is read rather than looked through. Not fully [panel], because the panel still lies over
-     * the document it is changing and a completely flat card reads as a second window.
-     */
-    val settingsPanel: Color get() = tokenColour(
-        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
-        0.97f,
-    )
+    /** Opaque desktop popup body, sharing the palette with the other shells. */
+    val popupSurface: Color get() = panel
+    val popupRadius = DesignTokens.DESKTOP_POPUP_CORNER_RADIUS_DP.dp
+    val popupRowRadius = DesignTokens.DESKTOP_POPUP_ROW_CORNER_RADIUS_DP.dp
+    val popupRowHeight = DesignTokens.DESKTOP_POPUP_ROW_HEIGHT_DP.dp
+    val popupInset = DesignTokens.DESKTOP_POPUP_INSET_DP.dp
+
+    /** Settings and nested menus cover underlying controls with the same opaque body. */
+    val settingsPanel: Color get() = popupSurface
 
     /**
      * The **tool strips'** fill: the same glass, at `STRIP_GLASS_ALPHA`.

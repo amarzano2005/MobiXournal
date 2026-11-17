@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.desktop.tools.glassRim
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.settings.DesktopTheme
 
@@ -36,21 +37,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.awt.image.BufferedImage
 
-/**
- * The two shells' glass, **side by side, in one image**.
- *
- * This exists because "the PC should look like the tablet" is a claim nobody can check from a doc. The
- * same panel is composed twice over the same true-black desk: on the left the *tablet's recipe* — the
- * fill token at `floatingPanelAlpha`, the rim tokens and the panel corner, applied by hand the way
- * `theme/FloatingGlass.kt` applies them — and on the right the *desktop's material*
- * ([DesktopTheme.floating] through `Modifier.glassSurface()`). The render is written to
- * `build/desktop-render/glass-parity.png` so it can be looked at, and the pixels are compared so it
- * cannot quietly stop being true.
- *
- * What is compared: the fill's composite tone, the rim at the top, the rim at the bottom, and whether
- * each panel's edge is lit from above. What is **not** compared: the two implementations, which are
- * allowed to differ — only what the user sees is not.
- */
+/** The shared capsule rim still matches the tablet art; desktop popup bodies have a separate recipe. */
 class GlassParityRenderTest {
 
     private val panel = 180
@@ -114,7 +101,7 @@ class GlassParityRenderTest {
                     Text("Tablet material", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.size(panel.dp, height.dp).glassSurface(DesktopTheme.floating))
+                    Box(Modifier.size(panel.dp, height.dp).clip(RoundedCornerShape(DesktopTheme.panelRadius)).background(DesktopTheme.floating).glassRim())
                     Text("Desktop material", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
                 }
             }

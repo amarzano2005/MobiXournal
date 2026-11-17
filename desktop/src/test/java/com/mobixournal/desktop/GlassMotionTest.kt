@@ -70,7 +70,7 @@ class GlassMotionTest {
                 opening.getRGB(centreX, grownY) and 0xFFFFFF,
             )
 
-            val settledFill = composite(DesignTokens.GLASS_DARK_RGB, DesignTokens.FLOATING_PANEL_ALPHA, 0xFFFFFF)
+            val settledFill = DesignTokens.GLASS_DARK_RGB
             assertTrue(
                 "40 ms in, the panel is still fading: centre ${Integer.toHexString(early.getRGB(centreX, centreY))} " +
                     "must be lighter than the settled ${Integer.toHexString(settledFill)}",

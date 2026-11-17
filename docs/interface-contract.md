@@ -25,10 +25,11 @@ Every surface is one of three objects. Pick the class from what the element *doe
 - **One style, two shells.** A look is decided **once**, in `DesignTokens` (`mobix-core`), and lands on the
   tablet and the window in the same change: the glass, its alphas, each theme's rim pair, the desk, the ink
   trio, the steel and the corners are **read**, never re-declared. A shell that needs a different number says
-  why in the token's own KDoc and here — today only the window's thinner band (`DESKTOP_BAND_ALPHA`) and its
+  why in the token's own KDoc and here — the window's compact opaque popup recipe, thinner band (`DESKTOP_BAND_ALPHA`) and its
   strips' (`STRIP_GLASS_ALPHA`). `ColorContractGuardTest`
   (`oneStyleTwoShellsTheLightMaterialIsReadFromTheTokens`) fails on a light-theme literal that should have
   been a token; `LightMaterialTest` and `DesktopThemeTest` hold the window's side.
+- **Desktop popup exception (owner request, 2026-11-17):** popup and dialog bodies use the opaque palette panel with one hairline border and the desktop corner tokens below. Controls behind a menu must never remain visible through its body. Capsule chrome retains its original glass/rim recipe; the tablet keeps its floating-glass material. `DesktopPopupMaterialTest` checks contrasting backgrounds in both themes and native popup coverage from the first frame.
 - **A lane is air, not a band.** Painting a lane and its capsule both gives 0.85 over 0.85 (0.98) and the
   strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract
   exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`. **The tablet's bands
@@ -46,7 +47,7 @@ Every surface is one of three objects. Pick the class from what the element *doe
   neither band's shade runs across the band beside it. A capsule is that white
   with the family's ink rim, the picked steel at `HOVER_SLOT_ALPHA_LIGHT` under the pointer and the full
   steel when picked, while an **unavailable command is its muted glyph alone**. The rim carries more of the
-  same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20). A **floating** surface is that recipe's one exception
+  same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20). An **Android floating** surface is that recipe's one exception
   to full opacity: it keeps the white at the `floatingPanelAlpha` token, so a menu is still glass over the
   page, and the token is its bound — the sheet's tone shows through it, its handwriting does not.
   `LightMaterialTest` holds every answer, its pixel test included.
@@ -125,6 +126,8 @@ Every surface is one of three objects. Pick the class from what the element *doe
 | Header control | 36 dp capsule | `HEADER_CONTROL_SIZE_DP` |
 | Capsule / panel corner | 16 dp / 20 dp | `CAPSULE_CORNER_RADIUS_DP`, `PANEL_CORNER_RADIUS_DP` |
 | Rim stroke | 1 dp | `RIM_WIDTH_DP` |
+| Desktop popup / row corners | 8 dp / 4 dp | `DESKTOP_POPUP_CORNER_RADIUS_DP`, `DESKTOP_POPUP_ROW_CORNER_RADIUS_DP` |
+| Desktop dropdown row / inset | 28 dp / 4 dp | `DESKTOP_POPUP_ROW_HEIGHT_DP`, `DESKTOP_POPUP_INSET_DP` |
 
 - Nothing interactive is smaller than a tool slot. A control that needs to be smaller is a control that
   belongs in a menu.
@@ -188,9 +191,9 @@ its clip), so a tap or a hover lights the capsule, circle or squircle the reader
 around it. `ShapeFeedbackTest` holds the shared controls to that order, because a clip one modifier too
 late compiles and reads correctly.
 
-**Desktop text controls (owner rule, 2026-11-17):** textual buttons, tabs, presets, numeric commands and navigation labels use `DesktopTextAction` or `desktopTextFeedback`. Hover/press changes ink or underlines the label; picked and keyboard-focus states use an accent underline. Their padding and hit targets never acquire a filled state layer. This applies to dialogs, inspectors, Settings, document tabs, entry actions and the sidebar, including primary and destructive text commands (their ink retains its meaning). `DesktopTextFeedbackContractTest` pins the shared factories and checks direct interactive text; `DesktopGlobalTextFeedbackTest` checks real pixels and representative callers.
+**Desktop text controls (owner rule, 2026-11-17):** textual buttons, tabs, presets, numeric commands and navigation labels use `DesktopTextAction` or `desktopTextFeedback`. Hover/press changes ink or underlines the label; picked and keyboard-focus states use an accent underline. Their padding and hit targets never acquire a filled state layer. This applies to dialogs, inspectors, Settings and the sidebar, including primary and destructive text commands (their ink retains its meaning). `DesktopTextFeedbackContractTest` pins the shared factories and checks direct interactive text; `DesktopGlobalTextFeedbackTest` checks real pixels and representative callers.
 
-The desktop has three distinct cases: icon tools and switches retain shaped slot feedback; popup menu choices retain the full-width rounded feedback checked by `SidebarTextFeedbackTest`; selection in document text, thumbnails, layers and search results remains content selection. Editable fields retain their caret, native text-selection highlight and bounded focus marker. These are not text-command state layers.
+The main hamburger menu, entry-screen commands and document tabs retain their original capsule/glass presentation (owner-requested exceptions, checked by `DesktopTextFeedbackContractTest`). Other distinct cases: icon tools and switches retain shaped slot feedback; popup menu choices retain the full-width rounded feedback checked by `SidebarTextFeedbackTest`; selection in document text, thumbnails, layers and search results remains content selection. Editable fields retain their caret, native text-selection highlight and bounded focus marker. These are not text-command state layers.
 
 On Android, the state layer is clipped to the visible control shape (`ShapeFeedbackTest`). A document tab there keeps its chip glass and accent edge. Desktop icon controls use shaped `hoverFill` / `hoverCapsule`; `DesktopShapeFeedbackTest` and `ToolStripsTest` keep those controls responsive without applying the icon rule to text commands.
 
@@ -206,16 +209,18 @@ the strip's pixels, so a readout that stops being drawn fails the build.
 
 ## 7. Motion
 
+Native desktop popup windows appear and disappear immediately at full scale and opacity (`GlassPopupGuardTest`); scaling or fading content inside the window would expose underlying controls. In-shell surfaces may retain their arrival motion. The following shared spring recipe applies to Android and those in-shell surfaces.
+
 Only `DesignTokens.GlassMotion` (stiffness, damping, fade). No bespoke `tween`, no `animateFloatAsState`
 with hand-picked durations, and no animation on a band.
 
-- **Everything floating arrives *and* leaves** on that spring — a pop-up, a flyout, a list, a dialog, a
+- **Android and in-shell floating surfaces arrive *and* leave** on that spring — a pop-up, a flyout, a list, a dialog, a
   toast, on both shells. A surface that animates one way only is a defect, not a simplification; the
   numbers and their reasoning live in [`ui-modernization.md`](ui-modernization.md).
 - **The surface is held composed for the exit.** A dialog's window and a pop-up's window are torn down
   between two frames the instant the flag clears, so a bare `if (open) { … }` cannot animate out: gate it
   with `DialogPresence(visible)` on the tablet or `GlassPresence(visible)` in the window, and open the
-  window's pop-up through `GlassPopup`, which is the gate and the spring in one call.
+  window's native pop-up through `GlassPopup`, which preserves visibility and input policy without that spring.
   `GlassPopupGuardTest` fails the build on a raw `Popup(`.
 - **The spring goes outside the fill**: the animation modifier comes *before* the `background` /
   `glassSurface()` / `glassPanel()` in a surface's chain. Written after it, the layer owns only the

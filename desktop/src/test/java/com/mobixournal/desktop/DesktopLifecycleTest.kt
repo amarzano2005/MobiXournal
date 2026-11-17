@@ -292,12 +292,12 @@ class DesktopLifecycleTest {
             }
             try {
                 val clean = accents(scene.render().encodeToData()?.bytes!!)
-                assertTrue("the active clean tab has its text/underline accent", clean > 0)
+                assertEquals("a clean tab carries no accent mark", 0, clean)
 
                 tabs.active!!.edit()
                 Snapshot.sendApplyNotifications()
                 val dirty = accents(scene.render().encodeToData()?.bytes!!)
-                assertTrue("the unsaved edit is drawn in the accent ($dirty px)", dirty > clean + 10)
+                assertTrue("the unsaved edit is drawn in the accent ($dirty px)", dirty > 10)
             } finally {
                 scene.close()
             }

@@ -83,6 +83,12 @@ object DesignTokens {
     /** The corner every floating surface and panel is cut with, in dp. */
     const val PANEL_CORNER_RADIUS_DP: Int = 20
 
+    /** Desktop popups are compact, opaque menus rather than the tablet's translucent floating cards. */
+    const val DESKTOP_POPUP_CORNER_RADIUS_DP: Int = 8
+    const val DESKTOP_POPUP_ROW_CORNER_RADIUS_DP: Int = 4
+    const val DESKTOP_POPUP_ROW_HEIGHT_DP: Int = 28
+    const val DESKTOP_POPUP_INSET_DP: Int = 4
+
     /** Backdrop blur radius behind the glass, in dp. */
     const val BLUR_RADIUS_DP: Int = 24
 

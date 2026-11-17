@@ -1,5 +1,8 @@
 package com.mobixournal.desktop
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.mobixournal.desktop.tools.glassRim
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -57,7 +60,7 @@ class GlassEdgeTest {
                     Modifier
                         .offset(inset.dp, inset.dp)
                         .size(panelWidth.dp, panelHeight.dp)
-                        .glassSurface(fill),
+                        .clip(RoundedCornerShape(DesktopTheme.panelRadius)).background(fill).glassRim(),
                 )
             }
         }.use { scene ->

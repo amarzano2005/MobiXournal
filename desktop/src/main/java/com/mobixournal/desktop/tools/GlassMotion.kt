@@ -33,8 +33,8 @@ import kotlinx.coroutines.launch
  * `DesignTokens.GlassMotion` numbers, for the window's surfaces — which is the only way two shells can
  * claim one motion language while drawing in two modules.
  *
- * Every surface gets the full behaviour, the flyouts included: [GlassPopup] is the window's one pop-up,
- * and a hover tooltip is the pointer's readout rather than a surface the user fired
+ * This motion applies to in-shell surfaces. Native menus use [GlassPopup] without scale or fade;
+ * a hover tooltip is the pointer's readout rather than a surface the user fired
  * (`docs/interface-contract.md` §7 records that exception).
  */
 
@@ -70,23 +70,7 @@ fun GlassPresence(visible: Boolean, content: @Composable () -> Unit) {
     }
 }
 
-/**
- * The window's **one pop-up**: a [Popup] that arrives *and leaves* on the shared spring.
- *
- * A desktop `Popup` used to appear instantly because its caller composed it under `if (open)`: the content
- * left the composition between two frames the moment the flag cleared, so there was nothing to run a
- * closing half on, and the window showed its menus popping while the surfaces inside the shell sprang.
- * [GlassPresence] is the missing half — it holds the composition for
- * [DesignTokens.GlassMotion.EXIT_HOLD_MS] and tells the panel inside that it is closing — and this is the
- * only way the window opens one: `GlassPopup(visible = open, offset = …, onDismissRequest = …) { Panel() }`.
- *
- * The spring is applied **outside** the panel's fill ([Modifier.glassSpring] wraps the content, whose own
- * `glassSurface()` draws the glass): an alpha layer placed after a fill fades the empty space under the
- * panel and leaves the panel itself opaque and full-sized.
- *
- * A hover tooltip is not this — it is the pointer's readout, not a surface the user fired
- * (`docs/interface-contract.md` §7).
- */
+/** Native desktop menus appear immediately at full size and opacity, with the caller's input policy. */
 @Composable
 internal fun GlassPopup(
     visible: Boolean = !LocalGlassClosing.current,
@@ -95,9 +79,11 @@ internal fun GlassPopup(
     properties: PopupProperties = FloatingSurface,
     content: @Composable () -> Unit,
 ) {
-    GlassPresence(visible) {
+    // A native desktop menu covers its final rectangle on its first frame. Scaling/fading its
+    // content inside that window exposes the controls underneath and makes the menu look clipped.
+    if (visible) {
         Popup(offset = offset, onDismissRequest = onDismissRequest, properties = properties) {
-            Box(Modifier.glassSpring()) { content() }
+            content()
         }
     }
 }

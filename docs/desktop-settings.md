@@ -7,15 +7,14 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 ## What it is
 
-`Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — glass, the
-family's rim, a 20 dp corner — so a setting is changed while looking at the thing it changes. The pointer is
+`Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — an opaque body with a
+desktop popup border and compact corner — so a setting is changed while looking at the thing it changes. The pointer is
 the panel's while it is up: a press or a wheel notch on a row never reaches the page behind it, because a
 sheet that read the click would ink what nothing on screen was marking. It is
 **draggable by its title bar**: it opens centred, which is over the sheet the reader came to compare
 against, and dragging it is how the thing being changed is kept in view. The offset is clamped so the panel
 cannot be lost off an edge (and it is not stored — a window that opened with its panel half off the screen
-would be the setting nobody chose). Its fill is `DesktopTheme.settingsPanel`, the glass at **0.97**: at the
-floating alpha the page's own ink came up through the labels.
+would hide the controls the user needs). The body and nested lists follow the opaque [desktop popup recipe](interface-contract.md#1-material-three-classes-no-fourth).
 
 Its index is **twelve sections** — Stylus, Shortcuts, Audio, Figures, Colors, Ring, Toolbar, Navigation,
 Appearance, Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each
@@ -27,7 +26,7 @@ shell has no row for, and a page of "tablet only" rows is a page the reader lear
 names under it begin at the same x.
 
 Desktop groups are flat: a heading, a quiet divider and aligned property rows. Only the outer floating
-window wears glass and a rim. This desktop-specific composition shares the tablet's palette, glyphs
+window has its own panel border. This desktop-specific composition shares the tablet's palette, glyphs
 and control states while using the wider pointer/keyboard workspace. The panel adapts up to 1050 by
 760 dp, with a 210 dp navigation column and a separator before the content.
 
@@ -55,7 +54,7 @@ One rule per kind of thing, so a reader can tell an answer from an action at a g
 - a **choice** ends in a **select**, and in nothing else: the answer in hand on a compact field with a chevron,
   the rest of the list in a menu under it (`Stream`, `Placement`, `New document`) — a row of lozenges was the
   same control in a louder costume. The field takes the pointer, `Enter`/`Space`, and
-  Left/Right to step through the answers; the menu is the panel's fill with its rows **inset as compact controls**,
+  Left/Right to step through the answers; the menu uses the desktop popup body with compact rows and a checkmark for the current answer,
   because a full-bleed row is cut by the popup's rounded edge — a line of selection with its end sliced off
   (`SettingsSelect`);
 - a **toggle** ends in a square checkbox, and the whole row is the hit area (`Pressure sensitivity`);

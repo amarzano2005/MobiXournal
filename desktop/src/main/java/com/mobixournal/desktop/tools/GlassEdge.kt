@@ -3,6 +3,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -110,19 +111,15 @@ internal fun Modifier.glassRim(
  * and leave the edge behind — which is how the window's flyouts ended up as plain boxes next to a tablet
  * whose every pop-up wears a rim.
  *
- * The fill defaults to [DesktopTheme.floating] — the glass at `floatingPanelAlpha` — and that default is
- * the point: a floating surface is **translucent**, and what it lies over shows through it. The first
- * cut of this modifier filled the panels with [DesktopTheme.panel], which is the same RGB at full
- * opacity, so the window had the edge and none of the glass: over the desk the two are identical, and
- * over a white sheet the panel read as a solid charcoal card. Only a surface that has a written reason
- * to be solid passes `panel` (the failed-open card does: it straddles the desk-and-sheet edge, where a
- * translucent fill reads as two materials split down its middle).
+ * Desktop popups default to an opaque body, compact corner and one hairline edge. Controls and text
+ * behind the popup must not bleed through its content area; the tablet retains its own glass recipe.
  */
 @Composable
 internal fun Modifier.glassSurface(
-    fill: Color = DesktopTheme.floating,
-    cornerRadius: Dp = DesktopTheme.panelRadius,
-): Modifier = clip(RoundedCornerShape(cornerRadius)).background(fill).glassRim(cornerRadius)
+    fill: Color = DesktopTheme.popupSurface,
+    cornerRadius: Dp = DesktopTheme.popupRadius,
+): Modifier = clip(RoundedCornerShape(cornerRadius)).background(fill)
+    .border(DesignTokens.RIM_WIDTH_DP.dp, DesktopTheme.hairline, RoundedCornerShape(cornerRadius))
 
 /**
  * The **hover step** of a chrome surface: the steel at [DesktopTheme.hoverSlot] while the pointer rests

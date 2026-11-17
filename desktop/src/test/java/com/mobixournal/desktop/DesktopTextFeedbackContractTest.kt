@@ -18,9 +18,6 @@ class DesktopTextFeedbackContractTest {
         "shell/PageSetup.kt" to listOf("SetupChip"),
         "sheet/PageSelection.kt" to listOf("PageSelectionBar"),
         "shell/HeaderAudioPill.kt" to listOf("SpeedButton"),
-        "shell/TabStrip.kt" to listOf("TabStrip"),
-        "shell/EntryScreen.kt" to listOf("EntryButton"),
-        "shell/DesktopMenu.kt" to listOf("MenuChip"),
         "shell/DesktopStatus.kt" to listOf("BandDoor", "PdfTextBandNotice"),
         "shell/PdfContentsSidebar.kt" to listOf("SidebarViewSwitch", "ContentsHeaderAction", "ContentsRowAction"),
     )
@@ -42,6 +39,15 @@ class DesktopTextFeedbackContractTest {
                 }
             }
         }
+    }
+
+    @Test fun requestedChromeExceptionsKeepTheirOriginalCapsules() {
+        val menu = File(source, "shell/DesktopMenu.kt").readText()
+        val entry = File(source, "shell/EntryScreen.kt").readText()
+        val tabs = File(source, "shell/TabStrip.kt").readText()
+        assertTrue("main-menu command chips retain their capsule", menu.contains(".hoverCapsule("))
+        assertTrue("entry commands retain their button background", entry.contains("DesktopTheme.tabFillResting"))
+        assertTrue("document tabs retain their original glass and edge", tabs.contains(".tabEdge(active)") && tabs.contains("DesktopTheme.tabFill"))
     }
 
     @Test fun noMobileButtonImplementationCanBypassTheDesktopRecipe() {
