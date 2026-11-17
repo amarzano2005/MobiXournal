@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-sidebar-quiet-feedback"
+title = "Remove filled feedback from desktop sidebar text actions"
+description = "Removed filled hover/press/focus feedback from desktop sidebar tabs, Add bookmark and inline text commands using SidebarTextAction.kt; keyboard focus remains a narrow underline and labels change ink. Bookmark rows, overflow and branch controls also use unfilled click feedback; the overflow glyph brightens on hover/focus. PdfContentsSidebar.kt gives Rename/Delete equal-width, 40 dp rounded entries with a whole-entry hover/press/focus fill and no default rectangular ripple. SidebarTextFeedbackTest checks actual pixels for hovered/pressed/focused Pages and Add bookmark, no background around overflow, and menu highlight width and rounded corners. Eleven targeted desktop tests and 43 documentation/structure guards passed; assembleDebug verified and desktop executable regenerated. Packaged Windows window checked for unfilled sidebar commands and both menu entries; comparison images in build/sidebar-quiet-*.jpg. Saved the existing test notebook before restarting so its user edits remain. Updated README.md, docs/desktop-ui-layout.md and docs/interface-contract.md."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: sidebar text and icon actions unfilled, popup rows retain shaped hover; tokens: existing ink accent hoverSlot palette only; glyph: shared overflow and chevrons retained; states: hover/press text ink, thin keyboard focus, selected tab underline, disabled actions preserved; keyboard: clickable semantics and focus remain visible; copy: English labels retained; tests: pixel regression plus existing layout/editor/shape tests, packaged Windows comparison; docs: owning layout and interface contract plus README.md updated"
+
+[[task]]
 id = "desktop-bookmarks-visual-hierarchy"
 title = "Simplify desktop bookmarks navigation and editing"
 description = "Simplified desktop bookmark navigation and editing in PdfContentsSidebar.kt, ContentsEditing.kt and BookmarkFields.kt. The desktop tab and filter now say Bookmarks, with matching empty-search and PDF import copy. Navigation uses an accent underline instead of filled selected pills; sidebar fields are flat with focus/error underlines. Outline titles use calmer body typography while preserving measured destination columns and menu targets. Add and rename use the full row width with captured page label and stable Cancel/Add or Cancel/Save actions; blank submission stays visibly disabled, title receives focus, and Escape cancels. Added DesktopBookmarkEditorTest for labels, selected-tab semantics, action placement and four-digit page label. The 21 targeted desktop tests and 43 DocsGuardTest/DocClaimsTest/SourceStructureTest checks pass; assembleDebug verified and desktop executable regenerated. Verified packaged Windows window with folded and expanded chapters and empty/typed add drafts, screenshots in build/bookmarks-refined-*.jpg. README.md and owning PDF/layout docs updated; interface contract records the user-requested desktop navigation exception."

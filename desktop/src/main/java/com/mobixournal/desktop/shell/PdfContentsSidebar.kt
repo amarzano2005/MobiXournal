@@ -14,6 +14,12 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.TooltipPlacement
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -50,12 +56,10 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -87,25 +91,13 @@ internal fun SidebarViewSwitch(view: DesktopSidebarView, onView: (DesktopSidebar
     ) {
         DesktopSidebarView.entries.forEach { option ->
             val picked = option == view
-            Text(
-                text = if (option == DesktopSidebarView.PAGES) "Pages" else "Bookmarks",
-                color = if (picked) DesktopTheme.accent else DesktopTheme.inkSecondary,
+            SidebarTextAction(
+                label = if (option == DesktopSidebarView.PAGES) "Pages" else "Bookmarks",
+                onClick = { onView(option) },
+                modifier = Modifier.weight(1f),
+                picked = picked,
+                role = Role.Tab,
                 style = DesktopTheme.field,
-                modifier = Modifier
-                    .weight(1f)
-                    .hoverFill(RoundedCornerShape(8.dp), active = picked)
-                    .drawBehind {
-                        if (picked) drawLine(
-                            DesktopTheme.accent,
-                            androidx.compose.ui.geometry.Offset(8.dp.toPx(), size.height - 1.dp.toPx()),
-                            androidx.compose.ui.geometry.Offset(size.width - 8.dp.toPx(), size.height - 1.dp.toPx()),
-                            strokeWidth = 2.dp.toPx(),
-                        )
-                    }
-                    .semantics { selected = picked }
-                    .clickable(role = Role.Tab) { onView(option) }
-                    .heightIn(min = 40.dp)
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
             )
         }
     }
@@ -254,16 +246,8 @@ private fun ColumnScope.ContentsListBlock(
 
 /** The Contents header's own command: a word on a full-height slot, so the action is reachable by thumb and pen. */
 @Composable
-private fun ContentsHeaderAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
-    Text(
-        label,
-        color = if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted,
-        style = DesktopTheme.label,
-        modifier = Modifier
-            .hoverFill(RoundedCornerShape(8.dp), active = !enabled)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 12.dp),
-    )
+internal fun ContentsHeaderAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+    SidebarTextAction(label = label, enabled = enabled, onClick = onClick)
 }
 
 /**
@@ -361,8 +345,7 @@ internal fun OutlineRowView(
             .fillMaxWidth()
             // A row that leads nowhere answers the pointer with nothing: `active` keeps the hover light off
             // it, so the row's own "cannot be opened" is not contradicted by a highlight.
-            .hoverFill(RoundedCornerShape(8.dp), active = target == null)
-            .clickable(enabled = target != null, role = Role.Button) {
+            .quietSidebarClick(enabled = target != null, role = Role.Button) {
                 if (target != null) onSelectPage(target)
             }
             // One announcement for the whole row: the title, the page and whether it opens at all.
@@ -422,21 +405,24 @@ private fun ContentsRowMenu(
     onDelete: (() -> Unit)?,
 ) {
     var open by remember { mutableStateOf(false) }
+    val interactions = remember { MutableInteractionSource() }
+    val hovered by interactions.collectIsHoveredAsState()
+    val focused by interactions.collectIsFocusedAsState()
     Box {
         Box(
             Modifier
                 .size(ContentsRowLayout.ACTION_DP.dp)
-                .hoverFill(RoundedCornerShape(8.dp))
-                .clickable(role = Role.Button) { open = true }
+                .quietSidebarClick(interactions = interactions) { open = true }
                 .semantics { contentDescription = "Actions for ${title.ifBlank { "bookmark" }}" },
             contentAlignment = Alignment.TopCenter,
         ) {
-            Canvas(Modifier.size(16.dp)) { drawChromeGlyph(ChromeGlyph.MORE_HORIZ, DesktopTheme.inkSecondary) }
+            Canvas(Modifier.size(16.dp)) { drawChromeGlyph(ChromeGlyph.MORE_HORIZ,
+                if (hovered || focused) DesktopTheme.ink else DesktopTheme.inkSecondary) }
         }
         val drop = with(LocalDensity.current) { ContentsRowLayout.ACTION_DP.dp.roundToPx() }
         GlassPopup(visible = open, onDismissRequest = { open = false }, offset = IntOffset(0, drop)) {
             Column(
-                Modifier.glassSurface().padding(4.dp),
+                Modifier.width(IntrinsicSize.Max).glassSurface().padding(4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 if (onRename != null) {
@@ -458,32 +444,34 @@ private fun ContentsRowMenu(
 
 /** One answer of a row's menu: its word, on a hoverable slot, announced with the row it belongs to. */
 @Composable
-private fun ContentsMenuRow(label: String, title: String, onClick: () -> Unit) {
+internal fun ContentsMenuRow(label: String, title: String, onClick: () -> Unit) {
+    val interactions = remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
+    val pressed by interactions.collectIsPressedAsState()
     Text(
         label,
         color = DesktopTheme.ink,
         style = DesktopTheme.label,
         modifier = Modifier
-            .hoverFill(RoundedCornerShape(6.dp))
-            .clickable(role = Role.Button, onClick = onClick)
+            .fillMaxWidth()
+            .hoverFill(RoundedCornerShape(6.dp),
+                base = if (focused || pressed) DesktopTheme.hoverSlot else Color.Transparent)
+            .clickable(interactionSource = interactions, indication = null,
+                role = Role.Button, onClick = onClick)
             .semantics { contentDescription = "$label ${title.ifBlank { "bookmark" }}" }
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .heightIn(min = 40.dp)
+            .padding(horizontal = 10.dp, vertical = 12.dp),
     )
 }
 
 /** One word of a row's own actions, named together with its row so two chapters stay distinguishable. */
 @Composable
 internal fun ContentsRowAction(label: String, title: String, enabled: Boolean = true, onClick: () -> Unit) {
-    Text(
-        label,
-        color = if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted,
-        style = DesktopTheme.label,
-        modifier = Modifier
-            .hoverFill(RoundedCornerShape(6.dp))
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = "$label ${title.ifBlank { "bookmark" }}" }
-            .heightIn(min = 40.dp)
-            .padding(horizontal = 10.dp, vertical = 12.dp),
+    SidebarTextAction(
+        label = label,
+        description = "$label ${title.ifBlank { "bookmark" }}",
+        enabled = enabled,
+        onClick = onClick,
     )
 }
 
@@ -536,8 +524,7 @@ private fun ContentsChevron(row: OutlineRow, onToggle: (() -> Unit)?) {
     Box(
         Modifier
             .size(ContentsRowLayout.BRANCH_DP.dp)
-            .hoverFill(RoundedCornerShape(6.dp))
-            .clickable(role = Role.Button, onClick = onToggle)
+            .quietSidebarClick(onClick = onToggle)
             .semantics {
                 contentDescription = if (row.expanded) "Collapse ${row.title}" else "Expand ${row.title}"
             },
