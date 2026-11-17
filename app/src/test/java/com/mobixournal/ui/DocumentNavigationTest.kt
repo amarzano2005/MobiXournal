@@ -14,12 +14,14 @@ class DocumentNavigationTest {
         assertEquals(NavigationTab.BOOKMARKS, ui.navigationTab)
     }
 
-    @Test fun switchingFromPagesToBookmarksKeepsTheNavigatorOpen() {
+    @Test fun switchingFromPagesToBookmarksKeepsTheNavigatorOpenAndClearsPagePicks() {
         val ui = ui()
         ui.toggleNavigation(NavigationTab.PAGES)
+        ui.pageSelection = setOf(1, 3)
         ui.toggleNavigation(NavigationTab.BOOKMARKS)
         assertTrue(ui.pageListOpen)
         assertEquals(NavigationTab.BOOKMARKS, ui.navigationTab)
+        assertTrue(ui.pageSelection.isEmpty())
         ui.toggleNavigation(NavigationTab.PAGES)
         assertTrue(ui.pageListOpen)
         assertEquals(NavigationTab.PAGES, ui.navigationTab)

@@ -118,6 +118,12 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     /** The navigator's selected view survives closing the lane. */
     internal var navigationTab by mutableStateOf(NavigationTab.PAGES)
 
+    /**
+     * The pages picked in that list (0-based indices) — what its move and delete commands act on.
+     * Emptied when the list closes, so a stale pick cannot act on pages the user has forgotten about.
+     */
+    var pageSelection by mutableStateOf<Set<Int>>(emptySet())
+
     /** Full-page (immersive) view: a Hand-tool centre double-tap hides the top bar and side toolbar. */
     var fullPage by mutableStateOf(false)
 

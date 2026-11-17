@@ -57,10 +57,12 @@ internal enum class NavigationTab(val label: String) { PAGES("Pages"), BOOKMARKS
 internal fun EditorUiState.toggleNavigation(tab: NavigationTab) {
     pageListOpen = !pageListOpen || navigationTab != tab
     navigationTab = tab
+    pageSelection = emptySet()
 }
 
 internal fun EditorUiState.closeNavigation() {
     pageListOpen = false
+    pageSelection = emptySet()
 }
 
 /**
@@ -182,7 +184,7 @@ private fun NavigationTabs(ui: EditorUiState, pane: PaneState, onClose: () -> Un
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
             NavigationTab.entries.forEach { tab ->
                 TextButton(
-                    onClick = { ui.navigationTab = tab },
+                    onClick = { ui.navigationTab = tab; ui.pageSelection = emptySet() },
                     modifier = Modifier.semantics { role = Role.Tab; selected = ui.navigationTab == tab },
                 ) {
                     val tint = if (ui.navigationTab == tab) MaterialTheme.colorScheme.primary
@@ -237,13 +239,19 @@ private fun BookmarkNavigationBody(
 @Composable
 private fun NavigationPages(ui: EditorUiState, pane: PaneState, onGoToPage: (Int) -> Unit, modifier: Modifier) {
     PageListPanel(
-        pageCount = pane.pageCount, currentPage = pane.currentPage,
+        pageCount = pane.pageCount, currentPage = pane.currentPage, selection = ui.pageSelection,
         pages = pane.surface?.pageCommands?.pages().orEmpty(), surface = pane.surface,
-        onGoToPage = onGoToPage,
+        onSelection = { ui.pageSelection = it },
+        // A plain tap on a row leaves **one** page selected — the one it shows — so the dot can never stay
+        // behind on a page the reader has navigated away from. The run assembled on the boxes survives
+        // until the next tap on the list itself, and a box's tap takes the view there without leaving the
+        // lane, so several pages can still be collected on a phone.
+        onGoToPage = { index -> onGoToPage(index); ui.pageSelection = setOf(index) },
+        onShow = { pane.surface?.goToPage(it) },
         onMove = { picked, delta -> pickedMoveTarget(picked, delta, pane.pageCount)
             ?.let { pane.surface?.pageCommands?.movePages(picked, it) } },
         onReorder = { from, to -> pane.surface?.pageCommands?.movePages(setOf(from), to) },
-        onDelete = { picked -> pane.surface?.pageCommands?.removePages(picked) },
+        onDelete = { picked -> pane.surface?.pageCommands?.removePages(picked); ui.pageSelection = emptySet() },
         onClose = { ui.closeNavigation() },
         showHeader = false, modifier = modifier.fillMaxWidth(),
     )

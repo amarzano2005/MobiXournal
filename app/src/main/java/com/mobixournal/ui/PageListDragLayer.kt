@@ -100,9 +100,12 @@ internal fun PageDragGhost(
     rowHeightPx: Float,
     pages: List<Page>,
     surface: DrawingSurfaceView?,
+    picked: Set<Int>,
 ) {
     val from = drag.from ?: return
     val top = drag.liftedTop(from, scrollPxOf(listState, rowHeightPx))
+    // A handle on a picked row carries the whole pick, so the card counts what travels.
+    val carrying = if (from in picked && picked.size > 1) "${picked.size} pages" else "${from + 1}"
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -117,7 +120,7 @@ internal fun PageDragGhost(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "${from + 1}",
+                carrying,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
