@@ -48,6 +48,11 @@ import com.mobixournal.render.OutlineRow
  */
 internal class ContentsSession {
 
+    // Scroll changes are deliberately not Compose state: a fling must not recompose/project the whole tree.
+    var scrollAnchorId: String? = null
+    var scrollAnchorRow: Int = 0
+    var scrollAnchorOffset: Int = 0
+
     /** The filter, the folded branches and the row at the top of the list. */
     var navigation by mutableStateOf(ContentsNavigation())
 

@@ -207,7 +207,7 @@ internal fun DrawingSurfaceView.pdfSheetFor(background: Background.Pdf, targetWi
  * written in the page that names it — so the cache is opened here, on the frame that first draws
  * such a page. Every other document sets its source at load, and this is then the identity.
  */
-private fun DrawingSurfaceView.pdfSourceFor(background: Background.Pdf): PdfPageCache? {
+internal fun DrawingSurfaceView.pdfSourceFor(background: Background.Pdf): PdfPageCache? {
     pdfSource?.let { return it }
     val file = backgroundResolver?.file(background) ?: return null
     setPdfSource(PdfPageCache.shared(file))

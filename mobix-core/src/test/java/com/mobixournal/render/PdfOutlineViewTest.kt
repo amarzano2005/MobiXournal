@@ -19,6 +19,16 @@ import org.junit.Test
  * the view is handed in both shells.
  */
 class PdfOutlineViewTest {
+    @Test fun aFilterKeepsTheParentOfTwentyThousandSiblingMatches() {
+        val rows = listOf(OutlineRow("bkm_root", "Chapter", 0, 0)) + (1..20_000).map {
+            OutlineRow("bkm_$it", "Section $it", 1, it)
+        }
+        val shown = PdfOutlineView.visible(rows, collapsed = setOf("bkm_root"), query = "Section", currentPage = 20_000)
+        assertEquals(rows.size, shown.size)
+        assertTrue(shown.first().context)
+        assertTrue(shown.last().current)
+        assertEquals(setOf(0), PdfOutlineView.branchRows(rows))
+    }
 
     private fun row(title: String, page: Int?, depth: Int, index: Int) =
         OutlineRow(id = "bkm_$index", title = title, depth = depth, page = page, row = index)

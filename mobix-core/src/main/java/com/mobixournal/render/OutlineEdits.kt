@@ -115,6 +115,28 @@ object OutlineEdits {
         return if (found) Result.Ok(tree.copy(nodes = nodes)) else Result.Refused(Refusal.NOT_FOUND)
     }
 
+    /** Move a whole subtree among its siblings; page targets and hierarchy never change. */
+    fun moveSibling(tree: OutlineTree, id: String, delta: Int): Result {
+        var found = false
+        fun move(nodes: List<OutlineNode>): List<OutlineNode> {
+            val at = nodes.indexOfFirst { it.id == id }
+            if (at >= 0) {
+                found = true
+                val to = (at.toLong() + delta).coerceIn(0L, nodes.lastIndex.toLong()).toInt()
+                if (at == to) return nodes
+                return nodes.toMutableList().apply { add(to, removeAt(at)) }
+            }
+            val moved = nodes.map { node ->
+                val children = move(node.children)
+                if (children === node.children) node else node.copy(children = children)
+            }
+            return if (moved == nodes) nodes else moved
+        }
+        val nodes = move(tree.nodes)
+        if (!found) return Result.Refused(Refusal.NOT_FOUND)
+        return Result.Ok(if (nodes === tree.nodes) tree else tree.copy(nodes = nodes))
+    }
+
     /**
      * [tree] without the row [id]; its children take its place, in their own order.
      *

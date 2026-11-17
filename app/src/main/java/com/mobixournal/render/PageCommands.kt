@@ -185,6 +185,10 @@ internal class PageCommands(
     fun deleteBookmark(id: String): OutlineEdits.Result =
         editOutline(document()) { tree -> OutlineEdits.delete(tree, id) }
 
+    /** Reordering carries the entire subtree as one undoable edit. */
+    fun moveBookmark(id: String, delta: Int): OutlineEdits.Result =
+        editOutline(document()) { tree -> OutlineEdits.moveSibling(tree, id, delta) }
+
     /**
      * One undoable Contents edit: a refusal writes nothing, and an edit that changed nothing records no
      * step. The page list is untouched, so nothing keyed by page index has to be reset.

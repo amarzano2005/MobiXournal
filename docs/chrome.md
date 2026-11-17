@@ -8,7 +8,7 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 ## Chrome (`ui/`): the editor screen
 
 **Chrome (`ui/`).** `EditorScreen` is the one editor screen: a top bar (`EditorTopBar`) with undo/redo
-icon buttons, a compact quick **Export PDF** button and a one-tap **Save** button after it (Save
+icon buttons, a quick **Export PDF** button on wide windows (compact windows keep it in the overflow menu) and a one-tap **Save** button after it (Save
 outermost, i.e. under the thumb), and a
 **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save, Save As, **Export As**
 (whose own card asks PNG, SVG or `.pmobix`), Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** with core drawing tool slots and pop-up panels; a secondary toolbar (`TopBarToolsRow`) for geometric figures and STEM tools embedded in the top bar. Both toolbars follow the modern design system floating glass capsule style.
@@ -85,7 +85,7 @@ dp, half a slot tall, with the dock's 6 dp of air on each side — so both toolb
 same line, and it stands at whichever end the preview takes (leading on a left-docked rail, trailing on a
 right-docked one).
 
-Android's top-bar page-list and bookmark entries open an inline **Pages / Bookmarks** lane. Back cancels an edit before closing it. Tablet-sized workspaces keep the list beside the canvas; compact windows return to the page after a jump. [pdf.md](pdf.md#pdf-contents-the-outline) owns its layout and verification limits.
+On compact Android windows the page-list entry is icon-only to clear the audio capsule. The top-bar page-list and bookmark entries open an inline **Pages / Bookmarks** lane. Back cancels an edit before closing it. Tablet-sized workspaces keep the list beside the canvas; compact windows return to the page after a jump. [pdf.md](pdf.md#pdf-contents-the-outline) owns its layout and verification limits.
 
 ## The rail never cuts a slot — and never shrinks one
 

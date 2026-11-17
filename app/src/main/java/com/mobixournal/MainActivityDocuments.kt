@@ -88,7 +88,8 @@ internal fun MainActivity.openDocument(uri: Uri) {
         // A raw PDF is not parsed into a document: its bytes are copied into the store and its pages are
         // built here, on the worker that already has the file, so the canvas only receives the result.
         val plan = (read as? LoadedFile.Pdf)?.let { pdf ->
-            preparePdfImport(pdf.file, ImportPdfMode.REPLACE, uri.toString(), indices = null, base = null, inStore = pdf.generated)
+            preparePdfImport(pdf.file, ImportPdfMode.REPLACE, uri.toString(), indices = null, base = null,
+                inStore = pdf.generated, title = PdfOutlineSeeding.defaultTitle(sourceName))
         }
         Triple(staged, read, plan)
     }) { result ->
@@ -269,7 +270,8 @@ internal fun MainActivity.loadDocument(
             if (plan != null) {
                 applyPdfImport(plan, tabs.active?.id)
             } else {
-                adoptPdf(loaded.file, ImportPdfMode.REPLACE, source.toString(), inStore = loaded.generated)
+                adoptPdf(loaded.file, ImportPdfMode.REPLACE, source.toString(), inStore = loaded.generated,
+                    title = PdfOutlineSeeding.defaultTitle(displayName(source)))
             }
             // The tab came from a PDF, so it has no `.xopp` on disk yet: drop the source URI so
             // plain Save asks for a destination instead of writing document bytes over the PDF,
@@ -441,9 +443,10 @@ internal fun MainActivity.importPdf(uri: Uri, mode: ImportPdfMode, indices: List
     // still works if the grant isn't persistable.
     runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
     // The PDF may live on a network share: fetch it on a worker, then build pages from the copy.
+    val sourceTitle = PdfOutlineSeeding.defaultTitle(displayName(uri))
     inBackground("Importing ${displayName(uri)}…", { io.stageIn(uri, "import") }) { result ->
         // adoptPdf copies the bytes into the PdfStore, so the staged copy is scratch either way.
-        result.mapCatching { staged -> try { adoptPdf(staged, mode, uri.toString(), indices = indices) } finally { staged.delete() } }
+        result.mapCatching { staged -> try { adoptPdf(staged, mode, uri.toString(), indices = indices, title = sourceTitle) } finally { staged.delete() } }
             .onFailure { toast("PDF import failed: ${it.message}") }
     }
 }
@@ -605,6 +608,7 @@ internal fun MainActivity.adoptPdf(
     reference: String,
     inStore: Boolean = false,
     indices: List<Int>? = null,
+    title: String? = null,
 ) {
     val p = pane
     val tabId = p.tabs.active?.id
@@ -616,7 +620,7 @@ internal fun MainActivity.adoptPdf(
     }
     val plan = preparePdfImport(
         source, mode, reference, indices, base, inStore,
-        title = reference.substringAfterLast('/').substringBeforeLast('.').takeIf { it.isNotBlank() },
+        title = title ?: PdfOutlineSeeding.defaultTitle(displayName(Uri.parse(reference))),
     )
     applyPdfImport(plan, tabId, p)
 }

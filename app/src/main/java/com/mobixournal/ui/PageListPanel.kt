@@ -42,6 +42,10 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.mobixournal.design.DocumentNavigationLayout
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,8 +61,10 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.Background
@@ -66,6 +72,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.pdfSheetFor
+import com.mobixournal.render.pdfSourceFor
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeColor
@@ -77,20 +84,10 @@ import kotlin.math.roundToInt
 private val PAGE_LIST_WIDTH = 196.dp
 
 /** One row: tall enough for the preview it carries, short enough that a dozen pages still fit. */
-internal val PAGE_ROW_HEIGHT = 64.dp
+internal val PAGE_ROW_HEIGHT = DocumentNavigationLayout.PAGE_ROW_DP.dp
 
 /** The number's column: a page's place in the document, and nothing else beside it. */
-internal val PAGE_NUMBER_WIDTH = 30.dp
-
-/** The preview's height; its width follows the page's own proportions, so no sheet is forced upright. */
-private val THUMB_HEIGHT = 48.dp
-
-/** How narrow and how wide a preview may get, so a panorama page cannot eat the whole row. */
-private val THUMB_MIN_WIDTH = 22.dp
-private val THUMB_MAX_WIDTH = 68.dp
-
-/** The shape a malformed page (no usable proportions) is given: A4's own. */
-private const val PORTRAIT_RATIO = 0.707f
+internal val PAGE_NUMBER_WIDTH = DocumentNavigationLayout.PAGE_NUMBER_DP.dp
 
 /** The preview is rasterised at twice its display width, within these bounds. */
 private const val MIN_RASTER_PX = 64
@@ -100,7 +97,7 @@ private const val MAX_RASTER_PX = 320
 private val LANDING_LINE_HEIGHT = 2.dp
 
 /** The handle's target: small enough to leave the row's air, wide enough for a stylus. */
-internal val DRAG_HANDLE_SIZE = 32.dp
+internal val DRAG_HANDLE_SIZE = DocumentNavigationLayout.PAGE_CONTROL_DP.dp
 
 /**
  * Where the picked pages should **start** after a move of [delta] places, or null when nothing is
@@ -158,6 +155,7 @@ internal fun PageListCapsuleFor(ui: EditorUiState) {
  */
 @Composable
 internal fun PageListCapsule(open: Boolean, onClick: () -> Unit) {
+    val compact = LocalConfiguration.current.screenWidthDp < DocumentNavigationLayout.COMPACT_WIDTH_DP
     val tint = if (open) MaterialTheme.colorScheme.primary else rememberChromeInk()
     Surface(
         shape = ModernTheme.capsuleShape,
@@ -171,7 +169,9 @@ internal fun PageListCapsule(open: Boolean, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .clickable(onClick = onClick)
-                .padding(horizontal = 10.dp, vertical = 7.dp),
+                .semantics { contentDescription = "Page list"; selected = open }
+                .then(if (compact) Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
+                    else Modifier.padding(horizontal = 10.dp, vertical = 7.dp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -180,8 +180,10 @@ internal fun PageListCapsule(open: Boolean, onClick: () -> Unit) {
                 tint = tint,
                 modifier = Modifier.size(18.dp),
             )
-            Spacer(Modifier.width(6.dp))
-            Text("Page list", style = MaterialTheme.typography.labelLarge, color = tint)
+            if (!compact) {
+                Spacer(Modifier.width(6.dp))
+                Text("Page list", style = MaterialTheme.typography.labelLarge, color = tint)
+            }
         }
     }
 }
@@ -471,8 +473,9 @@ private fun PageListRow(
                 color = if (inView || picked) accent else rememberChromeInk(),
             )
         }
-        PageListPreview(page = page, surface = surface, onGoTo = onGoTo)
-        Spacer(Modifier.weight(1f))
+        Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+            PageListPreview(page = page, surface = surface, onGoTo = onGoTo)
+        }
         PickBox(index = index, picked = picked, onToggle = onToggle)
         PageDragHandle(index = index)
     }
@@ -493,29 +496,37 @@ private fun PageListRow(
  */
 @Composable
 internal fun PageListPreview(page: Page?, surface: DrawingSurfaceView?, onGoTo: () -> Unit) {
-    val ratio = page?.let { if (it.height > 0.0) (it.width / it.height).toFloat() else null }
-    val width = (THUMB_HEIGHT * (ratio ?: PORTRAIT_RATIO)).coerceIn(THUMB_MIN_WIDTH, THUMB_MAX_WIDTH)
+    val dimensions = DocumentNavigationLayout.previewSize(page?.width, page?.height)
+    val width = dimensions.width.dp
+    val height = dimensions.height.dp
     val widthPx = with(LocalDensity.current) { width.roundToPx() }
     val rasterPx = (widthPx * 2).coerceIn(MIN_RASTER_PX, MAX_RASTER_PX)
-    val preview = remember(page, rasterPx) {
-        page?.let { p ->
-            val sheet = (p.background as? Background.Pdf)?.let { bg -> surface?.pdfSheetFor(bg, rasterPx) }
-            runCatching { PageThumbnail.render(p, rasterPx, sheet) }.getOrNull()
+    val preview by produceState<android.graphics.Bitmap?>(null, page, surface, rasterPx) {
+        // Resolve the view-owned cache on Main; only its thread-safe raster request runs on the worker.
+        val source = (page?.background as? Background.Pdf)?.let { surface?.pdfSourceFor(it) }
+        value = withContext(Dispatchers.Default) {
+            page?.let { p ->
+                runCatching {
+                    val sheet = (p.background as? Background.Pdf)?.let { source?.request(it.pageNo, rasterPx) }
+                    PageThumbnail.render(p, rasterPx, sheet)
+                }.getOrNull()
+            }
         }
     }
     Box(
         modifier = Modifier
             .width(width)
-            .height(THUMB_HEIGHT)
+            .height(height)
             .clip(RoundedCornerShape(3.dp))
             .background(Color.White)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(3.dp))
             .clickable(onClick = onGoTo),
         contentAlignment = Alignment.Center,
     ) {
-        if (preview != null) {
+        val bitmap = preview
+        if (bitmap != null) {
             Image(
-                bitmap = preview.asImageBitmap(),
+                bitmap = bitmap.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
@@ -556,29 +567,17 @@ private fun PageDragHandle(index: Int) {
 @Composable
 private fun PickBox(index: Int, picked: Boolean, onToggle: () -> Unit) {
     Box(
-        modifier = Modifier
-            .padding(end = 4.dp)
-            .size(24.dp)
-            .clip(CircleShape)
-            .background(if (picked) MaterialTheme.colorScheme.primary else Color.Transparent)
-            .border(
-                width = 1.dp,
-                color = if (picked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                shape = CircleShape,
-            )
-            .clickable(onClick = onToggle)
-            .semantics {
-                contentDescription = if (picked) "Page ${index + 1} picked" else "Pick page ${index + 1}"
-            },
+        Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp).clickable(onClick = onToggle)
+            .semantics { contentDescription = if (picked) "Page ${index + 1} picked" else "Pick page ${index + 1}" },
         contentAlignment = Alignment.Center,
     ) {
-        if (picked) {
-            Icon(
-                Icons.Outlined.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(16.dp),
-            )
+        Box(
+            Modifier.size(24.dp).clip(CircleShape)
+                .background(if (picked) MaterialTheme.colorScheme.primary else Color.Transparent)
+                .border(1.dp, if (picked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (picked) Icon(Icons.Outlined.Check, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
         }
     }
 }

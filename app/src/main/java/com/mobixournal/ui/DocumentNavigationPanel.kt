@@ -2,11 +2,14 @@ package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -108,16 +114,34 @@ internal fun DocumentNavigationWorkspace(
             DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width)
         }
         Row(Modifier.fillMaxSize()) {
-            if (railOnLeft) {
-                RailLane(toolbar, canvasOnRight = true)
-                navigator()
+            if (railOnLeft) RailLane(toolbar, canvasOnRight = true)
+            if (compact) {
+                CompactNavigationBody(ui.pageListOpen, canvas, navigator)
+            } else {
+                if (railOnLeft) navigator()
+                canvas(Modifier.weight(1f).fillMaxHeight())
+                if (!railOnLeft) navigator()
             }
-            canvas(Modifier.weight(1f).fillMaxHeight())
-            if (!railOnLeft) {
-                navigator()
-                RailLane(toolbar, canvasOnRight = false)
-            }
+            if (!railOnLeft) RailLane(toolbar, canvasOnRight = false)
         }
+    }
+}
+
+/** Replacement view, not a one-dp canvas: the hidden SurfaceView keeps its viewport, page and undo state. */
+@Composable
+private fun RowScope.CompactNavigationBody(
+    open: Boolean,
+    canvas: @Composable (Modifier) -> Unit,
+    navigator: @Composable () -> Unit,
+) {
+    Box(Modifier.weight(1f).fillMaxHeight()) {
+        canvas(Modifier.fillMaxSize().graphicsLayer { alpha = if (open) 0f else 1f }
+            .pointerInput(open) {
+                if (open) awaitPointerEventScope {
+                    while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+                }
+            })
+        navigator()
     }
 }
 
@@ -137,8 +161,8 @@ private fun DocumentNavigationLane(
     }
     AnimatedVisibility(
         visible = ui.pageListOpen && !ui.fullPage,
-        enter = expandHorizontally(expandFrom = if (expandFromStart) Alignment.Start else Alignment.End) + fadeIn(),
-        exit = shrinkHorizontally(shrinkTowards = if (expandFromStart) Alignment.Start else Alignment.End) + fadeOut(),
+        enter = if (compact) fadeIn() else expandHorizontally(expandFrom = if (expandFromStart) Alignment.Start else Alignment.End) + fadeIn(),
+        exit = if (compact) ExitTransition.None else shrinkHorizontally(shrinkTowards = if (expandFromStart) Alignment.Start else Alignment.End) + fadeOut(),
     ) {
         Surface(
             color = rememberGlassSurfaceColor().compositeOver(rememberChromeColor()),
@@ -197,6 +221,7 @@ private fun BookmarkNavigationBody(
         onAdd = { title, page -> commands?.addBookmark(title, seed, page) ?: missing() },
         onRename = { id, title -> commands?.renameBookmark(id, title) ?: missing() },
         onDelete = { id -> commands?.deleteBookmark(id) ?: missing() },
+        onMove = { id, delta -> commands?.moveBookmark(id, delta) ?: missing() },
         modifier = modifier.navigationBarsPadding().padding(PanelEdgeAir),
     )
 }

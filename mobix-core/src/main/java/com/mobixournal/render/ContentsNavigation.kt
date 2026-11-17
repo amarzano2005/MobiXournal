@@ -23,6 +23,8 @@ data class ContentsNavigation(
     val anchorId: String? = null,
     /** That row's position in the resolved rows, kept so a vanished anchor has somewhere to fall back to. */
     val anchorIndex: Int = 0,
+    /** Branch ids already offered to this reader; opening one survives later edits and undo. */
+    val knownBranches: Set<String> = emptySet(),
 ) {
 
     /** The filter's words: folding is not touched, so clearing the query gives the tree back as it was left. */
@@ -39,14 +41,17 @@ data class ContentsNavigation(
      * This navigation against a new row list: folds of rows that no longer exist are dropped, and an anchor
      * that has gone is replaced by the surviving row nearest where it stood.
      */
-    fun against(rows: List<OutlineRow>): ContentsNavigation {
-        val folds = PdfOutlineView.pruned(collapsed, rows)
-        if (rows.isEmpty()) return copy(collapsed = folds, anchorId = null, anchorIndex = 0)
+    fun against(rows: List<OutlineRow>, closeNewBranches: Boolean = false): ContentsNavigation {
+        val branches = if (closeNewBranches) PdfOutlineView.branchRows(rows).mapTo(HashSet()) { rows[it].id } else emptySet()
+        val known = if (closeNewBranches) knownBranches + branches else knownBranches
+        val folds = PdfOutlineView.pruned(collapsed, rows) + (branches - knownBranches)
+        val reconciled = copy(collapsed = folds, knownBranches = known)
+        if (rows.isEmpty()) return reconciled.copy(anchorId = null, anchorIndex = 0)
         // A list nobody has scrolled has no anchor to keep: `null` stays `null` rather than becoming row zero.
-        if (anchorId == null) return copy(collapsed = folds)
+        if (anchorId == null) return reconciled
         val at = rows.indexOfFirst { it.id == anchorId }
-        if (at >= 0) return copy(collapsed = folds, anchorIndex = at)
+        if (at >= 0) return reconciled.copy(anchorIndex = at)
         val nearest = anchorIndex.coerceIn(0, rows.lastIndex)
-        return copy(collapsed = folds, anchorId = rows[nearest].id, anchorIndex = nearest)
+        return reconciled.copy(anchorId = rows[nearest].id, anchorIndex = nearest)
     }
 }

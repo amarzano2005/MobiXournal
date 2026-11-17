@@ -164,8 +164,8 @@ On Android, tap the **bookmark ribbon** beside **Page list** in the top bar. The
 shows the PDF's outline beside the document; **Pages** switches to page previews in the same panel.
 On a tablet, choosing a bookmark leaves the list open for the next jump. In a compact window, choosing a
 page closes the panel; the ribbon opens it again with the filter and folded chapters retained.
-This revised Android layout is checked through source inspection and automated state/layout tests;
-it has not yet been exercised on a device or emulator.
+The Android panel has been exercised on the Pixel_Tablet emulator at tablet and phone sizes in both themes;
+[the implementation notes](pdf.md#pdf-contents-the-outline) record the test and its fixture.
 
 Tapping goes by the PDF's own page number rather than by a count, so
 even a merged PDF lands on the right sheet; an entry with no destination inherits the page of the nearest
@@ -179,16 +179,16 @@ enough for four digits and reserved even on a row that leads nowhere, which is w
 lined up under each other however long the title beside them is. At 150 % text the rows grow sideways not
 one pixel: they get taller.
 
-**A long book folds, and a word finds it.** Each chapter with sections under it wears a chevron: close it and
+**A long book folds, and a word finds it.** Android starts branches closed; opening one keeps your choice while you browse or filter. Each chapter with sections under it wears a chevron: close it and
 its sections leave the list, open it and they come back — one chapter at a time, even when two of them share
 a title. In the window the Contents are a view of their own: the **Pages / Bookmarks** switch at the top of
 the sidebar, and the index gets the sidebar's whole height instead of a folded section under the thumbnails. The **Filter** box finds a section by name; the chapters above the hit stay in the list as the path
 to it, quieter than the hit itself, and the row naming the page you are reading wears the accent. Clearing
 the box puts the tree back exactly as you left it: filtering never folds or unfolds anything on its own.
 
-**The index is yours to edit.** Above the list, **Add bookmark** names a row on the page you are on. A row
+**The index is yours to edit.** The **+** button above Android's list (**Add bookmark**) names a row on the page you are on. A row
 that belongs to the notebook wears a **⋯** button that opens a small menu with **Rename** and **Delete** —
-opening it, closing it or picking Rename writes nothing — and Delete only *asks* first, above the list, saying
+on Android it also offers **Move up** and **Move down**, carrying all subsections with the chapter while keeping its parent; opening the menu or picking Rename writes nothing — and Delete only *asks* first, above the list, saying
 the sections under it move up and the page stays in the notebook: a bookmark is a signpost, never the page.
 Rows read out of the PDF cannot be edited and show the empty slot instead: the first bookmark you add copies
 them into the notebook first, so the list you were reading stays where it is, in one undo step. The name is
@@ -201,9 +201,9 @@ rename and removal is one undo step.
 when it is imported — one undo step together with its pages — so they can be renamed or deleted and they survive
 a save. The import card also offers a row named after the file, opened on the first page that actually arrived
 (the first page you picked, not the file's page 1) and carrying those bookmarks under it; its title starts as the
-file's name with only the `.pdf` dropped, and turning the option off leaves the bookmarks joining the index at
+original file's display name with only the `.pdf` dropped, and turning the option off leaves the bookmarks joining the index at
 the top level. A second PDF is another such row, so two files that happen to share a name stay two rows.
-Opening the notebook later never re-reads the PDF's outline, because by then the tree is the notebook's.
+Opening the notebook later never re-reads the PDF's outline, because by then the tree is the notebook's. Titles already saved by an older build are kept; use **Rename** to correct an old temporary-file label.
 
 ## Text and Markdown, laid out into pages
 

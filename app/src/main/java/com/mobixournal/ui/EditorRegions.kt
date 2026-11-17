@@ -294,31 +294,7 @@ fun EditorTopBar(
                         }
                     }
                 }
-                Surface(
-                    shape = CircleShape,
-                    color = glassColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
-                ) {
-                    // A read-only document has nothing to export here, so the glyph wears the same off-state as
-                    // Save and the history pair rather than staying a lit mark on an inert button.
-                    val exportEnabled = !pane.isReadOnly
-                    // The glyph asks *which pages* first: the card is the screen's, so the question outlives
-                    // this bar, and the destination picker follows the answer (`ExportPdfHost`).
-                    IconButton(
-                        onClick = { ui.exportPdfOpen = true },
-                        enabled = exportEnabled,
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Icon(
-                            ChromeGlyph.PDF.imageVector(),
-                            contentDescription = "Export PDF",
-                            tint = if (exportEnabled) DocumentRed else DocumentRed.copy(alpha = 0.38f),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
+                QuickPdfExport(ui, pane)
                 Surface(
                     shape = CircleShape,
                     color = glassColor,

@@ -111,15 +111,15 @@ leading slot, as the phone's menu items do. **Manage pages** is a section of its
 (quick size, add/remove, the page's two questions) stay adjacent.
 
 **The tablet's page list.** The window keeps a page strip down its edge; the tablet opens one from the
-**capsule beside the search** in the top bar (`PageListCapsule`: the glyph and the words *Page list*), and
+**capsule beside the search** in the top bar (`PageListCapsule`: an icon on compact windows, otherwise the glyph and *Page list*), and
 the lane docks **on the rail's side** — `EditorBody` places it between the rail's lane and the canvas, so
 turning the toolbar to the right-hand edge takes the list with it, the way the window's strip follows its
-tools. Like the rail it is a lane of the layout and never a sheet over the page, and it **expands** into
-place rather than appearing at full width: it takes a slice of the page's own width, and a slice that
-arrives in one frame reads as a glitch. A row is its **number** and its **preview** and the controls, with
+tools. On wide windows it **expands** into a layout lane beside the page. Compact windows show the
+navigator in place of the page while retaining the hidden canvas at its full viewport size; opening
+the list therefore cannot change the current page or undo history. A row is its **number** and its **preview** and the controls, with
 no words beside them. The card **is the sheet's shape**: its width follows the page's own proportions at a
-fixed height, so a portrait page is a tall sliver, a landscape one a wide strip, and never one vertical
-block with the page floating inside. The preview is drawn from the live page (`PageThumbnail`: the sheet's
+bounded height and width, so portrait and landscape pages keep their proportions without letterboxing
+inside an unrelated card shape. The preview is drawn from the live page (`PageThumbnail`: the sheet's
 paper and its ink, on a white card so a blank page still reads as a page), and a **`pdf` page is its real
 sheet** — the raster comes from the canvas's own `PdfPageCache` through
 `DrawingSurfacePaint.pdfSheetFor`, the same reference rule the window's strip follows, so a PDF page's
@@ -146,7 +146,7 @@ The foot clears the system navigation bar (`navigationBarsPadding`) and its thre
 buttons are 48 dp: the app draws edge to edge, so a control under the gesture strip needs two taps — the
 first one belongs to the system — and a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
 reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the
-window's commands cannot act on either.
+window's commands cannot act on either. The Android rows now reserve a 40 dp number column, a centred paper preview and 40 dp selection/drag targets. `DocumentNavigationLayout` sets a 104 dp row and fits each preview within 132 � 88 dp without changing its aspect ratio. `PageListPreview` renders on a worker; its raster never blocks list composition. `NavigationPanelTest` captures portrait and landscape pages in tablet/phone layouts and both themes.
 
 **Add/remove page** edit the page list through the pure, tested `PageOps` (`mobix-core`, the one the
 window's Pages menu also calls, so neither shell can invent its own rules for a new sheet; a new page is born at the

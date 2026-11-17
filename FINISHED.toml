@@ -25,6 +25,42 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobile-bookmark-sibling-reorder"
+title = "Reorder mobile bookmarks and their subtrees without changing page destinations"
+description = "Added pure OutlineEdits.moveSibling and linear sibling-action availability; Android PageCommands commits each subtree move as one undo step. Bookmark menus expose Move up and Move down, disabled at sibling boundaries, preserving hierarchy and page targets. OutlineReorderTest verifies subtree identity, unknown fields, boundary no-ops and native/xopp bridge round trips. NavigationPanelTest performs the row action in the real editor and verifies unchanged pages, xopp reopening and undo/redo. Android UI controls are delivered; desktop retains its existing menu while sharing the model transform. Full app/core guards and relevant desktop tests pass, APK and desktop distributable refreshed; owners and guide updated."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: existing floating bookmark row menu; states: unavailable boundary moves disabled and every move undoable; copy: English Move up and Move down labels; parity: shared core transform with Android controls and deliberate desktop UI absence; docs: hierarchy persistence and platform difference documented; tests: pure native xopp and real Android action undo redo verification pass"
+
+[[task]]
+id = "pdf-import-original-bookmark-title"
+title = "Keep the source PDF display name in imported bookmark groups"
+description = "Raw PDF open now passes the original source display name into the import plan instead of using the staged .tmp basename. Direct import and fallback adoption also carry explicit source titles rather than provider URI fragments. NavigationPanelTest verifies the real openDocument pipeline produces the Navigation group from Navigation.pdf; full app/core suites and guards pass, APK and desktop package refreshed. Updated PDF owner and guide, including the fact that previously saved labels remain editable rather than silently rewritten."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "copy: original display name used for generated bookmark titles; tests: raw PDF opening verified on emulator plus full app and core suites; docs: PDF owner and guide state the saved-label limitation"
+
+[[task]]
+id = "mobile-navigation-layout-performance"
+title = "Correct mobile navigator proportions and keep outline scrolling independent from recomposition"
+description = "Aligned Android bookmark rows, number/action columns and capped child indentation; combined filter/add controls. Default folds close newly encountered branches. Memoized outline projection, stable row keys and snapshotFlow offset capture remove scroll-driven whole-tree recomposition; branch/filter ancestry now uses forward walks, covered by a 20000-match fixture. Page previews are centred, aspect-correct and rendered on workers using a cache resolved on Main; rows and selection/drag targets have deliberate shared dimensions. Compact navigation retains a hidden full-size noninteractive canvas, preserving current page, viewport and undo; compact header entries no longer collide with audio. NavigationPanelTest passed on Android 14 Pixel_Tablet with an 801-row raw PDF, repeated flings, hierarchy/actions, undo/redo, xopp reopening, light/dark tablet/phone screenshots and viewport/header checks. Full app/core suites, DocsGuardTest, SourceStructureTest and six relevant desktop UI tests passed; final APK and desktop distributable refreshed. Updated owners, guides, README and verification evidence."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: inline band on wide screens and replacement navigator on compact screens with existing capsule entries; tokens: shared row preview control and indent geometry; glyph: shared collapsed right chevron; states: selected rows named targets and disabled move boundaries; copy: English controls and clearer page count; keyboard: standard row-menu navigation; parity: common model and core rules with Android layout adapted for touch; docs: owners guides README and evidence updated; tests: emulator screenshots input logs full app core guards and desktop regression tests pass"
+
+[[task]]
 id = "mobile-bookmark-navigation"
 title = "Keep mobile bookmarks directly accessible in the navigation panel"
 description = "Added direct Android bookmark-ribbon access beside the page list and an inline Pages / Bookmarks navigation lane, replacing the Contents dialog and footer detour. Tablet navigation stays open; compact navigation closes after a page jump while retaining the live canvas. Per-document pane sessions retain filter, folds and list position; Back cancels edits before closing. Bookmark rows have minimum height, full titles remain inspectable without destinations, and secondary menus use the shared floating material. Updated owners, guides, README and capability evidence. Added DocumentNavigationTest and DocumentNavigationLayoutTest, updated geometry guards, and removed the now-unneeded EditorScreen size exemption. Full app/core unit suites including DocsGuardTest and SourceStructureTest pass with the real Python interpreter and English test locale; Android APK and instrumented-test compilation succeed; desktop distributable refreshed. No device or emulator interaction run."

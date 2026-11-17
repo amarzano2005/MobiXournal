@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -35,6 +36,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.collect
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +54,10 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
+import com.mobixournal.render.OutlineSiblingOrder
 import com.mobixournal.render.PdfOutlineView
+
+internal data class ContentsReorderActions(val moves: OutlineSiblingOrder.Moves, val move: (Int) -> Unit)
 
 /** The bookmark navigator's inline body; rows and edits stay in the document's lane. */
 @Composable
@@ -63,29 +69,22 @@ internal fun PdfContentsPanel(
     onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
     onDelete: (String) -> OutlineEdits.Result,
+    onMove: (String, Int) -> OutlineEdits.Result,
     modifier: Modifier = Modifier,
 ) {
     // The session belongs to the **document**: an edit that replaces the rows must not clear the filter, open
     // every branch or lose the reader's place (docs/pdf.md).
-    val navigation = session.navigation
+    val navigation = remember(rows, session.navigation) {
+        session.navigation.against(rows, closeNewBranches = true)
+    }
     val query = navigation.query
     val editing = session.editing
-    // The folds and the anchor follow the rows as they change: a removed branch is forgotten, a vanished anchor
-    // falls back to the surviving row nearest where it stood.
-    LaunchedEffect(rows) { session.navigation = session.navigation.against(rows) }
-    val shown = PdfOutlineView.visible(rows, navigation.collapsed, query, currentPage)
-    // Back to where the list was left, and remember where it is now — an edit, a filter or a rename moves the
-    // rows but never the reader.
-    LaunchedEffect(shown) {
-        val at = shown.indexOfFirst { it.id == session.navigation.anchorId }
-        if (shown.isNotEmpty() && at >= 0 && at != session.list.firstVisibleItemIndex) {
-            session.list.scrollToItem(at)
-        }
+    LaunchedEffect(navigation) { if (session.navigation != navigation) session.navigation = navigation }
+    val shown = remember(rows, navigation.collapsed, query, currentPage) {
+        PdfOutlineView.visible(rows, navigation.collapsed, query, currentPage)
     }
-    LaunchedEffect(session.list.firstVisibleItemIndex, shown) {
-        val row = shown.getOrNull(session.list.firstVisibleItemIndex) ?: return@LaunchedEffect
-        session.navigation = session.navigation.scrolledTo(row.id, rows.indexOfFirst { it.id == row.id })
-    }
+    val adding = editing.draft is ContentsEdit.Adding
+    ContentsScrollAnchor(session, shown, adding)
     Column(modifier.fillMaxWidth()) {
         // A delete question sits above the list, not in place of it: the rows the reader was reading
         // stay behind the answer, so cancelling costs them nothing.
@@ -100,13 +99,18 @@ internal fun PdfContentsPanel(
         }
         // Renaming is in the row it names and a new bookmark is a draft above its neighbours: the
         // filter and the surrounding rows stay where they were while a name is typed.
-        val adding = editing.draft is ContentsEdit.Adding
-        ContentsAddRow(enabled = !adding) { editing.adding(currentPage) }
-        ContentsFilter(
-            query = query,
-            onQuery = { session.navigation = session.navigation.withQuery(it) },
-            onClear = { session.navigation = session.navigation.withQuery("") },
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ContentsFilter(
+                query = query,
+                onQuery = { session.navigation = session.navigation.withQuery(it) },
+                onClear = { session.navigation = session.navigation.withQuery("") },
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = { editing.adding(currentPage) }, enabled = !adding,
+                modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
+                Icon(ChromeGlyph.ADD.imageVector(), "Add bookmark", modifier = Modifier.size(20.dp))
+            }
+        }
         Spacer(Modifier.height(8.dp))
         if (shown.isEmpty() && !adding) {
             Text(
@@ -126,7 +130,31 @@ internal fun PdfContentsPanel(
             onAdd = onAdd,
             onRename = onRename,
             onDelete = onDelete,
+            onMove = onMove,
+            modifier = Modifier.weight(1f),
         )
+    }
+}
+
+/** Collect offsets off the composition path, restoring only after a filter/fold/edit changes the list. */
+@Composable
+private fun ContentsScrollAnchor(session: ContentsSession, shown: List<OutlineRow>, adding: Boolean) {
+    // Restore only when the visible tree changes. Scroll itself never projects the tree or drives composition.
+    LaunchedEffect(shown, adding) {
+        val at = shown.indexOfFirst { it.id == session.scrollAnchorId }
+        val fallback = shown.indexOfFirst { it.row >= session.scrollAnchorRow }.coerceAtLeast(0)
+        if (shown.isNotEmpty()) {
+            session.list.scrollToItem((if (at >= 0) at else fallback) + if (adding) 1 else 0,
+                if (at >= 0) session.scrollAnchorOffset else 0)
+        }
+        snapshotFlow { session.list.firstVisibleItemIndex to session.list.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                shown.getOrNull(index - if (adding) 1 else 0)?.let { row ->
+                    session.scrollAnchorId = row.id
+                    session.scrollAnchorRow = row.row
+                    session.scrollAnchorOffset = offset
+                }
+            }
     }
 }
 
@@ -144,11 +172,14 @@ private fun ContentsRowsBlock(
     onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
     onDelete: (String) -> OutlineEdits.Result,
+    onMove: (String, Int) -> OutlineEdits.Result,
+    modifier: Modifier,
 ) {
     val editing = session.editing
-    BoxWithConstraints {
+    val siblingMoves = remember(rows) { OutlineSiblingOrder.of(rows) }
+    val widest = remember(rows) { largestPageNumber(rows) }
+    BoxWithConstraints(modifier) {
         val widthDp = maxWidth.value
-        val widest = largestPageNumber(rows)
         val pageColumnDp = ContentsRowLayout.pageColumnDp(
             largestPageNumber = widest,
             rowWidthDp = widthDp,
@@ -168,7 +199,7 @@ private fun ContentsRowsBlock(
                     )
                 }
             }
-            items(shown, key = { it.row }) { row ->
+            items(shown, key = { it.id }, contentType = { "bookmark" }) { row ->
                 val renaming = (editing.draft as? ContentsEdit.Renaming)?.takeIf { it.row.id == row.id }
                 ContentsRow(
                     row = row,
@@ -182,6 +213,9 @@ private fun ContentsRowsBlock(
                     // bookmark, and it becomes the notebook's the moment one is added.
                     onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
                     onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                    reorder = if (row.id.startsWith("bkm_")) ContentsReorderActions(
+                        siblingMoves[row.id] ?: OutlineSiblingOrder.Moves(),
+                    ) { delta -> editing.submit(onMove(row.id, delta)) } else null,
                     renaming = renaming != null,
                     title = editing.title,
                     error = editing.error,
@@ -200,12 +234,12 @@ private fun ContentsRowsBlock(
  * nobody can use with a keyboard attached.
  */
 @Composable
-private fun ContentsFilter(query: String, onQuery: (String) -> Unit, onClear: () -> Unit) {
+private fun ContentsFilter(query: String, onQuery: (String) -> Unit, onClear: () -> Unit, modifier: Modifier) {
     val focus = LocalFocusManager.current
     OutlinedTextField(
         value = query,
         onValueChange = onQuery,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         singleLine = true,
         label = { Text("Filter") },
         placeholder = { Text("Chapter or section") },
@@ -242,6 +276,7 @@ private fun ContentsRow(
     onClick: () -> Unit,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    reorder: ContentsReorderActions? = null,
     renaming: Boolean = false,
     title: String = "",
     error: String? = null,
@@ -265,7 +300,8 @@ private fun ContentsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = ContentsRowLayout.ACTION_DP.dp)
+            .heightIn(min = ContentsRowLayout.MOBILE_ROW_DP.dp)
+            .background(if (row.current) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent)
             .clickable(enabled = row.hasDestination && !renaming, role = Role.Button, onClick = onClick)
             // One announcement for the whole row: a title, a page and whether it opens at all, instead of a
             // title with a lone number beside it and a click that may do nothing.
@@ -275,13 +311,12 @@ private fun ContentsRow(
             // The indent is what the **whole** row leaves it: the branch gutter, the action gutter, the page
             // column and the title's minimum are room the hierarchy cannot spend.
             .padding(
-                start = ContentsRowLayout.indentInRow(row.depth, rowWidthDp, pageColumnDp).dp,
+                start = ContentsRowLayout.mobileIndent(row.depth, rowWidthDp, pageColumnDp).dp,
                 top = 2.dp,
                 bottom = 2.dp,
             ),
-        // The number sits on the title's **first** line, not halfway down a two-line title: a table of
-        // contents whose figures float between the lines is a table of contents nobody can scan.
-        verticalAlignment = Alignment.Top,
+        // Controls, labels and page numbers share the row centre, including two-line chapter titles.
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         ContentsChevron(branched = row.branch, expanded = row.expanded, title = row.title, onToggle = onToggle)
         if (renaming) {
@@ -311,6 +346,7 @@ private fun ContentsRow(
                 number = number,
                 onRename = onRename,
                 onDelete = onDelete,
+                reorder = reorder,
             )
         }
     }
@@ -367,6 +403,7 @@ private fun ContentsRowTrailing(
     number: Int?,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    reorder: ContentsReorderActions?,
 ) {
     Box(
         modifier = Modifier.width(pageColumnDp.dp),
@@ -375,7 +412,7 @@ private fun ContentsRowTrailing(
         if (number != null) {
             Text(
                 text = "$number",
-                style = MaterialTheme.typography.labelSmall.copy(
+                style = MaterialTheme.typography.labelMedium.copy(
                     fontFeatureSettings = "tnum",
                     lineHeight = titleStyle.lineHeight,
                 ),
@@ -386,7 +423,7 @@ private fun ContentsRowTrailing(
     }
     Box(Modifier.width(ContentsRowLayout.ACTION_DP.dp), contentAlignment = Alignment.TopEnd) {
         if (onRename != null || onDelete != null) {
-            ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
+            ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete, reorder = reorder)
         }
     }
 }
@@ -404,6 +441,7 @@ private fun ContentsRowMenu(
     title: String,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    reorder: ContentsReorderActions?,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -416,6 +454,12 @@ private fun ContentsRowMenu(
             )
         }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (reorder != null) {
+                DropdownMenuItem(text = { Text("Move up") }, enabled = reorder.moves.up,
+                    onClick = { open = false; reorder.move(-1) })
+                DropdownMenuItem(text = { Text("Move down") }, enabled = reorder.moves.down,
+                    onClick = { open = false; reorder.move(1) })
+            }
             if (onRename != null) {
                 DropdownMenuItem(
                     text = { Text("Rename") },
@@ -535,7 +579,7 @@ private fun ContentsChevron(branched: Boolean, expanded: Boolean, title: String,
             },
     ) {
         Icon(
-            imageVector = (if (expanded) ChromeGlyph.CHEVRON_DOWN else ChromeGlyph.CHEVRON_UP).imageVector(),
+            imageVector = (if (expanded) ChromeGlyph.CHEVRON_DOWN else ChromeGlyph.CHEVRON_RIGHT).imageVector(),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp),

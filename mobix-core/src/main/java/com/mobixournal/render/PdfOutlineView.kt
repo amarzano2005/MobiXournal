@@ -26,7 +26,7 @@ object PdfOutlineView {
     fun branchRows(rows: List<OutlineRow>): Set<Int> {
         val branches = HashSet<Int>()
         for (row in rows.indices) {
-            if (endOfBranch(rows, row) > row + 1) branches += row
+            if (row < rows.lastIndex && rows[row + 1].depth > rows[row].depth) branches += row
         }
         return branches
     }
@@ -82,12 +82,7 @@ object PdfOutlineView {
         } else {
             val hits = rows.indices.filter { rows[it].title.contains(needle, ignoreCase = true) }
             if (hits.isEmpty()) return emptyList()
-            val kept = HashSet<Int>()
-            for (row in hits) {
-                kept += row
-                kept += ancestorsOf(rows, row)
-            }
-            kept
+            matchingContext(rows, hits.toSet())
         }
         val drawn = matched?.sorted() ?: withinBranches(rows, collapsed)
         val hits = rows.indices.filter { matched != null && rows[it].title.contains(needle, ignoreCase = true) }.toSet()
@@ -132,19 +127,20 @@ object PdfOutlineView {
         return drawn
     }
 
-    /** The rows above [row] that lead to it: the nearest shallower row, then its own, and so on. */
-    private fun ancestorsOf(rows: List<OutlineRow>, row: Int): List<Int> {
-        val path = ArrayList<Int>()
-        var wanted = rows[row].depth
-        var at = row - 1
-        while (at >= 0 && wanted > 0) {
-            val entry = rows[at]
-            if (entry.depth < wanted) {
-                path += at
-                wanted = entry.depth
+    /** One forward walk keeps the ancestor path, including filters matching thousands of children. */
+    private fun matchingContext(rows: List<OutlineRow>, hits: Set<Int>): Set<Int> {
+        val kept = HashSet<Int>()
+        val ancestors = ArrayList<Int>()
+        for (index in rows.indices) {
+            while (ancestors.isNotEmpty() && rows[ancestors.last()].depth >= rows[index].depth) {
+                ancestors.removeAt(ancestors.lastIndex)
             }
-            at--
+            if (index in hits) {
+                kept += index
+                kept += ancestors
+            }
+            ancestors += index
         }
-        return path
+        return kept
     }
 }

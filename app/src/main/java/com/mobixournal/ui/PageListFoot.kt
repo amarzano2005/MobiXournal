@@ -46,7 +46,7 @@ internal fun PageListCommands(
     val canDelete = acting.isNotEmpty() && acting.size < pageCount
     val subject = when {
         picked.isNotEmpty() -> "${picked.size} picked"
-        acting.isNotEmpty() -> "${currentPage + 1}"
+        acting.isNotEmpty() -> "Page ${currentPage + 1} of $pageCount"
         else -> "\u2014"
     }
     // The foot clears the system navigation bar. The app draws edge to edge, so the lane runs to the
@@ -65,7 +65,7 @@ internal fun PageListCommands(
                 modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             // 48 dp each (Material's minimum target), which the 196 dp lane holds with room to spare.
             IconButton(onClick = { onMove(acting, -1) }, enabled = canMoveUp, modifier = Modifier.size(48.dp)) {
                 Icon(

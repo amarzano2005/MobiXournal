@@ -12,6 +12,20 @@ import org.junit.Test
  */
 class ContentsNavigationTest {
 
+    @Test fun newBranchesStartClosedWithoutReclosingTheReadersExpandedChapters() {
+        val roots = listOf(
+            OutlineRow("bkm_1", "Chapter", 0, 0), OutlineRow("bkm_2", "Child", 1, 1),
+            OutlineRow("bkm_3", "Next", 0, 2), OutlineRow("bkm_4", "Child", 1, 3),
+        )
+        val initial = ContentsNavigation().against(roots, closeNewBranches = true)
+        assertEquals(setOf("bkm_1", "bkm_3"), initial.collapsed)
+        val opened = initial.toggled("bkm_1")
+        assertEquals(setOf("bkm_3"), opened.against(roots, closeNewBranches = true).collapsed)
+        assertEquals(opened.collapsed, opened.withQuery("Child").against(roots, true).collapsed)
+        val later = roots + listOf(OutlineRow("bkm_5", "Late", 0, 4), OutlineRow("bkm_6", "Child", 1, 5))
+        assertEquals(setOf("bkm_3", "bkm_5"), opened.against(later, true).collapsed)
+    }
+
     private fun row(title: String, page: Int?, depth: Int, index: Int) =
         OutlineRow(id = "bkm_$index", title = title, depth = depth, page = page, row = index)
 

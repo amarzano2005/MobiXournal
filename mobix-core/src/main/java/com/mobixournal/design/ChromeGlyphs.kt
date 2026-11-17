@@ -179,6 +179,9 @@ enum class ChromeGlyph {
     /** And down: one place later. */
     CHEVRON_DOWN,
 
+    /** A collapsed outline branch points into its children. */
+    CHEVRON_RIGHT,
+
     /**
      * The grip a row is carried by — the Toolbar section's tool slots, dragged into a new order.
      *
@@ -321,6 +324,7 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.BOOKMARK -> "M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zM17 18l-5-2.18L7 18V5h10v13z"
         ChromeGlyph.CHEVRON_UP -> "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"
         ChromeGlyph.CHEVRON_DOWN -> "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
+        ChromeGlyph.CHEVRON_RIGHT -> "M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"
         ChromeGlyph.DRAG_HANDLE -> "M20 9H4v2h16V9zM4 15h16v-2H4v2z"
         ChromeGlyph.RESTORE ->
             "M13 3c-4.97 0 -9 4.03 -9 9H1l3.89 3.89 0.07 0.14L9 12H6c0 -3.87 3.13 -7 7 -7s7 3.13 " +

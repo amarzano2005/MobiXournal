@@ -21,6 +21,14 @@ package com.mobixournal.design
  */
 object ContentsRowLayout {
 
+    const val MOBILE_ROW_DP = 48f
+    const val MOBILE_INDENT_STEP_DP = 8f
+    const val MOBILE_INDENT_MAX_DP = 24f
+
+    fun mobileIndent(depth: Int, width: Float, pageColumn: Float): Float =
+        (depth.coerceAtLeast(0) * MOBILE_INDENT_STEP_DP).coerceAtMost(MOBILE_INDENT_MAX_DP)
+            .coerceAtMost((width - BRANCH_DP - ACTION_DP - pageColumn - 144f).coerceAtLeast(0f))
+
     /** What one nesting level indents a row by, before the cap. */
     const val STEP_DP: Float = 14f
 

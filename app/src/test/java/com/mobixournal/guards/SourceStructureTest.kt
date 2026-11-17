@@ -38,7 +38,7 @@ class SourceStructureTest {
         // shared document an editing pane hands its mirror, both passed straight through to the canvas.
         // +8 deliberate: a pane with no document draws the entry screen instead of a dead canvas, so its
         // focus gesture is declared once and used by both branches.
-        "ui/EditorRegions.kt" to 1784,
+        "ui/EditorRegions.kt" to 1759,
         // +5 deliberate: the editable page window it owns (pageSource / pageWindow / resetPageWindow).
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
