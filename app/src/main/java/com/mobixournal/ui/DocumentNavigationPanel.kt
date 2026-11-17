@@ -1,6 +1,8 @@
 package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -30,10 +33,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -59,6 +64,12 @@ import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 internal enum class NavigationTab(val label: String) { PAGES("Pages"), BOOKMARKS("Bookmarks") }
+
+/**
+ * How long the lane takes to slide its width in or out. Long enough that the eye follows the page re-fitting
+ * and no width is ever left unpainted, short enough that the tap still feels answered.
+ */
+private const val LANE_SLIDE_MS = 180
 
 /** Selecting the other view opens it immediately; only selecting the already-open view closes it. */
 internal fun EditorUiState.toggleNavigation(tab: NavigationTab) {
@@ -134,8 +145,32 @@ internal fun DocumentNavigationWorkspace(
             withFrameNanos { }
             pane.surface?.repaintAfterResize()
         }
-        val navigator: @Composable () -> Unit = {
-            DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width)
+        val laneOpen = ui.pageListOpen && !ui.fullPage
+        // The lane's width is **animated**, and the canvas follows it frame by frame. A lane that appeared or
+        // vanished in a single frame left the width it occupies belonging to nothing for that instant — a dark
+        // band beside the sheet, which is what the reader saw as a black strip while the canvas adapted. Over
+        // 180 ms both dispositions overlap, so the pane and the page re-fit continuously and nothing is exposed.
+        val laneWidth by animateDpAsState(
+            targetValue = if (laneOpen) width else 0.dp,
+            animationSpec = tween(LANE_SLIDE_MS),
+            label = "navigation lane width",
+        )
+        val navigator: @Composable () -> Unit = if (compact) {
+            // Compact windows hand the whole body to the navigator instead of sharing it, so there is no width
+            // to slide: the lane is presented at its final size and the canvas keeps its viewport behind it.
+            { DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width, laneOpen) }
+        } else {
+            {
+                Box(Modifier.width(laneWidth).fillMaxHeight().clipToBounds()) {
+                    // Laid out at its **full** width and cut by the box around it, so the closing animation slides a
+                    // real lane out instead of squeezing its tabs every frame; nothing is composed at zero width.
+                    if (laneWidth > 0.dp) {
+                        Box(Modifier.requiredWidth(width).fillMaxHeight()) {
+                            DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width, laneOpen)
+                        }
+                    }
+                }
+            }
         }
         // The backdrop behind the row is the **lane's own glass**, not the window's black: the lane and the
         // canvas are placed a frame apart, and the moment between them used to show the window through the space
@@ -183,13 +218,15 @@ private fun DocumentNavigationLane(
     expandFromStart: Boolean,
     compact: Boolean,
     width: Dp,
+    /** Composed while the lane is visible **or still sliding out**, so the close animation has something to draw. */
+    visible: Boolean,
 ) {
     val close = { ui.closeNavigation() }
     val dismiss = session.editing.dismissOrCancel(close)
     BackHandler(enabled = ui.pageListOpen && !ui.fullPage) {
         if (ui.navigationTab == NavigationTab.BOOKMARKS) dismiss() else close()
     }
-    if (ui.pageListOpen && !ui.fullPage) {
+    if (visible) {
         Surface(
             color = rememberGlassSurfaceColor().compositeOver(rememberChromeColor()),
             modifier = Modifier.width(width).fillMaxHeight().imePadding(),

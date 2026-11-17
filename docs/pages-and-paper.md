@@ -120,7 +120,11 @@ windows, otherwise the glyph and *Page list*, and the bookmark ribbon shares the
 the chrome's hairline - and the half whose lane is up wears the accent), and
 the lane docks **on the rail's side** — `EditorBody` places it between the rail's lane and the canvas, so
 turning the toolbar to the right-hand edge takes the list with it, the way the window's strip follows its
-tools. On wide windows it opens at its final width in a layout lane beside the page. Compact windows show the
+tools. On wide windows it slides open to its final width in a layout lane beside the page over 180 ms
+(`DocumentNavigationWorkspace`: the lane's width is animated, the lane itself is laid out at full width
+and cut by the box around it), so the canvas and the page re-fit frame by frame and the width the lane
+takes is never left unpainted - a lane that appeared or vanished in one frame showed that width as a dark
+band beside the sheet for the instant between the two dispositions. Compact windows show the
 navigator in place of the page while retaining the hidden canvas at its full viewport size; opening
 the list therefore cannot change the current page or undo history. Closing it hands the canvas its width back and the page recentres on that frame, without waiting for a touch: the workspace asks the canvas to repaint once the frame that moved the pane is committed, because a resize whose callbacks arrived while the surface still reported its old extent otherwise left the page fitted to the lane's width. A row is its **number** and its **preview** and the controls, with
 no words beside them. The card **is the sheet's shape**: its width follows the page's own proportions at a
