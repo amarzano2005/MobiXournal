@@ -1998,3 +1998,17 @@ created = 2026-11-11
 tags = ["stem", "definitions", "performance"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "android-contents-menu-contract"
+title = "Use the shared menu surface for Android bookmark actions"
+description = "The full app JVM suite fails ToolbarMenuGuardTest.noRawDropdownMenuAnywhere because app/src/main/java/com/mobixournal/ui/PdfContentsDialog.kt invokes raw DropdownMenu. Replace that action popup with the existing ToolbarMenu surface, preserving Rename/Delete behavior, accessibility and dismissal. Follow docs/interface-contract.md and update the owning documentation. Verify ToolbarMenuGuardTest, DocsGuardTest, SourceStructureTest and relevant PDF contents tests; rebuild the APK and desktop distributable. This failure predates the desktop bookmark measurement fix."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 1640
+created = 2026-11-17
+tags = []
+rebuild = true
+emulator_debug = false
