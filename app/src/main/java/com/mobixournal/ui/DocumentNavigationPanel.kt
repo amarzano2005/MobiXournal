@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -238,16 +239,17 @@ private fun BookmarkNavigationBody(
 
 @Composable
 private fun NavigationPages(ui: EditorUiState, pane: PaneState, onGoToPage: (Int) -> Unit, modifier: Modifier) {
+    // The page in view anchors the selection. Turning the canvas to another page — a jump, the counter, a
+    // scroll, an undo — leaves a pick about the page you left behind, which is the state that read as a
+    // dot stuck on the wrong row; the lane follows the page instead. A run that already owns the page the
+    // lane is showing survives, so an arrow move or a drop keeps every page it carried.
+    LaunchedEffect(pane.currentPage) {
+        if (pane.currentPage !in ui.pageSelection) ui.pageSelection = setOf(pane.currentPage)
+    }
     PageListPanel(
         pageCount = pane.pageCount, currentPage = pane.currentPage, selection = ui.pageSelection,
         pages = pane.surface?.pageCommands?.pages().orEmpty(), surface = pane.surface,
-        onSelection = { ui.pageSelection = it },
-        // A plain tap on a row leaves **one** page selected — the one it shows — so the dot can never stay
-        // behind on a page the reader has navigated away from. The run assembled on the boxes survives
-        // until the next tap on the list itself, and a box's tap takes the view there without leaving the
-        // lane, so several pages can still be collected on a phone.
-        onGoToPage = { index -> onGoToPage(index); ui.pageSelection = setOf(index) },
-        onShow = { pane.surface?.goToPage(it) },
+        onSelection = { ui.pageSelection = it }, onGoToPage = onGoToPage,
         onMove = { picked, delta -> pickedMoveTarget(picked, delta, pane.pageCount)
             ?.let { pane.surface?.pageCommands?.movePages(picked, it) } },
         onReorder = { from, to -> pane.surface?.pageCommands?.movePages(setOf(from), to) },

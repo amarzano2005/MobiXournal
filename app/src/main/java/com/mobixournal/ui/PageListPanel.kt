@@ -235,11 +235,6 @@ internal fun PageListPanel(
     surface: DrawingSurfaceView? = null,
     onSelection: (Set<Int>) -> Unit,
     onGoToPage: (Int) -> Unit,
-    /**
-     * Take the view to a page **without leaving the lane**: a pick is not a jump away, so on a compact
-     * window the pick keeps the list open where a plain tap on the row would return to the page.
-     */
-    onShow: (Int) -> Unit,
     /** Move [picked] by [delta] positions, as one step. */
     onMove: (picked: Set<Int>, delta: Int) -> Unit,
     /** Carry the page at [from] to [to] — the drag's drop, as one step. */
@@ -259,12 +254,17 @@ internal fun PageListPanel(
     val removeRun: (Set<Int>) -> Unit = { pages ->
         removePages(pages, pageCount, onDelete, onSelection, onGoToPage)
     }
-    // A pick takes the view with it — the window's sidebar answers a click the same way (`PageSelectionRules`
-    // chooses the set, then `onSelectPage` goes there). Without that the box could mark one page while the
-    // canvas and the highlight stayed on another, which reads as a selection that did not happen.
+    // A box asks only about the run: the page in view is always in it, so its own box clears the rest of
+    // the run instead of dropping the page the reader is looking at — a lit row without its dot was the
+    // state that read as a selection which had not updated.
     val toggle: (Int) -> Unit = { index ->
-        onSelection(if (index in picked) picked - index else picked + index)
-        onShow(index)
+        onSelection(
+            when {
+                index == currentPage -> setOf(index)
+                index in picked -> picked - index
+                else -> picked + index
+            }
+        )
     }
     Surface(
         modifier = modifier.width(PAGE_LIST_WIDTH).fillMaxHeight(),

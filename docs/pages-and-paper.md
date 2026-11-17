@@ -130,8 +130,8 @@ paper and its ink, on a white card so a blank page still reads as a page), and a
 sheet** — the raster comes from the canvas's own `PdfPageCache` through
 `DrawingSurfacePaint.pdfSheetFor`, the same reference rule the window's strip follows, so a PDF page's
 preview is the text the annotations sit on rather than a bare card. The number and the preview **go to**
-the page and leave it the only page selected; the box **adds or drops** it in the run the commands act
-on, and takes the view there too; the handle
+the page; the box **adds or drops** it in the run the commands act on, and the page in view is always in
+that run, so turning the canvas to another page reselects the page it now shows; the handle
 **carries** it, and while it travels the page is **lifted** above the list while the row it would land on
 wears the accent line along its top edge (`PageOps.moveAll` on drop, the block rule the window's drag
 uses). The gesture belongs to the **list**, not to the row's handle (`pageListDragGesture`): only the
