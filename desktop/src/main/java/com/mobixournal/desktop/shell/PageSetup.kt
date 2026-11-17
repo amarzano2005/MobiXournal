@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.tools.PillTextInset
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.glassSpring
@@ -247,20 +248,6 @@ internal fun ChipRow(content: @Composable androidx.compose.foundation.layout.Flo
 /** One choice: a capsule that wears the steel when it is the live one. */
 @Composable
 internal fun SetupChip(label: String, picked: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .background(
-                if (picked) DesktopTheme.activeSlot else Color.Transparent,
-                DesktopTheme.capsuleShape,
-            )
-            .hoverFill(DesktopTheme.capsuleShape, active = picked)
-            .pointerInput(label, picked) { detectTapGestures { onClick() } }
-            .padding(horizontal = PillTextInset, vertical = 6.dp),
-    ) {
-        Text(
-            label,
-            color = if (picked) DesktopTheme.ink else DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-        )
-    }
+    DesktopTextAction(label, onClick, picked = picked, role = androidx.compose.ui.semantics.Role.Tab)
+
 }

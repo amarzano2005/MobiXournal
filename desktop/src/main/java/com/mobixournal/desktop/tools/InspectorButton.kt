@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.tools
 
+import com.mobixournal.desktop.tools.DesktopTextAction
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,22 +19,15 @@ import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.PropertyControlShape
 import com.mobixournal.desktop.shell.WindowKeys
 
-/** Property-panel actions only; other dialogs keep PanelButton's original recipe. */
+/** Inspector commands share the desktop text recipe and keep keyboard ownership in the lane. */
 @Composable internal fun InspectorButton(label: String, primary: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    var focused by remember { mutableStateOf(false) }
     val owner = remember { Any() }
-    val interactions = remember { MutableInteractionSource() }
-    val pressed by interactions.collectIsPressedAsState()
     DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
-    Box(Modifier.heightIn(min = 40.dp)
-        .background(when { !enabled -> Color.Transparent; primary -> DesktopTheme.accent.copy(alpha = if (pressed) .75f else 1f); pressed -> DesktopTheme.activeSlot; else -> Color.Transparent }, PropertyControlShape)
-        .hoverFill(PropertyControlShape, active = !enabled)
-        .border(1.dp, if (focused) { if (primary) DesktopTheme.ink else DesktopTheme.accent } else Color.Transparent, PropertyControlShape)
-        .onFocusChanged { focused = it.isFocused; WindowKeys.focusControl(owner, focused) }
-        .clickable(interactionSource = interactions, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
-        .padding(horizontal = 12.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
-        Text(if (label == "Add equation") "+ Add equation" else label,
-            color = when { !enabled -> DesktopTheme.inkMuted; primary -> DesktopTheme.desk; else -> DesktopTheme.accent },
-            style = DesktopTheme.body)
-    }
+    DesktopTextAction(
+        if (label == "Add equation") "+ Add equation" else label, onClick,
+        enabled = enabled, style = DesktopTheme.body,
+        tone = if (primary) DesktopTheme.accent else DesktopTheme.inkSecondary,
+        modifier = Modifier.onFocusChanged { WindowKeys.focusControl(owner, it.isFocused) },
+    )
+
 }

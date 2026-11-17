@@ -178,7 +178,7 @@ reads — because the hand decides how hard it presses while the device decides 
   surface's hamburger menu carries the same drawing rows in the same order (`MenuPenBlock`), at the
   menu's smaller line, because they are reached mid-drawing — the stream itself is the page's row only,
   since which driver is open is not a fact about the stroke being made.
-- **Pressure → Presets** — the tablet's named pairs, as a strip of chips where the active one wears the accent,
+- **Pressure → Presets** — the tablet's named pairs, as preset names following the [desktop text-feedback rule](interface-contract.md#6-states-five-all-of-them-drawn),
   one click applies it (`tablet.penPresets`, `tablet.selectedPenPreset`). A **red ×** removes a pair, a **`+`**
   opens the name field, and moving a slider edits the active preset's values.
 - **Pressure → Reset to defaults** restores the factory floor and multiplier (0.05 and 1.00×).

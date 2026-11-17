@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -156,14 +157,8 @@ internal fun PageSelectionBar(
                 style = DesktopTheme.label,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                "Clear",
-                color = DesktopTheme.inkMuted,
-                style = DesktopTheme.label,
-                modifier = Modifier
-                    .clickable { onClear() }
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-            )
+            DesktopTextAction("Clear", onClear, minHeight = 20.dp,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp))
         }
         Spacer(Modifier.height(6.dp))
         // The pick's clipboard and its delete, on two rows: four labels on one line do not fit the 240 dp
@@ -185,5 +180,5 @@ internal fun PageSelectionBar(
 
 /** The bar's one measurement: tall enough for its count and its button, so the layers list is not shoved. */
 internal object PageSelectionMetrics {
-    val BAR_HEIGHT = 112.dp
+    val BAR_HEIGHT = 144.dp
 }

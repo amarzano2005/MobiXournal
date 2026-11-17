@@ -108,9 +108,9 @@ Every surface is one of three objects. Pick the class from what the element *doe
   `#0C0C0D` over the black desk) rather than the tablet's 0.85 (`#131314`), by the owner's decision of
   2026-10-25 — `ui-modernization.md` owns the reasoning. Every other colour is shared, and the desktop's
   chrome tests pin this one so it cannot drift silently.
-- The picked state is the **steel `#38383E`** (`ACTIVE_SLOT_DARK_RGB`) with the glyph in the accent
+- The picked state of an icon/tool slot is the **steel `#38383E`** (`ACTIVE_SLOT_DARK_RGB`) with the glyph in the accent
   (`#60A5FA`). A new "selected" look is not a design decision; it is a second state the user has to learn.
-- **Desktop navigation exception (2026-11-17, owner request):** Pages/Bookmarks uses an accent underline instead of a filled selected pill. Its fields stay flat in the sidebar band, with a hairline at rest and an accent/error underline for focus/refusal; no capsule lift or glow. Sidebar text commands and tabs use ink changes on hover/press and a thin focus underline, without a filled state layer; sidebar overflow/branch controls also stay unfilled. Popup menu entries retain a rounded fill across their full width. Other controls retain their existing material.
+- **Desktop text feedback:** the global text-control rule is [below](#6-states-five-all-of-them-drawn). Sidebar fields keep a hairline at rest and an accent/error underline for focus/refusal, without capsule lift or glow.
 - Enforced by `ColorContractGuardTest` (Android chrome) and `DesktopThemeTest` (desktop chrome literal
   sweep), and mirrored in the token block of [`ui-modernization.md`](ui-modernization.md).
 
@@ -175,8 +175,8 @@ Every surface is one of three objects. Pick the class from what the element *doe
 
 ## 6. States: five, all of them drawn
 
-Every interactive element defines **default, hover, picked, disabled, focus**. The picked state is the
-steel slot; hover is the same steel at `hoverSlotAlpha` (**0.45**), never a colour change of the glyph and
+Every interactive element defines **default, hover, picked, disabled, focus**. For icon/tool slots, picked is
+the steel slot; hover is the same steel at `hoverSlotAlpha` (**0.45**), never a colour change of the glyph and
 never the picked fill; disabled keeps its ink but loses its hit area; focus is visible without relying on
 the pointer. A new element with only a default state is unfinished.
 
@@ -188,19 +188,11 @@ its clip), so a tap or a hover lights the capsule, circle or squircle the reader
 around it. `ShapeFeedbackTest` holds the shared controls to that order, because a clip one modifier too
 late compiles and reads correctly.
 
-The window keeps the rule the other way round: `hoverFill(shape)` and `hoverCapsule` draw the light **with**
-the shape, so one background cannot disagree with its control. A rectangular hover belongs to desktop settings
-rows alone, whose flat groups keep its full row bounds (`SettingsGroup`); `DesktopShapeFeedbackTest` pins both
-halves, and that no control is left with no answer to the pointer at all. A **document tab** is the one picked
-surface that also wears the **accent edge** — 1 dp of the accent at 60 %, the tablet's own ring on a
-selected chip — because a strip of capsules says which document is open by outline as well as by fill. A
-tab is the tablet's **chip** on both shells: the floating glass at full strength while it is the document
-in front and thinned behind a hairline while it is not, never the picked steel — that is a tool slot's
-state, and a tab is a document.
+**Desktop text controls (owner rule, 2026-11-17):** textual buttons, tabs, presets, numeric commands and navigation labels use `DesktopTextAction` or `desktopTextFeedback`. Hover/press changes ink or underlines the label; picked and keyboard-focus states use an accent underline. Their padding and hit targets never acquire a filled state layer. This applies to dialogs, inspectors, Settings, document tabs, entry actions and the sidebar, including primary and destructive text commands (their ink retains its meaning). `DesktopTextFeedbackContractTest` pins the shared factories and checks direct interactive text; `DesktopGlobalTextFeedbackTest` checks real pixels and representative callers.
 
-On the desktop every surface wears `Modifier.hoverFill()` (`GlassEdge.kt`), and `ToolStripsTest` reads
-the hovered pixel against the unhovered one, so a control that answers only its tooltip — as the rail did
-— fails.
+The desktop has three distinct cases: icon tools and switches retain shaped slot feedback; popup menu choices retain the full-width rounded feedback checked by `SidebarTextFeedbackTest`; selection in document text, thumbnails, layers and search results remains content selection. Editable fields retain their caret, native text-selection highlight and bounded focus marker. These are not text-command state layers.
+
+On Android, the state layer is clipped to the visible control shape (`ShapeFeedbackTest`). A document tab there keeps its chip glass and accent edge. Desktop icon controls use shaped `hoverFill` / `hoverCapsule`; `DesktopShapeFeedbackTest` and `ToolStripsTest` keep those controls responsive without applying the icon rule to text commands.
 
 A control that opens a surface is **also a control that closes it**: the second click is the surface's own
 dismissal, so the trigger may not reopen what its own click has just put away (`DismissGuard` — a Compose

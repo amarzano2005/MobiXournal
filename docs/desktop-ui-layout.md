@@ -26,8 +26,8 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 ```
 
 ### 1. Window layout & workspace panes
-- **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one tab per open
-  document (each keeps its page, zoom and fit), the `+` for another, and right **Pages and Layers** in one
+- **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one text tab per open
+  document (ink and underline mark its state; each keeps its page, zoom and fit), the `+` for another, and right **Pages and Layers** in one
   capsule, the search field, **undo, redo, Save, PDF**. The field stands there always beside the tabs, so
   using it never moves them or the file commands, and it keeps the **same gap either side** (12 dp to the
   capsule and to the history pair), so it reads as a group of its own rather than the capsule's tail;
@@ -42,7 +42,7 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   when the document has **more than one page**. **Bookmarks** is the outline at the sidebar's full height — Add
   bookmark, a filter and the outline, with the row naming the page in view moving with the page without
   re-reading the outline — not a folded section under the thumbnails; a row the notebook owns wears an unfilled **⋯**
-  glyph with equal-width, rounded Rename/Delete menu entries whose hover fills the whole entry (the PDF's own rows leave that gutter empty). The selected tab has an accent underline, with no filled hover, press or focus background; text commands brighten their ink and keyboard focus adds a thin underline; only **Add bookmark** remains above the flat filter. Add and rename use a full-width title field with the page label and stable Cancel/Add or Cancel/Save actions below it.
+  glyph with equal-width, rounded Rename/Delete menu entries whose hover fills the whole entry (the PDF's own rows leave that gutter empty). Text navigation follows the global [text-feedback rule](interface-contract.md#6-states-five-all-of-them-drawn); only **Add bookmark** remains above the flat filter. Add and rename use a full-width title field with the page label and stable Cancel/Add or Cancel/Save actions below it.
 - **The sheet alone on the desk**: one page at a time, opened at **100 % — the page's width filling the
   window**, the scale the tablet opens a page at (`FitOnOpen.DEFAULT` is fit width), with the fit mode named
   in the status bar.

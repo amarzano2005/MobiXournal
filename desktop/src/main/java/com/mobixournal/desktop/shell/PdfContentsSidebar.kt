@@ -1,4 +1,7 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.DesktopTextAction
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
@@ -91,7 +94,7 @@ internal fun SidebarViewSwitch(view: DesktopSidebarView, onView: (DesktopSidebar
     ) {
         DesktopSidebarView.entries.forEach { option ->
             val picked = option == view
-            SidebarTextAction(
+            DesktopTextAction(
                 label = if (option == DesktopSidebarView.PAGES) "Pages" else "Bookmarks",
                 onClick = { onView(option) },
                 modifier = Modifier.weight(1f),
@@ -247,7 +250,7 @@ private fun ColumnScope.ContentsListBlock(
 /** The Contents header's own command: a word on a full-height slot, so the action is reachable by thumb and pen. */
 @Composable
 internal fun ContentsHeaderAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
-    SidebarTextAction(label = label, enabled = enabled, onClick = onClick)
+    DesktopTextAction(label = label, enabled = enabled, onClick = onClick)
 }
 
 /**
@@ -467,7 +470,7 @@ internal fun ContentsMenuRow(label: String, title: String, onClick: () -> Unit) 
 /** One word of a row's own actions, named together with its row so two chapters stay distinguishable. */
 @Composable
 internal fun ContentsRowAction(label: String, title: String, enabled: Boolean = true, onClick: () -> Unit) {
-    SidebarTextAction(
+    DesktopTextAction(
         label = label,
         description = "$label ${title.ifBlank { "bookmark" }}",
         enabled = enabled,
@@ -537,5 +540,23 @@ private fun ContentsChevron(row: OutlineRow, onToggle: (() -> Unit)?) {
             )
         }
     }
+}
+
+
+/** A narrow keyboard-focus edge replaces the default filled indication. */
+@Composable
+internal fun Modifier.quietSidebarClick(
+    enabled: Boolean = true,
+    role: Role = Role.Button,
+    interactions: MutableInteractionSource = remember { MutableInteractionSource() },
+    onClick: () -> Unit,
+): Modifier {
+    val focused by interactions.collectIsFocusedAsState()
+    return drawBehind {
+        if (enabled && focused) drawLine(DesktopTheme.accent,
+            Offset(4.dp.toPx(), size.height - 1.dp.toPx()),
+            Offset(size.width - 4.dp.toPx(), size.height - 1.dp.toPx()), 1.dp.toPx())
+    }.clickable(interactionSource = interactions, indication = null, enabled = enabled,
+        role = role, onClick = onClick)
 }
 

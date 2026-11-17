@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.tools
+import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 
@@ -255,12 +256,8 @@ private fun TriangleSumRow(sum: Int, isValid: Boolean, a: Float, b: Float, onBal
         if (!isValid) {
             val neededC = (180 - a.roundToInt() - b.roundToInt()).toFloat()
             if (neededC in 5f..170f) {
-                Text(
-                    "Auto-balance C (${neededC.roundToInt()}°)",
-                    color = DesktopTheme.accent,
-                    style = DesktopTheme.label,
-                    modifier = Modifier.clickable { onBalanceC(neededC) }.padding(4.dp),
-                )
+                DesktopTextAction("Auto-balance C (${neededC.roundToInt()}°)",
+                    { onBalanceC(neededC) }, tone = DesktopTheme.accent)
             }
         }
     }
@@ -343,29 +340,12 @@ private fun ScaleneAngleSliderRow(
 
 @Composable
 private fun StepButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(24.dp)
-            .background(
-                if (enabled) DesktopTheme.activeSlot else Color.Transparent,
-                RoundedCornerShape(4.dp),
-            )
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted, style = DesktopTheme.body)
-    }
+    DesktopTextAction(text, onClick, enabled = enabled, style = DesktopTheme.body)
+
 }
 
 @Composable
 private fun PresetChip(text: String, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .background(DesktopTheme.activeSlot, RoundedCornerShape(4.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = DesktopTheme.ink, style = DesktopTheme.label)
-    }
+    DesktopTextAction(text, onClick)
+
 }

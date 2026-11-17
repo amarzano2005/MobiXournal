@@ -177,12 +177,9 @@ class DesktopMenuTest {
         assertTrue("the Pen block is drawn, not only the desk", !drawn.contentEquals(bare))
     }
 
-    /**
-     * The hover step on an export chip, drawn so the shape of the lit area can be looked at: the whole
-     * capsule, not the label's box.
-     */
+    /** Textual export actions underline on hover while their padding stays unfilled. */
     @Test
-    fun `hovering an export chip lights the whole capsule`() {
+    fun `hovering an export action leaves its padding unfilled`() {
         val scene = scene()
         val (plain, lit) = try {
             Snapshot.sendApplyNotifications()
@@ -196,19 +193,16 @@ class DesktopMenuTest {
         }
         File("build/desktop-render/desktop-menu-hover.png").apply { parentFile?.mkdirs() }.writeBytes(lit)
 
-        // The bug this pins: the hint used to be a layer above the capsule and could be painted at the
-        // label's bounds, so the chip lit only where the words were. Both ends must brighten.
         val before = ImageIO.read(ByteArrayInputStream(plain))
         val after = ImageIO.read(ByteArrayInputStream(lit))
         val y = chipCentreY(row = 1).toInt()
-        fun brightened(x: Float): Boolean {
-            val px = x.toInt()
-            val from = before.getRGB(px, y) and 0xFF
-            val to = after.getRGB(px, y) and 0xFF
-            return to > from
+        for (x in listOf(width / 2f - 130f, width / 2f + 130f)) {
+            assertEquals("hover must not fill the text action's padding", before.getRGB(x.toInt(), y), after.getRGB(x.toInt(), y))
         }
-        assertTrue("the chip's left end lights up", brightened(width / 2f - 130f))
-        assertTrue("and its far right end does too", brightened(width / 2f + 130f))
+        val underlineY = (chipCentreY(row = 1) + MenuMetrics.chipHeight.value / 2 - 1).toInt()
+        val underlineX = (width / 2f - 100f).toInt()
+        assertTrue("the text action still answers with its underline",
+            before.getRGB(underlineX, underlineY) != after.getRGB(underlineX, underlineY))
     }
 
     /** One frame of the panel, tall enough that nothing in the Pen block is clipped. */

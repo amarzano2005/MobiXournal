@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.tools.glassRim
 import com.mobixournal.desktop.ink.of
@@ -249,22 +250,11 @@ private fun androidx.compose.foundation.layout.RowScope.TransportReadout(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun SpeedButton(speed: Float, onClick: () -> Unit) {
-    var hovered by remember { mutableStateOf(false) }
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(if (hovered) DesktopTheme.hoverSlot else Color.Transparent)
-            .onPointerEvent(PointerEventType.Enter) { hovered = true }
-            .onPointerEvent(PointerEventType.Exit) { hovered = false }
-            .pointerInput(speed) { detectTapGestures { onClick() } }
-            .padding(horizontal = 3.dp, vertical = 1.dp),
-    ) {
-        Text(
-            text = speedLabel(speed),
-            color = if (speed == 1f) DesktopTheme.inkSecondary else DesktopTheme.accent,
-            style = DesktopTheme.numeric,
-        )
-    }
+    DesktopTextAction(speedLabel(speed), onClick,
+        tone = if (speed == 1f) DesktopTheme.inkSecondary else DesktopTheme.accent,
+        style = DesktopTheme.numeric, minHeight = 24.dp,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 3.dp, vertical = 1.dp))
+
 }
 
 /** `1×` for a whole number, `1.25×` for a step between: the label the button wears. */

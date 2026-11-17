@@ -141,50 +141,11 @@ class DesktopSettingsStyleTest {
         assertTrue("the page column is capped so a 21:9 window keeps its line length: $page dp", page <= 760f)
     }
 
-    /**
-     * The **preset strip** is a strip of capsules on the page, not a row of bands.
-     *
-     * This is the measure a *choice row* used to be held to as well: a row of answers that painted a
-     * band of a button where its control should have been. A choice row is a select now
-     * (`SettingsSelect`), whose capsule is the same steel and the same control height, so the claim is
-     * kept where the window still draws a capsule of its own — the carousel on the Stylus page.
-     */
+    /** The actual Stylus page must no longer render a steel pill behind the selected preset name. */
     @Test
-    fun `the preset strip is a strip of capsules, on the page`() {
+    fun `the preset strip follows the unfilled text rule on the real settings page`() {
         val bands = pillBands(pixels(state(DesktopSettingSection.STYLUS)))
-        assertTrue("a pill band for the picked preset: ${bands.size}", bands.size >= 1)
-        for (band in bands) {
-            assertTrue(
-                "a chip is its control's height, not a band of a button: ${band.count()} dd",
-                band.count() in 20..40,
-            )
-        }
-        val lowest = bands.maxOf { it.last }
-        assertTrue(
-            "the strip is on the page, above the status bar: $lowest of $height",
-            lowest < height - 32,
-        )
-    }
-
-    /**
-     * A chip is as wide as its word: the picked preset is a chip, not a third of the page.
-     *
-     * Measured from the first to the last pixel of the steel fill in the band's middle row, so the
-     * answer's own letters (drawn in the accent, over the fill) do not cut the measurement in three.
-     */
-    @Test
-    fun `the picked chip hugs its word`() {
-        val pixels = pixels(state(DesktopSettingSection.STYLUS))
-        val band = pillBands(pixels).first()
-        val middle = (band.first + band.last) / 2
-        val painted = (pageLeft until width).filter { x -> pixels.rgb(x, middle) == pillRgb }
-        assertTrue("the picked chip is drawn", painted.size >= 2)
-        val chip = painted.last() - painted.first() + 1
-        assertTrue(
-            "the picked chip is wide enough to read and narrow enough to be a chip: $chip px " +
-                "(band ${band.first}..${band.last}, x ${painted.first()}..${painted.last()})",
-            chip in 40..260,
-        )
+        assertTrue("preset names must not acquire filled pills: $bands", bands.isEmpty())
     }
 
     /**

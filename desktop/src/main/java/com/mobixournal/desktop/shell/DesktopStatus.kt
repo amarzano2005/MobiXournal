@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.DesktopTextAction
+import com.mobixournal.desktop.tools.desktopTextFeedback
 import com.mobixournal.desktop.tools.StripPill
 import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.ink.DesktopTablet
@@ -251,12 +253,8 @@ private fun RowScope.PdfTextBandNotice(message: String) {
     Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
     DesktopPdfTextNotice.retry?.let { action ->
         Spacer(Modifier.width(6.dp))
-        Text(
-            text = "Try again",
-            color = DesktopTheme.accent,
-            style = DesktopTheme.label,
-            modifier = Modifier.clickable(onClick = action),
-        )
+        DesktopTextAction("Try again", action, tone = DesktopTheme.accent,
+            minHeight = 20.dp, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp))
     }
     Spacer(Modifier.width(14.dp))
 }
@@ -265,15 +263,7 @@ private fun RowScope.PdfTextBandNotice(message: String) {
 @Composable
 private fun BandGap() = Spacer(Modifier.width(10.dp))
 
-/**
- * One **reading** of the band — a number or a word to compare — with the sentence that explains it under the
- * pointer, in the window's own hover pill ([StripPill]).
- *
- * The band speaks in short words and keeps its jargon in the tip: `mouse` is what the pen stream is, and
- * `Windows Ink · 120 Hz · 3.2 ms` says nothing until the pointer asks. The hover answer is the window's own —
- * the ink steps up and the reading takes the hover slot — so the band is a band of the same controls as the
- * strips, one material lighter.
- */
+/** A status reading brightens its ink under the pointer and offers its explanatory tooltip. */
 @Composable
 private fun BandReading(text: String, tip: String, accent: String = "", numeric: Boolean = false) {
     val pointer = remember { MutableInteractionSource() }
@@ -285,7 +275,6 @@ private fun BandReading(text: String, tip: String, accent: String = "", numeric:
             style = if (numeric) DesktopTheme.numeric else DesktopTheme.label,
             modifier = Modifier
                 .clip(BAND_READING_SHAPE)
-                .background(if (hovered) DesktopTheme.hoverSlot else Color.Transparent)
                 .hoverable(pointer)
                 .padding(horizontal = 4.dp, vertical = 1.dp),
         )
@@ -293,12 +282,7 @@ private fun BandReading(text: String, tip: String, accent: String = "", numeric:
     }
 }
 
-/**
- * The band's one **door**: a reading that is also a command — the zoom percentage, back to 100 %.
- *
- * It carries the window's three answers to the pointer (the accent at rest, the hover slot under it, the plate
- * while pressed) and no ripple: the band is 24 dp tall, and a ripple in it would read as a fault.
- */
+/** A tooltip-bearing text command uses the global unfilled feedback while preserving the compact status band. */
 @Composable
 private fun BandDoor(text: String, tip: String, accent: String, onCommand: () -> Unit) {
     val pointer = remember { MutableInteractionSource() }
@@ -311,13 +295,7 @@ private fun BandDoor(text: String, tip: String, accent: String, onCommand: () ->
             style = DesktopTheme.numeric,
             modifier = Modifier
                 .clip(BAND_READING_SHAPE)
-                .background(
-                    when {
-                        pressed -> DesktopTheme.activeSlot
-                        hovered -> DesktopTheme.hoverSlot
-                        else -> Color.Transparent
-                    },
-                )
+                .desktopTextFeedback()
                 .hoverable(pointer)
                 .clickable(interactionSource = pointer, indication = null) { onCommand() }
                 .padding(horizontal = 4.dp, vertical = 1.dp),

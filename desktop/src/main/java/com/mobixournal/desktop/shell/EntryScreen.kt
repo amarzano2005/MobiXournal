@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.shell
 
+import com.mobixournal.desktop.tools.desktopTextFeedback
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -372,16 +373,7 @@ private fun EntryButton(label: String, glyph: ChromeGlyph, primary: Boolean, onC
     Row(
         modifier = Modifier
             .height(38.dp)
-            .background(
-                if (primary) DesktopTheme.accent.copy(alpha = BUTTON_TINT) else DesktopTheme.tabFillResting,
-                DesktopTheme.capsuleShape,
-            )
-            .hoverFill(DesktopTheme.capsuleShape)
-            .border(
-                1.dp,
-                if (primary) DesktopTheme.accent else DesktopTheme.hairline,
-                DesktopTheme.capsuleShape,
-            )
+            .desktopTextFeedback(picked = primary)
             .pointerInput(label, onClick) { detectTapGestures { onClick() } }
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,

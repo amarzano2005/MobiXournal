@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.tools
+import com.mobixournal.desktop.tools.desktopTextFeedback
+import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.ROW_INSET
@@ -175,9 +177,7 @@ internal fun SectionCard(title: String? = null, initiallyExpanded: Boolean = tru
     Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
     if (title != null) {
         Row(Modifier.fillMaxWidth().height(40.dp)
-            .background(if (pressed) DesktopTheme.activeSlot else Color.Transparent, com.mobixournal.desktop.settings.PropertyControlShape)
-            .hoverFill(com.mobixournal.desktop.settings.PropertyControlShape)
-            .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, com.mobixournal.desktop.settings.PropertyControlShape)
+            .desktopTextFeedback()
             .onFocusChanged { focused = it.isFocused; WindowKeys.focusControl(focusOwner, focused) }
             .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
              .clickable(interactionSource = interactions, indication = null) {
@@ -336,50 +336,17 @@ internal fun SwitchRow(label: String, on: Boolean, onToggle: (Boolean) -> Unit) 
     com.mobixournal.desktop.settings.PropertyCheckboxRow(label, on, onToggle)
 }
 
-/**
- * **A few answers, one of which is picked** — a text box's family, where a dropdown would cost two clicks
- * and a popup the lane does not need for three words.
- *
- * The recipe is the header placement menu's own ([Header]'s `PLACEMENT_OPTIONS`): the picked row takes the
- * steel slot and the accent ink, hover is [Modifier.hoverFill] and never a second state colour, and the
- * unpicked rows sit on the field fill so they still read as controls. A control that offered no picked
- * state would be the one place in the lane where the user cannot see what is set.
- */
+/** Text options share the desktop ink/underline states, with a stable callback on recomposition. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun ChoiceRow(options: List<String>, picked: String, onPick: (String) -> Unit) {
-    // The gesture node outlives a recomposition: a `pointerInput` keyed on the option keeps the lambda
-    // it was built with, so a chip built while the box said `Sans` would go on reporting that box long
-    // after the family had changed — writing with the old face, size and ink and quietly undoing what
-    // the control next to it had just set. The holder is what makes the tap use the answer the caller
-    // has **now**.
-    val answer = rememberUpdatedState(onPick)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (option in options) {
-            val selected = option.equals(picked, ignoreCase = true)
-            Box(
-                Modifier
-                    .weight(1f)
-                    .heightIn(min = 32.dp)
-                    .background(
-                        if (selected) DesktopTheme.activeSlot else DesktopTheme.activeSlot.copy(alpha = 0.35f),
-                        com.mobixournal.desktop.settings.PropertyControlShape,
-                    )
-                    .hoverFill(com.mobixournal.desktop.settings.PropertyControlShape, active = selected)
-                    .pointerInput(option) { detectTapGestures { answer.value(option) } }
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    option,
-                    color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
-                    style = DesktopTheme.label,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            }
+        options.forEach { option ->
+            DesktopTextAction(option, { onPick(option) }, modifier = Modifier.weight(1f),
+                picked = option.equals(picked, ignoreCase = true), role = androidx.compose.ui.semantics.Role.Tab)
         }
     }
+
 }
 
 /**

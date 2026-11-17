@@ -1,4 +1,6 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.desktopTextFeedback
+import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
@@ -190,21 +192,9 @@ private const val CONTROL_SHARE = 0.85f
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsCommand(label: String, note: String? = null, onClick: () -> Unit) {
-    val press = rememberUpdatedState(onClick)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = SettingsMetrics.ROW_HEIGHT)
-            .reportHelp(note)
-            .hoverFill(RectangleShape)
-            // Keyed on nothing: a lambda key is a new instance per recomposition, so the detector restarted
-            // mid-press (a hover changes the row) and the tap was lost — a command that did nothing.
-            .pointerInput(Unit) { detectTapGestures { press.value() } }
-            .padding(horizontal = ROW_INSET, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = DesktopTheme.accent, style = DesktopTheme.body, modifier = Modifier.weight(1f))
-    }
+    DesktopTextAction(label, onClick, style = DesktopTheme.body, tone = DesktopTheme.accent,
+        modifier = Modifier.fillMaxWidth().reportHelp(note))
+
 }
 
 /**
@@ -372,58 +362,13 @@ internal fun SettingsSlider(
     }
 }
 
-/**
- * One compact preset choice; its shape is confined to the property panel.
- *
- * Its one user is the Stylus page's **preset carousel**, where the chips *are* the content — a strip of
- * names you switch between. A row that answers a question (*Left · Right · Top*, three document formats) is
- * a [SettingsSelect] instead: the window keeps one shape for "one answer of a few", and the pills that used
- * to draw those rows were that same control in a louder costume.
- *
- * It draws the window's own states — steel when picked, the hover step under the pointer, the accent ring
- * when it holds the keyboard — because a settings page is navigated with Tab as often as with the mouse and
- * a control that only answers the pointer is a control half the window cannot reach. `Enter` and `Space`
- * take it, as every other button in the window does.
- */
+/** Preset names use the shared unfilled text action; selection and keyboard focus remain visible. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
-    val pick = rememberUpdatedState(onPick)
-    var focused by remember { mutableStateOf(false) }
-    // The rest state **is** the capsule's fill, and the hover step swaps that same fill: a picked pill
-    // cannot light by halves, because there is no second layer to be a different size than the first.
-    val resting = if (selected) DesktopTheme.activeSlot else DesktopTheme.activeSlot.copy(alpha = 0.35f)
-    Box(
-        Modifier
-            .height(SettingsMetrics.CONTROL_HEIGHT)
-            .hoverFill(PropertyControlShape, active = selected, base = resting)
-            .border(
-                width = if (focused) 1.dp else 0.dp,
-                color = if (focused) DesktopTheme.accent else Color.Transparent,
-                shape = PropertyControlShape,
-            )
-            .focusable()
-            .onFocusChanged { focused = it.isFocused }
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                if (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Spacebar) {
-                    pick.value()
-                    true
-                } else {
-                    false
-                }
-            }
-            .pointerInput(Unit) { detectTapGestures { pick.value() } }
-            .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text,
-            color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
-            style = DesktopTheme.body,
-            maxLines = 1,
-        )
-    }
+    DesktopTextAction(text, onPick, picked = selected, role = androidx.compose.ui.semantics.Role.Tab,
+        style = DesktopTheme.body)
+
 }
 
 /** The square indicator; SettingsRow owns the hit target and checked semantics. */
@@ -432,14 +377,7 @@ internal fun SettingsSwitch(on: Boolean) {
     PropertyCheckmark(on)
 }
 
-/**
- * **A word that acts**, at a row's height — *Save*, *Cancel*, *Delete* beside a value.
- *
- * The window's other actions wear a glyph; these are words because they answer a name the reader just
- * typed or a preset they are about to lose, and a dustbin glyph reads as an icon of the toolbar rather
- * than as a command on that one row. It keeps the row controls' five states, so Tab reaches it and `Enter`
- * takes it like every other button in the window.
- */
+/** A textual command uses ink and a narrow underline rather than a filled state layer. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsTextAction(
@@ -448,40 +386,8 @@ internal fun SettingsTextAction(
     tone: Color = DesktopTheme.accent,
     onClick: () -> Unit,
 ) {
-    val click = rememberUpdatedState(onClick)
-    var focused by remember { mutableStateOf(false) }
-    Box(
-        Modifier
-            .height(SettingsMetrics.CONTROL_HEIGHT)
-            .background(Color.Transparent, PropertyControlShape)
-            .border(
-                width = if (focused) 1.dp else 0.dp,
-                color = if (focused) DesktopTheme.accent else Color.Transparent,
-                shape = PropertyControlShape,
-            )
-            .hoverFill(PropertyControlShape, active = !enabled)
-            .focusable()
-            .onFocusChanged { focused = it.isFocused }
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown || !enabled) return@onPreviewKeyEvent false
-                if (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Spacebar) {
-                    click.value()
-                    true
-                } else {
-                    false
-                }
-            }
-            .pointerInput(text, enabled) { if (enabled) detectTapGestures { click.value() } }
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text,
-            color = if (enabled) tone else DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-            maxLines = 1,
-        )
-    }
+    DesktopTextAction(text, onClick, enabled = enabled, tone = tone)
+
 }
 
 /**
@@ -550,12 +456,7 @@ private fun StepButton(
     }
 }
 
-/**
- * **A section of the index**, on the left of the surface.
- *
- * The picked one takes the steel slot and the accent title — the same two states a tool slot wears — and a
- * resting pointer takes the hover step, never the picked fill (`docs/interface-contract.md` §6).
- */
+/** Settings navigation keeps its catalogue glyph and marks selection without a filled row. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsSectionRow(
@@ -568,19 +469,12 @@ internal fun SettingsSectionRow(
         Modifier
             .fillMaxWidth()
             .heightIn(min = SettingsMetrics.INDEX_ROW_HEIGHT)
-            // The picked fill and the hover step are the *same* background: a section that lights for the
-            // pointer and one that lights because it is the open page cannot draw two different boxes.
-            .hoverFill(
-                DesktopTheme.railSlotShape,
-                active = selected,
-                base = if (selected) DesktopTheme.activeSlot else Color.Transparent,
-            )
+            .desktopTextFeedback(picked = selected)
             // The index is names only, so its sentence is the help line's too: what the section covers.
             .drawBehind {
                 if (selected) drawLine(DesktopTheme.accent, Offset(2.dp.toPx(), 8.dp.toPx()),
                     Offset(2.dp.toPx(), size.height - 8.dp.toPx()), strokeWidth = 2.dp.toPx())
             }
-            .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, DesktopTheme.railSlotShape)
             .onFocusChanged { focused = it.isFocused }
             .reportHelp(section.summary)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)

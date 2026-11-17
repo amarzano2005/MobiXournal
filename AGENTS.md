@@ -100,7 +100,7 @@ describes the window as it is, `docs/desktop-editing.md` what a drag on its page
 - **A new topic is a new spoke**, and the procedure is five steps in `docs/architecture.md` (*Adding a
   spoke*). A fact has one home: when you notice the same rule stated in a second doc, move it to its
   owner and leave a link — and if the two can drift apart unnoticed, add a line to `DocClaimsTest`.
-- **A UI change is checked against `docs/interface-contract.md`** before it lands: one of the three
+- **A UI change is checked against `docs/interface-contract.md`** before it lands (including its global desktop text-feedback rule): one of the three
   material classes, tokens only, a glyph from the catalogue, all five states, English copy, both shells
   in agreement.
 - **One package, one install**: `applicationId` is `com.mobixournal` and no build type suffixes it,
