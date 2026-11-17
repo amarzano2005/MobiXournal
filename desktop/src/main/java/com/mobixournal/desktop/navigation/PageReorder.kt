@@ -1,4 +1,4 @@
-package com.mobixournal.desktop.sheet
+package com.mobixournal.desktop.navigation
 import com.mobixournal.desktop.ink.of
 
 import androidx.compose.foundation.lazy.LazyListState

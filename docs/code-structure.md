@@ -35,6 +35,7 @@ in this table.
 | `…desktop.io` | **files in and out**: `DocumentLoader`, save and recovery, PDF (import, merge, export, text), audio (record, play, store), file pickers, PNG/SVG export, the clipboard and the drop target |
 | `…desktop.settings` | the **Settings window** and the stores behind it: `DesktopSettings*`, rows/sections/surface/select, shortcuts, the theme and its glyphs, pen presets |
 | `…desktop.tools` | the **controls** the hand works with: tool strips and groups, the pickers for figures and circuits, colour flyouts, inspector, panel buttons, the glass material, text and math authoring |
+| `…desktop.navigation` | page and bookmark list drag gestures, measured drop targeting and edge scrolling |
 | `…desktop.shell` | the **window around the sheet**: shell state/views, tabs and title bar, menu, workspace, status, the sidebar and page panels, search, header and audio pill |
 
 **The root package is closed.** `Main.kt` and `DesktopApp.kt` are the only files it may hold (a recorded list,

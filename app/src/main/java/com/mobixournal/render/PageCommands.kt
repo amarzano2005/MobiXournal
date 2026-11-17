@@ -52,6 +52,9 @@ internal class PageCommands(
     /** Notified after every command, so the layer panel re-reads its rows. */
     private val onLayersChanged: () -> Unit,
 ) {
+    /** Outline-only edits and history moves invalidate the open bookmark projection. */
+    var onOutlineChanged: (() -> Unit)? = null
+
 
     // --- pages ---------------------------------------------------------------------------------
 

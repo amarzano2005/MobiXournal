@@ -1456,9 +1456,9 @@ private fun DrawingSurfaceView.bindTo(state: PaneState, onSelected: () -> Unit) 
         // The range exists, so the missed-press pill has nothing left to explain.
         if (r != null) state.pdfTextEntryMissed = false
     }
-    // A long press that found no words asks the pane for the availability pill, with its Try again.
     pdfTextPress.onMissed = { state.pdfTextEntryMissed = true }
     onPdfOutlineChanged = { outline -> state.outline = outline }
+    pageCommands.onOutlineChanged = { state.documentVersion++ }
     onClipboardChanged = { c -> state.hasClipboard = c }
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }
     onSearchChanged = { s -> state.searchCurrent = s.current; state.searchTotal = s.total }

@@ -165,7 +165,7 @@ shows the PDF's outline beside the document; **Pages** switches to page previews
 On a tablet, choosing a bookmark leaves the list open for the next jump. In a compact window, choosing a
 page closes the panel; the ribbon opens it again with the filter and folded chapters retained.
 The Android panel has been exercised on the Pixel_Tablet emulator at tablet and phone sizes in both themes;
-[the implementation notes](pdf.md#pdf-contents-the-outline) record the test and its fixture. On large notebooks the panel can show **Reading bookmarks�** while destinations load. A failed read offers **Try again**; you can close the panel at any time.
+[the implementation notes](pdf.md#pdf-contents-the-outline) record the test and its fixture. On large notebooks the panel can show **Reading bookmarks…** while destinations load. A failed read offers **Try again**; you can close the panel at any time.
 
 Tapping goes by the PDF's own page number rather than by a count, so
 even a merged PDF lands on the right sheet; an entry with no destination inherits the page of the nearest
@@ -188,14 +188,14 @@ the box puts the tree back exactly as you left it: filtering never folds or unfo
 
 **The index is yours to edit.** The **+** button above Android's list (**Add bookmark**) names a row on the page you are on. A row
 that belongs to the notebook wears a **⋯** button that opens a small menu with **Rename** and **Delete** —
-on Android it also offers **Move up** and **Move down**, carrying all subsections with the chapter while keeping its parent; opening the menu or picking Rename writes nothing — and Delete only *asks* first, above the list, saying
+drag the handle on Android, or the row on Windows, to reorder a chapter with its subsections under the same parent. The list scrolls when held near an edge. Opening the menu or picking Rename writes nothing, and Delete only *asks* first, above the list, saying
 the sections under it move up and the page stays in the notebook: a bookmark is a signpost, never the page.
 Rows read out of the PDF cannot be edited and show the empty slot instead: the first bookmark you add copies
 them into the notebook first, so the list you were reading stays where it is, in one undo step. The name is
 typed where the bookmark is: **Rename** turns that row into a field, **Add bookmark** opens a draft row above
 its neighbours showing the page it captured, **Enter** saves, and the cross (or Escape on the window) leaves
 the tree exactly as it was; a blank name cannot be saved and a refusal is printed under the field. Every add,
-rename and removal is one undo step.
+rename, reorder and removal is one undo step. Adding shows the draft immediately and reveals the saved bookmark without leaving the list; a filter is cleared so the new title stays visible.
 
 **An import writes the tree into the notebook.** A PDF's bookmarks are copied into the notebook's own Contents
 when it is imported — one undo step together with its pages — so they can be renamed or deleted and they survive

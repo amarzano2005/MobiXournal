@@ -51,7 +51,7 @@ private const val GLIDE_MS = 160
  * Where the row picked up at [from] lands after [offsetPx] of travel: one place per measured row
  * crossed, rounded, with the ends stopping rather than wrapping.
  *
- * The page sidebar's own arithmetic ([com.mobixournal.desktop.sheet.PageReorder]) generalises to any
+ * The page sidebar's own arithmetic ([com.mobixournal.desktop.navigation.PageReorder]) generalises to any
  * pitch; this is the version a settings row list can use, where every row is the height of the first
  * one measured. An unmeasured row, no drag, or an index past the end answers [from].
  */

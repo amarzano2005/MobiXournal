@@ -6,8 +6,8 @@ import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.sheet.PageBackdrop
-import com.mobixournal.desktop.sheet.PageDragHandle
-import com.mobixournal.desktop.sheet.PageDragMetrics
+import com.mobixournal.desktop.navigation.PageDragHandle
+import com.mobixournal.desktop.navigation.PageDragMetrics
 import com.mobixournal.desktop.sheet.PageSelection
 import com.mobixournal.desktop.sheet.PageSelectionBar
 import com.mobixournal.desktop.sheet.PageSelectionRules
@@ -89,6 +89,7 @@ class ContentsEdits(
         OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
     },
     val rename: (String, String) -> OutlineEdits.Result = { _, _ -> OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
+    val move: (String, Int) -> OutlineEdits.Result = { _, _ -> OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
     val remove: (String) -> OutlineEdits.Result = { OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND) },
 )
 

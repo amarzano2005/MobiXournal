@@ -219,6 +219,12 @@ internal class DesktopPages(
         return editOutline(tab) { tree -> OutlineEdits.delete(tree, id) }
     }
 
+    /** Carry a bookmark subtree to a new sibling position in one undo step. */
+    fun moveBookmark(id: String, delta: Int): OutlineEdits.Result {
+        val tab = active() ?: return OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+        return editOutline(tab) { OutlineEdits.moveSibling(it, id, delta) }
+    }
+
     /**
      * One undoable Contents edit: the row set is replaced and the tab records the step before it, so
      * `Ctrl+Z` takes a bookmark back exactly as it takes a page back. A refusal writes nothing.

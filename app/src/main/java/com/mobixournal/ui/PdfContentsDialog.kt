@@ -53,11 +53,10 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.render.OutlineEdits
-import com.mobixournal.render.OutlineRow
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import com.mobixournal.render.OutlineSiblingOrder
+import com.mobixournal.render.OutlineRow
 import com.mobixournal.render.PdfOutlineView
-
-internal data class ContentsReorderActions(val moves: OutlineSiblingOrder.Moves, val move: (Int) -> Unit)
 
 /** The bookmark navigator's inline body; rows and edits stay in the document's lane. */
 @Composable
@@ -84,7 +83,7 @@ internal fun PdfContentsPanel(
         PdfOutlineView.visible(rows, navigation.collapsed, query, currentPage)
     }
     val adding = editing.draft is ContentsEdit.Adding
-    ContentsScrollAnchor(session, shown, adding)
+    ContentsScrollAnchor(session, shown, adding, (editing.draft as? ContentsEdit.Renaming)?.row?.id)
     Column(modifier.fillMaxWidth()) {
         // A delete question sits above the list, not in place of it: the rows the reader was reading
         // stay behind the answer, so cancelling costs them nothing.
@@ -138,12 +137,21 @@ internal fun PdfContentsPanel(
 
 /** Collect offsets off the composition path, restoring only after a filter/fold/edit changes the list. */
 @Composable
-private fun ContentsScrollAnchor(session: ContentsSession, shown: List<OutlineRow>, adding: Boolean) {
+private fun ContentsScrollAnchor(session: ContentsSession, shown: List<OutlineRow>, adding: Boolean, renaming: String?) {
     // Restore only when the visible tree changes. Scroll itself never projects the tree or drives composition.
-    LaunchedEffect(shown, adding) {
+    LaunchedEffect(shown, adding, renaming) {
         val at = shown.indexOfFirst { it.id == session.scrollAnchorId }
         val fallback = shown.indexOfFirst { it.row >= session.scrollAnchorRow }.coerceAtLeast(0)
-        if (shown.isNotEmpty()) {
+        val reveal = shown.indexOfFirst { it.id == session.revealId }
+        if (adding) session.list.scrollToItem(0)
+        else if (renaming != null) {
+            androidx.compose.runtime.withFrameNanos { }
+            val draft = shown.indexOfFirst { it.id == renaming }
+            if (draft >= 0) session.list.scrollToItem(draft)
+        } else if (reveal >= 0) {
+            session.list.scrollToItem(reveal)
+            session.revealId = null
+        } else if (shown.isNotEmpty()) {
             session.list.scrollToItem((if (at >= 0) at else fallback) + if (adding) 1 else 0,
                 if (at >= 0) session.scrollAnchorOffset else 0)
         }
@@ -176,7 +184,7 @@ private fun ContentsRowsBlock(
     modifier: Modifier,
 ) {
     val editing = session.editing
-    val siblingMoves = remember(rows) { OutlineSiblingOrder.of(rows) }
+    val moves = remember(rows) { OutlineSiblingOrder.of(rows) }
     val widest = remember(rows) { largestPageNumber(rows) }
     BoxWithConstraints(modifier) {
         val widthDp = maxWidth.value
@@ -185,44 +193,57 @@ private fun ContentsRowsBlock(
             rowWidthDp = widthDp,
             fontScale = LocalDensity.current.fontScale,
         )
-        LazyColumn(state = session.list, modifier = Modifier.fillMaxWidth()) {
-            if (adding) {
-                item(key = "add-draft") {
-                    AddDraftRow(
-                        page = editing.addPage,
-                        pageColumnDp = pageColumnDp,
+        BookmarkDragList(rows, shown, session.list, editing.draft == null,
+            { id, delta -> editing.submit(onMove(id, delta)) }) { listModifier, dragging ->
+            LazyColumn(state = session.list, modifier = listModifier, userScrollEnabled = !dragging) {
+                if (adding) {
+                    item(key = "add-draft") {
+                        AddDraftRow(
+                            page = editing.addPage,
+                            pageColumnDp = pageColumnDp,
+                            title = editing.title,
+                            error = editing.error,
+                            onTitle = editing::typed,
+                            onSave = {
+                                val result = onAdd(editing.title, editing.addPage)
+                                if (result is OutlineEdits.Result.Ok) {
+                                    session.revealId = result.tree.nodes.last().id
+                                    session.navigation = session.navigation.withQuery("")
+                                }
+                                editing.submit(result)
+                            },
+                            onCancel = editing::cancel,
+                        )
+                    }
+                }
+                items(shown, key = { it.id }, contentType = { "bookmark" }) { row ->
+                    val renaming = (editing.draft as? ContentsEdit.Renaming)?.takeIf { it.row.id == row.id }
+                    ContentsRow(
+                        row = row,
+                        rowWidthDp = widthDp,
+                        largestPageNumber = widest,
+                        onToggle = { session.navigation = session.navigation.toggled(row.id) },
+                        onClick = {
+                            row.page?.let(onGoToPage)
+                        },
+                        // Only the notebook's own rows can be edited: a row read out of the PDF is the file's
+                        // bookmark, and it becomes the notebook's the moment one is added.
+                        onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
+                        onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                        dragActions = buildList {
+                            if (row.id.startsWith("bkm_")) {
+                                if (moves[row.id]?.up == true) add(CustomAccessibilityAction("Move up") { onMove(row.id, -1) is OutlineEdits.Result.Ok })
+                                if (moves[row.id]?.down == true) add(CustomAccessibilityAction("Move down") { onMove(row.id, 1) is OutlineEdits.Result.Ok })
+                            }
+                        },
+                        renaming = renaming != null,
                         title = editing.title,
                         error = editing.error,
                         onTitle = editing::typed,
-                        onSave = { editing.submit(onAdd(editing.title, editing.addPage)) },
-                        onCancel = editing::cancel,
+                        onSaveDraft = { editing.submit(onRename(row.id, editing.title)) },
+                        onCancelDraft = editing::cancel,
                     )
                 }
-            }
-            items(shown, key = { it.id }, contentType = { "bookmark" }) { row ->
-                val renaming = (editing.draft as? ContentsEdit.Renaming)?.takeIf { it.row.id == row.id }
-                ContentsRow(
-                    row = row,
-                    rowWidthDp = widthDp,
-                    largestPageNumber = widest,
-                    onToggle = { session.navigation = session.navigation.toggled(row.id) },
-                    onClick = {
-                        row.page?.let(onGoToPage)
-                    },
-                    // Only the notebook's own rows can be edited: a row read out of the PDF is the file's
-                    // bookmark, and it becomes the notebook's the moment one is added.
-                    onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
-                    onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
-                    reorder = if (row.id.startsWith("bkm_")) ContentsReorderActions(
-                        siblingMoves[row.id] ?: OutlineSiblingOrder.Moves(),
-                    ) { delta -> editing.submit(onMove(row.id, delta)) } else null,
-                    renaming = renaming != null,
-                    title = editing.title,
-                    error = editing.error,
-                    onTitle = editing::typed,
-                    onSaveDraft = { editing.submit(onRename(row.id, editing.title)) },
-                    onCancelDraft = editing::cancel,
-                )
             }
         }
     }
@@ -276,7 +297,7 @@ private fun ContentsRow(
     onClick: () -> Unit,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
-    reorder: ContentsReorderActions? = null,
+    dragActions: List<CustomAccessibilityAction> = emptyList(),
     renaming: Boolean = false,
     title: String = "",
     error: String? = null,
@@ -346,8 +367,8 @@ private fun ContentsRow(
                 number = number,
                 onRename = onRename,
                 onDelete = onDelete,
-                reorder = reorder,
             )
+            BookmarkDragHandle(row, dragActions)
         }
     }
 }
@@ -403,7 +424,6 @@ private fun ContentsRowTrailing(
     number: Int?,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
-    reorder: ContentsReorderActions?,
 ) {
     Box(
         modifier = Modifier.width(pageColumnDp.dp),
@@ -423,7 +443,7 @@ private fun ContentsRowTrailing(
     }
     Box(Modifier.width(ContentsRowLayout.ACTION_DP.dp), contentAlignment = Alignment.TopEnd) {
         if (onRename != null || onDelete != null) {
-            ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete, reorder = reorder)
+            ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
         }
     }
 }
@@ -441,7 +461,6 @@ private fun ContentsRowMenu(
     title: String,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
-    reorder: ContentsReorderActions?,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -454,12 +473,6 @@ private fun ContentsRowMenu(
             )
         }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
-            if (reorder != null) {
-                DropdownMenuItem(text = { Text("Move up") }, enabled = reorder.moves.up,
-                    onClick = { open = false; reorder.move(-1) })
-                DropdownMenuItem(text = { Text("Move down") }, enabled = reorder.moves.down,
-                    onClick = { open = false; reorder.move(1) })
-            }
             if (onRename != null) {
                 DropdownMenuItem(
                     text = { Text("Rename") },

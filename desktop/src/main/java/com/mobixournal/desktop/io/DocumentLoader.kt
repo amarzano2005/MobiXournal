@@ -229,6 +229,7 @@ class DesktopDocument(
     /** The document's Contents tree replaced — a row added, renamed or removed ([OutlineEdits]). */
     @Synchronized fun replaceOutline(outline: com.mobixournal.format.model.OutlineTree) {
         model = model.copy(outline = outline)
+        edits++
     }
 
     @Synchronized fun replacePages(pages: List<Page>, outline: com.mobixournal.format.model.OutlineTree = model.outline) {

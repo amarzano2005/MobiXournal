@@ -77,7 +77,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         get() = docValue
         set(value) {
             if (value === docValue) return
+            val outlineChanged = docValue.outline !== value.outline
             docValue = value
+            if (outlineChanged) pageCommands.onOutlineChanged?.invoke()
             syncPageWindow(value)
             search.edited(midGesture = isLiveGestureActive)
             onDocumentEdited?.invoke(value)
@@ -936,16 +938,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     internal fun notifyHistory() {
-        // A monotonic reading of this canvas: each committed stroke, erase, undo, redo and structural edit
-        // bumps it. A save captures one and compares it when the bytes have landed, which is how the tab
-        // learns a stroke arrived after the document it wrote (`afterSaved`).
+        // Revision protects a save from edits committed while its bytes are being written.
         edits++
         onHistoryChanged?.invoke(history.canUndo, history.canRedo)
     }
 
     // --- zoom: `render/ZoomControls.kt` ---------------------------------------------------------
-
-    // --- pages ---------------------------------------------------------------------------------
 
     // Every page command is [PageCommands]'; the view only forwards, so the public canvas API stays
     // one place while the edit itself (and its undo step) has a single testable home.

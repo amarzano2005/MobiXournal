@@ -184,6 +184,49 @@ class NavigationPanelTest {
         }
     }
 
+    @Test fun bookmarkDragScrollsAtEdgesAndCancellationWritesNothing() {
+        context.getSharedPreferences("xopp_settings", Context.MODE_PRIVATE).edit()
+            .putBoolean("has_seen_onboarding", true).commit()
+        shell("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS")
+        shell("pm grant ${context.packageName} android.permission.RECORD_AUDIO")
+        val file = heavyNativeFixture()
+        activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        instrumentation.runOnMainSync { (activity as MainActivity).openDocument(Uri.fromFile(file)) }
+        await("native fixture") { document()?.outline?.nodes?.size == 800 }
+        val original = document()!!.outline
+        click("Bookmarks")
+        await("first drag handle") { find("Reorder Heavy chapter 0") != null }
+        val from = Rect().also { find("Reorder Heavy chapter 0")!!.getBoundsInScreen(it) }
+        val next = Rect().also { find("Reorder Heavy chapter 1")!!.getBoundsInScreen(it) }
+        nativeBookmarkDrag(from.centerX(), from.centerY(), next.centerY(), cancel = true)
+        SystemClock.sleep(200)
+        assertEquals("cancellation must not reorder", original, document()!!.outline)
+        val bottom = Rect().also { automation.rootInActiveWindow.getBoundsInScreen(it) }.bottom - 40
+        nativeBookmarkDrag(from.centerX(), from.centerY(), bottom, hold = 1400)
+        await("edge scrolling carries the bookmark beyond its starting viewport") {
+            document()!!.outline.nodes.indexOfFirst { it.id == original.nodes.first().id } > 15
+        }
+        instrumentation.runOnMainSync { surface()!!.undo() }
+        await("a long drag is one undo step") { document()!!.outline == original }
+    }
+
+    private fun nativeBookmarkDrag(x: Int, from: Int, to: Int, cancel: Boolean = false, hold: Long = 0) {
+        val began = SystemClock.uptimeMillis()
+        fun event(action: Int, y: Float) {
+            val event = android.view.MotionEvent.obtain(began, SystemClock.uptimeMillis(), action, x.toFloat(), y, 0)
+            event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+            automation.injectInputEvent(event, true)
+            event.recycle()
+        }
+        event(android.view.MotionEvent.ACTION_DOWN, from.toFloat())
+        repeat(20) { step ->
+            SystemClock.sleep(20)
+            event(android.view.MotionEvent.ACTION_MOVE, from + (to - from) * (step + 1) / 20f)
+        }
+        if (hold > 0) { SystemClock.sleep(hold); screenshot("bookmark-drag-lifted.png") }
+        event(if (cancel) android.view.MotionEvent.ACTION_CANCEL else android.view.MotionEvent.ACTION_UP, to.toFloat())
+    }
+
     @Test fun rawPdfKeepsItsNameAndTheNavigatorRemainsUsable() {
         context.getSharedPreferences("xopp_settings", Context.MODE_PRIVATE).edit()
             .putBoolean("has_seen_onboarding", true).commit()
@@ -212,7 +255,12 @@ class NavigationPanelTest {
 
         click("Actions for ${chapter(2)}")
         screenshot("bookmarks-actions.png")
-        click("Move up")
+        assertNull("reorder is no longer an overflow command", find("Move up"))
+        shell("input keyevent 4")
+        await("the reorder handle") { find("Reorder ${chapter(2)}") != null }
+        val gripFrom = Rect().also { find("Reorder ${chapter(2)}")!!.getBoundsInScreen(it) }
+        val gripTo = Rect().also { find("Reorder ${chapter(1)}")!!.getBoundsInScreen(it) }
+        shell("input swipe ${gripFrom.centerX()} ${gripFrom.centerY()} ${gripTo.centerX()} ${gripTo.centerY()} 600")
         await("the whole second chapter moved") { document()?.outline?.nodes?.single()?.children?.firstOrNull()?.title == chapter(2) }
         val moved = document()!!
         assertEquals(original.outline.nodes.single().children[1], moved.outline.nodes.single().children[0])
@@ -237,6 +285,22 @@ class NavigationPanelTest {
         assertNull("a long fling really left the first chapter behind", find("Actions for ${chapter(1)}"))
         Log.i("NavigationQa", "six index flings completed in ${SystemClock.uptimeMillis() - elapsed} ms; 801 outline rows")
         screenshot("bookmarks-scrolled.png")
+        click("Add bookmark")
+        await("the add draft is shown without leaving Bookmarks") { find("Save bookmark") != null }
+        typeBookmark("New visible bookmark")
+        click("Save bookmark")
+        await("new bookmark appears immediately in the open list") { find("Actions for New visible bookmark") != null }
+        click("Actions for New visible bookmark")
+        click("Rename")
+        typeBookmark("Renamed immediately")
+        click("Save bookmark")
+        await("renamed bookmark updates immediately") { find("Actions for Renamed immediately") != null }
+        screenshot("bookmark-added-live.png")
+        typeBookmark("No matching titles", last = false)
+        click("Add bookmark")
+        typeBookmark("Visible after filtering")
+        click("Save bookmark")
+        await("new bookmark is revealed despite the previous filter") { find("Actions for Visible after filtering") != null }
         click("Pages")
         await("page controls") { find("Pick page 1") != null }
         screenshot("pages-tablet.png")
@@ -331,6 +395,29 @@ class NavigationPanelTest {
     private fun pdfItem(title: String, page: PDPage) = PDOutlineItem().apply {
         this.title = title
         destination = PDPageFitDestination().apply { this.page = page }
+    }
+
+    private fun typeBookmark(value: String, last: Boolean = true) {
+        var field: AccessibilityNodeInfo? = null
+        await("editable bookmark field") {
+            if (android.os.Build.VERSION.SDK_INT >= 33) automation.clearCache()
+            val fields = mutableListOf<AccessibilityNodeInfo>()
+            fun collect(node: AccessibilityNodeInfo) {
+                if (node.isVisibleToUser && node.actionList.any { it.id == AccessibilityNodeInfo.ACTION_SET_TEXT }) fields += node
+                for (i in 0 until node.childCount) node.getChild(i)?.let(::collect)
+            }
+            automation.rootInActiveWindow?.let(::collect)
+            val ordered = fields.distinctBy { Rect().also(it::getBoundsInScreen).centerY() }
+                .sortedBy { Rect().also(it::getBoundsInScreen).centerY() }
+            field = if (last && ordered.size >= 2) ordered.last() else if (!last) ordered.firstOrNull() else null
+            field != null
+        }
+        field!!.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        field!!.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        assertTrue(field!!.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, android.os.Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
+        }))
+        instrumentation.waitForIdleSync()
     }
 
     private fun checkAlignedRowTargets() {

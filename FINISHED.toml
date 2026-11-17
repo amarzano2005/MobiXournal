@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "bookmark-drag-live-refresh"
+title = "Drag bookmarks and refresh edits immediately"
+description = "Added list-owned bookmark dragging on Android and desktop with Pages lift/highlight, insertion rule and edge scrolling; shared OutlineDragOrder preserves sibling hierarchy and carries descendants in one undo step. Removed Move up/down overflow entries, retaining accessibility actions and desktop Alt+Up/Down. Outline mutations now invalidate both open projections; Add reveals the draft and saved row despite filtering, and renaming reveals its controls. Moved desktop drag arithmetic into navigation, updated PDF guide/README/package owners. Verified 1668 Android JVM tests, 1166 core tests (one existing skip), 20 desktop tests, DocsGuardTest/SourceStructureTest, emulator drag/cancel/edge scrolling/add/filter/rename/undo/roundtrip in compact/tablet and both themes; final APK passed six first-tap openings of the supplied 449-page PDF. Built signed Android APK and desktop distributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: existing navigation band and Pages drag overlay; tokens: shared Pages shadow and scrolling metrics with shell theme fills and accent; glyph: catalogue DRAG_HANDLE; states: idle current pressed dragging landing cancelled editing-disabled and keyboard focus covered; copy: English control labels with explicit Bookmark title; keyboard: accessibility sibling actions and desktop Alt+Up/Down retain non-drag ordering; parity: drag and immediate edits on Android and desktop with existing shell-specific Pages feedback; docs: PDF owner guide README and package layout updated; tests: unit guards desktop pointer/input tests emulator screenshots and gestures plus supplied PDF on final release APK"
+
+[[task]]
 id = "mobile-heavy-bookmark-opening"
 title = "Open mobile navigation without repeated page inflation or main-thread outline scans"
 description = "Removed navigation width animation and repeated synchronous page scans. Canvas metadata now delegates to the lazy source through edited/spliced page views; identical geometry and palette updates no longer rebuild/repaint unnecessarily. OutlineResolution uses one requested-target index and manifest page ids when possible; BookmarkRowsHost resolves on a cancellable worker, caches by weak reference identity and exposes loading/retry feedback instead of propagating archive read failures through composition. Counting tests cover 2000 metadata queries without page reads, bounded sheet resolution, reuse, cancellation and retry. Emulator tests passed with 1200 native pages/800 bookmarks, six repeated first-tap openings, limited visible-page requests and an injected offscreen I/O failure followed by successful retry. The supplied 449-page PDF with 477 source bookmarks passed six first-tap openings on both debug and signed release APKs, then direct simulated touch openings outside instrumentation; screenshots and frame logs retained as build outputs. Full app/core suites, DocsGuardTest, SourceStructureTest and relevant desktop tests passed; debug APK, signed optimized release APK and desktop distributable rebuilt. Docs record evidence and remaining slow emulator frames without promising 60 fps on physical devices."

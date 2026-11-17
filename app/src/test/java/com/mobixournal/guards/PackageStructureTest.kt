@@ -39,7 +39,7 @@ class PackageStructureTest {
     /** The window's packages, exactly as [docs/code-structure.md] states them. */
     private val windowPackages = setOf(
         "desktop", "desktop.sheet", "desktop.ink", "desktop.io", "desktop.settings", "desktop.tools",
-        "desktop.shell", "desktop.previews",
+        "desktop.shell", "desktop.previews", "desktop.navigation",
     )
 
     /** The files the window's root package may hold: the entry points, and nothing else. */

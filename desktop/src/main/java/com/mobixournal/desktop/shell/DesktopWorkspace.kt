@@ -188,6 +188,7 @@ private fun WorkspaceSidebar(state: DesktopShellState, tab: DesktopTab) {
             },
             rename = { id, title -> state.pagesSection.renameBookmark(id, title) },
             remove = { id -> state.pagesSection.deleteBookmark(id) },
+            move = { id, delta -> state.pagesSection.moveBookmark(id, delta) },
         ),
         // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
         revision = state.thumbnailRevision,

@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.navigation.ContentsDragList
 import com.mobixournal.desktop.tools.DesktopTextAction
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -149,6 +150,13 @@ internal fun ContentsPanel(
     // the neighbouring rows stay where they were.
     val naming = editing.draft as? ContentsEditState.Naming
     val adding = naming != null && naming.row == null
+    LaunchedEffect(naming?.row?.id) {
+        val at = rows.indexOfFirst { it.id == naming?.row?.id }
+        if (at >= 0) {
+            androidx.compose.runtime.withFrameNanos { }
+            tab.contentsList.scrollToItem(at)
+        }
+    }
     Column(modifier.padding(horizontal = 6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.weight(1f))
@@ -165,14 +173,19 @@ internal fun ContentsPanel(
         }
         ContentsFilterField(query = query, onQuery = { tab.contentsNavigation = tab.contentsNavigation.withQuery(it) })
         Spacer(Modifier.height(4.dp))
-        LaunchedEffect(rows) {
+        LaunchedEffect(rows, adding) {
             val at = rows.indexOfFirst { it.id == tab.contentsNavigation.anchorId }
-            if (rows.isNotEmpty() && at >= 0 && at != tab.contentsList.firstVisibleItemIndex) {
+            val reveal = rows.indexOfFirst { it.id == editing.revealId }
+            if (adding) tab.contentsList.scrollToItem(0)
+            else if (reveal >= 0) {
+                tab.contentsList.scrollToItem(reveal)
+                editing.revealId = null
+            } else if (rows.isNotEmpty() && at >= 0 && at != tab.contentsList.firstVisibleItemIndex) {
                 tab.contentsList.scrollToItem(at)
             }
         }
         LaunchedEffect(tab.contentsList.firstVisibleItemIndex, rows) {
-            val row = rows.getOrNull(tab.contentsList.firstVisibleItemIndex) ?: return@LaunchedEffect
+            val row = rows.getOrNull(tab.contentsList.firstVisibleItemIndex - if (adding) 1 else 0) ?: return@LaunchedEffect
             tab.contentsNavigation = tab.contentsNavigation.scrolledTo(row.id, row.row)
         }
         if (rows.isEmpty() && !adding) {
@@ -186,6 +199,7 @@ internal fun ContentsPanel(
         ContentsListBlock(
             tab = tab,
             rows = rows,
+            allRows = resolved,
             editing = editing,
             adding = adding,
             contentsEdits = contentsEdits,
@@ -202,6 +216,7 @@ internal fun ContentsPanel(
 private fun ColumnScope.ContentsListBlock(
     tab: DesktopTab,
     rows: List<OutlineRow>,
+    allRows: List<OutlineRow>,
     editing: ContentsEditHost,
     adding: Boolean,
     contentsEdits: ContentsEdits,
@@ -210,38 +225,49 @@ private fun ColumnScope.ContentsListBlock(
     BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
         val widthDp = maxWidth.value
         val widest = largestPageNumber(rows)
-        LazyColumn(state = tab.contentsList, modifier = Modifier.fillMaxSize()) {
-            if (adding) {
-                item(key = "add-draft") {
-                    ContentsAddDraft(
-                        page = editing.addPage,
+        ContentsDragList(allRows, rows, tab.contentsList,
+            editing.draft == null, { id, delta -> editing.submit(contentsEdits.move(id, delta)) }) { listModifier, rowModifier, dragging ->
+            LazyColumn(state = tab.contentsList, modifier = listModifier, userScrollEnabled = !dragging) {
+                if (adding) {
+                    item(key = "add-draft") {
+                        ContentsAddDraft(
+                            page = editing.addPage,
+                            title = editing.title,
+                            error = editing.error,
+                            onTitle = editing::typed,
+                            onSave = {
+                                val result = contentsEdits.add(editing.title, editing.addPage)
+                                if (result is OutlineEdits.Result.Ok) {
+                                    editing.revealId = result.tree.nodes.last().id
+                                    tab.contentsNavigation = tab.contentsNavigation.withQuery("")
+                                }
+                                editing.submit(result)
+                            },
+                            onCancel = editing::cancel,
+                        )
+                    }
+                }
+                items(rows, key = { it.id }) { row ->
+                    val renaming = (editing.draft as? ContentsEditState.Naming)?.takeIf { it.row?.id == row.id }
+                    OutlineRowView(
+                        row = row,
+                        modifier = rowModifier(row),
+                        rowWidthDp = widthDp,
+                        largestPageNumber = widest,
+                        onSelectPage = onSelectPage,
+                        onToggle = { tab.contentsNavigation = tab.contentsNavigation.toggled(row.id) },
+                        // Only the notebook's own rows can be edited: the PDF's rows are the file's, and a first
+                        // bookmark seeds the tree from them so they stay in the list.
+                        onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
+                        onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                        renaming = renaming != null,
                         title = editing.title,
                         error = editing.error,
                         onTitle = editing::typed,
-                        onSave = { editing.submit(contentsEdits.add(editing.title, editing.addPage)) },
-                        onCancel = editing::cancel,
+                        onSaveDraft = { editing.submit(contentsEdits.rename(row.id, editing.title)) },
+                        onCancelDraft = editing::cancel,
                     )
                 }
-            }
-            items(rows, key = { it.row }) { row ->
-                val renaming = (editing.draft as? ContentsEditState.Naming)?.takeIf { it.row?.id == row.id }
-                OutlineRowView(
-                    row = row,
-                    rowWidthDp = widthDp,
-                    largestPageNumber = widest,
-                    onSelectPage = onSelectPage,
-                    onToggle = { tab.contentsNavigation = tab.contentsNavigation.toggled(row.id) },
-                    // Only the notebook's own rows can be edited: the PDF's rows are the file's, and a first
-                    // bookmark seeds the tree from them so they stay in the list.
-                    onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
-                    onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
-                    renaming = renaming != null,
-                    title = editing.title,
-                    error = editing.error,
-                    onTitle = editing::typed,
-                    onSaveDraft = { editing.submit(contentsEdits.rename(row.id, editing.title)) },
-                    onCancelDraft = editing::cancel,
-                )
             }
         }
     }

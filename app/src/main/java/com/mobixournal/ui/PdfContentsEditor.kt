@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -48,6 +49,7 @@ import com.mobixournal.render.OutlineRow
  */
 internal class ContentsSession {
     val bookmarkRows = BookmarkRowsCache()
+    var revealId: String? = null
 
     // Scroll changes are deliberately not Compose state: a fling must not recompose/project the whole tree.
     var scrollAnchorId: String? = null
@@ -204,6 +206,7 @@ internal fun ContentsTitleField(
                 ),
                 modifier = Modifier
                     .weight(1f)
+                    .semantics { contentDescription = "Bookmark title" }
                     .border(
                         width = 1.dp,
                         color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,

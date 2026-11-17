@@ -27,7 +27,7 @@ import com.mobixournal.render.DrawingSurfaceView
 import kotlin.math.roundToInt
 
 /** How far the carried page reads as lifted off the list. */
-private val DRAG_GHOST_SHADOW = 12.dp
+internal val DRAG_GHOST_SHADOW = 12.dp
 
 /**
  * The drag of one page, held **by the list** rather than by the row's handle.

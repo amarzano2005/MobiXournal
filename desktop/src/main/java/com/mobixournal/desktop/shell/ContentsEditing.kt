@@ -52,6 +52,7 @@ internal sealed interface ContentsEditState {
  * the page a new bookmark captured when **Add bookmark** was pressed (a page turned while typing cannot move it).
  */
 internal class ContentsEditHost {
+    var revealId: String? = null
 
     private var edit by mutableStateOf<ContentsEditState?>(null)
     private var typedTitle by mutableStateOf("")
