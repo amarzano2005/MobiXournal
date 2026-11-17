@@ -122,7 +122,7 @@ the lane docks **on the rail's side** — `EditorBody` places it between the rai
 turning the toolbar to the right-hand edge takes the list with it, the way the window's strip follows its
 tools. On wide windows it opens at its final width in a layout lane beside the page. Compact windows show the
 navigator in place of the page while retaining the hidden canvas at its full viewport size; opening
-the list therefore cannot change the current page or undo history. A row is its **number** and its **preview** and the controls, with
+the list therefore cannot change the current page or undo history. Closing it hands the canvas its width back and the page recentres on that frame, without waiting for a touch: the workspace asks the canvas to repaint once the frame that moved the pane is committed, because a resize whose callbacks arrived while the surface still reported its old extent otherwise left the page fitted to the lane's width. A row is its **number** and its **preview** and the controls, with
 no words beside them. The card **is the sheet's shape**: its width follows the page's own proportions at a
 bounded height and width, so portrait and landscape pages keep their proportions without letterboxing
 inside an unrelated card shape. The preview is drawn from the live page (`PageThumbnail`: the sheet's

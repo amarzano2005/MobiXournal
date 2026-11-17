@@ -28,8 +28,13 @@ import android.view.ViewTreeObserver
 
 /** Rebuild the stack once for a genuinely new extent; repaint again after the native buffer settles. */
 internal fun DrawingSurfaceView.repaintAfterResize() {
-    if (!relayoutForResize()) return
-    holder.setSizeFromLayout()
+    // The frame is asked for **every** time, not only when the geometry already looks new: the resize
+    // callbacks can arrive while the surface still reports its old width (a Compose box is placed before
+    // its platform view is laid out), and a call that resolved to "nothing changed" left the previous fit
+    // on screen — a page drawn for the lane's old width, off to one side — until the next touch happened
+    // to ask for a paint. [paint] is the one place that can tell for sure (it compares the viewport with
+    // the view's own extent) and it asks for one more frame when the locked buffer is not this size.
+    if (relayoutForResize()) holder.setSizeFromLayout()
     requestRender()
     repaintWhenSurfaceSettles()
 }

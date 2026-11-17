@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -50,6 +51,7 @@ import com.mobixournal.design.DocumentNavigationLayout
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.PageRanges
 import com.mobixournal.render.PdfOutlineSeeding
+import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.ui.theme.PanelEdgeAir
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
@@ -121,6 +123,16 @@ internal fun DocumentNavigationWorkspace(
         ).dp
         // Outside visibility: closing the navigator or changing its tab must not reset the document's list.
         val session = pane.navigationSessions.getOrPut(pane.navigationDocumentKey) { ContentsSession() }
+        // The canvas takes the lane's space back (or hands it over) with no touch of its own, and its own
+        // resize hooks can land while the surface still reports the old extent — which used to leave the
+        // page drawn for the lane's width, off to one side, until the reader tapped the sheet. One nudge
+        // after the frame that moved the pane is what recentres it; the frame it lands on is the one the
+        // new layout was committed in.
+        LaunchedEffect(ui.pageListOpen, ui.navigationTab) {
+            withFrameNanos { }
+            withFrameNanos { }
+            pane.surface?.repaintAfterResize()
+        }
         val navigator: @Composable () -> Unit = {
             DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width)
         }
