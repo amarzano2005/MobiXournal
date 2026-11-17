@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +33,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -167,6 +171,12 @@ private fun DocumentNavigationLane(
     }
 }
 
+/** The mark each lane wears — the same two the header's capsule carries ([NavigationCapsule]). */
+private fun NavigationTab.glyph(): ImageVector = when (this) {
+    NavigationTab.PAGES -> Icons.Outlined.ViewList
+    NavigationTab.BOOKMARKS -> ChromeGlyph.BOOKMARK.imageVector()
+}
+
 @Composable
 private fun NavigationTabs(ui: EditorUiState, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -176,8 +186,13 @@ private fun NavigationTabs(ui: EditorUiState, onClose: () -> Unit) {
                     onClick = { ui.navigationTab = tab; ui.pageSelection = emptySet() },
                     modifier = Modifier.semantics { role = Role.Tab; selected = ui.navigationTab == tab },
                 ) {
-                    Text(tab.label, color = if (ui.navigationTab == tab) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant)
+                    val tint = if (ui.navigationTab == tab) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    // The tab wears the mark its half of the header capsule wears, so the lane and the
+                    // pill name the two views with one picture each.
+                    Icon(tab.glyph(), contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(tab.label, color = tint)
                 }
             }
         }
