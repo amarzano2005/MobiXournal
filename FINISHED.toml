@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "keep-the-pick-ring-visible-on-the-page-in-view"
+title = "Keep the pick ring visible on the page in view"
+description = "PickBox (ui/PageListPanel.kt) now draws its un-picked ring in colorScheme.onSurfaceVariant instead of colorScheme.outline. The outline is OutlineDark #383838 while a row in view is filled with primaryContainer ActiveSlotDark #38383E, so the ring's contrast on the page the reader had just landed on was 1.01:1: it was drawn, and invisible. onSurfaceVariant (#A0A0A0) is the ink the row's drag handle already reads in, so the two marks at the row's end keep one weight: 4.35:1 on the steel fill and 6.75:1 on the desk. The picked state is untouched (accent fill and tick), and no other mark in the row used the outline. Checks: :app:testDebugUnitTest green including DocsGuardTest and SourceStructureTest, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 c7493c39947a32c4fd2715f4d3fa341c86a7039695686e8934c4b32db62a8ef7) and it was uploaded to https://files.catbox.moe/1j4m9k.apk for an on-device check, :desktop:createDistributable rebuilt. NOT RUN: no emulator or device on this host, so the ring was verified by its contrast ratio and the build, not by eye."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: no new surface, the ring is still the row's 24 dp bordered circle inside the 40 dp target; tokens: onSurfaceVariant replaces outline, both existing scheme colours with no literal, and the verified ratios are 4.35:1 on the steel fill and 6.75:1 on the desk against the outline's 1.01:1; glyph: none added, the tick stays Material's Check; states: un-picked ring, picked accent fill with the tick, and the disabled/dimmed behaviour unchanged; copy: the accessible 'Pick page n' and 'Page n picked' names are untouched; keyboard: not applicable on Android, the window's page panel is untouched; parity: this is the Android lane only, the desktop strip keeps its own selection art; docs: no page described the ring's colour, so none needed a change; tests: app unit suite with the doc and structure guards green, release APK rebuilt and verified, desktop distributable refreshed"
+
+[[task]]
 id = "drop-the-page-list-foot-to-the-lane-s-bottom-edge"
 title = "Drop the page list's commands to the lane's bottom edge"
 description = "PageListCommands (ui/PageListFoot.kt) no longer applies navigationBarsPadding: the subject line and the three 48 dp commands now reach the lane's bottom edge in the lane's own 6 dp of air instead of floating a whole system strip above the panel's foot, which is where the page counter on the canvas already sits. docs/pages-and-paper.md's foot sentence now says the foot reaches the lane's edge rather than clearing the navigation bar. Checks: :app:testDebugUnitTest green including DocsGuardTest and SourceStructureTest, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 aea83bf6bb161fbb272f564082034dd14a188ad32f3640f60769c7589cea285d) and it was uploaded to https://files.catbox.moe/2sbk0z.apk for an on-device test, :desktop:createDistributable rebuilt. NOT RUN: no emulator or device on this host, so the new position was never seen on a screen, and :desktop:test still cannot start in this VM (missing Skiko native library)."

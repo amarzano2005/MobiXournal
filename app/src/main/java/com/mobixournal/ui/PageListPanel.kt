@@ -576,6 +576,11 @@ private fun PageDragHandle(index: Int) {
 /**
  * The pick box at a row's end: a ring while the page is not picked, filled with the accent and a tick
  * when it is. A ring rather than an empty square, so the row does not read as an unfinished form.
+ *
+ * The ring wears the row's muted **ink** and not the chrome `outline`: the outline is the same steel the
+ * page in view is filled with (`#383838` against `#38383E`), so the ring disappeared on exactly the row a
+ * reader had just landed on. `onSurfaceVariant` is the ink the row's handle already reads in, so the two
+ * marks at the row's end keep one weight on every fill.
  */
 @Composable
 private fun PickBox(index: Int, picked: Boolean, onToggle: () -> Unit) {
@@ -587,7 +592,7 @@ private fun PickBox(index: Int, picked: Boolean, onToggle: () -> Unit) {
         Box(
             Modifier.size(24.dp).clip(CircleShape)
                 .background(if (picked) MaterialTheme.colorScheme.primary else Color.Transparent)
-                .border(1.dp, if (picked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape),
+                .border(1.dp, if (picked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             if (picked) Icon(Icons.Outlined.Check, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
