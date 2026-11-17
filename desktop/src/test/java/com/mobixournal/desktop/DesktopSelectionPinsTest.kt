@@ -107,9 +107,9 @@ class DesktopSelectionPinsTest {
         }
     }
 
-    /** True when [rgb] is the accent the pin marks are painted with, allowing for antialiasing. */
-    private fun isAccent(rgb: Int): Boolean {
-        val accent = DesktopTheme.accent.toArgb()
+    /** True when [rgb] is the pin red the marks are painted with, allowing for antialiasing. */
+    private fun isPin(rgb: Int): Boolean {
+        val accent = DesktopTheme.pin.toArgb()
         val r = (rgb shr 16) and 0xFF
         val g = (rgb shr 8) and 0xFF
         val b = rgb and 0xFF
@@ -118,13 +118,13 @@ class DesktopSelectionPinsTest {
             abs(b - (accent and 0xFF)) <= 48
     }
 
-    private fun accentNear(pixels: IntArray, x: Int, y: Int): Boolean {
+    private fun pinNear(pixels: IntArray, x: Int, y: Int): Boolean {
         for (dy in -4..4) {
             for (dx in -4..4) {
                 val px = x + dx
                 val py = y + dy
                 if (px !in 0 until width || py !in 0 until height) continue
-                if (isAccent(pixels[py * width + px])) return true
+                if (isPin(pixels[py * width + px])) return true
             }
         }
         return false
@@ -132,17 +132,17 @@ class DesktopSelectionPinsTest {
 
     /**
      * Both ends of the wire at y = 450 are marked as places this figure may be paired with — and marked
-     * with enough accent to be **seen**: a dot the size of the tablet's was on the sheet and still not
+     * with enough red to be **seen**: a dot the size of the tablet's was on the sheet and still not
      * looked at, so the mark has to stay a mark a reader can aim at.
      */
     private fun assertWireMarked(pixels: IntArray, when_: String) {
-        assertTrue("$when_: the wire's left end is marked", accentNear(pixels, 320, 450))
-        assertTrue("$when_: and its right end", accentNear(pixels, 440, 450))
+        assertTrue("$when_: the wire's left end is marked", pinNear(pixels, 320, 450))
+        assertTrue("$when_: and its right end", pinNear(pixels, 440, 450))
         for (x in listOf(320, 440)) {
             val solid = (-6..6).sumOf { dy ->
-                (-6..6).count { dx -> isAccent(pixels[(450 + dy) * width + (x + dx)]) }
+                (-6..6).count { dx -> isPin(pixels[(450 + dy) * width + (x + dx)]) }
             }
-            assertTrue("$when_: the end at $x is a solid mark ($solid accent px)", solid >= 60)
+            assertTrue("$when_: the end at $x is a solid mark ($solid pin px)", solid >= 60)
         }
     }
 
@@ -165,7 +165,7 @@ class DesktopSelectionPinsTest {
         try {
             val pixels = pixels(scene)
             // The page's right half is empty paper: not one mark may be painted there.
-            val stray = (400..690).sumOf { y -> (300..560).count { x -> isAccent(pixels[y * width + x]) } }
+            val stray = (400..690).sumOf { y -> (300..560).count { x -> isPin(pixels[y * width + x]) } }
             assertFalse("a figure alone marks nothing ($stray px)", stray > 0)
         } finally {
             scene.close()

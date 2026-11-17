@@ -70,7 +70,7 @@ internal class CanvasChrome {
      */
     val pin = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = SELECTION_COLOR
+        color = PIN_COLOR
     }
     /**
      * The **edge** a pin mark wears, painted under it: the sheet's own white, so a mark that lands on a black
@@ -287,7 +287,8 @@ internal class CanvasChrome {
         selectionStroke.color = selection
         handle.color = selection
         handleArm.color = selection
-        pin.color = selection
+        // Not the theme's accent: a pin is a join point on the sheet, so it keeps the shared red.
+        pin.color = PIN_COLOR
         selectionFill.color = selection.withAlpha(SELECTION_FILL_ALPHA)
         bandFill.color = selection.withAlpha(BAND_FILL_ALPHA)
         guideStroke.color = guide
@@ -318,6 +319,12 @@ internal class CanvasChrome {
          * cannot pick a second amber.
          */
         val GUIDE_COLOR: Int = 0xFF000000.toInt() or DesignTokens.GUIDE_RGB
+
+        /**
+         * The **pin mark**'s red — the shared `DesignTokens.PIN_RGB`, opaque, and not a theme role: the
+         * marks a wire joins at are a property of the sheet, like the guide's amber, not of what is picked.
+         */
+        val PIN_COLOR: Int = 0xFF000000.toInt() or DesignTokens.PIN_RGB
 
         /** Alpha of the wash filling the setsquare's body (the shared `GUIDE_FILL_ALPHA`). */
         const val GUIDE_FILL_ALPHA = DesignTokens.GUIDE_FILL_ALPHA

@@ -297,7 +297,7 @@ internal fun DrawScope.drawConnectionPins(
         for (b in targets.drop(index + 1)) {
             if (hypot(a.absX - b.absX, a.absY - b.absY) <= JOIN_PT) {
                 drawCircle(
-                    color = DesktopTheme.accent,
+                    color = DesktopTheme.pin,
                     radius = JOIN_PX / pxPerPt,
                     center = Offset((a.absX * pxPerPt).toFloat(), (a.absY * pxPerPt).toFloat()),
                     style = Stroke(width = 1.5.dp.toPx()),
@@ -342,7 +342,7 @@ private fun DrawScope.drawFigureDraftPins(
 
 /**
  * One pin of the page, as the tablet paints it: a **wire's end is a square**, every other pin a filled dot,
- * both in the solid accent (`CircuitPinOverlay.drawPinTargets`).
+ * both in the solid pin red (`CircuitPinOverlay.drawPinTargets`).
  *
  * The window drew every target as a small circle at 85 % of the accent, so a wire's end looked like any other
  * pin and a dot over a ruled page read as part of the ruling: the marks were there and still invisible, which
@@ -359,14 +359,14 @@ private fun DrawScope.drawPinTarget(
         val half = WIRE_END_PX / pxPerPt
         val halo = (WIRE_END_PX + PIN_HALO_PX) / pxPerPt
         drawRect(DesktopTheme.desk, topLeft = Offset(x - halo, y - halo), size = Size(halo * 2f, halo * 2f))
-        drawRect(DesktopTheme.accent, topLeft = Offset(x - half, y - half), size = Size(half * 2f, half * 2f))
+        drawRect(DesktopTheme.pin, topLeft = Offset(x - half, y - half), size = Size(half * 2f, half * 2f))
     } else {
         drawPinDot(target.absX, target.absY, pxPerPt, radiusPx)
     }
 }
 
 /**
- * A figure's **own** pin — the thing being joined — in the solid accent, as the tablet's `chrome.pin`.
+ * A figure's **own** pin — the thing being joined — in the solid pin red, as the tablet's `chrome.pin`.
  *
  * Edged by a hairline of the desk ([PIN_HALO_PX]), the same trick the pointer wears: a solid dot over a
  * black wire or a ruled grid line lost its edge, and a mark with no edge is a mark that is not seen.
@@ -374,7 +374,7 @@ private fun DrawScope.drawPinTarget(
 private fun DrawScope.drawPinDot(x: Double, y: Double, pxPerPt: Float, radiusPx: Float = PIN_PENDING_PX) {
     val at = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
     drawCircle(DesktopTheme.desk, radius = (radiusPx + PIN_HALO_PX) / pxPerPt, center = at)
-    drawCircle(DesktopTheme.accent, radius = radiusPx / pxPerPt, center = at)
+    drawCircle(DesktopTheme.pin, radius = radiusPx / pxPerPt, center = at)
 }
 
 /**

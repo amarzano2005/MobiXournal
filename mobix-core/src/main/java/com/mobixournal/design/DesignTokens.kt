@@ -403,6 +403,18 @@ object DesignTokens {
      */
     const val GUIDE_FILL_ALPHA: Int = 0x22
 
+    /**
+     * The red of a **connection pin** — the magnetic anchor a wire, arrow or figure joins at.
+     *
+     * Pins wore the selection accent, so the marks a hand aims at read as *this is picked*; they are the
+     * page's join points, not a selection, and an accent on a dozen dots at once said otherwise. The red
+     * is what is left for *a point that pulls*: the instruments keep the amber, the selection keeps the
+     * accent. Both shells read this token (`CanvasChrome.PIN_COLOR` is the tablet's name for it, the
+     * window's `DesktopTheme.pin` the other), and it is deliberately not `DOCUMENT_RED_RGB`: a command
+     * about a PDF and a join point on the sheet are not one meaning.
+     */
+    const val PIN_RGB: Int = 0xE5484D
+
     // --- Desktop chrome metrics (`docs/desktop-workstation.md`, the shell as built) --------------
 
     /** The header band: one row of document tabs, closing on one bottom edge. */

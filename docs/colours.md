@@ -166,6 +166,13 @@ container could reach a light-theme screen.)
   alpha beside it as `GUIDE_FILL_ALPHA`; the tablet's `CanvasChrome.GUIDE_COLOR` and the window's
   `DesktopTheme.guide`/`guideFill` are the two readers. Deliberately not the accent blue: an accent
   marks what is *picked*, and an instrument is a physical thing laid on the paper.
+- **Pin red (`#E5484D`)**: the **connection pins** — the magnetic anchors a wire, arrow or figure joins
+  at, drawn while a connector is armed, while a part is being placed and around a selected figure. Its
+  one home is `DesignTokens.PIN_RGB`; the tablet's `CanvasChrome.PIN_COLOR` and the window's
+  `DesktopTheme.pin` are the two readers, so the two shells cannot paint two reds. The pins wore the
+  selection accent, which made a page of join points look like a page of things that were picked; the
+  red says *a point that pulls* instead, and it is deliberately not `DOCUMENT_RED_RGB` — a command about
+  a PDF and a join point on the sheet are not one meaning.
 
 ### The violet trap
 

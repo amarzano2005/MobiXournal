@@ -215,7 +215,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   steps, **Page background** and **Page format** (A4/A5/Letter/Legal, mm/in/pt, **Default**, **Set as default**),
   the tablet's `PageOps` at one undo step each (`DesktopPagesTest`); the strip ends with its last tool.
 - **Marks the pins a connection would join, and joins them**: while a connector is being **drawn** — the
-  Line or Arrow tool, or a circuit family — every compatible pin wears a **solid** accent dot, a wire's end a
+  Line or Arrow tool, or a circuit family — every compatible pin wears a **solid red** dot (`DesignTokens.PIN_RGB`), a wire's end a
   filled square (`WIRE_END_PX`), the tablet's own marks, and the figure's own pins show as it is laid down — but only when the page holds something to join; ends are magnetised onto the nearest pin
   (`snapWireEnds`, `circuitSpan`; an arrow reaches every family, `FigurePins`), a **selected** element shows
   them at rest as well as while it is dragged (`selectionMarks`) — its own pins plus what it may be paired with, and none with nothing to join.

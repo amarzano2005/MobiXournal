@@ -183,6 +183,13 @@ object DesktopTheme {
     /** The faint wash inside the setsquare's body: [guide] at the shared `GUIDE_FILL_ALPHA`. */
     val guideFill: Color get() = guide.copy(alpha = DesignTokens.GUIDE_FILL_ALPHA / 255f)
 
+    /**
+     * The red a **connection pin** wears — the tablet's `chrome.pin`, from the one token (`PIN_RGB`), so
+     * the two shells cannot paint two reds. Deliberately not [accent]: a pin is a join point on the sheet,
+     * not something that is picked, which is what an accent blue made it look like.
+     */
+    val pin: Color = tokenColour(DesignTokens.PIN_RGB)
+
     /** The steel a *picked* slot wears — a selected tab, a held toggle. */
     val activeSlot: Color get() = tokenColour(
         if (light) DesignTokens.ACTIVE_SLOT_LIGHT_RGB else DesignTokens.ACTIVE_SLOT_DARK_RGB,
