@@ -111,6 +111,11 @@ class PaneState {
     var backgroundConfig by mutableStateOf<String?>(null)
     /** The open document's page bookmarks, in page order (see [PageBookmarks]). */
     var bookmarks by mutableStateOf<List<PageBookmark>>(emptyList())
+
+    /** Identity used by the inline navigator to keep each document's reading session separate. */
+    internal var navigationDocumentKey by mutableStateOf("")
+    /** Retained across immersive view and focus changes as well as opening/closing the lane. */
+    internal val navigationSessions = mutableMapOf<String, ContentsSession>()
     /**
      * The backing PDF's Contents tree, or null when there is no PDF (or it carries no outline).
      * Extracted off the UI thread once the file is opened, so it lands a moment after the pages do.

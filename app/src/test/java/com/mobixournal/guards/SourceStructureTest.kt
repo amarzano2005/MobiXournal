@@ -62,13 +62,6 @@ class SourceStructureTest {
         // +10 deliberate: the hold recogniser's own switch — one stored boolean, its key, the load that keeps
         // it exclusive with `recognizeShapes`, and the save beside them.
         "ui/AppSettings.kt" to 1019,
-        // +2 beyond the budget: the same switch handed to the canvas, whose hold lives in `HoldSnap`
-        // (`holdSnap.enabled`) rather than in a mutable member on the view.
-        // +3 deliberate: the **Export As** card's three answers, passed through the screen to the overlays
-        // that host it — the card's flag is the screen's, so its commands have to reach that far.
-        // +16 deliberate: the empty half of a split draws the entry screen in its own pane, so the screen
-        // counts each pane's documents and hands down the entry the window shows when none is open.
-        "ui/EditorScreen.kt" to 721,
         // The two that carry the window's half of auto save, one deliberate line each over the budget: a stored
         // boolean in the settings file, and the state that the Documents switch and the quiet job both read.
         // The rule itself lives in `mobix-core` (`io/AutoSavePolicy.kt`), not here.

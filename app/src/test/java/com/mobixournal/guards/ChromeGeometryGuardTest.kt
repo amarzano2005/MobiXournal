@@ -188,14 +188,13 @@ class ChromeGeometryGuardTest {
         assertTrue("Scaffold Column must place EditorTopBar first", topBarIndex >= 0)
         assertTrue("Scaffold Column must place EditorBody after EditorTopBar", bodyIndex > topBarIndex)
 
-        // In EditorBody, RailLane is paired in a Row with the canvas, meaning it starts at EditorBody's top (below header)
         val editorBodyContent = content.substringAfter("private fun EditorBody(").substringBefore("\n/**")
-        assertTrue(
-            "EditorBody must place RailLane and canvas in a Row, starting below the entire header slab",
-            editorBodyContent.contains("Row(modifier = modifier)") &&
-                editorBodyContent.contains("RailLane(toolbar,") &&
-                editorBodyContent.contains("canvas("),
-        )
+        val workspace = findSourceFile("DocumentNavigationPanel.kt").readText()
+        assertTrue("EditorBody must use the inline workspace below the header", editorBodyContent.contains("DocumentNavigationWorkspace("))
+        assertTrue("The workspace must pair RailLane and the live canvas in a Row",
+            workspace.contains("Row(Modifier.fillMaxSize())") &&
+                workspace.contains("RailLane(toolbar,") && workspace.contains("canvas(Modifier.weight(1f)"))
+
     }
 
     @Test
@@ -267,7 +266,7 @@ class ChromeGeometryGuardTest {
 
         // The rail's lane: a band, so it shades and casts nothing either — and it shades the edge it
         // shares with the page, which is the rest of the header's own corner.
-        val railLane = screen.substringAfter("private fun RailLane(").substringBefore("\n}")
+        val railLane = screen.substringAfter("internal fun RailLane(").substringBefore("\n}")
         assertFalse("RailLane must not carry a band elevation", railLane.contains("bandShadowDp"))
         assertFalse("RailLane must not cast a shadow at all", railLane.contains("shadowElevation = "))
         assertTrue(

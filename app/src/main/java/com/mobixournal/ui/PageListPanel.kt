@@ -135,9 +135,12 @@ internal fun actedPages(picked: Set<Int>, currentPage: Int, pageCount: Int): Set
 /** The capsule wired to the chrome's own flag, so the top bar only says where it stands. */
 @Composable
 internal fun PageListCapsuleFor(ui: EditorUiState) {
-    PageListCapsule(open = ui.pageListOpen) {
-        ui.pageListOpen = !ui.pageListOpen
-        if (!ui.pageListOpen) ui.pageSelection = emptySet()
+    Row {
+        PageListCapsule(
+            open = ui.pageListOpen && ui.navigationTab == NavigationTab.PAGES,
+            onClick = { ui.toggleNavigation(NavigationTab.PAGES) },
+        )
+        BookmarksCapsule(ui)
     }
 }
 
@@ -214,11 +217,6 @@ internal fun PageListPanel(
      * is a canvas, and a PDF page then falls back to its bare paper.
      */
     surface: DrawingSurfaceView? = null,
-    /**
-     * The lane's foot carries a door of its own when the document has one — the PDF's Contents — so a
-     * jump between pages stands with the pages rather than in the menu of page commands.
-     */
-    contentsAction: (@Composable () -> Unit)? = null,
     onSelection: (Set<Int>) -> Unit,
     onGoToPage: (Int) -> Unit,
     /** Move [picked] by [delta] positions, as one step. */
@@ -228,6 +226,7 @@ internal fun PageListPanel(
     onDelete: (picked: Set<Int>) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    showHeader: Boolean = true,
 ) {
     val picked = selection.filter { it in 0 until pageCount }.toSet()
     val acting = actedPages(picked, currentPage, pageCount)
@@ -245,7 +244,7 @@ internal fun PageListPanel(
         tonalElevation = 0.dp,
     ) {
         Column(Modifier.fillMaxHeight()) {
-            PageListHeader(pageCount = pageCount, onClose = onClose)
+            if (showHeader) PageListHeader(pageCount = pageCount, onClose = onClose)
             PageListRows(
                 pages = pages,
                 surface = surface,
@@ -264,7 +263,6 @@ internal fun PageListPanel(
                 pageCount = pageCount,
                 onMove = carry,
                 onDelete = removeRun,
-                contentsAction = contentsAction,
             )
         }
     }

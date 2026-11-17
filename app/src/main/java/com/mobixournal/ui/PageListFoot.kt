@@ -40,7 +40,6 @@ internal fun PageListCommands(
     pageCount: Int,
     onMove: (picked: Set<Int>, delta: Int) -> Unit,
     onDelete: (picked: Set<Int>) -> Unit,
-    contentsAction: (@Composable () -> Unit)?,
 ) {
     val canMoveUp = acting.isNotEmpty() && acting.min() > 0
     val canMoveDown = acting.isNotEmpty() && acting.max() < pageCount - 1
@@ -65,7 +64,6 @@ internal fun PageListCommands(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
             )
-            contentsAction?.invoke()
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             // 48 dp each (Material's minimum target), which the 196 dp lane holds with room to spare.

@@ -334,6 +334,7 @@ fun EditorScreen(
     val context = LocalContext.current
     val bookmarkStore = remember(context) { BookmarkStore(context) }
     LaunchedEffect(pane, bookmarkKey) {
+        pane.navigationDocumentKey = bookmarkKey
         pane.bookmarks = bookmarkStore.load(bookmarkKey)
         pane.onBookmarksChange = { updated ->
             pane.bookmarks = updated
@@ -620,69 +621,9 @@ private fun EditorBody(
     if (ui.fullPage) {
         Box(modifier = modifier) { canvas(Modifier.fillMaxSize()) }
     } else {
-        // The vertical rail as a lane down the chosen edge, the canvas taking the rest. The lane is
-        // the rail's own width ([SideToolbarModernTotalWidth]) and it starts at the **header's** bottom
-        // edge — the bar plus the row of document tabs inside it — so the rail hangs directly under the
-        // whole header and nothing overlaps anything. That is what costs the rail's spacing budget the
-        // tab row; see `RailSizing.kt`.
-        val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
-        val pageList: @Composable () -> Unit = { PageListLane(ui, pane, expandFromStart = railOnLeft) }
-        Row(modifier = modifier) {
-            if (railOnLeft) {
-                RailLane(toolbar, canvasOnRight = true)
-                pageList()
-            }
-            canvas(Modifier.weight(1f).fillMaxHeight())
-            if (!railOnLeft) {
-                pageList()
-                RailLane(toolbar, canvasOnRight = false)
-            }
-        }
-    }
-}
-
-/**
- * The **page list** as a lane of the body, on the rail's side: between the rail's lane and the canvas,
- * so turning the toolbar to the other edge takes the pages with it — the tools and the pages they act
- * on are one edge. A lane of the layout rather than a sheet over the page, for the rail's own reason:
- * every pixel of the visible page stays writable.
- *
- * The list's own two edits go through the canvas's `PageCommands`, so a picked run is one undo step
- * (`PageOps.moveAll`, `PageOps.removeAll`) exactly as it is on the window.
- */
-@Composable
-private fun PageListLane(ui: EditorUiState, pane: PaneState, expandFromStart: Boolean) {
-    // The lane **expands** instead of appearing at full width: it takes a slice of the page's own width,
-    // and a slice that arrives in one frame reads as a glitch rather than as a panel being opened.
-    AnimatedVisibility(
-        visible = ui.pageListOpen && !ui.fullPage,
-        enter = expandHorizontally(
-            expandFrom = if (expandFromStart) Alignment.Start else Alignment.End,
-        ) + fadeIn(),
-        exit = shrinkHorizontally(
-            shrinkTowards = if (expandFromStart) Alignment.Start else Alignment.End,
-        ) + fadeOut(),
-    ) {
-        PageListPanel(
-        pageCount = pane.pageCount,
-        currentPage = pane.currentPage,
-        selection = ui.pageSelection,
-        // The live pages, so a row's preview is the page's own ink and paper.
-        pages = pane.surface?.pageCommands?.pages().orEmpty(),
-        surface = pane.surface,
-        contentsAction = {
-            PdfContentsLane(pane, onGoToPage = { pane.surface?.goToPage(it) })
-        },
-        onSelection = { ui.pageSelection = it },
-        onGoToPage = { pane.surface?.goToPage(it) },
-        onMove = { picked, delta ->
-            pickedMoveTarget(picked, delta, pane.pageCount)
-                ?.let { pane.surface?.pageCommands?.movePages(picked, it) }
-        },
-        onReorder = { from, to -> pane.surface?.pageCommands?.movePages(setOf(from), to) },
-        onDelete = { picked -> pane.surface?.pageCommands?.removePages(picked); ui.pageSelection = emptySet() },
-        onClose = { ui.pageListOpen = false; ui.pageSelection = emptySet() },
-    )
+        DocumentNavigationWorkspace(
+            ui, pane, settings.toolbarPosition != ToolbarPosition.RIGHT, toolbar, canvas, modifier,
+        )
     }
 }
 
@@ -693,7 +634,7 @@ private fun PageListLane(ui: EditorUiState, pane: PaneState, expandFromStart: Bo
  *   side its `bandSideEdge` shades, continuing the header's closing edge down the margin as one corner.
  */
 @Composable
-private fun RailLane(toolbar: @Composable () -> Unit, canvasOnRight: Boolean) {
+internal fun RailLane(toolbar: @Composable () -> Unit, canvasOnRight: Boolean) {
     val glassColor = rememberGlassSurfaceColor()
     Surface(
         // **The lane wears the band's own glass, never the canvas's background.** The header and this

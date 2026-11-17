@@ -115,6 +115,9 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     /** Whether the lateral **page list** is showing, down the same edge the rail is docked on. */
     var pageListOpen by mutableStateOf(false)
 
+    /** The navigator's selected view survives closing the lane. */
+    internal var navigationTab by mutableStateOf(NavigationTab.PAGES)
+
     /**
      * The pages picked in that list (0-based indices) — what its move and delete commands act on.
      * Emptied when the list closes, so a stale pick cannot act on pages the user has forgotten about.

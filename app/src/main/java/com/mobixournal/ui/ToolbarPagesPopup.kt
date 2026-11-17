@@ -57,9 +57,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
         // Everything under the navigator is the window's order, so the rows both shells share are the
         // same rows in the same places (see `desktop/shell/PageMenuPanel.kt`). Two things are
-        // deliberately absent: the PDF's **Contents**, which is a door of the page list's own foot
-        // (`PdfContentsButton`), and the app-side **bookmarks** — this menu is what can be done to the
-        // page in front of you, and neither of those is.
+        // deliberately absent: the outline (opened directly by the bookmark ribbon) and local
+        // page flags. This menu holds commands acting on the page in front of you.
         QuickSizeRows(callbacks)
         DropdownMenuItem(
             text = { Text("Add page") },

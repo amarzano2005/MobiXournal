@@ -85,6 +85,8 @@ dp, half a slot tall, with the dock's 6 dp of air on each side — so both toolb
 same line, and it stands at whichever end the preview takes (leading on a left-docked rail, trailing on a
 right-docked one).
 
+Android's top-bar page-list and bookmark entries open an inline **Pages / Bookmarks** lane. Back cancels an edit before closing it. Tablet-sized workspaces keep the list beside the canvas; compact windows return to the page after a jump. [pdf.md](pdf.md#pdf-contents-the-outline) owns its layout and verification limits.
+
 ## The rail never cuts a slot — and never shrinks one
 
 **The rail never cuts a slot — and never shrinks one.** `ToolbarShell` (`ui/SideToolbar.kt`) measures
@@ -196,9 +198,7 @@ so `EditorScreen.applyTool` maps them to the surface's `handMode` / `placeKind` 
 drawing tools to the document `Tool`). The **Pages** pop-up is a page navigator: `Page N / M` with
 ◀ / ▶ to jump to the previous/next page (`goToPage` scrolls the stack; the surface reports the page
 under the viewport centre via `onCurrentPageChanged`), plus Add / Remove page and the sheet's own two
-questions. It carries **no** bookmark section and no Contents row: the outline's door is the page list
-lane's foot (`PdfContentsButton`, bottom right — see _PDF Contents_), because a jump between pages belongs
-with the pages, and the bookmarks are a store the chrome keeps rather than menu rows (_Page bookmarks_).
+questions. Bookmarks open directly from the top bar; [pdf.md](pdf.md) owns their navigation and storage.
 A **right-edge scroll
 thumb** (`ScrollThumb.kt`, overlaid on the canvas in a `Box` sibling of the `AndroidView`) gives
 PDF-style fast paging: the surface reports its vertical scroll geometry via

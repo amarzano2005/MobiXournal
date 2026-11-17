@@ -79,6 +79,9 @@ enum class ChromeGlyph {
     /** Three dots: actions belonging to one row, rather than the application menu. */
     MORE_HORIZ,
 
+    /** A ribbon marking a place in the document. */
+    BOOKMARK,
+
     /** The turn that takes a step back. */
     UNDO,
 
@@ -315,6 +318,7 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.ALIGN_BOTTOM -> "M16 13h-3V3h-2v10H8l4 4l4 -4ZM4 19v2h16v-2H4Z"
         ChromeGlyph.DISTRIBUTE_H -> "M4 22H2V2h2V22ZM22 2h-2v20h2V2ZM13.5 7h-3v10h3V7Z"
         ChromeGlyph.DISTRIBUTE_V -> "M22 2v2H2V2H22ZM7 10.5v3h10v-3H7ZM2 20v2h20v-2H2Z"
+        ChromeGlyph.BOOKMARK -> "M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zM17 18l-5-2.18L7 18V5h10v13z"
         ChromeGlyph.CHEVRON_UP -> "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"
         ChromeGlyph.CHEVRON_DOWN -> "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
         ChromeGlyph.DRAG_HANDLE -> "M20 9H4v2h16V9zM4 15h16v-2H4v2z"

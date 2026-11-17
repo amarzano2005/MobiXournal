@@ -141,9 +141,8 @@ refuses a pick covering the whole document), each as **one** undo step — and w
 act on the page in view, which is the plain case and needs no ceremony. Either command **carries** the
 page: the viewport and the pick follow it to its new place, so the sheet in front of you is the page you
 just moved — and the page the next tap acts on, which is why the arrows step a page the way the eye reads
-them. The lane's foot carries one door of its own: the PDF's **Contents** outline as a bare glyph at the
-bottom right (`PdfContentsButton`), because a jump between pages belongs with the pages rather than in the
-menu of page commands. The foot clears the system navigation bar (`navigationBarsPadding`) and its three
+them. The top bar's bookmark ribbon opens the inline **Bookmarks** view; [pdf.md](pdf.md) owns it.
+The foot clears the system navigation bar (`navigationBarsPadding`) and its three
 buttons are 48 dp: the app draws edge to edge, so a control under the gesture strip needs two taps — the
 first one belongs to the system — and a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
 reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the

@@ -25,6 +25,7 @@ A capability that works everywhere is not listed: this page is the exceptions, n
 
 | Capability | Android | Windows | The limit, and why | Evidence |
 |---|---|---|---|---|
+| Revised inline bookmark navigation | **Not verified** | **Supported** | Android has direct access and an inline Pages / Bookmarks panel, with automated state/layout checks; the revised workflow still needs a device or emulator run. Windows retains its existing tested sidebar. | [pdf.md](pdf.md#pdf-contents-the-outline) |
 | Handwriting search with no network | **Partially supported** | **Supported** | On a tablet, the first search in a language downloads ML Kit's model; the pure-Kotlin engine still reads when no model is present. The window uses the recognizer Windows already installs. | [search.md](search.md) |
 | Parametric and polar plots | **Partially supported** | **Partially supported** | Android places a parametric pair from the plot dialog's *Parametric {x, y}* tab; the window's card places `y = f(x)` only, and neither shell creates a polar curve. All three kinds are stored, drawn, exported and re-opened wherever a document carries them. | [math-engine.md](math-engine.md) |
 | Unicode text in an exported PDF | **Supported** | **Supported** | A text run the base-14 fonts cannot carry is typeset in a bundled DejaVu face both shells subset into the file, so Greek, Cyrillic, subscripts, combining marks, emoji and the CP1252 punctuation set are drawn and extractable. A codepoint even DejaVu lacks is a visible U+FFFD, not a `?`. | [pdf.md](pdf.md) |
@@ -47,10 +48,8 @@ the `.msi`, choose *Properties* and open *Digital Signatures*, or run `Get-Authe
 PowerShell. A signed installer is a build with a certificate configured rather than a different
 product — [tools.md](tools.md) says which variables produce one.
 
-No row on this page carries **Not verified** today: the one that did became a finding about the published
-file. A row returns to that word when a capability is believed to work and nothing available here can
-confirm it, and it leaves only when the check has been run and written down — so the absence of the word
-is not a verdict either way.
+The revised Android bookmark navigator carries **Not verified** until its interaction and layout have
+been exercised on a device or emulator. Automated state/layout tests do not replace that visual check.
 
 ## Adding a row
 

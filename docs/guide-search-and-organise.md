@@ -57,13 +57,13 @@ dropped at the bottom without letting go.
 
 ## Bookmarks
 
-A bookmark is a labelled, colour-coded flag on a page, and the point of it is finding a page again in a
-document too long to scroll. It is **navigation the app keeps**, not document content: the file stays
-byte-identical whether or not a page is flagged, and a flag never becomes an undo step.
+The document's bookmark list opens directly from the **bookmark ribbon** beside **Page list** on Android,
+or the **Bookmarks** tab in the Windows sidebar. It includes the imported PDF's outline and entries you
+add yourself. Follow [the bookmark guide](guide-pdf-and-audio.md#following-the-pdfs-own-contents) for
+navigation, filtering and editing, including the verification limit of Android's revised panel.
 
-The flags are painted on the sheet's top-right corner, and they survive the page being moved or a page
-being inserted before them. They belong to this app's record for that document, so they do not travel
-with the file to another device.
+The older colour-coded page flags are separate, local navigation records. They do not travel with a
+file to another device; [pages-and-paper.md](pages-and-paper.md#page-bookmarks-uipagebookmarkskt) owns that record.
 
 ## Tabs, split view, and what a tab switch costs
 

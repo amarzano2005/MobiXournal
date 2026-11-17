@@ -160,8 +160,14 @@ over no text stays exactly as drawn.
 
 ## Following the PDF's own contents
 
-The **Contents** glyph at the foot of the page list opens the PDF's outline — indent, page numbers, the
-bookmark tree the file already had. Tapping goes by the PDF's own page number rather than by a count, so
+On Android, tap the **bookmark ribbon** beside **Page list** in the top bar. The **Bookmarks** tab
+shows the PDF's outline beside the document; **Pages** switches to page previews in the same panel.
+On a tablet, choosing a bookmark leaves the list open for the next jump. In a compact window, choosing a
+page closes the panel; the ribbon opens it again with the filter and folded chapters retained.
+This revised Android layout is checked through source inspection and automated state/layout tests;
+it has not yet been exercised on a device or emulator.
+
+Tapping goes by the PDF's own page number rather than by a count, so
 even a merged PDF lands on the right sheet; an entry with no destination inherits the page of the nearest
 chapter below it, and an entry that points nowhere is listed but not tappable.
 
@@ -175,7 +181,7 @@ one pixel: they get taller.
 
 **A long book folds, and a word finds it.** Each chapter with sections under it wears a chevron: close it and
 its sections leave the list, open it and they come back — one chapter at a time, even when two of them share
-a title. In the window the Contents are a view of their own: the **Pages / Contents** switch at the top of
+a title. In the window the Contents are a view of their own: the **Pages / Bookmarks** switch at the top of
 the sidebar, and the index gets the sidebar's whole height instead of a folded section under the thumbnails. The **Filter** box finds a section by name; the chapters above the hit stay in the list as the path
 to it, quieter than the hit itself, and the row naming the page you are reading wears the accent. Clearing
 the box puts the tree back exactly as you left it: filtering never folds or unfolds anything on its own.

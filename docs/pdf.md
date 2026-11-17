@@ -172,12 +172,11 @@ as ink. Copy writes nothing, a read-only document has neither verb, and the mode
 **PDF Contents (the outline).** The same worker that extracts the text layer also reads the PDF's **`/Outlines` bookmark
 tree** (`PdfOutlineExtractor`), and both results are cached by file (`PdfOutlineCache` mirrors `PdfTextIndexCache`). An
 entry with no destination inherits the page of its nearest descendant that has one. `setPdfOutline` publishes it to the
-chrome (`onPdfOutlineChanged`), and the page list lane's foot grows a **Contents** glyph (`PdfContentsButton`) opening
-`PdfContentsDialog`, an indented, page-numbered list that folds and filters ([guide-pdf-and-audio.md](guide-pdf-and-
-audio.md)). Where a row goes is resolved once for both shells (`OutlineResolution`); what a target means, and why one
-that finds nothing leaves its row dimmed, is [mobix-data-model.md](mobix-data-model.md#the-outline-tree)'s.
+chrome (`onPdfOutlineChanged`). Android's direct **Bookmarks** entry opens an inline **Pages / Bookmarks** lane (`PdfContentsPanel`). `DocumentNavigationLayout` owns its 600 dp breakpoint: tablet jumps retain the lane; compact jumps close it, keeping the canvas composed at one dp to preserve edits and undo. Desktop retains its sidebar; [the guide](guide-pdf-and-audio.md) covers use. Where a row goes is resolved once for both shells (`OutlineResolution`); what a target means, and why one that finds nothing leaves its row dimmed, is [mobix-data-model.md](mobix-data-model.md#the-outline-tree)'s.
 
-**Reading a PDF's index still writes nothing**, and reading never forgets: the filter, the folded branches and the place in the list belong to the open document, so renaming, adding, deleting, an undo or reopening the card cannot reset them, a new document inherits nothing, and a fold is keyed by row id — an insert above a closed chapter cannot close another (`ContentsNavigation`, `ContentsNavigationTest`). The mark for the page in view follows the canvas page while the card stays open, decorated onto rows already resolved so scrolling does not re-read the outline.
+**Reading a PDF's index still writes nothing**, and reading never forgets: the filter, the folded branches and the place in the list belong to the open document, so renaming, adding, deleting, an undo or reopening the navigator cannot reset them, a new document inherits nothing, and a fold is keyed by row id — an insert above a closed chapter cannot close another (`ContentsNavigation`, `ContentsNavigationTest`). The mark for the page in view follows the canvas page while the navigator stays open, decorated onto rows already resolved so scrolling does not re-read the outline.
+
+`DocumentNavigationTest` covers direct access, switching and Back; `DocumentNavigationLayoutTest` checks widths. Pane-owned sessions retain each document's filter, folds and list position across lane visibility and immersive view. This Android layout is compiled and state/layout-tested, without a device interaction run.
 
 **The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree`
 nodes: every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included,

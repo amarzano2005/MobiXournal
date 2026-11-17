@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,9 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Toc
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,9 +36,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.ImeAction
-import com.mobixournal.ui.theme.DialogPresence
-import com.mobixournal.ui.theme.FloatingDialog
-import com.mobixournal.ui.theme.rememberClosingArgument
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -54,20 +50,12 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.render.OutlineEdits
-import com.mobixournal.render.OutlineResolution
 import com.mobixournal.render.OutlineRow
-import com.mobixournal.render.PdfOutlineSeeding
 import com.mobixournal.render.PdfOutlineView
 
-/**
- * The **Contents** door, as the page list's own: one glyph at the lane's foot, the notebook's index behind it.
- *
- * It stands with the page commands because that is what it is — a way of jumping between pages — and it is
- * no longer a row of the Pages menu, which is about the page in front of you. A document whose index is empty
- * draws no button at all rather than a dead one, so the lane's foot says only what the document can do.
- */
+/** The bookmark navigator's inline body; rows and edits stay in the document's lane. */
 @Composable
-internal fun PdfContentsButton(
+internal fun PdfContentsPanel(
     rows: List<OutlineRow>,
     currentPage: Int?,
     session: ContentsSession,
@@ -75,63 +63,7 @@ internal fun PdfContentsButton(
     onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
     onDelete: (String) -> OutlineEdits.Result,
-) {
-    // The door is always there, even with no index yet: the card is also where a bookmark is added, and a
-    // document with an ordinary page still has a Contents worth opening.
-    var open by remember { mutableStateOf(false) }
-    // A full contract slot, not a 34 dp dot a thumb has to find (docs/interface-contract.md).
-    IconButton(onClick = { open = true }, modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
-        Icon(
-            Icons.AutoMirrored.Outlined.Toc,
-            contentDescription = "Contents",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-        )
-    }
-    DialogPresence(open) {
-        // The tree survives the flag: closing clears `open`, and the dialog is still on its way out.
-        val tree = rememberClosingArgument(rows)
-        if (tree != null) {
-            PdfContentsDialog(
-                rows = tree,
-                currentPage = currentPage,
-                session = session,
-                onGoToPage = onGoToPage,
-                onAdd = onAdd,
-                onRename = onRename,
-                onDelete = onDelete,
-                onDismiss = { open = false },
-            )
-        }
-    }
-}
-
-/**
- * The document's **Contents** — its own index, or the source PDF's outline while it has none — as a
- * filterable, expandable list, opened from the page list's foot ([PdfContentsButton]) of a document that has
- * one.
- *
- * The rows arrive **resolved** ([OutlineResolution]): each one already knows the document page it opens, so a
- * tap is a page jump rather than a search for a sheet number, and a row whose page is gone is shown but not
- * tappable. That also made the notebook's own bookmarks reachable here without changing this card: a `page`
- * target and a `sheet` target are the same row to a reader.
- *
- * **A long book needs two controls, and they must not fight.** A chapter's chevron closes it, so a thousand
- * bookmarks become a list a thumb can travel; the filter finds a section by name, showing the chapters above
- * it so the reader still knows where the hit sits in the book. The two rules live in `PdfOutlineView`, shared
- * with the window: rows are addressed by **position**, because two chapters may honestly share a title, and
- * filtering never touches the collapse state — clearing the box gives back the tree as it was left.
- */
-@Composable
-internal fun PdfContentsDialog(
-    rows: List<OutlineRow>,
-    currentPage: Int?,
-    session: ContentsSession,
-    onGoToPage: (Int) -> Unit,
-    onAdd: (String, Int?) -> OutlineEdits.Result,
-    onRename: (String, String) -> OutlineEdits.Result,
-    onDelete: (String) -> OutlineEdits.Result,
-    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // The session belongs to the **document**: an edit that replaces the rows must not clear the filter, open
     // every branch or lose the reader's place (docs/pdf.md).
@@ -154,57 +86,48 @@ internal fun PdfContentsDialog(
         val row = shown.getOrNull(session.list.firstVisibleItemIndex) ?: return@LaunchedEffect
         session.navigation = session.navigation.scrolledTo(row.id, rows.indexOfFirst { it.id == row.id })
     }
-    FloatingDialog(
-        // Back is the edit's door before it is the card's: cancelling a name being typed keeps the list open.
-        onDismissRequest = editing.dismissOrCancel(onDismiss),
-        title = { Text("Contents") },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-        text = {
-            Column(Modifier.fillMaxWidth()) {
-                // A delete question sits above the list, not in place of it: the rows the reader was reading
-                // stay behind the answer, so cancelling costs them nothing.
-                val deleting = editing.deleting
-                if (deleting != null) {
-                    DeleteQuestion(
-                        title = deleting.row.title,
-                        error = editing.error,
-                        onDelete = { editing.submit(onDelete(deleting.row.id)) },
-                        onCancel = editing::cancel,
-                    )
-                }
-                // Renaming is in the row it names and a new bookmark is a draft above its neighbours: the
-                // filter and the surrounding rows stay where they were while a name is typed.
-                val adding = editing.draft is ContentsEdit.Adding
-                ContentsAddRow(enabled = !adding) { editing.adding(currentPage) }
-                ContentsFilter(
-                    query = query,
-                    onQuery = { session.navigation = session.navigation.withQuery(it) },
-                    onClear = { session.navigation = session.navigation.withQuery("") },
-                )
-                Spacer(Modifier.height(8.dp))
-                if (shown.isEmpty() && !adding) {
-                    Text(
-                        text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    return@Column
-                }
-                // The row's own width, not the screen's: in a split-screen pane the card is what the list has.
-                ContentsRowsBlock(
-                    rows = rows,
-                    shown = shown,
-                    adding = adding,
-                    session = session,
-                    onGoToPage = onGoToPage,
-                    onDismiss = onDismiss,
-                    onAdd = onAdd,
-                    onRename = onRename,
-                    onDelete = onDelete,
-                )
-            }
-        },
-    )
+    Column(modifier.fillMaxWidth()) {
+        // A delete question sits above the list, not in place of it: the rows the reader was reading
+        // stay behind the answer, so cancelling costs them nothing.
+        val deleting = editing.deleting
+        if (deleting != null) {
+            DeleteQuestion(
+                title = deleting.row.title,
+                error = editing.error,
+                onDelete = { editing.submit(onDelete(deleting.row.id)) },
+                onCancel = editing::cancel,
+            )
+        }
+        // Renaming is in the row it names and a new bookmark is a draft above its neighbours: the
+        // filter and the surrounding rows stay where they were while a name is typed.
+        val adding = editing.draft is ContentsEdit.Adding
+        ContentsAddRow(enabled = !adding) { editing.adding(currentPage) }
+        ContentsFilter(
+            query = query,
+            onQuery = { session.navigation = session.navigation.withQuery(it) },
+            onClear = { session.navigation = session.navigation.withQuery("") },
+        )
+        Spacer(Modifier.height(8.dp))
+        if (shown.isEmpty() && !adding) {
+            Text(
+                text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+        // The row's own width, not the screen's: in a split-screen pane the card is what the list has.
+        ContentsRowsBlock(
+            rows = rows,
+            shown = shown,
+            adding = adding,
+            session = session,
+            onGoToPage = onGoToPage,
+            onAdd = onAdd,
+            onRename = onRename,
+            onDelete = onDelete,
+        )
+    }
 }
 
 /**
@@ -218,7 +141,6 @@ private fun ContentsRowsBlock(
     adding: Boolean,
     session: ContentsSession,
     onGoToPage: (Int) -> Unit,
-    onDismiss: () -> Unit,
     onAdd: (String, Int?) -> OutlineEdits.Result,
     onRename: (String, String) -> OutlineEdits.Result,
     onDelete: (String) -> OutlineEdits.Result,
@@ -255,7 +177,6 @@ private fun ContentsRowsBlock(
                     onToggle = { session.navigation = session.navigation.toggled(row.id) },
                     onClick = {
                         row.page?.let(onGoToPage)
-                        onDismiss()
                     },
                     // Only the notebook's own rows can be edited: a row read out of the PDF is the file's
                     // bookmark, and it becomes the notebook's the moment one is added.
@@ -297,44 +218,6 @@ private fun ContentsFilter(query: String, onQuery: (String) -> Unit, onClear: ()
         },
     )
 }
-
-/**
- * The Contents door for a **pane**: the document's index resolved against its own pages, plus the page in
- * view, so the card can mark the row the reader already stands on.
- *
- * Resolved from the canvas's document rather than from the PDF alone, which is what lets a bookmark on an
- * ordinary sheet appear here at all — and re-resolved when the document changes, since a page deleted or
- * moved turns a row into one that leads nowhere.
- */
-@Composable
-internal fun PdfContentsLane(pane: PaneState, onGoToPage: (Int) -> Unit) {
-    val surface = pane.surface
-    val rows = remember(surface, pane.documentVersion, pane.outline) {
-        surface?.let { OutlineResolution.rowsOf(it.doc.outline, pane.outline, it.doc.pages) }.orEmpty()
-    }
-    // A document still showing the PDF's index is seeded with it when the first bookmark arrives, so the rows
-    // the reader is looking at stay on screen instead of being replaced by the one row just named.
-    val seed = remember(pane.outline) { pane.outline?.let { PdfOutlineSeeding.tree(it) } }
-    val commands = surface?.pageCommands
-    // One session per open document: closing the card keeps its filter and place, opening another notebook
-    // does not inherit them.
-    val session = remember(surface) { ContentsSession() }
-    PdfContentsButton(
-        rows = rows,
-        // The pane's own page state, not a fresh read of the canvas: it is what recomposes when the reader
-        // scrolls or a row is followed, so the mark moves with them instead of staying where the card opened.
-        currentPage = pane.currentPage,
-        session = session,
-        onGoToPage = onGoToPage,
-        onAdd = { title, page -> commands?.addBookmark(title, seed, page) ?: missingCommands() },
-        onRename = { id, title -> commands?.renameBookmark(id, title) ?: missingCommands() },
-        onDelete = { id -> commands?.deleteBookmark(id) ?: missingCommands() },
-    )
-}
-
-/** The answer a card without a surface gets: there is no document to write to. */
-private fun missingCommands(): OutlineEdits.Result =
-    OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
 
 /** The widest page number the card will print — the number its column is reserved from. */
 private fun largestPageNumber(rows: List<OutlineRow>): Int =
@@ -382,6 +265,7 @@ private fun ContentsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = ContentsRowLayout.ACTION_DP.dp)
             .clickable(enabled = row.hasDestination && !renaming, role = Role.Button, onClick = onClick)
             // One announcement for the whole row: a title, a page and whether it opens at all, instead of a
             // title with a lone number beside it and a click that may do nothing.
@@ -458,9 +342,9 @@ private fun RowScope.ContentsRowTitle(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
-                .combinedClickable(onClick = onClick, enabled = row.hasDestination, onLongClick = { fullTitle = true }),
+                .combinedClickable(onClick = { if (row.hasDestination) onClick() }, enabled = true, onLongClick = { fullTitle = true }),
         )
-        DropdownMenu(expanded = fullTitle, onDismissRequest = { fullTitle = false }) {
+        ToolbarMenu(expanded = fullTitle, onDismissRequest = { fullTitle = false }) {
             Text(
                 row.title.ifBlank { "Bookmark" },
                 style = MaterialTheme.typography.bodyMedium,
@@ -531,7 +415,7 @@ private fun ContentsRowMenu(
                 modifier = Modifier.size(18.dp),
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             if (onRename != null) {
                 DropdownMenuItem(
                     text = { Text("Rename") },
