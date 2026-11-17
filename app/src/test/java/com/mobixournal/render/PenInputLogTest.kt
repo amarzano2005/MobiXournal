@@ -293,7 +293,8 @@ class PenInputLogTest {
     @Test
     fun `an extent line prints the four sizes and whether the frame was provisional`() {
         assertEquals(
-            "EXT box=1508x1000 view=1056x1000 vp=1056x1000 buf=1508x1000 was=1056 stale=no provisional=yes",
+            "EXT box=1508x1000 view=1056x1000 vp=1056x1000 buf=1508x1000 was=1056 stale=no " +
+                "pg=1056 sx=0 provisional=yes",
             PenEventText.extentLine(
                 boxWidth = 1508, boxHeight = 1000,
                 viewWidth = 1056, viewHeight = 1000,
@@ -307,7 +308,8 @@ class PenInputLogTest {
     @Test
     fun `a settled extent reads as one size, not provisional`() {
         assertEquals(
-            "EXT box=1508x1000 view=1508x1000 vp=1508x1000 buf=1508x1000 was=1508 stale=no provisional=no",
+            "EXT box=1508x1000 view=1508x1000 vp=1508x1000 buf=1508x1000 was=1508 stale=no " +
+                "pg=1508 sx=0 provisional=no",
             PenEventText.extentLine(1508, 1000, 1508, 1000, 1508, 1000, 1508, 1000, provisional = false),
         )
     }
@@ -317,7 +319,8 @@ class PenInputLogTest {
         // The frame drew at the pane's new width, having begun with the lane's old one: the record that a
         // transient frame was fitted to the wrong extent, and the one the earlier line could not show.
         assertEquals(
-            "EXT box=2416x1325 view=2416x1325 vp=2416x1325 buf=2416x1325 was=1696 stale=yes provisional=no",
+            "EXT box=2416x1325 view=2416x1325 vp=2416x1325 buf=2416x1325 was=1696 stale=yes " +
+                "pg=2416 sx=0 provisional=no",
             PenEventText.extentLine(
                 2416, 1325, 2416, 1325, 2416, 1325, 2416, 1325,
                 provisional = false, viewportBefore = 1696, stale = true,

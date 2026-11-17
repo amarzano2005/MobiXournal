@@ -151,13 +151,16 @@ slider moved in Settings either prints its new value there or never reached the 
 turns a guess into a reading.
 
 The panel also answers the question a **pane that resizes** raises, and this one is about geometry rather
-than pens: `EXT box=1508x1000 view=1056x1000 vp=1056x1000 buf=1508x1000 was=1056 stale=no provisional=yes` is one line
+than pens: `EXT box=1508x1000 view=1056x1000 vp=1056x1000 buf=1508x1000 was=1056 stale=no pg=1056 sx=0
+provisional=yes` is one line
 per frame in which those numbers change, printed by `reportFrameExtent` when a frame locks a buffer. The
 four extents are the size the pane's Compose box was **placed** at, the size the platform view
 **reports**, the extent the viewport and page stack were **built** for, and the **buffer** that was
 actually locked; `was` is the viewport the frame **started** with and `stale` says whether it had to rebuild
 before drawing — the two fields that catch a frame fitted to the extent before the change — and `provisional`
-is the canvas's own flag for a buffer that is not the view's size. A
+is the canvas's own flag for a buffer that is not the view's size. `pg` is the width the page was actually
+drawn at and `sx` the frame's horizontal scroll, which settle whether a strip beside the sheet is inside the
+canvas (the page narrower than the pane) or beside it. A
 strip of desk beside the page is a frame where `box` has moved and `vp` has not, which is why the line
 says so instead of leaving it to be reasoned about.
 

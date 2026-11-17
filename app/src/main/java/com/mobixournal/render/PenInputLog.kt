@@ -226,11 +226,15 @@ internal object PenEventText {
         viewportBefore: Int = viewportWidth,
         /** Whether the frame had to rebuild the stack before it could draw. */
         stale: Boolean = false,
+        /** The width the page was drawn at, in the frame's own pixels — what the reader sees as the sheet. */
+        pageWidth: Int = viewWidth,
+        /** The frame's horizontal scroll, so a page narrower than the pane shows which side it sits on. */
+        scrollX: Int = 0,
     ): String =
         "EXT box=${boxWidth}x$boxHeight view=${viewWidth}x$viewHeight " +
             "vp=${viewportWidth}x$viewportHeight buf=${bufferWidth}x$bufferHeight " +
             "was=$viewportBefore stale=${if (stale) "yes" else "no"} " +
-            "provisional=${if (provisional) "yes" else "no"}"
+            "pg=$pageWidth sx=$scrollX provisional=${if (provisional) "yes" else "no"}"
 
     /** `DOWN`, `HOVER_MOVE`, … — an unnamed action keeps its number so nothing is lost. */
     fun actionName(actionMasked: Int): String = when (actionMasked) {

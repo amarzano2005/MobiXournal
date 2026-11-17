@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "show-the-drawn-page-width-in-the-diagnostics-line"
+title = "Show the drawn page width in the diagnostics line"
+description = "The EXT line now carries pg=<width the page was drawn at> and sx=<the frame's horizontal scroll>, taken in paint from layout.boxes.firstOrNull()?.widthPx and scrollX and threaded through reportFrameExtent and CanvasDiagnostics.extent into PenEventText.extentLine. Those two settle the open question: a strip beside the sheet is inside the canvas when pg is narrower than view (and sx says which side), and beside it when pg equals view — which is where the previous lines left the diagnosis. The log so far has every extent agreeing and one clean frame per extent on the way in (box=view=vp=buf=1696, was=1696, stale=no, provisional=no), so the page fit itself is not stale. PenInputLogTest's three expectations carry the new fields and docs/stylus.md documents them. Checks: :app:testDebugUnitTest green including DocsGuardTest, SourceStructureTest, PackageStructureTest and PenInputLogTest, :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 453 166 bytes, SHA-256 1d798a8b5b288bd1f928803b217f278aa119bbcc4c3c24ae82f2431f5c63302f) uploaded to https://files.catbox.moe/l41c2b.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no device here, so the fields have not been read on a tablet yet."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "none: two more fields in the canvas's existing pen-diagnostics line, a debugging aid rather than a feature of the app's interface, with its material, tokens, glyphs and English copy unchanged"
+
+[[task]]
 id = "show-the-pre-paint-extent-in-the-diagnostics-line"
 title = "Show the pre-paint extent in the diagnostics line"
 description = "The EXT line now reports the extent the frame started with (was=) and whether it had to rebuild the stack before drawing (stale=), captured in DrawingSurfacePaint.paint before the stackStale correction and carried through reportFrameExtent, CanvasDiagnostics.extent and PenEventText.extentLine. The earlier version printed vp after that correction, so the very state it existed to catch — a frame fitted to the lane's old width — was invisible in it; this is the fix for that blind spot. PenInputLogTest covers the settled, provisional and stale cases and docs/stylus.md documents the two new fields. Checks: :app:testDebugUnitTest green including DocsGuardTest, SourceStructureTest, PackageStructureTest and PenInputLogTest, :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 453 166 bytes, SHA-256 503842c8d518c732a5cb1e1fa500f5f4f929dbf5fd0c6ea973b06650fee637bc) uploaded to https://files.catbox.moe/iypaa7.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no device here. The reading so far: box=view=vp=buf on every settled frame with one frame per extent points at the SurfaceView's own surface being resized a frame late rather than at the page stack, which the corrected line will confirm or refute."

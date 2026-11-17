@@ -98,7 +98,11 @@ internal fun DrawingSurfaceView.paint() {
     }
     val provisional = stackStale || canvas.width != width || canvas.height != height
     // The pen-diagnostics panel's extent line; nothing at all unless the panel is open.
-    reportFrameExtent(canvas.width, canvas.height, provisional, viewportBefore, stackStale)
+    reportFrameExtent(
+        canvas.width, canvas.height, provisional, viewportBefore, stackStale,
+        pageWidth = layout.boxes.firstOrNull()?.widthPx?.toInt() ?: 0,
+        scrollX = scrollX.toInt(),
+    )
     try {
         canvas.drawColor(chrome.backdropColor)
         val visible = layout.visible(scrollY, height.toFloat())

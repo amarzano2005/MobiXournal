@@ -95,6 +95,8 @@ internal fun DrawingSurfaceView.reportFrameExtent(
     provisional: Boolean,
     viewportBefore: Int,
     stale: Boolean,
+    pageWidth: Int,
+    scrollX: Int,
 ) {
     diagnostics.extent(
         boxWidth = viewport.placedViewWidth.roundToInt().takeIf { it > 0 } ?: width,
@@ -108,6 +110,8 @@ internal fun DrawingSurfaceView.reportFrameExtent(
         provisional = provisional,
         viewportBefore = viewportBefore,
         stale = stale,
+        pageWidth = pageWidth,
+        scrollX = scrollX,
     )
 }
 
