@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "clip-the-page-list-s-pick-box-press-halo-to-the-dot"
+title = "Clip the page list's pick-box press halo to the dot"
+description = "PickBox in app/src/main/java/com/mobixournal/ui/PageListPanel.kt now clips its 40 dp touch target to CircleShape before .clickable, so the press indication is drawn inside the dot instead of a rectangle around it; the CircleShape import is back and the drawn 24 dp circle, the colours, the tick and both accessible names are untouched. The earlier drawCircle change stayed because the mark itself was already round - the rectangle came from the ripple the target painted, which is what the clip removes. Checks: scripts/todo.sh validate, :app:testDebugUnitTest (including DocsGuardTest and SourceStructureTest) and :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 00bb6c8ffee8ff9e9b5948e7ccab83ded59419949255218c79bce61d96bb22c1) uploaded to https://files.catbox.moe/za97vb.apk and the download re-verified, :desktop:createDistributable refreshed. NOT RUN: no emulator or device on this host, so the round halo was not seen on a screen."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: no new surface, the mark stays inside the row's 40 dp target; tokens: accent fill and onSurfaceVariant ring, one dp stroke from the theme scale, no literal; glyph: no glyph added, the tick stays Material's Check at 16 dp; states: the ripple is now clipped to the dot's circle instead of the target's rectangle, the picked fill and the empty ring share one 24 dp circle; copy: Pick page n / Page n picked unchanged; keyboard: not applicable on Android, the window's page strip is untouched; parity: Android-only lane art; docs: no page described the pick control's press halo, so none needed a change; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
+
+[[task]]
 id = "draw-the-page-list-pick-dot-as-a-circle"
 title = "Draw the page list's pick dot as a true circle"
 description = "PickBox draws its mark with drawBehind/drawCircle instead of clip(CircleShape) + background + border: the picked state fills a 12 dp radius circle, the empty state strokes 1 dp just inside it, so the ring and the dot are the same shape at any scale and the tick sits in a round frame. The 40 dp target, both accessible names, the tick and the colours are unchanged, and the now unused CircleShape import is gone. Checks: :app:testDebugUnitTest green including DocsGuardTest and SourceStructureTest, :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 088eff6a1576efb1d21ed3c4e9360062468bcfa864c0b341c2cf548ea00b88f0) uploaded to https://files.catbox.moe/moeol9.apk, :desktop:createDistributable rebuilt. NOT RUN: no emulator or device here, so the rendered circle was not seen on a screen - the change removes the clip and draws the circle explicitly."

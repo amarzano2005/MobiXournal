@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
@@ -613,7 +614,13 @@ private fun PickBox(index: Int, picked: Boolean, onToggle: () -> Unit) {
     val fill = MaterialTheme.colorScheme.primary
     val ring = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp).clickable(onClick = onToggle)
+        Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
+            // The **press halo follows the dot**, not the 40 dp target. A default ripple is bounded by the
+            // target's own rectangle, so tapping the box painted a square of accent around a round mark —
+            // the rectangle the eye read as the box. The clip sits before `clickable` so the indication is
+            // drawn inside it and every state of this control is round.
+            .clip(CircleShape)
+            .clickable(onClick = onToggle)
             .semantics { contentDescription = if (picked) "Page ${index + 1} picked" else "Pick page ${index + 1}" },
         contentAlignment = Alignment.Center,
     ) {
