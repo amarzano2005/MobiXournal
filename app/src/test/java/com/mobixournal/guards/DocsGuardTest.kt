@@ -86,7 +86,7 @@ class DocsGuardTest {
      * in `docs/` and a second copy of it drifts. `AGENTS.md` carries the rule that makes
      * `docs/writing-docs.md` a step of every doc task, which is why its ceiling is the larger one.
      */
-    private val frontDoorBudget = mapOf("README.md" to 160, "AGENTS.md" to 440)
+    private val frontDoorBudget = mapOf("README.md" to 160, "AGENTS.md" to 133)
 
     /**
      * The longest a single paragraph of **running prose** may get in a front door, in characters.

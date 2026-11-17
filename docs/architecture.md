@@ -22,6 +22,8 @@ it answers — so a change loads one topic instead of the whole architecture.
 
 | Spoke | What it owns | Read when |
 |---|---|---|
+| [`agent-workflow.md`](agent-workflow.md) | agent instruction discovery, consistency checks and review scenarios | you change guidance or investigate instruction drift |
+| [`host-profiles.md`](host-profiles.md) | machine profiles, hardware constraints and local toolchain paths | you select a build host or diagnose its environment |
 | [`repo-layout.md`](repo-layout.md) | the repository map: the three modules and the packages in them | you need to know where code lives |
 | [`code-structure.md`](code-structure.md) | where new code belongs: the size rules, the window's seven packages, the closed root, the caps and buckets | you add a file, a package or a subsystem |
 | [`codebase.md`](codebase.md) | what it is built on, the shared-core rule, branding and identity | you ask what the project is or what must not cross into `mobix-core` |

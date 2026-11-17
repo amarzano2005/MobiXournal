@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "agent-instruction-coherence"
+title = "Make agent instructions coherent and discoverable"
+description = "Reduced AGENTS.md to 133 lines and 9528 UTF-8 bytes while preserving standing preferences. Moved machine details to docs/host-profiles.md and documented discovery and review scenarios in docs/agent-workflow.md. Relocated both local workflows and design assets to .agents/skills, reconciled documentation ownership and verification rules, repaired Python discovery in scripts/todo.sh, corrected stale task host/package claims and enabled the required parametric emulator pass. Added AgentInstructionsTest, active-task operational validation, regression scenarios and CI coverage. Task tooling and instruction/document/source guards pass; core and desktop suites pass. Android suite retains one preexisting PDF menu guard failure tracked by android-contents-menu-contract. Desktop distributable current; no Android APK rebuild or emulator pass required for this tooling task."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "none: guidance and developer tooling without application interface changes"
+
+[[task]]
 id = "desktop-restore-chrome-popup-material"
 title = "Restore desktop chrome and make popups opaque and compact"
 description = "Restored DesktopMenu.kt, EntryScreen.kt and TabStrip.kt presentation from 00189bc5, before the global text-feedback migration, retaining the original hamburger command capsules, entry commands and document glass tabs. Documented these three exceptions and pinned them in DesktopTextFeedbackContractTest. Native GlassPopup now opens immediately at full scale and opacity while preserving caller input/dismissal properties; in-shell animation remains separate. Desktop glassSurface defaults to opaque popupSurface with one hairline border and an 8 dp desktop corner; Settings shares the opaque body. SettingsSelect uses 28 dp rows, 4 dp inner corners/insets and a checkmark column, with measured width and density-correct anchor gap. DesktopPopupMaterialTest measures actual dropdown coverage over contrasting backgrounds in dark/light themes and validates first-frame native size/opacity and click ownership. Updated legacy rim, motion and restored-chrome tests to distinguish capsule glass from opaque desktop popups. Full desktop suite passed (1169 tests, no failures), shared suite and repository guards passed, APK verified and desktop executable regenerated. Inspected the packaged hamburger/tab presentation and the actual Off/Automatic/On hold dropdown against the attachment; screenshot and crop saved under build/restore-dropdown-opaque.jpg and build/restore-popup-crop.png. README.md and owning interface/layout/Settings docs updated."

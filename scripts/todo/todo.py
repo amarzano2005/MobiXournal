@@ -27,6 +27,7 @@ import re
 import sys
 
 import design
+import operational
 import release
 import store
 
@@ -475,6 +476,7 @@ def _validate_task(label, task, finished, seen):
         if shipped is not None and not release.is_version(shipped):
             out.append(f"{where}: release must be an X.Y.Z version, got {shipped!r}")
     else:
+        out += [f"{where}: {problem}" for problem in operational.problems(task)]
         if "release" in task:
             out.append(f"{where}: release is archive-only (set by `todo.py release`)")
         if task.get("status") not in store.STATUSES_ACTIVE:

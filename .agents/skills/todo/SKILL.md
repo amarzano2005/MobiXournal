@@ -41,7 +41,8 @@ array of `[[task]]` tables. A task carries **more** metadata rather than less:
 | `level`       | both             | task · scope · epic — how big it is, and how to work it |
 | `category`    | both             | feature · bug · docs · refactor · test · chore     |
 | `urgency`     | TODO             | low · normal · high · critical                     |
-| `order`       | TODO             | manual sort key (10, 20, 30…); lower = sooner       || `created`     | both             | date the task was added (`YYYY-MM-DD`)              |
+| `order`       | TODO             | manual sort key (10, 20, 30…); lower = sooner       |
+| `created`     | both             | date the task was added (`YYYY-MM-DD`)              |
 | `completed`   | archive          | date it was finished                                |
 | `release`     | archive          | version it shipped in (`"1.2.0"`); **absent = pending the next version** |
 | `tags`        | TODO             | freeform string list                                |
@@ -86,14 +87,11 @@ definition to be recorded — the breakdown happens later, when it's picked up.
 Set it with `add --level scope|epic` or `edit <id> --level …`; filter with
 `list --level epic` and tally with `count --by level`.
 
-`rebuild` and `emulator_debug` are **build hints** for whoever works the task.
-`rebuild` defaults to **`true`** and `emulator_debug` to **`false`** — the normal
-loop is "build the APK and run the unit tests," with no emulator pass. Turn
-`emulator_debug` **on** for a task whose runtime behaviour you actually need to
-see (install and exercise it on the emulator: screenshots, logcat, simulated
-touches). Set `rebuild` **`false`** for a run of rapid-fire tweaks that don't each
-need a fresh build; you still build/verify once at the end. Like `urgency`/`order`, they're
-TODO-only and are dropped when a task is archived.
+The verification policy for `rebuild` and `emulator_debug` is owned by
+[AGENTS.md](../../../AGENTS.md#start-and-verify-on-the-actual-host). Follow it before running
+builds or device checks; reconcile conflicting task text through `edit` rather than ignoring a flag.
+Host selection is [host-profiles.md](../../../docs/host-profiles.md)'s: task descriptions record
+verification still needed, not claims about the machine running a future session.
 
 Active tasks list most-urgent-first, then by `order`. The archive is
 newest-`completed`-first.
@@ -158,26 +156,14 @@ newest-`completed`-first.
   into the current schema. Already run during the Markdown→TOML migration; kept
   for re-runs.
 
-## Working rules (mirror of `AGENTS.md`)
+## Owners of the surrounding workflow
 
-- **A release freezes the pending set; never hand-pick a changelog.** Everything finished since
-  the last release has no `release` stamp, and `todo.sh release --version X.Y.Z` turns exactly that
-  set into a version: it stamps the tasks and drafts the changelog. So the correct workflow is
-  `done <id> --shipped "…"` as work lands, then `release` at the tag — a finished task forgotten in `TODO.toml`
-  or left unstamped is a changelog that lies. The release procedure is owned by `docs/tools.md`
-  (see *Cutting a release*).
-- When you finish a task (built, tested, documented), run **`done <id> --shipped "…"`**
-  in the same commit that completes the work — don't leave shipped items in `TODO.toml`. The summary
-  is written for the reader of `FINISHED.toml` months later: what exists now, and where.
-- **After every `done <id> --shipped`, run `stats` and report how many open items remain in
-  `TODO.toml`** to the user, as part of the same reply.
-- **Documentation belongs to the task that wrote the code — never to a task of its
-  own.** Whenever a task changes code, it updates `README.md` and the owning spoke doc
-  in the same task and the same commit. Don't `add` a "document X" follow-up for work a
-  task already did, and don't `done` a task whose docs are still stale.
-- When you notice the next thing to build, **`add`** it rather than losing it.
-- **Picking up a `scope` or `epic` item means breaking it down, not building it.**
-  Investigate, then `add` the child items at the next level down; only `task`-level
-  items get implemented directly.
-- Prefer the CLI over hand-editing so metadata and ordering stay consistent; if
-  you do hand-edit, run **`validate`** afterward.
+[AGENTS.md](../../../AGENTS.md#task-bookkeeping-and-delivery) owns delivery expectations,
+including when to archive, report the open count, commit and push. Documentation changes follow
+[doc-governance.md](../../../docs/doc-governance.md#when-the-readme-has-to-change); an internal
+code change does not by itself require editing the README. Keep those rules at their owners.
+
+`validate` also checks active descriptions for obsolete package identifiers, current-host absence
+claims and explicit device-test titles that conflict with disabled emulator flags. Implementation:
+`scripts/todo/operational.py`; regression scenarios: `python3 scripts/todo/test_operational.py`.
+It leaves historical archive text intact and does not infer device requirements for feature tasks.

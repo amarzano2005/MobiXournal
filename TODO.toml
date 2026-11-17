@@ -2,7 +2,7 @@
 #
 # Single source of truth for active work (see AGENTS.md -> documentation map).
 # Edit through the todo skill so ids, ordering, and metadata stay consistent:
-#   scripts/todo.sh <command>      (see skills/todo/SKILL.md)
+#   scripts/todo.sh <command>      (see .agents/skills/todo/SKILL.md)
 # Hand-editing works too — it is plain TOML — but the skill keeps it tidy.
 
 schema_version = 1
@@ -519,7 +519,7 @@ emulator_debug = false
 [[task]]
 id = "verify-parametric-plot-on-the-emulator"
 title = "Run the parametric plot pass on a device and record what it shows"
-description = "The one check stem-parametric-authoring-verification could not run here: no adb and no AVD on this machine, so the dialog-to-file path is proven by JVM tests only. On the debug package (docs/tools.md, com.mobixournal.v2) open the plot tool, switch to the Parametric {x, y} tab, type cos(t) and sin(t) over 0 to 6.28, confirm the preview shows one closed loop, place it, save the .mobix, reopen it and confirm the loop is still a loop and the dialog reopens on the parametric tab with both expressions. Then export the page to PDF and to .xopp and check the loop is drawn in both. Capture screenshots of the place, the reopen and both exports. Report the result here and correct guides/limitations if the device disagrees with the JVM tests."
+description = "Device verification of stem-parametric-authoring-verification remains pending; the dialog-to-file path has JVM coverage. On the debug package (docs/tools.md, com.mobixournal) open the plot tool, switch to the Parametric {x, y} tab, type cos(t) and sin(t) over 0 to 6.28, confirm the preview shows one closed loop, place it, save the .mobix, reopen it and confirm the loop is still a loop and the dialog reopens on the parametric tab with both expressions. Then export the page to PDF and to .xopp and check the loop is drawn in both. Capture screenshots of the place, the reopen and both exports. Report the result here and correct guides/limitations if the device disagrees with the JVM tests."
 status = "active"
 level = "task"
 category = "test"
@@ -527,8 +527,8 @@ urgency = "normal"
 order = 840
 created = 2026-11-11
 tags = ["mobix"]
-rebuild = false
-emulator_debug = false
+rebuild = true
+emulator_debug = true
 
 [[task]]
 id = "stem-polar-dialog-tab"
@@ -632,7 +632,7 @@ emulator_debug = false
 [[task]]
 id = "stem-polar-emulator-pass"
 title = "Create a polar rose on the emulator and reopen it"
-description = "The polar tab has not been seen on a device: this host has no adb and no AVD, so the runtime claim needs its own pass. Install the debug APK on the Pixel_Tablet AVD, insert a plot, pick the Polar r(?) tab, type 2*cos(3*theta) with 0 and 6.283185307179586, confirm the preview shows a three-petal rose, Insert, save as .mobix, reopen the document and open the plot's inspector: it must open on the polar tab with the same source and sweep. Export to PDF and .xopp and confirm the rose is in both. Record a screenshot of the preview, one of the inserted rose, the inspector's tab and the exported PDF page, keep adb logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback for the commands and record them in the archive entry."
+description = "The polar tab has not been seen on a device: device verification remains pending, so the runtime claim needs its own pass. Install the debug APK on the Pixel_Tablet AVD, insert a plot, pick the Polar r(?) tab, type 2*cos(3*theta) with 0 and 6.283185307179586, confirm the preview shows a three-petal rose, Insert, save as .mobix, reopen the document and open the plot's inspector: it must open on the polar tab with the same source and sweep. Export to PDF and .xopp and confirm the rose is in both. Record a screenshot of the preview, one of the inserted rose, the inspector's tab and the exported PDF page, keep adb logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback for the commands and record them in the archive entry."
 status = "active"
 level = "task"
 category = "test"
@@ -752,7 +752,7 @@ emulator_debug = false
 [[task]]
 id = "stem-plot-trace-emulator-pass"
 title = "Trace a plot on the emulator and check it keeps up"
-description = "The no-jank claim and the crosshair's look need the baseline device, and this host has no adb or AVD. Install the APK, open a document with x^2 and 1/x, select the plot, drag a finger across it and read the values; drop a tangent at a few points including the pole of 1/x; drag both integral handles and watch the value and the wash follow; compare a zoomed-in and a zoomed-out frame. Record screenshots of the crosshair, the tangent, the handles and the pole's 'no tangent here', note whether the drag keeps up (choreographer frame times in logcat where measurable), and fix on the device anything the JVM tests cannot see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+description = "The no-jank claim and the crosshair's look need the baseline device, and device verification remains pending. Install the APK, open a document with x^2 and 1/x, select the plot, drag a finger across it and read the values; drop a tangent at a few points including the pole of 1/x; drag both integral handles and watch the value and the wash follow; compare a zoomed-in and a zoomed-out frame. Record screenshots of the crosshair, the tangent, the handles and the pole's 'no tangent here', note whether the drag keeps up (choreographer frame times in logcat where measurable), and fix on the device anything the JVM tests cannot see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
 status = "active"
 level = "task"
 category = "test"
@@ -958,7 +958,7 @@ emulator_debug = false
 [[task]]
 id = "stem-code-block-emulator-pass"
 title = "Edit a code block on the emulator and read it in the PDF"
-description = "The code block has not been seen on a device, and this host has no adb or AVD. Install the APK, insert a code block, paste a Python body with indentation, tab characters and a Unicode identifier, toggle line numbers and highlighting, apply, then reopen the document: the source must come back identical. Search for the identifier and copy the block to the clipboard, then export a PDF and open it: the block must be selectable text in a monospaced face where the font family allows it. Record screenshots of the editor with the keyboard open, the placed block, the search hit and the PDF page, keep logcat clean, and write down anything the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+description = "The code block has not been seen on a device, and device verification remains pending. Install the APK, insert a code block, paste a Python body with indentation, tab characters and a Unicode identifier, toggle line numbers and highlighting, apply, then reopen the document: the source must come back identical. Search for the identifier and copy the block to the clipboard, then export a PDF and open it: the block must be selectable text in a monospaced face where the font family allows it. Record screenshots of the editor with the keyboard open, the placed block, the search hit and the PDF page, keep logcat clean, and write down anything the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
 status = "active"
 level = "task"
 category = "test"
@@ -1071,7 +1071,7 @@ emulator_debug = false
 [[task]]
 id = "stem-connector-emulator-pass"
 title = "Wire two resistors on the emulator and move one"
-description = "The connector gesture has not been seen on a device and this host has no adb or AVD. Install the APK, place two resistors and a source, arm the wire tool, drag between pins until the rings catch and the connector lands, move one component: the connector must follow and still end on the same pins. Draw a second connector crossing the first and confirm no junction appears, mark one junction explicitly and confirm the dot appears. Undo once and confirm the whole move is reversed. Save, reopen, and export a PDF. Record screenshots of the wiring, the moved component, the crossing without a dot, and the undo, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+description = "The connector gesture has not been seen on a device and device verification remains pending. Install the APK, place two resistors and a source, arm the wire tool, drag between pins until the rings catch and the connector lands, move one component: the connector must follow and still end on the same pins. Draw a second connector crossing the first and confirm no junction appears, mark one junction explicitly and confirm the dot appears. Undo once and confirm the whole move is reversed. Save, reopen, and export a PDF. Record screenshots of the wiring, the moved component, the crossing without a dot, and the undo, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
 status = "active"
 level = "task"
 category = "test"
@@ -1298,7 +1298,7 @@ emulator_debug = false
 [[task]]
 id = "stem-measurement-emulator-pass"
 title = "Measure on the emulator, then move and rescale what was measured"
-description = "No measurement has been taken on a device and this host has no adb or AVD. Install the APK, measure between two points in points, then declare 100 pt = 2 m and confirm the same distance now reads in metres; bind an endpoint to a shape, move and rotate the shape and confirm the value follows; resize the image or figure the calibration was declared on and confirm the calibration is shown stale and the value returns to points; copy the value, export a PDF and confirm the dimension and its label are on the page; undo one drag. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+description = "No measurement has been taken on a device and device verification remains pending. Install the APK, measure between two points in points, then declare 100 pt = 2 m and confirm the same distance now reads in metres; bind an endpoint to a shape, move and rotate the shape and confirm the value follows; resize the image or figure the calibration was declared on and confirm the calibration is shown stale and the value returns to points; copy the value, export a PDF and confirm the dimension and its label are on the page; undo one drag. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
 status = "active"
 level = "task"
 category = "test"
@@ -1409,7 +1409,7 @@ emulator_debug = false
 [[task]]
 id = "stem-geometry-emulator-pass"
 title = "Drag a constrained triangle on the emulator"
-description = "No constrained construction has been dragged on a device and this host has no adb or AVD. Install the APK, build a triangle, fix a right angle, drag a vertex and confirm the angle stays 90 degrees within the stated tolerance while the side lengths update; suspend the constraint and confirm the vertex moves freely; build a contradictory pair and confirm OVERCONSTRAINED is shown with the conflicting constraints named and the drawing intact; undo one drag; save, reopen and export a PDF. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
+description = "No constrained construction has been dragged on a device and device verification remains pending. Install the APK, build a triangle, fix a right angle, drag a vertex and confirm the angle stays 90 degrees within the stated tolerance while the side lengths update; suspend the constraint and confirm the vertex moves freely; build a contradictory pair and confirm OVERCONSTRAINED is shown with the conflicting constraints named and the drawing intact; undo one drag; save, reopen and export a PDF. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands in the archive entry."
 status = "active"
 level = "task"
 category = "test"
@@ -1537,7 +1537,7 @@ emulator_debug = false
 [[task]]
 id = "stem-dataset-benchmark-pass"
 title = "Prove a 10k-row dataset does not freeze the baseline device"
-description = "The acceptance claim is a runtime one and this host has no adb or AVD. Install the APK, import a generated 10k-row CSV, and record import time, the time to draw the page, and the time to open the column inspector and the statistics panel; scroll and zoom with the dataset on screen and note dropped frames from logcat's choreographer output. Edit one value, confirm dependants are marked stale rather than frozen, then re-plot and export. Record screenshots and the measured numbers, and write them into docs/benchmarks.md and the archive entry. If a measurement misses the budget, fix it on the device and record what the JVM test could not see. Follow docs/tools.md's host fallback and record the commands."
+description = "The acceptance claim is a runtime one and device verification remains pending. Install the APK, import a generated 10k-row CSV, and record import time, the time to draw the page, and the time to open the column inspector and the statistics panel; scroll and zoom with the dataset on screen and note dropped frames from logcat's choreographer output. Edit one value, confirm dependants are marked stale rather than frozen, then re-plot and export. Record screenshots and the measured numbers, and write them into docs/benchmarks.md and the archive entry. If a measurement misses the budget, fix it on the device and record what the JVM test could not see. Follow docs/tools.md's host fallback and record the commands."
 status = "active"
 level = "task"
 category = "test"
@@ -1665,7 +1665,7 @@ emulator_debug = false
 [[task]]
 id = "stem-linalg-ui-thread-pass"
 title = "Compute a matrix on the emulator without freezing the canvas"
-description = "The 'off the UI thread' claim and the pending state are runtime facts, and this host has no adb or AVD. Install the APK, enter a matrix at the ceiling, run a determinant and a solve, and confirm the canvas keeps responding (drag a page while the computation runs, watch logcat for skipped frames); confirm the pending state appears and that a SINGULAR and a NEARLY_SINGULAR answer are both readable on screen; copy the LaTeX and the CSV, export a PDF and confirm the numbers are text. Record screenshots and the measured times in the archive entry, and fix on the device anything the JVM test could not see. Follow docs/tools.md's host fallback and record the commands."
+description = "The 'off the UI thread' claim and the pending state are runtime facts, and device verification remains pending. Install the APK, enter a matrix at the ceiling, run a determinant and a solve, and confirm the canvas keeps responding (drag a page while the computation runs, watch logcat for skipped frames); confirm the pending state appears and that a SINGULAR and a NEARLY_SINGULAR answer are both readable on screen; copy the LaTeX and the CSV, export a PDF and confirm the numbers are text. Record screenshots and the measured times in the archive entry, and fix on the device anything the JVM test could not see. Follow docs/tools.md's host fallback and record the commands."
 status = "active"
 level = "task"
 category = "test"
@@ -1778,7 +1778,7 @@ emulator_debug = false
 [[task]]
 id = "stem-sci-text-emulator-pass"
 title = "Type a paragraph with an inline formula on the emulator"
-description = "The mixed box has not been typed on a device and this host has no adb or AVD. Install the APK, place a box, type 'the energy is', insert an inline E=mc^2, keep typing, and confirm the baseline stays shared and the keyboard does not cover the field (the echo cell should appear as it does for the plot inspector); convert the formula back to source and forward again; select across the formula and copy, then paste into another paragraph; save, reopen and confirm the maths is intact; export a PDF and confirm the words are selectable and the formula is drawn. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands."
+description = "The mixed box has not been typed on a device and device verification remains pending. Install the APK, place a box, type 'the energy is', insert an inline E=mc^2, keep typing, and confirm the baseline stays shared and the keyboard does not cover the field (the echo cell should appear as it does for the plot inspector); convert the formula back to source and forward again; select across the formula and copy, then paste into another paragraph; save, reopen and confirm the maths is intact; export a PDF and confirm the words are selectable and the formula is drawn. Record screenshots of each state, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands."
 status = "active"
 level = "task"
 category = "test"
@@ -1893,7 +1893,7 @@ emulator_debug = false
 [[task]]
 id = "stem-study-card-emulator-pass"
 title = "Review a deck on the emulator and export questions only"
-description = "No card has been reviewed on a device and this host has no adb or AVD. Install the APK, create a card from a selection, tap to reveal, reset, review a deck of several cards, close the document and reopen it to confirm nothing was revealed on open; confirm the answer cannot be seen by a scroll or a zoom before the reveal; export questions only and open the PDF, then export with answers and compare; confirm the local progress survives a restart and that resetting clears it. Record screenshots of the front, the revealed answer, the export-choice dialog and both PDFs, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands."
+description = "No card has been reviewed on a device and device verification remains pending. Install the APK, create a card from a selection, tap to reveal, reset, review a deck of several cards, close the document and reopen it to confirm nothing was revealed on open; confirm the answer cannot be seen by a scroll or a zoom before the reveal; export questions only and open the PDF, then export with answers and compare; confirm the local progress survives a restart and that resetting clears it. Record screenshots of the front, the revealed answer, the export-choice dialog and both PDFs, keep logcat clean, and note what the JVM tests could not see. Follow docs/tools.md's host fallback and record the commands."
 status = "active"
 level = "task"
 category = "test"
@@ -2002,7 +2002,7 @@ emulator_debug = false
 [[task]]
 id = "android-contents-menu-contract"
 title = "Use the shared menu surface for Android bookmark actions"
-description = "The full app JVM suite fails ToolbarMenuGuardTest.noRawDropdownMenuAnywhere because app/src/main/java/com/mobixournal/ui/PdfContentsDialog.kt invokes raw DropdownMenu. Replace that action popup with the existing ToolbarMenu surface, preserving Rename/Delete behavior, accessibility and dismissal. Follow docs/interface-contract.md and update the owning documentation. Verify ToolbarMenuGuardTest, DocsGuardTest, SourceStructureTest and relevant PDF contents tests; rebuild the APK and desktop distributable. This failure predates the desktop bookmark measurement fix."
+description = "The full app JVM suite fails ToolbarMenuGuardTest.noRawDropdownMenuAnywhere because app/src/main/java/com/mobixournal/ui/PdfContentsDialog.kt invokes raw DropdownMenu in both the full-title popup and the Rename/Delete action menu. Replace both call sites with the existing ToolbarMenu surface, preserving title content, Rename/Delete behavior, accessibility and dismissal. Follow docs/interface-contract.md and update the owning documentation. Verify ToolbarMenuGuardTest, DocsGuardTest, SourceStructureTest and relevant PDF contents tests; rebuild the APK and desktop distributable. This failure predates the agent-instruction coherence work."
 status = "active"
 level = "task"
 category = "bug"

@@ -33,6 +33,7 @@ jobs:
         run: |
           python3 scripts/todo/todo.py validate
           python3 scripts/todo/test_store.py
+          python3 scripts/todo/test_operational.py
           python3 scripts/todo/test_done.py
           python3 scripts/todo/test_design.py
           python3 scripts/todo/test_release.py
@@ -132,6 +133,7 @@ jobs:
           ./gradlew :app:testDebugUnitTest
           --tests "com.mobixournal.guards.DocsGuardTest"
           --tests "com.mobixournal.guards.DocClaimsTest"
+          --tests "com.mobixournal.guards.AgentInstructionsTest"
           --stacktrace
 
   # The independent `.mobix` reader is a second implementation of the format, so it is checked by a job

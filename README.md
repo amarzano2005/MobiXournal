@@ -145,8 +145,10 @@ chemistry palette is gone. Shell differences: [what works, and what is not there
 
 ## Building from source, and getting involved
 
-`scripts/build.sh` with `/data/android`, `scripts/host-build.sh` anywhere else; suites, guards and releases are
-[the developer guide](docs/developer-guide.md)'s. A report or patch starts at [CONTRIBUTING.md](CONTRIBUTING.md).
+Build: `scripts/build.sh` with `/data/android`, `scripts/host-build.sh` elsewhere;
+[developer guide](docs/developer-guide.md), [contributing](CONTRIBUTING.md).
+Agent work: [AGENTS.md](AGENTS.md), `scripts/todo.sh` for tasks,
+`scripts/design.sh` for [design guidance](docs/design-workflow.md).
 
 ## Licence, credit and lineage
 

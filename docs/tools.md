@@ -15,6 +15,8 @@ The vendored design skill and the design declaration that closes a UI change are
 
 | Tool / pipeline | What it's for | Detail |
 |-----------------|---------------|--------|
+| Host selection | OS, machine profiles and local toolchain paths | [host-profiles.md](host-profiles.md) |
+| Agent task workflow | `scripts/todo.sh`, active-task validation and instruction regression checks | [agent-workflow.md](agent-workflow.md) |
 | Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
 | Desktop shell | Run, test and package the Compose Multiplatform window (no emulator, no container) | [below](#desktop-shell) |
@@ -26,7 +28,7 @@ The vendored design skill and the design declaration that closes a UI change are
 
 ## Android build
 
-The pipeline that compiles and packages the Android app. **All APKs on this box are built with
+The pipeline that compiles and packages the Android app. **When `/data/android/build.sh` exists, use
 the shared Android toolchain in `/data/android`** — the single front door for building (and
 running) Android apps without a JDK/SDK/Gradle on the host. Per `AGENTS.md`, the build runs
 inside a container; that container is the baked `android-builder:local` image maintained in
@@ -93,7 +95,7 @@ owns which test drives the corpus and what each file asserts.
 
 `/data/android` is a **machine-local path**. On a host that doesn't have it, `scripts/build.sh`
 stops immediately ("Shared Android toolchain not found at /data/android") and the build runs on the
-host's own toolchain — the `./gradlew` loop `AGENTS.md` already lists for host systems. Two things
+host's own toolchain — the wrapper loop selected by [host-profiles.md](host-profiles.md). Two things
 the container would otherwise supply have to be there, and they are where a host build usually fails:
 
 - **A supported JDK.** `./gradlew` runs on the JDK `JAVA_HOME` points at, and a Gradle version
@@ -131,9 +133,7 @@ The emulator, the install/launch/screenshot loop and `androidTest` are [tools-em
 
 The `desktop/` module (`docs/desktop-workstation.md`) is a plain JVM Compose
 Multiplatform application: it needs **no Android SDK, no emulator and no `/data/android`**, only the
-JDK 21 the Gradle build already uses (`JAVA_HOME` — on the Windows host,
-`C:\Users\amarz\.jdks\jbr-21.0.11`; JDK 27 breaks Gradle configuration). Run it through the wrapper
-from the repository root:
+JDK selected through [host-profiles.md](host-profiles.md). Run the wrapper from the repository root:
 
 ```sh
 .\gradlew.bat :desktop:run --args="udiff.xopp"
@@ -155,7 +155,7 @@ compiling.
 
 ### The packaged build — the `.exe` and the installer
 
-`.\gradlew.bat :desktop:createDistributable` (with `JAVA_HOME` as in `AGENTS.md`) writes a self-contained
+`.\gradlew.bat :desktop:createDistributable` (with `JAVA_HOME` as in [host-profiles.md](host-profiles.md)) writes a self-contained
 folder, runtime included, to `desktop/build/compose/binaries/main/app/MobiXournal/`; its `MobiXournal.exe`
 opens a document passed as an argument and an empty window without one. **Regenerate it at the end of every
 completed task** (`AGENTS.md`, build flags — a stale `.exe` is a feature delivered only in source).

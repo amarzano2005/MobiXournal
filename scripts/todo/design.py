@@ -40,7 +40,7 @@ MIN_NONE_REASON = 12
 MAX_DECLARATION = 1200
 
 # The corpus `scripts/design.sh --domain ux` answers from; owned by `docs/tools.md` (*UI/UX Pro Max*).
-CORPUS = os.path.join("skills", "ui-ux-pro-max", "data", "ux-guidelines.csv")
+CORPUS = os.path.join(".agents", "skills", "ui-ux-pro-max", "data", "ux-guidelines.csv")
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

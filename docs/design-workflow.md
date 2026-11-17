@@ -8,9 +8,9 @@ The build, packaging and release pipelines this sits beside are [tools.md](tools
 
 ## UI/UX Pro Max (design skill)
 
-The agent-facing design skill vendored under `skills/`: UI styles, product palettes, font pairings, UX
-guidelines, chart types and per-stack implementation notes — including **Jetpack Compose** and **WPF**,
-the two stacks this product ships on. It is committed like `skills/todo` because it is text and scripts
+The agent-facing design skill vendored under `.agents/skills/`: UI styles, product palettes, font pairings, UX
+guidelines, chart types and per-stack implementation notes. This product's Compose shells follow
+[codebase.md](codebase.md). It is committed like `.agents/skills/todo` because it is text and scripts
 only (no binaries), so a clone needs no per-machine install.
 
 **When it is consulted.** Before a UI change lands, as the *checklist*: it names the markers a page can
@@ -27,14 +27,14 @@ scripts/design.sh --domain typography "dense toolbar type scale"
 scripts/design.sh --design-system "tablet note-taking editor"
 ```
 
-`scripts/design.sh` finds a real Python 3.8+ and **refuses the Store stub** (AGENTS.md, Profile D), so
+`scripts/design.sh` finds a real Python 3.8+ and **refuses the Store stub** ([host-profiles.md](host-profiles.md), Profile D), so
 no interpreter path is pasted into a session, and `DESIGN_PYTHON` overrides the search. `--domain`
 answers well; `--stack jetpack-compose` is thin in the shipped CSV, so an empty result there is the
 corpus rather than the install.
 
-`skills/ui-ux-pro-max/SKILL.md` carries the skill's own workflow; it and its data came from the upstream
+`.agents/skills/ui-ux-pro-max/SKILL.md` carries the skill's own workflow; it and its data came from the upstream
 repository, whose **web-page** skills (shadcn/Tailwind styling, brand books, slide decks, banners) are
-not vendored — a Compose/WPF product has no website to style. The upstream installers (`npx skills add`,
+not vendored — this product's shells have no website to style. The upstream installers (`npx skills add`,
 `uipro init`) need Node, absent here, so a refresh is a copy of the same folders.
 
 ## Closing a UI change

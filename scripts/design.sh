@@ -3,14 +3,14 @@
 # consults before a UI change, and the corpus behind it. The repo contract stays the law —
 # `docs/interface-contract.md` decides, this only supplies rules to check against.
 # See docs/tools.md (`UI/UX Pro Max`) for the domains that answer well here, and
-# skills/ui-ux-pro-max/SKILL.md for the skill's own workflow. Examples:
+# .agents/skills/ui-ux-pro-max/SKILL.md for the skill's own workflow. Examples:
 #   scripts/design.sh --domain ux "modal keyboard focus"
 #   scripts/design.sh --domain style "tool app chrome"
 #   scripts/design.sh --domain typography "ui scale for a dense toolbar"
 #   scripts/design.sh --design-system "tablet note-taking editor"
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cli="$root/skills/ui-ux-pro-max/scripts/search.py"
+cli="$root/.agents/skills/ui-ux-pro-max/scripts/search.py"
 if [ ! -f "$cli" ]; then
     echo "design.sh: the skill's search script is missing at $cli" >&2
     exit 1

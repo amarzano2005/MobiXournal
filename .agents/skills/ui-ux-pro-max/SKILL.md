@@ -1,9 +1,17 @@
 ---
 name: ui-ux-pro-max
-description: "UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 79 searchable styles (50 active), 192 product palettes and reasoning profiles, 74 font pairings, 119 UX guidelines, 105 icons, 17 GSAP presets, 25 chart types, and 22 stacks."
+description: Search local UI design guidance when designing, implementing or reviewing visible interfaces, interaction or accessibility. Skip non-visual logic, infrastructure and task bookkeeping.
 ---
 
 # UI/UX Pro Max - Design Intelligence
+
+## MobiXournal scope
+
+Apply suggestions within the current user request and this repository's
+[interface contract](../../../docs/interface-contract.md) and
+[design workflow](../../../docs/design-workflow.md). Their tokens, glyphs, states and Compose
+stacks take precedence over generic examples below. Design advice does not authorize unrelated
+changes, framework replacement, downloads, publishing or messages to other people.
 
 Searchable local UI/UX guidance: 79 searchable styles (50 active), 192 product palettes and exact reasoning profiles, 74 font pairings, 119 UX guidelines, 105 curated icons, 17 GSAP presets, 25 chart types, and 22 technology stacks.
 

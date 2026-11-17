@@ -109,6 +109,8 @@ change can see what will fail it:
   The governance set is checked with it: the pages the process promises exist, every release note has a
   row in its index, every Gradle module the build includes is a directory [repo-layout.md](repo-layout.md)
   names, and every row of the capability matrix spends one of the six words with an evidence link.
+- **`AgentInstructionsTest`** (`guards/`) — byte budgets, local skill discovery and links, plus CI
+  execution of task regressions; [agent-workflow.md](agent-workflow.md) owns scope and review scenarios.
 - **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
   (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from
   `DesktopSettingSection` so a new section fails until the doc names it, and every test class a doc
@@ -123,10 +125,8 @@ change can see what will fail it:
   `desktop/shell/DesktopShell.kt` — the window's topic packages are stated in
   [code-structure.md](code-structure.md)). The entries listed in it may not grow, and no new file may appear past
   the budget. Splitting a listed file is what the test rewards; the remedy for a failure is a split,
-  or a deliberate bump of a recorded number. The app test task declares `docs/`,
-  `desktop/src/main/java`, `AGENTS.md` and `README.md` as inputs (the desktop tree is not a compile
-  dependency of the app, so without the entry a desktop-only edit would leave the guard's task
-  UP-TO-DATE and unrun; the two front-door files are read by `DocClaimsTest` the same way).
+  or a deliberate bump of a recorded number. App-test inputs include docs, desktop sources, root and
+  nested guidance, skills, task tools and the CI workflow, so edits rerun disk-reading guards.
 - **`XoppExportCoverageTest`** (`guards/`) — the `.mobix` → `.xopp` export as a coverage ratchet. An
   exhaustive `when` over the sealed `Element` interface stops the build compiling when a new element
   family lands without a branch; a recorded family count makes that branch come with a sample; and the
