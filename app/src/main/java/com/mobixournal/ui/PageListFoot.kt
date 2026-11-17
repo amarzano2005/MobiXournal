@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -49,11 +48,11 @@ internal fun PageListCommands(
         acting.isNotEmpty() -> "Page ${currentPage + 1} of $pageCount"
         else -> "\u2014"
     }
-    // The foot clears the system navigation bar. The app draws edge to edge, so the lane runs to the
-    // bottom of the screen: a control sitting under the gesture strip reads as one that needs two taps,
-    // because the first one belongs to the system.
+    // The foot reaches the lane's own bottom edge, on the lane's 6 dp of air: the app draws edge to edge
+    // with transparent system bars, so the only thing under the commands is an invisible gesture strip,
+    // and reserving it left the three buttons floating a whole strip higher than the counter on the page.
     Column(
-        Modifier.fillMaxWidth().navigationBarsPadding().padding(6.dp),
+        Modifier.fillMaxWidth().padding(6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         // The subject on the left, the lane's own door on the right: the foot's bottom-right corner.

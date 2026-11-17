@@ -148,9 +148,9 @@ act on the page in view, which is the plain case and needs no ceremony. Either c
 page: the viewport and the pick follow it to its new place, so the sheet in front of you is the page you
 just moved — and the page the next tap acts on, which is why the arrows step a page the way the eye reads
 them. The top bar's bookmark ribbon opens the inline **Bookmarks** view; [pdf.md](pdf.md) owns it.
-The foot clears the system navigation bar (`navigationBarsPadding`) and its three
-buttons are 48 dp: the app draws edge to edge, so a control under the gesture strip needs two taps — the
-first one belongs to the system — and a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`, opened by the lane's gear), which
+The foot reaches the lane's bottom edge, in the lane's own 6 dp of air rather than above a reserved
+system strip: the app draws edge to edge with transparent bars, so nothing opaque sits under the
+commands, and its three buttons are 48 dp — a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`, opened by the lane's gear), which
 reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the
 window's commands cannot act on either. The Android rows now reserve a 40 dp number column, a centred paper preview and 40 dp selection/drag targets. `DocumentNavigationLayout` sets a 104 dp row and fits each preview within 132 � 88 dp without changing its aspect ratio. `PageListPreview` renders on a worker; its raster never blocks list composition. `NavigationPanelTest` captures portrait and landscape pages in tablet/phone layouts and both themes.
 
