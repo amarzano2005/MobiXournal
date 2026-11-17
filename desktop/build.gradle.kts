@@ -29,6 +29,7 @@ dependencies {
     // The tablet records Opus in an Ogg container; this is the JVM decoder for it (`docs/audio.md`).
     implementation(libs.concentus)
     testImplementation(libs.junit)
+    testImplementation(compose.desktop.uiTestJUnit4)
     // The `.mobix` fixtures are shared through `mobix-core`'s test fixtures, so this shell's suite
     // opens the same synthetic notebook the core and app suites do instead of growing its own writer.
     testImplementation(testFixtures(project(":mobix-core")))

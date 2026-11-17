@@ -42,7 +42,7 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   when the document has **more than one page**. **Contents** is the index at the sidebar's full height — Add
   bookmark, a filter and the outline, with the row naming the page in view moving with the page without
   re-reading the outline — not a folded section under the thumbnails; a row the notebook owns wears a **⋯**
-  glyph with the tablet's neutral Rename/Delete menu (the PDF's own rows leave that gutter empty).
+  glyph with the tablet's neutral Rename/Delete menu (the PDF's own rows leave that gutter empty). The selected tab supplies the Contents heading; only **Add bookmark** remains above the filter.
 - **The sheet alone on the desk**: one page at a time, opened at **100 % — the page's width filling the
   window**, the scale the tablet opens a page at (`FitOnOpen.DEFAULT` is fit width), with the fit mode named
   in the status bar.

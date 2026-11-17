@@ -76,6 +76,9 @@ enum class ChromeGlyph {
     /** The three lines of the overflow button. */
     MENU,
 
+    /** Three dots: actions belonging to one row, rather than the application menu. */
+    MORE_HORIZ,
+
     /** The turn that takes a step back. */
     UNDO,
 
@@ -226,6 +229,7 @@ object ChromeGlyphCatalogue {
             "M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4z" +
                 "m0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4z" +
                 "m0-6h-4v-4h4v4zm0-6h-4V4h4v4z"
+        ChromeGlyph.MORE_HORIZ -> "M6 10a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4z"
         ChromeGlyph.MENU -> "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
         ChromeGlyph.UNDO ->
             "M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 " +

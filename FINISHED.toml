@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-bookmark-measurement"
+title = "Fix desktop bookmark row measurement"
+description = "Fixed desktop PdfContentsSidebar.kt measurement: TooltipArea owns Row weight, numeric font measurement reserves all destination digits without wrapping, MORE_HORIZ comes from the shared ChromeGlyph catalogue, child indentation is bounded and Contents is no longer repeated below the tab. DesktopContentsMeasurementTest measures actual title/page/menu bounds at 240 dp with page 1234 and a child, checks arrow and action columns and emits folded/expanded PNGs. README.md, docs/pdf.md and docs/desktop-ui-layout.md updated. Desktop suite: 1157 tests, zero failures, four skips; shared suite passes; DocsGuardTest and SourceStructureTest pass. APK and desktop distributable rebuilt; packaged window exercised with 1234-page notebook, chapters folded and expanded, and Rename/Delete overflow verified. Screenshots saved under build/bookmarks-desktop-expanded.jpg and build/bookmarks-desktop-collapsed.jpg. Full Android JVM suite has one pre-existing ToolbarMenuGuardTest failure in PdfContentsDialog.kt."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: existing sidebar band and floating menu retained; tokens: existing theme palette and type styles retained; glyph: shared MORE_HORIZ added; states: existing idle hover focus active disabled behavior retained with 40 dp action targets; copy: English Add bookmark retained without duplicate Contents; parity: desktop layout fix only, shared glyph available to both shells; tests: actual Compose descendant bounds and single-line 1234 plus packaged Windows screenshots; docs: README.md and owning spokes updated"
+
+[[task]]
 id = "bookmarks-visual-interaction-pass"
 title = "Verify the redesigned bookmark flows on Android and Windows"
 description = "Emulator pass on Pixel_Tablet with deep-outline.mobix over a 9-level outline: the overflow menu opens Rename and Delete, retitling switches the row to a field, Back cancels the edit and keeps the card open, a collapsed chapter stays folded while the rest of the session runs, Add opens the draft row with the page captured at press time and the header command disabled while naming. The pass found one defect - Back taking the whole card mid-word - fixed in 0d2502c9 with PdfContentsBackTest. The packaged window was rebuilt and launched with the new Contents sidebar; the APK and the desktop distributable are current."

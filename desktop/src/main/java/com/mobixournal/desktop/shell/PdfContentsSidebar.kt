@@ -60,6 +60,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -149,14 +151,9 @@ internal fun ContentsPanel(
     // the neighbouring rows stay where they were.
     val naming = editing.draft as? ContentsEditState.Naming
     val adding = naming != null && naming.row == null
-    Column(modifier.padding(horizontal = 10.dp)) {
+    Column(modifier.padding(horizontal = 6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Contents",
-                color = DesktopTheme.inkSecondary,
-                style = DesktopTheme.eyebrow,
-                modifier = Modifier.weight(1f),
-            )
+            Spacer(Modifier.weight(1f))
             ContentsHeaderAction("Add bookmark", enabled = !adding) { editing.adding(tab.page) }
         }
         val deleting = editing.deleting
@@ -215,11 +212,7 @@ private fun ColumnScope.ContentsListBlock(
     BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
         val widthDp = maxWidth.value
         val widest = largestPageNumber(rows)
-        val pageColumnDp = ContentsRowLayout.pageColumnDp(
-            largestPageNumber = widest,
-            rowWidthDp = widthDp,
-            fontScale = LocalDensity.current.fontScale,
-        )
+        val pageColumnDp = measuredContentsPageColumn(widest)
         LazyColumn(state = tab.contentsList, modifier = Modifier.fillMaxSize()) {
             if (adding) {
                 item(key = "add-draft") {
@@ -312,6 +305,18 @@ private fun ContentsFilterField(query: String, onQuery: (String) -> Unit) {
     )
 }
 
+/** Reserve actual tabular glyph widths at the reader's text scale, plus the title gap. */
+@Composable
+private fun measuredContentsPageColumn(largestPageNumber: Int): Float {
+    val measurer = rememberTextMeasurer()
+    val style = DesktopTheme.numeric
+    val digits = largestPageNumber.coerceAtLeast(1).toString().length
+    val widthPx = (0..9).maxOf { digit ->
+        measurer.measure(digit.toString().repeat(digits), style, softWrap = false).size.width
+    }
+    return with(LocalDensity.current) { widthPx.toDp().value } + ContentsRowLayout.GAP_DP
+}
+
 /** The widest page number the list will print — the number its column is reserved from. */
 private fun largestPageNumber(rows: List<OutlineRow>): Int = (rows.maxOfOrNull { it.page ?: 0 } ?: 0) + 1
 
@@ -342,11 +347,7 @@ internal fun OutlineRowView(
     onSaveDraft: () -> Unit = {},
     onCancelDraft: () -> Unit = {},
 ) {
-    val pageColumnDp = ContentsRowLayout.pageColumnDp(
-        largestPageNumber = largestPageNumber,
-        rowWidthDp = rowWidthDp,
-        fontScale = LocalDensity.current.fontScale,
-    )
+    val pageColumnDp = measuredContentsPageColumn(largestPageNumber)
     val target = row.page
     val number = target?.plus(1)
     val heading = ContentsRowLayout.isHeading(row.depth)
@@ -366,7 +367,8 @@ internal fun OutlineRowView(
             // The indent is what the **whole** row leaves it: the branch gutter, the action gutter, the page
             // column and the title's minimum are room the hierarchy cannot spend.
             .padding(
-                start = ContentsRowLayout.indentInRow(row.depth, rowWidthDp, pageColumnDp).dp,
+                start = minOf(row.depth.coerceAtLeast(0) * 8f, 16f,
+                    ContentsRowLayout.indentInRow(row.depth, rowWidthDp - 4f, pageColumnDp)).dp,
                 top = 2.dp,
                 bottom = 2.dp,
                 end = 4.dp,
@@ -397,6 +399,10 @@ internal fun OutlineRowView(
                     text = "$number",
                     color = DesktopTheme.inkMuted,
                     style = DesktopTheme.numeric.copy(lineHeight = if (heading) DesktopTheme.tab.lineHeight else DesktopTheme.label.lineHeight),
+                    maxLines = 1,
+                    softWrap = false,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth().padding(start = ContentsRowLayout.GAP_DP.dp),
                 )
             }
         }
@@ -431,9 +437,9 @@ private fun ContentsRowMenu(
                 .hoverFill(RoundedCornerShape(8.dp))
                 .clickable(role = Role.Button) { open = true }
                 .semantics { contentDescription = "Actions for ${title.ifBlank { "bookmark" }}" },
-            contentAlignment = Alignment.Center,
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Canvas(Modifier.size(16.dp)) { drawChromeGlyph(ChromeGlyph.MENU, DesktopTheme.inkSecondary) }
+            Canvas(Modifier.size(16.dp)) { drawChromeGlyph(ChromeGlyph.MORE_HORIZ, DesktopTheme.inkSecondary) }
         }
         val drop = with(LocalDensity.current) { ContentsRowLayout.ACTION_DP.dp.roundToPx() }
         GlassPopup(visible = open, onDismissRequest = { open = false }, offset = IntOffset(0, drop)) {
@@ -496,6 +502,7 @@ internal fun ContentsRowAction(label: String, title: String, onClick: () -> Unit
 @Composable
 private fun RowScope.OutlineRowTitle(row: OutlineRow, heading: Boolean, target: Int?) {
     TooltipArea(
+        modifier = Modifier.weight(1f),
         tooltip = {
             Box(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
                 Text(
@@ -521,7 +528,7 @@ private fun RowScope.OutlineRowTitle(row: OutlineRow, heading: Boolean, target: 
             style = if (heading) DesktopTheme.tab else DesktopTheme.label,
             maxLines = ContentsRowLayout.TITLE_MAX_LINES,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -541,7 +548,7 @@ private fun ContentsChevron(row: OutlineRow, onToggle: (() -> Unit)?) {
             .semantics {
                 contentDescription = if (row.expanded) "Collapse ${row.title}" else "Expand ${row.title}"
             },
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = Alignment.TopCenter,
     ) {
         Canvas(Modifier.size(14.dp)) {
             drawChromeGlyph(
