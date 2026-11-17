@@ -113,7 +113,23 @@ largest cap that leaves the middle a move, since the edge handles sit half a sid
 tablet that reach is **outward** only: a press deeper inside the box than a `HANDLE_INSIDE_PX` band
 (a third of a small axis at most) is the **body** and moves the selection — `beginHandleResize` asks
 `insideSelectionBody` first, so only the border band the drawn dots straddle resizes, and a line keeps
-its end handles, having no interior to protect. `SelectionHandleRadiusTest` pins both. A box with **no extent on an axis** wears no handles across it: a
+its end handles, having no interior to protect. `SelectionHandleRadiusTest` pins both. A **pin** is never drawn on a handle either, and the two wear different shapes, so a mark is read before it
+is aimed at: a **filled dot** is a pin the gesture can join (in the pin red), a **square** is an existing
+wire's end, a **hollow ring** is the selected element's **own** pin — the point that will land on one of
+them — and a filled **accent** dot with its arms is a handle. A figure's border pins *are* its box's corners
+and side midpoints, exactly where the eight handles are, so drawing both stacked two dots on one point and
+left the reader unable to say which was which; the overlay therefore drops the pins a handle already sits on
+(`FigurePins.withoutHandles`), and a line's own pins are its two end handles, so it wears no ring of its
+own. The handle keeps that point because it is the one a **press** acts on: on the tablet a pin is a mark
+and a magnet, never a grip.
+
+Which pin a drag **joins** is settled by the hand, not by distance. A moved part carries several pins, and
+the nearest pair could join one the reader never aimed at — drag so that the second pin passes 4 pt from a
+terminal while the one under the finger is 12 pt from its own, and the part "attaches to the wrong point".
+`snapTranslationTo` therefore takes the point the drag went down on (`grab`, the press the controller
+latched in `beginMove`) and asks the **pin nearest that press** first, falling back to the nearest pair
+only when that pin has nothing in reach; the window passes the same point from its own gesture.
+`PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns. A box with **no extent on an axis** wears no handles across it: a
 selection around a part drawn as a line carries no height worth stretching, its top and bottom handles would
 land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands
 the press back to the body (`SelectionMovePaintTest`). The same rule makes a **corner** drag on a line its end

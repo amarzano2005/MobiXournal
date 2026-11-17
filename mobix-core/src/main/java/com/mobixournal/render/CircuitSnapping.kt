@@ -383,8 +383,9 @@ object CircuitSnapping {
         rawDx: Double,
         rawDy: Double,
         thresholdPt: Double = SNAP_THRESHOLD_PT,
+        grab: Pair<Double, Double>? = null,
     ): Pair<Double, Double> =
-        snapTranslationTo(page, refs, rawDx, rawDy, thresholdPt).let { it.dx to it.dy }
+        snapTranslationTo(page, refs, rawDx, rawDy, thresholdPt, grab = grab).let { it.dx to it.dy }
 
     /**
      * Where a snapped move landed, and the target that caught it — the pin a shell lights while the hand
@@ -409,6 +410,17 @@ object CircuitSnapping {
         thresholdPt: Double = SNAP_THRESHOLD_PT,
         caught: PinTarget? = null,
         releaseRatio: Double = SNAP_RELEASE_RATIO,
+        /**
+         * Where the hand went down, in page pt — the pin **in hand**.
+         *
+         * A moved part carries several pins, and the nearest pair is not always the pair the reader aimed
+         * at: drag a two-pin component so that one pin is 6 pt from the terminal in front of it while the
+         * other happens to pass 4 pt from a second terminal, and the nearest-pair rule joins the second.
+         * The part "attaches to the wrong point", which is exactly what the hand did not ask for. With the
+         * grab point the pin nearest the press is asked **first**, and the nearest-pair rule answers only
+         * when that pin has nothing in reach.
+         */
+        grab: Pair<Double, Double>? = null,
     ): TranslationSnap {
         if (page == null || refs.isEmpty()) return TranslationSnap(rawDx, rawDy, null)
         val moving = movingEnds(page, refs)
@@ -424,6 +436,14 @@ object CircuitSnapping {
         if (caught != null) {
             val held = nearestAlignment(moving, listOf(caught), rawDx, rawDy, hold)
             if (held != null) return TranslationSnap(held.dx, held.dy, caught)
+        }
+        // The pin the hand grabbed wins before the nearest pair does (see [grab]).
+        if (grab != null) {
+            val anchor = moving.minByOrNull { hypot(it.x - grab.first, it.y - grab.second) }
+            if (anchor != null && hypot(anchor.x - grab.first, anchor.y - grab.second) <= thresholdPt) {
+                val inHand = nearestAlignment(listOf(anchor), targets, rawDx, rawDy, thresholdPt)
+                if (inHand != null) return TranslationSnap(inHand.dx, inHand.dy, inHand.target)
+            }
         }
         val best = nearestAlignment(moving, targets, rawDx, rawDy, thresholdPt)
             ?: return TranslationSnap(rawDx, rawDy, null)

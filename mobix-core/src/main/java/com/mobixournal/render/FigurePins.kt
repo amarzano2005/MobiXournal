@@ -239,6 +239,63 @@ object FigurePins {
         val compatible: List<CircuitSnapping.PinTarget>,
     )
 
+    /** Two marks closer than this are one point: a pin sitting on the handle it coincides with. */
+    private const val HANDLE_MERGE_PT = 0.75
+
+    /**
+     * [own] without the pins a **selection handle** already sits on.
+     *
+     * A selected figure's border pins are its box's corners and the middle of each side — exactly where the
+     * eight resize handles are drawn — so the red pin and the accent handle landed on one point, two dots
+     * stacked, and the reader could not tell which was which. The **handle** owns that point: it is the thing
+     * a press acts on (a pin on the tablet is a mark, not a grip), so drawing a second mark there promises a
+     * grip that is not there. Only the points the handles occupy go; a triangle's corner and an ellipse's
+     * sampled outline are pins and not handles, and they stay.
+     */
+    fun withoutHandles(
+        own: List<Pair<Double, Double>>,
+        bounds: Bounds,
+        flatX: Boolean,
+        flatY: Boolean,
+        tolerancePt: Double = HANDLE_MERGE_PT,
+    ): List<Pair<Double, Double>> {
+        if (own.isEmpty()) return own
+        val handles = handlePoints(bounds, flatX, flatY)
+        return own.filter { (x, y) -> handles.none { (hx, hy) -> hypot(x - hx, y - hy) <= tolerancePt } }
+    }
+
+    /**
+     * The points [withoutHandles] removes — the handles a selection of [bounds] wears, in page pt.
+     *
+     * The mirror of what `SelectionHandlesPaint.drawSelectionHandleDots` and `handleResizeStart` use for the
+     * same box: a corner for each of the four when the box has both extents, the two midpoints of an axis the
+     * box has, and none across one it does not ([flatX], [flatY] — a line's own thickness).
+     */
+    private fun handlePoints(
+        bounds: Bounds,
+        flatX: Boolean,
+        flatY: Boolean,
+    ): List<Pair<Double, Double>> {
+        val midX = (bounds.left + bounds.right) / 2
+        val midY = (bounds.top + bounds.bottom) / 2
+        val out = mutableListOf<Pair<Double, Double>>()
+        if (!flatX && !flatY) {
+            out += bounds.left to bounds.top
+            out += bounds.right to bounds.top
+            out += bounds.right to bounds.bottom
+            out += bounds.left to bounds.bottom
+        }
+        if (!flatY) {
+            out += midX to bounds.top
+            out += midX to bounds.bottom
+        }
+        if (!flatX) {
+            out += bounds.left to midY
+            out += bounds.right to midY
+        }
+        return out
+    }
+
     /**
      * The pins of the elements that could join a **figure being drawn** — the in-flight half of
      * [selectionMarks], so the page's wires and arrows are visible while the figure is still under the stylus

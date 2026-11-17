@@ -38,6 +38,8 @@ class PinMagnet(
         rawDx: Double,
         rawDy: Double,
         thresholdPt: Double,
+        /** Where the drag went down, in page pt — the pin in hand, which is asked before the nearest pair. */
+        grab: Pair<Double, Double>? = null,
     ): Pair<Double, Double> {
         val snap = CircuitSnapping.snapTranslationTo(
             page = page,
@@ -47,6 +49,7 @@ class PinMagnet(
             thresholdPt = thresholdPt,
             caught = caught,
             releaseRatio = releaseRatio,
+            grab = grab,
         )
         caught = snap.target
         return snap.dx to snap.dy

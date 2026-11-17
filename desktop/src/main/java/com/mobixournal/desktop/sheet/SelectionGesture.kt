@@ -474,7 +474,9 @@ private fun transformPageSelection(
             x1 - x0,
             y1 - y0,
             CircuitSnapping.thresholdFor(scale),
-        ) ?: snapSelectionMove(original, selection, x1 - x0, y1 - y0, scale = scale)
+            // The pin in hand, asked before the nearest pair: the join lands where the hand aimed.
+            grab = x0 to y0,
+        ) ?: snapSelectionMove(original, selection, x1 - x0, y1 - y0, scale = scale, grab = x0 to y0)
         SelectionEdit.move(original, selection, dx, dy)
     }
     SelectionHandle.ROTATE -> {

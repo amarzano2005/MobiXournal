@@ -172,4 +172,47 @@ class PinMagnetTest {
         assertEquals(0.0, dy, 1e-9)
         assertEquals("anchor", magnet.caught?.circuitId)
     }
+
+    /**
+     * The pin **in hand** wins over the nearest pair.
+     *
+     * A moved part carries several pins, so with the nearest-pair rule alone a drag could join the second
+     * pin to a terminal the reader never aimed at, purely because it passed closer: the part "attaches to
+     * the wrong point". Where the hand went down settles which pin is the one being aimed, and that pin is
+     * asked first — the nearest pair answers only when it has nothing in reach.
+     */
+    @Test
+    fun thePinInHandWinsOverTheNearestPair() {
+        // Two terminals, and a mover whose pins each sit in reach of one: p1 is 12 pt from t1, p2 only 4 pt
+        // from t2, so the nearest pair is the second — the one the hand is *not* holding.
+        val mover = CircuitElement(
+            symbol = "RESISTOR",
+            positionX = 100.0,
+            positionY = 100.0,
+            pins = listOf(CircuitPin("p1", 0.0, 0.0), CircuitPin("p2", 50.0, 0.0)),
+            id = "mover",
+        )
+        val page = pageOf(part(112.0, 100.0, "t1"), part(154.0, 100.0, "t2"), mover)
+        val refs = setOf(ElementRef(0, 2))
+
+        val nearest = PinMagnet().translation(page, refs, 0.0, 0.0, reach)
+        assertEquals("with no grab the nearest pair wins", 4.0, nearest.first, 1e-9)
+
+        val magnet = PinMagnet()
+        val (dx, dy) = magnet.translation(page, refs, 0.0, 0.0, reach, grab = 100.0 to 100.0)
+        assertEquals("the pin under the hand joins its own terminal", 12.0, dx, 1e-9)
+        assertEquals(0.0, dy, 1e-9)
+        assertEquals("and that terminal is what it caught", "t1", magnet.caught?.circuitId)
+    }
+
+    /** A grab on no pin at all changes nothing: the nearest pair still answers. */
+    @Test
+    fun aGrabOnBarePaperLeavesTheNearestPairAlone() {
+        val page = edgePage()
+        val magnet = PinMagnet()
+
+        val (dx, dy) = magnet.translation(page, setOf(ElementRef(0, 1)), 0.0, 0.0, reach, grab = 150.0 to 400.0)
+        assertEquals("the nearest pair still wins", 20.0, dx, 1e-9)
+        assertEquals(0.0, dy, 1e-9)
+    }
 }

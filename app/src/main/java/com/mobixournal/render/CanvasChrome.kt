@@ -73,6 +73,16 @@ internal class CanvasChrome {
         color = PIN_COLOR
     }
     /**
+     * The **ring** a selected element's *own* pins wear, painted under them — hollow, so a pin is never the
+     * filled dot a resize handle is. A dot and a handle at one point was the confusion: the reader could not
+     * tell a join point from a grip, and the two were drawn on top of each other.
+     */
+    val pinRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2.5f
+        color = PIN_COLOR
+    }
+    /**
      * The **edge** a pin mark wears, painted under it: the sheet's own white, so a mark that lands on a black
      * wire or on a ruled line keeps an outline instead of bleeding into it. The window edges its pins the
      * same way (`drawPinDot`); a mark with no edge is a mark that is not seen.
@@ -289,6 +299,7 @@ internal class CanvasChrome {
         handleArm.color = selection
         // Not the theme's accent: a pin is a join point on the sheet, so it keeps the shared red.
         pin.color = PIN_COLOR
+        pinRing.color = PIN_COLOR
         selectionFill.color = selection.withAlpha(SELECTION_FILL_ALPHA)
         bandFill.color = selection.withAlpha(BAND_FILL_ALPHA)
         guideStroke.color = guide

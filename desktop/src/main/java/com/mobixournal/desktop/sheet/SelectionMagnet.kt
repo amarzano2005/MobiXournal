@@ -24,10 +24,13 @@ internal fun snapSelectionMove(
     dx: Double,
     dy: Double,
     scale: Float,
+    /** Where the drag went down, in page pt: the pin in hand is asked before the nearest pair. */
+    grab: Pair<Double, Double>? = null,
 ): Pair<Double, Double> = CircuitSnapping.snapTranslation(
     page = page,
     refs = selection.refs,
     rawDx = dx,
     rawDy = dy,
     thresholdPt = CircuitSnapping.thresholdFor(scale),
+    grab = grab,
 )

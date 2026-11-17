@@ -248,13 +248,13 @@ net a pin is snapped to and is omitted for a floating pin. **Every figure carrie
 a component's terminals, a wire's two ends, an arrow's **tip only** (it points, it is not a wire) and a
 drawn figure's corners **and the middle of every side** — a living `parametricShape` included (`FigurePins`). What a gesture marks is exactly what it may join: a
 **circuit** reaches wires, a **wire** reaches parts, wires and figures, an **arrow** reaches everything, and a drawn **figure** reaches the ends of the lines it is paired with — dragged onto one it lands on it; two figures never pull each other.
-The marks follow the **selection** as well as the gesture — an element merely selected wears them too:
-its own pins *and* the compatible ones it can be paired with, both ends of the join (`selectionMarks`),
-and only while the page holds something compatible — a figure a slot has just drawn is left **selected**, so they survive the slot (`appendFigures`). The reach is `SNAP_REACH_PX` **screen** pixels at
-(`thresholdFor`): a fixed number of page points grew into a finger's width on a zoomed-in page, which
-is what made the magnet feel greedy. A caught target holds to
-`SNAP_RELEASE_RATIO` × that reach — `PinMagnet` for a moved selection, `EndsMagnet` for the ends of a
-wire, arrow or part being drawn — so nothing flickers, and the caught pin is lit while the hand is down.
+The marks follow the **selection** as well as the gesture — an element merely selected wears them too: its
+own pins *and* the compatible ones it can be paired with, both ends of the join (`selectionMarks`), and
+only while the page holds something compatible — a figure a slot has just drawn is left **selected**, so
+they survive the slot (`appendFigures`). The reach is `SNAP_REACH_PX` **screen** pixels at `thresholdFor`,
+since a fixed number of page points was a finger's width zoomed in. A caught target holds to
+`SNAP_RELEASE_RATIO` × that reach (`PinMagnet` for a move, `EndsMagnet` for a drag's ends), so nothing
+flickers; which mark is which, and which pin a drag joins, are [selection.md](selection.md)'s.
 
 A **component being placed** aims at the ends of the **wires already on the page** too, and a wire aims
 at another wire's end, so a chain of segments is one net; a line or an arrow also aims at a figure's

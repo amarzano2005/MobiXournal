@@ -325,4 +325,36 @@ class FigurePinsTest {
         assertEquals("the head's second copy of the tip moves with it", 305.0, snapped[3].x, 1e-6)
         assertEquals("the tail is untouched", 100.0, snapped[0].x, 1e-6)
     }
+
+    /**
+     * A pin a **handle** already sits on is not drawn a second time: a figure's border pins are its box's
+     * corners and side midpoints, which is exactly where the eight handles are, so the red dot and the
+     * accent dot landed on one point and the two marks could not be told apart.
+     */
+    @Test
+    fun aPinOnAHandleIsNotASecondMark() {
+        val bounds = Bounds(0.0, 0.0, 100.0, 60.0)
+        val own = listOf(
+            0.0 to 0.0, 100.0 to 0.0, 100.0 to 60.0, 0.0 to 60.0,
+            50.0 to 0.0, 50.0 to 60.0, 0.0 to 30.0, 100.0 to 30.0,
+            25.0 to 15.0,
+        )
+        assertEquals(
+            "the border pins the handles own are dropped, the one inside stays",
+            listOf(25.0 to 15.0),
+            FigurePins.withoutHandles(own, bounds, flatX = false, flatY = false),
+        )
+    }
+
+    /** A box with no height wears its two end handles and nothing else, so only those points are taken. */
+    @Test
+    fun aFlatBoxTakesOnlyTheHandlesItWears() {
+        val bounds = Bounds(0.0, 50.0, 100.0, 50.0)
+        val own = listOf(0.0 to 50.0, 100.0 to 50.0, 50.0 to 50.0)
+        assertEquals(
+            "the ends are handles, the middle of the line is not",
+            listOf(50.0 to 50.0),
+            FigurePins.withoutHandles(own, bounds, flatX = false, flatY = true),
+        )
+    }
 }

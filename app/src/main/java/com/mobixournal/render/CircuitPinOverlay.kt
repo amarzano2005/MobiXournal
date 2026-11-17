@@ -18,6 +18,9 @@ private const val PIN_CAUGHT_PX = 10f
 /** Radius of a pin the placement in flight is about to mint, in view px. */
 private const val PIN_PENDING_PX = 8.5f
 
+/** Radius of the **ring** a selected element's own pins wear, in view px — the hollow counterpart of a dot. */
+private const val PIN_RING_PX = 8.5f
+
 /** Side of the square that marks an existing wire's end, in view px. */
 private const val WIRE_END_PX = 7f
 
@@ -89,11 +92,26 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
     fun at(x: Double, y: Double) =
         (x * box.scale + box.leftPx - scrollX).toFloat() to (y * box.scale + box.topPx - scrollY).toFloat()
-    // The selection's own pins, filled: they are the thing being joined.
-    for ((px, py) in marks.own) {
+    // The selection's own pins: a **hollow ring**, never a filled dot — a filled dot is a handle's own shape,
+    // and the two were read as one mark on the same sheet. A pin a handle already sits on is not drawn at
+    // all ([FigurePins.withoutHandles]): a figure's border pins *are* its box's corners and side midpoints,
+    // so drawing both put two dots on one point and left the reader unable to say which was which.
+    val bounds = SelectionTester.boundsOf(page, sel.refs)
+    val own = when {
+        // A line's or an arrow's only handles are its two ends, and its pins are those very points.
+        gestures.shaftOfSelection(sel) != null -> emptyList()
+        bounds == null -> marks.own
+        else -> FigurePins.withoutHandles(
+            marks.own,
+            bounds,
+            DrawingSurfaceDefaults.isFlat((bounds.width * box.scale).toFloat(), box.scale),
+            DrawingSurfaceDefaults.isFlat((bounds.height * box.scale).toFloat(), box.scale),
+        )
+    }
+    for ((px, py) in own) {
         val (x, y) = at(px, py)
-        canvas.drawCircle(x, y, PIN_PENDING_PX + PIN_HALO_PX, chrome.pinHalo)
-        canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.pin)
+        canvas.drawCircle(x, y, PIN_RING_PX + PIN_HALO_PX, chrome.pinHalo)
+        canvas.drawCircle(x, y, PIN_RING_PX, chrome.pinRing)
     }
     // And what it may join — the other end of the pairing. A compatible mark that sits **on** one of the
     // figure's own pins is the same joint (`FigurePins.selectionMarks` answers both ends): marking it twice

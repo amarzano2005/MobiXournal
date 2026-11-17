@@ -513,11 +513,11 @@ internal class SelectionGestureController(
     private fun moveTo(viewX: Float, viewY: Float) = transform { sel, start, box ->
         val rawDx = box.toPtX(viewX, viewport.scrollX) - moveStartPtX
         val rawDy = box.toPtY(viewY, viewport.scrollY) - moveStartPtY
-        // The reach is **screen** pixels whatever the zoom (`thresholdFor`), and the magnet holds the
-        // pin it caught between frames — the desktop window's rule, with the view's own scale.
+        // The reach is **screen** pixels whatever the zoom (`thresholdFor`), the magnet holds the pin it
+        // caught between frames, and the pin the press went down on is asked before the nearest pair.
         val (dx, dy) = magnet.translation(
             start.pages.getOrNull(sel.pageIndex), sel.refs, rawDx, rawDy,
-            CircuitSnapping.thresholdFor(box.scale),
+            CircuitSnapping.thresholdFor(box.scale), grab = moveStartPtX to moveStartPtY,
         )
         SelectionOps.translate(
             start.pages, sel.pageIndex, sel.refs,
