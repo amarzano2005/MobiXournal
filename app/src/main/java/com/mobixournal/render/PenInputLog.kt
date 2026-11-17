@@ -222,9 +222,14 @@ internal object PenEventText {
         bufferWidth: Int,
         bufferHeight: Int,
         provisional: Boolean,
+        /** The extent the frame **started** with, before [DrawingSurfacePaint.paint] rebuilt a stale stack. */
+        viewportBefore: Int = viewportWidth,
+        /** Whether the frame had to rebuild the stack before it could draw. */
+        stale: Boolean = false,
     ): String =
         "EXT box=${boxWidth}x$boxHeight view=${viewWidth}x$viewHeight " +
             "vp=${viewportWidth}x$viewportHeight buf=${bufferWidth}x$bufferHeight " +
+            "was=$viewportBefore stale=${if (stale) "yes" else "no"} " +
             "provisional=${if (provisional) "yes" else "no"}"
 
     /** `DOWN`, `HOVER_MOVE`, … — an unnamed action keeps its number so nothing is lost. */

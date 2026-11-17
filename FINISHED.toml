@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "show-the-pre-paint-extent-in-the-diagnostics-line"
+title = "Show the pre-paint extent in the diagnostics line"
+description = "The EXT line now reports the extent the frame started with (was=) and whether it had to rebuild the stack before drawing (stale=), captured in DrawingSurfacePaint.paint before the stackStale correction and carried through reportFrameExtent, CanvasDiagnostics.extent and PenEventText.extentLine. The earlier version printed vp after that correction, so the very state it existed to catch — a frame fitted to the lane's old width — was invisible in it; this is the fix for that blind spot. PenInputLogTest covers the settled, provisional and stale cases and docs/stylus.md documents the two new fields. Checks: :app:testDebugUnitTest green including DocsGuardTest, SourceStructureTest, PackageStructureTest and PenInputLogTest, :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 453 166 bytes, SHA-256 503842c8d518c732a5cb1e1fa500f5f4f929dbf5fd0c6ea973b06650fee637bc) uploaded to https://files.catbox.moe/iypaa7.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no device here. The reading so far: box=view=vp=buf on every settled frame with one frame per extent points at the SurfaceView's own surface being resized a frame late rather than at the page stack, which the corrected line will confirm or refute."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "none: an operator diagnostic field in the canvas's existing pen-diagnostics panel, a debugging aid rather than a feature of the app's interface, and its material, tokens, glyphs and English copy are unchanged"
+
+[[task]]
 id = "put-the-lane-s-glass-behind-the-workspace-row"
 title = "Put the lane's glass behind the workspace row"
 description = "DocumentNavigationWorkspace wraps its Row in a Box painted with the lane's own glass (rememberGlassSurfaceColor().compositeOver(rememberChromeColor())), so the moment in which the lane's space is neither painted by the lane nor by the canvas shows chrome instead of the window's black — the lateral strip the EXT diagnostics proved was not a stale page fit (box=view=vp=buf on every frame, one frame per extent). The Row(Modifier.fillMaxSize()) call stays literally as it was, because ChromeGeometryGuardTest reads it; the first attempt that put the background on the Row itself failed that guard and was redone as a wrapper. Checks: :app:testDebugUnitTest green including ChromeGeometryGuardTest, DocsGuardTest, SourceStructureTest and PackageStructureTest, :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 453 166 bytes, SHA-256 ecedab8fab34c1eac1e2dc94461ab3145cc60eb37e8d5798a8cb782af2b4eb87) uploaded to https://files.catbox.moe/ejswax.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no device here, so the strip was not watched on a tablet."

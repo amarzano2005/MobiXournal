@@ -88,6 +88,9 @@ internal fun DrawingSurfaceView.paint() {
     // locked buffer that is not that size makes this a tentative frame — one more is asked for once
     // the surface has settled (`DrawingSurfaceResize.kt`). Without the second half, a divider drag
     // left the pane showing a cropped copy of the frame drawn for the old width.
+    // Kept for the diagnostics line: what the frame *started* with, before the correction below — the state
+    // in which a frame draws the page fitted to the old extent is exactly the one worth seeing.
+    val viewportBefore = viewport.viewWidth.toInt()
     val stackStale = viewport.viewWidth != width.toFloat() || viewport.viewHeight != height.toFloat()
     if (stackStale) {
         relayout()
@@ -95,7 +98,7 @@ internal fun DrawingSurfaceView.paint() {
     }
     val provisional = stackStale || canvas.width != width || canvas.height != height
     // The pen-diagnostics panel's extent line; nothing at all unless the panel is open.
-    reportFrameExtent(canvas.width, canvas.height, provisional)
+    reportFrameExtent(canvas.width, canvas.height, provisional, viewportBefore, stackStale)
     try {
         canvas.drawColor(chrome.backdropColor)
         val visible = layout.visible(scrollY, height.toFloat())

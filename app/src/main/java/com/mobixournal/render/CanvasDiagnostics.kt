@@ -186,12 +186,15 @@ internal class CanvasDiagnostics(
         bufferWidth: Int,
         bufferHeight: Int,
         provisional: Boolean,
+        viewportBefore: Int,
+        stale: Boolean,
     ) {
         if (!enabled) return
         record(
             PenEventText.extentLine(
                 boxWidth, boxHeight, viewWidth, viewHeight,
                 viewportWidth, viewportHeight, bufferWidth, bufferHeight, provisional,
+                viewportBefore = viewportBefore, stale = stale,
             ),
             key = "extent",
         )

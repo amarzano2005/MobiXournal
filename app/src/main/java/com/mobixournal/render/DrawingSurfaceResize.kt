@@ -89,7 +89,13 @@ internal fun DrawingSurfaceView.relayoutFor(widthPx: Int, heightPx: Int) {
  * reports, what the stack was built for and what the buffer actually is (`PenEventText.extentLine`). Silent
  * unless the pen-diagnostics panel is open, and only one line while the numbers hold.
  */
-internal fun DrawingSurfaceView.reportFrameExtent(bufferWidth: Int, bufferHeight: Int, provisional: Boolean) {
+internal fun DrawingSurfaceView.reportFrameExtent(
+    bufferWidth: Int,
+    bufferHeight: Int,
+    provisional: Boolean,
+    viewportBefore: Int,
+    stale: Boolean,
+) {
     diagnostics.extent(
         boxWidth = viewport.placedViewWidth.roundToInt().takeIf { it > 0 } ?: width,
         boxHeight = viewport.placedViewHeight.roundToInt().takeIf { it > 0 } ?: height,
@@ -100,6 +106,8 @@ internal fun DrawingSurfaceView.reportFrameExtent(bufferWidth: Int, bufferHeight
         bufferWidth = bufferWidth,
         bufferHeight = bufferHeight,
         provisional = provisional,
+        viewportBefore = viewportBefore,
+        stale = stale,
     )
 }
 
