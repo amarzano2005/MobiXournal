@@ -41,9 +41,7 @@ import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.design.DocumentNavigationLayout
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.PdfOutlineSeeding
-import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.PanelEdgeAir
-import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
@@ -62,27 +60,22 @@ internal fun EditorUiState.closeNavigation() {
     pageSelection = emptySet()
 }
 
-/** Direct entry beside Pages; the bookmark is shared catalogue artwork with a named, selected target. */
+/**
+ * The navigation capsule's **bookmark half**: the ribbon in shared catalogue artwork, one named, selected
+ * target beside the page list it shares the shell with ([NavigationCapsule]).
+ */
 @Composable
-internal fun BookmarksCapsule(ui: EditorUiState) {
+internal fun BookmarkSegment(ui: EditorUiState) {
     val selected = ui.pageListOpen && ui.navigationTab == NavigationTab.BOOKMARKS
-    Surface(
-        shape = ModernTheme.capsuleShape,
-        color = rememberGlassSurfaceColor(),
-        tonalElevation = 0.dp,
-        shadowElevation = ModernTheme.capsuleShadowDp,
-        modifier = Modifier.padding(horizontal = 2.dp).floatingRim(ModernTheme.capsuleCornerRadiusDp),
+    IconButton(
+        onClick = { ui.toggleNavigation(NavigationTab.BOOKMARKS) },
+        modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp).semantics { this.selected = selected },
     ) {
-        IconButton(
-            onClick = { ui.toggleNavigation(NavigationTab.BOOKMARKS) },
-            modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp).semantics { this.selected = selected },
-        ) {
-            Icon(
-                ChromeGlyph.BOOKMARK.imageVector(), "Bookmarks",
-                tint = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk(),
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        Icon(
+            ChromeGlyph.BOOKMARK.imageVector(), "Bookmarks",
+            tint = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk(),
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

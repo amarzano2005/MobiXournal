@@ -129,34 +129,17 @@ internal fun actedPages(picked: Set<Int>, currentPage: Int, pageCount: Int): Set
     return if (currentPage in 0 until pageCount) setOf(currentPage) else emptySet()
 }
 
-/** The capsule wired to the chrome's own flag, so the top bar only says where it stands. */
-@Composable
-internal fun PageListCapsuleFor(ui: EditorUiState) {
-    Row {
-        PageListCapsule(
-            open = ui.pageListOpen && ui.navigationTab == NavigationTab.PAGES,
-            onClick = { ui.toggleNavigation(NavigationTab.PAGES) },
-        )
-        BookmarksCapsule(ui)
-    }
-}
-
 /**
- * The **page list** capsule in the top bar: its glyph, the words *Page list*, and the flag it holds.
+ * The top bar's **one navigation capsule**: *Page list* and the bookmark ribbon, two halves under one
+ * shell, divided by the chrome's own hairline ([TopBarToolDivider]).
  *
- * One tap drops the lateral page list down the rail's edge, the next takes it away. It stands beside the
- * search because the two are the same errand — looking *through* the document rather than at the sheet in
- * front of you — and it is lit while the lane is up, so the button says where the list went. It is
- * deliberately **not** a row in the Pages menu: that menu is a list of things to do to a page, and the
- * overview is not one of them.
- *
- * A **capsule with its name**, not a bare glyph: a page list is a place to go rather than a one-off
- * action, and the word is what tells a reader who has never opened it what the lane is for.
+ * They answer one question — where else is there to look in this document — so they read as one object
+ * rather than as two unrelated buttons, and the rule is the one the dock already divides its preview
+ * with, so the chrome keeps a single separator drawn either way round. Each half holds its own flag:
+ * the shell is there while either lane is open and the half you are looking at wears the accent.
  */
 @Composable
-internal fun PageListCapsule(open: Boolean, onClick: () -> Unit) {
-    val compact = LocalConfiguration.current.screenWidthDp < DocumentNavigationLayout.COMPACT_WIDTH_DP
-    val tint = if (open) MaterialTheme.colorScheme.primary else rememberChromeInk()
+internal fun NavigationCapsule(ui: EditorUiState) {
     Surface(
         shape = ModernTheme.capsuleShape,
         color = rememberGlassSurfaceColor(),
@@ -166,24 +149,54 @@ internal fun PageListCapsule(open: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 2.dp)
             .floatingRim(ModernTheme.capsuleCornerRadiusDp),
     ) {
-        Row(
-            modifier = Modifier
-                .clickable(onClick = onClick)
-                .semantics { contentDescription = "Page list"; selected = open }
-                .then(if (compact) Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
-                    else Modifier.padding(horizontal = 10.dp, vertical = 7.dp)),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Outlined.ViewList,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(18.dp),
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PageListSegment(
+                open = ui.pageListOpen && ui.navigationTab == NavigationTab.PAGES,
+                onClick = { ui.toggleNavigation(NavigationTab.PAGES) },
             )
-            if (!compact) {
-                Spacer(Modifier.width(6.dp))
-                Text("Page list", style = MaterialTheme.typography.labelLarge, color = tint)
-            }
+            // The rule takes no air of its own: each half already keeps its own inset, so the hairline
+            // falls midway between the words and the ribbon instead of opening a second gap beside them.
+            TopBarToolDivider(air = 0.dp)
+            BookmarkSegment(ui)
+        }
+    }
+}
+
+/**
+ * The navigation capsule's **page-list half**: its glyph, the words *Page list*, and the flag it holds.
+ *
+ * One tap drops the lateral page list down the rail's edge, the next takes it away. It stands beside the
+ * search because the two are the same errand — looking *through* the document rather than at the sheet in
+ * front of you — and it is lit while the lane is up, so the button says where the list went. It is
+ * deliberately **not** a row in the Pages menu: that menu is a list of things to do to a page, and the
+ * overview is not one of them.
+ *
+ * A **half with its name**, not a bare glyph: a page list is a place to go rather than a one-off action,
+ * and the word is what tells a reader who has never opened it what the lane is for.
+ */
+@Composable
+internal fun PageListSegment(open: Boolean, onClick: () -> Unit) {
+    val compact = LocalConfiguration.current.screenWidthDp < DocumentNavigationLayout.COMPACT_WIDTH_DP
+    val tint = if (open) MaterialTheme.colorScheme.primary else rememberChromeInk()
+    Row(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "Page list"; selected = open }
+            .then(
+                if (compact) Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
+                else Modifier.height(DocumentNavigationLayout.PAGE_CONTROL_DP.dp).padding(horizontal = 10.dp),
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Outlined.ViewList,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(18.dp),
+        )
+        if (!compact) {
+            Spacer(Modifier.width(6.dp))
+            Text("Page list", style = MaterialTheme.typography.labelLarge, color = tint)
         }
     }
 }

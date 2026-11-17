@@ -243,9 +243,9 @@ fun EditorTopBar(
                 val glassColor = rememberGlassSurfaceColor()
                 val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
-                // Order is deliberate: the page list and the search, then split view, then the paired
-                // undo/redo, then a compact Export PDF and Save — the most-used of them under the thumb.
-                PageListCapsuleFor(ui)
+                // Order is deliberate: the navigation capsule and the search, then split view, then the
+                // paired undo/redo, then a compact Export PDF and Save — the most-used under the thumb.
+                NavigationCapsule(ui)
                 SearchControls(pane)
                 Surface(
                     shape = CircleShape,

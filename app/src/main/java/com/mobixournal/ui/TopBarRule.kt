@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
@@ -21,13 +22,18 @@ import com.mobixournal.ui.theme.chromeIsDark
  *
  * It is the rail's separator ([SideToolbar]'s rule above the pinned slots) turned upright: the family's
  * `hairlineBorder`, one dp, **half a slot** tall, with the dock's own 6 dp of air on each side. One
- * separator in the chrome, drawn either way round.
+ * separator in the chrome, drawn either way round — the header's navigation capsule divides its two
+ * halves (`NavigationCapsule`) with the same line, asking for no air of its own there because each half
+ * already keeps its inset.
+ *
+ * @param air The gap the rule leaves on each side; the dock takes the default, a capsule whose halves
+ * carry their own insets passes `0.dp`.
  */
 @Composable
-internal fun TopBarToolDivider() {
+internal fun TopBarToolDivider(air: Dp = 6.dp) {
     Box(
         Modifier
-            .padding(horizontal = 6.dp)
+            .padding(horizontal = air)
             .width(1.dp)
             .height(20.dp)
             .background(ModernTheme.hairlineBorder(chromeIsDark())),

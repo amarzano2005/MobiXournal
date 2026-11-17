@@ -160,7 +160,7 @@ over no text stays exactly as drawn.
 
 ## Following the PDF's own contents
 
-On Android, tap the **bookmark ribbon** beside **Page list** in the top bar. The **Bookmarks** tab
+On Android, tap the **bookmark ribbon** in the **Page list** capsule in the top bar. The **Bookmarks** tab
 shows the PDF's outline beside the document; **Pages** switches to page previews in the same panel.
 On a tablet, choosing a bookmark leaves the list open for the next jump. In a compact window, choosing a
 page closes the panel; the ribbon opens it again with the filter and folded chapters retained.

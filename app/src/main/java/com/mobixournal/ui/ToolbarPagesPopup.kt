@@ -115,8 +115,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
  * three taps are three steps, not three visits to the menu.
  *
  * The tablet's own page list is **not** here: it is the capsule beside the search in the top bar
- * ([PageListCapsule]), because the list is a way of looking *through* the document rather than one of
- * the page's commands.
+ * ([PageListSegment], the leading half of [NavigationCapsule]), because the list is a way of looking
+ * *through* the document rather than one of the page's commands.
  */
 @Composable
 private fun ManagePageRows(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {

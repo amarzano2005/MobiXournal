@@ -57,7 +57,8 @@ dropped at the bottom without letting go.
 
 ## Bookmarks
 
-The document's bookmark list opens directly from the **bookmark ribbon** beside **Page list** on Android,
+The document's bookmark list opens directly from the **bookmark ribbon** in the **Page list** capsule on Android
+(the ribbon is the right-hand half of the one navigation pill, divided from **Page list** by a hairline),
 or the **Bookmarks** tab in the Windows sidebar. It includes the imported PDF's outline and entries you
 add yourself. Follow [the bookmark guide](guide-pdf-and-audio.md#following-the-pdfs-own-contents) for
 navigation, filtering and editing, including the verification limit of Android's revised panel.
