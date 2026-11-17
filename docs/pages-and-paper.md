@@ -117,7 +117,7 @@ sheet in its hub), so a command that asks about the whole list lives where the l
 **The tablet's page list.** The window keeps a page strip down its edge; the tablet opens one from the
 **capsule beside the search** in the top bar (`NavigationCapsule`: its page-list half is an icon on compact
 windows, otherwise the glyph and *Page list*, and the bookmark ribbon shares the same pill, divided from it by
-the chrome's hairline), and
+the chrome's hairline - and neither half lights while its lane is up, the lane itself being the answer), and
 the lane docks **on the rail's side** — `EditorBody` places it between the rail's lane and the canvas, so
 turning the toolbar to the right-hand edge takes the list with it, the way the window's strip follows its
 tools. On wide windows it opens at its final width in a layout lane beside the page. Compact windows show the

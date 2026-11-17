@@ -69,6 +69,9 @@ internal fun EditorUiState.closeNavigation() {
 /**
  * The navigation capsule's **bookmark half**: the ribbon in shared catalogue artwork, one named, selected
  * target beside the page list it shares the shell with ([NavigationCapsule]).
+ *
+ * Like its twin it does **not** light up while the lane is up: the state stays for a screen reader, the
+ * ribbon keeps the chrome's ink, and the lane in front of the canvas is what says the tap took.
  */
 @Composable
 internal fun BookmarkSegment(ui: EditorUiState) {
@@ -79,7 +82,7 @@ internal fun BookmarkSegment(ui: EditorUiState) {
     ) {
         Icon(
             ChromeGlyph.BOOKMARK.imageVector(), "Bookmarks",
-            tint = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk(),
+            tint = rememberChromeInk(),
             modifier = Modifier.size(20.dp),
         )
     }

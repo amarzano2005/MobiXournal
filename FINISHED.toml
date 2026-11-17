@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stop-the-navigation-capsule-s-halves-lighting-up"
+title = "Stop the navigation capsule's halves lighting up"
+description = "PageListSegment in PageListPanel.kt and BookmarkSegment in DocumentNavigationPanel.kt now tint both states with rememberChromeInk(), so the header capsule's halves no longer turn accent while their lane is open; the selected flag stays in semantics for a screen reader, the capsule surface, the glyphs, the sizes and the accessible names are unchanged, and the lane's own Pages/Bookmarks tabs keep their accent. KDocs, docs/chrome.md and docs/pages-and-paper.md record the rule. Checks: :app:testDebugUnitTest (including DocsGuardTest and SourceStructureTest) and :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 0d286c49a866cd5d544f17236baa7bfd43686c63e68f65e55dc369122dd27c6c) uploaded to https://files.catbox.moe/2mzvyl.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no emulator or device here, so the two states were not seen on a screen."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: no new surface, the two halves keep the capsule's glass; tokens: rememberChromeInk in both states, the accent leaves these two marks and no literal is introduced; glyph: unchanged ViewList and BOOKMARK at 18 and 20 dp; states: rest, hover, focus and press keep the ripple, the open state is now only semantic, and the lane in front of the canvas is the visible answer; copy: Page list and Bookmarks unchanged; keyboard: not applicable on Android, the window's Pages/Bookmarks switch is untouched; parity: Android-only capsule, the desktop sidebar keeps its own switch; docs: chrome.md and pages-and-paper.md now state that neither half lights; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
+
+[[task]]
 id = "clip-the-page-list-s-pick-box-press-halo-to-the-dot"
 title = "Clip the page list's pick-box press halo to the dot"
 description = "PickBox in app/src/main/java/com/mobixournal/ui/PageListPanel.kt now clips its 40 dp touch target to CircleShape before .clickable, so the press indication is drawn inside the dot instead of a rectangle around it; the CircleShape import is back and the drawn 24 dp circle, the colours, the tick and both accessible names are untouched. The earlier drawCircle change stayed because the mark itself was already round - the rectangle came from the ripple the target painted, which is what the clip removes. Checks: scripts/todo.sh validate, :app:testDebugUnitTest (including DocsGuardTest and SourceStructureTest) and :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 00bb6c8ffee8ff9e9b5948e7ccab83ded59419949255218c79bce61d96bb22c1) uploaded to https://files.catbox.moe/za97vb.apk and the download re-verified, :desktop:createDistributable refreshed. NOT RUN: no emulator or device on this host, so the round halo was not seen on a screen."
