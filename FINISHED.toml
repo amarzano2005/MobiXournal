@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "remove-the-navigation-capsule-s-press-illumination"
+title = "Remove the navigation capsule's press illumination"
+description = "The header capsule's two halves now take no press indication: PageListSegment passes interactionSource + indication = null to clickable, and BookmarkSegment is a sized Box with the same null indication instead of a Material IconButton, carrying contentDescription Bookmarks, role Button and the selected flag so a screen reader still reads one button; sizes (ContentsRowLayout.ACTION_DP and PAGE_CONTROL_DP), chrome ink, glyphs and both accessible names are unchanged, so nothing lights these two on tap, hover or focus. KDocs and docs/chrome.md record the rule. Checks: :app:testDebugUnitTest (including DocsGuardTest, SourceStructureTest and ShapeFeedbackTest) and :app:compileDebugAndroidTestKotlin green after fixing a missing contentDescription import, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 85bdd78ec9561f4a84a82747aff6a7cc1258f24664d280e7b6dee115f8af9521) uploaded to https://files.catbox.moe/wmecx8.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no emulator or device here, so the unlit halves were not seen on a screen."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: no new surface, the two halves keep the capsule's glass and their targets; tokens: rememberChromeInk in both states, no literal added, no accent on these marks; glyph: unchanged ViewList and BOOKMARK at 18 and 20 dp; states: rest, hover and focus draw nothing, press draws nothing by owner request, the open state stays in semantics for a screen reader and the lane in front of the canvas is the visible answer; copy: Page list and Bookmarks unchanged; keyboard: not applicable on Android, the window's Pages/Bookmarks switch is untouched; parity: Android-only capsule; docs: chrome.md states that neither half lights in the accent nor on a press; tests: app unit suite with the doc, structure and shape guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
+
+[[task]]
 id = "stop-the-navigation-lane-s-tabs-lighting-up"
 title = "Stop the navigation lane's tabs lighting up"
 description = "NavigationTabs in app/src/main/java/com/mobixournal/ui/DocumentNavigationPanel.kt now inks both tabs with onSurfaceVariant in every state, so the active Pages or Bookmarks tab keeps the same glyph and label colour as the other and nothing in the lane lights except the body that shows which view is open; Role.Tab and the selected flag stay for a screen reader, and the Manage pages gear and close button are unchanged. The KDoc and docs/chrome.md record the rule. Checks: :app:testDebugUnitTest (including DocsGuardTest and SourceStructureTest) and :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 9333cec7d1802c98a9daf5a911c54e2e9f551ceb6703dd85c684392cae34f282) uploaded to https://files.catbox.moe/zx1qbr.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no emulator or device here, so the two tabs were not seen on a screen."

@@ -1,7 +1,9 @@
 package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
@@ -36,6 +38,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -71,17 +74,31 @@ internal fun EditorUiState.closeNavigation() {
  * target beside the page list it shares the shell with ([NavigationCapsule]).
  *
  * Like its twin it does **not** light up while the lane is up: the state stays for a screen reader, the
- * ribbon keeps the chrome's ink, and the lane in front of the canvas is what says the tap took.
+ * ribbon keeps the chrome's ink, and the lane in front of the canvas is what says the tap took. It takes
+ * **no press indication** either — the ripple was the only light left, and a ribbon that flashes when
+ * tapped is the highlight the owner asked to be rid of (the tool indicator's face sets the precedent).
  */
 @Composable
 internal fun BookmarkSegment(ui: EditorUiState) {
     val selected = ui.pageListOpen && ui.navigationTab == NavigationTab.BOOKMARKS
-    IconButton(
-        onClick = { ui.toggleNavigation(NavigationTab.BOOKMARKS) },
-        modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp).semantics { this.selected = selected },
+    val interaction = remember { MutableInteractionSource() }
+    // A bare target rather than an `IconButton`, because Material's button always draws its own ripple.
+    // The name and the role move to the target so a screen reader still reads one button, not two.
+    Box(
+        modifier = Modifier
+            .size(ContentsRowLayout.ACTION_DP.dp)
+            .clickable(interactionSource = interaction, indication = null) {
+                ui.toggleNavigation(NavigationTab.BOOKMARKS)
+            }
+            .semantics {
+                contentDescription = "Bookmarks"
+                role = Role.Button
+                this.selected = selected
+            },
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
-            ChromeGlyph.BOOKMARK.imageVector(), "Bookmarks",
+            ChromeGlyph.BOOKMARK.imageVector(), null,
             tint = rememberChromeInk(),
             modifier = Modifier.size(20.dp),
         )

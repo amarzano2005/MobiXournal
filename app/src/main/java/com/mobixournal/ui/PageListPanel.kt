@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -182,9 +183,13 @@ internal fun PageListSegment(open: Boolean, onClick: () -> Unit) {
     // The flag still reaches a screen reader, but the half wears one ink in both states: an open lane is
     // visible on its own and the accent here read as a selection highlight on a word that has none.
     val tint = rememberChromeInk()
+    // **No press indication either.** The ripple was the last light this half could show, and the owner
+    // asked for the word not to illuminate when the list opens — the lane dropping down says it instead.
+    // The precedent is the tool indicator's face, which reports the live stroke and takes no indication.
+    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .semantics { contentDescription = "Page list"; selected = open }
             .then(
                 if (compact) Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
