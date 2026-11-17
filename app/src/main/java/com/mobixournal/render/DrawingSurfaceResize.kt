@@ -34,7 +34,12 @@ internal fun DrawingSurfaceView.repaintAfterResize() {
     // on screen — a page drawn for the lane's old width, off to one side — until the next touch happened
     // to ask for a paint. [paint] is the one place that can tell for sure (it compares the viewport with
     // the view's own extent) and it asks for one more frame when the locked buffer is not this size.
-    if (relayoutForResize()) holder.setSizeFromLayout()
+    // The buffer is sized from the layout **every** time, not only when the geometry already looked new.
+    // Leaving the surface at the pane's old size until a paint noticed the difference is what showed a
+    // black strip along the edge the pane had just gained — the area no frame had covered yet — for the
+    // frame or two before a new-size buffer landed. `setSizeFromLayout` is idempotent and cheap.
+    holder.setSizeFromLayout()
+    relayoutForResize()
     requestRender()
     repaintWhenSurfaceSettles()
 }
