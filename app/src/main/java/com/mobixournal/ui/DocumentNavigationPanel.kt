@@ -191,8 +191,11 @@ private fun NavigationTabs(ui: EditorUiState, pane: PaneState, onClose: () -> Un
                     onClick = { ui.navigationTab = tab; ui.pageSelection = emptySet() },
                     modifier = Modifier.semantics { role = Role.Tab; selected = ui.navigationTab == tab },
                 ) {
-                    val tint = if (ui.navigationTab == tab) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    // **One ink for both tabs.** The tab in front used to wear the accent, and with the
+                    // header's two halves quiet that left the only light in the lane on a label. What says
+                    // which view is showing is the body under the tabs; `selected` still tells a screen
+                    // reader which tab that is.
+                    val tint = MaterialTheme.colorScheme.onSurfaceVariant
                     // The tab wears the mark its half of the header capsule wears, so the lane and the
                     // pill name the two views with one picture each.
                     Icon(tab.glyph(), contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))

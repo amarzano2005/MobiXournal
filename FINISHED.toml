@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stop-the-navigation-lane-s-tabs-lighting-up"
+title = "Stop the navigation lane's tabs lighting up"
+description = "NavigationTabs in app/src/main/java/com/mobixournal/ui/DocumentNavigationPanel.kt now inks both tabs with onSurfaceVariant in every state, so the active Pages or Bookmarks tab keeps the same glyph and label colour as the other and nothing in the lane lights except the body that shows which view is open; Role.Tab and the selected flag stay for a screen reader, and the Manage pages gear and close button are unchanged. The KDoc and docs/chrome.md record the rule. Checks: :app:testDebugUnitTest (including DocsGuardTest and SourceStructureTest) and :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 9333cec7d1802c98a9daf5a911c54e2e9f551ceb6703dd85c684392cae34f282) uploaded to https://files.catbox.moe/zx1qbr.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no emulator or device here, so the two tabs were not seen on a screen."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: no new surface, the tabs keep the lane's own header; tokens: onSurfaceVariant in both states, the accent leaves these labels and no literal is introduced; glyph: unchanged ViewList and BOOKMARK at 18 dp; states: rest, hover, focus and press keep the TextButton's ripple, the open tab is now only semantic; copy: Pages and Bookmarks unchanged; keyboard: not applicable on Android, the window's sidebar switch is untouched; parity: Android-only lane header; docs: chrome.md now says the tabs are in the chrome's secondary ink in both states; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
+
+[[task]]
 id = "stop-the-navigation-capsule-s-halves-lighting-up"
 title = "Stop the navigation capsule's halves lighting up"
 description = "PageListSegment in PageListPanel.kt and BookmarkSegment in DocumentNavigationPanel.kt now tint both states with rememberChromeInk(), so the header capsule's halves no longer turn accent while their lane is open; the selected flag stays in semantics for a screen reader, the capsule surface, the glyphs, the sizes and the accessible names are unchanged, and the lane's own Pages/Bookmarks tabs keep their accent. KDocs, docs/chrome.md and docs/pages-and-paper.md record the rule. Checks: :app:testDebugUnitTest (including DocsGuardTest and SourceStructureTest) and :app:compileDebugAndroidTestKotlin green, scripts/release-apk.sh built and verified MobiXournal-2.2.0.apk (59 436 782 bytes, SHA-256 0d286c49a866cd5d544f17236baa7bfd43686c63e68f65e55dc369122dd27c6c) uploaded to https://files.catbox.moe/2mzvyl.apk and the download re-verified, :desktop:createDistributable refreshed, scripts/todo.sh validate run at closing. NOT RUN: no emulator or device here, so the two states were not seen on a screen."
