@@ -192,7 +192,7 @@ class NavigationPanelTest {
             assertTrue("each first-tap opening remains responsive: $openingTimes", openingTimes.all { it < 3000 })
             Log.i("NavigationQa", "1200 pages, 800 bookmarks: opening ms=$openingTimes; page reads=${reads.get()}")
             click("Page list")
-            await("heavy page preview") { find("Pick page 1") != null }
+            await("heavy page preview") { find("Show page 1") != null }
             screenshot("heavy-pages.png")
             click("Close navigation")
             faulty.set(true)
@@ -361,9 +361,9 @@ class NavigationPanelTest {
         click("Save bookmark")
         await("new bookmark is revealed despite the previous filter") { find("Actions for Visible after filtering") != null }
         click("Pages")
-        await("page controls") { find("Pick page 1") != null }
+        await("page controls") { find("Show page 1") != null }
         screenshot("pages-tablet.png")
-        assertTrue("a page preview stays within its navigator", find("Pick page 1")!!.let {
+        assertTrue("a page preview stays within its navigator", find("Show page 1")!!.let {
             val box = Rect().also(it::getBoundsInScreen)
             box.width() > 0 && box.height() > 0
         })
@@ -404,7 +404,7 @@ class NavigationPanelTest {
         val compact = context.resources.configuration.screenWidthDp < 600
         val before = if (compact) canvasState() else null
         click(if (tab == "Pages") "Page list" else "Bookmarks")
-        await("$tab view after configuration change") { find(if (tab == "Pages") "Pick page 1" else "Filter bookmarks") != null }
+        await("$tab view after configuration change") { find(if (tab == "Pages") "Show page 1" else "Filter bookmarks") != null }
         if (compact) {
             SystemClock.sleep(200)
             assertEquals("opening compact navigation keeps the full canvas viewport and current page", before, canvasState())

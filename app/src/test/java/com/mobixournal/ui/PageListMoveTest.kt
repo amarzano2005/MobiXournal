@@ -5,63 +5,50 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Where a picked run lands when the page list moves it one place ([pickedMoveTarget]) — the pure half of
- * the lateral list's two arrows, so the clamping the user feels at the ends of the document is a rule a
- * test can read rather than a number buried in a click handler.
+ * Where a page lands when the page list moves it one place ([pickedMoveTarget]) — the pure half of the
+ * lateral list's two arrows, so the clamping the user feels at the ends of the document is a rule a test
+ * can read rather than a number buried in a click handler.
  */
 class PageListMoveTest {
 
     // --- what a command does *after* the edit: the viewport and the pick follow the page ---
 
     @Test
-    fun carryingAPageLeavesTheViewAndThePickOnIt() {
+    fun carryingAPageLeavesTheViewOnIt() {
         var moved: Pair<Set<Int>, Int>? = null
-        var selection: Set<Int>? = null
         var viewed: Int? = null
-        carryPages(setOf(1), -1, 4, { p, d -> moved = p to d }, { selection = it }, { viewed = it })
+        carryPages(setOf(1), -1, 4, { p, d -> moved = p to d }, { viewed = it })
         assertEquals(setOf(1) to -1, moved)
-        assertEquals(setOf(0), selection)
         assertEquals(0, viewed)
-    }
-
-    @Test
-    fun carryingARunLeavesThePickOnEveryPageItMoved() {
-        var selection: Set<Int>? = null
-        var viewed: Int? = null
-        carryPages(setOf(1, 2), 1, 5, { _, _ -> }, { selection = it }, { viewed = it })
-        assertEquals(setOf(2, 3), selection)
-        assertEquals(2, viewed)
     }
 
     @Test
     fun carryingNothingCallsNothing() {
         var calls = 0
-        carryPages(emptySet(), 1, 3, { _, _ -> calls++ }, { calls++ }, { calls++ })
+        carryPages(emptySet(), 1, 3, { _, _ -> calls++ }, { calls++ })
         assertEquals(0, calls)
     }
 
     @Test
     fun removingLandsOnThePageThatTookTheGap() {
         var deleted: Set<Int>? = null
-        var selection: Set<Int>? = null
         var viewed: Int? = null
-        removePages(setOf(2), 4, { deleted = it }, { selection = it }, { viewed = it })
+        removePages(setOf(2), 4, { deleted = it }, { viewed = it })
         assertEquals(setOf(2), deleted)
-        assertEquals(emptySet<Int>(), selection)
         assertEquals(2, viewed)
     }
 
     @Test
     fun removingTheLastPageLandsOnTheOneBeforeIt() {
         var viewed: Int? = null
-        removePages(setOf(3), 4, { _ -> }, { _ -> }, { viewed = it })
+        removePages(setOf(3), 4, { _ -> }, { viewed = it })
         assertEquals(2, viewed)
     }
 
     @Test
     fun removingEveryPageDoesNothing() {
         var calls = 0
-        removePages(setOf(0, 1), 2, { calls++ }, { calls++ }, { calls++ })
+        removePages(setOf(0, 1), 2, { calls++ }, { calls++ })
         assertEquals(0, calls)
     }
 

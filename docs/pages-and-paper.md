@@ -129,28 +129,22 @@ inside an unrelated card shape. The preview is drawn from the live page (`PageTh
 paper and its ink, on a white card so a blank page still reads as a page), and a **`pdf` page is its real
 sheet** — the raster comes from the canvas's own `PdfPageCache` through
 `DrawingSurfacePaint.pdfSheetFor`, the same reference rule the window's strip follows, so a PDF page's
-preview is the text the annotations sit on rather than a bare card. The number and the preview **go to**
-the page; the box **picks** it, because a tap that navigates is not a tap that selects; the handle
-**carries** it, and while it travels the page is **lifted** above the list while the row it would land on
-wears the accent line along its top edge (`PageOps.moveAll` on drop, the block rule the window's drag
-uses). The gesture belongs to the **list**, not to the row's handle (`pageListDragGesture`): only the
+preview is the text the annotations sit on rather than a bare card. The number, the preview and the dot **go to** the page — one selection, so the dot is the page in view
+and travels with it; the handle **carries** it, and while it travels the page is **lifted** above the
+list while the row it would land on wears the accent line along its top edge (`PageOps.moveAll` on drop,
+the block rule the window's drag uses). The gesture belongs to the **list**, not to the row's handle (`pageListDragGesture`): only the
 handle's band can start a move, so a row that began a drag on any touch would still be a row that cannot
 be scrolled, but a handler on the row itself would die the moment auto-scrolling recycled it — exactly
 when the list is meant to keep moving. Near either end of the list the drag **scrolls it** for as long as
 the finger holds in the strip (`PageListDrag`, `PageListAutoScroll`): the strip is 56 dp deep, the walking
 speed grows with how far into it the page is, and the carried page's place is measured in content pixels —
-the finger's travel plus the list's — so it stays under the hand however far the list walks. A drag that
-starts on a **picked** row lifts the whole pick, and its card counts the pages that travel, because the
-block is what moves (`PageOps.moveAll` moves it on drop). The two
-arrows under the list step the pick by one place and the bin takes it out (`PageOps.removeAll`, which
-refuses a pick covering the whole document), each as **one** undo step — and with **nothing picked** they
-act on the page in view, which is the plain case and needs no ceremony. Either command **carries** the
-page: the viewport and the pick follow it to its new place, so the sheet in front of you is the page you
-just moved — and the page the next tap acts on, which is why the arrows step a page the way the eye reads
-them. The top bar's bookmark ribbon opens the inline **Bookmarks** view; [pdf.md](pdf.md) owns it.
-The box at a row's end wears the accent for **what the commands act on** — the pick, or the page in
-view while nothing is picked — so the dot and the highlighted row move together and the foot names
-the same page.
+the finger's travel plus the list's — so it stays under the hand however far the list walks. The two arrows under the
+list step that page by one place and the bin takes it out (`PageOps.removeAll`, which refuses the
+document's only page), each as **one** undo step. Either command **carries** the page: the viewport and
+the selection follow it to its new place, so the sheet in front of you is the page you just moved — and
+the page the next tap acts on, which is why the arrows step a page the way the eye reads them. The top bar's bookmark ribbon opens the inline **Bookmarks** view; [pdf.md](pdf.md) owns it.
+The dot at a row's end is that one selection: filled with a tick on the page in view, a bare ring on
+every other page, so the lit row, the dot and the foot's subject are always the same page.
 The foot reaches the lane's bottom edge, in the lane's own 6 dp of air rather than above a reserved
 system strip: the app draws edge to edge with transparent bars, so nothing opaque sits under the
 commands, and its three buttons are 48 dp — a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`, opened by the lane's gear), which
