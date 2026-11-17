@@ -169,6 +169,35 @@ internal class CanvasDiagnostics(
     }
 
     /**
+     * Record the canvas's **extent for the frame that was just painted** — the size the pane's Compose box
+     * was placed at, the size the platform view reports, the extent the viewport was built for and the buffer
+     * that was locked (`PenEventText.extentLine`).
+     *
+     * Keyed, so a steady pane leaves no line at all and a transition leaves only the two or three frames whose
+     * numbers actually differed — which is the record that answers "which one was late".
+     */
+    fun extent(
+        boxWidth: Int,
+        boxHeight: Int,
+        viewWidth: Int,
+        viewHeight: Int,
+        viewportWidth: Int,
+        viewportHeight: Int,
+        bufferWidth: Int,
+        bufferHeight: Int,
+        provisional: Boolean,
+    ) {
+        if (!enabled) return
+        record(
+            PenEventText.extentLine(
+                boxWidth, boxHeight, viewWidth, viewHeight,
+                viewportWidth, viewportHeight, bufferWidth, bufferHeight, provisional,
+            ),
+            key = "extent",
+        )
+    }
+
+    /**
      * Record a line about what the app *did* with the pen's input — which action a button click ran, or why
      * one was swallowed. The event lines say what arrived; these say what the app made of it, and the two
      * together are what turns "my pen's button does nothing" into an answer.

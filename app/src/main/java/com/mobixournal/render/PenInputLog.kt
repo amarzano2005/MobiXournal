@@ -202,6 +202,31 @@ internal object PenEventText {
     fun deviceLine(id: Int, name: String?, sources: Int): String =
         "dev #$id \"${trim(name ?: "?")}\" src=${hex(sources)}:${sourceNames(sources)}"
 
+    /**
+     * `EXT box=1508x1000 view=1056x1000 vp=1056x1000 buf=1508x1000 provisional=yes`.
+     *
+     * The four extents a resized pane can disagree on, printed from the frame that drew: the size the pane's
+     * Compose box was **placed** at, the size the platform view **reports**, the extent the viewport (and so
+     * the page stack) was **built** for, and the **buffer** that was locked. A pane that shows a strip of desk
+     * beside the page is one where `box` has moved and `vp` has not, and the line says so instead of leaving it
+     * to be reasoned about. `provisional` is the canvas's own flag for a frame whose buffer is not the view's
+     * size — the frame it already asks to be replaced.
+     */
+    fun extentLine(
+        boxWidth: Int,
+        boxHeight: Int,
+        viewWidth: Int,
+        viewHeight: Int,
+        viewportWidth: Int,
+        viewportHeight: Int,
+        bufferWidth: Int,
+        bufferHeight: Int,
+        provisional: Boolean,
+    ): String =
+        "EXT box=${boxWidth}x$boxHeight view=${viewWidth}x$viewHeight " +
+            "vp=${viewportWidth}x$viewportHeight buf=${bufferWidth}x$bufferHeight " +
+            "provisional=${if (provisional) "yes" else "no"}"
+
     /** `DOWN`, `HOVER_MOVE`, … — an unnamed action keeps its number so nothing is lost. */
     fun actionName(actionMasked: Int): String = when (actionMasked) {
         ACTION_DOWN -> "DOWN"

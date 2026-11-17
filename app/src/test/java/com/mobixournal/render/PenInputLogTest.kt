@@ -291,6 +291,28 @@ class PenInputLogTest {
     }
 
     @Test
+    fun `an extent line prints the four sizes and whether the frame was provisional`() {
+        assertEquals(
+            "EXT box=1508x1000 view=1056x1000 vp=1056x1000 buf=1508x1000 provisional=yes",
+            PenEventText.extentLine(
+                boxWidth = 1508, boxHeight = 1000,
+                viewWidth = 1056, viewHeight = 1000,
+                viewportWidth = 1056, viewportHeight = 1000,
+                bufferWidth = 1508, bufferHeight = 1000,
+                provisional = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `a settled extent reads as one size, not provisional`() {
+        assertEquals(
+            "EXT box=1508x1000 view=1508x1000 vp=1508x1000 buf=1508x1000 provisional=no",
+            PenEventText.extentLine(1508, 1000, 1508, 1000, 1508, 1000, 1508, 1000, provisional = false),
+        )
+    }
+
+    @Test
     fun `a device line names the device and the sources it advertises`() {
         assertEquals(
             "dev #7 \"HONOR Choice Pencil\" src=0x4002:STYLUS",

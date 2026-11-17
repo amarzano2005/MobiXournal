@@ -150,6 +150,15 @@ base -> @p/w` line holding the surface's own pressure filter and the width it ma
 slider moved in Settings either prints its new value there or never reached the drawing surface, which
 turns a guess into a reading.
 
+The panel also answers the question a **pane that resizes** raises, and this one is about geometry rather
+than pens: `EXT box=1508x1000 view=1056x1000 vp=1056x1000 buf=1508x1000 provisional=yes` is one line
+per frame in which those numbers change, printed by `reportFrameExtent` when a frame locks a buffer. The
+four extents are the size the pane's Compose box was **placed** at, the size the platform view
+**reports**, the extent the viewport and page stack were **built** for, and the **buffer** that was
+actually locked; `provisional` is the canvas's own flag for a buffer that is not the view's size. A
+strip of desk beside the page is a frame where `box` has moved and `vp` has not, which is why the line
+says so instead of leaving it to be reasoned about.
+
 Every diagnostic figure is formatted in `Locale.ROOT` (not the device locale), so a pressure reads
 `0.42` on every phone and the lines stay comparable with a pen's spec sheet. Every hook (`tracePenMotion` in the three motion handlers,
 `tracePenKey` in `dispatchKeyEvent`) is a read-only observer placed *before* the routing, so what the

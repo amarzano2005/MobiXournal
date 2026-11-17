@@ -25,6 +25,7 @@
 package com.mobixournal.render
 
 import android.view.ViewTreeObserver
+import kotlin.math.roundToInt
 
 /** Rebuild the stack once for a genuinely new extent; repaint again after the native buffer settles. */
 internal fun DrawingSurfaceView.repaintAfterResize() {
@@ -54,6 +55,9 @@ internal fun DrawingSurfaceView.repaintAfterResize() {
  */
 internal fun DrawingSurfaceView.repaintForExtent(widthPx: Int, heightPx: Int) {
     if (widthPx <= 0 || heightPx <= 0) return
+    // Remembered for the diagnostics line: the frame that draws compares this with the view's own size.
+    viewport.placedViewWidth = widthPx.toFloat()
+    viewport.placedViewHeight = heightPx.toFloat()
     val changed = viewport.viewWidth != widthPx.toFloat() || viewport.viewHeight != heightPx.toFloat()
     if (changed) {
         relayoutFor(widthPx, heightPx)
@@ -62,6 +66,41 @@ internal fun DrawingSurfaceView.repaintForExtent(widthPx: Int, heightPx: Int) {
     holder.setSizeFromLayout()
     requestRender()
     repaintWhenSurfaceSettles()
+}
+
+/**
+ * Rebuild the stack for an extent **the caller already knows**, rather than for the size the platform view
+ * happens to report right now.
+ *
+ * A pane that changes width (the page-list lane opening or closing) is placed by Compose a moment before the
+ * platform view is laid out, so a canvas that waited for its own `width` rebuilt the stack one frame late:
+ * that frame drew the page fitted to the old pane, with the rest of the surface showing the desk — the black
+ * strip along the edge the pane had just gained. The Compose box knows the new size already, and this is how
+ * it hands it over.
+ */
+internal fun DrawingSurfaceView.relayoutFor(widthPx: Int, heightPx: Int) {
+    applyQueuedScaleKeep()
+    layout = PageStacker.stack(pageSource, widthPx, DrawingSurfaceDefaults.GAP_PX, zoom)
+    viewport.setBounds(widthPx.toFloat(), heightPx.toFloat(), layout.contentWidthPx, layout.totalHeightPx)
+}
+
+/**
+ * Report the extent of the frame that just locked a buffer: what the pane's box was placed at, what this view
+ * reports, what the stack was built for and what the buffer actually is (`PenEventText.extentLine`). Silent
+ * unless the pen-diagnostics panel is open, and only one line while the numbers hold.
+ */
+internal fun DrawingSurfaceView.reportFrameExtent(bufferWidth: Int, bufferHeight: Int, provisional: Boolean) {
+    diagnostics.extent(
+        boxWidth = viewport.placedViewWidth.roundToInt().takeIf { it > 0 } ?: width,
+        boxHeight = viewport.placedViewHeight.roundToInt().takeIf { it > 0 } ?: height,
+        viewWidth = width,
+        viewHeight = height,
+        viewportWidth = viewport.viewWidth.roundToInt(),
+        viewportHeight = viewport.viewHeight.roundToInt(),
+        bufferWidth = bufferWidth,
+        bufferHeight = bufferHeight,
+        provisional = provisional,
+    )
 }
 
 /** Compose size, native layout and surface callbacks may all report the same geometry. */

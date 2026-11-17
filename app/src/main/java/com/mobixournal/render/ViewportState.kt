@@ -35,6 +35,16 @@ internal class ViewportState {
     private var contentHeightPx = 0f
 
     /**
+     * The pane size the **Compose box reported**, which is not always [viewWidth]: the box is placed a moment
+     * before the platform view is laid out, so a resize has to be built for the extent that is *coming* rather
+     * than the one still on screen (see `render/DrawingSurfaceResize.kt`). Zero until a box has reported one;
+     * the canvas's diagnostics line prints it beside the view's own size, which is how a frame fitted to the
+     * old extent is told from a frame fitted to the new.
+     */
+    var placedViewWidth = 0f
+    var placedViewHeight = 0f
+
+    /**
      * Set when the next extent change should *keep* the page's on-screen size instead of re-fitting
      * it to the new width — the split toggle hands a pane a canvas of another width, and under it a
      * page should not jump. Consumed by [adoptResizeZoom]; see `render/DrawingSurfaceScaleKeep.kt`.

@@ -22,22 +22,6 @@ import kotlin.math.min
 internal fun DrawingSurfaceView.relayout() = relayoutFor(width, height)
 
 /**
- * Rebuild the stack for an extent **the caller already knows**, rather than for the size the platform
- * view happens to report right now.
- *
- * A pane that changes width (the page-list lane opening or closing) is placed by Compose a moment before
- * the platform view is laid out, so a canvas that waited for its own `width` rebuilt the stack one frame
- * late: that frame drew the page fitted to the old pane, with the rest of the surface showing the desk —
- * the black strip along the edge the pane had just gained. The Compose box knows the new size already, and
- * this is how it hands it over.
- */
-internal fun DrawingSurfaceView.relayoutFor(widthPx: Int, heightPx: Int) {
-    applyQueuedScaleKeep()
-    layout = PageStacker.stack(pageSource, widthPx, DrawingSurfaceDefaults.GAP_PX, zoom)
-    viewport.setBounds(widthPx.toFloat(), heightPx.toFloat(), layout.contentWidthPx, layout.totalHeightPx)
-}
-
-/**
  * Ask for one redraw from a background thread, collapsing a burst into a single frame. Several
  * tiles of the same pan often finish within one frame's time; posting a [render] for each would
  * repaint the whole viewport that many times over.
@@ -110,6 +94,8 @@ internal fun DrawingSurfaceView.paint() {
         viewport.centerHorizontal()
     }
     val provisional = stackStale || canvas.width != width || canvas.height != height
+    // The pen-diagnostics panel's extent line; nothing at all unless the panel is open.
+    reportFrameExtent(canvas.width, canvas.height, provisional)
     try {
         canvas.drawColor(chrome.backdropColor)
         val visible = layout.visible(scrollY, height.toFloat())
