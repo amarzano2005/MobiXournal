@@ -137,9 +137,8 @@ internal fun actedPages(picked: Set<Int>, currentPage: Int, pageCount: Int): Set
  *
  * They answer one question — where else is there to look in this document — so they read as one object
  * rather than as two unrelated buttons, and the rule is the one the dock already divides its preview
- * with, so the chrome keeps a single separator drawn either way round. Each half holds its own flag, but
- * **neither half lights up**: the lane arriving beside the canvas is the answer the tap already gave, and
- * a lit word in the header was a second accent saying the same thing.
+ * with, so the chrome keeps a single separator drawn either way round. Each half holds its own flag, and
+ * **the half whose lane is open wears the accent**, so the word says which of the two views is on screen.
  */
 @Composable
 internal fun NavigationCapsule(ui: EditorUiState) {
@@ -170,8 +169,9 @@ internal fun NavigationCapsule(ui: EditorUiState) {
  *
  * One tap drops the lateral page list down the rail's edge, the next takes it away. It stands beside the
  * search because the two are the same errand — looking *through* the document rather than at the sheet in
- * front of you. It keeps its ink while the lane is up rather than lighting in the accent: the lane itself
- * says where the list went, so the button does not need to say it twice. It is deliberately **not** a row
+ * front of you. It wears the accent while its lane is up, so the word says where the list went, and it takes
+ * **no press indication**: the ripple was a second light flashing beside the accent that already marks the
+ * open state (the tool indicator's face sets that precedent). It is deliberately **not** a row
  * in the Pages menu: that menu is a list of things to do to a page, and the overview is not one of them.
  *
  * A **half with its name**, not a bare glyph: a page list is a place to go rather than a one-off action,
@@ -180,12 +180,12 @@ internal fun NavigationCapsule(ui: EditorUiState) {
 @Composable
 internal fun PageListSegment(open: Boolean, onClick: () -> Unit) {
     val compact = LocalConfiguration.current.screenWidthDp < DocumentNavigationLayout.COMPACT_WIDTH_DP
-    // The flag still reaches a screen reader, but the half wears one ink in both states: an open lane is
-    // visible on its own and the accent here read as a selection highlight on a word that has none.
-    val tint = rememberChromeInk()
-    // **No press indication either.** The ripple was the last light this half could show, and the owner
-    // asked for the word not to illuminate when the list opens — the lane dropping down says it instead.
-    // The precedent is the tool indicator's face, which reports the live stroke and takes no indication.
+    // The flag still reaches a screen reader, and the half **wears the accent while its lane is up**, so the
+    // word and the lane agree on which view is open.
+    val tint = if (open) MaterialTheme.colorScheme.primary else rememberChromeInk()
+    // **No press indication.** The ripple was a light flashing beside the accent that already marks the open
+    // state; the half says what it has to say in the ink, not in a flash (the tool indicator's face, which
+    // reports the live stroke, takes no indication either).
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier

@@ -73,10 +73,9 @@ internal fun EditorUiState.closeNavigation() {
  * The navigation capsule's **bookmark half**: the ribbon in shared catalogue artwork, one named, selected
  * target beside the page list it shares the shell with ([NavigationCapsule]).
  *
- * Like its twin it does **not** light up while the lane is up: the state stays for a screen reader, the
- * ribbon keeps the chrome's ink, and the lane in front of the canvas is what says the tap took. It takes
- * **no press indication** either — the ripple was the only light left, and a ribbon that flashes when
- * tapped is the highlight the owner asked to be rid of (the tool indicator's face sets the precedent).
+ * Like its twin, **the ribbon wears the accent while the bookmark lane is up**, so the header and the lane
+ * agree on which view is open, and it takes **no press indication**: the ripple only flashed beside the
+ * accent that already marks the open state (the tool indicator's face sets the precedent).
  */
 @Composable
 internal fun BookmarkSegment(ui: EditorUiState) {
@@ -99,7 +98,7 @@ internal fun BookmarkSegment(ui: EditorUiState) {
     ) {
         Icon(
             ChromeGlyph.BOOKMARK.imageVector(), null,
-            tint = rememberChromeInk(),
+            tint = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk(),
             modifier = Modifier.size(20.dp),
         )
     }
@@ -208,11 +207,11 @@ private fun NavigationTabs(ui: EditorUiState, pane: PaneState, onClose: () -> Un
                     onClick = { ui.navigationTab = tab; ui.pageSelection = emptySet() },
                     modifier = Modifier.semantics { role = Role.Tab; selected = ui.navigationTab == tab },
                 ) {
-                    // **One ink for both tabs.** The tab in front used to wear the accent, and with the
-                    // header's two halves quiet that left the only light in the lane on a label. What says
-                    // which view is showing is the body under the tabs; `selected` still tells a screen
-                    // reader which tab that is.
-                    val tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    // **The tab in front wears the accent**, the same ink the header's half for that view
+                    // carries, so the lane and the pill name the open view the same way. No indication on
+                    // the press: the accent is the state, not a flash.
+                    val tint = if (ui.navigationTab == tab) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                     // The tab wears the mark its half of the header capsule wears, so the lane and the
                     // pill name the two views with one picture each.
                     Icon(tab.glyph(), contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
