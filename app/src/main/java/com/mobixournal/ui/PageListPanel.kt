@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
@@ -54,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
@@ -610,15 +610,26 @@ private fun PageDragHandle(index: Int) {
  */
 @Composable
 private fun PickBox(index: Int, picked: Boolean, onToggle: () -> Unit) {
+    val fill = MaterialTheme.colorScheme.primary
+    val ring = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp).clickable(onClick = onToggle)
             .semantics { contentDescription = if (picked) "Page ${index + 1} picked" else "Pick page ${index + 1}" },
         contentAlignment = Alignment.Center,
     ) {
+        // A **drawn circle**, not a clipped rounded rectangle: a background and a border on `CircleShape`
+        // still show a square's corners at some scales and text settings, which left the tick inside reading
+        // as the round thing in a rectangular frame. Both states share one 24 dp circle, so the ring and the
+        // filled dot are the same mark.
         Box(
-            Modifier.size(24.dp).clip(CircleShape)
-                .background(if (picked) MaterialTheme.colorScheme.primary else Color.Transparent)
-                .border(1.dp, if (picked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, CircleShape),
+            Modifier.size(24.dp).drawBehind {
+                val radius = size.minDimension / 2f
+                if (picked) {
+                    drawCircle(fill, radius)
+                } else {
+                    drawCircle(ring, radius - 0.5.dp.toPx(), style = Stroke(width = 1.dp.toPx()))
+                }
+            },
             contentAlignment = Alignment.Center,
         ) {
             if (picked) Icon(Icons.Outlined.Check, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
