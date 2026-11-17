@@ -44,7 +44,7 @@ internal fun PageListCommands(
     val canMoveDown = acting.isNotEmpty() && acting.max() < pageCount - 1
     val canDelete = acting.isNotEmpty() && acting.size < pageCount
     val subject = when {
-        picked.isNotEmpty() -> "${picked.size} picked"
+        picked.isNotEmpty() && picked != setOf(currentPage) -> "${picked.size} picked"
         acting.isNotEmpty() -> "Page ${currentPage + 1} of $pageCount"
         else -> "\u2014"
     }

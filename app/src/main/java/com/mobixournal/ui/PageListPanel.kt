@@ -211,8 +211,9 @@ internal fun PageListSegment(open: Boolean, onClick: () -> Unit) {
  *
  * Each row is its **number** and its **preview** — the two things that identify a page, and no words
  * beside them — with a box that picks it and a handle that drags it. The number and the preview **go
- * to** the page (the list is a navigator first), the box **picks** it for a multi-page command, and the
- * handle **carries** the page to the row it is dropped on, which wears the accent line while it travels.
+ * to** the page (the list is a navigator first), the box **picks** it for a multi-page command and takes
+ * the view there too — the dot and the highlighted row are never two different pages — and the handle
+ * **carries** the page to the row it is dropped on, which wears the accent line while it travels.
  *
  * The previews are drawn from the live pages ([PageThumbnail]), so a row shows its own ink and its own
  * paper rather than a placeholder that has to catch up later.
@@ -234,6 +235,11 @@ internal fun PageListPanel(
     surface: DrawingSurfaceView? = null,
     onSelection: (Set<Int>) -> Unit,
     onGoToPage: (Int) -> Unit,
+    /**
+     * Take the view to a page **without leaving the lane**: a pick is not a jump away, so on a compact
+     * window the pick keeps the list open where a plain tap on the row would return to the page.
+     */
+    onShow: (Int) -> Unit,
     /** Move [picked] by [delta] positions, as one step. */
     onMove: (picked: Set<Int>, delta: Int) -> Unit,
     /** Carry the page at [from] to [to] — the drag's drop, as one step. */
@@ -253,6 +259,13 @@ internal fun PageListPanel(
     val removeRun: (Set<Int>) -> Unit = { pages ->
         removePages(pages, pageCount, onDelete, onSelection, onGoToPage)
     }
+    // A pick takes the view with it — the window's sidebar answers a click the same way (`PageSelectionRules`
+    // chooses the set, then `onSelectPage` goes there). Without that the box could mark one page while the
+    // canvas and the highlight stayed on another, which reads as a selection that did not happen.
+    val toggle: (Int) -> Unit = { index ->
+        onSelection(if (index in picked) picked - index else picked + index)
+        onShow(index)
+    }
     Surface(
         modifier = modifier.width(PAGE_LIST_WIDTH).fillMaxHeight(),
         color = rememberGlassSurfaceColor().compositeOver(rememberChromeColor()),
@@ -265,7 +278,8 @@ internal fun PageListPanel(
                 surface = surface,
                 pageCount = pageCount,
                 currentPage = currentPage,
-                picked = picked,
+                acting = acting,
+                onToggle = toggle,
                 carry = carry,
                 onReorder = onReorder,
                 onSelection = onSelection,
@@ -296,7 +310,13 @@ private fun ColumnScope.PageListRows(
     surface: DrawingSurfaceView?,
     pageCount: Int,
     currentPage: Int,
-    picked: Set<Int>,
+    /** What a row's box asks for: the page joins or leaves the pick, and the view follows it. */
+    onToggle: (Int) -> Unit,
+    /**
+     * What the commands act on ([actedPages]) rather than the bare pick: the page in view stands in
+     * while nothing is picked, and the box at every row's end has to say the same thing the footer does.
+     */
+    acting: Set<Int>,
     carry: (Set<Int>, Int) -> Unit,
     onReorder: (from: Int, to: Int) -> Unit,
     onSelection: (Set<Int>) -> Unit,
@@ -321,17 +341,17 @@ private fun ColumnScope.PageListRows(
             modifier = Modifier
                 .fillMaxSize()
                 .onSizeChanged { viewportPx = it.height }
-                .pointerInput(listState, rowHeightPx, pageCount, picked) {
+                .pointerInput(listState, rowHeightPx, pageCount, acting) {
                     pageListDragGesture(
                         drag = drag,
                         listState = listState,
                         rowHeightPx = rowHeightPx,
                         pageCount = pageCount,
                         onDrop = { from, to ->
-                            if (from in picked && picked.size > 1) {
+                            if (from in acting && acting.size > 1) {
                                 // A handle on a picked row carries the whole pick; on any other row it
                                 // carries that page alone. Either way the view stays on it.
-                                carry(picked, to - from)
+                                carry(acting, to - from)
                             } else if (to != from) {
                                 onReorder(from, to)
                                 onSelection(setOf(to))
@@ -347,11 +367,11 @@ private fun ColumnScope.PageListRows(
                     page = pages.getOrNull(index),
                     surface = surface,
                     inView = index == currentPage,
-                    picked = index in picked,
+                    acting = index in acting,
                     // The page would land on this row — and it is not already there.
                     landing = landing == index && landing != drag.from,
                     onGoTo = { onGoToPage(index) },
-                    onToggle = { onSelection(if (index in picked) picked - index else picked + index) },
+                    onToggle = { onToggle(index) },
                 )
             }
         }
@@ -361,7 +381,7 @@ private fun ColumnScope.PageListRows(
             rowHeightPx = rowHeightPx,
             pages = pages,
             surface = surface,
-            picked = picked,
+            picked = acting,
         )
     }
 }
@@ -440,6 +460,10 @@ private fun PageListHeader(pageCount: Int, onClose: () -> Unit) {
  * the finger travels. A handle is one explicit target, its drag is immediate, and the row keeps its
  * plain tap.
  *
+ * The box at the row's end wears the accent for **what the commands act on** ([actedPages]): the pick,
+ * or the page in view while nothing is picked. The dot and the highlighted row therefore never
+ * disagree — a plain tap on another page moves both, and the footer keeps naming the same page.
+ *
  * While it travels the page is **lifted** — raised, a touch transparent — and the row it would land on
  * wears the accent along its top edge, the same pair of marks the window's strip makes (`PageSidebar`), so
  * a drag reads as a move in progress rather than as a page that changes places after the fact. The drop is
@@ -452,7 +476,7 @@ private fun PageListRow(
     page: Page?,
     surface: DrawingSurfaceView?,
     inView: Boolean,
-    picked: Boolean,
+    acting: Boolean,
     landing: Boolean,
     onGoTo: () -> Unit,
     onToggle: () -> Unit,
@@ -460,7 +484,7 @@ private fun PageListRow(
     val accent = MaterialTheme.colorScheme.primary
     val rowFill = when {
         inView -> MaterialTheme.colorScheme.primaryContainer
-        picked -> MaterialTheme.colorScheme.secondaryContainer
+        acting -> MaterialTheme.colorScheme.secondaryContainer
         else -> Color.Transparent
     }
     Row(
@@ -483,13 +507,13 @@ private fun PageListRow(
             Text(
                 "${index + 1}",
                 style = MaterialTheme.typography.labelLarge,
-                color = if (inView || picked) accent else rememberChromeInk(),
+                color = if (inView || acting) accent else rememberChromeInk(),
             )
         }
         Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
             PageListPreview(page = page, surface = surface, onGoTo = onGoTo)
         }
-        PickBox(index = index, picked = picked, onToggle = onToggle)
+        PickBox(index = index, picked = acting, onToggle = onToggle)
         PageDragHandle(index = index)
     }
 }

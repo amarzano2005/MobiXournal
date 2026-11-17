@@ -148,6 +148,9 @@ act on the page in view, which is the plain case and needs no ceremony. Either c
 page: the viewport and the pick follow it to its new place, so the sheet in front of you is the page you
 just moved — and the page the next tap acts on, which is why the arrows step a page the way the eye reads
 them. The top bar's bookmark ribbon opens the inline **Bookmarks** view; [pdf.md](pdf.md) owns it.
+The box at a row's end wears the accent for **what the commands act on** — the pick, or the page in
+view while nothing is picked — so the dot and the highlighted row move together and the foot names
+the same page.
 The foot reaches the lane's bottom edge, in the lane's own 6 dp of air rather than above a reserved
 system strip: the app draws edge to edge with transparent bars, so nothing opaque sits under the
 commands, and its three buttons are 48 dp — a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`, opened by the lane's gear), which

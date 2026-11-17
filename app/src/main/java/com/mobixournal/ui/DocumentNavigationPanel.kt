@@ -242,6 +242,9 @@ private fun NavigationPages(ui: EditorUiState, pane: PaneState, onGoToPage: (Int
         pageCount = pane.pageCount, currentPage = pane.currentPage, selection = ui.pageSelection,
         pages = pane.surface?.pageCommands?.pages().orEmpty(), surface = pane.surface,
         onSelection = { ui.pageSelection = it }, onGoToPage = onGoToPage,
+        // The box takes the view to its page without leaving the lane: picking several pages on a phone
+        // must not close the list after each one.
+        onShow = { pane.surface?.goToPage(it) },
         onMove = { picked, delta -> pickedMoveTarget(picked, delta, pane.pageCount)
             ?.let { pane.surface?.pageCommands?.movePages(picked, it) } },
         onReorder = { from, to -> pane.surface?.pageCommands?.movePages(setOf(from), to) },
