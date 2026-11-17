@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -136,16 +137,22 @@ internal fun DocumentNavigationWorkspace(
         val navigator: @Composable () -> Unit = {
             DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width)
         }
-        Row(Modifier.fillMaxSize()) {
-            if (railOnLeft) RailLane(toolbar, canvasOnRight = true)
-            if (compact) {
-                CompactNavigationBody(ui.pageListOpen, canvas, navigator)
-            } else {
-                if (railOnLeft) navigator()
-                canvas(Modifier.weight(1f).fillMaxHeight())
-                if (!railOnLeft) navigator()
+        // The backdrop behind the row is the **lane's own glass**, not the window's black: the lane and the
+        // canvas are placed a frame apart, and the moment between them used to show the window through the space
+        // the lane was taking (or giving back) — a black strip beside the page. With the same glass behind it
+        // there is nothing left to see that the lane would not paint anyway.
+        Box(Modifier.fillMaxSize().background(rememberGlassSurfaceColor().compositeOver(rememberChromeColor()))) {
+            Row(Modifier.fillMaxSize()) {
+                if (railOnLeft) RailLane(toolbar, canvasOnRight = true)
+                if (compact) {
+                    CompactNavigationBody(ui.pageListOpen, canvas, navigator)
+                } else {
+                    if (railOnLeft) navigator()
+                    canvas(Modifier.weight(1f).fillMaxHeight())
+                    if (!railOnLeft) navigator()
+                }
+                if (!railOnLeft) RailLane(toolbar, canvasOnRight = false)
             }
-            if (!railOnLeft) RailLane(toolbar, canvasOnRight = false)
         }
     }
 }
