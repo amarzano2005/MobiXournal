@@ -94,7 +94,8 @@ cannot disagree.
 **Moving and pruning a run of pages.** The list is reordered at two scales. A thumbnail **dragged** down the
 window's page sidebar lands on the row the pointer is over — recomputed as the list scrolls under it while
 the pointer rests against an edge (`PageReorder`, so a page from the top of a scan can be dropped at the
-bottom without letting go) — and **Manage pages…** in the Pages menu acts on a typed range: *pages 3 to 7*
+bottom without letting go) — and **Manage pages…** — the window's row in the Pages menu, the tablet's gear
+in the lane's header — acts on a typed range: *pages 3 to 7*
 moved so its first page starts on the page you name, or removed, as **one** undo step each through
 `PageOps.moveRange`/`removeAll`. A range is refused rather than half-honoured when it would empty the
 document or already starts where the move asks, and `PageRanges` owns those sentences, so the panel's dead
@@ -106,9 +107,12 @@ in view between the arrows that step it), two **quick sizes** that nudge the mea
 figures — `TabularFiguresStyle` — so the two measures end on the same line and the arrows never touch the
 digits), *Add page* / *Remove page*, then *Page format* and *Page
 background* with their live answers printed at the end of the row and every row wearing its **glyph** in a
-leading slot, as the phone's menu items do. **Manage pages** is a section of its own at the foot on
-**both** shells — *Move page up*, *Move page down*, *Manage pages…* — so the rows the two shells share
-(quick size, add/remove, the page's two questions) stay adjacent.
+leading slot, as the phone's menu items do. The window keeps **Manage pages** as a section of its own at
+the foot of that menu — *Move page up*, *Move page down*, *Manage pages…* — so the rows the two shells share
+(quick size, add/remove, the page's two questions) stay adjacent. The tablet keeps none of those three rows:
+its page list steps a pick by one place with its own arrows, and the typed range is the gear that stands
+between the lane's two tabs and its close (`ChromeGlyph.PAGE_RANGE` — the **Settings** gear with the **Pages**
+sheet in its hub), so a command that asks about the whole list lives where the list is read.
 
 **The tablet's page list.** The window keeps a page strip down its edge; the tablet opens one from the
 **capsule beside the search** in the top bar (`NavigationCapsule`: its page-list half is an icon on compact
@@ -146,7 +150,7 @@ just moved — and the page the next tap acts on, which is why the arrows step a
 them. The top bar's bookmark ribbon opens the inline **Bookmarks** view; [pdf.md](pdf.md) owns it.
 The foot clears the system navigation bar (`navigationBarsPadding`) and its three
 buttons are 48 dp: the app draws edge to edge, so a control under the gesture strip needs two taps — the
-first one belongs to the system — and a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`), which
+first one belongs to the system — and a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`, opened by the lane's gear), which
 reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the
 window's commands cannot act on either. The Android rows now reserve a 40 dp number column, a centred paper preview and 40 dp selection/drag targets. `DocumentNavigationLayout` sets a 104 dp row and fits each preview within 132 � 88 dp without changing its aspect ratio. `PageListPreview` renders on a worker; its raster never blocks list composition. `NavigationPanelTest` captures portrait and landscape pages in tablet/phone layouts and both themes.
 

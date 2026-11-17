@@ -1380,16 +1380,6 @@ private fun toolbarPagesCallbacks(
         backgroundConfig = pane.backgroundConfig,
         onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
         onStationery = { surface?.applyStationery(it) },
-        onMovePage = { delta ->
-            // The page travels one place and the view stays on it, so a move reads as the page moving.
-            val from = pane.currentPage
-            val to = (from + delta).coerceIn(0, (pane.pageCount - 1).coerceAtLeast(0))
-            surface?.pageCommands?.movePages(setOf(from), to)
-            surface?.goToPage(to)
-        },
-        onOpenPageRange = {
-            ui.pageRange = com.mobixournal.render.PageRanges.opening(pane.pageCount, pane.currentPage)
-        },
     )
 }
 

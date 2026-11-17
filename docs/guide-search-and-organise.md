@@ -46,9 +46,10 @@ the results list, not a stall in the ink.
 ## Adding, moving and pruning pages
 
 The Pages menu carries a navigator, two quick sizes, *Add page* and *Remove page*, then the page's format
-and background with their current answers printed on the row. **Manage pages** is its own section at the
-foot on both shells: move a typed range so its first page starts on the page you name, or remove a typed
-range — one undo step each.
+and background with their current answers printed on the row. In the window, **Manage pages** is a section of
+its own at the foot of that menu; the tablet opens the same typed range from the gear that stands between its
+lane's two tabs and its close, so the phone's menu ends at the page's background. Then move a typed range so
+its first page starts on the page you name, or remove a typed range — one undo step each.
 
 A range that would empty the document is refused rather than half-honoured, and so is a move that already
 starts where you asked. In the window, dragging a thumbnail down the page sidebar reorders as you go, and

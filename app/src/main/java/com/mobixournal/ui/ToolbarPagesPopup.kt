@@ -15,8 +15,6 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -76,8 +74,6 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         // The sheet's graphics are the other question about the page — so they are the one row that
         // opens a dialog of their own, like Page format, instead of stacking three chip rows in here.
         PageBackgroundRow(callbacks, open = { sheet = true }, dismiss = dismiss)
-        HorizontalDivider()
-        ManagePageRows(callbacks, dismiss)
     }
     PageBackgroundDialog(
         open = sheet,
@@ -104,41 +100,6 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             onDismiss = { sizing = false },
         )
     }
-}
-
-/**
- * The **Manage pages** section, under its own heading: the two one-step moves of the page in view, and
- * the typed range card (*pages 3 to 7, start them on page 1*).
- *
- * The three rows are the window's, in the window's order (`PageMenuPanel`), so the same errand is the
- * same third row on both shells. The two moves leave the menu open, exactly as the quick sizes do:
- * three taps are three steps, not three visits to the menu.
- *
- * The tablet's own page list is **not** here: it is the capsule beside the search in the top bar
- * ([PageListSegment], the leading half of [NavigationCapsule]), because the list is a way of looking
- * *through* the document rather than one of the page's commands.
- */
-@Composable
-private fun ManagePageRows(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {
-    MenuHeading("Manage pages")
-    DropdownMenuItem(
-        text = { Text("Move page up") },
-        leadingIcon = { Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = null) },
-        enabled = callbacks.currentPage > 0,
-        onClick = { callbacks.onMovePage(-1) },
-    )
-    DropdownMenuItem(
-        text = { Text("Move page down") },
-        leadingIcon = { Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null) },
-        enabled = callbacks.currentPage < callbacks.pageCount - 1,
-        onClick = { callbacks.onMovePage(1) },
-    )
-    DropdownMenuItem(
-        text = { Text("Manage pages…") },
-        leadingIcon = { Icon(ChromeGlyph.DESCRIPTION.imageVector(), contentDescription = null) },
-        enabled = callbacks.pageCount > 1,
-        onClick = { callbacks.onOpenPageRange(); dismiss() },
-    )
 }
 
 /**

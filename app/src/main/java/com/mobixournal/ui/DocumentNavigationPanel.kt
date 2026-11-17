@@ -44,6 +44,7 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.design.DocumentNavigationLayout
 import com.mobixournal.render.OutlineEdits
+import com.mobixournal.render.PageRanges
 import com.mobixournal.render.PdfOutlineSeeding
 import com.mobixournal.ui.theme.PanelEdgeAir
 import com.mobixournal.ui.theme.rememberChromeColor
@@ -156,7 +157,7 @@ private fun DocumentNavigationLane(
             tonalElevation = 0.dp,
         ) {
             Column(Modifier.fillMaxSize()) {
-                NavigationTabs(ui, onClose = if (ui.navigationTab == NavigationTab.BOOKMARKS) dismiss else close)
+                NavigationTabs(ui, pane, onClose = if (ui.navigationTab == NavigationTab.BOOKMARKS) dismiss else close)
                 val goToPage: (Int) -> Unit = {
                     pane.surface?.goToPage(it)
                     if (compact) close()
@@ -178,7 +179,7 @@ private fun NavigationTab.glyph(): ImageVector = when (this) {
 }
 
 @Composable
-private fun NavigationTabs(ui: EditorUiState, onClose: () -> Unit) {
+private fun NavigationTabs(ui: EditorUiState, pane: PaneState, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
             NavigationTab.entries.forEach { tab ->
@@ -195,6 +196,19 @@ private fun NavigationTabs(ui: EditorUiState, onClose: () -> Unit) {
                     Text(tab.label, color = tint)
                 }
             }
+        }
+        // The typed range's door, between the two views and the close: it asks something of the whole page
+        // list rather than opening one of the views, so it stands beside them instead of inside them
+        // (`PageRangeHost` draws the card the window's own *Manage pages* panel answers).
+        IconButton(
+            onClick = { ui.pageRange = PageRanges.opening(pane.pageCount, pane.currentPage) },
+            enabled = pane.pageCount > 1,
+            modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp),
+        ) {
+            Icon(
+                ChromeGlyph.PAGE_RANGE.imageVector(), "Manage pages",
+                tint = rememberChromeInk(), modifier = Modifier.size(20.dp),
+            )
         }
         IconButton(onClick = onClose, modifier = Modifier.size(ContentsRowLayout.ACTION_DP.dp)) {
             Icon(ChromeGlyph.CLOSE.imageVector(), "Close navigation")

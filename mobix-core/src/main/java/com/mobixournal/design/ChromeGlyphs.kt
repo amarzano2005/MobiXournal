@@ -73,6 +73,17 @@ enum class ChromeGlyph {
      */
     PAGE_BACKGROUND,
 
+    /**
+     * The gear with a sheet in its hub: the **Manage pages** door, whose typed range moves or removes a
+     * run of pages in one undoable step.
+     *
+     * A blend of two marks rather than a third of its own: the teeth are [SETTINGS]'s path exactly, and the
+     * hub is [DESCRIPTION]'s sheet, scaled down and reversed so it cuts the gear's centre, its two rules
+     * kept. The command asks something of the whole page list rather than of the page in view, so it wears
+     * the gear a setting wears with a page at its middle.
+     */
+    PAGE_RANGE,
+
     /** The three lines of the overflow button. */
     MENU,
 
@@ -235,6 +246,24 @@ object ChromeGlyphCatalogue {
             "M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4z" +
                 "m0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4z" +
                 "m0-6h-4v-4h4v4zm0-6h-4V4h4v4z"
+        // The gear's teeth are SETTINGS' own path, verbatim, with its circular hub cut off: everything up to
+        // that hub is one closed subpath. The sheet in the middle is DESCRIPTION's page silhouette, scaled
+        // 0.46 about the grid's centre and wound the other way so it cuts a hole, with its two rules kept at
+        // the same scale — the two marks blended, not redrawn.
+        ChromeGlyph.PAGE_RANGE ->
+            "M19.14 12.94c0.04-0.3 0.06-0.61 0.06-0.94 0-0.32-0.02-0.64-0.07-0.94l2.03-1.58" +
+                "c0.18-0.14 0.23-0.41 0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39 0.96" +
+                "c-0.5-0.38-1.03-0.7-1.62-0.94L14.4 2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84" +
+                "c-0.24 0-0.43 0.17-0.47 0.41L9.25 5.35C8.66 5.59 8.12 5.92 7.63 6.29L5.24 5.33" +
+                "c-0.22-0.08-0.47 0-0.59 0.22L2.74 8.87c-0.12 0.21-0.08 0.47 0.12 0.61l2.03 1.58" +
+                "C4.84 11.36 4.8 11.69 4.8 12s0.02 0.64 0.07 0.94l-2.03 1.58c-0.18 0.14-0.23 0.41-0.12 0.61" +
+                "l1.92 3.32c0.12 0.22 0.37 0.29 0.59 0.22l2.39-0.96c0.5 0.38 1.03 0.7 1.62 0.94l0.36 2.54" +
+                "c0.05 0.24 0.24 0.41 0.48 0.41h3.84c0.24 0 0.44-0.17 0.47-0.41l0.36-2.54" +
+                "c0.59-0.24 1.13-0.56 1.62-0.94l2.39 0.96c0.22 0.08 0.47 0 0.59-0.22l1.92-3.32" +
+                "c0.12-0.22 0.07-0.47-0.12-0.61l-2.01-1.58z" +
+                "M12.92 7.4L15.68 10.16L15.68 15.68C15.68 16.19 14.79 16.6 14.76 16.6L9.24 16.6" +
+                "C8.73 16.6 8.32 16.19 8.32 15.68L8.32 8.32C8.32 7.81 8.73 7.4 9.24 7.4Z" +
+                "M10.16 13.84h3.68v0.92h-3.68ZM10.16 11.52h3.68v0.92h-3.68Z"
         ChromeGlyph.MORE_HORIZ -> "M6 10a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4z"
         ChromeGlyph.MENU -> "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
         ChromeGlyph.UNDO ->
