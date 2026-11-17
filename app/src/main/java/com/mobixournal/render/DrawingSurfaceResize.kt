@@ -44,6 +44,26 @@ internal fun DrawingSurfaceView.repaintAfterResize() {
     repaintWhenSurfaceSettles()
 }
 
+/**
+ * Repaint a canvas whose pane is a **Compose box of a known size** — the lane opening or closing.
+ *
+ * The box is placed a moment before the platform view is laid out, and a canvas that rebuilt itself only
+ * from its own `width` therefore painted the first frame of the new extent with the old fit: the page at
+ * the lane's width and the desk beside it, seen as a black strip along the edge the pane had just gained.
+ * The size the box reports is the one to build for, so the very next frame is already right.
+ */
+internal fun DrawingSurfaceView.repaintForExtent(widthPx: Int, heightPx: Int) {
+    if (widthPx <= 0 || heightPx <= 0) return
+    val changed = viewport.viewWidth != widthPx.toFloat() || viewport.viewHeight != heightPx.toFloat()
+    if (changed) {
+        relayoutFor(widthPx, heightPx)
+        viewport.centerHorizontal()
+    }
+    holder.setSizeFromLayout()
+    requestRender()
+    repaintWhenSurfaceSettles()
+}
+
 /** Compose size, native layout and surface callbacks may all report the same geometry. */
 internal fun DrawingSurfaceView.relayoutForResize(): Boolean {
     if (viewport.viewWidth == width.toFloat() && viewport.viewHeight == height.toFloat()) return false

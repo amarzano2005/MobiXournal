@@ -104,6 +104,7 @@ import com.mobixournal.render.applyChromeColors
 import com.mobixournal.render.replaceMathBlock
 import com.mobixournal.render.replaceShapeElement
 import com.mobixournal.render.repaintAfterResize
+import com.mobixournal.render.repaintForExtent
 import com.mobixournal.render.resetZoom
 import com.mobixournal.render.zoomIn
 import com.mobixournal.render.zoomOut
@@ -1611,11 +1612,14 @@ fun EditorPaneView(
         Box(
             modifier = Modifier.weight(1f).fillMaxWidth().onSizeChanged { size ->
                 canvasSizePx = size
-                // The pane changed size with no touch reaching the canvas — a split-divider drag or a
-                // pane handed back to the single-pane layout. The canvas cannot hear about it through
-                // `onTouchEvent`, and `surfaceChanged` is not guaranteed either, so it is told here:
-                // see `render/DrawingSurfaceResize.kt` for why the repaint is deferred as well.
-                state.surface?.repaintAfterResize()
+                // The pane changed size with no touch reaching the canvas — a split-divider drag, a pane
+                // handed back to the single-pane layout, or the page-list lane leaving the row. The canvas
+                // cannot hear about it through `onTouchEvent`, and `surfaceChanged` is not guaranteed
+                // either, so it is told here — with **the size this box has just been placed at**, because
+                // the platform view is laid out a moment later and a canvas that rebuilt itself from its
+                // own width painted the first frame of the new extent with the old fit (a black strip
+                // beside the page). See `render/DrawingSurfaceResize.kt` for the deferred repaint too.
+                state.surface?.repaintForExtent(size.width, size.height)
             },
         ) {
             AndroidView(
