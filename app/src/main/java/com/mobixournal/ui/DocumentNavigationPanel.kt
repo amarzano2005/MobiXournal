@@ -1,12 +1,6 @@
 package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
@@ -46,7 +40,6 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.design.DocumentNavigationLayout
 import com.mobixournal.render.OutlineEdits
-import com.mobixournal.render.OutlineResolution
 import com.mobixournal.render.PdfOutlineSeeding
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.PanelEdgeAir
@@ -159,11 +152,7 @@ private fun DocumentNavigationLane(
     BackHandler(enabled = ui.pageListOpen && !ui.fullPage) {
         if (ui.navigationTab == NavigationTab.BOOKMARKS) dismiss() else close()
     }
-    AnimatedVisibility(
-        visible = ui.pageListOpen && !ui.fullPage,
-        enter = if (compact) fadeIn() else expandHorizontally(expandFrom = if (expandFromStart) Alignment.Start else Alignment.End) + fadeIn(),
-        exit = if (compact) ExitTransition.None else shrinkHorizontally(shrinkTowards = if (expandFromStart) Alignment.Start else Alignment.End) + fadeOut(),
-    ) {
+    if (ui.pageListOpen && !ui.fullPage) {
         Surface(
             color = rememberGlassSurfaceColor().compositeOver(rememberChromeColor()),
             modifier = Modifier.width(width).fillMaxHeight().imePadding(),
@@ -209,21 +198,20 @@ private fun NavigationTabs(ui: EditorUiState, onClose: () -> Unit) {
 private fun BookmarkNavigationBody(
     pane: PaneState, session: ContentsSession, onGoToPage: (Int) -> Unit, modifier: Modifier,
 ) {
-    val surface = pane.surface
-    val rows = remember(surface, pane.documentVersion, pane.outline) {
-        surface?.let { OutlineResolution.rowsOf(it.doc.outline, pane.outline, it.doc.pages) }.orEmpty()
+    BookmarkRowsHost(pane, session, modifier) { rows ->
+        val commands = pane.surface?.pageCommands
+        // Do not mint a second tree while merely opening the index; fallback seeding is needed only on Add.
+        fun missing() = OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
+        PdfContentsPanel(
+            rows, pane.currentPage, session, onGoToPage,
+            onAdd = { title, page -> commands?.addBookmark(title,
+                pane.outline?.let { PdfOutlineSeeding.tree(it) }, page) ?: missing() },
+            onRename = { id, title -> commands?.renameBookmark(id, title) ?: missing() },
+            onDelete = { id -> commands?.deleteBookmark(id) ?: missing() },
+            onMove = { id, delta -> commands?.moveBookmark(id, delta) ?: missing() },
+            modifier = Modifier.fillMaxSize().navigationBarsPadding().padding(PanelEdgeAir),
+        )
     }
-    val seed = remember(pane.outline) { pane.outline?.let { PdfOutlineSeeding.tree(it) } }
-    val commands = surface?.pageCommands
-    fun missing() = OutlineEdits.Result.Refused(OutlineEdits.Refusal.NOT_FOUND)
-    PdfContentsPanel(
-        rows, pane.currentPage, session, onGoToPage,
-        onAdd = { title, page -> commands?.addBookmark(title, seed, page) ?: missing() },
-        onRename = { id, title -> commands?.renameBookmark(id, title) ?: missing() },
-        onDelete = { id -> commands?.deleteBookmark(id) ?: missing() },
-        onMove = { id, delta -> commands?.moveBookmark(id, delta) ?: missing() },
-        modifier = modifier.navigationBarsPadding().padding(PanelEdgeAir),
-    )
 }
 
 @Composable

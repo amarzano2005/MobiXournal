@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.OutlineNode
 import com.mobixournal.format.model.OutlineTarget
@@ -69,7 +70,13 @@ object OutlineResolution {
      * A node's title is shown as it is; an empty title is left empty for the caller to label, since only the
      * shell knows what to call a row the reader has not named yet.
      */
-    fun rows(tree: OutlineTree, pages: List<Page>): List<OutlineRow> {
+    fun rows(tree: OutlineTree, pages: List<Page>, checkActive: () -> Unit = {}): List<OutlineRow> {
+        val targets = HashSet<OutlineTarget>()
+        fun targetsOf(nodes: List<OutlineNode>) {
+            for (node in nodes) { node.target?.let(targets::add); targetsOf(node.children) }
+        }
+        targetsOf(tree.nodes)
+        val index = targetIndex(pages, targets, checkActive)
         val out = ArrayList<OutlineRow>(tree.size)
         fun walk(nodes: List<OutlineNode>, depth: Int) {
             for (node in nodes) {
@@ -77,13 +84,14 @@ object OutlineResolution {
                     id = node.id,
                     title = node.title,
                     depth = depth,
-                    page = node.target?.let { pageOf(pages, it) },
+                    page = node.target?.let { index[it] },
+                    row = out.size,
                 )
                 walk(node.children, depth + 1)
             }
         }
         walk(tree.nodes, 0)
-        return out.mapIndexed { index, row -> row.copy(row = index) }
+        return out
     }
 
     /**
@@ -91,23 +99,40 @@ object OutlineResolution {
      * seeds a tree from. The ids are synthetic and positional (`pdf:0`, `pdf:1`, …): there is nothing more
      * durable to call a row of a file this app does not own.
      */
-    fun rows(outline: PdfOutline, pages: List<Page>): List<OutlineRow> = outline.entries.mapIndexed { index, entry ->
-        OutlineRow(
-            id = "pdf:$index",
-            title = entry.title,
-            depth = entry.depth,
-            page = entry.pageIndex.takeIf { entry.hasDestination }?.let { pageOfSheet(pages, it) },
-            row = index,
-        )
+    fun rows(outline: PdfOutline, pages: List<Page>, checkActive: () -> Unit = {}): List<OutlineRow> {
+        val targets = outline.entries.filter { it.hasDestination }.mapTo(HashSet<OutlineTarget>()) { OutlineTarget.Sheet(it.pageIndex) }
+        val lookup = targetIndex(pages, targets, checkActive)
+        return outline.entries.mapIndexed { index, entry ->
+            OutlineRow("pdf:$index", entry.title, entry.depth,
+                if (entry.hasDestination) lookup[OutlineTarget.Sheet(entry.pageIndex)] else null, row = index)
+        }
+    }
+
+    /** Each page is read at most once; identity-only trees use manifest ids without opening page models. */
+    private fun targetIndex(pages: List<Page>, targets: Set<OutlineTarget>, checkActive: () -> Unit): Map<OutlineTarget, Int> {
+        if (targets.isEmpty()) return emptyMap()
+        val source = PageSource.of(pages)
+        val needsSheets = targets.any { it is OutlineTarget.Sheet }
+        val found = HashMap<OutlineTarget, Int>()
+        for (at in 0 until source.pageCount) {
+            checkActive()
+            val page = if (needsSheets) source.page(at) else null
+            val id = if (needsSheets) page?.id else source.pageId(at)
+            id?.let { OutlineTarget.Page(it) }?.takeIf { it in targets }?.let { found.putIfAbsent(it, at) }
+            (page?.background as? Background.Pdf)?.let { OutlineTarget.Sheet(it.pageNo) }
+                ?.takeIf { it in targets }?.let { found.putIfAbsent(it, at) }
+            if (found.size == targets.size) break
+        }
+        return found
     }
 
     /**
      * The rows a document's Contents should show: its own tree when it has one, and the PDF's outline
      * otherwise — the fallback that makes the feature work on a document nobody has edited the index of yet.
      */
-    fun rowsOf(tree: OutlineTree, outline: PdfOutline?, pages: List<Page>): List<OutlineRow> = when {
-        !tree.isEmpty -> rows(tree, pages)
-        outline != null -> rows(outline, pages)
+    fun rowsOf(tree: OutlineTree, outline: PdfOutline?, pages: List<Page>, checkActive: () -> Unit = {}): List<OutlineRow> = when {
+        !tree.isEmpty -> rows(tree, pages, checkActive)
+        outline != null -> rows(outline, pages, checkActive)
         else -> emptyList()
     }
 

@@ -26,13 +26,20 @@ package com.mobixournal.render
 
 import android.view.ViewTreeObserver
 
-/** Rebuild the page stack for the view's new extent and repaint it, on both sides of the resize. */
+/** Rebuild the stack once for a genuinely new extent; repaint again after the native buffer settles. */
 internal fun DrawingSurfaceView.repaintAfterResize() {
+    if (!relayoutForResize()) return
     holder.setSizeFromLayout()
-    relayout()
-    viewport.centerHorizontal()
     requestRender()
     repaintWhenSurfaceSettles()
+}
+
+/** Compose size, native layout and surface callbacks may all report the same geometry. */
+internal fun DrawingSurfaceView.relayoutForResize(): Boolean {
+    if (viewport.viewWidth == width.toFloat() && viewport.viewHeight == height.toFloat()) return false
+    relayout()
+    viewport.centerHorizontal()
+    return true
 }
 
 /**
@@ -44,8 +51,7 @@ internal fun DrawingSurfaceView.repaintWhenSurfaceSettles() {
     val observer = viewTreeObserver
     if (!observer.isAlive) {
         post {
-            relayout()
-            viewport.centerHorizontal()
+            relayoutForResize()
             requestRender()
         }
         return
@@ -60,8 +66,7 @@ internal fun DrawingSurfaceView.repaintWhenSurfaceSettles() {
                 // from inside it would publish this frame's buffer before the traversal committed the
                 // new one.
                 post {
-                    relayout()
-                    viewport.centerHorizontal()
+                    relayoutForResize()
                     requestRender()
                 }
                 return true

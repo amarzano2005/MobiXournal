@@ -114,7 +114,7 @@ leading slot, as the phone's menu items do. **Manage pages** is a section of its
 **capsule beside the search** in the top bar (`PageListCapsule`: an icon on compact windows, otherwise the glyph and *Page list*), and
 the lane docks **on the rail's side** — `EditorBody` places it between the rail's lane and the canvas, so
 turning the toolbar to the right-hand edge takes the list with it, the way the window's strip follows its
-tools. On wide windows it **expands** into a layout lane beside the page. Compact windows show the
+tools. On wide windows it opens at its final width in a layout lane beside the page. Compact windows show the
 navigator in place of the page while retaining the hidden canvas at its full viewport size; opening
 the list therefore cannot change the current page or undo history. A row is its **number** and its **preview** and the controls, with
 no words beside them. The card **is the sheet's shape**: its width follows the page's own proportions at a

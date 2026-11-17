@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobile-heavy-bookmark-opening"
+title = "Open mobile navigation without repeated page inflation or main-thread outline scans"
+description = "Removed navigation width animation and repeated synchronous page scans. Canvas metadata now delegates to the lazy source through edited/spliced page views; identical geometry and palette updates no longer rebuild/repaint unnecessarily. OutlineResolution uses one requested-target index and manifest page ids when possible; BookmarkRowsHost resolves on a cancellable worker, caches by weak reference identity and exposes loading/retry feedback instead of propagating archive read failures through composition. Counting tests cover 2000 metadata queries without page reads, bounded sheet resolution, reuse, cancellation and retry. Emulator tests passed with 1200 native pages/800 bookmarks, six repeated first-tap openings, limited visible-page requests and an injected offscreen I/O failure followed by successful retry. The supplied 449-page PDF with 477 source bookmarks passed six first-tap openings on both debug and signed release APKs, then direct simulated touch openings outside instrumentation; screenshots and frame logs retained as build outputs. Full app/core suites, DocsGuardTest, SourceStructureTest and relevant desktop tests passed; debug APK, signed optimized release APK and desktop distributable rebuilt. Docs record evidence and remaining slow emulator frames without promising 60 fps on physical devices."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-17
+tags = []
+design = "material: final-width navigation band with no resize animation; states: reading ready empty and recoverable retry feedback with announced errors; copy: English reading and retry instructions; tokens: existing band theme and spacing tokens; glyph: existing navigation catalogue unchanged; keyboard: existing navigation and retry buttons; parity: indexed core lookup shared and Android worker shell integration; docs: PDF data-path and guide updated with exact evidence and frame limits; tests: unit guards heavy native fixture actual supplied PDF debug release and simulated touch pass"
+
+[[task]]
 id = "mobile-bookmark-sibling-reorder"
 title = "Reorder mobile bookmarks and their subtrees without changing page destinations"
 description = "Added pure OutlineEdits.moveSibling and linear sibling-action availability; Android PageCommands commits each subtree move as one undo step. Bookmark menus expose Move up and Move down, disabled at sibling boundaries, preserving hierarchy and page targets. OutlineReorderTest verifies subtree identity, unknown fields, boundary no-ops and native/xopp bridge round trips. NavigationPanelTest performs the row action in the real editor and verifies unchanged pages, xopp reopening and undo/redo. Android UI controls are delivered; desktop retains its existing menu while sharing the model transform. Full app/core guards and relevant desktop tests pass, APK and desktop distributable refreshed; owners and guide updated."

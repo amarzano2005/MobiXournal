@@ -47,6 +47,7 @@ import com.mobixournal.render.OutlineRow
  * the top. A new document gets a new session and inherits nothing.
  */
 internal class ContentsSession {
+    val bookmarkRows = BookmarkRowsCache()
 
     // Scroll changes are deliberately not Compose state: a fling must not recompose/project the whole tree.
     var scrollAnchorId: String? = null

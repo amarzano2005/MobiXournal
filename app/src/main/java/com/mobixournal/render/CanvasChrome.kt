@@ -19,6 +19,7 @@ import android.graphics.RectF
  * composable — see `com.mobixournal.ui.theme.CanvasChromeColors`).
  */
 internal class CanvasChrome {
+    private var appliedColors: IntArray? = null
 
     /** Backdrop behind the pages — replaced by the app's colour scheme via [applyChromeColors]. */
     var backdropColor = BACKDROP
@@ -267,7 +268,10 @@ internal class CanvasChrome {
      * Repaint the chrome from the app's Material 3 colour scheme. The translucent fills keep their
      * original alphas so the washes stay faint enough to draw over.
      */
-    fun applyColors(backdrop: Int, outline: Int, selection: Int, guide: Int, floating: Int, ink: Int) {
+    fun applyColors(backdrop: Int, outline: Int, selection: Int, guide: Int, floating: Int, ink: Int): Boolean {
+        val colors = intArrayOf(backdrop, outline, selection, guide, floating, ink)
+        if (appliedColors?.contentEquals(colors) == true) return false
+        appliedColors = colors
         backdropColor = backdrop
         // The HUD wears the chrome's floating material and ink; its swatches keep their own colours.
         hudSurface.color = floating
@@ -294,6 +298,7 @@ internal class CanvasChrome {
         hudActive.color = selection
         sliderTrackActive.color = selection
         sliderThumb.color = selection
+        return true
     }
 
     /** Tint the hover dot to match the pen colour, at the fixed hover alpha. */
@@ -374,6 +379,5 @@ internal fun DrawingSurfaceView.applyChromeColors(
     floating: Int = CanvasChrome.HUD_SURFACE,
     ink: Int = CanvasChrome.HUD_INK,
 ) {
-    chrome.applyColors(backdrop, pageOutline, selection, guide, floating, ink)
-    requestRender()
+    if (chrome.applyColors(backdrop, pageOutline, selection, guide, floating, ink)) requestRender()
 }

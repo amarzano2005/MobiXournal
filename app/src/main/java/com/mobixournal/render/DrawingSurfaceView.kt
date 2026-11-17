@@ -1333,8 +1333,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     override fun surfaceCreated(holder: SurfaceHolder) = render()
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, w: Int, h: Int) {
-        relayout()
-        viewport.centerHorizontal()
+        relayoutForResize()
         // A guide restored from settings before the first layout had no viewport to centre on; now
         // there is one, so place it for real rather than leaving it wherever the fallback guessed.
         pendingGuide?.let { pendingGuide = null; placeGuide(it) }

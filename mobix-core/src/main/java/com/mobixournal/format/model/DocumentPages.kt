@@ -28,6 +28,8 @@ class EditedPages private constructor(
     override val size: Int get() = base.size
 
     override fun get(index: Int): Page = edits[index] ?: base[index]
+    override fun sourcePage(index: Int): Pair<List<Page>, Int>? =
+        if (index in indices && edits[index] == null) base to index else null
 
     /** The pages an edit replaced, by index — what a save compares against the source. */
     val editedIndices: Set<Int> get() = edits.keys

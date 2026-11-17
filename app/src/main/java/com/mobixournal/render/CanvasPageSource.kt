@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.mobix.PageSource
+import com.mobixournal.format.mobix.PageSize
 import com.mobixournal.format.model.Page
 
 /**
@@ -16,7 +17,9 @@ import com.mobixournal.format.model.Page
 internal fun canvasPageSource(pages: () -> List<Page>): PageSource = object : PageSource {
     override val pageCount: Int get() = pages().size
 
-    override fun pageId(index: Int): String? = pages().getOrNull(index)?.id
+    override fun pageId(index: Int): String? = PageSource.of(pages()).pageId(index)
+
+    override fun pageSize(index: Int): PageSize = PageSource.of(pages()).pageSize(index)
 
     override fun page(index: Int): Page {
         val list = pages()

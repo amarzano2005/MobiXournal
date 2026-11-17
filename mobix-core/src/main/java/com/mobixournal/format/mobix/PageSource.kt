@@ -152,7 +152,15 @@ private class MaterializedPages(private val pages: List<Page>) : PageSource {
 
     override val pageCount: Int get() = pages.size
 
-    override fun pageId(index: Int): String? = pages.getOrNull(index)?.id
+    override fun pageId(index: Int): String? {
+        val inherited = (pages as? com.mobixournal.format.model.PageListView)?.sourcePage(index)
+        return if (inherited != null) PageSource.of(inherited.first).pageId(inherited.second) else pages.getOrNull(index)?.id
+    }
+
+    override fun pageSize(index: Int): PageSize {
+        val inherited = (pages as? com.mobixournal.format.model.PageListView)?.sourcePage(index)
+        return if (inherited != null) PageSource.of(inherited.first).pageSize(inherited.second) else super.pageSize(index)
+    }
 
     override fun page(index: Int): Page {
         require(index in pages.indices) { "page index $index out of bounds (0..${pages.size - 1})" }

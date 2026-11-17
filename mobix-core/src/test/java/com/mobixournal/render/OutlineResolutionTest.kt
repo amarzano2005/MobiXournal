@@ -23,6 +23,20 @@ import org.junit.Test
  * bookmark that opens the wrong chapter is worse than one that says it no longer knows.
  */
 class OutlineResolutionTest {
+    @Test fun aLargeSheetOutlineReadsEachPageOnlyOnceAndKeepsFirstDuplicate() {
+        var reads = 0
+        val pages = object : AbstractList<Page>() {
+            override val size = 2000
+            override fun get(index: Int): Page { reads++; return pdfPage(index / 2) }
+        }
+        val tree = OutlineTree(nodes = (0..999).map { OutlineNode("bkm_$it", "Row", OutlineTarget.Sheet(it)) })
+        val rows = OutlineResolution.rows(tree, pages)
+        assertEquals(1999, reads)
+        assertEquals(1998, rows.last().page)
+        reads = 0
+        assertTrue(OutlineResolution.rowsOf(OutlineTree.EMPTY, null, pages).isEmpty())
+        assertEquals(0, reads)
+    }
 
     private fun pdfPage(pageNo: Int) = Page(
         width = 595.0,

@@ -17,6 +17,12 @@ import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.model.withIdentity
 import com.mobixournal.render.XoppSynthesis
 import com.mobixournal.format.Xopp
+import com.mobixournal.format.model.*
+import com.mobixournal.format.mobix.PageSource
+import com.mobixournal.format.mobix.PageSize
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicBoolean
+import java.io.IOException
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.DrawingSurfaceView
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -42,6 +48,141 @@ class NavigationPanelTest {
     private val context get() = instrumentation.targetContext
     private val automation get() = instrumentation.uiAutomation
     private lateinit var activity: Activity
+
+    @Test fun suppliedPdfOpensBookmarksOnEachFirstTap() {
+        val remote = InstrumentationRegistry.getArguments().getString("navigationPdf")
+        org.junit.Assume.assumeNotNull(remote)
+        require(remote!!.matches(Regex("/data/local/tmp/[A-Za-z0-9._-]+")))
+        context.getSharedPreferences("xopp_settings", Context.MODE_PRIVATE).edit().putBoolean("has_seen_onboarding", true).commit()
+        shell("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS")
+        shell("pm grant ${context.packageName} android.permission.RECORD_AUDIO")
+        val file = File(context.filesDir, "00)  APPUNTI COMPLETI.pdf")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("cat $remote")).use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        instrumentation.runOnMainSync { (activity as MainActivity).openDocument(Uri.fromFile(file)) }
+        await("the supplied 449-page PDF", 60_000) { document()?.pages?.size == 449 && document()?.outline?.isEmpty == false }
+        val model = document()!!
+        val root = model.outline.nodes.first().title
+        val samples = java.util.concurrent.CopyOnWriteArrayList<Long>()
+        val thread = android.os.HandlerThread("SuppliedPdfFrames").apply { start() }
+        val listener = android.view.Window.OnFrameMetricsAvailableListener { _, frame, _ ->
+            samples += frame.getMetric(android.view.FrameMetrics.TOTAL_DURATION) / 1_000_000
+        }
+        instrumentation.runOnMainSync { activity.window.addOnFrameMetricsAvailableListener(listener, android.os.Handler(thread.looper)) }
+        val times = mutableListOf<Long>()
+        repeat(6) {
+            val start = SystemClock.uptimeMillis()
+            click("Bookmarks")
+            await("supplied PDF bookmarks after one tap") { find("Actions for $root") != null }
+            times += SystemClock.uptimeMillis() - start
+            if (it == 0) screenshot("supplied-pdf-bookmarks.png")
+            click("Close navigation")
+        }
+        instrumentation.runOnMainSync { activity.window.removeOnFrameMetricsAvailableListener(listener) }
+        thread.quitSafely()
+        val frames = samples.sorted()
+        Log.i("NavigationQa", "Supplied PDF: pages=${model.pages.size}; outline=${model.outline.size}; opening ms=$times; frames=${frames.size}; p95=${frames.getOrNull(((frames.size - 1) * 0.95).toInt().coerceAtLeast(0))}ms")
+        click("Bookmarks")
+        click("Expand $root")
+        screenshot("supplied-pdf-expanded.png")
+    }
+
+    @Test fun heavyPagedNavigationOpensOnEachTapAndReadFailuresCanBeRetried() {
+        context.getSharedPreferences("xopp_settings", Context.MODE_PRIVATE).edit()
+            .putBoolean("has_seen_onboarding", true).commit()
+        shell("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS")
+        shell("pm grant ${context.packageName} android.permission.RECORD_AUDIO")
+        val file = heavyNativeFixture()
+        activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        try {
+            instrumentation.runOnMainSync { (activity as MainActivity).openDocument(Uri.fromFile(file)) }
+            await("1200 native pages") { document()?.pages?.size == 1200 }
+            val model = document()!!
+            val source = PageSource.of(model.pages)
+            val reads = AtomicInteger()
+            val faulty = AtomicBoolean(false)
+            val counted = object : PageSource {
+                override val pageCount get() = source.pageCount
+                override fun pageId(index: Int) = source.pageId(index)
+                override fun pageSize(index: Int) = source.pageSize(index)
+                override fun page(index: Int): com.mobixournal.format.model.Page {
+                    reads.incrementAndGet()
+                    if (faulty.get() && index >= 10) throw IOException("Simulated unreadable offscreen page")
+                    return source.page(index)
+                }
+            }
+            val pages = counted.asPageList()
+            instrumentation.runOnMainSync { surface()!!.load(model.copy(pages = pages)) }
+            SystemClock.sleep(300)
+            reads.set(0)
+            val frames = java.util.concurrent.CopyOnWriteArrayList<Long>()
+            val frameThread = android.os.HandlerThread("NavigationFrameMetrics").apply { start() }
+            val listener = android.view.Window.OnFrameMetricsAvailableListener { _, metrics, _ ->
+                val total = metrics.getMetric(android.view.FrameMetrics.TOTAL_DURATION) / 1_000_000
+                frames += total
+                if (total > 80) Log.i("NavigationQa", "Slow frame total=${total}ms layout=${metrics.getMetric(android.view.FrameMetrics.LAYOUT_MEASURE_DURATION) / 1_000_000} draw=${metrics.getMetric(android.view.FrameMetrics.DRAW_DURATION) / 1_000_000} sync=${metrics.getMetric(android.view.FrameMetrics.SYNC_DURATION) / 1_000_000} command=${metrics.getMetric(android.view.FrameMetrics.COMMAND_ISSUE_DURATION) / 1_000_000} swap=${metrics.getMetric(android.view.FrameMetrics.SWAP_BUFFERS_DURATION) / 1_000_000} unknown=${metrics.getMetric(android.view.FrameMetrics.UNKNOWN_DELAY_DURATION) / 1_000_000}")
+            }
+            instrumentation.runOnMainSync {
+                activity.window.addOnFrameMetricsAvailableListener(listener, android.os.Handler(frameThread.looper))
+            }
+            val openingTimes = mutableListOf<Long>()
+            repeat(6) {
+                val start = SystemClock.uptimeMillis()
+                click("Bookmarks")
+                await("bookmarks after one tap") { find("Actions for Heavy chapter 0") != null }
+                openingTimes += SystemClock.uptimeMillis() - start
+                click("Close navigation")
+            }
+            instrumentation.runOnMainSync { activity.window.removeOnFrameMetricsAvailableListener(listener) }
+            frameThread.quitSafely()
+            val orderedFrames = frames.sorted()
+            assertTrue("opening and closing must produce measured frames", orderedFrames.isNotEmpty())
+            val p95 = orderedFrames[((orderedFrames.size - 1) * 0.95).toInt()]
+            Log.i("NavigationQa", "Navigator frames: n=${frames.size}; p95=${p95}ms; max=${orderedFrames.last()}ms")
+            assertTrue("navigation must not repeatedly decode 1200 pages: ${reads.get()}", reads.get() < 200)
+            assertTrue("each first-tap opening remains responsive: $openingTimes", openingTimes.all { it < 3000 })
+            Log.i("NavigationQa", "1200 pages, 800 bookmarks: opening ms=$openingTimes; page reads=${reads.get()}")
+            click("Page list")
+            await("heavy page preview") { find("Pick page 1") != null }
+            screenshot("heavy-pages.png")
+            click("Close navigation")
+            faulty.set(true)
+            val unavailable = OutlineTree(nodes = listOf(OutlineNode("bkm_unavailable", "Unavailable sheet", OutlineTarget.Sheet(9999))))
+            instrumentation.runOnMainSync { surface()!!.load(model.copy(pages = pages, outline = unavailable)) }
+            click("Bookmarks")
+            await("recoverable read error") { find("Try again") != null }
+            screenshot("bookmark-read-error.png")
+            faulty.set(false)
+            click("Try again")
+            await("successful retry") { find("Actions for Unavailable sheet") != null }
+            screenshot("bookmark-read-recovered.png")
+        } finally {
+            instrumentation.runOnMainSync { activity.finish() }
+        }
+    }
+
+    private fun heavyNativeFixture(): File {
+        val points = (0..127).map { StrokePoint(30.0 + it * 2, 50.0 + it % 11, 1.0) }
+        val stroke = Stroke(tool = Tool.PEN, color = -16777216, points = points, uniformWidth = false, capStyle = "round")
+        val pages = (0..1199).map { com.mobixournal.format.model.Page(595.0, 842.0,
+            Background.Solid(-1, "plain"), listOf(Layer(listOf(stroke))), id = "pg_$it") }
+        val outline = OutlineTree(nodes = (0..799).map {
+            OutlineNode("bkm_$it", "Heavy chapter $it", OutlineTarget.Page("pg_${it * 1199 / 799}"))
+        })
+        return File(context.filesDir, "Heavy.mobix").also { file ->
+            file.outputStream().use { MobixDocument.of(Document(pages = pages, outline = outline).withIdentity(),
+                appVersion = "2.2.0", nowMillis = 1L).save(it, 1L) }
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, "navigation-heavy.mobix")
+                put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/vnd.mobixournal+zip")
+                put(android.provider.MediaStore.Downloads.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = context.contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)!!
+            context.contentResolver.openOutputStream(uri)!!.use { output -> file.inputStream().use { it.copyTo(output) } }
+        }
+    }
 
     @Test fun rawPdfKeepsItsNameAndTheNavigatorRemainsUsable() {
         context.getSharedPreferences("xopp_settings", Context.MODE_PRIVATE).edit()
@@ -235,8 +376,8 @@ class NavigationPanelTest {
         instrumentation.waitForIdleSync()
     }
 
-    private fun await(label: String, condition: () -> Boolean) {
-        val deadline = SystemClock.uptimeMillis() + 30000
+    private fun await(label: String, timeout: Long = 30000, condition: () -> Boolean) {
+        val deadline = SystemClock.uptimeMillis() + timeout
         while (SystemClock.uptimeMillis() < deadline) {
             if (condition()) return
             SystemClock.sleep(100)

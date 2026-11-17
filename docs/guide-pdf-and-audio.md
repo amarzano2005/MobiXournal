@@ -165,7 +165,7 @@ shows the PDF's outline beside the document; **Pages** switches to page previews
 On a tablet, choosing a bookmark leaves the list open for the next jump. In a compact window, choosing a
 page closes the panel; the ribbon opens it again with the filter and folded chapters retained.
 The Android panel has been exercised on the Pixel_Tablet emulator at tablet and phone sizes in both themes;
-[the implementation notes](pdf.md#pdf-contents-the-outline) record the test and its fixture.
+[the implementation notes](pdf.md#pdf-contents-the-outline) record the test and its fixture. On large notebooks the panel can show **Reading bookmarks…** while destinations load. A failed read offers **Try again**; you can close the panel at any time.
 
 Tapping goes by the PDF's own page number rather than by a count, so
 even a merged PDF lands on the right sheet; an entry with no destination inherits the page of the nearest
