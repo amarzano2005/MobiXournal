@@ -1,6 +1,5 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.GlassPopup
-import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.io.contentsResolved
@@ -12,10 +11,8 @@ import com.mobixournal.desktop.settings.drawChromeGlyph
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.TooltipPlacement
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,11 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -55,11 +50,13 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,7 +75,7 @@ enum class DesktopSidebarView {
 }
 
 /**
- * The sidebar's **Pages / Contents** switch: one persistent control above either list, so the two navigation
+ * The sidebar's **Pages / Bookmarks** switch: one persistent control above either list, so the two navigation
  * views are a choice rather than a section folded under three others. The choice belongs to the tab
  * ([DesktopTab.contentsView]), so switching tabs and coming back finds the view where it was left.
  */
@@ -91,18 +88,24 @@ internal fun SidebarViewSwitch(view: DesktopSidebarView, onView: (DesktopSidebar
         DesktopSidebarView.entries.forEach { option ->
             val picked = option == view
             Text(
-                text = if (option == DesktopSidebarView.PAGES) "Pages" else "Contents",
+                text = if (option == DesktopSidebarView.PAGES) "Pages" else "Bookmarks",
                 color = if (picked) DesktopTheme.accent else DesktopTheme.inkSecondary,
-                style = DesktopTheme.eyebrow,
+                style = DesktopTheme.field,
                 modifier = Modifier
                     .weight(1f)
                     .hoverFill(RoundedCornerShape(8.dp), active = picked)
-                    .then(
-                        if (picked) Modifier.background(DesktopTheme.activeSlot, RoundedCornerShape(8.dp))
-                        else Modifier,
-                    )
+                    .drawBehind {
+                        if (picked) drawLine(
+                            DesktopTheme.accent,
+                            androidx.compose.ui.geometry.Offset(8.dp.toPx(), size.height - 1.dp.toPx()),
+                            androidx.compose.ui.geometry.Offset(size.width - 8.dp.toPx(), size.height - 1.dp.toPx()),
+                            strokeWidth = 2.dp.toPx(),
+                        )
+                    }
+                    .semantics { selected = picked }
                     .clickable(role = Role.Tab) { onView(option) }
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                    .heightIn(min = 40.dp)
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
             )
         }
     }
@@ -179,7 +182,7 @@ internal fun ContentsPanel(
         }
         if (rows.isEmpty() && !adding) {
             Text(
-                text = if (query.isBlank()) "No bookmarks yet" else "No contents match \"${query.trim()}\"",
+                text = if (query.isBlank()) "No bookmarks yet" else "No bookmarks match \"${query.trim()}\"",
                 color = DesktopTheme.inkMuted,
                 style = DesktopTheme.label,
             )
@@ -212,13 +215,11 @@ private fun ColumnScope.ContentsListBlock(
     BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
         val widthDp = maxWidth.value
         val widest = largestPageNumber(rows)
-        val pageColumnDp = measuredContentsPageColumn(widest)
         LazyColumn(state = tab.contentsList, modifier = Modifier.fillMaxSize()) {
             if (adding) {
                 item(key = "add-draft") {
                     ContentsAddDraft(
                         page = editing.addPage,
-                        pageColumnDp = pageColumnDp,
                         title = editing.title,
                         error = editing.error,
                         onTitle = editing::typed,
@@ -266,7 +267,7 @@ private fun ContentsHeaderAction(label: String, enabled: Boolean = true, onClick
 }
 
 /**
- * The window's Contents filter: one capsule, a placeholder, and the keyboard's own Escape handled by the
+ * The window's bookmark filter: one flat field, a placeholder, and the keyboard's own Escape handled by the
  * dialog-free sidebar — [WindowKeys.focusControl] tells the shell that this field owns typing while it has
  * focus, so a chapter search is not eaten by the page commands' single-letter keys.
  */
@@ -287,17 +288,12 @@ private fun ContentsFilterField(query: String, onQuery: (String) -> Unit) {
                 focused = it.isFocused
                 WindowKeys.focusControl(owner, focused)
             }
-            .glassCapsule(cornerRadius = 8.dp)
-            .border(
-                width = 1.dp,
-                color = if (focused) DesktopTheme.accent else Color.Transparent,
-                shape = RoundedCornerShape(8.dp),
-            )
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .bookmarkField(focused = focused)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         decorationBox = { field ->
             Box {
                 if (query.isEmpty()) {
-                    Text("Filter contents", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+                    Text("Filter bookmarks", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
                 }
                 field()
             }
@@ -347,6 +343,15 @@ internal fun OutlineRowView(
     onSaveDraft: () -> Unit = {},
     onCancelDraft: () -> Unit = {},
 ) {
+    if (renaming) {
+        ContentsTitleField(
+            value = title, onValue = onTitle, error = error, placeholder = "Bookmark title",
+            onSave = onSaveDraft, onCancel = onCancelDraft,
+            modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
+            page = row.page,
+        )
+        return
+    }
     val pageColumnDp = measuredContentsPageColumn(largestPageNumber)
     val target = row.page
     val number = target?.plus(1)
@@ -378,19 +383,7 @@ internal fun OutlineRowView(
         verticalAlignment = Alignment.Top,
     ) {
         ContentsChevron(row = row, onToggle = onToggle)
-        if (renaming) {
-            // The name is typed where the old one was read: the row itself, between the same neighbours.
-            ContentsTitleField(
-                value = title,
-                onValue = onTitle,
-                error = error,
-                placeholder = "Title",
-                onSave = onSaveDraft,
-                onCancel = onCancelDraft,
-                modifier = Modifier.weight(1f).padding(vertical = 2.dp),
-            )
-        } else {
-            OutlineRowTitle(row = row, heading = heading, target = target)
+        OutlineRowTitle(row = row, heading = heading, target = target)
         // Reserved on every row, empty where there is no page, so the titles end on one line.
         Box(Modifier.width(pageColumnDp.dp), contentAlignment = Alignment.TopEnd) {
             if (number != null) {
@@ -398,7 +391,7 @@ internal fun OutlineRowView(
                 Text(
                     text = "$number",
                     color = DesktopTheme.inkMuted,
-                    style = DesktopTheme.numeric.copy(lineHeight = if (heading) DesktopTheme.tab.lineHeight else DesktopTheme.label.lineHeight),
+                    style = DesktopTheme.numeric.copy(lineHeight = DesktopTheme.field.lineHeight),
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.End,
@@ -412,7 +405,6 @@ internal fun OutlineRowView(
             if (onRename != null || onDelete != null) {
                 ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
             }
-        }
         }
     }
 }
@@ -481,16 +473,17 @@ private fun ContentsMenuRow(label: String, title: String, onClick: () -> Unit) {
 
 /** One word of a row's own actions, named together with its row so two chapters stay distinguishable. */
 @Composable
-internal fun ContentsRowAction(label: String, title: String, onClick: () -> Unit) {
+internal fun ContentsRowAction(label: String, title: String, enabled: Boolean = true, onClick: () -> Unit) {
     Text(
         label,
-        color = DesktopTheme.inkMuted,
+        color = if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted,
         style = DesktopTheme.label,
         modifier = Modifier
             .hoverFill(RoundedCornerShape(6.dp))
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = "$label ${title.ifBlank { "bookmark" }}" }
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .heightIn(min = 40.dp)
+            .padding(horizontal = 10.dp, vertical = 12.dp),
     )
 }
 
@@ -525,7 +518,7 @@ private fun RowScope.OutlineRowTitle(row: OutlineRow, heading: Boolean, target: 
                 row.context || target == null -> DesktopTheme.inkMuted
                 else -> DesktopTheme.ink
             },
-            style = if (heading) DesktopTheme.tab else DesktopTheme.label,
+            style = DesktopTheme.field.copy(fontWeight = if (heading) FontWeight.Medium else FontWeight.Normal),
             maxLines = ContentsRowLayout.TITLE_MAX_LINES,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),

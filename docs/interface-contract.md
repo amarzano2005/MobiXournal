@@ -110,6 +110,7 @@ Every surface is one of three objects. Pick the class from what the element *doe
   chrome tests pin this one so it cannot drift silently.
 - The picked state is the **steel `#38383E`** (`ACTIVE_SLOT_DARK_RGB`) with the glyph in the accent
   (`#60A5FA`). A new "selected" look is not a design decision; it is a second state the user has to learn.
+- **Desktop navigation exception (2026-11-17, owner request):** Pages/Bookmarks uses an accent underline instead of a filled selected pill. Its fields stay flat in the sidebar band, with a hairline at rest and an accent/error underline for focus/refusal; no capsule lift or glow. Other controls retain their existing material.
 - Enforced by `ColorContractGuardTest` (Android chrome) and `DesktopThemeTest` (desktop chrome literal
   sweep), and mirrored in the token block of [`ui-modernization.md`](ui-modernization.md).
 

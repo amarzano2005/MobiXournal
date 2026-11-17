@@ -56,7 +56,7 @@ in the folder you choose, with no account between.
 
 - **Write on the source.** A PDF becomes the page background — the pages you pick by preview — its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band. Hold a word (double click in the window) and **Copy**, **Highlight** or **Underline** acts on the passage without a tool switch; its two dots adjust it.
-- **Follow and edit the document's contents.** Filter or fold the outline; add, rename or delete bookmarks. Desktop rows align page numbers beside titles and three-dot action menus. Text selection reports pages without text.
+- **Follow and edit the document's contents.** Filter or fold the outline; add, rename or delete bookmarks. The desktop Bookmarks tab keeps titles, page numbers and action menus aligned. Text selection reports pages without text.
 - **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.
 - **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline on Windows, and on the tablet once the model downloads.
 

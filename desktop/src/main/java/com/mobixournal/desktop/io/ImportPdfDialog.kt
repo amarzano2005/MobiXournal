@@ -174,7 +174,7 @@ private fun BookmarkSection(
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                "A Contents row for this file",
+                "A bookmark for this file",
                 color = DesktopTheme.inkSecondary,
                 style = DesktopTheme.label,
             )

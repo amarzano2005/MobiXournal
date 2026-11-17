@@ -1,15 +1,11 @@
 package com.mobixournal.desktop.shell
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +17,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -28,9 +29,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
-import com.mobixournal.design.ContentsRowLayout
 import com.mobixournal.desktop.settings.DesktopTheme
-import com.mobixournal.desktop.tools.glassCapsule
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
 
@@ -129,19 +128,29 @@ internal fun ContentsTitleField(
     onSave: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    page: Int? = null,
+    saveLabel: String = "Save",
 ) {
     val owner = remember { Any() }
+    val requester = remember { FocusRequester() }
+    var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(requester) { requester.requestFocus() }
     DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
     Column(modifier) {
         BasicTextField(
             value = value,
             onValueChange = onValue,
             singleLine = true,
-            textStyle = DesktopTheme.label.copy(color = DesktopTheme.ink),
+            textStyle = DesktopTheme.field.copy(color = DesktopTheme.ink),
             cursorBrush = androidx.compose.ui.graphics.SolidColor(DesktopTheme.accent),
             modifier = Modifier
                 .fillMaxWidth()
-                .onFocusChanged { WindowKeys.focusControl(owner, it.isFocused) }
+                .focusRequester(requester)
+                .semantics { contentDescription = "Bookmark title" }
+                .onFocusChanged {
+                    focused = it.isFocused
+                    WindowKeys.focusControl(owner, it.isFocused)
+                }
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     when (event.key) {
@@ -156,20 +165,27 @@ internal fun ContentsTitleField(
                         else -> false
                     }
                 }
-                .glassCapsule(cornerRadius = 8.dp)
-                .border(1.dp, if (error != null) DesktopTheme.danger else DesktopTheme.accent, RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .bookmarkField(focused = focused, error = error != null)
+                .padding(horizontal = 8.dp, vertical = 12.dp),
             decorationBox = { field ->
                 Box {
-                    if (value.isEmpty()) Text(placeholder, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+                    if (value.isEmpty()) Text(placeholder, color = DesktopTheme.inkMuted, style = DesktopTheme.field)
                     field()
                 }
             },
         )
         if (error != null) Text(error, color = DesktopTheme.danger, style = DesktopTheme.label)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            ContentsRowAction("Cancel", "", onCancel)
-            if (value.isNotBlank()) ContentsRowAction("Save", "", onSave)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (page == null) "No page" else "Page ${page + 1}",
+                color = DesktopTheme.inkMuted,
+                style = DesktopTheme.numeric,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.weight(1f).padding(start = 8.dp),
+            )
+            ContentsRowAction("Cancel", "", onClick = onCancel)
+            ContentsRowAction(saveLabel, "", enabled = value.isNotBlank(), onClick = onSave)
         }
     }
 }
@@ -181,33 +197,23 @@ internal fun ContentsTitleField(
 @Composable
 internal fun ContentsAddDraft(
     page: Int?,
-    pageColumnDp: Float,
     title: String,
     error: String?,
     onTitle: (String) -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Spacer(Modifier.width(ContentsRowLayout.BRANCH_DP.dp))
-        ContentsTitleField(
+    ContentsTitleField(
             value = title,
             onValue = onTitle,
             error = error,
-            placeholder = "New bookmark",
+            placeholder = "Bookmark title",
             onSave = onSave,
             onCancel = onCancel,
-            modifier = Modifier.weight(1f),
-        )
-        Box(Modifier.width(pageColumnDp.dp), contentAlignment = Alignment.TopEnd) {
-            if (page != null) {
-                Text(text = "${page + 1}", color = DesktopTheme.inkMuted, style = DesktopTheme.numeric)
-            }
-        }
-    }
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+            page = page,
+            saveLabel = "Add",
+    )
 }
 
 /** The delete question: asked above the list (which keeps its rows), and says the page stays in the notebook. */
@@ -226,8 +232,8 @@ internal fun ContentsDeleteQuestion(
         )
         if (error != null) Text(error, color = DesktopTheme.danger, style = DesktopTheme.label)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            ContentsRowAction("Cancel", row.title, onCancel)
-            ContentsRowAction("Delete", row.title, onDelete)
+            ContentsRowAction("Cancel", row.title, onClick = onCancel)
+            ContentsRowAction("Delete", row.title, onClick = onDelete)
         }
     }
 }
