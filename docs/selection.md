@@ -74,7 +74,8 @@ paper inside** the outline clears it too: the box encloses air, and a press ther
 press is read as a tap on nothing and lets go (`SelectionGestureController.commitMove`) instead of holding — a
 press on the element's **ink** is the one that holds. A figure slot does the same on paper that holds no figure
 of its kind (`PlacementPick.letGoOfFigure`), so the tool left in hand no longer keeps a figure selected by drawing
-another one. Its controls
+another one — and on paper that holds nothing at all that press is **only** the letting go: the gesture is
+dropped, because a figure tool's tap writes a degenerate figure and would select it straight back. Its controls
 are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halves the bar's footprint,
 and it arrives **in place** on the shared glass spring (`liquidGlassSpringAnimation`, scale + fade —
 the motion every floating surface plays), its offset animated only once it has been measured, so it
