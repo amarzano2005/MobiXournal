@@ -224,7 +224,8 @@ The design decisions worth keeping:
 - **The split itself is remembered.** Turning split view on gives the right pane **a sheet of its own** if it
   holds nothing — a half with no document is a placeholder — and records that the split is where the app
   will be closed (the `split_open` flag beside the recents, not in `AppSettings`). A run closed that way is
-  offered on the next launch as **one** card naming both halves: taking it opens the right pane's tabs and
+  offered on the next launch as **one** card naming both halves, with one capsule on its top-right corner
+  holding the restore mark and the split glyph: taking it opens the right pane's tabs and
   the left pane's session and switches the split on, each document on the page it was left on, so the
   workspace comes back whole rather than as two documents to assemble (`EntryCards`, `adoptSplitSession`).
   The left pane's tabs are not listed singly while that card stands: the reader left a workspace.

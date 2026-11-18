@@ -9,6 +9,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +33,10 @@ import com.mobixournal.ui.theme.FloatingDialog
  * answer outlives the toolbar or menu that asked the question. The page count and the page in view are read
  * when the card is composed — the answer is about the document *now*, which is also what the export will be
  * handed.
+ *
+ * A document of **one page** is asked nothing ([ExportPages.needsPageChoice]): the card would offer three ways
+ * to say "the only page there is", so the answer is already known and the file goes straight to the system's
+ * destination picker.
  */
 @Composable
 internal fun ExportPdfHost(
@@ -41,7 +46,16 @@ internal fun ExportPdfHost(
     onExport: (List<Int>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    DialogPresence(open) {
+    // One page, one answer: the flag is cleared and the export started on the next frame, and the card is
+    // never composed for it — opening the presence on `open` alone would flash a question that answers itself.
+    val asked = ExportPages.needsPageChoice(pageCount)
+    LaunchedEffect(open, pageCount) {
+        if (open && !asked) {
+            onDismiss()
+            onExport(listOf(0))
+        }
+    }
+    DialogPresence(open && asked) {
         ExportPdfDialog(
             pageCount = pageCount,
             currentPage = currentPage,

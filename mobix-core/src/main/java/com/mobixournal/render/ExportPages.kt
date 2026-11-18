@@ -42,6 +42,13 @@ object ExportPages {
         }
     }
 
+    /**
+     * Whether **Export PDF** has anything worth asking: a document of one page has one answer, so both shells
+     * skip the card and hand the file straight to the destination picker. A document with **no** page still
+     * asks, because the card is where the reader is told there is nothing to work on.
+     */
+    fun needsPageChoice(pageCount: Int): Boolean = pageCount != 1
+
     /** `1 page` / `3 pages` — a card that says "1 pages" reads as a machine talking. */
     fun count(count: Int): String = if (count == 1) "1 page" else "$count pages"
 

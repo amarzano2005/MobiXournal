@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "split-recents-card-capsule"
+title = "A split recents card wears one capsule: restore mark, hairline, split glyph"
+description = "A recents card that stands for the last run's split now says both facts in one mark. The top-left SplitBadge is gone: SplitSessionBadge draws a floating capsule at the card's top-right - TopEnd inside the paper, with PAGE_SHADOW_DP + 14 dp of end clearance so it stands clear of the red remove mark - holding the restore mark, a 1 dp hairline in the card ink and the top bar's VerticalSplit glyph, with the two icons merged under one English description for screen readers. A plain session card keeps its session badge at the top-left, and the split card's click and remove target are unchanged. Verified with :app:testDebugUnitTest (1691 tests, DocsGuardTest and SourceStructureTest green) and a packaged release APK; the card itself was not looked at, since this host has no device or emulator."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "material: the floating glass fill with the family's hairline rim, same as the session badge it replaces; tokens: DesignTokens.PAGE_SHADOW_DP and RIM_WIDTH_DP with SPLIT_BADGE_SIDE_DP, SPLIT_BADGE_GAP_DP, SPLIT_BADGE_RULE_DP and SPLIT_BADGE_CLEARANCE_DP for the capsule's inset, hairline, rule and clearance from the remove mark; glyph: ChromeGlyph.RESTORE and the top bar's VerticalSplit mark, both already in the catalogues; states: a static badge with merged semantics and no press state of its own, the card's click and its 40 dp remove target unchanged; copy: English description 'From the previous session, in split view - both halves reopen'; parity: mobile only by nature, the window's entry screen has no split cards to mark; docs: docs/chrome.md and docs/document-session.md updated inside their budgets; tests: every guard suite green, the badge not viewed on a device"
+
+[[task]]
+id = "export-pdf-single-page-skips-card"
+title = "Export PDF skips the page card when the document has one page"
+description = "Export PDF no longer asks which pages when the document has one. ExportPages.needsPageChoice is the shared rule (false only at one page; an empty document still asks, because the card is the sentence saying there is nothing to work on). The tablet's ExportPdfHost exports page 0 on the frame the flag is raised and never composes the card; the window's askExportPdfPages asks the destination directly and DesktopExportQueue.askForPdf now always replaces the held page list, so a stale answer cannot leak into the write. Tests: ExportPagesTest.aOnePageDocumentHasNothingToAskAndKeepsTheCardAwayFromBothShells and DesktopExportScopeTest.aOnePageDocumentIsAskedWhereAndNothingElse; :app:testDebugUnitTest 1691 tests green with DocsGuardTest and SourceStructureTest, :desktop:test --tests DesktopExportScopeTest 6 green, :desktop:createDistributable and the release APK rebuilt. Docs: docs/guide-pdf-and-audio.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "material: no new surface - the existing Export PDF card is simply not raised at one page, so the file lands on the system picker; tokens: none added, the card's own tokens are untouched; glyph: none added or removed; states: the card keeps its five states for every document that has something to ask and is skipped entirely at one page; copy: no new copy, the existing English labels of both shells stand; parity: one shared core rule drives the tablet and the window, so neither can ask while the other skips; docs: docs/guide-pdf-and-audio.md owns the sentence; tests: ExportPagesTest and DesktopExportScopeTest pin the rule, and every guard suite is green"
+
+[[task]]
 id = "port-the-pin-press-and-the-slot-letting-go-to-the-desktop-window"
 title = "Port the pin press and the slot letting-go to the desktop window"
 description = "The desktop window now presses a pin the way the tablet does: joinSelectionToPin moves a single selected element onto the compatible pin under the press as one undoable edit, keeps it selected and carries the outline (SelectionGesture.selectionDrag asks it before the grips and the pick, with CircuitSnapping.thresholdFor as the reach), and a press on one of the element's own pins is still the window's grab. letGoForSlot drops the selection when a figure, table or circuit slot is pressed, so the slot that stays in hand no longer keeps an old object selected. Verified: :desktop:compileKotlin and :desktop:compileTestKotlin green, :desktop:createDistributable rebuilt, :app:testDebugUnitTest 1691 green (the tablet is untouched this turn). Not verified by :desktop:test - that suite needs Skia and cannot run on this host - and not seen on a screen: no display here."

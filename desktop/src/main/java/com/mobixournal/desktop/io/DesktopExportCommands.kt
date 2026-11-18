@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toAwtImage
 import com.mobixournal.format.model.Background
+import com.mobixournal.render.ExportPages
 import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.imageio.ImageIO
@@ -138,15 +139,18 @@ internal object DesktopExportQueue {
         val request = scopeRequest ?: return
         val chosen = request.chosen ?: return
         scopeRequest = null
-        pdfPages = chosen
-        askForPdf()
+        askForPdf(chosen)
     }
 
     /** The pages the next PDF export writes, then forget them: one answer, one file. */
     internal fun takePdfPages(): List<Int>? = pdfPages.also { pdfPages = null }
 
-    /** `Ctrl+E` and the menu's PDF row: ask where, then export. */
-    fun askForPdf() {
+    /**
+     * Ask where, then export — holding [pages] for the write. A null list is every page, which is what a
+     * document of one page writes anyway; the answer always replaces whatever a previous export left behind.
+     */
+    fun askForPdf(pages: List<Int>? = null) {
+        pdfPages = pages
         pickPdfDestination?.invoke()
     }
 }
@@ -219,11 +223,19 @@ internal fun DesktopShellState.applyExport(outcome: ExportOutcome) {
 /**
  * `Export PDF` — the menu row, `Ctrl+E` and the header: ask **which pages** first, then where.
  *
+ * A document of **one page** is asked nothing ([ExportPages.needsPageChoice]): the card would offer three ways
+ * to say "the only page there is", so the answer is already known and the destination is asked straight away.
+ *
  * Nothing is raised on a read-only tab: the window would be asking a question whose answer it cannot act on.
  */
 internal fun DesktopShellState.askExportPdfPages() {
     val tab = tabs.active?.takeUnless { it.document.readOnly } ?: return
-    DesktopExportQueue.openScope(tab.document.pageCount, tab.page)
+    val pages = tab.document.pageCount
+    if (ExportPages.needsPageChoice(pages)) {
+        DesktopExportQueue.openScope(pages, tab.page)
+    } else {
+        DesktopExportQueue.askForPdf(listOf(0))
+    }
 }
 
 /** `Export PDF` on the active document. Answers what happened, or null with no document open. */

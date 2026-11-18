@@ -76,6 +76,9 @@ was; **This page**, the one in view; and **Pages…**, typed in the same grammar
 (`2,4-6,9`). Under them the card repeats the count it is about to write — *2 pages of 108* — and a page past
 the end is refused with the sentence the import card uses rather than rounded to something else.
 
+A notebook of **one page** is asked nothing, on either shell: the card would only offer three ways to say
+"the only page there is", so the export goes straight to the question of where the file should go.
+
 The file keeps the **notebook's** order, never the order the pages were typed in: exporting pages 2 and 4 of
 a reordered notebook gives a two-page PDF whose first page is the sheet that reads first on screen. What each
 page already is survives the subset — an imported page stays its source PDF's own vectors and text, the ink

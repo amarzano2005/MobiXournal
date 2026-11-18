@@ -49,6 +49,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -320,7 +322,15 @@ private fun SheetCard(
             // The two actions that sit **on** the card, in the paper's own inset so they clear the halo:
             // the session badge at the top-left, the remove mark at the top-right.
             if (split) {
-                SplitBadge(ink, Modifier.align(Alignment.TopStart).padding(DesignTokens.PAGE_SHADOW_DP.dp))
+                // A split card is **two** facts at once — it came back from the last run, and it is two
+                // panes — so one capsule on the card's top-right says both, standing clear of the `×`.
+                SplitSessionBadge(
+                    ink,
+                    Modifier.align(Alignment.TopEnd).padding(
+                        top = DesignTokens.PAGE_SHADOW_DP.dp,
+                        end = (DesignTokens.PAGE_SHADOW_DP + SPLIT_BADGE_CLEARANCE_DP).dp,
+                    ),
+                )
             } else if (fromSession) {
                 SessionBadge(ink, Modifier.align(Alignment.TopStart).padding(DesignTokens.PAGE_SHADOW_DP.dp))
             }
@@ -368,23 +378,39 @@ private fun SessionBadge(ink: Color, modifier: Modifier = Modifier) {
 }
 
 /**
- * The mark on a **split** the last run left open: the same two-pane glyph the top bar's split control
- * wears, in the same floating glass and at the card's top-left corner. One mark, one idea — this card
- * reopens a workspace, not a document.
+ * The mark on a **split** the last run left open: one floating capsule in the card's top-right corner holding
+ * the restore mark, a hairline and the two-pane glyph the top bar's split control wears — a card that came back
+ * from the last run **and** is two documents. One mark, one idea: this card reopens a workspace.
  */
 @Composable
-private fun SplitBadge(ink: Color, modifier: Modifier = Modifier) {
+private fun SplitSessionBadge(ink: Color, modifier: Modifier = Modifier) {
     val glass = rememberGlassSurfaceColor()
-    Box(
+    Row(
         modifier = modifier
-            .size(SESSION_BADGE_DP.dp)
+            .height(SESSION_BADGE_DP.dp)
             .background(glass, CircleShape)
-            .border(DesignTokens.RIM_WIDTH_DP.dp, ink.copy(alpha = HAIRLINE_TINT), CircleShape),
-        contentAlignment = Alignment.Center,
+            .border(DesignTokens.RIM_WIDTH_DP.dp, ink.copy(alpha = HAIRLINE_TINT), CircleShape)
+            // One description for the pair: a screen reader says the whole capsule, not two loose glyphs.
+            .semantics(mergeDescendants = true) { contentDescription = SPLIT_SESSION_DESCRIPTION }
+            .padding(horizontal = SPLIT_BADGE_SIDE_DP.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
+            ChromeGlyph.RESTORE.imageVector(),
+            contentDescription = null,
+            tint = ink,
+            modifier = Modifier.size(SESSION_BADGE_GLYPH_DP.dp),
+        )
+        Box(
+            Modifier
+                .padding(horizontal = SPLIT_BADGE_GAP_DP.dp)
+                .width(1.dp)
+                .height(SPLIT_BADGE_RULE_DP.dp)
+                .background(ink.copy(alpha = HAIRLINE_TINT)),
+        )
+        Icon(
             Icons.Outlined.VerticalSplit,
-            contentDescription = "Split view — both halves reopen",
+            contentDescription = null,
             tint = ink,
             modifier = Modifier.size(SESSION_BADGE_GLYPH_DP.dp),
         )
@@ -524,6 +550,23 @@ private const val BUTTON_TINT = 0.16f
 private const val SESSION_BADGE_DP = 20f
 
 private const val SESSION_BADGE_GLYPH_DP = 12f
+
+/** The capsule a split card wears: its side inset, the hairline between its two marks, and that rule's height. */
+private const val SPLIT_BADGE_SIDE_DP = 5f
+
+private const val SPLIT_BADGE_GAP_DP = 4f
+
+private const val SPLIT_BADGE_RULE_DP = 9f
+
+/**
+ * How far inside the paper the capsule stands: the `×` is centred on the corner and reaches half its disc into
+ * the sheet, so the capsule starts clear of it instead of under it.
+ */
+private const val SPLIT_BADGE_CLEARANCE_DP = 14f
+
+/** What a screen reader says about a split card's capsule: both facts, and what the tap does. */
+private const val SPLIT_SESSION_DESCRIPTION =
+    "From the previous session, in split view — both halves reopen"
 
 /** A card's remove mark: a small disc sitting on the sheet's corner, in the danger red. */
 private const val REMOVE_BUTTON_DP = 22f

@@ -71,6 +71,15 @@ class ExportPagesTest {
     }
 
     @Test
+    fun aOnePageDocumentHasNothingToAskAndKeepsTheCardAwayFromBothShells() {
+        // One answer, so no question: the export goes straight to the destination picker.
+        assertEquals(false, ExportPages.needsPageChoice(1))
+        assertEquals("two pages are a real choice", true, ExportPages.needsPageChoice(2))
+        // No page at all is not "nothing to ask": the card is the sentence saying so.
+        assertEquals("an empty document still asks", true, ExportPages.needsPageChoice(0))
+    }
+
+    @Test
     fun theReadoutCountsTheAnswerOutOfTheDocumentAndRefusalsSpeakForThemselves() {
         val chosen = ExportPages.resolve(ExportPageScope.SELECTED, 0, "2,4", 8)
 

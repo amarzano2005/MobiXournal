@@ -73,8 +73,8 @@ class DesktopExportScopeTest {
         layers = listOf(Layer(listOf(text(content)))),
     )
 
-    private fun document(): DesktopDocument {
-        val model = Document(pages = listOf(page("First page"), page("Second page"), page("Third page")))
+    private fun documentOf(vararg contents: String): DesktopDocument {
+        val model = Document(pages = contents.map { page(it) })
         return DesktopDocument(
             file = File(temp.root, "notes.xopp"),
             source = PageSource.of(model),
@@ -83,6 +83,8 @@ class DesktopExportScopeTest {
             backdrop = PageBackdrop(bundled = { null }, documentDir = temp.root),
         )
     }
+
+    private fun document(): DesktopDocument = documentOf("First page", "Second page", "Third page")
 
     private fun state(document: DesktopDocument = document()): DesktopShellState {
         val state = DesktopShellState(settings = DesktopSettings(File(temp.root, "settings.json")))
@@ -101,6 +103,32 @@ class DesktopExportScopeTest {
             assertEquals("and it counts the document's pages", 3, request!!.pageCount)
             assertEquals("opening on every page, which is what an export always was", ExportPageScope.ALL, request.scope)
             assertEquals("so the card's first answer is the whole notebook", listOf(0, 1, 2), request.chosen)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun aOnePageDocumentIsAskedWhereAndNothingElse() {
+        val state = state(documentOf("Only page"))
+        try {
+            var asked = 0
+            DesktopExportQueue.pickPdfDestination = { asked++ }
+
+            state.askExportPdfPages()
+
+            assertNull("which pages is not a question for one page", DesktopExportQueue.scopeRequest)
+            assertEquals("so the destination is asked at once", 1, asked)
+
+            DesktopExportQueue.pickPdfDestination = null
+            val target = File(temp.root, "only.pdf")
+            state.exportPdf(target)
+
+            PDDocument.load(target).use { pdf ->
+                assertEquals("the one page is written", 1, pdf.numberOfPages)
+                assertEquals("and it is that page", "Only page", words(pdf, 1))
+            }
+            assertNull("the answer is spent by the export it belonged to", DesktopExportQueue.takePdfPages())
         } finally {
             state.tabs.closeAll()
         }
