@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import com.mobixournal.format.model.LineStyle
 
@@ -104,9 +103,6 @@ private fun androidx.compose.foundation.layout.RowScope.WorkspaceCanvas(
         // The PDF's text layer and Contents, read once per file off the UI thread and published
         // on the tab: the selection, the magnetic highlighter and the sidebar all read it there.
         PdfIndexLoader(tab)
-        // A strip-inserted element hands the page back to **selection** (`handToSelectionAfterInsertion`), so
-        // the next gesture moves it and lights its pins instead of drawing a second figure over the first.
-        SideEffect { tab.onElementInserted = { state.handToSelectionAfterInsertion() } }
         PageCanvas(
             tab = tab,
             panMode = state.panMode,

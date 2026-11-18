@@ -126,9 +126,11 @@ restored the original face. Each control also reports through a holder (`remembe
 like one editor (`DesktopInspectorLaneTest` clicks the real rows: bold on, bold off, bold+italic, a chip,
 a swatch, and reads the element back).
 
-A placement never leaves the tool armed: once the element exists it is what stays selected, and the window
-picks the **marquee** (`S`) the way the tablet does, so the next drag moves the element just placed instead of
-placing a second one.
+A placement leaves the **slot in hand**, on both shells: once the element exists it is what stays selected,
+and the slot that made it is still the one a press reaches for, because a press on the object it just made
+selects that object (`PlacementPick`, `placementPress`) — so the next drag moves the element just placed
+instead of placing a second one. The window used to pick the marquee (`S`) after an insertion, which cost the
+reader the slot they had chosen.
 
 ## Desktop property layout
 

@@ -234,25 +234,22 @@ class DesktopSelectionPinsTest {
     }
 
     /**
-     * An insertion is announced **once**, and only when an element really landed: the workspace reads this
-     * to hand the page back to selection (`DesktopTab.onElementInserted`, `toolAfterInsertion` on the
-     * tablet). A click is shorter than the figure's minimum drag, writes nothing, and must not read as one.
+     * Only a drag lands a figure: a click is shorter than the figure's minimum drag and writes nothing, so
+     * the sheet holds one stroke after it and two after the drag that follows.
      */
     @Test
-    fun `a figure drag reports the insertion and a click does not`() {
+    fun `a figure drag lands one figure and a click none`() {
         val tab = tab(withRectangle = false)
-        var inserted = 0
-        tab.onElementInserted = { inserted++ }
         val scene = scene(tab, DesktopTool.RECTANGLE)
         try {
             pointer(scene, PointerEventType.Press, 120f, 500f, 1_000L)
             pointer(scene, PointerEventType.Release, 121f, 501f, 1_016L, pressed = false)
-            assertEquals("a click draws no figure, so it reports nothing", 0, inserted)
+            assertEquals("a click draws no figure", 1, tab.document.page(0).layers.sumOf { it.elements.size })
 
             pointer(scene, PointerEventType.Press, 100f, 250f, 2_000L)
             pointer(scene, PointerEventType.Move, 200f, 320f, 2_016L)
             pointer(scene, PointerEventType.Release, 200f, 320f, 2_032L, pressed = false)
-            assertEquals("the figure landed once", 1, inserted)
+            assertEquals("the figure landed once", 2, tab.document.page(0).layers.sumOf { it.elements.size })
         } finally {
             scene.close()
             tab.document.close()

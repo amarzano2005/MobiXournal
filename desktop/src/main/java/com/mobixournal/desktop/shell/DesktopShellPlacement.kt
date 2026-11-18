@@ -1,8 +1,6 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.ink.shapeKind
 import com.mobixournal.desktop.sheet.livingElementFor
-import com.mobixournal.desktop.sheet.livingSlotOf
 import com.mobixournal.desktop.sheet.placeLivingElement
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.PendingPlacement
@@ -25,15 +23,15 @@ import com.mobixournal.render.LivingSlot
  * What a lifted living-slot drag means: the family's question for a plot or a table, the placement
  * itself for a component (whose question was the palette).
  *
- * A placement that lands hands the window **to the selection**, exactly as the tablet does: the new
- * element is already what stays selected, so a tool still armed to place a second one would make the
- * very next drag place another plot instead of moving the one just made. The marquee is therefore
- * picked, and the next press drags, resizes or opens the pencil on what was placed.
+ * A placement that lands **keeps its slot in hand**, exactly as the tablet does: the new element is what
+ * stays selected, and a press with that slot on an object it made selects it (`PlacementPick`), so the
+ * next drag carries or resizes what was placed instead of placing a second one. Picking the marquee over
+ * the reader's head is what the window used to do, and it cost the slot they had just chosen.
  */
 fun DesktopShellState.placeOrAsk(tab: DesktopTab, slot: LivingSlot, bounds: Bounds) {
     if (slot == LivingSlot.CIRCUIT) {
         val element = livingElementFor(slot, bounds, shapeInk, activeCircuitKind) ?: return
-        if (placeLivingElement(tab, element) { index -> edited(tab, index) }) handToSelection()
+        placeLivingElement(tab, element) { index -> edited(tab, index) }
         return
     }
     // A graph's first equation starts in the pen's ink until a curve is given its own colour.
@@ -43,21 +41,6 @@ fun DesktopShellState.placeOrAsk(tab: DesktopTab, slot: LivingSlot, bounds: Boun
 /** Pick the selection tool, so the element just placed can be moved with the next press. */
 internal fun DesktopShellState.handToSelection() {
     selectTool(DesktopTool.MARQUEE)
-}
-
-/**
- * What an element **inserted from the strip** does to the tool in hand (`DesktopTab.onElementInserted`).
- *
- * A figure or a living slot hands the page to the selection, exactly as a placement does ([handToSelection]):
- * what was inserted is already the selection, so a tool still armed to place another one would make the very
- * next drag draw a second figure over the first instead of moving the one just made.
- *
- * Every other tool keeps its place — the pen above all: a freehand stroke the recogniser turns into a figure
- * is writing, and the tool must not move under the writer's hand.
- */
-internal fun DesktopShellState.handToSelectionAfterInsertion() {
-    val current = tools.current
-    if (current.shapeKind() != null || livingSlotOf(current) != null) handToSelection()
 }
 
 /** The question's answer: build the element from it and write it as **one** edit and one undo step. */
@@ -71,12 +54,7 @@ fun DesktopShellState.confirmPlacement() {
         return
     }
     val element = pending.element(shapeInk, activeCircuitKind) ?: return
-    if (placeLivingElement(tab, element) { index -> edited(tab, index) }) {
-        pendingPlacement = null
-        // The same hand-over the circuit slot makes: the placed element is what stays selected, so
-        // the next drag moves it rather than placing a second one.
-        handToSelection()
-    }
+    if (placeLivingElement(tab, element) { index -> edited(tab, index) }) pendingPlacement = null
 }
 
 /** Drop the question without placing anything — the page is exactly what it was before the drag. */

@@ -522,9 +522,6 @@ internal class PageInkGesture(
  * dragged onto the pin it marks, since a selection is what the magnet moves. Inserted living elements already
  * land selected (`LivingSlots`).
  *
- * The commit is also where an **insertion** is announced ([DesktopTab.onElementInserted]), because it is the
- * only place that knows the element really landed: a drag shorter than [MIN_SHAPE_DRAG_PT] writes nothing.
- *
  * Here rather than beside the drag that calls it: `PageCanvasInput` is at its line budget, and committing a
  * stroke belongs with the other writes of this file.
  */
@@ -545,6 +542,5 @@ internal fun commitShape(
     tab.record(before)
     val bounds = ElementBounds.of(stroke)
     tab.selection = PageSelection(rectRegion(bounds.left, bounds.top, bounds.right, bounds.bottom), refs)
-    tab.onElementInserted?.invoke()
     onEdited(index)
 }

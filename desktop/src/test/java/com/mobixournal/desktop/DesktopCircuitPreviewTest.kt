@@ -11,6 +11,7 @@ import com.mobixournal.desktop.sheet.TapTracker
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.placeCircuit
 import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.tools.selectTool
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.tools.DesktopTool
@@ -232,7 +233,7 @@ class DesktopCircuitPreviewTest {
 
     /**
      * The **shell's own flow**: both parts placed by `placeCircuit`, then the second carried onto the first
-     * by its pin, as the window hands the page to the selection after every placement.
+     * by its pin — with the circuit slot still in hand across both insertions, as on the tablet.
      *
      * The placement commits through `DesktopShellState` (the wiring the tool strip calls), so what this
      * covers is the pair a reader actually uses: insert, then drag into place.
@@ -246,8 +247,9 @@ class DesktopCircuitPreviewTest {
         try {
             val ink = state.shapeInk
             val firstSpan = CircuitSpan(160.0, 200.0, 240.0, 200.0)
+            state.selectTool(DesktopTool.CIRCUIT)
             state.placeCircuit(tab, ShapeKind.RESISTOR, firstSpan)
-            assertEquals("the placement hands the page to the selection", DesktopTool.MARQUEE, state.tools.current)
+            assertEquals("the placement leaves the circuit slot in hand", DesktopTool.CIRCUIT, state.tools.current)
             val secondSpan = CircuitSpan(400.0, 200.0, 480.0, 200.0)
             state.placeCircuit(tab, ShapeKind.RESISTOR, secondSpan)
             require(ink.colour != 0)

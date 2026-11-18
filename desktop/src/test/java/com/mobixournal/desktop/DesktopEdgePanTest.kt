@@ -122,6 +122,9 @@ class DesktopEdgePanTest {
         state.selectTool(DesktopTool.PLOT)
         state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(200.0, 140.0, 380.0, 260.0))
         state.confirmPlacement()
+        // The plot slot stays in hand after it places (the tablet's rule), so the drag that carries the plot
+        // is taken under Select — this test is about the edge scroll, not about which slot places next.
+        state.selectTool(DesktopTool.MARQUEE)
         val before = plots(tab).single().left
         val startX = tab.viewport.offsetX
 

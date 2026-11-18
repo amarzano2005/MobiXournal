@@ -97,11 +97,12 @@ and the same press carries it or takes its grips, and paper that holds none lets
 (`shapeStroke` mints `FigurePins.figureAttrs(kind)`), which is what lets the pick tell a triangle from a
 rectangle; a stroke written by an older build falls back to its geometry, as on the tablet. A press on the
 **selection's own** object hands the press to the selection's own gesture (`pressSelection` on the tablet,
-`selectionDrag` here), so a handle pressed with the slot still in hand resizes rather than moves. The window
-still hands the page to Marquee after an insertion (`handToSelectionAfterInsertion`), so a figure just drawn
-is normally carried under Select; the slot's own press is what picks an object up once the slot is armed
-again. `PlacementPickTest` pins the rule on the JVM and `DesktopPlacementPressTest` drives it through the
-window's own pointer path.
+`selectionDrag` here), so a handle pressed with the slot still in hand resizes rather than moves. **Both shells keep
+the slot in hand across the insertion** (`placeOrAsk`, `placeCircuit`, and a figure's own commit): the window
+used to pick Marquee and no longer does, so a row of rectangles, tables or parts is one gesture and the press
+on the object just placed is the one that selects and sizes it. `PlacementPickTest` pins the rule on the JVM
+and `DesktopPlacementPressTest` drives it through the window's own pointer path, including the slot still in
+hand after a figure lands.
 
 On the window the press is taken **before** the ink router and `DesktopTool.inksByPackets()` stays
 false for these slots (the pen's packets stand aside, as for a figure) and the drag previews the box in

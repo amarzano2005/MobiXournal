@@ -226,19 +226,24 @@ class DesktopInspectorLaneTest {
         }
     }
 
+    /**
+     * A placement **keeps its slot in hand**, as on the tablet: the table it wrote is what stays selected, and
+     * a press with the Table slot on that table selects it (`PlacementPick`), so the slot does not have to be
+     * taken away to keep the next drag from placing another one.
+     */
     @Test
-    fun `a placement hands the window to the selection tool`() {
+    fun `a placement leaves the slot in hand and the element selected`() {
         val state = shell()
         try {
             val tab = state.tabs.active!!
-            state.selectTool(DesktopTool.PLOT)
+            state.selectTool(DesktopTool.TABLE)
             state.placeOrAsk(tab, LivingSlot.TABLE, Bounds(60.0, 60.0, 300.0, 220.0))
             state.confirmPlacement()
 
-            assertEquals(
-                "the next drag must move the table, not place another one",
-                DesktopTool.MARQUEE,
-                state.tools.current,
+            assertEquals("the slot stays in hand", DesktopTool.TABLE, state.tools.current)
+            assertTrue(
+                "and what it placed is what stays selected",
+                tab.selection?.refs?.singleOrNull() != null,
             )
         } finally {
             state.tabs.closeAll()

@@ -2,12 +2,16 @@ package com.mobixournal.desktop
 
 import com.mobixournal.desktop.ink.shapeStroke
 import com.mobixournal.desktop.io.DesktopDocuments
+import com.mobixournal.desktop.io.DesktopRecovery
+import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.sheet.FitMode
 import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.sheet.Viewport
+import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.selectTool
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
@@ -73,6 +77,12 @@ class DesktopPlacementPressTest {
         return tab
     }
 
+    /** A shell whose settings and recovery live in the test's own folder, so nothing touches the reader's. */
+    private fun state(): DesktopShellState = DesktopShellState(
+        settings = DesktopSettings(File(temp.root, "placement-shell.properties")),
+        recovery = DesktopRecovery(temp.newFolder()),
+    )
+
     private fun scene(tab: DesktopTab, tool: DesktopTool): ImageComposeScene =
         ImageComposeScene(width, height, Density(1f)) {
             PageCanvas(tab = tab, panMode = false, tool = tool, onViewport = {}, onFit = {})
@@ -130,6 +140,40 @@ class DesktopPlacementPressTest {
 
             assertNull("the selection was let go", tab.selection)
             assertEquals("and the tap wrote nothing", 1, tab.document.page(0).layers.sumOf { it.elements.size })
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The tablet's own rule, on the window: drawing a figure **leaves its slot in hand**, so a row of boxes
+     * is one gesture. The figure is selected on the lift (`commitShape`), and the slot's press is what picks
+     * it up again (`placementPress`), which is why keeping the slot costs nothing.
+     */
+    @Test
+    fun `a drawn figure leaves its slot in hand`() {
+        val state = state()
+        state.start(initial = null)
+        state.newDocument()
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        state.selectTool(DesktopTool.RECTANGLE)
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            PageCanvas(tab = tab, panMode = false, tool = state.tools.current, onViewport = {}, onFit = {})
+        }
+        try {
+            pointer(scene, PointerEventType.Press, 100f, 250f, 1_000L)
+            pointer(scene, PointerEventType.Move, 200f, 320f, 2_016L)
+            pointer(scene, PointerEventType.Release, 200f, 320f, 2_032L, pressed = false)
+
+            assertEquals(
+                "the figure landed",
+                1,
+                tab.document.page(tab.page).layers.sumOf { it.elements.size },
+            )
+            assertEquals("and its slot is still in hand", DesktopTool.RECTANGLE, state.tools.current)
         } finally {
             scene.close()
             tab.document.close()
