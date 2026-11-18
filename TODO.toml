@@ -22,6 +22,522 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
+id = "desktop-ui-flat-workstation"
+title = "Epic: redesign desktop UI as a cohesive flat workstation (4/8 dp, opaque surfaces, desktop buttons)"
+description = """
+Mission: replace the desktop shell's inconsistent mix of mobile translucent glass capsules and flat property sheets with one cohesive, restrained flat-workstation visual language (Figma / VS Code / Linear aesthetic). Android (`app/`) and Android-pinned constants in `mobix-core/.../DesignTokens.kt` remain completely untouched.
+
+Binding invariants enforced across all child tasks (do NOT deviate or improvise):
+1. Opaque tonal surfaces (`alpha = 1f`), zero drop shadows on bands/icons/toolbars, zero `drawGlassRim` on desktop chrome; separate surfaces by tonal step + crisp 1 dp `DesktopTheme.hairline`.
+2. Strictly 2 corner radii: `4 dp` (`controlRadius` / `popupRowRadius`) for controls, buttons, inputs, tabs, tool slots, popup rows, and tooltips; `8 dp` (`surfaceRadius` / `popupRadius`) for popups, menus, dialogs, Settings, floating bars, and cards. `CircleShape` ONLY for color swatches, radio dots, dirty dot, and pen-tip ring.
+3. Standard 4-variant desktop button hierarchy (`Primary` filled accent + `onAccent`, `Secondary` bordered `control`, `Ghost` 4 dp hover, `Destructive` tinted `danger`), superseding the 2026-11-17 underline-only `DesktopTextAction` rule on CTAs/dialogs/inspectors/EntryScreen.
+4. Strict red semantics: `documentRed` (`#E53935`) ONLY for PDF icons; `danger` (`#FF8A80` dark / `#B3261E` light) for ALL errors, destructive actions, and recording indicators.
+5. Clean native Windows title bar (preserving Snap/resize/WinInk) showing document/app caption blended with `bandColourRef`, plus a flat `40 dp` Header without icon bubbles.
+6. Every task updates its owning docs in the same commit (`docs/interface-contract.md`, `docs/desktop-ui-layout.md`, `docs/desktop-settings.md` — each strictly `<= 300` lines), updates affected desktop tests, stays within `SourceStructureTest` (`<= 700` lines/file, `<= 100` lines/fun) and `PackageStructureTest` (no `Utils`/`Helper`/`Common`/`Manager` filenames), and refreshes `:desktop:createDistributable`.
+
+Ordered child tasks (execute strictly in order): `desktop-ui-tokens-theme`, `desktop-ui-buttons-inputs`, `desktop-ui-titlebar-header`, `desktop-ui-tabstrip-status`, `desktop-ui-menu-redesign`, `desktop-ui-tool-strips`, `desktop-ui-popups-colour-picker`, `desktop-ui-selection-bars-overlays`, `desktop-ui-entry-workspace-fixes`, `desktop-ui-dialogs-unification`, `desktop-ui-sidebar-inspector`, `desktop-ui-settings-shell`, `desktop-ui-settings-pages`. Do not implement this epic directly."""
+status = "active"
+level = "epic"
+category = "refactor"
+urgency = "high"
+order = 10
+created = 2026-11-19
+tags = ["desktop", "ui", "p0"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-tokens-theme"
+title = "Add desktop flat-workstation tokens, opaque dark/light tonal ramp, typography scale, and flat surface modifiers"
+description = """
+Phase 1A of `desktop-ui-flat-workstation`. Establish the exact opaque desktop palette, 4/8 dp geometry tokens, desktop Inter typography scale, and shadow-free surface modifiers without touching Android tokens.
+
+Exact changes:
+1. `mobix-core/src/main/java/com/mobixournal/design/DesignTokens.kt`: ADD new `DESKTOP_*` constants ONLY (DO NOT modify any existing constant used by Android or `docs/ui-modernization.md` JSON):
+   - `DESKTOP_BAND_DARK_RGB = 0x141417`, `DESKTOP_BAND_LIGHT_RGB = 0xF3F4F6`
+   - `DESKTOP_SURFACE_DARK_RGB = 0x1C1C20`, `DESKTOP_CONTROL_DARK_RGB = 0x232329`
+   - `DESKTOP_ACTIVE_SLOT_DARK_RGB = 0x2E2E36`, `DESKTOP_ACTIVE_SLOT_LIGHT_RGB = 0xDFE4EA`
+   - `DESKTOP_ON_ACCENT_DARK_RGB = 0x0B1220`, `DESKTOP_ON_ACCENT_LIGHT_RGB = 0xFFFFFF`
+   - `DESKTOP_HAIRLINE_ALPHA = 0.10f`, `DESKTOP_BORDER_STRONG_ALPHA = 0.16f`, `DESKTOP_BORDER_STRONG_LIGHT_ALPHA = 0.18f`
+   - `DESKTOP_HOVER_DARK_ALPHA = 0.08f`, `DESKTOP_HOVER_LIGHT_ALPHA = 0.06f`
+   - `DESKTOP_SCRIM_DARK_ALPHA = 0.45f`, `DESKTOP_SCRIM_LIGHT_ALPHA = 0.25f`, `DESKTOP_SCRIM_LIGHT_RGB = 0x0F172A`
+   - `DESKTOP_CONTROL_CORNER_DP = 4`, `DESKTOP_RAIL_WIDTH_DP = 48`, `DESKTOP_RIBBON_HEIGHT_DP = 44`, `DESKTOP_HEADER_BUTTON_DP = 28`
+2. `desktop/src/main/java/com/mobixournal/desktop/settings/DesktopTheme.kt` (no `Color(0x` literals; use `tokenColour(...)`):
+   - Opaque `alpha = 1f` surfaces: `glass` = `DESKTOP_BAND_DARK_RGB` / `DESKTOP_BAND_LIGHT_RGB` (fixes light-mode white-on-white bug); `panel`/`popupSurface`/`settingsPanel`/`floating`/`stripGlass` = `DESKTOP_SURFACE_DARK_RGB` / `GLASS_LIGHT_RGB`; `control` = `DESKTOP_CONTROL_DARK_RGB` / `GLASS_LIGHT_RGB`; `panelField` = `DESKTOP_CONTROL_DARK_RGB` / `DESKTOP_BAND_LIGHT_RGB` (guarantees contrast inside dark panels).
+   - `activeSlot` = `DESKTOP_ACTIVE_SLOT_DARK_RGB` / `DESKTOP_ACTIVE_SLOT_LIGHT_RGB`; `hoverSlot` = `HAIRLINE_RGB @ DESKTOP_HOVER_DARK_ALPHA` / `HAIRLINE_LIGHT_RGB @ DESKTOP_HOVER_LIGHT_ALPHA`.
+   - `hairline` = `HAIRLINE_RGB` / `HAIRLINE_LIGHT_RGB` at `DESKTOP_HAIRLINE_ALPHA`; add `borderStrong`, `onAccent` (`DESKTOP_ON_ACCENT_*`), `scrim` (`DESK_RGB @ 0.45f` / `DESKTOP_SCRIM_LIGHT_RGB @ 0.25f`).
+   - Geometry: `controlRadius = DESKTOP_CONTROL_CORNER_DP.dp`, `controlShape = RoundedCornerShape(controlRadius)`, `surfaceRadius = DESKTOP_POPUP_CORNER_RADIUS_DP.dp`, `surfaceShape = RoundedCornerShape(surfaceRadius)`, `headerHeight = DesignTokens.HEADER_HEIGHT_DP.dp` (`40.dp`), `bandShadow = 0.dp`, `bandEdgeShadow = Color.Transparent`, `bandRgb` = opaque `DESKTOP_BAND_LIGHT_RGB` or `DESKTOP_BAND_DARK_RGB` (no alpha blend).
+   - Typography (Inter, no SemiBold): `title` 18.sp Medium (lh 24.sp), `subtitle` 15.sp Medium (lh 20.sp), `heading` 13.sp Medium (lh 18.sp), `body` 13.sp Normal (lh 18.sp), `field` 12.sp Normal `tnum` (lh 16.sp), `tab` 12.sp Medium (lh 16.sp), `label` 12.sp Normal (lh 16.sp), `numeric` 12.sp Medium `tnum` (lh 16.sp), `eyebrow` 11.sp Medium 0.4.sp tracking (lh 14.sp).
+   - Make `chromeScheme` read `tokenColour(...)` directly (not dynamic getters) with distinct `surface`, `surfaceVariant`, `surfaceContainer`, `outline`.
+3. `desktop/src/main/java/com/mobixournal/desktop/tools/GlassEdge.kt`:
+   - `bandSurface(fill = DesktopTheme.glass)`: remove `Modifier.shadow(...)`; opaque `.background(fill)` only.
+   - Add `Modifier.bandDivider(edge: BandEdge, color: Color = DesktopTheme.hairline)` drawing a crisp 1 dp line along the specified edge via `drawWithContent`.
+   - Keep `glassSurface(fill = DesktopTheme.popupSurface, cornerRadius = DesktopTheme.surfaceRadius)` opaque 8 dp + 1 dp hairline.
+   - Upgrade `hoverFill` with optional `pressed: Boolean = false` and `focused: Boolean = false` (1 dp accent focus border).
+4. Docs: update `docs/interface-contract.md` §1-§3 to record the Desktop Flat Workstation material & 4/8 dp geometry contract while keeping the file `<= 300` lines.
+5. Tests: update `DesktopThemeTest.kt`, `LightMaterialTest.kt`, `ChromeMaterialRenderTest.kt`, `GlassEdgeTest.kt`, `GlassParityRenderTest.kt`, `DesktopTitleBarTest.kt`, `DesktopPanelAirTest.kt` to assert opaque flat surfaces, light-theme tonal separation, 0 dp band shadow, 4/8 dp radii, and desktop typography.
+
+DO NOT: touch `app/` UI code; alter existing Android `DesignTokens` values; introduce `Color(0x` literals or `material.icons` imports.
+Verification: run `:mobix-core:test`, targeted `:desktop:test` on the 7 test classes above, `:app:testDebugUnitTest` for `DocsGuardTest`, `DocClaimsTest`, `SourceStructureTest`, `ColorContractGuardTest`, `ModernThemeTest`, and refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 20
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "theme"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-buttons-inputs"
+title = "Build unified DesktopButton, DesktopIconButton, and DesktopTextField primitives and migrate PanelButton/InspectorButton"
+description = """
+Phase 1B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-tokens-theme`. Replace the fragmented 6-paradigm button/input system with shared flat-workstation primitives and fix the `PropertyCheckboxRow` press-shadowing bug.
+
+Exact changes:
+1. [NEW] `desktop/src/main/java/com/mobixournal/desktop/tools/DesktopButtons.kt`:
+   - `enum class DesktopButtonVariant { Primary, Secondary, Ghost, Destructive }`
+   - `@Composable internal fun DesktopButton(label, onClick, variant = Secondary, modifier, enabled = true, picked = false, minHeight = 32.dp, style = DesktopTheme.body, leadingIcon: (@Composable () -> Unit)? = null)`:
+     - Shape `DesktopTheme.controlShape` (`4.dp`); 5 states via `MutableInteractionSource` (default, hover, press, disabled, keyboard focus `2.dp` `accent` border).
+     - `Primary`: opaque `accent` fill, `onAccent` `Medium` text (slightly tinted/pressed shift on hover/press).
+     - `Secondary`: `DesktopTheme.control` fill, `1.dp` `DesktopTheme.borderStrong` border, `DesktopTheme.ink` text; hover shifts fill to `hoverSlot`, press to `activeSlot`.
+     - `Ghost`: transparent at rest, `hoverSlot` on hover, `activeSlot` on press/picked, `inkSecondary` (or `ink` on hover / `accent` when picked).
+     - `Destructive`: `DesktopTheme.danger.copy(alpha = 0.14f)` fill (0.22f hover, 0.30f press), `1.dp` `DesktopTheme.danger.copy(alpha = 0.40f)` border, `DesktopTheme.danger` text.
+     - Disabled: 45% muted ink/border, non-clickable.
+   - `@Composable internal fun DesktopIconButton(description, onClick, modifier, size = 28.dp, enabled = true, picked = false, tooltip: String? = description, shortcut: String? = null, content: @Composable () -> Unit)`:
+     - `4.dp` corner radius, transparent at rest, `hoverSlot` on hover, `activeSlot` when picked, `1.dp` `accent` border on focus, `semantics { contentDescription = description }`, delayed (`350 ms`) `StripPill` tooltip when `tooltip != null`.
+2. [NEW] `desktop/src/main/java/com/mobixournal/desktop/tools/DesktopInputs.kt`:
+   - `@Composable internal fun DesktopTextField(value, onValueChange, placeholder, modifier, error = false, height = 30.dp, singleLine = true, leadingIcon, onClear, onSubmit)`:
+     - `4.dp` corner radius, opaque `DesktopTheme.panelField` fill, `1.dp` border (`danger` if error, `accent` if focused, `borderStrong` at rest), BOTH text and placeholder in `DesktopTheme.field` (12.sp `tnum`), `SolidColor(DesktopTheme.accent)` caret, hoverable clear `×` (`4.dp`, `contentDescription = "Clear"`), `WindowKeys.focusControl` ownership while focused.
+3. [MODIFY] `PanelButton.kt`: delete unused imports; delegate strictly to `DesktopButton` (`destructive -> Destructive` using `danger`, `primary -> Primary`, `else -> Secondary`).
+4. [MODIFY] `InspectorButton.kt`: delete unused imports and REMOVE hardcoded `if (label == "Add equation") "+ Add equation"` (pass `"+ Add equation"` at the call site in `InspectorPanel.kt`); delegate to `DesktopButton` keeping `WindowKeys.focusControl`.
+5. [MODIFY] `DesktopTextAction.kt`: keep as compact `Ghost`/horizontal-tab helper with `4.dp` hover fill and add `pressed` state to `desktopTextFeedback`.
+6. [MODIFY] `PropertyControls.kt`: in `PropertyCheckboxRow`, replace stacked `.background(pressed)` + `.hoverFill(...)` with one single `.background(when { pressed -> activeSlot; hovered -> hoverSlot; else -> Color.Transparent }, PropertyControlShape)` so mouse press is never masked by hover.
+7. Docs: update `docs/interface-contract.md` §2 & §6 to document the 4-variant desktop button hierarchy and `danger` vs `documentRed` separation (file `<= 300` lines).
+8. Tests: rewrite `DesktopTextFeedbackContractTest.kt` & `DesktopGlobalTextFeedbackTest.kt` to enforce the new desktop button hierarchy (and forbid Material3 `Button`/`TextButton`/`OutlinedButton`/`FilledTonalButton` and `.hoverCapsule(`); update `DesktopPageRangeTest.kt` to check `DesktopTheme.danger` on Delete.
+
+DO NOT: import `androidx.compose.material3.Button*` or `material.icons`; use `documentRed` for destructive buttons or errors; exceed 700 lines/file or 100 lines/fun.
+Verification: run `:desktop:test` on `DesktopTextFeedbackContractTest`, `DesktopGlobalTextFeedbackTest`, `DesktopPageRangeTest`, `PropertyControlsTest`, plus `DocsGuardTest`, `SourceStructureTest`, `PackageStructureTest`, and `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 30
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "controls"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-titlebar-header"
+title = "Blend native Windows title bar caption and rebuild Header as a flat 40 dp workstation bar"
+description = """
+Phase 2A of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Eliminate the empty 32 dp title-bar void and the 48 dp bubble-soup Header.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopTitleBar.kt` & `desktop/src/main/java/com/mobixournal/desktop/Main.kt`:
+   - Remove `suppressTitleBarCaption(hwnd)` and unused `UxTheme` / `TitleBarUser32` / `WTNCA_*` code so the native Windows title bar cleanly displays the caption text in `DesktopTheme.inkColourRef` on `DesktopTheme.bandColourRef` (preserving Snap Layouts, resize, and WinInk).
+   - In `Main.kt`, set `Window(title = ...)` reactively to `state.tabs.active?.let { "${it.label} — MobiXournal" } ?: "MobiXournal"`.
+2. `desktop/src/main/java/com/mobixournal/desktop/shell/Header.kt`:
+   - Height `DesktopTheme.headerHeight` (`40.dp`), `.bandSurface().bandDivider(BandEdge.BOTTOM)`, `padding(horizontal = 8.dp)` — zero shadows, zero `.glassCapsule(...)` wrappers.
+   - Replace every icon button (`HeaderMenu`, Pages & Layers doors, Undo, Redo, Save, Export PDF) with `DesktopIconButton(size = 28.dp)` carrying English tooltips + keyboard shortcuts (e.g. `"Menu"`, `"Pages"`, `"Layers"`, `"Undo"`, `"Redo"`, `"Save"`, `"Export PDF"`).
+   - Separate logical groups with `1.dp × 16.dp` vertical `DesktopTheme.hairline` dividers and symmetric `8.dp` gaps.
+   - Color rules: `documentRed` ONLY on the Export PDF icon; `accent` on enabled Save icon; `chromeInk` on all other enabled icons; `inkMuted` when disabled (no light-mode capsule disappearing mismatch).
+   - Keep `Header()` <= 100 lines if possible; if it drops `<= 100` lines, remove `"desktop/shell/Header.kt#Header"` from `SourceStructureTest.kt#longFunctions` (required by ratchet!).
+3. `desktop/src/main/java/com/mobixournal/desktop/shell/HeaderSearch.kt`:
+   - Migrate search box to `DesktopTextField(height = 28.dp, modifier = Modifier.width(200.dp))` (down from 284 dp so TabStrip has room!).
+   - `SearchStepButton`: use `DesktopTheme.controlShape` (`4.dp`), never `capsuleShape`.
+   - Clear `×`: `hoverFill(DesktopTheme.controlShape)` and `contentDescription = "Clear search"`.
+4. `desktop/src/main/java/com/mobixournal/desktop/shell/HeaderAudioPill.kt`:
+   - Flat `28.dp` container (`DesktopTheme.controlShape` `4.dp`, `DesktopTheme.control` fill + `1.dp` `DesktopTheme.hairline`, zero shadow/`glassRim`).
+   - Replace hand-drawn filled transport icons with consistent `1.5.dp` monoline stroke icons matching `ChromeGlyph`.
+   - Use `DesktopTheme.danger` consistently for recording active state (no dual `documentRed` + `danger` circles side by side).
+   - Wire `description` to `Modifier.semantics { contentDescription = description }` and tooltips on all transport buttons.
+5. Docs: update `docs/desktop-ui-layout.md` §1 for the flat `40 dp` Header and native title bar (`<= 300` lines).
+6. Tests: update `DesktopHeaderTest.kt`, `DesktopHeaderAudioTest.kt`, `DesktopLayersTest.kt`, `DesktopShapeFeedbackTest.kt`, `DesktopTitleBarTest.kt`, and `SourceStructureTest.kt` (if `Header` <= 100 lines).
+
+DO NOT: add `undecorated = true` to `Window`; keep any `.glassCapsule(` in `Header.kt`/`HeaderSearch.kt`/`HeaderAudioPill.kt`.
+Verification: run targeted `:desktop:test` on the 5 header/titlebar test classes + `DocsGuardTest` + `SourceStructureTest`; inspect regenerated `header-actions.png`, `header-audio.png`, `header-document-capsule.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 40
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "header"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-tabstrip-status"
+title = "Make TabStrip scrollable with flat workstation tabs and declutter DesktopStatus"
+description = """
+Phase 2B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-titlebar-header`. Fix tab clipping, invisible dark-mode rename caret, dead drag feedback, and duplicated/misleading StatusBar readouts.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/shell/TabStrip.kt`:
+   - Extract `TabItem`, `TabRenameField`, and `AddTabButton` helpers so NO function exceeds 85 lines (current `TabStrip` is at 100/100!).
+   - Wrap the tab list in `Row(Modifier.weight(1f, fill = false).horizontalScroll(rememberScrollState()))` and place `AddTabButton` (`28.dp` `DesktopIconButton`, tooltip `"New notebook"`, shortcut `"Ctrl+N"`) immediately AFTER the scrollable row so `+` and extra tabs never clip off-screen.
+   - Flat workstation tabs: `28.dp` height, `DesktopTheme.controlShape` (`4.dp`), `widthIn(min = 100.dp, max = 180.dp)`; active tab uses `DesktopTheme.popupSurface` fill + `1.dp` `DesktopTheme.hairline` border + `2.dp` `DesktopTheme.accent` bottom accent bar; inactive tab is transparent at rest with `hoverFill(4.dp)`.
+   - Close `×` button (`20.dp`, `4.dp` hover, tooltip `"Close tab"`, shortcut `"Ctrl+W"`): always visible on active or dirty tabs; hover-revealed on inactive tabs.
+   - Apply live `Modifier.graphicsLayer { translationX = dragX }` to the tab being dragged during reorder.
+   - Replace `RenamingField` with `DesktopTextField` (guarantees visible `DesktopTheme.accent` caret in dark mode).
+2. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopStatus.kt`:
+   - `.bandSurface().bandDivider(BandEdge.TOP)` (zero shadow).
+   - Remove duplicated `SearchCount` and `AudioStatus` blocks already shown in `Header`.
+   - Reserve `DesktopTheme.accent` strictly for clickable `BandDoor` (`100%` zoom reset; remove unused `pressed` var). Passive notices (`DesktopPdfTextNotice`, `DesktopExportNotice`) use `DesktopTheme.inkSecondary`.
+   - When `refusal != null`, display an inline `DesktopTheme.danger` badge instead of executing `return@Row` (never wipe zoom, fit, filename, or progress bar).
+   - Give filename `Modifier.weight(1f, fill = false)`, `maxLines = 1`, `overflow = TextOverflow.Ellipsis`, and a tooltip showing the full filename/container.
+   - Give `ProgressBar` rounded `2.dp` corners and a `"Page X of Y"` tooltip.
+3. Docs: update `docs/desktop-ui-layout.md` §1 tab strip & status bar bullets (`<= 300` lines).
+4. Tests: update `DesktopShellTest.kt`, `DesktopStatusTest.kt`, `StatusBandTest.kt`.
+
+DO NOT: leave `TabStrip()` > 100 lines; use `tabFill`/`tabFillResting`/`capsuleShape` on tabs; use `documentRed` for status refusals.
+Verification: run `:desktop:test` on `DesktopShellTest`, `DesktopStatusTest`, `StatusBandTest`, `DesktopTabsTest`, plus `DocsGuardTest`, `SourceStructureTest`; inspect `shell-tabs.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 50
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "chrome"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-menu-redesign"
+title = "Redesign DesktopMenu as a uniform flat desktop menu without embossed chips or tiles"
+description = """
+Phase 2C of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Eliminate the 5-style collage inside `DesktopMenu` (64 dp tiles, 12 dp embossed red/blue `hoverCapsule` chips, 16 dp hover inside 8 dp popup, bright blue shortcuts, asymmetric dividers).
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopMenu.kt`:
+   - Panel width `272.dp`, `.glassSurface()` (`8.dp`, `DesktopTheme.popupSurface`, `1.dp` `DesktopTheme.hairline`), `padding(DesktopTheme.popupInset)` (`4.dp`).
+   - Delete `MenuTile`, `MenuChip`, and `MenuMetrics.chipRadius` (`12.dp`) — zero `.hoverCapsule(` calls anywhere in `DesktopMenu.kt`.
+   - Render ALL menu commands through one uniform `MenuRow` (`height = 30.dp`, `fillMaxWidth()`, `hoverFill(DesktopTheme.controlShape)` = `4.dp`, `padding(horizontal = 8.dp)`, `16.dp` monoline `ChromeGlyph` slot, `DesktopTheme.body` label in `DesktopTheme.ink`, right-aligned shortcut in **`DesktopTheme.inkMuted`** `DesktopTheme.numeric` — NEVER `DesktopTheme.accent`!):
+     - Group 1 (File): `New` (`Ctrl+N`), `Open…` (`Ctrl+T`), `Save` (`Ctrl+S`), `Save As…` (`Ctrl+Shift+S`).
+     - Symmetric `MenuDivider` (`padding(vertical = 4.dp)`, `1.dp` `DesktopTheme.hairline`).
+     - Group 2 (PDF & Export): `Import PDF…` (icon in `documentRed`, text in `ink`), `Export PDF…` (`Ctrl+E`, icon in `documentRed`, text in `ink`), `Export As…` (icon & text in `ink`).
+     - Symmetric `MenuDivider`.
+     - Group 3 (Pen & Workspace): collapsible `Pen` row (collapsed by default; when expanded renders `PropertyCheckboxRow`, uniform `28.dp` `4.dp` preset chips + `×`/`+`, clamped sliders, `DesktopButton(Ghost, "Reset to defaults")`, plus a trailing `DesktopIconButton` to open Settings -> Stylus), `Hide/Show sidebar` (`Ctrl+B`), `Settings` (`Ctrl+,`).
+   - Split groups into private composables so `MenuPanel` stays `<= 80` lines and file `<= 550` lines.
+2. Tests: update `DesktopMenuTest.kt` to match the new flat row geometry, hover fill (`4.dp`), `inkMuted` shortcut tone, and `documentRed` icon-only PDF rows; verify `PenPresetTest.kt` passes untouched.
+
+DO NOT: leave any `.hoverCapsule(`, `capsuleShape`, `12.dp` chip radius, or `accent` shortcut text in `DesktopMenu.kt`.
+Verification: run `:desktop:test` on `DesktopMenuTest`, `PenPresetTest`, `DesktopTextFeedbackContractTest`, plus `SourceStructureTest`; inspect regenerated `desktop-menu.png`, `desktop-menu-hover.png`, `desktop-pen-presets.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 60
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "menu"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-tool-strips"
+title = "Flatten ToolRail/ToolRibbon into docked hairline strips with group dividers, scroll cue, and delayed tooltips"
+description = """
+Phase 3A of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Remove the nested 6 dp shadowed glass capsule inside a 4 dp shadowed lane, fix silent bottom clipping of 23 slots, enlarge tiny sub-targets, and debounce hover tooltips.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/tools/ToolStrips.kt` & `StripItems.kt`:
+   - Replace capsule-in-lane with flat docked strips:
+     - `ToolRail`: `width = DesignTokens.DESKTOP_RAIL_WIDTH_DP.dp` (`48.dp`), `.bandSurface().bandDivider(canvasEdge)`, `padding(horizontal = 6.dp, vertical = 6.dp)`.
+     - `ToolRibbon`: `height = DesignTokens.DESKTOP_RIBBON_HEIGHT_DP.dp` (`44.dp`), `.bandSurface().bandDivider(BandEdge.BOTTOM)`, `padding(horizontal = 6.dp, vertical = 4.dp)`.
+   - Tool slots (`SlotFace` / `ToolSlot`): `36.dp × 36.dp`, `DesktopTheme.controlShape` (`4.dp`, never `10.dp` `railSlotShape`), `hoverFill(4.dp)` on hover (and add hover to `StrokeSlot` in `ColourFlyouts.kt`!), `activeSlot` + `accent` glyph when picked, `1.dp` `accent` focus ring.
+   - Insert `StripItem.Divider` (`1.dp` `DesktopTheme.hairline`, `24.dp` long centered) in `stripItems()` separating the 5 tool families: (1) Inking & Stroke, (2) Hand/Selection/Image/Text/Vertical Space, (3) Figures, (4) STEM & Circuits, (5) Guides.
+   - Add a subtle `3.dp` scroll thumb/fade indicator whenever `scrollState.maxValue > 0` so overflowed tools never clip invisibly.
+   - Enlarge `SlotChevron` and scalene edit button hit zones to `16.dp × 16.dp`; replace hardcoded `fontSize = 9.sp` on polygon badge with `10.sp` `tnum` style; delete dead private `StripCommandSlot`.
+   - Update `StripPill` tooltip: `4.dp` corner radius (`DesktopTheme.controlShape`), `1.dp` `DesktopTheme.borderStrong`, and `LaunchedEffect(hovered) { delay(350); visible = true }` so fast cursor sweeps do not strobe tooltips.
+   - Keep `SlotFace` and `ToolSlot` strictly `<= 90` lines each.
+2. Docs: update `docs/desktop-ui-layout.md` §2 for flat docked `48 dp` rail / `44 dp` ribbon (`<= 300` lines).
+3. Tests: update `ToolStripsTest.kt`, `DesktopStripLayoutTest.kt`, `StripItemsTest.kt`, `ColourFlyoutTest.kt` to match flat docked `48/44 dp` lane metrics and no nested capsule.
+
+DO NOT: leave `.glassCapsule(` in `ToolStrips.kt`; leave `9.sp` hardcoded; break `ToolStripMetrics` coordinate sync with tests.
+Verification: run `:desktop:test` on `ToolStripsTest`, `DesktopStripLayoutTest`, `StripItemsTest`, `ColourFlyoutTest`, `ToolSlotClickTest`, plus `DocsGuardTest` and `SourceStructureTest`; inspect `tools-rail.png`, `tools-ribbon.png`, `tools-shell-left.png`, `tools-shell-top.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 70
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "tools"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-popups-colour-picker"
+title = "Standardize all desktop popups/flyouts to concentric 8 dp / 4 dp geometry and clean up ColourPickerPanel"
+description = """
+Phase 3B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-tool-strips`. Eliminate inverted corner radii (10/16/20 dp children inside 8 dp popups), missing hover states in `ColourFlyouts`, and UK/US spelling drift.
+
+Exact changes:
+1. `ToolGroupPicker.kt`, `FigureKindPicker.kt`, `CircuitKindPicker.kt`, `PageMenuPanel.kt`, `LayersPanel.kt`:
+   - Enforce concentric popup geometry everywhere: `.glassSurface()` (`8.dp`), `padding(DesktopTheme.popupInset)` (`4.dp`), every inner row/cell/button uses `DesktopTheme.popupRowRadius` (`4.dp`) — replace ALL `railSlotShape` (`10.dp`) and `capsuleShape` (`16.dp`) inside these popups.
+   - `ToolGroupPicker`: apply `Modifier.fillMaxWidth()` to `OffRow` and `PickerRow` so hover highlights align evenly.
+   - `FigureKindPicker` & `CircuitKindPicker`: harmonize cell width to `84.dp`.
+2. `desktop/src/main/java/com/mobixournal/desktop/tools/ColourFlyouts.kt`:
+   - Use `.glassSurface()` (`8.dp`) + `padding(6.dp)`.
+   - Add `hoverFill` feedback to `StrokeSlot`, palette swatches (`CircleShape`), `CustomSwatch`, `AddSwatch`, `WidthRow` (`4.dp`), and `LineStylePicker`.
+   - Match `CustomSwatch` diameter identically to standard palette swatches.
+   - Style `LineStylePicker` choices as uniform `4.dp` segmented controls (`activeSlot` + `ink` picked, `hoverFill(4.dp)` on hover) instead of a `16.dp` grey pill on `Solid`.
+3. `desktop/src/main/java/com/mobixournal/desktop/tools/ColourPickerPanel.kt` & `ColourPanel.kt`:
+   - Keep `8.dp` `.glassSurface()`; change SV box corner from `20.dp` (`panelShape`) to `4.dp` (`DesktopTheme.controlShape`) + `1.dp` `DesktopTheme.hairline`.
+   - Replace `HexField` (`16.dp` borderless pill) with `DesktopTextField` (`4.dp`, border + focus ring + `error = !valid`).
+   - Rename heading `"Custom colour"` -> `"Custom color"` (US English matching Settings `"Colors"`).
+   - Footer: `Arrangement.End`, `Cancel` (`PanelButton(primary = false)`) left, `Set` (`PanelButton(primary = true)`) right.
+4. Tests: update `ColourPickerTest.kt`, `ColourFlyoutTest.kt`, `DesktopFigureMenuTest.kt`, `DesktopPopupMaterialTest.kt`, `DesktopLayersTest.kt`.
+
+DO NOT: leave any `10.dp`/`16.dp`/`20.dp` inner control corner inside an `8.dp` popup; bypass `GlassPopup` (`GlassPopupGuardTest`).
+Verification: run `:desktop:test` on `ColourPickerTest`, `ColourFlyoutTest`, `DesktopFigureMenuTest`, `DesktopPopupMaterialTest`, `DesktopLayersTest`, `GlassPopupGuardTest`, plus `SourceStructureTest`; inspect `colour-flyout.png` and `colour-picker.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 80
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "popups"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-selection-bars-overlays"
+title = "Make SelectionBar/PdfTextCopyBar opaque 8 dp surfaces, fix ring rim/clamping, and tone down EdgeBump"
+description = """
+Phase 3C of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Fix muddy translucent floating bars over white pages, SelectionBar width/tooltip/HiDPI bugs, incomplete pen-tip ring outer rim & edge clipping, and flashy neon EdgeBump glow.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/sheet/SelectionBar.kt`:
+   - Replace `.glassCapsule(cornerRadius = 20.dp, shadow = 6.dp)` with opaque `.glassSurface(cornerRadius = DesktopTheme.surfaceRadius)` (`8.dp`, `DesktopTheme.popupSurface`, `1.dp` `DesktopTheme.hairline`).
+   - Use `DesktopTheme.controlShape` (`4.dp`) on all `32.dp` bar buttons and `AlignMenu` items.
+   - Fix `BAR_BUTTONS` mismatch: currently hardcoded `8` while 9 buttons render when `hasSelection` is true — compute width from actual button count (`9`) so centering and clamping are exact.
+   - Fix `BarButton` tooltip `StripPill` offset from `IntOffset(sizePx + gapPx, 0)` (which covered the adjacent button!) to `IntOffset(0, sizePx + gapPx)` below the bar.
+   - In `AlignMenu`, replace raw pixel `IntOffset(0, 46)` with `44.dp.roundToPx()`.
+   - Extract button group helper so `SelectionBar()` stays `<= 85` lines (currently 97/100).
+2. `desktop/src/main/java/com/mobixournal/desktop/io/PdfTextCopyBar.kt`:
+   - Replace `.glassCapsule(cornerRadius = 20.dp)` with opaque `.glassSurface(cornerRadius = DesktopTheme.surfaceRadius)` (`8.dp`).
+   - Replace borderless `CircleShape` pills with `DesktopButton(Ghost, minHeight = 32.dp)` (or keep `heightIn(min = 40.dp)` outer tap zone if required by `PdfTextCopyBarTest`, with `4.dp` hover fill, `DesktopTheme.ink` enabled text, and `1.dp` `accent` focus border).
+3. `desktop/src/main/java/com/mobixournal/desktop/sheet/DesktopHudPaint.kt` & `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopRing.kt`:
+   - Draw the ring's `hairline` boundary at outer disc radius `ringRadius + slotRadius + air` (`146.dp`) instead of `ringRadius` (`116.dp`).
+   - In `DesktopRing`, clamp `openAt(x, y)` inside canvas width/height with `margin = 154.dp` so summoning near any edge never clips the ring off-screen.
+4. `desktop/src/main/java/com/mobixournal/desktop/sheet/EdgeBump.kt`:
+   - Reduce `EDGE_BAND_DP` from `28f` to `12f` and `EDGE_ALPHA` from `0.28f` to `0.10f`; debounce wheel re-triggers (`>= 180 ms` cooldown) to stop neon strobing.
+5. Tests: update `DesktopSelectionBarTest.kt`, `PdfTextCopyBarTest.kt`, `DesktopRingRenderTest.kt`, `EdgeBumpTest.kt`.
+
+DO NOT: leave translucent `control` or `glassCapsule` on `SelectionBar` or `PdfTextCopyBar`; leave raw pixel offsets in `AlignMenu`.
+Verification: run `:desktop:test` on `DesktopSelectionBarTest`, `PdfTextCopyBarTest`, `DesktopRingRenderTest`, `DesktopRingTest`, `EdgeBumpTest`, plus `SourceStructureTest`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 90
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "canvas"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-entry-workspace-fixes"
+title = "Redesign EntryScreen without halo glow, fix SavingBadge z-order, and unify workspace band dividers"
+description = """
+Phase 3D of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Remove the tacky 26-ring white card halo and inconsistent `EntryButton`, fix responsive scrolling, fix occluded `SavingBadge`, and align light-mode workspace edges.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/shell/EntryScreen.kt`:
+   - Delete `drawCardHalo` (the 26 concentric white stroke rings) and remove the `12.dp` `pageShadow` inset that stole `24.dp` from `100.dp` recent thumbnails.
+   - Style recent/template cards as `8.dp` (`DesktopTheme.surfaceShape`), `DesktopTheme.popupSurface` fill, `1.dp` `DesktopTheme.hairline` at rest -> `1.dp` `DesktopTheme.borderStrong` (or `accent`) + subtle `hoverSlot` tint on hover.
+   - Replace `EntryButton` with `DesktopButton` (`Primary` for `New sheet`, `Secondary` for `Open…` / `Restore last session`, `minHeight = 36.dp`, `Modifier.fillMaxWidth()`) so stacked buttons have equal width and match the rest of the app.
+   - Show `RemoveButton` (`×`, `22.dp`, `4.dp` hover fill) ONLY on card hover or keyboard focus instead of permanently visible red badges on every card.
+   - Fix shortcut hint text from `"Ctrl+N · Ctrl+T"` to `"Ctrl+N · Ctrl+O"`.
+   - Align empty-state text horizontally with the `"Recents"` heading (no `12.dp` misalignment).
+   - Wrap root layout in `verticalScroll(rememberScrollState())` and adapt cleanly below `976.dp` width so cards never clip.
+   - Keep `SheetCard` strictly `<= 85` lines (currently 97/100).
+2. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopShellView.kt`:
+   - Fix z-order bug: move `if (state.isSaving) SavingBadge()` AFTER `ScreenEntrance(...)` inside `WorkspaceBody`'s `Box` so `SavingBadge` paints on top of the canvas/entry screen instead of behind it.
+3. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopWorkspace.kt`:
+   - Remove `bandEdgeShade(...)` calls (bands now render uniform crisp `1.dp` `bandDivider` hairlines on all 4 docked sides, including the bottom edge above `StatusBar`).
+4. Docs: update `docs/desktop-ui-layout.md` §1 Entry screen paragraph (`<= 300` lines).
+5. Tests: update `DesktopEntryScreenTest.kt` and `DesktopShellTest.kt`; add a regression check proving `SavingBadge` is composed above `ScreenEntrance`.
+
+DO NOT: leave `drawCardHalo` or `tabFillResting` in `EntryScreen.kt`.
+Verification: run `:desktop:test` on `DesktopEntryScreenTest`, `DesktopShellTest`, `DesktopLifecycleTest`, plus `DocsGuardTest` and `SourceStructureTest`; inspect regenerated `shell-empty.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 100
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "entry"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-dialogs-unification"
+title = "Introduce shared DesktopDialogFrame and unify all 11 desktop modal dialogs"
+description = """
+Phase 4A of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Eliminate fragmented scrims, widths, double borders, broken exit animation, boolean-toggle buttons, and error color drift across all desktop dialogs.
+
+Exact changes:
+1. [NEW] `desktop/src/main/java/com/mobixournal/desktop/tools/DesktopDialogFrame.kt`:
+   - `enum class DialogWidth(val dp: Dp) { Compact(360.dp), Standard(420.dp), Wide(520.dp) }`
+   - `@Composable internal fun DesktopDialogFrame(title, width = Standard, subtitle = null, dismissOnOutside = false, onDismiss, footer: @Composable RowScope.() -> Unit, content: @Composable ColumnScope.() -> Unit)`:
+     - Full-window `DesktopTheme.scrim` backdrop blocking clicks (calling `onDismiss` only if `dismissOnOutside`).
+     - Centered card: `width`, `.glassSurface()` (`8.dp`, `DesktopTheme.popupSurface`, `1.dp` `DesktopTheme.hairline`), `padding(20.dp)`, `DesktopTheme.title` (`18.sp` Medium) header, `Arrangement.End` footer with `8.dp` spacing (`Cancel` `Secondary` left, CTA `Primary`/`Destructive` right).
+2. Migrate and fix all 11 dialogs:
+   - `CloseDialog.kt`: use `DesktopDialogFrame(Compact)`; set `Discard` to `destructive = true` (`Destructive` variant in `danger`).
+   - `ExportAsDialog.kt`: `DesktopDialogFrame(Standard)`, `4.dp` row hover (`controlShape` instead of `railSlotShape`).
+   - `ExportPdfDialog.kt`: `DesktopDialogFrame(Standard)`, migrate text field to `DesktopTextField`, unify `ScopeRow` with `12.dp` circular radio dot + `4.dp` hover + focus ring + `Role.RadioButton`, validation errors in `DesktopTheme.danger` (not `documentRed`).
+   - `ImportPdfDialog.kt`: `DesktopDialogFrame`, remove `.glassCapsule(8.dp)` + `.border(1.dp, accent)` double border in `BookmarkSection`, replace boolean-toggle `PanelButton` (`"Bookmark added"`/`"No bookmark"`) with `PropertyCheckboxRow`, migrate text fields to `DesktopTextField`, `4.dp` `ImportModeRow`, errors in `DesktopTheme.danger`.
+   - `FirstRunFormatDialog.kt`: `DesktopDialogFrame(Standard)`, give `FormatRow` `4.dp` corners + `selectable` semantics + keyboard focus ring.
+   - `UpdateDialog.kt`: fix early return `if (!DesktopUpdates.dialog) return` BEFORE `GlassPresence` so exit animates cleanly; `DesktopDialogFrame(Standard)`; `"See what changed"` as `DesktopButton(Ghost)`.
+   - `ScaleneDialogs.kt`: migrate `ScaleneDialogFrame` onto `DesktopDialogFrame(Standard, dismissOnOutside = true)`; replace raw `Color.Black.copy(0.45f)` with `DesktopTheme.scrim`.
+   - `OpenFailureCard.kt`: `8.dp` `popupSurface` + `1.dp` `DesktopTheme.danger.copy(alpha = 0.40f)` border, `DesktopTheme.heading` title, clean `Esc` hint.
+   - `PageSetup.kt`: `DesktopDialogFrame(Standard)`, `4.dp` segmented `SetupChip`.
+   - `PageRangePanel.kt`: `DesktopDialogFrame(Standard)`, `DesktopTextField`, errors in `DesktopTheme.danger`, single clean footer row (`Delete pages` destructive, `Move pages` primary, `Done` secondary).
+   - `LayersPanel.kt` (`LayerRenamePanel`): `DesktopDialogFrame(Compact)` + `DesktopTextField`.
+3. Tests: update `GlassMotionTest.kt`, `DesktopPageRangeTest.kt`, `DesktopImportDialogCompactTest.kt`, `DesktopImportKeyboardTest.kt`, `DesktopPageSetupTest.kt`, `OpenFailureTest.kt`.
+
+DO NOT: use `documentRed` for any dialog error or destructive button; leave stale "20 dp corner / translucent glass" KDocs.
+Verification: run `:desktop:test` on the 6 test classes above + `SourceStructureTest`; inspect regenerated `shell.png` (`FirstRunFormatDialog`); refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 110
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "dialogs"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-sidebar-inspector"
+title = "Unify opaque Sidebar and Inspector styling, split PageSidebar under 700 lines, and fix Inspector footer order"
+description = """
+Phase 4B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Make left Sidebar and right Inspector share one opaque flat-dock language, keep `PageSidebar.kt` safely below the 700-line ceiling, and fix Inspector's inverted button order.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/shell/PageSidebar.kt` (currently 691/700 lines!) + [NEW] `desktop/src/main/java/com/mobixournal/desktop/shell/PageSidebarRows.kt`:
+   - Extract `PageRow`, `PageRemoveGlyph`, `AddPageRow`, and `LayersSection` into `PageSidebarRows.kt` so both files stay `< 450` lines and every function `<= 85` lines.
+   - Sidebar container: opaque `.bandSurface(DesktopTheme.glass).bandDivider(BandEdge.END)` (matching `InspectorFrame`), uniform `12.dp` horizontal padding across `Pages`, `Bookmarks`, `Layers`, and `Search`.
+   - Thumbnail rows, `AddPageRow`, and `LayersSection` rows: `DesktopTheme.controlShape` (`4.dp`) corners + `hoverFill(4.dp)`.
+   - `PageRemoveGlyph`: `4.dp` hover fill, `clickable` with keyboard focus ring (replacing raw `detectTapGestures`).
+2. `desktop/src/main/java/com/mobixournal/desktop/shell/PdfContentsSidebar.kt` & `ContentsEditing.kt`:
+   - Unify horizontal padding to `12.dp`.
+   - Give outline rows consistent `hoverFill(DesktopTheme.controlShape)` (`4.dp`) + focus border.
+   - Migrate `ContentsFilterField` and add/rename title fields to `DesktopTextField`.
+   - In `ContentsRowMenu` / `ContentsMenuRow`, change hardcoded `RoundedCornerShape(6.dp)` to `DesktopTheme.popupRowRadius` (`4.dp`).
+   - Use `DesktopButton(Secondary)` / `DesktopButton(Primary)` for Cancel / Add / Save.
+3. `desktop/src/main/java/com/mobixournal/desktop/shell/SearchSidebar.kt`:
+   - Unify `12.dp` horizontal padding; add `padding(horizontal = 8.dp, vertical = 4.dp)` on `SearchResultRow` (`4.dp` hover) so highlight never hugs text edges.
+4. `desktop/src/main/java/com/mobixournal/desktop/tools/InspectorPanel.kt`, `InspectorControls.kt`, `InspectorSizing.kt`:
+   - `InspectorFrame`: `.bandSurface(DesktopTheme.glass).bandDivider(BandEdge.START)`; drag handle hover `DesktopTheme.controlShape` (`4.dp`).
+   - `LaneHeader`: title in `DesktopTheme.heading` (`13.sp` Medium); `LaneClose` as keyboard-focusable `DesktopIconButton(size = 24.dp, description = "Close inspector")`.
+   - `LaneFooter`: switch to `Arrangement.End`, placing **`Cancel` (`Secondary`) on the LEFT and `Place` (`Primary`) on the RIGHT** — identical to every dialog.
+   - Migrate `ValueField` to `DesktopTextField`; `ChoiceRow` to `4.dp` segmented tabs; give `ColourDot` keyboard focus ring; delete unused `pressed` var in `SectionCard`.
+5. Tests: update `SidebarTextFeedbackTest.kt`, `DesktopInspectorLaneTest.kt`, `DesktopInspectorSizingTest.kt`, `DesktopSidebarTest.kt`.
+
+DO NOT: let `PageSidebar.kt` or `PageSidebarRows.kt` approach 700 lines; name new files with forbidden suffixes (`Utils`/`Helper`/`Common`/`Manager`).
+Verification: run `:desktop:test` on `SidebarTextFeedbackTest`, `DesktopInspectorLaneTest`, `DesktopInspectorSizingTest`, `DesktopSidebarTest`, `DesktopPdfContentsRowTest`, plus `SourceStructureTest` and `PackageStructureTest`; inspect `shell-sidebar.png`, `inspector-plot-dark.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 120
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "sidebar"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-settings-shell"
+title = "Fix Settings chrome: modal scrim, single nav indicator (no L-shape), visible search field, flexible rows, and clamped sliders"
+description = """
+Phase 4C of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Fix the structural visual defects in the Settings shell: L-shaped double active indicator, invisible dark-mode search bar, missing header hairline, scrollbar collision, truncated descriptions beside checkboxes, clipped slider knobs, and misaligned commands.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/settings/SettingsSurface.kt` & `SettingsScrollPane.kt`:
+   - Wrap Settings modal in `DesktopTheme.scrim` backdrop so the panel separates cleanly from dark/light canvas behind it.
+   - Add `.bandDivider(BandEdge.BOTTOM)` under `SettingsPanelHeader` so the vertical sidebar hairline connects cleanly.
+   - Center `"Settings"` in `SettingsPanelHeader` with `Box(Alignment.CenterStart)` (delete `.padding(top = 13.dp)` hack).
+   - Reserve `10.dp` end padding inside scrollable panes so `VerticalScrollbar` never overlaps nav labels or right controls.
+   - Apply `Modifier.widthIn(max = SettingsMetrics.PAGE_MAX_WIDTH)` (`720.dp`) to the content page column.
+   - Change `HELP_HEIGHT` from odd `27.dp` to `28.dp`.
+2. `desktop/src/main/java/com/mobixournal/desktop/settings/SettingsRows.kt` & `SettingsReadouts.kt`:
+   - **Fix L-shaped double selection indicator in `SettingsSectionRow`:** REMOVE `.desktopTextFeedback(picked = selected)` bottom underline! Selected state uses ONLY the `2.dp` left `accent` bar + subtle `DesktopTheme.activeSlot.copy(alpha = 0.50f)` `4.dp` row fill; wire `focused` state to `1.dp` `accent` border.
+   - Increase area eyebrow (`Workspace`, `Input`, `Drawing`, `Files & app`) top padding from `5.dp` to `12.dp`.
+   - Replace rigid `CONTROL_SHARE = 0.85f` split in `SettingsRow` with natural `Row { Column(Modifier.weight(1f)) { label + note }; Spacer(16.dp); Box { control() } }` so descriptions next to `18.dp` checkboxes never wrap prematurely.
+   - Align `SettingsRow` hover fill shape (`DesktopTheme.controlShape` `4.dp`) with its `4.dp` focus border (no 0 dp vs 4 dp clash).
+   - Align `SettingsCommand` horizontal inset to `ROW_INSET` (`12.dp`, removing the 4 dp misalignment) and render via `DesktopButton(Secondary / Ghost)`.
+   - Upgrade `SettingsReadout` label from `11.sp` `inkMuted` to `DesktopTheme.body` (`13.sp`) with `TextOverflow.Ellipsis` so readouts match sibling rows.
+   - `SettingsSlider`: clamp knob center to `[knobRadius .. size.width - knobRadius]` so it never overflows at 0%/100%; give readout `widthIn(min = 48.dp)` tabular width so the slider track never shifts horizontally.
+3. `desktop/src/main/java/com/mobixournal/desktop/settings/SettingsSearchField.kt` & `SettingsSelect.kt`:
+   - Migrate `SettingsSearchField` to `DesktopTextField` (visible opaque `panelField` fill in dark mode, matching `12.sp` text/placeholder, hoverable clear `×` with `contentDescription`, focus border).
+   - Add `overflow = TextOverflow.Ellipsis` to `SettingsSelectCapsule` and `SettingsSelectMenu` labels.
+4. Docs: update `docs/desktop-settings.md` in place for scrim, left-bar nav highlight, natural row layout, and visible search box — MUST stay `<= 300` lines and preserve `**twelve sections**`, all 12 section titles, and the `Version` line (`DocClaimsTest`).
+5. Tests: update `DesktopSettingsStyleTest.kt`, `DesktopSettingsSurfaceTest.kt`, `SettingsSelectTest.kt`, `SettingsScrollPaneTest.kt`.
+
+DO NOT: add `Color(0x`, `.sp`, `fontSize =`, or `uppercase(` literals into `SettingsRows.kt`, `SettingsSections.kt`, or `SettingsSurface.kt` (`DesktopSettingsStyleTest`); exceed 300 lines in `docs/desktop-settings.md`.
+Verification: run `:desktop:test` on `DesktopSettingsStyleTest`, `DesktopSettingsSurfaceTest`, `SettingsSelectTest`, `SettingsScrollPaneTest`, `SettingsHelpTest`, plus `DocsGuardTest`, `DocClaimsTest`, `SourceStructureTest`; inspect `settings-appearance-dark.png`, `settings-appearance-light.png`; refresh `:desktop:createDistributable`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 130
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "settings"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-ui-settings-pages"
+title = "Polish Settings pages (Colors, Shortcuts, Ring, Stylus presets, Navigation, Toolbar) and run full verification"
+description = """
+Phase 4D (final task) of `desktop-ui-flat-workstation`. Depends on `desktop-ui-settings-shell`. Clean up per-page clutter, inconsistent controls, and minor layout bugs across the Settings pages, then run the full regression & visual verification pass.
+
+Exact changes:
+1. `desktop/src/main/java/com/mobixournal/desktop/settings/ColourSettingsPage.kt`:
+   - Remove the repeated 2-line caption (`"Drag the handle to move it; a click picks it, Edit redefines the swatch in its place."`) from individual `PaletteRow` items and display it ONCE as the `Pen palette` group description.
+   - Standardize US English (`color`, `favorites`) matching the `"Colors"` section title.
+   - Replace bare `SettingsTextAction` `Edit`/`Delete` with `DesktopButton(Ghost, "Edit")` and `DesktopButton(Destructive, "Delete")` (or `Ghost` with `danger` text, `4.dp` hover).
+2. `desktop/src/main/java/com/mobixournal/desktop/settings/ShortcutsSettings.kt`:
+   - Change `ShortcutKeyChip` from `16.dp` capsule to `DesktopTheme.controlShape` (`4.dp`).
+   - Give armed `"Press a key…"` state a `4.dp` chip with `1.dp` `DesktopTheme.accent` border and `DesktopTheme.accent.copy(alpha = 0.12f)` fill (never bare floating text).
+3. `desktop/src/main/java/com/mobixournal/desktop/settings/RingSettings.kt`:
+   - Fix modifier order on `RingFaceMenu`: apply `.glassSurface()` BEFORE `.verticalScroll(...)`.
+   - Change `FaceRow` corners from `railSlotShape` (`10.dp`) to `DesktopTheme.popupRowRadius` (`4.dp`) and add `TextOverflow.Ellipsis`.
+   - Add a `1.dp` `DesktopTheme.hairline` border to swatch circles in `RingFaceMenu` so White stays visible in light mode and Black stays visible in dark mode.
+   - Clamp `RingFaceMenu` popup X offset within the Settings panel width so it never overflows narrow windows.
+   - Rename group heading `"Opening it"` -> `"Shortcut"`.
+4. `desktop/src/main/java/com/mobixournal/desktop/settings/SettingsPenPresets.kt` & `PenPresetControls.kt`:
+   - Migrate `PresetNameField` to `DesktopTextField` (visible in dark mode, matching `12.sp`, `PointerIcon.Text`).
+   - Unify preset chips (`4.dp`, active border/fill), `PresetDeleteMark` (`×`), and `NewPresetMark` (`+`) to one uniform height (`28.dp`) and corner radius (`4.dp`).
+5. `NavigationSettingsPage.kt`, `ToolbarOrderRows.kt`, `ReorderRows.kt`, `SettingsSections.kt`:
+   - In `NavigationSettingsPage.kt`, unify slider formatting to `"%d%%"` + `.roundToInt()` (matching `Stylus`).
+   - In `ReorderRows.kt`, handle variable row heights accurately during drag instead of latching only row 0's height.
+   - In `SettingsSections.kt` (Audio export folder), replace bare clickable `"Choose…"`/`"Change…"` text with `DesktopButton(Secondary)`.
+   - Remove duplicated section summary rendering (`section.summary`) if already shown in footer help, or keep cleanly once without repeating every row's note verbatim.
+6. Final epic verification & closure:
+   - Run full `:mobix-core:test :desktop:test`.
+   - Run `:app:testDebugUnitTest --tests "*DocsGuardTest*" --tests "*DocClaimsTest*" --tests "*SourceStructureTest*" --tests "*PackageStructureTest*" --tests "*ColorContractGuardTest*" --tests "*ModernThemeTest*"`.
+   - Visually inspect regenerated PNGs in `desktop/build/desktop-render/` (`shell.png`, `shell-empty.png`, `desktop-menu.png`, `desktop-pen-presets.png`, `header-actions.png`, `settings-appearance-dark.png`, `settings-appearance-light.png`, `settings-colors.png`, `settings-shortcuts.png`, `settings-ring.png`, `settings-toolbar.png`, `inspector-plot-dark.png`, `colour-flyout.png`, `colour-picker.png`, `tools-rail.png`, `tools-ribbon.png`).
+   - Refresh `:desktop:createDistributable`.
+   - Once all 13 child tasks are archived via `todo.py done`, close parent epic `desktop-ui-flat-workstation` as well.
+
+DO NOT: violate `DesktopSettingsStyleTest` literal rules or `DocsGuardTest` / `DocClaimsTest`."""
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 140
+created = 2026-11-19
+tags = ["desktop", "ui", "p0", "settings"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "stem-netlist-spice-review"
 title = "From connectors to a checkable circuit: ERC and an SPICE subset (F12)"
 description = """
