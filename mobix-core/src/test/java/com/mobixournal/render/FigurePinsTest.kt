@@ -371,6 +371,39 @@ class FigurePinsTest {
         assertEquals("the start keeps the hand's own point", 150.0, snapped[0].x, 1e-6)
     }
 
+    /**
+     * Every stroke a figure tool writes names **which figure** it drew, and only that figure answers for it.
+     *
+     * The bare "a tool drew me" claim could not tell a triangle from a rectangle, so a top-bar figure tool had
+     * no way to select its own work; the kind is what lets the triangle tool pick a triangle and leave a
+     * rectangle beside it alone.
+     */
+    @Test
+    fun aToolMintedFigureNamesItsKind() {
+        val rectangle = Stroke(
+            Tool.PEN, 0xFF000000.toInt(), "round",
+            ShapeBuilder.build(ShapeKind.RECTANGLE, 100.0, 100.0, 200.0, 160.0, 2.0),
+            true, extraAttrs = FigurePins.figureAttrs(ShapeKind.RECTANGLE),
+        )
+        assertEquals(ShapeKind.RECTANGLE, FigurePins.figureKindOf(rectangle))
+        assertTrue("the rectangle tool's own figure", FigurePins.isFigureOf(rectangle, ShapeKind.RECTANGLE))
+        assertFalse("a triangle is not a rectangle", FigurePins.isFigureOf(rectangle, ShapeKind.TRIANGLE))
+        assertFalse("and ink drawn by the pen is nobody's figure", FigurePins.isFigureOf(ink(0.0, 0.0, 50.0, 0.0), ShapeKind.LINE))
+    }
+
+    /**
+     * A stroke an older build marked with the bare claim is read by its **geometry** — the only answer such a
+     * stroke can give: a straight two-point stroke is a wire, a headed one an arrow.
+     */
+    @Test
+    fun aStrokeWithoutAKindIsReadByItsGeometry() {
+        assertNull("the bare claim names no kind", FigurePins.figureKindOf(wire(0.0, 0.0, 50.0, 0.0)))
+        assertTrue(FigurePins.isFigureOf(wire(0.0, 0.0, 50.0, 0.0), ShapeKind.LINE))
+        assertFalse(FigurePins.isFigureOf(wire(0.0, 0.0, 50.0, 0.0), ShapeKind.RECTANGLE))
+        assertTrue(FigurePins.isFigureOf(arrow(0.0, 0.0, 60.0, 0.0), ShapeKind.ARROW))
+        assertTrue(FigurePins.isFigureOf(figure(0.0, 0.0, 60.0, 40.0), ShapeKind.ELLIPSE))
+    }
+
     /** A box with no height wears its two end handles and nothing else, so only those points are taken. */
     @Test
     fun aFlatBoxTakesOnlyTheHandlesItWears() {

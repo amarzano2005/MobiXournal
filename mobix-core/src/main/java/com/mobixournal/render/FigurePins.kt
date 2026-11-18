@@ -89,6 +89,45 @@ object FigurePins {
         stroke.extraAttrs.containsKey(SHAPE_ATTR) || stroke.extraAttrs.containsKey(LEGACY_SHAPE_ATTR)
 
     /**
+     * The `extraAttrs` a figure tool mints its stroke with: the claim **and which figure it drew**.
+     *
+     * [FIGURE_ATTRS] only says "a tool drew me", which was enough while the pins were the sole reader. It
+     * cannot answer "is this the very figure the tool in hand places?", and a top-bar figure tool now asks
+     * that of the ink under its press (`render/PlacementPick.kt`), so a press on a rectangle selects it
+     * instead of stacking a second one on top. The value is [ShapeKind.name] — the same spelling an
+     * `EditorTool` uses for its own figure — and it rides through `.xopp` and `.mobix` as an uninterpreted
+     * attribute, like the claim itself.
+     */
+    fun figureAttrs(kind: ShapeKind): Map<String, String> = mapOf(SHAPE_ATTR to kind.name)
+
+    /**
+     * The figure [kind] that minted [stroke], or null for ink — and for a claim written before the kind was
+     * recorded, which only the geometry can speak for ([isFigureOf]).
+     */
+    fun figureKindOf(stroke: Stroke): ShapeKind? {
+        if (!isFigureStroke(stroke)) return null
+        val claimed = stroke.extraAttrs[SHAPE_ATTR] ?: stroke.extraAttrs[LEGACY_SHAPE_ATTR] ?: return null
+        return ShapeKind.entries.firstOrNull { it.name == claimed }
+    }
+
+    /**
+     * Whether [stroke] is **the figure [kind] draws** — the question a top-bar figure tool asks of the ink
+     * under its press, the way an element tool asks [LivingEditFamily.matches] of a living object.
+     *
+     * A stroke that names its kind answers for that kind alone, so the triangle tool does not pick up a
+     * rectangle. A stroke written before the kind was recorded answers by its **geometry**, which is all it
+     * can say: a straight two-point stroke is the line tool's, a headed one an arrow's, a closed outline any
+     * drawn figure's. That is coarse at the edges and it is the only answer an older document can give;
+     * every stroke this build writes names its kind.
+     */
+    fun isFigureOf(stroke: Stroke, kind: ShapeKind): Boolean {
+        if (!isFigureStroke(stroke)) return false
+        figureKindOf(stroke)?.let { return it == kind }
+        val drawn = familyOfPoints(stroke.points)
+        return drawn != null && drawn == familyOf(kind)
+    }
+
+    /**
      * The family the **magnet** sees in a committed [element], or null for anything that is not a terminal.
      *
      * A component is a connector by nature; a stroke is one only when a figure tool minted it

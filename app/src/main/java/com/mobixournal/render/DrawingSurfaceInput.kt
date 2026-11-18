@@ -244,11 +244,11 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         return
     }
     val intent = InputClassifier.classify(kind, barrelButton.held, activeTool(), inputSettings)
-    // A top-bar **element** tool: the press that would have drawn its symbol asks the page first — an
-    // object of its own family under it is selected (and the press drags it), and a new one is placed only
-    // where there is none. Asked only for a press that would draw, so a finger panning the page, an eraser
-    // tip and a barrel modifier all keep the gesture they were classified with.
-    if (intent == GestureIntent.DRAW && beginLivingToolPress(event, pointerIndex)) return
+    // A top-bar **placement** tool — the Table slot, a circuit part, a figure — asks the page first: the
+    // object the tool itself made under the press is selected (and the press drags it), and a new one is
+    // placed only where there is none. Asked only for a press that would draw, so a finger panning the
+    // page, an eraser tip and a barrel modifier all keep the gesture they were classified with.
+    if (intent == GestureIntent.DRAW && beginPlacementPress(event, pointerIndex)) return
     session.penOwned = (kind == PointerKind.STYLUS || kind == PointerKind.ERASER_TIP) &&
         (intent == GestureIntent.DRAW || intent == GestureIntent.ERASE)
     when (intent) {

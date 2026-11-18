@@ -193,7 +193,7 @@ object SelectionTester {
     /**
      * [pickTopmost] restricted to the elements [matches] accepts — what a top-bar element tool asks
      * before it places anything: the object of its own family under the point is selected, and only
-     * paper that holds none of them takes a new one (`dragging/LivingPlacementPick.kt` on the tablet).
+     * paper that holds none of them takes a new one (`render/PlacementPick.kt` on the tablet).
      *
      * The answer is the **topmost matching** element, so a closed figure lying over another is the one
      * a press picks, exactly as a plain tap picks.

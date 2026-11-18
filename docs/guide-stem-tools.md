@@ -56,6 +56,19 @@ after each insertion, so a row of parts needs no trip back to the toolbar, and a
 resistor does: taller or shorter across its body without getting longer, or both from a corner. The Table
 slot works the same way: press a table to select it, press paper to place one.
 
+## Figures
+
+The press rule is the same one for the figure tools. With the rectangle tool in hand, a press on a
+rectangle selects it — the same press drags it and its handles size it — while a press on paper draws a new
+one, and the tool stays in hand, so a row of boxes is one gesture rather than a trip back to the toolbar.
+Line, arrow, coordinate axis, ellipse, triangle, trapezoid and polygon all work this way.
+
+A figure remembers which tool drew it, so the triangle tool picks triangles and leaves a rectangle beside
+them alone. Figures drawn by an older build carry no such note and are read from their shape, which is
+coarser: any closed figure can answer for any closed-figure tool. The dimension arrow is the one exception
+— it is written as two strokes around its value, so a press there just draws another, since half of it is
+not the whole object.
+
 ## Chemistry, and what this build does not carry
 
 There is no chemistry palette in this build: those tools were taken out of the rail and survive only as

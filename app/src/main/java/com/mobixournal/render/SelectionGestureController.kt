@@ -199,7 +199,7 @@ internal class SelectionGestureController(
 
     /**
      * The selection's own half of a press — its grips, sliders, dividers or body — for a caller that is not
-     * a select tool and must not start a marquee when it misses (`LivingPlacementPick.kt`).
+     * a select tool and must not start a marquee when it misses (`PlacementPick.kt`).
      */
     fun pressSelection(event: MotionEvent): Boolean = selection?.let { dispatchHandle(event, it) } ?: false
 

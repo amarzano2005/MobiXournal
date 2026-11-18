@@ -127,6 +127,17 @@ object ShapeBuilder {
     }
 
     /**
+     * Whether [kind] is written as **several strokes** — a dimension's two halves around its gap, an
+     * op-amp's body and its input signs.
+     *
+     * The top-bar press rule asks this before it claims anything: such a figure has no identity the model
+     * could gather its parts by, so picking one half would select half an object, and the tool goes on
+     * drawing there instead. The answer comes from [buildMulti] itself rather than from a second list of
+     * kinds, so a kind that starts decomposing is excluded without anyone having to remember to say so.
+     */
+    fun isMultiStroke(kind: ShapeKind): Boolean = buildMulti(kind, 0.0, 0.0, 1.0, 1.0, 1.0) != null
+
+    /**
      * When a shape decomposes into multiple disconnected strokes (a capacitor with an open gap, an
      * LED's detached light rays, an op-amp's input signs), returns the list of stroke point-lists;
      * returns null for single-stroke figures.

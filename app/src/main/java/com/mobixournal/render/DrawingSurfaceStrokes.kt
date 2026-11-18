@@ -312,7 +312,8 @@ internal fun DrawingSurfaceView.commitCurrent() {
                 // vertices on one straight line exactly as a wire is (`FigurePins.isFigureStroke`).
                 Stroke(
                     tool, strokeColor(), "round", mPts, true,
-                    lineStyle = currentLineStyle, extraAttrs = FigurePins.FIGURE_ATTRS,
+                    lineStyle = currentLineStyle,
+                    extraAttrs = shapeKind?.let(FigurePins::figureAttrs) ?: FigurePins.FIGURE_ATTRS,
                 )
             },
         )
@@ -381,13 +382,24 @@ internal fun DrawingSurfaceView.commitCurrent() {
         val stroke = Stroke(
             tool, strokeColor(), "round", finalPts, uniform,
             lineStyle = currentLineStyle,
-            extraAttrs = if (wasShaping || snapped) FigurePins.FIGURE_ATTRS else emptyMap(),
+            extraAttrs = figureClaim(wasShaping, snapped),
         )
         if (wasShaping) appendFigures(ink.currentPage, listOf(stroke)) else appendStroke(ink.currentPage, stroke)
         // A dimension line carries its value: the measurement goes in as a text box of its own.
         if (wasShaping && shapeKind == ShapeKind.DIMENSION) appendDimensionLabel(raw, strokeColor())
     }
     render()
+}
+
+/**
+ * The claim a stroke is committed with: a figure the tool **shaped** names its kind, so the next press with
+ * that tool picks the figure up instead of drawing a second one (`PlacementPick.kt`); geometry the
+ * recogniser wrote has no tool behind it and keeps the bare claim; freehand ink claims nothing.
+ */
+private fun DrawingSurfaceView.figureClaim(wasShaping: Boolean, snapped: Boolean): Map<String, String> = when {
+    wasShaping -> shapeKind?.let(FigurePins::figureAttrs) ?: FigurePins.FIGURE_ATTRS
+    snapped -> FigurePins.FIGURE_ATTRS
+    else -> emptyMap()
 }
 
 /**
@@ -532,8 +544,8 @@ internal fun DrawingSurfaceView.appendFigures(pageIndex: Int, strokes: List<Stro
  *
  * Every top-bar element lands **selected**, the way a figure's stroke already did and the window's own
  * placements do (`placeLivingElement`): the toolbar's element actions can act on what was just placed, and
- * the editor reads the selection appearing to hand the canvas back to selection (`toolAfterInsertion`) —
- * with the figure tool still in hand the next drag would draw a second element over the first.
+ * the tool that placed it goes on working on it — a press with that tool in hand selects what it made
+ * (`render/PlacementPick.kt`), so the next drag sizes the fresh object instead of drawing a second one.
  */
 internal fun DrawingSurfaceView.selectInsertedElement(pageIndex: Int) {
     val page = pageAt(pageIndex) ?: return

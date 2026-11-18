@@ -85,8 +85,8 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
  *
  * They are a family of their own because a press means something else with one in hand: the object of
  * that family under the point is **selected** and only paper that holds none of them takes a new one
- * (`render/LivingPlacementPick.kt`), and the slot **stays in hand** after an insertion
- * ([toolAfterInsertion]), so a row of parts is placed without picking the tool up again.
+ * (`render/PlacementPick.kt`). The figure tools ask the page the same way; this set is what remains theirs
+ * alone — a living object is matched by family, a figure stroke by the kind it names.
  *
  * Derived from the circuit palette's own kinds, by name — an `EditorTool` and a `ShapeKind` spell the
  * same symbol the same way — so a part added to one cannot be forgotten in the other.

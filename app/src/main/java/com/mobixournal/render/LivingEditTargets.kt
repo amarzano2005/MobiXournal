@@ -82,7 +82,7 @@ enum class LivingEditFamily { TABLE, PLOT, CIRCUIT, SHAPE, MATH }
 
 /**
  * Whether [element] belongs to this family — the question a top-bar element tool asks of what lies
- * under its press (`LivingPlacementPick.kt`), so "the same typology" means the model's own families
+ * under its press (`PlacementPick.kt`), so "the same typology" means the model's own families
  * instead of a second list of types written beside them.
  */
 fun LivingEditFamily.matches(element: Element): Boolean = when (this) {
