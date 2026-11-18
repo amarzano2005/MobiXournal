@@ -131,13 +131,14 @@ newest-`completed`-first.
   `docs/tools.md` (*Closing a UI change*); implementation `scripts/todo/design.py`; regression check
   `python3 scripts/todo/test_design.py`.
 - **`release`** `--version X.Y.Z` `[--date D] [--through D] [--no-changelog]
-  [--bump-gradle] [--force] [--dry-run]` — **freeze a release**: stamp every pending archive task
+  [--bump-gradle] [--desktop-version A.B.C] [--force] [--dry-run]` — **freeze a release**: stamp every pending archive task
   with the version, record `latest_release` in the archive meta, and write the draft
   `docs/releases/vX.Y.Z.md` grouped by category (plus a compare link to the previous version).
   Refuses to overwrite an existing changelog (`--force`), refuses a version that is not newer than
-  the last recorded one, and refuses to run with nothing pending. `--bump-gradle` also sets
-  `versionName` and increments `versionCode` in `app/build.gradle.kts`. With or without it, the
-  command points `BuildVersions.DESKTOP` — the window's About row — at `desktop/build.gradle.kts`'s
+  the last recorded one, and refuses to run with nothing pending.   `--bump-gradle` also sets
+  `versionName` and increments `versionCode` in `app/build.gradle.kts`; `--desktop-version` moves the
+  window's own line in `desktop/build.gradle.kts` and refuses one older than the number already there.
+  With or without either, the command points `BuildVersions.DESKTOP` — the window's About row — at `desktop/build.gradle.kts`'s
   `packageVersion`, so a desktop bump cannot leave that row a version behind. `--through YYYY-MM-DD`
   narrows the stamp to tasks finished by that date — the one-shot backfill for a release older than
   this field. `--dry-run` prints the draft and changes nothing. Implementation: `release.py`;
@@ -147,7 +148,9 @@ newest-`completed`-first.
 - **`remove <id>`** `[--reason "…"]` — drop an active task (e.g. descoped).
 - **`verify-release --version X.Y.Z`** — check a version was frozen before it is tagged: the
   archive must record that version as released, `docs/releases/vX.Y.Z.md` must exist, and
-  `versionName` in `app/build.gradle.kts` must match. Exits non-zero with the reason otherwise.
+  `versionName` in `app/build.gradle.kts` must match — and the tree must carry the freeze: no
+  uncommitted changes, the tag (when it exists) at `HEAD`, and the window's `packageVersion` agreeing
+  with `BuildVersions.DESKTOP`. Exits non-zero with the reason otherwise.
   CI runs it on every `v*` tag, so a tag whose release was skipped cannot publish.
 - **`validate`** — lint both files: required fields, unique ids, valid enum
   values, archive tasks have a `completed` date, and `release` (archive) an X.Y.Z version.

@@ -412,6 +412,39 @@ class DocsGuardTest {
                 wrong += "the $android note does not name versionCode $code"
             }
         }
+        // The guide pages carry the same pair in one sentence each. A release that moved only the
+        // three pages above left eleven of them describing the previous build, and nothing said so:
+        // 2.3.0 needed every one of these lines edited by hand.
+        val truth = Regex("""This page is true for Android \*\*([^*]+)\*\* and desktop \*\*([^*]+)\*\*""")
+        val guides = docs.listFiles { file -> file.isFile && file.name.startsWith("guide-") }
+            .orEmpty().sortedBy { it.name }
+        guides.forEach { page ->
+            val match = truth.find(page.readText()) ?: return@forEach
+            if (match.groupValues[1] != android || match.groupValues[2] != desktop) {
+                wrong += "${page.name} says ${match.groupValues[1]} and ${match.groupValues[2]}"
+            }
+        }
+        assertTrue(
+            "the guide pages must carry the sentence this check reads, or the version they claim is " +
+                "uncovered: found it on ${guides.count { truth.containsMatchIn(it.readText()) }}",
+            guides.count { truth.containsMatchIn(it.readText()) } >= 8,
+        )
+        val installAndroid = File(docs, "guide-install-android.md").readText()
+        if (android != null && "**$android**" !in installAndroid) {
+            wrong += "guide-install-android.md does not name $android"
+        }
+        if (code != null && "versionCode $code" !in installAndroid) {
+            wrong += "guide-install-android.md does not name versionCode $code"
+        }
+        if (desktop != null && "**$desktop**" !in File(docs, "guide-install-windows.md").readText()) {
+            wrong += "guide-install-windows.md does not name $desktop"
+        }
+        val readout = Regex("""`Version`\s*→\s*\*([^*]+)\*""")
+            .find(File(docs, "desktop-settings.md").readText())
+            ?.groupValues?.get(1)
+        if (readout != desktop) {
+            wrong += "desktop-settings.md shows Version $readout, not $desktop"
+        }
         assertTrue(
             "a version the build carries is the version the docs describe, or the page a user checks " +
                 "first describes the previous release: $wrong",

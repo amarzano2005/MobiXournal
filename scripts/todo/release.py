@@ -362,6 +362,34 @@ def sync_build_versions(root):
     return old, desktop
 
 
+def set_desktop_version(root, version):
+    """Point ``desktop/build.gradle.kts``'s ``packageVersion`` at *version*.
+
+    The window numbers itself, and this one line names the MSI, so moving the window is a decision a
+    release passes once (``release --desktop-version``) instead of a Gradle line edited by hand while
+    the app's line is written by the command. :func:`sync_build_versions` then copies it into the About
+    row. Returns ``(old, new)``, and writes nothing when the file already says it. Read and written with
+    ``newline=""`` so the file's line endings survive the edit.
+    """
+    path = desktop_gradle_path(root)
+    if not os.path.exists(path):
+        raise SystemExit(f"{path} is missing, so the window has no version to move")
+    with open(path, encoding="utf-8", newline="") as fh:
+        text = fh.read()
+    match = _GRADLE_PACKAGE_VERSION_RE.search(text)
+    if not match:
+        raise SystemExit(f"cannot find packageVersion in {path}")
+    old = match.group(2)
+    if old == version:
+        return old, version
+    text = _GRADLE_PACKAGE_VERSION_RE.sub(
+        lambda m: f"{m.group(1)}{version}{m.group(3)}", text, count=1,
+    )
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(text)
+    return old, version
+
+
 def check_versions(root):
     """Both version lines, as the problems a release would trip over.
 

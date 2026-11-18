@@ -315,6 +315,24 @@ def test_sync_build_versions_leaves_an_agreed_pair_alone():
               "a pair that already agrees is not rewritten")
 
 
+def test_set_desktop_version():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp)
+        moved = release.set_desktop_version(tmp, "1.3.0")
+        check(moved == ("1.0.0", "1.3.0"),
+              f"set_desktop_version reports the move it made: {moved}")
+        check(release.desktop_version(tmp) == "1.3.0",
+              "set_desktop_version writes the window's own line")
+        check(release.gradle_version(tmp)[0] == "1.1.0",
+              "and leaves the app's versionName alone")
+        with open(release.desktop_gradle_path(tmp), "rb") as fh:
+            raw = fh.read()
+        check(b"\r\n" in raw, "the Gradle file keeps its line endings")
+        again = release.set_desktop_version(tmp, "1.3.0")
+        check(again == ("1.3.0", "1.3.0"),
+              f"asking for the number already there is not an error: {again}")
+
+
 def test_check_versions_rejects_a_stale_about_row():
     with tempfile.TemporaryDirectory() as tmp:
         _two_line_repo(tmp, desktop_text=DESKTOP_SAMPLE.replace("1.0.0", "1.2.0"))
@@ -341,6 +359,7 @@ def main():
     test_build_versions_desktop()
     test_sync_build_versions()
     test_sync_build_versions_leaves_an_agreed_pair_alone()
+    test_set_desktop_version()
     test_check_versions_rejects_a_stale_about_row()
     if _FAILURES:
         print(f"\n{len(_FAILURES)} check(s) failed")

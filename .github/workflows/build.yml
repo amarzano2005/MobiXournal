@@ -84,22 +84,16 @@ jobs:
           MOBIX_ANDROID_CERT_SHA256: ${{ vars.MOBIX_ANDROID_CERT_SHA256 }}
         run: sh scripts/release-apk.sh
 
+      # The APK is only an artifact here. The release itself is created by the `release` job below,
+      # which waits for this one **and** the window's, so a tag can never go live with half its
+      # downloads (2.3.0 was published APK-only for three minutes when the desktop suite failed after
+      # the release page was already up).
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: mobixournal-release-apk
           path: app/build/outputs/apk/release/MobiXournal-*.apk
           if-no-files-found: error
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: app/build/outputs/apk/release/MobiXournal-*.apk
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          body_path: docs/releases/${{ github.ref_name }}.md
 
   # The documentation checks are their own job, for three reasons the earlier arrangement could not give:
   # a broken link or an unindexed page fails under a check *named* for it, a documentation-only patch is
@@ -224,9 +218,13 @@ jobs:
           path: desktop/build/desktop-render/
           if-no-files-found: warn
 
-  # The window's installer joins the same release as the APK. A job of its own that needs both, so the
-  # asset is attached after the APK job has created the release, and neither build waits for the other.
-  release-msi:
+  # The release is created once, by a job that needs **both** builds: the tablet's APK and the
+  # window's MSI arrive as artifacts and are attached to the same release, whose body is the note in
+  # `docs/releases/`. Creating it from the APK job meant a tag could publish a release page that a
+  # reader found without the installer for their shell — 2.3.0 shipped that way for three minutes
+  # because the desktop suite failed after the page was already up — and `action-gh-release` fails the
+  # run when the note is missing rather than publishing an empty body.
+  release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [ build, desktop ]
     runs-on: ubuntu-latest
@@ -234,14 +232,26 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download the APK built on Ubuntu
+        uses: actions/download-artifact@v4
+        with:
+          name: mobixournal-release-apk
+          path: assets
+
       - name: Download the MSI built on Windows
         uses: actions/download-artifact@v4
         with:
           name: mobixournal-desktop-msi
-          path: msi
+          path: assets
 
-      - name: Attach the installer to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh release upload "${{ github.ref_name }}" msi/*.msi --clobber
+      - name: Create the release with both installers
+        uses: softprops/action-gh-release@v2
+        with:
+          files: assets/MobiXournal-*
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body_path: docs/releases/${{ github.ref_name }}.md

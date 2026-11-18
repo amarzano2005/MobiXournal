@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "release-refuses-half-and-mis-tags"
+title = "Make a release refuse the mistakes 2.3.0 made"
+description = "Four defects from the 2.3.0 release, closed together. Workflow: the GitHub Release is now created by a job that needs [build, desktop], which downloads both artifacts and attaches them with body_path — the APK job no longer creates a release page it cannot fill, the way 2.3.0 went live APK-only for three minutes. verify-release (scripts/todo/todo.py) additionally runs release.check_versions() and a new _git_release_problems(): it refuses a dirty working tree (ignoring mode-only changes, because CI chmods gradlew) and a tag whose commit is not HEAD, which is exactly how the 2.3.0 tag captured a tree that still said 1.2.0. release grows --desktop-version, which moves desktop/build.gradle.kts packageVersion through the new release.set_desktop_version(), refuses a number older than the current one, and reports the move in --dry-run; the command now prints every file it wrote, so none can be left out of the commit. DocsGuardTest.theVersionsTheDocsNameAreTheBuiltOnes now also reads the ten guide pages sentence, guide-install-android versionCode, guide-install-windows and the desktop settings readout. Verified: python scripts/todo/test_release.py (new set_desktop_version cases), a CLI dry-run showing the desktop move and the refusal of 1.2.0, :app:testDebugUnitTest (docs guards), :desktop:test, :desktop:createDistributable. Not yet exercised: a tagged run of the new release job, which the next release performs."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: release tooling, CI job order and a documentation guard — no control, copy or token changes in either shell"
+
+[[task]]
 id = "refused-update-check-says-so"
 title = "A refused update check says so instead of 'already the latest'"
 description = "Both shells now tell a refusal apart from a quiet answer. AppUpdates.latest() (app/src/main/java/com/mobixournal/update/AppUpdates.kt) and DesktopUpdates.latest() (desktop/.../settings/DesktopUpdates.kt) throw on a non-200 instead of returning null, so the FAILED branch each already had reports 'Could not check for updates' on the About line and on the window's pill; a release whose body does not parse, or that carries no installer for the shell, still reads as no update. The KDoc on both functions and docs/updates.md record why: GitHub answers 403 to an anonymous request once the calling IP has spent sixty calls an hour, and 2.2.0 reported itself as the latest while 2.3.0 was published. Verified with :app:testDebugUnitTest (guards included), :desktop:test and :app:assembleDebug; :desktop:createDistributable regenerated. Not verified on a device, and it cannot repair the builds already shipped: 2.2.0 and 1.2.0 keep the old reading until the caller's quota resets."

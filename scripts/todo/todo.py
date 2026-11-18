@@ -24,6 +24,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 
 import design
@@ -330,6 +331,17 @@ def cmd_release(args):
     previous = release.latest_version(done)
     if previous and release.version_key(version) <= release.version_key(previous):
         sys.exit(f"v{version} is not newer than the last released v{previous}")
+    # The window's own line: never derived from the app's, but written by the same command that moves
+    # the app's, so a release cannot move one number and leave the other a version behind.
+    desktop_next = (args.desktop_version or "").strip() or None
+    if desktop_next and not release.is_version(desktop_next):
+        sys.exit(f"not a X.Y.Z version for the window: {args.desktop_version!r}")
+    current_desktop = release.desktop_version(root)
+    if (desktop_next and current_desktop
+            and release.version_key(desktop_next) < release.version_key(current_desktop)):
+        sys.exit(
+            f"the window is already on {current_desktop}, so {desktop_next} would move it backwards"
+        )
     date = datetime.date.fromisoformat(args.date)
     changelog = release.render_changelog(version, date, pending, previous)
     target = release.changelog_path(root, version)
@@ -343,9 +355,13 @@ def cmd_release(args):
             f"; BuildVersions.DESKTOP would follow {shown} -> {desktop}"
             if shown is not None and desktop is not None and shown != desktop else ""
         )
+        moved_desktop = (
+            f"; desktop packageVersion {current_desktop} -> {desktop_next}"
+            if desktop_next and desktop_next != current_desktop else ""
+        )
         print(
             f"(dry run: {len(pending)} task(s) would be stamped {version}; "
-            f"{rel_target} would be written{follows})"
+            f"{rel_target} would be written{follows}{moved_desktop})"
         )
         return
 
@@ -365,6 +381,11 @@ def cmd_release(args):
             f"  app/build.gradle.kts: versionName {old_name} -> {version}, "
             f"versionCode {old_code} -> {new_code}"
         )
+    if desktop_next:
+        old_desktop, _ = release.set_desktop_version(root, desktop_next)
+        print(
+            f"  desktop/build.gradle.kts: packageVersion {old_desktop} -> {desktop_next}"
+        )
     # The window numbers itself, but it *names* that number twice: `packageVersion` for the MSI and
     # `BuildVersions.DESKTOP` for its About row. Only the first is a decision, so the second follows it
     # here instead of being remembered — 1.2.0 shipped with 1.1.0 on its About page when it was not.
@@ -373,8 +394,62 @@ def cmd_release(args):
         print(f"  BuildVersions.DESKTOP: {moved[0]} -> {moved[1]}")
     remaining = len(release.pending_tasks(store.load(fin_path)["tasks"]))
     print(f"  pending after this release: {remaining}")
+    # Every file this command wrote, named: 2.3.0 was committed from this output and the one file the
+    # command had rewritten without printing it stayed behind, so the tag captured the older tree.
+    touched = [rel_target] if not args.no_changelog else []
+    touched.append(os.path.relpath(fin_path, root))
+    if args.bump_gradle:
+        touched.append(os.path.relpath(release.gradle_path(root), root))
+    if desktop_next:
+        touched.append(os.path.relpath(release.desktop_gradle_path(root), root))
+    if moved or desktop_next:
+        touched.append(os.path.relpath(release.build_versions_path(root), root))
+    print("  files to commit: " + ", ".join(touched))
     if not args.no_changelog:
-        print("  next: curate the draft, commit, then push the v" + version + " tag")
+        print("  next: curate the draft, commit them all, then push the v" + version + " tag")
+
+
+def _git(root, *args):
+    """git's answer, or None when the command is unavailable or fails."""
+    try:
+        done = subprocess.run(
+            ["git", *args], cwd=root, capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
+def _git_release_problems(root, version):
+    """A tag means nothing when it names a tree that does not carry the freeze.
+
+    2.3.0 was tagged with ``BuildVersions.kt`` rewritten and unstaged: the commit the tag pointed at
+    still said 1.2.0, so the window's About row lied, the desktop suite failed and the MSI never
+    built. ``git status`` sees that in a second, and the tag comparison catches a tag made before its
+    commit. Mode-only differences are ignored, because CI's ``chmod +x gradlew`` is not a change.
+    """
+    if not os.path.isdir(os.path.join(root, ".git")):
+        return []
+    problems = []
+    status = _git(root, "-c", "core.fileMode=false", "status", "--porcelain")
+    if status is None:
+        return []
+    lines = [line for line in status.splitlines() if line.strip()]
+    if lines:
+        named = ", ".join(line[3:].strip() for line in lines[:5])
+        more = " …" if len(lines) > 5 else ""
+        problems.append(
+            f"the working tree has uncommitted changes ({named}{more}) — commit them first, "
+            "or the tag captures an older tree"
+        )
+    head = _git(root, "rev-parse", "HEAD")
+    tagged = _git(root, "rev-list", "-n1", f"refs/tags/v{version}")
+    if tagged and head and tagged.strip() != head.strip():
+        problems.append(
+            f"tag v{version} points at {tagged.strip()[:8]}, not HEAD {head.strip()[:8]} — "
+            "commit the freeze, then move the tag"
+        )
+    return problems
 
 
 def cmd_verify_release(args):
@@ -384,6 +459,11 @@ def cmd_verify_release(args):
     with an unfrozen archive: the tag must match ``versionName``, the changelog
     must exist, and the archive must record the version as released. Work
     finished after the freeze is fine — it belongs to the next version.
+
+    It also refuses a tree that does not carry the freeze — uncommitted changes,
+    or a tag that points somewhere other than HEAD — and a window whose two
+    numbers disagree with each other, which is the shape the 2.3.0 tag was made
+    in before the mistake was caught.
     """
     root = store.find_repo_root()
     version = args.version.strip().lstrip("v")
@@ -406,11 +486,16 @@ def cmd_verify_release(args):
             f"app/build.gradle.kts has versionName {gradle_name!r}, not {version!r} — "
             "re-run the release with --bump-gradle"
         )
+    problems += release.check_versions(root)
+    problems += _git_release_problems(root, version)
     if problems:
         print("\n".join(f"- {p}" for p in problems))
         sys.exit(f"release v{version} was not frozen cleanly")
     pending = len(release.pending_tasks(done["tasks"]))
-    print(f"v{version} frozen: valid, changelog present, versionName matches")
+    print(
+        f"v{version} frozen: valid, changelog present, versionName matches, "
+        "tree committed, both version lines agree"
+    )
     print(f"  pending for the next release: {pending}")
 
 
@@ -714,6 +799,9 @@ def build_parser():
     rl.add_argument("--bump-gradle", action="store_true",
                     help="also set versionName and increment versionCode in "
                          "app/build.gradle.kts")
+    rl.add_argument("--desktop-version",
+                    help="also set desktop/build.gradle.kts's packageVersion, the "
+                         "window's own line, to this X.Y.Z")
     rl.add_argument("--force", action="store_true",
                     help="overwrite an existing changelog file")
     rl.add_argument("--dry-run", action="store_true",
