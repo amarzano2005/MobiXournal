@@ -129,7 +129,8 @@ a swatch, and reads the element back).
 A placement leaves the **slot in hand**, on both shells: once the element exists it is what stays selected,
 and the slot that made it is still the one a press reaches for, because a press on the object it just made
 selects that object (`PlacementPick`, `placementPress`) — so the next drag moves the element just placed
-instead of placing a second one. The window used to pick the marquee (`S`) after an insertion, which cost the
+instead of placing a second one. That covers a **plot** and a **formula** as well as a figure, a table and a
+part, because the window keeps the slot that made them in hand. The window used to pick the marquee (`S`) after an insertion, which cost the
 reader the slot they had chosen.
 
 ## Desktop property layout

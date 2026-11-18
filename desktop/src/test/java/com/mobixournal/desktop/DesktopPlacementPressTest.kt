@@ -9,6 +9,8 @@ import com.mobixournal.desktop.sheet.PageCanvas
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.confirmPlacement
+import com.mobixournal.desktop.shell.placeOrAsk
 import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.selectTool
@@ -24,8 +26,12 @@ import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.MathBlockElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.render.Bounds
 import com.mobixournal.render.ElementRef
+import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeKind
@@ -33,6 +39,7 @@ import com.mobixournal.render.rectRegion
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -174,6 +181,71 @@ class DesktopPlacementPressTest {
                 tab.document.page(tab.page).layers.sumOf { it.elements.size },
             )
             assertEquals("and its slot is still in hand", DesktopTool.RECTANGLE, state.tools.current)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The two living slots the tablet's own pick does not cover: a press with the Plot or Formula slot on what
+     * it just placed **selects and carries it**. The window keeps every slot in hand, so without this the click
+     * that meant to select stacked a second plot or formula on the first.
+     */
+    @Test
+    fun `a press on a plot picks it instead of placing a second one`() {
+        val state = state()
+        state.start(initial = null)
+        state.newDocument()
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        state.selectTool(DesktopTool.PLOT)
+        state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(100.0, 200.0, 400.0, 360.0))
+        state.confirmPlacement()
+        val before = (tab.document.page(tab.page).layers.flatMap { it.elements }.single() as PlotElement).left
+        val scene = scene(tab, state.tools.current)
+        try {
+            pointer(scene, PointerEventType.Press, 200f, 300f, 1_000L)
+            pointer(scene, PointerEventType.Move, 230f, 320f, 1_016L)
+            pointer(scene, PointerEventType.Release, 230f, 320f, 1_032L, pressed = false)
+
+            val drawn = tab.document.page(tab.page).layers.flatMap { it.elements }
+            assertEquals("no second plot was placed", 1, drawn.size)
+            assertEquals("the press selected the plot", setOf(ElementRef(0, 0)), tab.selection?.refs)
+            assertTrue("and carried it", (drawn.single() as PlotElement).left > before + 1.0)
+            assertEquals("with the slot still in hand", DesktopTool.PLOT, state.tools.current)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `a press on a formula picks it instead of placing a second one`() {
+        val state = state()
+        state.start(initial = null)
+        state.newDocument()
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        state.selectTool(DesktopTool.MATH)
+        state.placeOrAsk(tab, LivingSlot.MATH, Bounds(100.0, 200.0, 400.0, 260.0))
+        state.confirmPlacement()
+        val scene = scene(tab, state.tools.current)
+        try {
+            pointer(scene, PointerEventType.Press, 160f, 230f, 1_000L)
+            pointer(scene, PointerEventType.Release, 161f, 231f, 1_016L, pressed = false)
+
+            val drawn = tab.document.page(tab.page).layers.flatMap { it.elements }
+            assertEquals("no second formula was placed", 1, drawn.size)
+            assertEquals(
+                "the press selected the formula",
+                setOf(ElementRef(0, 0)),
+                tab.selection?.refs,
+            )
+            assertTrue("and it is the formula", drawn.single() is MathBlockElement)
+            assertEquals("with the slot still in hand", DesktopTool.MATH, state.tools.current)
         } finally {
             scene.close()
             tab.document.close()

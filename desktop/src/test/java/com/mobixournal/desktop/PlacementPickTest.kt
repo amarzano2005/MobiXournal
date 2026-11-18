@@ -1,8 +1,10 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.ink.shapeStroke
+import com.mobixournal.desktop.sheet.Placement
+import com.mobixournal.desktop.sheet.pinKind
 import com.mobixournal.desktop.sheet.pinUnderPress
-import com.mobixournal.desktop.sheet.placementKindOf
+import com.mobixournal.desktop.sheet.placementOf
 import com.mobixournal.desktop.sheet.placementPick
 import com.mobixournal.desktop.tools.DesktopTool
 
@@ -16,10 +18,10 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.Bounds
-import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.FigurePins
 import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeKind
 import org.junit.Assert.assertEquals
@@ -32,10 +34,11 @@ import org.junit.Test
  * The window's press rule for a **placement slot**: the object that slot makes under the point is the one it
  * selects, and only paper without one takes a new object.
  *
- * The rule is the tablet's (`app/src/main/java/com/mobixournal/render/PlacementPick.kt`), read on the same
- * page geometry, so the two shells cannot drift: a figure slot claims the figure that names its kind, a part
- * slot claims every part of the family, the topmost object is the one picked, a figure written as several
- * strokes is never claimed, and a press on a pin is the gesture's rather than the pick's.
+ * The rule reads the same page geometry as the tablet's (`app/.../render/PlacementPick.kt`), so the two shells
+ * cannot drift: a figure slot claims the figure that names its kind, a part slot claims every part of the
+ * family, the topmost object is the one picked, a figure written as several strokes is never claimed, and a
+ * press on a pin is the gesture's rather than the pick's. A **plot and a formula** are claimed here and not on
+ * the tablet, because the window keeps every placement slot in hand.
  */
 class PlacementPickTest {
 
@@ -46,15 +49,27 @@ class PlacementPickTest {
         layers = listOf(Layer(elements.toList())),
     )
 
+    private fun pick(page: Page, kind: ShapeKind, x: Double, y: Double): ElementRef? =
+        placementPick(page, Placement.Figure(kind), x, y)
+
+    private fun pickLiving(page: Page, slot: LivingSlot, x: Double, y: Double): ElementRef? =
+        placementPick(page, Placement.Living(slot), x, y)
+
     /** A 3 × 3 table whose box is 120 × 80 pt from (100, 100). */
-    private fun table(): Element =
-        LivingPlacement.table(Bounds(100.0, 100.0, 220.0, 180.0))
+    private fun table(): Element = LivingPlacement.table(Bounds(100.0, 100.0, 220.0, 180.0))
+
+    /** A plot whose frame is 280 × 160 pt from (120, 300). */
+    private fun plot(): Element =
+        LivingPlacement.plot(Bounds(120.0, 300.0, 400.0, 460.0), 0xFF336699.toInt(), 1.0)
+
+    /** A formula block whose box is 280 × 60 pt from (120, 500). */
+    private fun formula(): Element = LivingPlacement.math(Bounds(120.0, 500.0, 400.0, 560.0), colour = 0xFF000000.toInt())
 
     /** A part spanning 40 pt from (200, 300) to (240, 300). */
-    private fun resistor(bottom: Double = 300.0): CircuitElement = CircuitElement(
+    private fun resistor(y: Double = 300.0): CircuitElement = CircuitElement(
         symbol = ShapeKind.RESISTOR.name,
         positionX = 220.0,
-        positionY = bottom,
+        positionY = y,
         pins = listOf(CircuitPin("p1", -20.0, 0.0), CircuitPin("p2", 20.0, 0.0)),
     )
 
@@ -93,23 +108,43 @@ class PlacementPickTest {
         assertEquals(
             "the table under the press is the one picked",
             ElementRef(0, 0),
-            placementPick(page, ShapeKind.TABLE, 160.0, 140.0),
+            pickLiving(page, LivingSlot.TABLE, 160.0, 140.0),
         )
-        assertNull("paper holds no table there", placementPick(page, ShapeKind.TABLE, 500.0, 500.0))
-        assertNull("a part is not a table", placementPick(page, ShapeKind.RESISTOR, 160.0, 140.0))
+        assertNull("paper holds no table there", pickLiving(page, LivingSlot.TABLE, 500.0, 500.0))
     }
 
     @Test
     fun `every part of the palette is the same family`() {
         val page = pageOf(resistor())
         // A capacitor slot over a resistor selects the resistor rather than placing a capacitor on top.
-        for (kind in CircuitElementFactory.CIRCUIT_KINDS) {
-            assertEquals(
-                "$kind picks the part under the press",
-                ElementRef(0, 0),
-                placementPick(page, kind, 220.0, 300.0),
-            )
-        }
+        assertEquals(
+            "any circuit slot picks the part under the press",
+            ElementRef(0, 0),
+            pickLiving(page, LivingSlot.CIRCUIT, 220.0, 300.0),
+        )
+        assertNull("a part is not a table", pickLiving(page, LivingSlot.TABLE, 220.0, 300.0))
+    }
+
+    @Test
+    fun `a plot slot picks the plot it made`() {
+        val page = pageOf(plot())
+        assertEquals(
+            "the plot under the press is the one picked",
+            ElementRef(0, 0),
+            pickLiving(page, LivingSlot.PLOT, 200.0, 360.0),
+        )
+        assertNull("paper holds no plot there", pickLiving(page, LivingSlot.PLOT, 60.0, 700.0))
+    }
+
+    @Test
+    fun `a formula slot picks the formula it made`() {
+        val page = pageOf(formula())
+        assertEquals(
+            "the block under the press is the one picked",
+            ElementRef(0, 0),
+            pickLiving(page, LivingSlot.MATH, 200.0, 530.0),
+        )
+        assertNull("paper holds no formula there", pickLiving(page, LivingSlot.MATH, 60.0, 700.0))
     }
 
     @Test
@@ -120,11 +155,11 @@ class PlacementPickTest {
             assertEquals(
                 "$kind picks the figure it drew",
                 ElementRef(0, 0),
-                placementPick(page, kind, first.x, first.y),
+                pick(page, kind, first.x, first.y),
             )
             // The same ink is nobody else's figure: the triangle slot leaves a rectangle alone.
             for (other in figureKinds - kind) {
-                assertNull("$other must not claim a $kind", placementPick(page, other, first.x, first.y))
+                assertNull("$other must not claim a $kind", pick(page, other, first.x, first.y))
             }
         }
     }
@@ -134,22 +169,23 @@ class PlacementPickTest {
         val page = pageOf(figure(ShapeKind.RECTANGLE))
         assertNull(
             "the middle of a rectangle is empty paper, not the rectangle",
-            placementPick(page, ShapeKind.RECTANGLE, 150.0, 130.0),
+            pick(page, ShapeKind.RECTANGLE, 150.0, 130.0),
         )
         assertEquals(
             "its own outline is where the press lands on it",
             ElementRef(0, 0),
-            placementPick(page, ShapeKind.RECTANGLE, 150.0, 100.0),
+            pick(page, ShapeKind.RECTANGLE, 150.0, 100.0),
         )
     }
 
     @Test
     fun `ink is nobody's object`() {
         val page = pageOf(ink())
-        assertNull(placementPick(page, ShapeKind.TABLE, 430.0, 400.0))
-        assertNull(placementPick(page, ShapeKind.RESISTOR, 430.0, 400.0))
+        assertNull(pickLiving(page, LivingSlot.TABLE, 430.0, 400.0))
+        assertNull(pickLiving(page, LivingSlot.CIRCUIT, 430.0, 400.0))
+        assertNull(pickLiving(page, LivingSlot.PLOT, 430.0, 400.0))
         // The pen never claimed a kind, so no figure slot picks the stroke by its geometry alone.
-        assertNull(placementPick(page, ShapeKind.LINE, 430.0, 400.0))
+        assertNull(pick(page, ShapeKind.LINE, 430.0, 400.0))
     }
 
     @Test
@@ -158,21 +194,33 @@ class PlacementPickTest {
         // so picking one would select half an object and the slot goes on drawing instead.
         assertTrue(ShapeBuilder.isMultiStroke(ShapeKind.DIMENSION))
         for (kind in figureKinds) assertFalse("$kind is one stroke", ShapeBuilder.isMultiStroke(kind))
-        assertNull(placementPick(pageOf(figure(ShapeKind.DIMENSION, 300.0, 500.0, 400.0, 500.0)), ShapeKind.DIMENSION, 300.0, 500.0))
+        val page = pageOf(figure(ShapeKind.DIMENSION, 300.0, 500.0, 400.0, 500.0))
+        assertNull(pick(page, ShapeKind.DIMENSION, 300.0, 500.0))
     }
 
     @Test
-    fun `the slot asks for the kind it places`() {
-        assertEquals(ShapeKind.TABLE, placementKindOf(DesktopTool.TABLE, ShapeKind.RESISTOR))
+    fun `the slot asks for what it places`() {
+        assertEquals(Placement.Living(LivingSlot.TABLE), placementOf(DesktopTool.TABLE))
+        assertEquals(Placement.Living(LivingSlot.CIRCUIT), placementOf(DesktopTool.CIRCUIT))
+        assertEquals(Placement.Living(LivingSlot.PLOT), placementOf(DesktopTool.PLOT))
+        assertEquals(Placement.Living(LivingSlot.MATH), placementOf(DesktopTool.MATH))
+        assertEquals(Placement.Figure(ShapeKind.RECTANGLE), placementOf(DesktopTool.RECTANGLE))
+        assertEquals(Placement.Figure(ShapeKind.LINE), placementOf(DesktopTool.LINE))
+        assertNull("the pen places no object", placementOf(DesktopTool.PEN))
+    }
+
+    /** A plot, a table and a formula carry no pins, so their press is never a pin press. */
+    @Test
+    fun `only a figure and a part aim at a pin`() {
+        assertEquals(ShapeKind.RECTANGLE, Placement.Figure(ShapeKind.RECTANGLE).pinKind(ShapeKind.RESISTOR))
         assertEquals(
-            "any circuit slot stands for the family, so it asks for the part in hand",
+            "a circuit slot aims with the part in hand",
             ShapeKind.RESISTOR,
-            placementKindOf(DesktopTool.CIRCUIT, ShapeKind.RESISTOR),
-            )
-        assertEquals(ShapeKind.RECTANGLE, placementKindOf(DesktopTool.RECTANGLE, ShapeKind.RESISTOR))
-        assertEquals(ShapeKind.LINE, placementKindOf(DesktopTool.LINE, ShapeKind.RESISTOR))
-        assertNull("a plot is a recipe, not a figure a press can pick", placementKindOf(DesktopTool.PLOT, ShapeKind.RESISTOR))
-        assertNull("the pen places no object", placementKindOf(DesktopTool.PEN, ShapeKind.RESISTOR))
+            Placement.Living(LivingSlot.CIRCUIT).pinKind(ShapeKind.RESISTOR),
+        )
+        assertNull(Placement.Living(LivingSlot.TABLE).pinKind(ShapeKind.RESISTOR))
+        assertNull(Placement.Living(LivingSlot.PLOT).pinKind(ShapeKind.RESISTOR))
+        assertNull(Placement.Living(LivingSlot.MATH).pinKind(ShapeKind.RESISTOR))
     }
 
     /** A wire from (100, 100) to (200, 100): a figure whose two ends are pins a connector may join. */

@@ -617,7 +617,8 @@ private suspend fun AwaitPointerEventScope.dragLivingGrip(
 
 /**
  * A press with a **placement slot** on the object that slot makes: the object is selected, and the same press
- * drags it (`placementPick`), so an element inserted with its own slot is sized or carried in one gesture.
+ * drags it (`placementPick`), so an element inserted with its own slot is sized or carried in one gesture —
+ * a figure, a table, a circuit part, a plot or a formula.
  *
  * The press is the slot's before it is the sheet's. On **paper that holds none of the kind** it lets go of
  * the selection and answers false (`letGoForSlot`): a click then writes nothing, a drag still places the next
@@ -637,14 +638,15 @@ internal suspend fun AwaitPointerEventScope.placementPress(
     onEdited: (Int) -> Unit,
     circuitKind: ShapeKind,
 ): Boolean {
-    val kind = placementKindOf(tool, circuitKind) ?: return false
+    val placement = placementOf(tool) ?: return false
     val (x0, y0) = pagePointOf(down.position.x, down.position.y, density, view.current())
     if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return false
     val page = runCatching { tab.document.page(tab.page) }.getOrNull() ?: return false
     val reach = CircuitSnapping.thresholdFor(view.current().zoom * density)
     // The mark is the finer target than the ink behind it: a press on a pin draws from the terminal.
-    if (pinUnderPress(page, kind, x0, y0, reach) != null) return false
-    val picked = placementPick(page, kind, x0, y0)
+    val pinKind = placement.pinKind(circuitKind)
+    if (pinKind != null && pinUnderPress(page, pinKind, x0, y0, reach) != null) return false
+    val picked = placementPick(page, placement, x0, y0)
     if (picked == null) {
         letGoForSlot(tab)
         return false
