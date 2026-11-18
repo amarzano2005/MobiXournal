@@ -6,6 +6,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
@@ -30,6 +31,11 @@ import kotlin.math.sin
  *  - A component with no pins at all has no axis to read, so it is drawn at the same **default
  *    size** about its position: a plain symbol is still a symbol.
  *
+ * The axis states the symbol's **one** length; its height is the library's business, derived from
+ * that length — unless a handle has given the part a [CircuitElement.height], which is then applied
+ * across the axis in the component's own frame. That is what lets a part be stretched wide and short
+ * like any other figure, while its pins and its ink stay on the same line.
+ *
  * A symbol whose key this build does not have returns null, and the export reports it rather than
  * drawing a substitute.
  */
@@ -46,10 +52,7 @@ object CircuitInk {
         val kind = ShapeKind.entries.firstOrNull { it.name == circuit.symbol } ?: return null
         val axis = axisOf(circuit)
         val width = circuit.strokeWidth
-        // A symbol drawn in parts (a capacitor's plates, an LED's rays) is written as one stroke per
-        // part: joining them into one polyline would draw ink across the gap the part is made of.
-        val paths = ShapeBuilder.buildMulti(kind, axis.startX, axis.startY, axis.endX, axis.endY, width)
-            ?: listOf(ShapeBuilder.build(kind, axis.startX, axis.startY, axis.endX, axis.endY, width))
+        val paths = pathsOf(circuit, kind)
 
         val out = mutableListOf<Element>()
         for (path in paths) {
@@ -63,6 +66,24 @@ object CircuitInk {
             out += InkPrimitives.text(value, x, y, circuit.strokeColor)
         }
         return out.ifEmpty { null }
+    }
+
+    /**
+     * The height [circuit] is **drawn** at across its own axis, in points — what a side handle starts
+     * its stretch from: the part's own [CircuitElement.height] when a handle has set one, otherwise
+     * the size the symbol library derives from the part's length.
+     */
+    fun drawnAcross(circuit: CircuitElement): Double =
+        circuit.height?.takeIf { it > 0.0 } ?: naturalAcross(circuit)
+
+    /**
+     * The height the symbol library draws [circuit] at across its axis for its current length, in
+     * points — the size a part placed but never stretched wears.
+     */
+    fun naturalAcross(circuit: CircuitElement): Double {
+        val kind = ShapeKind.entries.firstOrNull { it.name == circuit.symbol } ?: return 0.0
+        val axis = axisOf(circuit)
+        return acrossExtent(axis, builtPaths(circuit, kind, axis))
     }
 
     /** The box the symbol's strokes occupy, or null when there is nothing drawn yet. */
@@ -87,6 +108,66 @@ object CircuitInk {
 
     /** The drag a symbol's library function takes, in the component's unrotated frame. */
     private data class Axis(val startX: Double, val startY: Double, val endX: Double, val endY: Double) {
+    }
+
+    /**
+     * The paths [circuit]'s symbol draws in its own frame, with the height the part stores applied.
+     *
+     * A symbol drawn in parts (a capacitor's plates, an LED's rays) is written as one stroke per part:
+     * joining them into one polyline would draw ink across the gap the part is made of.
+     */
+    private fun pathsOf(circuit: CircuitElement, kind: ShapeKind): List<List<StrokePoint>> {
+        val axis = axisOf(circuit)
+        val paths = builtPaths(circuit, kind, axis)
+        val wanted = circuit.height?.takeIf { it > 0.0 } ?: return paths
+        val natural = acrossExtent(axis, paths)
+        if (natural <= 0.0) return paths
+        return scaleAcross(axis, paths, wanted / natural)
+    }
+
+    /** The paths [circuit]'s symbol library draws for its axis, at the library's own height. */
+    private fun builtPaths(circuit: CircuitElement, kind: ShapeKind, axis: Axis): List<List<StrokePoint>> {
+        val width = circuit.strokeWidth
+        return ShapeBuilder.buildMulti(kind, axis.startX, axis.startY, axis.endX, axis.endY, width)
+            ?: listOf(ShapeBuilder.build(kind, axis.startX, axis.startY, axis.endX, axis.endY, width))
+    }
+
+    /** How far [paths] reach **across** [axis], in points: the spread of their perpendicular offsets. */
+    private fun acrossExtent(axis: Axis, paths: List<List<StrokePoint>>): Double {
+        val dx = axis.endX - axis.startX
+        val dy = axis.endY - axis.startY
+        val len = hypot(dx, dy)
+        if (len == 0.0) return 0.0
+        var low = Double.MAX_VALUE
+        var high = -Double.MAX_VALUE
+        for (path in paths) {
+            for (p in path) {
+                // The signed distance off the axis line, before the rotation the element states.
+                val off = ((p.x - axis.startX) * dy - (p.y - axis.startY) * dx) / len
+                if (off < low) low = off
+                if (off > high) high = off
+            }
+        }
+        return if (low <= high) high - low else 0.0
+    }
+
+    /**
+     * [paths] with every point's distance **across** [axis] multiplied by [factor] — the axis line it
+     * hangs off stays exactly where the element put it, so the leads keep meeting their pins.
+     */
+    private fun scaleAcross(axis: Axis, paths: List<List<StrokePoint>>, factor: Double): List<List<StrokePoint>> {
+        val dx = axis.endX - axis.startX
+        val dy = axis.endY - axis.startY
+        val len2 = dx * dx + dy * dy
+        if (len2 == 0.0) return paths
+        return paths.map { path ->
+            path.map { p ->
+                val along = ((p.x - axis.startX) * dx + (p.y - axis.startY) * dy) / len2
+                val bx = axis.startX + along * dx
+                val by = axis.startY + along * dy
+                p.copy(x = bx + (p.x - bx) * factor, y = by + (p.y - by) * factor)
+            }
+        }
     }
 
     private fun axisOf(circuit: CircuitElement): Axis {

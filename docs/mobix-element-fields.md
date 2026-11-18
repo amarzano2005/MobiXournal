@@ -146,12 +146,15 @@ Example: [mobix-living-entities.md](mobix-living-entities.md) → *Parametric sh
 | `rotation` | number | degrees | `0.0` |
 | `strokeColor` | `#RRGGBBAA` | — | opaque black; the user's ink, not the library's |
 | `strokeWidth` | number | pt | `1.0` |
+| `height` | number | pt | absent: the size the symbol library draws for the part's length. How far the symbol reaches **across** its own axis — the other size a resize handle gives it |
 | `pins[]` | array | — | absent: a symbol with no magnetic anchors |
 | `pins[].id` | string | — | **required** on a pin |
 | `pins[].relX`, `.relY` | number | pt | `0.0`; relative to `position` and **before** `rotation` |
 | `pins[].connectedTo` | string | — | absent: a floating pin |
 
-A component has **no `bounds`**: its outline belongs to the symbol library. Example:
+A component has **no `bounds`**: its outline belongs to the symbol library. Its length is stated by the line
+its `pins` sit on, and `height` is the only other size it stores — a handle across the part writes one, and a
+part placed by a drag carries none. Example:
 [mobix-living-entities.md](mobix-living-entities.md) → *Circuit component*.
 
 ## `mathBlock`

@@ -358,6 +358,20 @@ class MobixLivingCodecTest {
     }
 
     @Test
+    fun aCircuitRemembersTheHeightItsHandlesGaveIt() {
+        // The length of a part is stated by its pins, so the height across its axis is the one size the
+        // model stores for a resize: it has to reach the file, or a stretched symbol comes back at the
+        // size the library draws for its length.
+        val stretched = circuit().copy(height = 31.5)
+        assertEquals(stretched, roundTrip(stretched))
+        assertEquals(31.5, encode(stretched).getDouble("height", 0.0), 1e-9)
+        assertFalse(
+            "a part no handle ever stretched stores no height, so the library stays the authority",
+            encode(circuit()).has("height"),
+        )
+    }
+
+    @Test
     fun aCircuitStillReadsTheBooleanLabelSideOlderFilesCarry() {
         // The label used to be a boolean (`labelBelow`). A document written then is still the user's
         // document: below is read as below, and the absence of the key as above.

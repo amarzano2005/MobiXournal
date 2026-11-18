@@ -358,7 +358,13 @@ enum class CircuitLabelSide {
  *   The label is laid out around the symbol, never over it, so this is the reader's choice of side
  *   rather than a position: above is where a dimension is written, below keeps a crowded wire row
  *   free, and left/right serve a component whose leads already own the space above and below.
- * @param pins The magnetic anchors, relative to the position and before the rotation.
+ * @param pins The magnetic anchors, relative to the position and before the rotation — and, for the
+ *   drawing, the line the symbol is generated along ([com.mobixournal.render.CircuitInk]).
+ * @param height The symbol's extent **across that axis**, in points: the second size a resize handle
+ *   can give it. Absent means the size the symbol library derives from the part's length, which is
+ *   what a part placed by a drag gets; once a handle has set one, it is the part's own and no longer
+ *   follows the length, so a component stretches the way it is drawn — wide and short, or narrow and
+ *   tall.
  * @param extraAttrs Attributes a later schema added, preserved for round-trip.
  * @param id The element's stable identity; see [ElementId].
  */
@@ -372,6 +378,7 @@ data class CircuitElement(
     val value: String? = null,
     val labelSide: CircuitLabelSide = CircuitLabelSide.ABOVE,
     val pins: List<CircuitPin> = emptyList(),
+    val height: Double? = null,
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
     /** JSON keys a newer writer put on this component and this build did not read. */

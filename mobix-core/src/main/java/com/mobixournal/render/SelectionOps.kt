@@ -106,10 +106,6 @@ object SelectionOps {
      * @param scaleWidth Whether a stroke's width follows the scale (see above). A resize gesture
      *   (`false`) also leaves each headed figure at its drawn size — only the shaft lengthens
      *   ([FigureRedraw]); re-homing ink (`true`) scales the whole drawing, heads included.
-     * @param anchorX The point a **resize** holds still, in page pt — the handle opposite the one being
-     *   dragged — or null for a frame change, where no point is special. A part reads it (see its branch):
-     *   its one geometry is the length of its axis, which scales **about** that point.
-     * @param anchorY See [anchorX].
      * @return Transformed element, or unchanged if unmodelled.
      */
     fun affineXY(
@@ -119,8 +115,6 @@ object SelectionOps {
         dx: Double,
         dy: Double,
         scaleWidth: Boolean = true,
-        anchorX: Double? = null,
-        anchorY: Double? = null,
     ): Element {
         val scalar = kotlin.math.sqrt(sx * sy)
         val ink = if (scaleWidth) scalar else 1.0
@@ -175,33 +169,17 @@ object SelectionOps {
                 )
             }
             // A part is a **symbol generated from its own axis** (`CircuitInk` builds the body along the
-            // line its pins sit on), so the length of that axis is the only geometry the model holds: there
-            // is no width or height field for a cross-axis stretch to write. A page stretch is therefore
-            // measured **along the axis** — `hypot(sx·cos, sy·sin)` for a part whose axis runs on its own x,
-            // the other projection for one whose axis runs on its own y — and applied as a **similarity
-            // about the anchor** the drag holds still. Reading the page's `sx` on one own axis and its `sy`
-            // on the other did neither: it slid the symbol across the page, dragged the anchor corner with
-            // it, and left the pins short of the box the handles were pulling, which is a part that does not
+            // line its pins sit on), so the model holds **two sizes**: the length of that axis, stated by
+            // the pins, and the height across it (`CircuitElement.height`). A page stretch is therefore
+            // read on the part's own axes — `hypot(sx·cos, sy·sin)` along the axis, `hypot(sx·sin, sy·cos)`
+            // across it — and each size takes the stretch of the axis it measures. There is no shear in
+            // the model, so a stretch that runs diagonally to the part cannot be one: its two lengths are
+            // what those projections give, which is exact for a part lying on the page's own axes, and
+            // the closest a symbol can come for one drawn at an angle. Reading the page's `sx` on one own
+            // axis and its `sy` on the other did neither: it slid the symbol across the page, dragged the
+            // anchor corner with it, and left a part with no height to write, which is a part that did not
             // resize from its handles like the elements around it (`CircuitResizeTest`).
-            is CircuitElement -> {
-                val radians = Math.toRadians(element.rotation)
-                val cos = cos(radians)
-                val sin = sin(radians)
-                // The axis is the longer side of the pins' own box, the rule `CircuitInk.axisOf` draws along.
-                val ownX = element.pins.isEmpty() ||
-                    element.pins.maxOf { it.relX } - element.pins.minOf { it.relX } >=
-                    element.pins.maxOf { it.relY } - element.pins.minOf { it.relY }
-                val along = if (ownX) hypot(sx * cos, sy * sin) else hypot(sx * sin, sy * cos)
-                // A similarity, so the symbol keeps its proportions and the far side stays on the anchor;
-                // without an anchor (a page re-homing) the plain affine is the whole story.
-                val newX = anchorX?.let { it + (element.positionX - it) * along } ?: (element.positionX * sx + dx)
-                val newY = anchorY?.let { it + (element.positionY - it) * along } ?: (element.positionY * sy + dy)
-                element.copy(
-                    positionX = newX,
-                    positionY = newY,
-                    pins = element.pins.map { it.copy(relX = it.relX * along, relY = it.relY * along) },
-                )
-            }
+            is CircuitElement -> circuitStretch(element, sx, sy, dx, dy)
             // ParametricShapeElement scales its vertices, keeping its outline width as drawn (unless
             // the caller is re-homing the ink, which scales that too, exactly as for a stroke).
             is ParametricShapeElement -> element.copy(
@@ -257,7 +235,7 @@ object SelectionOps {
         // resized, not thickened*, `FigureRedraw`).
         return mapPage(pages, pageIndex) { li, ei, el ->
             if (ElementRef(li, ei) in refs) {
-                affineXY(el, sx, sy, dx, dy, scaleWidth = false, anchorX = anchorX, anchorY = anchorY)
+                affineXY(el, sx, sy, dx, dy, scaleWidth = false)
             } else {
                 el
             }
@@ -547,6 +525,42 @@ object SelectionOps {
             if (kept.size == layer.elements.size) layer else Layer(kept, layer.name)
         }
         return if (changed) page.copy(layers = layers) else page
+    }
+
+    /**
+     * A **part** under the page stretch `x' = x·sx + dx`, `y' = y·sy + dy` — [affineXY]'s circuit
+     * branch, spelled out where it can be read.
+     *
+     * The part travels with the page like every other element, and its drawing then stretches about that
+     * place on its own two axes: the pins state its length, [CircuitElement.height] the extent across it,
+     * and each takes the ratio the page's stretch reaches on its own axis. The height a stretch **across**
+     * the part gives it is stored, while a stretch only **along** it leaves the part's own height — or the
+     * library's, for a part no handle has ever stretched — alone.
+     */
+    private fun circuitStretch(
+        element: CircuitElement,
+        sx: Double,
+        sy: Double,
+        dx: Double,
+        dy: Double,
+    ): CircuitElement {
+        val radians = Math.toRadians(element.rotation)
+        val cos = cos(radians)
+        val sin = sin(radians)
+        // The axis is the longer side of the pins' own box, the rule `CircuitInk.axisOf` draws along.
+        val axisOnOwnX = element.pins.isEmpty() ||
+            element.pins.maxOf { it.relX } - element.pins.minOf { it.relX } >=
+            element.pins.maxOf { it.relY } - element.pins.minOf { it.relY }
+        val onOwnX = hypot(sx * cos, sy * sin)
+        val onOwnY = hypot(sx * sin, sy * cos)
+        val across = if (axisOnOwnX) onOwnY else onOwnX
+        return element.copy(
+            positionX = element.positionX * sx + dx,
+            positionY = element.positionY * sy + dy,
+            pins = element.pins.map { it.copy(relX = it.relX * onOwnX, relY = it.relY * onOwnY) },
+            height = across.takeIf { it != 1.0 }
+                ?.let { CircuitInk.drawnAcross(element) * it } ?: element.height,
+        )
     }
 
     /** Rebuild page [pageIndex]'s layers, letting [transform] replace each element in place. */

@@ -135,13 +135,17 @@ ratio read from the press scaled the shaft by `length / pressDistance` and the t
 the sheet had lit (`shaftResizeToPin`, `ShaftResizeTest`). A joint is one joint whichever
 end is drawn second, so a **line reaches an arrow's tip**: refusing it kept the hand's few points of slop and
 left the tip's handle and the wire's end pin a tenth of an inch apart, which read as a pin that had missed its
-point. An arrow offers its tip and nothing else, so nothing else can be caught by mistake. A **part resizes on
-its own axis** (`SelectionOps.affineXY`): a component is a symbol generated from the axis its pins sit on
-(`CircuitInk`), so the length of that axis is the one geometry the model holds and no stretch across it has a
-height to write. The stretch is measured **along** the axis and applied as a similarity about the anchor the
-drag pins, so the part keeps its proportions and the far side stays exactly where the handle left it; a stretch
-across the axis no longer slid the symbol down the page and dragged the anchor corner with it, which is a part
-that did not resize from its handles like the elements around it (`CircuitResizeTest`). A box with **no extent on an axis** wears no handles across it: a
+point. An arrow offers its tip and nothing else, so nothing else can be caught by mistake. A **part resizes in
+two dimensions, on its own axes** (`SelectionOps.affineXY`): a component is a symbol generated from the axis
+its pins sit on (`CircuitInk`), so the pins state its **length** and `CircuitElement.height` the extent
+**across** it — the same two sizes a drag gives it when it is placed. A page stretch is read on those two
+axes (`hypot(sx·cos, sy·sin)` along the part, `hypot(sx·sin, sy·cos)` across it), so a side handle makes the
+symbol taller or shorter without lengthening it, a corner gives the two sizes a ratio each, and a part lying
+on the page's axes puts its ink exactly where the dragged corner went. There is no shear in the model, so a
+stretch running diagonally to the part becomes the two lengths those projections give — exact on the page's
+own axes, the closest a symbol can come at an angle, and never the sideways slide that used to leave the pins
+short of the box the handles were pulling (`CircuitResizeTest`). A part no handle has stretched stores no
+height at all, and the symbol library's size for its length is the authority. A box with **no extent on an axis** wears no handles across it: a
 selection around a part drawn as a line carries no height worth stretching, its top and bottom handles would
 land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands
 the press back to the body (`SelectionMovePaintTest`). The same rule makes a **corner** drag on a line its end

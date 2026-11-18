@@ -37,12 +37,18 @@ internal object MobixCircuitCodec {
 
     private val CIRCUIT_KEYS = setOf(
         "type", "id", "symbol", "value", LABEL_SIDE, LEGACY_LABEL_BELOW, POSITION, "rotation",
-        "strokeColor", "strokeWidth", PINS, MobixJson.ATTRS,
+        "strokeColor", "strokeWidth", HEIGHT, PINS, MobixJson.ATTRS,
     )
     private val PIN_KEYS = setOf("id", "relX", "relY", "connectedTo")
 
     /** Which side of the drawn symbol the value label sits on (`CircuitElement.labelSide`). */
     private const val LABEL_SIDE = "labelSide"
+
+    /**
+     * How far the symbol reaches across its axis (`CircuitElement.height`) — the size a side handle
+     * gives it, and the one geometry a component stores beyond the axis its pins state.
+     */
+    private const val HEIGHT = "height"
 
     /**
      * The older boolean spelling of the same choice, read and no longer written.
@@ -70,6 +76,10 @@ internal object MobixCircuitCodec {
         out["rotation"] = JsonNode.of(circuit.rotation)
         out["strokeColor"] = MobixJson.colour(circuit.strokeColor)
         out["strokeWidth"] = JsonNode.of(circuit.strokeWidth)
+        // Only when a handle has given the part a height of its own: a part that was never stretched is
+        // drawn at the size the library gives its length, and writing that number down would freeze a
+        // size the library is the authority for.
+        circuit.height?.let { out[HEIGHT] = JsonNode.of(it) }
         // A component with no pins is a plain symbol, so an empty list is written as nothing at all:
         // "this symbol has no anchors" and "this symbol's anchors are an empty set" are one fact.
         if (circuit.pins.isNotEmpty()) out[PINS] = JsonNode.arr(circuit.pins.map(::encodePin))
@@ -96,6 +106,7 @@ internal object MobixCircuitCodec {
             rotation = node.getDouble("rotation", 0.0),
             strokeColor = MobixJson.colourOrNull(node, "strokeColor") ?: CircuitElement.DEFAULT_INK,
             strokeWidth = node.getDouble("strokeWidth", 1.0),
+            height = node.getDoubleOrNull(HEIGHT),
             value = node.getStrOrNull("value"),
             labelSide = labelSide(node),
             pins = pins,
