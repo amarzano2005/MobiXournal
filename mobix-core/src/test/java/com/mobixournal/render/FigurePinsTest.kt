@@ -464,6 +464,25 @@ class FigurePinsTest {
         assertEquals(140.0, join.dy, 1e-6)
     }
 
+    /**
+     * An **armed** figure tool is offered the ends it could pair with before the figure exists.
+     *
+     * The marks used to arrive only with the gesture, so an armed tool read as a sheet with no pins until the
+     * press had already been made; what a figure could join is answered by `joinedBy` from the tool in hand,
+     * which is exactly what the sheet paints while the tool is armed.
+     */
+    @Test
+    fun anArmedFigureIsOfferedTheWiresEnds() {
+        val page = pageOf(wire(300.0, 300.0, 400.0, 300.0))
+        assertEquals(
+            "both of the wire's ends",
+            2,
+            FigurePins.joinedBy(page, ShapeKind.RECTANGLE).size,
+        )
+        assertNull("a figure is no connector, so it aims at nothing", FigurePins.aimFamily(ShapeKind.RECTANGLE))
+        assertTrue("a rectangle tool's marks are the ends it is joined by", FigurePins.joinedBy(page, ShapeKind.RECTANGLE).isNotEmpty())
+    }
+
     /** A box with no height wears its two end handles and nothing else, so only those points are taken. */
     @Test
     fun aFlatBoxTakesOnlyTheHandlesItWears() {

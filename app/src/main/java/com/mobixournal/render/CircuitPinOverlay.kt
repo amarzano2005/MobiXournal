@@ -77,19 +77,34 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
         if (page != null && FigurePins.hasCompany(page, drawingKind)) drawPendingPins(canvas, drawingKind)
         return
     }
-    // A **selected** element wears the marks it can be paired with, at rest as well as in hand: its own pins
-    // *and* the compatible ones — a figure's border against the wires' ends and arrows' tips, a connector's
-    // pins against everything it may reach ([FigurePins.selectionMarks]). The slot that placed it is gone, so
-    // the selection is the only thing left to answer *what can this join*, and a pairing needs both ends
-    // visible. Nothing at all on a page that holds nothing compatible.
-    val sel = selection ?: return
-    if (sel.refs.size != 1) return
-    val page = pageAt(sel.pageIndex) ?: return
+    // A **selected** element wears the marks it can be paired with, at rest as well as in hand.
+    if (drawSelectionPins(canvas)) return
+    // An **armed** placement tool shows what its object could join **before** the hand goes down: the slot is
+    // picked for a place on the sheet, and the pins the part or the figure can attach to are part of picking
+    // it. The marks used to arrive with the gesture, so an armed tool read as a sheet with no pins at all
+    // until the press had already been made — the answer came too late to aim with.
+    val armed = shapeKind ?: return
+    if (FigurePins.aimFamily(armed) != null) drawTargetPins(canvas, armed) else drawJoinedPins(canvas, armed)
+}
+
+/**
+ * The marks a **selected** element wears, painted — and whether there was a selection to paint at all.
+ *
+ * Both ends of the pairing, which is what makes it readable: the element's own pins *and* the compatible ones
+ * it may be joined to ([FigurePins.selectionMarks]) — a figure's border against the wires' ends and arrows'
+ * tips, a connector's pins against everything it may reach. The slot that placed it is gone, so the selection
+ * is the only thing left to answer *what can this join*. Nothing at all on a page that holds nothing
+ * compatible.
+ */
+private fun DrawingSurfaceView.drawSelectionPins(canvas: Canvas): Boolean {
+    val sel = selection ?: return false
+    if (sel.refs.size != 1) return false
+    val page = pageAt(sel.pageIndex) ?: return false
     val ref = sel.refs.first()
-    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return
+    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return false
     val marks = FigurePins.selectionMarks(page, element, exclude = sel.refs)
-    if (marks.own.isEmpty() && marks.compatible.isEmpty()) return
-    val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
+    if (marks.own.isEmpty() && marks.compatible.isEmpty()) return false
+    val box = layout.boxes.getOrNull(sel.pageIndex) ?: return false
     fun at(x: Double, y: Double) =
         (x * box.scale + box.leftPx - scrollX).toFloat() to (y * box.scale + box.topPx - scrollY).toFloat()
     // The selection's own pins: a **hollow ring**, never a filled dot — a filled dot is a handle's own shape,
@@ -119,6 +134,19 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     // marks are the shared answer (`SelectionMarks.joinable`), so the marks painted here are exactly the ones
     // a press joins (`FigurePins.pressJoin`).
     drawPinTargets(canvas, sel.pageIndex, marks.joinable)
+    return true
+}
+
+/**
+ * The pins an **armed figure tool's** object could be paired with, page by page: a wire's ends and an arrow's
+ * tip ([FigurePins.joinedBy]) — the same halves the figure shows once it is drawn, so an armed rectangle
+ * already says what it will attach to.
+ */
+private fun DrawingSurfaceView.drawJoinedPins(canvas: Canvas, kind: ShapeKind) {
+    for (box in layout.visible(scrollY, height.toFloat())) {
+        val page = pageAt(box.index) ?: continue
+        drawPinTargets(canvas, box.index, FigurePins.joinedBy(page, kind))
+    }
 }
 
 /**

@@ -50,6 +50,9 @@ the whole question — the next press places it, with the value, rotation and la
 inspector. Parts arrive with the pins the factory gives them, and a wire connects at a pin, so two
 components meet where their pins are rather than where you happened to end the drag.
 
+Choosing a part's tool already shows the pins on the sheet it could attach to, before you start placing it,
+so the place is chosen with the terminals in sight instead of after the part has landed.
+
 On the tablet, with a part's tool still in hand, a press on a part **selects** it — drag its handles and it
 stretches on both of its own axes, like any figure — while a press on empty paper places a new one. The tool stays picked
 after each insertion, so a row of parts needs no trip back to the toolbar, and a gate stretches exactly as a

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "show-the-pins-an-armed-placement-tool-s-object-could-join-before-the-gesture-starts"
+title = "Show the pins an armed placement tool's object could join, before the gesture starts"
+description = "An armed placement tool now paints what its object could join before the gesture starts: a connector's reachable pins through FigurePins.aimFamily and the existing drawTargetPins, a figure's joinable ends through FigurePins.joinedBy and a new drawJoinedPins over the visible pages. The selection half of the overlay is extracted as drawSelectionPins, so a selected element keeps its own pairing marks and an armed tool answers only when nothing is selected. FigurePinsTest pins the armed rectangle being offered a wire's two ends while a figure still aims at nothing. Verified: :mobix-core:test 1192 and :app:testDebugUnitTest 1681 green, release APK signed with the new drawing present in its dex, :desktop:createDistributable up to date on the unchanged core. Not verified on a device (no emulator or tablet here)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-18
+completed = 2026-11-18
+tags = ["circuit", "pins", "tablet"]
+design = "material: nothing new, the armed marks reuse the pin paints already owned by CanvasChrome; tokens: the pin red stays DesignTokens.PIN_RGB for a target and the selection accent for nothing here, no new colour; glyph: the same filled dot for a pin and square for a wire's end the gesture already draws, so an armed mark and a live one are one mark; states: the marks are now visible at rest with a tool in hand and while it draws, and they disappear when a selection wears its own pairing, so the same point is never painted twice; copy: none added, no English text; keyboard: untouched, this is chrome on the canvas; parity: documented as the tablet's overlay, the window's own armed marks are its own and unchanged; docs: docs/selection.md and docs/guide-stem-tools.md state that the marks stand at rest and what they show; tests: FigurePinsTest pins the armed figure's targets and that a figure still aims at nothing, and the app guards pass"
+
+[[task]]
 id = "join-the-pin-a-press-is-aimed-at-instead-of-picking-the-part-behind-it"
 title = "Join the pin a press is aimed at, instead of picking the part behind it"
 description = "A press on a pin a selection wears now makes that join: the selected element travels onto the pin in one undoable edit and stays selected, and the part behind the pin is not picked. The pure rule is FigurePins.pressJoin (the compatible mark within the magnet's reach, plus the translation that lands the nearest own pin on it), the tablet applies it in render/SelectionPinConnect.kt before the placement pick and the select press, a mark that is already a joint is not a target (SelectionMarks.joinable, the one list painted and joined), and FigurePinsTest pins the part-to-part press, the figure-to-wire-end press and the refusal. Verified: :mobix-core:test 1191, :app:testDebugUnitTest 1681, :desktop:createDistributable, release APK signed; not verified on a device (no emulator or tablet here)."

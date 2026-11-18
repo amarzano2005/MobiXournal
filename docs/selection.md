@@ -116,7 +116,10 @@ tablet that reach is **outward** only: a press deeper inside the box than a `HAN
 its end handles, having no interior to protect. `SelectionHandleRadiusTest` pins both. A **pin** is never drawn on a handle either, and the two wear different shapes, so a mark is read before it
 is aimed at: a **filled dot** is a pin the gesture can join (in the pin red), a **square** is an existing
 wire's end, a **hollow ring** is the selected element's **own** pin — the point that will land on one of
-them — and a filled **accent** dot with its arms is a handle. A figure's border pins *are* its box's corners
+them — and a filled **accent** dot with its arms is a handle. The marks stand at **rest**, not only under a
+gesture: an armed placement tool already shows what its object could join (a connector's `gestureTargets`, a
+figure's `FigurePins.joinedBy`), so the sheet answers before the hand goes down. They used to arrive with the
+gesture, which made an armed tool look like a sheet with no pins until the press had already been made. A figure's border pins *are* its box's corners
 and side midpoints, exactly where the eight handles are, so drawing both stacked two dots on one point and
 left the reader unable to say which was which; the overlay therefore drops the pins a handle already sits on
 (`FigurePins.withoutHandles`), and a line's own pins are its two end handles, so it wears no ring of its
