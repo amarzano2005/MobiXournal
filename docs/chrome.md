@@ -279,7 +279,7 @@ document is not that state: the other half is open, so the workspace stays, and 
 entry screen itself (`PaneEntry`) — its lane keeps its badge and its `+`, so a notebook closed out of the
 split comes back in from there. The recents grid sizes its cards to the width it is given: the doors are
 *New sheet*, *Open…* and the notebooks opened lately as cards whose face is their first page — and a run
-closed **in split view** is one card naming both halves — its top-right corner wearing one capsule: restore
+closed **in split view** is one card naming both halves — its top-left corner wearing one capsule: restore
 mark, hairline, split glyph — because what it reopens is a workspace. Three cards to a line when the width is there and one when it is not. It is the PC window's
 screen, whose design [`desktop-ui-layout.md`](desktop-ui-layout.md) owns: same tokens, no rim, no fill.
 

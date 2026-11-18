@@ -323,14 +323,8 @@ private fun SheetCard(
             // the session badge at the top-left, the remove mark at the top-right.
             if (split) {
                 // A split card is **two** facts at once — it came back from the last run, and it is two
-                // panes — so one capsule on the card's top-right says both, standing clear of the `×`.
-                SplitSessionBadge(
-                    ink,
-                    Modifier.align(Alignment.TopEnd).padding(
-                        top = DesignTokens.PAGE_SHADOW_DP.dp,
-                        end = (DesignTokens.PAGE_SHADOW_DP + SPLIT_BADGE_CLEARANCE_DP).dp,
-                    ),
-                )
+                // panes — so one capsule says both, at the corner a session card's mark already takes.
+                SplitSessionBadge(ink, Modifier.align(Alignment.TopStart).padding(DesignTokens.PAGE_SHADOW_DP.dp))
             } else if (fromSession) {
                 SessionBadge(ink, Modifier.align(Alignment.TopStart).padding(DesignTokens.PAGE_SHADOW_DP.dp))
             }
@@ -378,9 +372,9 @@ private fun SessionBadge(ink: Color, modifier: Modifier = Modifier) {
 }
 
 /**
- * The mark on a **split** the last run left open: one floating capsule in the card's top-right corner holding
- * the restore mark, a hairline and the two-pane glyph the top bar's split control wears — a card that came back
- * from the last run **and** is two documents. One mark, one idea: this card reopens a workspace.
+ * The mark on a **split** the last run left open: one floating capsule in the card's top-left corner — the spot
+ * a session card's own mark takes — holding the restore mark, a hairline and the two-pane glyph the top bar's
+ * split control wears. A card that came back from the last run **and** is two documents: one mark, one idea.
  */
 @Composable
 private fun SplitSessionBadge(ink: Color, modifier: Modifier = Modifier) {
@@ -557,12 +551,6 @@ private const val SPLIT_BADGE_SIDE_DP = 5f
 private const val SPLIT_BADGE_GAP_DP = 4f
 
 private const val SPLIT_BADGE_RULE_DP = 9f
-
-/**
- * How far inside the paper the capsule stands: the `×` is centred on the corner and reaches half its disc into
- * the sheet, so the capsule starts clear of it instead of under it.
- */
-private const val SPLIT_BADGE_CLEARANCE_DP = 14f
 
 /** What a screen reader says about a split card's capsule: both facts, and what the tap does. */
 private const val SPLIT_SESSION_DESCRIPTION =

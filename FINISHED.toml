@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "split-recents-capsule-top-left"
+title = "Put the split recents capsule at the top-left, where the session mark sits"
+description = "The split card's capsule sits at the top-left of the paper, in the exact spot the plain session badge has always taken: SplitSessionBadge is aligned TopStart with DesignTokens.PAGE_SHADOW_DP of inset, the clearance constant added for the top-right placement is gone, and no mark stands beside the remove target any more. docs/chrome.md and docs/document-session.md now say top-left; the docs file stayed inside its 300-line budget. Verified with :app:testDebugUnitTest (1691 tests, DocsGuardTest and SourceStructureTest green), a rebuilt release APK and a refreshed desktop distributable; the card was not viewed on a device."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "material: the floating glass capsule and the family's hairline rim, unchanged by the move; tokens: DesignTokens.PAGE_SHADOW_DP is the whole inset again, and SPLIT_BADGE_CLEARANCE_DP is deleted rather than left as dead code; glyph: ChromeGlyph.RESTORE plus the top bar's VerticalSplit mark, unchanged; states: a static badge with merged semantics, the card's click and its remove target untouched; copy: the English description is unchanged; parity: mobile only by nature, the window's entry screen has no split cards; docs: docs/chrome.md and docs/document-session.md now name the top-left corner; tests: every guard suite green, the corner not looked at on a device"
+
+[[task]]
 id = "split-recents-card-capsule"
 title = "A split recents card wears one capsule: restore mark, hairline, split glyph"
 description = "A recents card that stands for the last run's split now says both facts in one mark. The top-left SplitBadge is gone: SplitSessionBadge draws a floating capsule at the card's top-right - TopEnd inside the paper, with PAGE_SHADOW_DP + 14 dp of end clearance so it stands clear of the red remove mark - holding the restore mark, a 1 dp hairline in the card ink and the top bar's VerticalSplit glyph, with the two icons merged under one English description for screen readers. A plain session card keeps its session badge at the top-left, and the split card's click and remove target are unchanged. Verified with :app:testDebugUnitTest (1691 tests, DocsGuardTest and SourceStructureTest green) and a packaged release APK; the card itself was not looked at, since this host has no device or emulator."
