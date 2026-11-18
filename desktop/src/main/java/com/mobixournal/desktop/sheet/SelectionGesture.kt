@@ -627,6 +627,10 @@ private suspend fun AwaitPointerEventScope.dragLivingGrip(
  *
  * False means the press is not this rule's, and the caller's own gesture (the slot's drag, or the ink) keeps
  * it exactly as it did before.
+ *
+ * [taps] is the **canvas's** tracker and [onEditLiving] the canvas's editor, not new ones: the pick hands its
+ * press to `selectionDrag`, and a tracker made under each press forgot the click before it, which left a plot's
+ * or a formula's editor unreachable while its slot was in hand — two clicks were read as two moves.
  */
 internal suspend fun AwaitPointerEventScope.placementPress(
     down: PointerInputChange,
@@ -636,6 +640,9 @@ internal suspend fun AwaitPointerEventScope.placementPress(
     density: Float,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
+    /** What a double-click on the picked object means: open its editor (the tablet's double-tap). */
+    onEditLiving: (() -> Unit)?,
+    taps: TapTracker,
     circuitKind: ShapeKind,
 ): Boolean {
     val placement = placementOf(tool) ?: return false
@@ -664,6 +671,8 @@ internal suspend fun AwaitPointerEventScope.placementPress(
             density = density,
             onLiveDrag = onLiveDrag,
             onEdited = onEdited,
+            onEditLiving = onEditLiving,
+            taps = taps,
         )
         return true
     }

@@ -72,9 +72,12 @@ internal suspend fun AwaitPointerEventScope.pressAfterPan(
     // A press with a **placement slot** on the object that slot makes picks it up — and the same press
     // then drags it (`placementPress`), instead of placing a second object on top of the one already there.
     // Paper that holds none of them lets go of the selection and falls through to the slot's own gesture.
+    // The canvas's own tracker and editor go with it: the pick hands the press to the selection's gesture,
+    // and a plot or a formula must still open its editor on a double click.
     if (
         placementPress(
-            down, tool, tab, dragView, density, targets.onLiveDrag, onEdited, targets.circuitKind,
+            down, tool, tab, dragView, density, targets.onLiveDrag, onEdited, targets.onEditLiving, taps,
+            targets.circuitKind,
         )
     ) return
     // A **circuit** slot pulls the part out along the pen, from the press to the pointer, aimed at the

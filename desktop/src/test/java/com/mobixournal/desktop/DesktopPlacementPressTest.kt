@@ -90,10 +90,20 @@ class DesktopPlacementPressTest {
         recovery = DesktopRecovery(temp.newFolder()),
     )
 
-    private fun scene(tab: DesktopTab, tool: DesktopTool): ImageComposeScene =
-        ImageComposeScene(width, height, Density(1f)) {
-            PageCanvas(tab = tab, panMode = false, tool = tool, onViewport = {}, onFit = {})
-        }
+    private fun scene(
+        tab: DesktopTab,
+        tool: DesktopTool,
+        onEditLiving: (() -> Unit)? = null,
+    ): ImageComposeScene = ImageComposeScene(width, height, Density(1f)) {
+        PageCanvas(
+            tab = tab,
+            panMode = false,
+            tool = tool,
+            onViewport = {},
+            onFit = {},
+            onEditLiving = onEditLiving,
+        )
+    }
 
     @Test
     fun `a press on a rectangle picks it instead of drawing a second one`() {
@@ -250,6 +260,76 @@ class DesktopPlacementPressTest {
             scene.close()
             tab.document.close()
         }
+    }
+
+    /**
+     * A plot's **editor**, with its own slot still in hand: the second click of the pair has to reach the
+     * canvas' tracker and the canvas' editor through the pick. A tracker made under each press forgot the
+     * first click, so two clicks read as two moves and the lane never opened while the slot was in hand.
+     */
+    @Test
+    fun `a double click on a plot with its slot in hand still opens the editor`() {
+        var edits = 0
+        val state = state()
+        state.start(initial = null)
+        state.newDocument()
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        state.selectTool(DesktopTool.PLOT)
+        state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(100.0, 200.0, 400.0, 360.0))
+        state.confirmPlacement()
+        val scene = scene(tab, state.tools.current) { edits++ }
+        try {
+            clicks(scene, 200f, 300f)
+            assertEquals("the first click opens nothing", 0, edits)
+            clicks(scene, 200f, 300f)
+            assertEquals("the second click opens the plot's editor", 1, edits)
+            assertEquals(
+                "and no second plot was placed",
+                1,
+                tab.document.page(tab.page).layers.sumOf { it.elements.size },
+            )
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /** The same for a **formula**, whose slot is the other one the pick now claims. */
+    @Test
+    fun `a double click on a formula with its slot in hand still opens the editor`() {
+        var edits = 0
+        val state = state()
+        state.start(initial = null)
+        state.newDocument()
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        state.selectTool(DesktopTool.MATH)
+        state.placeOrAsk(tab, LivingSlot.MATH, Bounds(100.0, 200.0, 400.0, 260.0))
+        state.confirmPlacement()
+        val scene = scene(tab, state.tools.current) { edits++ }
+        try {
+            clicks(scene, 160f, 230f)
+            assertEquals("the first click opens nothing", 0, edits)
+            clicks(scene, 160f, 230f)
+            assertEquals("the second click opens the formula's editor", 1, edits)
+            assertEquals(
+                "and no second formula was placed",
+                1,
+                tab.document.page(tab.page).layers.sumOf { it.elements.size },
+            )
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /** One click at ([x], [y]): the press and its lift in the same place, as a hand's click is. */
+    private fun clicks(scene: ImageComposeScene, x: Float, y: Float) {
+        pointer(scene, PointerEventType.Press, x, y, 1_000L)
+        pointer(scene, PointerEventType.Release, x, y, 1_016L, pressed = false)
     }
 
     private fun pointer(
