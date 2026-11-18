@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mobixournal.design.ToolGlyph
 import com.mobixournal.format.model.Tool
+import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
@@ -77,6 +78,25 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED, EditorTool.TRANSFORMER, EditorTool.JUNCTION,
     EditorTool.DIMENSION,
 )
+
+/**
+ * The top-bar tools that place a **living element** — the table and every circuit part — instead of
+ * drawing ink.
+ *
+ * They are a family of their own because a press means something else with one in hand: the object of
+ * that family under the point is **selected** and only paper that holds none of them takes a new one
+ * (`render/LivingPlacementPick.kt`), and the slot **stays in hand** after an insertion
+ * ([toolAfterInsertion]), so a row of parts is placed without picking the tool up again.
+ *
+ * Derived from the circuit palette's own kinds, by name — an `EditorTool` and a `ShapeKind` spell the
+ * same symbol the same way — so a part added to one cannot be forgotten in the other.
+ */
+val LIVING_ELEMENT_TOOLS: Set<EditorTool> = buildSet {
+    add(EditorTool.TABLE)
+    for (kind in CircuitElementFactory.CIRCUIT_KINDS) {
+        EditorTool.entries.firstOrNull { it.name == kind.name }?.let(::add)
+    }
+}
 
 /**
  * One tool's name and picture.

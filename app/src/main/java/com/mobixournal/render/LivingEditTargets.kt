@@ -80,6 +80,19 @@ sealed interface LivingEditTarget {
  */
 enum class LivingEditFamily { TABLE, PLOT, CIRCUIT, SHAPE, MATH }
 
+/**
+ * Whether [element] belongs to this family — the question a top-bar element tool asks of what lies
+ * under its press (`LivingPlacementPick.kt`), so "the same typology" means the model's own families
+ * instead of a second list of types written beside them.
+ */
+fun LivingEditFamily.matches(element: Element): Boolean = when (this) {
+    LivingEditFamily.TABLE -> element is TableElement
+    LivingEditFamily.PLOT -> element is PlotElement
+    LivingEditFamily.CIRCUIT -> element is CircuitElement
+    LivingEditFamily.SHAPE -> element is ParametricShapeElement
+    LivingEditFamily.MATH -> element is MathBlockElement
+}
+
 /** A double-tap's answer: the element's reference on its page, and the editor to open. */
 data class LivingEditHit(val ref: ElementRef, val target: LivingEditTarget)
 

@@ -536,6 +536,13 @@ object SelectionOps {
      * and each takes the ratio the page's stretch reaches on its own axis. The height a stretch **across**
      * the part gives it is stored, while a stretch only **along** it leaves the part's own height — or the
      * library's, for a part no handle has ever stretched — alone.
+     *
+     * The pins are then put back onto the symbol that will be drawn, on **both** of its axes. Along the
+     * axis that is the page's ratio, exactly like the length. Across it, the ratio is the change of the
+     * height actually **drawn** — not the page's — because the symbol library sizes a gate's inputs from
+     * its length (`CircuitShapes`): lengthen a gate and its input leads spread apart, so pins that only
+     * followed the page would be left hanging inside the body they no longer meet. A two-terminal part
+     * has nothing across its axis to move, which is why this only ever showed on a gate.
      */
     private fun circuitStretch(
         element: CircuitElement,
@@ -547,19 +554,30 @@ object SelectionOps {
         val radians = Math.toRadians(element.rotation)
         val cos = cos(radians)
         val sin = sin(radians)
-        // The axis is the longer side of the pins' own box, the rule `CircuitInk.axisOf` draws along.
-        val axisOnOwnX = element.pins.isEmpty() ||
-            element.pins.maxOf { it.relX } - element.pins.minOf { it.relX } >=
-            element.pins.maxOf { it.relY } - element.pins.minOf { it.relY }
+        // The axis the part was drawn from — never its current proportions (`CircuitInk.axisRunsAlongX`).
+        val alongOwnX = CircuitInk.axisRunsAlongX(element)
         val onOwnX = hypot(sx * cos, sy * sin)
         val onOwnY = hypot(sx * sin, sy * cos)
-        val across = if (axisOnOwnX) onOwnY else onOwnX
+        val onAxis = if (alongOwnX) onOwnX else onOwnY
+        val acrossPage = if (alongOwnX) onOwnY else onOwnX
+        val drawn = CircuitInk.drawnAcross(element)
+        // The length first: the library's own height for the new length is what the pins across must
+        // follow when no handle has stated one.
+        val lengthened = if (alongOwnX) {
+            element.copy(pins = element.pins.map { it.copy(relX = it.relX * onAxis) })
+        } else {
+            element.copy(pins = element.pins.map { it.copy(relY = it.relY * onAxis) })
+        }
+        val height = if (acrossPage != 1.0) drawn * acrossPage else element.height
+        val drawnAfter = height ?: CircuitInk.naturalAcross(lengthened)
+        val across = if (drawn > 0.0) drawnAfter / drawn else 1.0
         return element.copy(
             positionX = element.positionX * sx + dx,
             positionY = element.positionY * sy + dy,
-            pins = element.pins.map { it.copy(relX = it.relX * onOwnX, relY = it.relY * onOwnY) },
-            height = across.takeIf { it != 1.0 }
-                ?.let { CircuitInk.drawnAcross(element) * it } ?: element.height,
+            pins = lengthened.pins.map {
+                if (alongOwnX) it.copy(relY = it.relY * across) else it.copy(relX = it.relX * across)
+            },
+            height = height,
         )
     }
 

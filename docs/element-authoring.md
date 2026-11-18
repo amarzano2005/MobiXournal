@@ -79,6 +79,15 @@ starts at `sin(x)` over −10…10; a table is a 3 × 3 grid with a header whose
 the box exactly; a component is the armed `ShapeKind` along the box's horizontal axis with
 `CircuitElementFactory`'s canonical pins. Identity is the codec's (`ElementId`), never the placement's.
 
+**On the tablet the press first asks what is already there.** With an element tool in hand — the Table
+slot and every circuit part (`LIVING_ELEMENT_TOOLS`) — a press on an object of that tool's own family
+**selects** it instead of placing another, and the same press goes on to drag it, so a fresh part is sized
+from its own handles without picking Select first; only paper that holds none of that family takes a new
+object (`render/LivingPlacementPick.kt`, the family being the double-tap's own `LivingEditFamily`). The slot
+**stays in hand** across the insertion (`toolAfterInsertion` answers null for these tools), which is what
+makes a row of parts one continuous gesture — and it is what the window already did. A **figure** tool still
+hands the canvas back to Select, because a stroke carries no kind of its own for the next press to pick.
+
 On the window the press is taken **before** the ink router and `DesktopTool.inksByPackets()` stays
 false for these slots (the pen's packets stand aside, as for a figure) and the drag previews the box in
 the selection's own dashed outline.

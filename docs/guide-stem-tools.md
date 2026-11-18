@@ -50,6 +50,12 @@ the whole question — the next press places it, with the value, rotation and la
 inspector. Parts arrive with the pins the factory gives them, and a wire connects at a pin, so two
 components meet where their pins are rather than where you happened to end the drag.
 
+On the tablet, with a part's tool still in hand, a press on a part **selects** it — drag its handles and it
+stretches on both of its own axes, like any figure — while a press on empty paper places a new one. The tool stays picked
+after each insertion, so a row of parts needs no trip back to the toolbar, and a gate stretches exactly as a
+resistor does: taller or shorter across its body without getting longer, or both from a corner. The Table
+slot works the same way: press a table to select it, press paper to place one.
+
 ## Chemistry, and what this build does not carry
 
 There is no chemistry palette in this build: those tools were taken out of the rail and survive only as

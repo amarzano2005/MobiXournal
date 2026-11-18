@@ -21,10 +21,12 @@ import kotlin.math.sin
  *  - They are taken **before** the rotation, which is the frame the element states them in, and the
  *    finished geometry is turned afterwards — so a component rotated 90° has its pins exactly where
  *    the element says they are.
- *  - The drag is the **longer axis of the pins' box, through its middle**. A two-terminal part states
- *    its two ends and the axis falls out of them; a gate states an input and an output on each side,
- *    and the axis through the middle of them is the gate's own left-to-right drag — not the diagonal
- *    between two pins, which would draw the symbol crooked.
+ *  - The drag is the **part's own x, through the middle of its pins** ([axisRunsAlongX]) — the line the
+ *    factory laid the component out along. A two-terminal part states its two ends there and a gate
+ *    states its inputs and its output across it, so the axis through the middle of them is the gate's
+ *    own left-to-right drag, never the diagonal between two pins. Reading it as the *longer side of
+ *    the pins' box* instead turned a gate a quarter turn the moment a handle made it taller than it is
+ *    long, which is a size deciding what the symbol is.
  *  - A **single-pin** symbol (the ground) hangs off that pin: its axis starts at the pin and runs
  *    out along +x for the default size ([DEFAULT_LENGTH_PT]), and the rotation turns the whole
  *    symbol about the pin — so the terminal stays exactly where the element says it is.
@@ -170,6 +172,22 @@ object CircuitInk {
         }
     }
 
+    /**
+     * Whether [circuit]'s axis runs along its **own x** — the line its pins state, before the rotation.
+     *
+     * The factory lays every component out along x ([CircuitElementFactory.defaultPinsFor]), so a part
+     * whose pins spread on x at all is an x-axis part, and only pins stated on y alone (a part written
+     * on its side) put the axis on y. This is a property of how the part was drawn, so no size can
+     * change it: reading the **longer side of the pins' box** was stable for a two-terminal part, whose
+     * pins never leave the axis, but a gate states its inputs on both axes — stretched across far
+     * enough, its box became taller than long and the whole symbol was redrawn a quarter turn
+     * (`CircuitResizeTest`, `SelectionOps.circuitStretch`, which reads the same answer).
+     */
+    fun axisRunsAlongX(circuit: CircuitElement): Boolean {
+        if (circuit.pins.size < 2) return true
+        return circuit.pins.maxOf { it.relX } - circuit.pins.minOf { it.relX } > 0.0
+    }
+
     private fun axisOf(circuit: CircuitElement): Axis {
         if (circuit.pins.size == 1) {
             val pin = circuit.pins.first()
@@ -189,7 +207,7 @@ object CircuitInk {
         val ys = circuit.pins.map { circuit.positionY + it.relY }
         val left = xs.min(); val right = xs.max()
         val top = ys.min(); val bottom = ys.max()
-        return if (right - left >= bottom - top) {
+        return if (axisRunsAlongX(circuit)) {
             val middle = (top + bottom) / 2.0
             Axis(left, middle, right, middle)
         } else {

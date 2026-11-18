@@ -188,11 +188,27 @@ object SelectionTester {
      * its box is what the user sees and sees hit. The box test still runs **first** for a stroke, as a cheap
      * rejection before its segments are walked.
      */
-    fun pickTopmost(page: Page, x: Double, y: Double): ElementRef? {
+    fun pickTopmost(page: Page, x: Double, y: Double): ElementRef? = pickTopmost(page, x, y) { true }
+
+    /**
+     * [pickTopmost] restricted to the elements [matches] accepts — what a top-bar element tool asks
+     * before it places anything: the object of its own family under the point is selected, and only
+     * paper that holds none of them takes a new one (`dragging/LivingPlacementPick.kt` on the tablet).
+     *
+     * The answer is the **topmost matching** element, so a closed figure lying over another is the one
+     * a press picks, exactly as a plain tap picks.
+     */
+    fun pickTopmost(
+        page: Page,
+        x: Double,
+        y: Double,
+        matches: (Element) -> Boolean,
+    ): ElementRef? {
         for (li in page.layers.indices.reversed()) {
             val elements = page.layers[li].elements
             for (ei in elements.indices.reversed()) {
                 val el = elements[ei]
+                if (!matches(el)) continue
                 if (!ElementBounds.isHitTestable(el)) continue
                 if (!ElementBounds.of(el).expand(TAP_PAD).contains(x, y)) continue
                 if (el is Stroke && !StrokeHitTester.hits(el, x, y, TAP_PAD)) continue

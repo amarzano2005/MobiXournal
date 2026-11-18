@@ -141,7 +141,15 @@ its pins sit on (`CircuitInk`), so the pins state its **length** and `CircuitEle
 **across** it — the same two sizes a drag gives it when it is placed. A page stretch is read on those two
 axes (`hypot(sx·cos, sy·sin)` along the part, `hypot(sx·sin, sy·cos)` across it), so a side handle makes the
 symbol taller or shorter without lengthening it, a corner gives the two sizes a ratio each, and a part lying
-on the page's axes puts its ink exactly where the dragged corner went. There is no shear in the model, so a
+on the page's axes puts its ink exactly where the dragged corner went. The axis is the line the part was
+**drawn from**, never the longer side of its pins' box (`CircuitInk.axisRunsAlongX`): a gate states its
+inputs on both axes, so reading the box turned the whole symbol a quarter turn the moment a handle made it
+taller than it is long — a size deciding what the symbol is. The pins are then put back onto the symbol that
+will be drawn, on **both** axes: along the part at the page's ratio, and across it at the change of the height
+**actually drawn**, because the library sizes a gate's input leads from its length (`CircuitShapes`).
+Lengthen a gate and the leads spread apart, so pins that only followed the page were left hanging inside a
+body they no longer met, and gates alone showed it — a two-terminal part has nothing across its axis to move.
+There is no shear in the model, so a
 stretch running diagonally to the part becomes the two lengths those projections give — exact on the page's
 own axes, the closest a symbol can come at an angle, and never the sideways slide that used to leave the pins
 short of the box the handles were pulling (`CircuitResizeTest`). A part no handle has stretched stores no

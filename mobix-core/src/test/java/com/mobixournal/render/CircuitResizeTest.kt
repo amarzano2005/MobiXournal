@@ -44,19 +44,17 @@ class CircuitResizeTest {
         id = "c1",
     )
 
-    /** A gate: its pins spread on both of the part's own axes. */
-    private fun gate(): CircuitElement = CircuitElement(
-        symbol = "AND",
-        positionX = 100.0,
-        positionY = 100.0,
-        rotation = 0.0,
-        pins = listOf(
-            CircuitPin("in1", -20.0, -10.0),
-            CircuitPin("in2", -20.0, 10.0),
-            CircuitPin("out", 20.0, 0.0),
-        ),
-        id = "g1",
-    )
+    /**
+     * A gate as the tool places one: 40 pt of axis, its two inputs on the other axis — the family whose
+     * pins leave the axis, and so the only one a stretch can pull off its own lead.
+     */
+    private fun gate(): CircuitElement = CircuitElementFactory.placedElementFor(
+        symbol = "AND_GATE",
+        startX = 80.0,
+        startY = 100.0,
+        endX = 120.0,
+        endY = 100.0,
+    )!!.copy(id = "g1")
 
     private fun pageOf(vararg elements: Element): Page = Page(
         width = 612.0,
@@ -169,8 +167,41 @@ class CircuitResizeTest {
     fun aGatesPinsFollowEachOfItsOwnAxes() {
         val scaled = resized(gate(), 2.0, 3.0, anchorX = 0.0, anchorY = 0.0)
         assertEquals("the input moves out along the axis by its ratio", -40.0, scaled.pins[0].relX, 1e-9)
-        assertEquals("and out across it by its own", -30.0, scaled.pins[0].relY, 1e-9)
-        assertEquals("so the two inputs stay on the gate's own sides", 30.0, scaled.pins[1].relY, 1e-9)
+        // The inputs were 6 pt off the axis and the drawing is three times as tall, so they are 18 pt off
+        // it — the same ratio, read on the symbol's own drawn height.
+        assertEquals("and out across it by its own", -18.0, scaled.pins[0].relY, 1e-9)
+        assertEquals("so the two inputs stay on the gate's own sides", 18.0, scaled.pins[1].relY, 1e-9)
+    }
+
+    @Test
+    fun aGateLengthenedKeepsItsInputsOnTheDrawnLeads() {
+        // A gate's input leads are half of its drawn height apart (the library sizes them from the axis), so
+        // a longer gate has them further out. Pins read off the page's own stretch were left where the short
+        // gate had them — inside a body they no longer touched.
+        val gate = gate()
+        val longer = resized(gate, 2.0, 1.0, anchorX = 80.0, anchorY = 100.0)
+        assertEquals("the length doubles", -40.0, longer.pins[0].relX, 1e-9)
+        assertNull("and no height is stored for a part only made longer", longer.height)
+        assertEquals("the library sizes it from its new length", 40.0, CircuitInk.drawnAcross(longer), 1e-9)
+        assertEquals(
+            "the input sits on its lead, a quarter of the drawn height off the axis",
+            -CircuitInk.drawnAcross(longer) / 4.0,
+            longer.pins[0].relY,
+            1e-9,
+        )
+        assertEquals("and so does the other one", CircuitInk.drawnAcross(longer) / 4.0, longer.pins[1].relY, 1e-9)
+    }
+
+    @Test
+    fun aGateStretchedTallKeepsItsAxis() {
+        // A gate's pins spread on both axes, so its box of pins can end up taller than it is long. The axis
+        // is the line the symbol was drawn from, not the longer side of that box: reading the box turned the
+        // whole gate a quarter turn in the middle of a resize.
+        val gate = gate()
+        val tall = resized(gate, 1.0, 6.0, anchorX = 100.0, anchorY = 88.0)
+        assertEquals("the length is untouched", -20.0, tall.pins[0].relX, 1e-9)
+        assertEquals("the drawing is six times as tall", 6.0, inkHeight(tall) / inkHeight(gate), 1e-9)
+        assertEquals("and exactly as long as it was — the symbol did not turn", inkWidth(gate), inkWidth(tall), 1e-9)
     }
 
     @Test

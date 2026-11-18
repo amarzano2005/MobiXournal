@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -109,8 +110,20 @@ class ToolSwitchTest {
 
     @Test
     fun `every figure tool hands the canvas back to selection once its element has landed`() {
-        for (tool in SHAPE_TOOLS) {
+        for (tool in SHAPE_TOOLS - LIVING_ELEMENT_TOOLS) {
             assertEquals("$tool inserted an element", EditorTool.SELECT, toolAfterInsertion(tool))
+        }
+    }
+
+    @Test
+    fun `an element tool keeps its slot in hand after placing its object`() {
+        // A table or a part is selected by the tool itself on the next press, so its slot stays: a row of
+        // parts is placed without picking the tool up again.
+        assertTrue(EditorTool.TABLE in LIVING_ELEMENT_TOOLS)
+        assertTrue(EditorTool.RESISTOR in LIVING_ELEMENT_TOOLS)
+        assertTrue(EditorTool.AND_GATE in LIVING_ELEMENT_TOOLS)
+        for (tool in LIVING_ELEMENT_TOOLS) {
+            assertEquals("$tool stays in hand", null, toolAfterInsertion(tool))
         }
     }
 
