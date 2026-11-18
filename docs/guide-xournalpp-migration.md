@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: the Xournal++ relationship, in both directions. The internal map is [architecture.md](architecture.md)._
 
-This page is true for Android **2.2.0** and desktop **1.2.0**.
+This page is true for Android **2.3.0** and desktop **1.3.0**.
 
 ## This is not Xournal++
 

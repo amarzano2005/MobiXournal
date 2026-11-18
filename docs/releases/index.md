@@ -7,14 +7,16 @@
 
 ## What is current
 
-- **Android:** MobiXournal **2.2.0**, released 2026-11-13.
-- **Windows:** MobiXournal Desktop **1.2.0**, released 2026-11-13.
+- **Android:** MobiXournal **2.3.0**, released 2026-11-18.
+- **Windows:** MobiXournal Desktop **1.3.0**, released 2026-11-18.
 
 The two shells are built and released separately and therefore number separately. A note names the shell
 it belongs to, and a release note for one shell does not describe the other.
 
 | Version | Shell | Released | What it was | The note |
 |---|---|---|---|---|
+| **2.3.0** | Android | 2026-11-18 | An index you own, PDF text under the tool in hand, slots that pick what they drew | [v2.3.0.md](v2.3.0.md) |
+| **1.3.0** | Windows | 2026-11-18 | Editable Contents in the sidebar, text selected by double click, ink feedback everywhere | [v2.3.0.md](v2.3.0.md) |
 | **2.2.0** | Android | 2026-11-13 | Saves itself, selection by its grips, pins and the magnet, Export As, portable copies | [v2.2.0.md](v2.2.0.md) |
 | **1.2.0** | Windows | 2026-11-13 | The pins, saves that never stall the canvas, portable copies, the Export As card | [v2.2.0.md](v2.2.0.md) |
 | **2.1.0** | Android | 2026-11-09 | The update check, document work off the frame, interruption-safe saves | [v2.1.0.md](v2.1.0.md) |

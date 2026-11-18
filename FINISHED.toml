@@ -17,7 +17,7 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
-latest_release = "2.2.0"
+latest_release = "2.3.0"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
@@ -33,6 +33,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["android", "figures"]
 design = "material: unchanged — the slot wears the rail's own picked surface and the selection's outline, no new material class; tokens: no new token or literal (the graph button is `CompactSingleToolButton` now); states: armed, picked-plot, reserved-box and still-in-hand-after-place; glyph: `ToolGlyph.PLOT`, the catalogue's existing entry; copy: the slot's label is \"Plot\" from `EditorTool`, so the old \"Insert graph\" string went with the special branch; keyboard: unchanged, no shortcut added; parity: the tablet now has the window's Plot slot, so a press on a plot the slot made selects it instead of stacking a second graph and the plot/formula paragraph documents no difference; docs: element-authoring.md, function-plots.md, guide-stem-tools.md, ui-modernization.md; tests: app PlacementPickTest, TopBarItemsTest"
 
@@ -45,6 +46,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["android", "figures"]
 design = "material: unchanged; tokens: no new token or literal; states: a LaTeX tap on a formula opens that formula's editor, a tap on paper still opens the source dialog, and the slot stays in hand either way; glyph: none; copy: no new strings (the editor is the one the double-tap already opens); keyboard: unchanged; parity: both shells now pick the plot and the formula their own door made, and neither re-places one on the press that means to pick it; docs: element-authoring.md; tests: app PlacementPickTest"
 
@@ -57,6 +59,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["desktop", "figures"]
 design = "material: unchanged; tokens: no new token or literal; states: a double click with a placement slot in hand opens the editor again on a plot and a formula, and a single click still just selects and carries; glyph: none; copy: no new strings; keyboard: unchanged; parity: the window's double click is the tablet's double-tap twin and again works on every living recipe while its slot is in hand — no shell difference; docs: selection-actions.md; tests: DesktopPlacementPressTest"
 
@@ -69,6 +72,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["desktop", "figures"]
 design = "material: unchanged — the selection outline and its grips are reused; tokens: no new token or literal; states: a press with the Plot or Formula slot selects, carries and lets go like every other placement slot, and empty paper still asks the family's question; glyph: none; copy: no new strings; keyboard: unchanged; parity: the window picks plots and formulas, the tablet does not yet — recorded as a deliberate difference in element-authoring.md; docs: element-authoring.md, selection-actions.md; tests: PlacementPickTest, DesktopPlacementPressTest, DesktopEdgePanTest"
 
@@ -81,6 +85,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["desktop", "figures"]
 design = "material: unchanged — no new surface, the tool slot's picked state and the selection outline are reused; tokens: no new token or literal; states: a slot stays picked across an insertion and the placed element stays selected, with its grips reachable on the next press; glyph: none; copy: no new strings; keyboard: unchanged, all shortcuts keep working since no tool is switched for the reader; parity: the tablet's own rule (its toolAfterInsertion removal), now identical on both shells; docs: element-authoring.md, selection-actions.md; tests: DesktopPlacementPressTest, DesktopCircuitPreviewTest, DesktopInspectorLaneTest, DesktopSelectionPinsTest, DesktopEdgePanTest"
 
@@ -93,6 +98,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["desktop", "figures"]
 design = "material: unchanged — pins and the outline are chrome the sheet's overlay already paints; tokens: DesktopTheme.pin/desk and the existing PIN_*/WIRE_END sizes reused, no literal added; states: resting armed marks, press-pick, drag and the selection's own grips all answered; glyph: none; copy: no new strings; keyboard: unchanged, Esc still cancels a drag; parity: the tablet's FigurePins/PlacementPick rule, same marks and same selects-on-press, with the hand-to-select-after-insertion difference recorded; docs: element-authoring.md, selection.md, desktop-workstation.md; tests: PlacementPickTest, DesktopPlacementPressTest, DesktopParityTest"
 
@@ -105,6 +111,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "states: the split card is offered only while the left pane still shows the half the close recorded, so a left pane that opened another document lists it as a single card; copy: none; material: none; tokens: none; glyph: none; parity: desktop recents are File-based and carry no split offer; docs: docs/document-session.md owns the offer rule; tests: RecentNotebooksTest.aStoredSplitIsOfferedOnlyWhileItsLeftHalfIsStillShowing"
 
@@ -117,6 +124,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: the cards keep the sheet rectangle and its halo, no new surface; tokens: unchanged, the new cards reuse the session card's badge and inset; glyph: the existing restore and split marks, nothing added; states: a session card keeps its restore badge and a split card its capsule, and each keeps the remove target; copy: the card captions are the tab titles the last run stored, in English as their files are; parity: mobile only, the window's entry screen has no split cards; docs: docs/chrome.md and docs/document-session.md say the other tabs keep their own cards; tests: RecentNotebooksTest pins the split card's membership, every guard suite is green, and no card was looked at on a device"
 
@@ -129,6 +137,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: the floating glass capsule and the family's hairline rim, unchanged by the move; tokens: DesignTokens.PAGE_SHADOW_DP is the whole inset again, and SPLIT_BADGE_CLEARANCE_DP is deleted rather than left as dead code; glyph: ChromeGlyph.RESTORE plus the top bar's VerticalSplit mark, unchanged; states: a static badge with merged semantics, the card's click and its remove target untouched; copy: the English description is unchanged; parity: mobile only by nature, the window's entry screen has no split cards; docs: docs/chrome.md and docs/document-session.md now name the top-left corner; tests: every guard suite green, the corner not looked at on a device"
 
@@ -141,6 +150,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: the floating glass fill with the family's hairline rim, same as the session badge it replaces; tokens: DesignTokens.PAGE_SHADOW_DP and RIM_WIDTH_DP with SPLIT_BADGE_SIDE_DP, SPLIT_BADGE_GAP_DP, SPLIT_BADGE_RULE_DP and SPLIT_BADGE_CLEARANCE_DP for the capsule's inset, hairline, rule and clearance from the remove mark; glyph: ChromeGlyph.RESTORE and the top bar's VerticalSplit mark, both already in the catalogues; states: a static badge with merged semantics and no press state of its own, the card's click and its 40 dp remove target unchanged; copy: English description 'From the previous session, in split view - both halves reopen'; parity: mobile only by nature, the window's entry screen has no split cards to mark; docs: docs/chrome.md and docs/document-session.md updated inside their budgets; tests: every guard suite green, the badge not viewed on a device"
 
@@ -153,6 +163,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: no new surface - the existing Export PDF card is simply not raised at one page, so the file lands on the system picker; tokens: none added, the card's own tokens are untouched; glyph: none added or removed; states: the card keeps its five states for every document that has something to ask and is skipped entirely at one page; copy: no new copy, the existing English labels of both shells stand; parity: one shared core rule drives the tablet and the window, so neither can ask while the other skips; docs: docs/guide-pdf-and-audio.md owns the sentence; tests: ExportPagesTest and DesktopExportScopeTest pin the rule, and every guard suite is green"
 
@@ -165,6 +176,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["selection", "pins", "desktop"]
 design = "material: nothing new on screen, the outline now follows the element it belongs to; tokens: the pin colours and shapes are the shared marks already painted by PageCanvasOverlay, no new colour; glyph: a joined element keeps the hollow own pins and loses the compatible mark it landed on, the same rule the tablet reads; states: a press on a compatible mark joins, a press on the element's ink still grabs and drags, and a slot's press lets go; copy: no new English text; keyboard: Esc still drops the selection, the press is an addition and not a replacement; parity: the two shells now answer the same press with the shared FigurePins.pressJoin rule, which is the point of the port; docs: docs/selection.md says the window answers the same press and keeps its own grab for an element's own pin; tests: the pure rule is FigurePinsTest's in core (green), the desktop wiring is compile-verified, and the desktop suite cannot run on this host"
 
@@ -177,6 +189,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["selection", "pins", "tablet"]
 design = "material: nothing new on screen, the selection now stays where it was; tokens: unchanged, no colour moves because nothing is re-created; glyph: the dashed outline and the pins persist between presses, which is what makes them readable as a held object; states: leaving the select tool still drops the selection, re-applying the same tool does not, and every press now finds the state the previous one left; copy: no English text added; keyboard: the shortcut path goes through the same applyTool, so the rule is one; parity: the window's own tool switch is its own; docs: docs/selection.md explains that the selection survives the next press and why; tests: the app suite and the guards cover the change, and the rule is reachable only through a SurfaceView so it has no JVM unit test"
 
@@ -189,6 +202,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["selection", "tablet", "circuit"]
 design = "material: nothing new on screen, the press drops the outline and its bar and writes nothing; tokens: unchanged, no colour moves because the selection leaves; glyph: the dashed outline and handles go with the selection, so no mark claims an object that is no longer held; states: an empty tap lets go for figure, table and circuit slots, a press on the object's ink still holds and any travel still draws and commits; copy: no new English text beyond the guide line; keyboard: untouched, this is the canvas; parity: documented as the tablet's press, the window's own empty click is its own; docs: docs/selection.md and docs/guide-stem-tools.md describe the letting-go tap for every slot; tests: ShapeDraftTest pins the draft flag and its two readings, and the commit path is covered by the app suite"
 
@@ -201,6 +215,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["selection", "tablet"]
 design = "material: nothing new on screen, the release only drops the outline and its bar; tokens: unchanged, no colour moves because the selection leaves rather than changes; glyph: the dashed outline and the handles go with the selection, so no mark is left claiming a figure that is no longer held; states: a tap on empty paper is now the deselect, a press on the ink still holds and any travel still moves, and a figure slot lets go on paper without its own figure; copy: no new English text; keyboard: untouched; parity: documented as the tablet's press, the window's own empty click is its own; docs: docs/selection.md describes the tap on nothing inside the outline and the figure slot letting go; tests: MovePressTest pins the rule and SourceStructureTest forced a split, so the reading lives in MovePress.kt"
 
@@ -213,6 +228,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["circuit", "pins", "tablet"]
 design = "material: nothing new, a press is a press and no surface is added; tokens: the marks keep their pin red and the shapes the gesture already draws, no new colour; glyph: the pins are the same filled dot and square, unchanged, so what a press anchors to is what the sheet promised; states: the press now starts the stroke on the mark where it used to pick the part, and the select tool keeps the join-on-press so each tool owns one answer; copy: no new English text; keyboard: untouched, this is the canvas; parity: the mark stays the tablet's press and the window keeps its own drag-and-grip, as documented; docs: docs/selection.md says the pin is the most specific anchor under a drawing tool and docs/guide-stem-tools.md tells the reader the wire starts on the pin; tests: PlacementPickTest pins the pin press, the off-the-mark pick and the armed figure's end"
 
@@ -225,6 +241,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["circuit", "pins", "tablet"]
 design = "material: nothing new, the armed marks reuse the pin paints already owned by CanvasChrome; tokens: the pin red stays DesignTokens.PIN_RGB for a target and the selection accent for nothing here, no new colour; glyph: the same filled dot for a pin and square for a wire's end the gesture already draws, so an armed mark and a live one are one mark; states: the marks are now visible at rest with a tool in hand and while it draws, and they disappear when a selection wears its own pairing, so the same point is never painted twice; copy: none added, no English text; keyboard: untouched, this is chrome on the canvas; parity: documented as the tablet's overlay, the window's own armed marks are its own and unchanged; docs: docs/selection.md and docs/guide-stem-tools.md state that the marks stand at rest and what they show; tests: FigurePinsTest pins the armed figure's targets and that a figure still aims at nothing, and the app guards pass"
 
@@ -237,6 +254,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = ["circuit", "pins", "tablet"]
 design = "material: nothing new is added, the press reuses the marks the sheet already paints and brings no surface or fill; tokens: the pins keep DesignTokens.PIN_RGB and the selection accent, no new colour; glyph: the three existing pin shapes carry the meaning, a filled dot for a joinable pin, a square for a wire's end and a hollow ring for the element's own pin; states: a joint already made is neither drawn nor pressable, so identical marks mean identical behaviour, and the press changes no tool or selection state beyond moving the element; copy: none, the press writes no string and adds no English text; keyboard: untouched, the tablet press is a pointer gesture and the window keeps its own; parity: deliberate and documented, the tablet gains the press while the window keeps a pin as a drag target and a selection grip; docs: docs/selection.md and docs/guide-stem-tools.md state the rule, the nearest-own-pin travel and the tablet versus window difference; tests: FigurePinsTest pins the part-to-part press, the figure-to-wire-end press and the already-joined refusal, and the whole core and app suites pass"
 
@@ -249,6 +267,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: no new surface - the selection outline, its grips and the tool slot's picked state are reused; tokens: no new token; glyph: no new glyph; states: every placement slot keeps its picked state across an insertion while the selection paints as before; copy: no new user-facing strings; keyboard: none; parity: the tablet's press rule is recorded as the tablet's own in element-authoring because the window still hands the page to Marquee after inserting; docs: element-authoring and the figures guide; tests: PlacementPickTest and FigurePinsTest"
 
@@ -261,6 +280,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: no new surface — the selection outline, its grips and the tool slot's picked state are reused; states: the element slot keeps its picked state across an insertion and the selection paints as before; parity: the tablet now matches the window, which already kept its placement slot in hand; copy: no new user-facing strings; docs: selection, element-authoring and the circuits guide; tests: CircuitResizeTest, LivingPlacementPickTest and ToolSwitchTest"
 
@@ -273,6 +293,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: the eight handles and their marks are untouched, only what they do; states: a part now carries a length from its pins and a height of its own, and a side handle writes one without the other; parity: both shells share SelectionOps, so the tablet and the window stretch a part the same way; docs: docs/selection.md and the circuit row of docs/mobix-element-fields.md state the two axes; tests: CircuitResizeTest covers each axis, a corner, both anchors, a turned part and a gate, and MobixLivingCodecTest the stored height"
 
@@ -285,6 +306,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the selection outline, its eight dots and the rotate knob are unchanged and only what a press on them does changed; states: a line's end follows the hand's own travel in every frame of the drag and stays on the pin it caught, and a part's box drag leaves the far side exactly on the anchor while a drag across its axis no longer moves it; parity: both shells read one rule, shaftResizeToPin for the end (the tablet through ShaftMagnet.shaftEndDrag, the window through shaftStretch) and SelectionOps.affineXY for the part; tests: ShaftResizeTest, CircuitResizeTest and SelectionShaftTest, with DocsGuardTest and SourceStructureTest green; docs: docs/selection.md, the shaft-drag sentence and the part's resize paragraph"
 
@@ -297,6 +319,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.0"
 tags = []
 design = "states: a joint is one joint -- the wire end lands exactly on the tip, so a selected pair shows one handle and no second mark; parity: both shells read FigurePins.aimsAt and SelectionOps.affineXY, so the window and the tablet join a wire to a tip and resize a turned part alike; docs: docs/selection.md records the rule; tests: FigurePinsTest and CircuitResizeTest pin it"
 
@@ -309,6 +332,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the same dots and squares the pin overlay drew, one more paint (a hollow ring) beside them; tokens: the existing PIN_RGB with CanvasChrome.PIN_COLOR and its ring paint, the accent stays the handles', no literal at a call site; glyph: none, the marks are geometry (filled dot, square, hollow ring, accent dot with arms), sizes unchanged or new named constants; states: target, caught, pending, wire end, own pin and handle each have one shape, a pin on a handle is not drawn, the halo stays; copy: unchanged English; keyboard: not applicable, nothing focusable changed, the window passes its own press; parity: both shells read one snapping rule and both pass the grab point, the marks keep one vocabulary from FigurePins; docs: selection.md owns the four marks and the grab rule, mobix-living-entities.md links to it; tests: the new magnet and handle cases in mobix-core, app unit suite with the guards, instrumented-test compile, desktop main and test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -321,6 +345,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the same filled dots and squares the pin overlay already drew; tokens: one new colour token DesignTokens.PIN_RGB #E5484D with CanvasChrome.PIN_COLOR and DesktopTheme.pin as its two readers, no literal at a call site, nothing else in the palette moves; glyph: none, the marks keep their sizes PIN_DOT_PX/PIN_PENDING_PX/PIN_CAUGHT_PX/WIRE_END_PX; states: every pin state (target, caught, pending, joined ring, wire end) now wears the red, the halo stays the sheet's white and the desk's hairline, the accent still means picked and the amber still means instrument; copy: unchanged, no string touched; keyboard: not applicable, nothing focusable changed; parity: both shells read the same token, so a pin cannot be two colours on two screens; docs: colours.md gains the token bullet, desktop-workstation.md corrects the accent wording, CanvasChrome and DesktopTheme say why it is not the accent; tests: app unit suite with the guards, instrumented-test compile, desktop main and test compile, DesktopThemeTest, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -333,6 +358,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: the lane keeps its own glass surface, now arriving and leaving by width; tokens: MaterialTheme motion via tween with LANE_SLIDE_MS 180 ms as the named duration, the lane's existing glass, rim and shadow unchanged; glyph: none; states: open and closed are unchanged, the transition now exists and every frame of it is painted, the compass of the capsule's accent is untouched; copy: unchanged English; keyboard: not applicable on Android, the window's sidebar is untouched; parity: Android-only lane; docs: pages-and-paper.md describes the slide and why it exists; tests: app unit suite with the doc, structure, package, geometry and log guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -345,6 +371,7 @@ level = "task"
 category = "test"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "none: two more fields in the canvas's existing pen-diagnostics line, a debugging aid rather than a feature of the app's interface, with its material, tokens, glyphs and English copy unchanged"
 
@@ -357,6 +384,7 @@ level = "task"
 category = "test"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "none: an operator diagnostic field in the canvas's existing pen-diagnostics panel, a debugging aid rather than a feature of the app's interface, and its material, tokens, glyphs and English copy are unchanged"
 
@@ -369,6 +397,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: the workspace row now sits on one backdrop of the lane's own glass, no new surface of its own; tokens: rememberGlassSurfaceColor over rememberChromeColor, the lane's existing recipe, no literal added; glyph: none; states: unchanged, this only fills the instant between two placements; copy: unchanged English; keyboard: not applicable; parity: Android-only lane geometry; docs: pages-and-paper.md already describes the canvas taking the width back on the frame that closes the lane; tests: app unit suite with the shape, doc, structure and geometry guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -381,6 +410,7 @@ level = "task"
 category = "test"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "none: this is an operator diagnostic line inside the canvas's existing pen-diagnostics panel, which is a debugging aid rather than a feature of the app's interface, and its material, tokens, glyphs, states and English copy are unchanged"
 
@@ -393,6 +423,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface; tokens: none added, no colour or size changed; glyph: none; states: the visible change is that the pane's first frame after the lane opens or closes is already fitted and centred, with no strip of desk beside the page; copy: unchanged English; keyboard: not applicable; parity: Android-only pane resize; docs: pages-and-paper.md already states the canvas takes the width back on the frame that closes the lane; tests: app unit suite with the doc, structure and shape guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -405,6 +436,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the canvas keeps its chrome; tokens: none added, no colour or size changed; glyph: none; states: the visible change is that the exposed edge during a lane open or close is filled by the first new-size frame instead of a black strip, everything else unchanged; copy: unchanged English; keyboard: not applicable; parity: Android-only pane resize, the window's native layout is untouched; docs: covered by the sentence pages-and-paper.md already carries about the canvas taking the width back on the frame that closes the lane; tests: app unit suite with the doc, structure and shape guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -417,6 +449,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the canvas keeps its own chrome; tokens: none added, no colour or size changed; glyph: none; states: the visible change is that the sheet recentres in the frame that closes the lane instead of waiting for a touch, and switching the lane's tab re-centres too; copy: unchanged, English; keyboard: not applicable, the window's canvas is untouched; parity: Android-only lane and pane resize; docs: pages-and-paper.md states that closing the lane hands the width back and recentres on that frame; tests: app unit suite with the doc, structure and shape guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -429,6 +462,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the two halves keep the capsule's glass and the lane keeps its own header; tokens: MaterialTheme.colorScheme.primary when open and rememberChromeInk or onSurfaceVariant otherwise, no literal added; glyph: unchanged ViewList and BOOKMARK at 18 and 20 dp; states: the open state is the accent in both places, rest keeps the chrome ink, press, hover and focus draw nothing by owner request, the selected flags stay for a screen reader; copy: Page list, Bookmarks, Pages and Bookmarks unchanged; keyboard: not applicable on Android, the window's Pages/Bookmarks switch is untouched; parity: Android-only capsule and lane; docs: chrome.md and pages-and-paper.md now say the half and the tab in front wear the accent; tests: app unit suite with the doc, structure and shape guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -441,6 +475,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the two halves keep the capsule's glass and their targets; tokens: rememberChromeInk in both states, no literal added, no accent on these marks; glyph: unchanged ViewList and BOOKMARK at 18 and 20 dp; states: rest, hover and focus draw nothing, press draws nothing by owner request, the open state stays in semantics for a screen reader and the lane in front of the canvas is the visible answer; copy: Page list and Bookmarks unchanged; keyboard: not applicable on Android, the window's Pages/Bookmarks switch is untouched; parity: Android-only capsule; docs: chrome.md states that neither half lights in the accent nor on a press; tests: app unit suite with the doc, structure and shape guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -453,6 +488,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the tabs keep the lane's own header; tokens: onSurfaceVariant in both states, the accent leaves these labels and no literal is introduced; glyph: unchanged ViewList and BOOKMARK at 18 dp; states: rest, hover, focus and press keep the TextButton's ripple, the open tab is now only semantic; copy: Pages and Bookmarks unchanged; keyboard: not applicable on Android, the window's sidebar switch is untouched; parity: Android-only lane header; docs: chrome.md now says the tabs are in the chrome's secondary ink in both states; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -465,6 +501,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the two halves keep the capsule's glass; tokens: rememberChromeInk in both states, the accent leaves these two marks and no literal is introduced; glyph: unchanged ViewList and BOOKMARK at 18 and 20 dp; states: rest, hover, focus and press keep the ripple, the open state is now only semantic, and the lane in front of the canvas is the visible answer; copy: Page list and Bookmarks unchanged; keyboard: not applicable on Android, the window's Pages/Bookmarks switch is untouched; parity: Android-only capsule, the desktop sidebar keeps its own switch; docs: chrome.md and pages-and-paper.md now state that neither half lights; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -477,6 +514,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the mark stays inside the row's 40 dp target; tokens: accent fill and onSurfaceVariant ring, one dp stroke from the theme scale, no literal; glyph: no glyph added, the tick stays Material's Check at 16 dp; states: the ripple is now clipped to the dot's circle instead of the target's rectangle, the picked fill and the empty ring share one 24 dp circle; copy: Pick page n / Page n picked unchanged; keyboard: not applicable on Android, the window's page strip is untouched; parity: Android-only lane art; docs: no page described the pick control's press halo, so none needed a change; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -489,6 +527,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the mark stays inside the row's 40 dp target; tokens: the accent fill and the onSurfaceVariant ring, one dp stroke from the theme scale, no literal; glyph: none added, the tick stays Material's Check at 16 dp; states: the picked dot and the empty ring are now one drawn circle, and the pressed state keeps its ripple; copy: Pick page n / Page n picked unchanged; keyboard: not applicable on Android, the window's page strip is untouched; parity: Android-only lane art; docs: no page described the dot's geometry, so none needed a change; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -501,6 +540,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the dot and the rows keep their Material shapes; tokens: the existing accent, onSurfaceVariant, primaryContainer and secondaryContainer, no literal; glyph: none added, the tick stays Material's Check; states: the dot is never off the lit row, the box of the page in view clears the rest of the run, and the run stays after a move; copy: Pick page n / Page n picked, Page n of N and N picked unchanged; keyboard: not applicable on Android, the window's sidebar keeps its own rules; parity: the lane now follows the canvas the way the window's sidebar follows the page it names; docs: pages-and-paper.md's row sentence; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -513,6 +553,7 @@ level = "task"
 category = "feature"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the box is the same 24 dp circle in its 40 dp target inside the lane's rows; tokens: accent fill and onSurfaceVariant ring for the dot, primaryContainer and secondaryContainer for the rows, no literal; glyph: none added, the tick is Material's Check; states: accent dot and a tick on the picked pages and on the page in view while nothing is picked, a bare ring elsewhere, enabled/disabled on the three commands unchanged; copy: Pick page n / Page n picked and the foot's Page n of N and N picked are back in English; keyboard: not applicable on Android, the window keeps PageSelectionRules with its ctrl/shift clicks; parity: both shells now act on a run again — the window by ctrl/shift clicks, the lane by its boxes — and both take the view to the page a pick names; docs: pages-and-paper.md's row sentence; tests: app unit suite with the doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -525,6 +566,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the box is the same 24 dp circle in its 40 dp target; tokens: the existing accent, onSurfaceVariant ring and the two container fills, no literal; glyph: none added, the tick is still Material's Check; states: the box now has two drawn states that agree with the row — accent dot for what the commands act on (pick, or the page in view) and grey ring otherwise — and a tap on it selects and shows the page; copy: the accessible Pick page n / Page n picked names and the foot's Page n of N are unchanged in wording; keyboard: not applicable on Android, the window keeps PageSelectionRules and its ctrl/shift clicks; parity: the lane now follows the sidebar's rule that a pick takes the view with it, while the lane keeps its open list on a compact window; docs: pages-and-paper.md's new sentence and the PageListPanel KDoc; tests: app unit suite, doc and structure guards, instrumented-test compile, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -537,6 +579,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the ring is still the row's 24 dp bordered circle inside the 40 dp target; tokens: onSurfaceVariant replaces outline, both existing scheme colours with no literal, and the verified ratios are 4.35:1 on the steel fill and 6.75:1 on the desk against the outline's 1.01:1; glyph: none added, the tick stays Material's Check; states: un-picked ring, picked accent fill with the tick, and the disabled/dimmed behaviour unchanged; copy: the accessible 'Pick page n' and 'Page n picked' names are untouched; keyboard: not applicable on Android, the window's page panel is untouched; parity: this is the Android lane only, the desktop strip keeps its own selection art; docs: no page described the ring's colour, so none needed a change; tests: app unit suite with the doc and structure guards green, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -549,6 +592,7 @@ level = "task"
 category = "feature"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the foot keeps the lane's glass and its three Material IconButtons; tokens: the lane's 6 dp air and the 48 dp targets from the shared scale, ink and error colour from the scheme, no colour literal; glyph: none added, the three marks stay Material's ArrowUpward, ArrowDownward and Delete; states: the same enabled/disabled pair on each command, ripple and disabled ink unchanged, and the foot now sits in the lane's own bottom air; copy: the English subject line and the accessible names are untouched; keyboard: not applicable on Android, the window keeps its Pages menu rows; parity: the desktop's page panel is untouched, this lane is Android-only; docs: pages-and-paper.md's foot sentence; tests: app unit suite with the doc and structure guards, release APK rebuilt and verified, desktop distributable refreshed"
 
@@ -561,6 +605,7 @@ level = "task"
 category = "feature"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the glyph sits in the lane's existing header row and the card keeps PageRangeHost's; tokens: a 40 dp target and a 20 dp glyph from the shared chrome scale, ink from rememberChromeInk, no colour literal; glyph: PAGE_RANGE, SETTINGS' gear with DESCRIPTION's sheet scaled into its hub, the two entries blended in the catalogue rather than drawn again in the screen; states: enabled while the document has more than one page, tinted like the other lane controls, no selected state because the card is not a view; copy: the name is Manage pages on the button and the card keeps its own title, the menu rows are gone; keyboard: not applicable on Android, the window keeps its Pages menu section untouched; parity: the window's PageMenuPanel and PageRangePanel are unchanged, the tablet now reaches the same PageRanges card from the lane; docs: pages-and-paper, guide-search-and-organise and chrome moved their sentences with the door; tests: core and app unit suites with the doc, structure and glyph-path guards, androidTest compile, assembleDebug, desktop compile, release APK rebuilt"
 
@@ -573,6 +618,7 @@ level = "task"
 category = "feature"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: no new surface, the marks sit on the lane's existing tabs; tokens: 18 dp glyph and 6 dp gap from the theme's dp scale, no colour literals, the tab ink reused; glyph: the catalogue ribbon and the page-list mark, the same two the header capsule carries; states: the selected tab keeps the accent on mark and label, unselected uses onSurfaceVariant, the ripple and the clipped tab feedback are unchanged; copy: English labels unchanged, marks carry no text alternative of their own; keyboard: not applicable on Android, the desktop keeps its sidebar switch; parity: the window's Pages/Bookmarks switch is untouched and these tabs are Android-only; docs: docs/chrome.md's lane sentence; tests: app and core unit suites with the doc and structure guards, instrumented-test compile, assembleDebug, the release APK rebuilt and verified"
 
@@ -585,6 +631,7 @@ level = "task"
 category = "feature"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: one capsule in the header's lane, no second sheet of glass for the second half; tokens: PAGE_CONTROL_DP 40 dp halves, capsuleShape, rim and 4 dp lift read from ModernTheme, no new literals; glyph: the existing catalogue ribbon and the page-list mark, unchanged; states: each half keeps the accent while its own lane is open, click feedback clipped to the capsule's shape, accessible names Page list and Bookmarks retained; copy: English, unchanged, no abbreviation invented; keyboard: not applicable on Android, the desktop keeps its sidebar switch; parity: the window's Pages/Bookmarks switch is unchanged and deliberately not a capsule; docs: chrome.md, pages-and-paper.md, guide-search-and-organise.md, guide-pdf-and-audio.md, ToolbarPagesPopup and TopBarRule KDoc; tests: app and core unit suites with the doc and structure guards, instrumented-test compile, assembleDebug and the desktop distributable"
 
@@ -597,6 +644,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: compact existing search control within the navigation band; tokens: shared 40dp target capsule corner rim and theme field colors; glyph: catalogue SEARCH and CLOSE; states: default hover focused populated clear and disabled draft actions verified; copy: English Filter bookmarks and Clear filter labels; keyboard: touch focus and automatic IME opening verified on tablet and phone with save dismissal; parity: both shells default to direct PDF chapter roots while Android filter follows its chrome search treatment; docs: PDF owner import guide and seeding contract updated with existing-tree preservation; tests: full Android/core suites required guards desktop import/editor tests and emulator keyboard plus light/dark compact/tablet screenshots"
 
@@ -609,6 +657,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: existing navigation band and Pages drag overlay; tokens: shared Pages shadow and scrolling metrics with shell theme fills and accent; glyph: catalogue DRAG_HANDLE; states: idle current pressed dragging landing cancelled editing-disabled and keyboard focus covered; copy: English control labels with explicit Bookmark title; keyboard: accessibility sibling actions and desktop Alt+Up/Down retain non-drag ordering; parity: drag and immediate edits on Android and desktop with existing shell-specific Pages feedback; docs: PDF owner guide README and package layout updated; tests: unit guards desktop pointer/input tests emulator screenshots and gestures plus supplied PDF on final release APK"
 
@@ -621,6 +670,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: final-width navigation band with no resize animation; states: reading ready empty and recoverable retry feedback with announced errors; copy: English reading and retry instructions; tokens: existing band theme and spacing tokens; glyph: existing navigation catalogue unchanged; keyboard: existing navigation and retry buttons; parity: indexed core lookup shared and Android worker shell integration; docs: PDF data-path and guide updated with exact evidence and frame limits; tests: unit guards heavy native fixture actual supplied PDF debug release and simulated touch pass"
 
@@ -633,6 +683,7 @@ level = "task"
 category = "feature"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: existing floating bookmark row menu; states: unavailable boundary moves disabled and every move undoable; copy: English Move up and Move down labels; parity: shared core transform with Android controls and deliberate desktop UI absence; docs: hierarchy persistence and platform difference documented; tests: pure native xopp and real Android action undo redo verification pass"
 
@@ -645,6 +696,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "copy: original display name used for generated bookmark titles; tests: raw PDF opening verified on emulator plus full app and core suites; docs: PDF owner and guide state the saved-label limitation"
 
@@ -657,6 +709,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: inline band on wide screens and replacement navigator on compact screens with existing capsule entries; tokens: shared row preview control and indent geometry; glyph: shared collapsed right chevron; states: selected rows named targets and disabled move boundaries; copy: English controls and clearer page count; keyboard: standard row-menu navigation; parity: common model and core rules with Android layout adapted for touch; docs: owners guides README and evidence updated; tests: emulator screenshots input logs full app core guards and desktop regression tests pass"
 
@@ -669,6 +722,7 @@ level = "task"
 category = "feature"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: inline band beside the canvas with existing capsule entry and floating secondary menus; tokens: shared navigation width and breakpoint rules plus existing theme tokens; glyph: bookmark ribbon added to the shared ChromeGlyph catalogue; states: named selected tabs and Material press focus controls with existing edit refusal states; copy: English navigation and bookmark controls; parity: Android now uses the inline navigator pattern already present on desktop; docs: owners guides README and verification limit updated; tests: app and core suites guards APK instrumented compilation and desktop distributable pass"
 
@@ -681,6 +735,7 @@ level = "task"
 category = "chore"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "none: guidance and developer tooling without application interface changes"
 
@@ -693,6 +748,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: opaque compact desktop popup with one border, original capsule chrome restored in three requested areas; tokens: shared palette and new desktop popup geometry constants; states: dropdown checkmark and row hover, original menu/tab states, quiet text elsewhere; glyph: shared CHECK and disclosure catalogue marks; keyboard: existing popup focus policy and choice stepping preserved; parity: tablet floating glass retained, desktop exception documented; tests: full desktop/shared suites, first-frame popup and input/pixel regressions, repository guards, actual Windows dropdown comparison; docs: interface contract and relevant owning spokes plus README updated"
 
@@ -705,6 +761,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: desktop text commands have no filled state layer; tokens: existing ink accent danger and typography only; states: ink and underline for hover press picked focus, disabled semantics retained; glyph: icon tools retain their existing catalogue and shaped feedback; keyboard: shared clickable actions expose roles, focus and Enter/Space, tab drag/rename preserved; parity: desktop text policy intentionally differs from Android, documented in contract; tests: full desktop suite, dark/light production-control pixel tests and source guard, 50 repository guards, packaged Windows inspection; docs: interface contract is the owner, AGENTS.md links it, README and relevant spokes updated"
 
@@ -717,6 +774,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: sidebar text and icon actions unfilled, popup rows retain shaped hover; tokens: existing ink accent hoverSlot palette only; glyph: shared overflow and chevrons retained; states: hover/press text ink, thin keyboard focus, selected tab underline, disabled actions preserved; keyboard: clickable semantics and focus remain visible; copy: English labels retained; tests: pixel regression plus existing layout/editor/shape tests, packaged Windows comparison; docs: owning layout and interface contract plus README.md updated"
 
@@ -729,6 +787,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: existing sidebar band with flat fields, navigation exception recorded; tokens: existing palette and body typography used; glyph: existing shared chevron and overflow marks retained; states: selected tab announces selection, hover retained, field focus underline and error state, blank Add disabled; keyboard: title focus and Enter/Escape retained, real Escape cancellation verified; copy: English Bookmarks labels consistent in tab filter empty state and PDF import; parity: desktop refinement, tablet material unchanged by owner scope; tests: 21 targeted desktop tests plus 43 documentation and structure guards, actual packaged Windows screenshots; docs: README.md and owning spokes updated"
 
@@ -741,6 +800,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-17
+release = "2.3.0"
 tags = []
 design = "material: existing sidebar band and floating menu retained; tokens: existing theme palette and type styles retained; glyph: shared MORE_HORIZ added; states: existing idle hover focus active disabled behavior retained with 40 dp action targets; copy: English Add bookmark retained without duplicate Contents; parity: desktop layout fix only, shared glyph available to both shells; tests: actual Compose descendant bounds and single-line 1234 plus packaged Windows screenshots; docs: README.md and owning spokes updated"
 
@@ -753,6 +813,7 @@ level = "task"
 category = "test"
 created = 2026-11-16
 completed = 2026-11-17
+release = "2.3.0"
 tags = ["bookmarks", "navigation", "ui", "p1"]
 design = "states: the five states were exercised on the device - idle rows, hover in the window, the pressed and focused rename field, the disabled Add command and the empty action gutter; copy: every string read on screen was English and sentence case; tokens: the row budget held at every depth with the numbers aligned in their column; parity: the same outline reads the same way in the card and the sidebar; docs: docs/pdf.md and docs/desktop-ui-layout.md; tests: PdfContentsBackTest, ContentsNavigationTest, DesktopPdfContentsTest."
 
@@ -765,6 +826,7 @@ level = "task"
 category = "bug"
 created = 2026-11-16
 completed = 2026-11-17
+release = "2.3.0"
 tags = ["bookmarks", "navigation", "ui", "p1"]
 design = "tokens: the current row wears the theme accent in the same face, no new colour or size; states: the marked row and the dimmed context row are two of the five; copy: unchanged, the announcement still names the page; parity: the mark is the resolved row rule shared by card and sidebar; docs: docs/pdf.md and docs/desktop-ui-layout.md; tests: DesktopPdfContentsTest."
 
@@ -777,6 +839,7 @@ level = "task"
 category = "bug"
 created = 2026-11-16
 completed = 2026-11-17
+release = "2.3.0"
 tags = ["bookmarks", "navigation", "ui", "p1"]
 design = "none: the value is navigation state, not a surface - it draws no pixel and changes no material, token or copy, so the card and the sidebar keep exactly the surfaces the contract already judged."
 
@@ -789,6 +852,7 @@ level = "task"
 category = "feature"
 created = 2026-11-16
 completed = 2026-11-17
+release = "2.3.0"
 tags = ["bookmarks", "navigation", "ui", "p1"]
 design = "material: the field is inline on the row, no dialog and no sheet; tokens: ACTION_DP slots for the check and the cross, the card inset for the draft; glyph: the catalogue check and cross; copy: English Title, New bookmark, Save; states: focused field outlined in the accent, empty name disabling Save, the refusal printed under the field; keyboard: Enter saves and Escape abandons on the window, Back abandons before it closes the card; parity: the same field, the same draft row and the same keys on tablet and window; docs: docs/pdf.md; tests: PdfContentsBackTest."
 
@@ -801,6 +865,7 @@ level = "task"
 category = "feature"
 created = 2026-11-16
 completed = 2026-11-17
+release = "2.3.0"
 tags = ["bookmarks", "navigation", "ui", "p1"]
 design = "material: the panel is the sidebar lane, the switch a segmented capsule on it; tokens: header control height, the existing sidebar inset, no new spacing; glyph: none added; copy: English Pages and Contents; states: idle, hover, pressed, focused and the chosen view are drawn; keyboard: Tab reaches the switch and Ctrl+B still toggles the sidebar; parity: the tablet card view maps onto the same two views; docs: docs/desktop-ui-layout.md; tests: DesktopSidebarTest and DesktopPdfContentsTest."
 
@@ -813,6 +878,7 @@ level = "task"
 category = "bug"
 created = 2026-11-16
 completed = 2026-11-17
+release = "2.3.0"
 tags = ["bookmarks", "navigation", "ui", "p1"]
 design = "tokens: every number is the token (40 dp branch and action slots, 96 dp minimum title, column capped at 30 percent of the row) instead of a close one; tokens: ink, inset ink and the accent out of the theme; glyph: the existing chevron, no new mark; copy: no new text, the announcement is the existing sentence with its page; states: heading and section faces differ by one step, context rows dimmed, the current row in the accent; parity: one rule measured from each shell own width; docs: docs/pdf.md; tests: ContentsRowLayoutTest."
 
@@ -825,6 +891,7 @@ level = "task"
 category = "bug"
 created = 2026-11-16
 completed = 2026-11-17
+release = "2.3.0"
 tags = ["bookmarks", "navigation", "ui", "p1"]
 design = "material: no new surface - rows stay on the card fill and the popup is the shared menu; tokens: ACTION_DP 40 dp slot on every row, onSurfaceVariant for the glyph, the document colour only on the confirming command; glyph: the catalogue MENU mark, no bespoke dots; copy: English Rename, Delete, Keep bookmark; states: idle, hover, pressed, focused and the empty gutter are all drawn; parity: same menu and same above-the-list question on tablet and window; docs: docs/pdf.md and docs/guide-pdf-and-audio.md; tests: ContentsRowLayoutTest."
 
@@ -837,6 +904,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "tests: both shells reopen their own produced PDF and check titles, nesting and destination sheet indices, and one test exports a subset so an excluded row is proven absent rather than assumed.; parity: the tablet and the window call the same PdfOutlineExport and write the same PDFBox outline shape, so the same notebook exports the same bookmark pane from either shell.; docs: docs/pdf.md owns the rule and docs/guide-pdf-and-audio.md the reader's side, both updated in the same change.; copy: the exported pane writes the reader's titles exactly as typed, duplicates included, and a row that was never named opens as its page's number."
 
@@ -849,6 +917,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "states: the row is offered on both cards, on by default, and its title field stays visible but disabled when the switch is off — so the card does not change height under a hand reaching for it.; copy: the row opens the first page that actually arrived rather than the file's page 1, its title starts as the file name minus only a final .pdf in any case, and two files sharing a name stay two rows because each mints its own bkm_ id.; parity: the tablet card and the window card ask the same question with the same defaults, and both append paths write the marker inside the same undo step as the pages.; tests: PdfOutlineSeedingTest covers first and second import, duplicate names, the option off, a file with no bookmarks and the title rule, and DesktopPdfImportCommandsTest covers replace seeding, the second import and the save/reopen shape.; docs: docs/pdf.md owns the rule and docs/guide-pdf-and-audio.md the reader's side, both updated with the change."
 
@@ -861,6 +930,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "states: the Contents card is drawn even with no outline and on ordinary paper and Add is reachable from it, while refusals stay under the field or in the delete question in the reader's words instead of closing the form.; copy: the delete question says the sections under the row move up and the page stays in the notebook, and only bkm_ rows offer editing.; keyboard: the tablet field is one line, submits on Enter, keeps Cancel beside Save, and enables Save only with a non-blank title.; parity: both shells offer Add, Rename and Delete from the same commands and the same refusal copy, and the PDF's own rows stay read-only on both.; tests: DesktopBookmarkCommandsTest and OutlineEditsTest cover add, rename, delete and the seeding path, and the source and docs guards pass with assembleDebug and createDistributable."
 
@@ -873,6 +943,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "copy: a refusal names its reason and no new user-visible wording ships before the Contents UI task; states: a refused edit records no undo step and a deleted chapter leaves its children in place and its page untouched; parity: both shells run the same OutlineEdits rules and both record one step per edit; docs: docs/pdf.md states the row-set rules; tests: OutlineEditsTest and DesktopBookmarkCommandsTest cover add, rename, delete, refusals, undo and reopen; material: no new material, tokens, glyph or keyboard surface yet"
 
@@ -885,6 +956,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "bookmarks", "xopp"]
 design = "states: a row whose proof fails imports with no destination and draws as a non-tappable row, title and children intact; copy: no new copy, the block carries the reader's own titles and the manifest's node shape; parity: one export and one import rule, shared by the tablet and the window through mobix-core; docs: docs/xopp-bridge.md states the shape and every refusal in its outline section; tests: MobixMetaOutlineTest covers the export shape, reorder, edit, out-of-range index, missing block and round trip; material: no new material, tokens, glyphs or keyboard surface"
 
@@ -897,6 +969,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "states: a row whose page is deleted stays in place with no destination and draws as the non-tappable row it already was; copy: no new copy, and a merge keeps the local title rather than inventing one; parity: both shells retarget through OutlinePageOps and merge through MobixOutlineMerge, so one rule answers both; docs: docs/pdf.md owns the merge and page-edit rules and links the data model for target semantics; tests: OutlinePageOpsTest, MobixOutlineMergeTest and MobixOutlineRoundtripTest; material: no new material, tokens, glyphs or keyboard surface"
 
@@ -909,6 +982,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "material: no new material, seeding reuses OutlineNode/OutlineTarget and the existing Contents renderers so a seeded row draws like a PDF row; states: pages and tree land in one undo step, a cancelled or failed import writes neither and a document carrying an outline is never re-seeded; copy: one target-less group node titled after the imported file's name so a second import never merges rows by title; parity: both shells seed through the same PdfOutlineSeeding call with the join offset; docs: docs/pdf.md and docs/guide-pdf-and-audio.md state seeding, the single undo step and the no-re-seed rule; tests: PdfOutlineSeedingTest and the window's import tests, with the emulator pass unverified here"
 
@@ -921,6 +995,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "android", "desktop"]
 design = "material: the existing compact glass capsule on both shells; tokens: COMPACT_ACTION_HEIGHT_DP and COMPACT_BUTTON_SIZE_DP unchanged, the read-only dim is the theme ink at 45 %; glyph: Copy keeps its ChromeGlyph, Highlight and Underline stay bare words; states: absent while a range is being made, present once settled, Copy always enabled, Highlight and Underline enabled on a writable page and disabled with stateDescription \"Read-only document\" on a read-only one, dismissed by Escape, an outside click, a stroke or a page change; copy: \"Copy\", \"Highlight\", \"Underline\" and the English reason and the existing reading/no-text/retry notices; keyboard: Tab reaches each word, Ctrl+C copies, Shift+S names the PDF entry in the window; parity: both shells draw the same three words from the same commands and the same refusal,; docs: README.md, docs/pdf.md, docs/guide-pdf-and-audio.md, docs/desktop-editing.md, docs/desktop-ui-layout.md, docs/desktop-workstation.md and docs/selection-actions.md in this commit; tests: app ToolGroupsTest, desktop ToolGroupsTest, StripItemsTest and PdfTextCopyBarTest."
 
@@ -933,6 +1008,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "android", "desktop"]
 design = "material: no new surface — the mark is ink on the page itself, in the pen's own colour and width; tokens: none new (GAP_PT 1 pt, MIN_WIDTH_PT 3 pt and MIN_PEN_WIDTH_PT 0.5 pt are geometry constants in mobix-core, and colour/width come from the existing pen palette rather than a literal); states: no selection (refused), selection with words (one rule per line), read-only document (refused, the bar keeps Copy only), undo/redo (one step for the whole passage); copy: the window's English confirmation \"Underlined N words\"; keyboard: none — the action reaches the bar with the contextual-actions task and needs no key of its own; parity: both shells call PdfTextUnderline.strokes, so a tablet underline and a window underline are the same ink; docs: docs/pdf.md and docs/guide-pdf-and-audio.md in this commit; tests: PdfTextUnderlineTest, PdfExportTest and DesktopPdfTextSelectionTest."
 
@@ -945,6 +1021,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "android", "desktop"]
 design = "material: a solid accent dot with a paper-white halo, content feedback on the page rather than a surface; tokens: TEXT_SELECTION_HANDLE_DP, TEXT_SELECTION_HANDLE_TOUCH_DP, TEXT_SELECTION_WASH_ALPHA and the theme accent, no new colour literal; glyph: none, the dot is the whole mark; states: resting, focused (desktop ring), extending (bar withheld), settled, and unchanged on a read-only document; copy: English labels and actions only; keyboard: Tab reaches each dot and Left/Right move that end one word; parity: both shells draw and grab through PdfTextHandles; docs: docs/pdf.md, docs/guide-pdf-and-audio.md and README.md in this commit; tests: PdfTextHandlesTest and DesktopPdfTextHandlesTest"
 
@@ -957,6 +1034,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "android", "desktop"]
 design = "material: no new surface — the hold reuses the word wash and the Copy/Highlight capsule; states: the first click of a pair is a reading press that writes nothing, the second starts the range, and the ownership rule is a pure function pinned by PdfWordPressTest (mouse, pen, packets, foreground, whitespace, pairing window and the zoom/DPI press radius)."
 
@@ -969,6 +1047,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "android", "desktop"]
 design = "material: no new surface — the hold reuses the word wash and the Copy/Highlight bar; states: a candidate exists only between the press and the long-press timeout, and its ownership is a pure function pinned by PdfLongPressTest."
 
@@ -981,6 +1060,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-16
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
 design = "material: no new surface - a settled range keeps the existing compact glass capsule, and only the existing presence motion plays, once per visibility transition; states: absent while the range is being made, absent when no selected line is visible, present once settled, hover and focus unchanged"
 
@@ -993,6 +1073,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
 design = "material: the same floating glass capsule the element bar uses, carrying compact pills on the shared 40 dp target and no third word; states: default and its existing presence motion only, keyboard focus is a 2 dp accent ring on the focused word, hover and picked and disabled unchanged"
 
@@ -1005,6 +1086,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "ui", "android", "desktop"]
 design = "material: content feedback only - the theme accent at DesignTokens.TEXT_SELECTION_WASH_ALPHA over the page, one band per line, no floating surface, border or word box; states: drawn while a range exists and dropped on Escape or an outside tap with no animated presence"
 
@@ -1017,6 +1099,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = ["pdf", "direct-text-selection", "android", "desktop"]
 design = "none: no interface surface, the selection wash and its capsule are untouched and only the admission of a press changed"
 
@@ -1029,6 +1112,7 @@ level = "task"
 category = "bug"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = []
 design = "none: Windows RadialControllerConfiguration COM interop with no UI surface changes"
 
@@ -1041,6 +1125,7 @@ level = "task"
 category = "bug"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = []
 design = "none: WinRT COM delegate ABI and native input wiring with no UI surface changes"
 
@@ -1053,6 +1138,7 @@ level = "task"
 category = "feature"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = ["desktop", "ui", "save"]
 design = "material: the mark stands inside the existing floating dock capsule and the header's own capsule, so no new surface class; states: resting floppy, unavailable at 0.38, writing (turning arc), and the clean document keeps the muted glyph on both shells; glyph: ChromeGlyph.SAVE at 20 dp, with the arc drawn in the same box from SavingSpin (TURN_MS 840, sweep 90, stroke 2.4 of 24) so nothing shifts; tokens: MaterialTheme.colorScheme.secondary on the tablet and DesktopTheme.accent in the window, no literals; copy: the arc carries contentDescription Saving on the tablet, and the window's band needs none beyond the badge already on the page."
 
@@ -1065,6 +1151,7 @@ level = "task"
 category = "bug"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = ["desktop", "autosave"]
 design = "none: no interface surface — the change is when an existing quiet job asks again, so no control, material, colour or glyph is added."
 
@@ -1077,6 +1164,7 @@ level = "task"
 category = "bug"
 created = 2026-11-15
 completed = 2026-11-15
+release = "2.3.0"
 tags = ["desktop", "save", "recovery"]
 design = "none: no new control, material, colour or glyph — an existing command table stops refusing input and the close question is the one already on screen, so no interface element is added to check against the contract."
 
@@ -1089,6 +1177,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "states: a row whose target no longer resolves is drawn dimmed, keeps its title and children, and is not tappable, and the row naming the page in view is marked in accent; parity: one OutlineResolution and one OutlineRow type serve the tablet card and the window sidebar, so order, depth, filter and destination cannot disagree; material: no new surface, the existing Contents card and sidebar section keep the same rows and glyphs as before; docs: docs/pdf.md records where a row goes, both kinds of target, and the rule that a stale one is never redirected; tests: OutlineResolutionTest and PdfOutlineViewTest pin resolution and the view, and DesktopPdfContentsTest a document whose own tree wins"
 
@@ -1101,6 +1190,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "docs: mobix-data-model.md owns the field table and the refusal list, and states the key as read by code rather than planned; tests: the codec's refusals and the corpus fixture are both asserted, so the shape is pinned by bytes and by behaviour; states: absent, empty, present and refused are four distinct answers, and an empty tree is never written as a key; parity: one OutlineTree in mobix-core for both shells, so the tablet card and the window sidebar cannot drift in what a row means"
 
@@ -1113,6 +1203,7 @@ level = "scope"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "bookmarks"]
 design = "docs: the field table, the refusal list and the resolution rule now live in mobix-data-model.md, mobix-data-model.md's owner doc, pdf.md and xopp-bridge.md, each stating what is planned instead of what is live; states: a target that no longer resolves is a named state (row shown, un-tappable, never redirected), and a node with no target is a group rather than a bookmark; parity: both shells resolve one OutlineTree through one mobix-core function, so the tablet card and the window sidebar cannot disagree about where a row goes; tests: every child task names its golden fixture and its refusal cases, so the schema is pinned before any UI reads it"
 
@@ -1125,6 +1216,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: one floating pill over the sheet on the tablet and one line on the existing status band in the window, no new surface; copy: Reading this PDF's text…, No text on this page: it is a picture of text, not text., Could not read this PDF's text (reason)., and the Try again action, the same on both shells from PdfTextAvailability; states: idle, indexing, ready-with-words (silent), ready-without-words (a scan) and failed-with-retry are all drawn, and only a failure offers the action; parity: both shells read the same PdfTextAvailability copy, one phase store per file, and the same retry rule; docs: README, docs/pdf.md and docs/guide-pdf-and-audio.md describe the four states and the retry; tests: PdfTextAvailabilityTest, PdfTextStatusTest, PdfAnalysisJobsTest and DesktopPdfTextStatusTest pin the copy, the phases and the retry"
 
@@ -1137,6 +1229,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: the existing Contents dialog and sidebar, one text field and a chevron gutter, no new surface; copy: the words are Filter, Collapse <chapter> and Expand <chapter>, the same on both shells; states: a leaf keeps the gutter empty, a closed branch hides its rows, a match is marked apart from its context path, and a search with no answer says so; glyph: the chevrons are the catalogue's own CHEVRON_DOWN and CHEVRON_UP, as the section header already uses; keyboard: the tablet's field closes the IME on Done and the window's field takes WindowKeys focus while it is typed in; parity: both shells draw and fold the same outline from PdfOutlineView, and browsing writes nothing on either"
 
@@ -1149,6 +1242,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: two words in the existing selection capsule, no new surface and no second bar; copy: the word is Highlight, beside Copy and Deselect, spelled the same on the tablet and the window; states: the word exists only where the page may be written, and a read-only document keeps Copy alone; parity: both shells write the same bands from the same geometry, in the highlighter's colour, as one undo step; tests: MagneticHighlighterTest pins the bands, DesktopPdfTextSelectionTest the one-step undo, PdfTextCopyBarTest the measured two-word capsule; docs: README, docs/guide-pdf-and-audio.md, docs/pdf.md and docs/selection.md describe the verified behaviour"
 
@@ -1161,6 +1255,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "copy: All pages, This page and Pages… with one line each, the count repeated under the answers ('2 pages of 4' / '1 page of 2'), and a refusal in the import card's own words; states: picked row, focused row ring, dead Export while the field is refused, and the card opens on All pages; keyboard: rows are radios that take Enter and Space, WindowKeys.focusControl keeps Space from panning the page behind, Esc puts the card away in the window and Back on the tablet; parity: ExportPages in mobix-core is the one rule, both exporters take the same notebook indices and write them in the notebook's order; material: the card is the family's glass with the accent on Export and no new surface; docs: pdf.md's new Exporting chosen pages, guide-pdf-and-audio's Getting a PDF out, README's one line; tests: ExportPagesTest 8, DesktopExportScopeTest 5, DesktopPdfExportTest +2, PdfExportTest +2"
 
@@ -1173,6 +1268,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: the grid is cards' own field and hairline/accent tokens, no new surface; states: unselected, selected (tint + accent ring), focused ring, and the live count above it; glyph: none added, each cell is its number and its page; keyboard: cells are focusable checkboxes, Enter or D-pad centre picks, answers stay ahead in the tab order, WindowKeys.focusControl keeps Space off the page; parity: ImportPageSelection is one rule for both shells, each with its own bounded raster cache; docs: guide-pdf-and-audio, README, code-structure and repo-layout for the new previews package; tests: ImportPageSelectionTest 6, DesktopImportPagesGridTest 2"
 
@@ -1185,6 +1281,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: both cards keep their own field idiom, no new surface or token; states: empty, refused (error sentence, confirm greyed) and usable with a live count; copy: Type pages or runs, like 2,4-6,9 / N of M pages / Pages are numbered 1 to M; keyboard: the field holds digits, comma, hyphen and spaces only, Tab order unchanged, the refusal rides the field's semantics; parity: one PageRanges.selection behind both shells, same sentences; docs: README and guide-pdf-and-audio; tests: PageRangesSelectionTest 10, PdfImportPromptTest 5, DesktopPdfImportRangeTest with the selection and duplicate cases"
 
@@ -1197,6 +1294,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: bar measured onSizeChanged so the clamp uses the real capsule at any font scale; states: below by default, above at the pane foot, clamped inside the edges; keyboard: 2 dp primary ring on Copy and Deselect through BarAction; parity: Android TextSelectionAnchor mirrors the desktop PdfTextCopyBar; copy: the words copied are the PDF's own, never the tint; docs: guide-pdf-and-audio, pdf, selection; tests: TextSelectionBarAnchorTest 7, desktop PdfTextCopyBarTest 5, ToolGroupsTest select slot"
 
@@ -1209,6 +1307,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: the card's list and the sidebar's section keep their surfaces, the rows are restyled inside them; tokens: ContentsRowLayout holds the step, the title floor, the digit width, the gap and the column share, so the per-shell 14 dp and 10 dp literals are gone; states: a live row lights on hover and answers a click, a row that leads nowhere keeps dimmed ink, no hover light and no click, and focus rings are the platform's; copy: one sentence per row — title, page, whether it opens; parity: both shells read the same rule for indent, column and announcement, and each adds its own heading step; docs: the PDF guide and the pdf spoke; tests: 8 cases over the rule plus a scene test laying rows out in a 160 dp sidebar at 100 % and 150 % text"
 
@@ -1221,6 +1320,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "keyboard: one helper on the shared FormatOption row answers Space, Enter and NumPadEnter because Android never delivered Space to the built-in handler while Enter worked; states: the focused answer draws the accent ring and the refused range outlines both fields in red with the confirm greyed; parity: the mode lives in the import request, so the window and the tablet read and write the same field; copy: the announcement is the row's title and note in one sentence, not a radio announced between two separate texts; docs: the PDF guide gained the keyboard and screen-reader paragraphs; tests: a desktop keyboard test drives Tab, Space, Esc and an invalid range, plus both full suites"
 
@@ -1233,6 +1333,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "material: the card keeps its floating glass, its title and every design token, and only the width, the scrolling body and the wrapping rule moved; states: the confirm button stays disabled on an unusable range while the error text scrolls with the body; parity: one size rule and the same stacking and footer on both shells, covered by both test suites and the emulator pass; docs: docs/guide-pdf-and-audio.md records the behaviour and what was verified"
 
@@ -1245,6 +1346,7 @@ level = "task"
 category = "feature"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "ui"]
 design = "none: copy, ordering and the confirm label inside the existing card, with every design token unchanged"
 
@@ -1257,6 +1359,7 @@ level = "task"
 category = "bug"
 created = 2026-11-10
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["mobix"]
 design = "none: test-only work over an existing plan and two emitters"
 
@@ -1269,6 +1372,7 @@ level = "task"
 category = "bug"
 created = 2026-11-10
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["mobix"]
 design = "none: the export's face choice is a plan value carried into an emitter, and no control or pixel changed"
 
@@ -1281,6 +1385,7 @@ level = "task"
 category = "bug"
 created = 2026-11-10
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["mobix"]
 design = "none: a plan op and an emitter take a different argument, and no pixel or control changes"
 
@@ -1293,6 +1398,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "android"]
 design = "none: the refactor keeps one entry point per import surface, with the plan as the value the worker hands the canvas"
 
@@ -1305,6 +1411,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "android"]
 design = "none: no interface surface, an extraction job pool"
 
@@ -1317,6 +1424,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "shared"]
 design = "none: no interface surface, a reading of PDF text"
 
@@ -1329,6 +1437,7 @@ level = "task"
 category = "bug"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "desktop"]
 design = "none: no interface surface, an import geometry change"
 
@@ -1341,6 +1450,7 @@ level = "task"
 category = "bug"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "shared"]
 design = "none: no interface surface, an export refusal and its error copy"
 
@@ -1353,6 +1463,7 @@ level = "task"
 category = "bug"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "desktop"]
 design = "none: no interface surface, an import command and model re-point change"
 
@@ -1365,6 +1476,7 @@ level = "task"
 category = "bug"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "desktop"]
 design = "none: no interface surface, a save-path and scratch-file naming change"
 
@@ -1377,6 +1489,7 @@ level = "task"
 category = "bug"
 created = 2026-11-14
 completed = 2026-11-14
+release = "2.3.0"
 tags = ["pdf", "android"]
 design = "none: no interface surface, a store and save-path change only"
 
