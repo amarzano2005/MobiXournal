@@ -72,10 +72,13 @@ the canvas ends below the selection, clamped inside the canvas either way). It c
 button**: tapping off the selection clears it, and that same tap starts the next stroke. A tap on **empty
 paper inside** the outline clears it too: the box encloses air, and a press there begins a move, so a still
 press is read as a tap on nothing and lets go (`SelectionGestureController.commitMove`) instead of holding — a
-press on the element's **ink** is the one that holds. A figure slot does the same on paper that holds no figure
-of its kind (`PlacementPick.letGoOfFigure`), so the tool left in hand no longer keeps a figure selected by drawing
-another one — and on paper that holds nothing at all that press is **only** the letting go: the gesture is
-dropped, because a figure tool's tap writes a degenerate figure and would select it straight back. Its controls
+press on the element's **ink** is the one that holds. Every **placement slot** — a figure, a table, a circuit
+part — does the same on paper that holds nothing of its kind (`PlacementPick.letGoOfSelection`), so the tool left
+in hand no longer keeps an object selected by drawing another one. A press that stays a **tap** there is *only*
+the letting go: the gesture began because the slot is armed, and the release drops it (`ShapeDraft.onlyLetGo`,
+read by `DrawingSurfaceStrokes.commitCurrent`) — a figure tool's tap would otherwise write a degenerate figure and
+select it straight back, and a part slot would place a default-sized part on the press that meant to get out. A
+**drag** is still the drawing it was, so a second object can be laid down without picking the slot again. Its controls
 are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halves the bar's footprint,
 and it arrives **in place** on the shared glass spring (`liquidGlassSpringAnimation`, scale + fade —
 the motion every floating surface plays), its offset animated only once it has been measured, so it

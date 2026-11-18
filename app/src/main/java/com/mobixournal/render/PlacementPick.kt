@@ -113,9 +113,9 @@ internal fun DrawingSurfaceView.beginPlacementPress(event: MotionEvent, pointerI
     // mark is the finer target — the part behind it is only the ink it was drawn on.
     if (pinUnderPress(page, kind, xPt, yPt, CircuitSnapping.thresholdFor(box.scale)) != null) return false
     val ref = pickPlacedElement(page, xPt, yPt, kind) ?: run {
-        // Paper that holds nothing of [kind] **lets go** of a selected figure (`letGoOfFigure`), and on paper
-        // that holds nothing at all the press is only that: the drawing is dropped with the selection.
-        return letGoOfFigure(chosen, page, xPt, yPt, kind)
+        // Paper that holds nothing of [kind] **lets go** of the selection (`letGoOfSelection`).
+        letGoOfSelection(chosen)
+        return false
     }
     selection = ActiveSelection(box.index, setOf(ref))
     onSelectionChanged?.invoke(true)
@@ -128,30 +128,21 @@ internal fun DrawingSurfaceView.beginPlacementPress(event: MotionEvent, pointerI
 }
 
 /**
- * Pressing paper that holds nothing of [kind] **lets go of a selected figure**, and answers whether that press
- * was *only* the letting go.
+ * Pressing paper that holds nothing of the tool's kind **lets go of the selection**, whatever the slot: a figure,
+ * a table or a circuit part.
  *
- * The figure tool stays in hand after the figure is placed, so a press on the sheet is how the next figure is
- * put down — and that press also kept the old one selected, so a tap meant to let go drew another figure and
- * selected it, and the only way to end a selection was to pick another tool. Only a **figure** slot does this
- * (`livingFamilyOf` null): the table and the circuit slots are *insertion* slots, where an empty press places an
- * object and the new object is what the selection follows.
- *
- * On paper that holds **nothing at all** the press is nothing but the letting go: the gesture is dropped with
- * the selection, because a figure tool's tap writes a degenerate figure and would select it straight back —
- * the press the user just made to get out. Paper that holds *other* ink still draws, so a figure can still be
- * laid over a part.
+ * Every top-bar element tool stays in hand after its object is placed, so a press on the sheet is how the next
+ * one is put down — and that press also kept the old object selected, so a tap meant to let go drew another one
+ * and selected it, and the only way to end a selection was to pick another tool. The press now drops the
+ * selection and, if it stays a **tap**, writes nothing at all (`ShapeDraft.onlyLetGo`, read by
+ * `DrawingSurfaceStrokes.commitCurrent`): tapping empty paper is how the tool is put down, and the next press
+ * places. A **drag** is still the drawing it was, so a second object can be laid on the sheet without picking
+ * the slot again.
  */
-private fun DrawingSurfaceView.letGoOfFigure(
-    chosen: ActiveSelection?,
-    page: Page,
-    xPt: Double,
-    yPt: Double,
-    kind: ShapeKind,
-): Boolean {
-    if (chosen == null || livingFamilyOf(kind) != null) return false
+private fun DrawingSurfaceView.letGoOfSelection(chosen: ActiveSelection?) {
+    if (chosen == null) return
     clearSelection()
-    return SelectionTester.pickTopmost(page, xPt, yPt) == null
+    shapeDraft.letGoNext()
 }
 
 /** Whether [sel] is what a press with [kind] in hand would have selected — its family, or its own figure. */

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "let-the-table-and-circuit-slots-let-go-of-the-selection-on-an-empty-tap"
+title = "Let the table and circuit slots let go of the selection on an empty tap"
+description = "Every placement slot now lets go of the selection on paper that holds nothing of its kind, and the press stays a tap that writes nothing: ShapeDraft.letGoNext + onlyLetGo mark the draft, DrawingSurfaceStrokes.commitCurrent discards it through discardShaping when the hand never travelled, and PlacementPick.letGoOfSelection answers figure, table and circuit slots alike. A drag still draws and commits, so one slot lays several objects down. ShapeDraftTest gained two cases (a letting-go press writes nothing on a tap and a drag is still a drawing, and an ordinary press inherits no letting go) and :app:testDebugUnitTest is 1691 green. Not seen on a device: no emulator or tablet here."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-18
+completed = 2026-11-18
+tags = ["selection", "tablet", "circuit"]
+design = "material: nothing new on screen, the press drops the outline and its bar and writes nothing; tokens: unchanged, no colour moves because the selection leaves; glyph: the dashed outline and handles go with the selection, so no mark claims an object that is no longer held; states: an empty tap lets go for figure, table and circuit slots, a press on the object's ink still holds and any travel still draws and commits; copy: no new English text beyond the guide line; keyboard: untouched, this is the canvas; parity: documented as the tablet's press, the window's own empty click is its own; docs: docs/selection.md and docs/guide-stem-tools.md describe the letting-go tap for every slot; tests: ShapeDraftTest pins the draft flag and its two readings, and the commit path is covered by the app suite"
+
+[[task]]
 id = "let-go-of-the-selected-figure-on-a-press-on-empty-paper"
 title = "Let go of the selected figure on a press on empty paper"
 description = "An empty press now lets go of the selected figure: MovePress reads the press (what the page held under it, and whether the hand travelled past DrawingSurfaceDefaults.TAP_SLOP_PX) and SelectionGestureController.commitMove clears the selection when it was a tap on nothing, which finally covers the air inside a figure's own box. PlacementPick.letGoOfFigure drops a selected figure when a figure slot presses paper that holds none of its kind. MovePressTest pins the five readings (still on nothing, still on ink, travelled, jitter, a fresh press) and :app:testDebugUnitTest is 1689 green. Not seen on a device: no emulator or tablet here."

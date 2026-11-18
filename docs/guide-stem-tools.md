@@ -52,8 +52,9 @@ components meet where their pins are rather than where you happened to end the d
 
 Choosing a part's tool already shows the pins on the sheet it could attach to, before you start placing it,
 so the place is chosen with the terminals in sight instead of after the part has landed. Pressing one of those
-pins starts the wire **on** the pin rather than picking the part the pin belongs to, and a tap on empty paper
-lets go of a selected figure instead of leaving it selected.
+pins starts the wire **on** the pin rather than picking the part the pin belongs to. While an object is
+selected, a tap on empty paper lets go of it and places nothing — the table and the circuit slots included —
+and a drag still draws, so the same slot goes on laying objects down.
 
 On the tablet, with a part's tool still in hand, a press on a part **selects** it — drag its handles and it
 stretches on both of its own axes, like any figure — while a press on empty paper places a new one. The tool stays picked

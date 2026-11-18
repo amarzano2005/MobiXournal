@@ -297,6 +297,10 @@ internal fun DrawingSurfaceView.point(
 }
 
 internal fun DrawingSurfaceView.commitCurrent() {
+    // A press that only **let go** of the selection writes nothing when it stayed a tap (`ShapeDraft.onlyLetGo`):
+    // the tool left in hand opens a placement on every press, and the tap that dropped the selection is not one
+    // of them — a figure tool's tap would write a degenerate figure and select it back. A drag still commits.
+    if (shapeDraft.onlyLetGo && shapeDraft.isTap()) return discardShaping()
     if (commitInsertionShapes()) return
 
     val multi = ink.currentStrokes
@@ -400,6 +404,15 @@ private fun DrawingSurfaceView.figureClaim(wasShaping: Boolean, snapped: Boolean
     wasShaping -> shapeKind?.let(FigurePins::figureAttrs) ?: FigurePins.FIGURE_ATTRS
     snapped -> FigurePins.FIGURE_ATTRS
     else -> emptyMap()
+}
+
+/** Drop the shape gesture's live state without writing it: a press that only let go of the selection. */
+private fun DrawingSurfaceView.discardShaping() {
+    ink.current = null
+    ink.currentStrokes = null
+    shapeDraft.finish()
+    holdSnap.reset()
+    render()
 }
 
 /**

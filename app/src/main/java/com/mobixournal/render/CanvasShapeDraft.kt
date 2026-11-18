@@ -60,7 +60,21 @@ internal class ShapeDraft {
      */
     fun begin(shape: Boolean) {
         active = shape
+        // A letting-go press that opens the draft: it writes nothing unless the hand draws (`onlyLetGo`).
+        onlyLetGo = shape && letGoAsked
+        letGoAsked = false
         magnet.reset()
+    }
+
+    /**
+     * The press about to open a draft is the one that **let go** of the selection, not a placement.
+     *
+     * Asked before [begin], because the press that drops the selection goes on to draw — the tool left in hand
+     * opens a placement on every down — and only the release knows whether it was a tap: [onlyLetGo] tells the
+     * commit to write nothing for a tap, and a drag commits as the drawing it was.
+     */
+    fun letGoNext() {
+        letGoAsked = true
     }
 
     /** Anchor the draft at [x], [y] and pin its width; the end starts on the anchor, so a tap draws nothing. */
@@ -85,6 +99,15 @@ internal class ShapeDraft {
 
     /** Whether the gesture never really travelled — a tap, which a table places at a default size. */
     fun isTap(): Boolean = hypot(endX - startX, endY - startY) < TAP_TRAVEL_PT
+
+    /**
+     * Whether this gesture **only let go** of the selection (`letGoNext`): a tap then writes nothing, while a
+     * drag is still the drawing it was.
+     */
+    var onlyLetGo = false
+        private set
+
+    private var letGoAsked = false
 
     private companion object {
         /** Under this much travel (pt) a shape drag is a tap. */

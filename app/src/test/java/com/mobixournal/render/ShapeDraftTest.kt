@@ -77,4 +77,34 @@ class ShapeDraftTest {
         draft.extend(6.0, 0.0)
         assertFalse("a real rectangle is kept as drawn", draft.isTap())
     }
+
+    /**
+     * The press that **let go** of the selection opens a draft that writes nothing if it stays a tap.
+     *
+     * Every placement slot stays in hand after its object is placed, so the press on empty paper begins another
+     * placement; only the release knows whether the hand drew or merely let go.
+     */
+    @Test
+    fun `a letting-go press opens a draft that writes nothing on a tap`() {
+        draft.letGoNext()
+        draft.begin(shape = true)
+        draft.place(40.0, 40.0, widthPt = 1.5)
+
+        assertTrue("the press only let go", draft.onlyLetGo)
+        assertTrue("and it never travelled", draft.isTap())
+
+        draft.letGoNext()
+        draft.begin(shape = true)
+        draft.place(40.0, 40.0, widthPt = 1.5)
+        draft.extend(180.0, 120.0)
+        assertFalse("a real drag is a drawing, not a letting go", draft.isTap())
+    }
+
+    @Test
+    fun `an ordinary press inherits no letting go`() {
+        draft.letGoNext()
+        draft.begin(shape = true)
+        draft.begin(shape = true)
+        assertFalse("the ask belonged to the press before it", draft.onlyLetGo)
+    }
 }
