@@ -142,8 +142,10 @@ object AppUpdates {
     /**
      * The newer release, or null when this build already is the latest.
      *
-     * An HTTP error, a body that is not the release document, and a release with no APK all answer null —
-     * "no update" is the safe reading of a check that could not be made.
+     * A body that is not the release document and a release with no APK answer null — nothing newer to offer.
+     * A **non-200 is thrown instead**: GitHub answers `403` to an anonymous request once the calling IP has
+     * spent its sixty calls an hour, and reading that refusal as "already the latest" told a reader on an
+     * older build that there was nothing to install while 2.3.0 was on the release page.
      */
     private fun latest(): UpdateRelease? {
         val connection = (URL(UpdateFeed.LATEST).openConnection() as HttpURLConnection).apply {
@@ -153,7 +155,9 @@ object AppUpdates {
             setRequestProperty("User-Agent", "MobiXournal-Android/${BuildConfig.VERSION_NAME}")
         }
         return try {
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                error("the update feed answered HTTP ${connection.responseCode}")
+            }
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             val parsed = parseRelease(body, UpdatePlatform.ANDROID) ?: return null
             parsed.takeIf { isNewer(it.version, BuildConfig.VERSION_NAME) }

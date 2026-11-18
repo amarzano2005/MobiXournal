@@ -183,7 +183,13 @@ object DesktopUpdates {
         DesktopUpdatePhase.FAILED -> message ?: "Could not check for updates."
     }
 
-    /** The newer release, or null when this window already is the latest. */
+    /**
+     * The newer release, or null when this window already is the latest.
+     *
+     * A non-200 is thrown rather than read as "nothing newer": GitHub answers `403` to an anonymous request
+     * once the calling IP has spent its sixty calls an hour, and a window that reported that as the newest
+     * build hid the release it was supposed to offer (`docs/updates.md`).
+     */
     private fun latest(): UpdateRelease? {
         val request = HttpRequest.newBuilder(URI(UpdateFeed.LATEST))
             .timeout(Duration.ofSeconds(20))
@@ -192,7 +198,7 @@ object DesktopUpdates {
             .GET()
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() != 200) return null
+        if (response.statusCode() != 200) error("the update feed answered HTTP ${response.statusCode()}")
         val parsed = parseRelease(response.body(), UpdatePlatform.DESKTOP) ?: return null
         return parsed.takeIf { isNewer(it.version, DESKTOP_VERSION) }
     }

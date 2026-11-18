@@ -19,8 +19,14 @@ them rather than restating them.
 
 **A draft or a prerelease is not an update.** The API answers with the latest published release, and a build
 being prepared must not be offered as one; a release without the shell's own installer is not an update
-either. Anything unreadable — no connection, a non-200, a body that is not the release document — reads as
-*no update*: a check that could not be made never becomes an invitation to install something unknown.
+either. A readable document that names no newer build is *no update*, and a body that is not the release
+document is read the same way: a check never turns itself into an invitation to install something unknown.
+
+**A check that could not be made says so.** A non-200 is a failure, not an "already the latest": GitHub
+answers `403` to an anonymous request once the calling IP has spent its sixty calls an hour, and a shared
+address reaches that without anyone doing anything unusual. Reading the refusal as *no update* told a reader
+on an older build that there was nothing to install while a newer release was published, so both shells
+report the failure — on the About line, and on the pill when the reader asked for the check.
 
 ## When the check runs, and what it says
 
