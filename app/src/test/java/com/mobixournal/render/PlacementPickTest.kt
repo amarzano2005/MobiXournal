@@ -4,8 +4,10 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TableElement
@@ -45,6 +47,15 @@ class PlacementPickTest {
             rows = 3, cols = 3, hasHeader = true,
             borderColor = TableElement.DEFAULT_BORDER,
             borderWidth = TableElementFactory.DEFAULT_BORDER_WIDTH,
+        )
+
+    /** A living plot 200 × 120 pt from ([left], [top]) — what the *Function graph* slot writes. */
+    private fun plot(left: Double = 120.0, top: Double = 220.0): PlotElement =
+        PlotElementFactory.plotElementIn(
+            box = PlotBox(left, top, 200.0, 120.0),
+            curves = listOf(PlotCurve(source = "sin(x)", color = 0xFF000000.toInt(), lineStyle = LineStyle.PLAIN)),
+            xMin = -10.0,
+            xMax = 10.0,
         )
 
     /** A formula block 180 × 60 pt from ([left], [top]). */
@@ -117,6 +128,27 @@ class PlacementPickTest {
         assertNull("paper holds no formula there", pickMathBlock(page, 500.0, 700.0))
         assertNull("a table is not a formula", pickMathBlock(pageOf(table()), 160.0, 140.0))
         assertNull("and ink is nobody's formula", pickMathBlock(pageOf(ink()), 430.0, 400.0))
+    }
+
+    /**
+     * The **Plot** slot's own press: a plot it made under the tap is the one picked, so the slot selects it
+     * instead of asking for a formula again and laying a second graph on the first. The slot keeps its picked
+     * state across an insertion, which is exactly why that press cannot be read as "place another one"
+     * (`pickPlotRef`, read by `beginPlacementPress` on the way down).
+     */
+    @Test
+    fun thePlotSlotPicksThePlotUnderTheTap() {
+        val page = pageOf(plot())
+        assertEquals(
+            "the graph under the press is the one picked",
+            120.0,
+            pickPlot(page, 200.0, 260.0)?.left ?: Double.NaN,
+            1e-6,
+        )
+        assertEquals("and the reference names it", ElementRef(0, 0), pickPlotRef(page, 200.0, 260.0))
+        assertNull("paper holds no graph there", pickPlot(page, 500.0, 700.0))
+        assertNull("a table is not a graph", pickPlot(pageOf(table()), 160.0, 140.0))
+        assertNull("and ink is nobody's graph", pickPlot(pageOf(ink()), 430.0, 400.0))
     }
 
     @Test

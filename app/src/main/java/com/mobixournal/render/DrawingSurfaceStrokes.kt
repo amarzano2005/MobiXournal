@@ -228,8 +228,12 @@ internal fun DrawingSurfaceView.beginPlace(event: MotionEvent, pointerIndex: Int
     placeDownY = event.getY(pointerIndex)
 }
 
-/** Moving past the tap slop turns a placement into a no-op (the user is scrubbing, not tapping). */
+/**
+ * Moving past the tap slop turns a placement into a no-op (the user is scrubbing, not tapping) — except for the
+ * **Plot** slot, whose drag is the box its graph is placed in (the same drag the window's plot slot takes).
+ */
 internal fun DrawingSurfaceView.placeMove(event: MotionEvent) {
+    if (placeKind == PlaceKind.PLOT) return
     if (hypot(event.x - placeDownX, event.y - placeDownY) > DrawingSurfaceDefaults.TAP_SLOP_PX) placing = false
 }
 
@@ -239,15 +243,32 @@ internal fun DrawingSurfaceView.placeMove(event: MotionEvent) {
  * A **formula** under a LaTeX tap is handed over like a text box under a Text tap is: the slot stays in hand
  * after it places, so the tap that means "this one" used to ask for the dialog again and lay a second formula
  * on the first (`pickMathBlock`, `render/PlacementPick.kt`).
+ *
+ * The **Plot** slot's press here is always paper: a press on a plot it made is the pick, taken on the way down
+ * (`beginPlacementPress`). So what it carries is the **box** — the drag's corners (the press and the lift,
+ * [upX]/[upY]), or the family's default size centred on a tap (`LivingPlacement.bounds`) — and the graph
+ * dialog's answer lands in it.
  */
-internal fun DrawingSurfaceView.commitPlace() {
+internal fun DrawingSurfaceView.commitPlace(upX: Float = placeDownX, upY: Float = placeDownY) {
     val kind = placeKind ?: return
     val box = layout.pageAt(placeDownX + scrollX, placeDownY + scrollY) ?: return
+    val page = pageAt(box.index)
     val xPt = box.toPtX(placeDownX, scrollX)
     val yPt = box.toPtY(placeDownY, scrollY)
     val existing = if (kind == PlaceKind.TEXT) textEdits.pickForEditing(box.index, xPt, yPt) else null
-    val math = if (kind == PlaceKind.TEX) pageAt(box.index)?.let { pickMathBlock(it, xPt, yPt) } else null
-    onPlace?.invoke(kind, Placement(box.index, xPt, yPt, existing, math))
+    val math = if (kind == PlaceKind.TEX) page?.let { pickMathBlock(it, xPt, yPt) } else null
+    val bounds = if (kind == PlaceKind.PLOT && page != null) {
+        LivingPlacement.bounds(
+            pageW = page.width,
+            pageH = page.height,
+            startX = xPt,
+            startY = yPt,
+            endX = box.toPtX(upX, scrollX),
+            endY = box.toPtY(upY, scrollY),
+            default = LivingPlacement.defaultSize(LivingSlot.PLOT, page.width),
+        )
+    } else null
+    onPlace?.invoke(kind, Placement(box.index, xPt, yPt, existing, math, bounds))
 }
 /**
  * The stroke width one sample of the current tool draws at, in pt. A highlighter lays down a

@@ -59,8 +59,8 @@ import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * Push an [EditorTool] onto the surface: the three drawing tools set [Tool]; Hand toggles pan mode;
- * the authoring tools (text/image/LaTeX) set the surface's [DrawingSurfaceView.placeKind] so a tap
- * places that element instead of drawing.
+ * the authoring tools (text/image/LaTeX/plot) set the surface's [DrawingSurfaceView.placeKind] so a
+ * tap places that element instead of drawing.
  *
  * Two tools are variants of another rather than modes of their own: LASSO_SELECT is SELECT with a
  * freehand marquee, and ERASER_WHOLE is ERASER deleting whole strokes. Picking the tool is what sets
@@ -79,6 +79,7 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.TEXT -> PlaceKind.TEXT
         EditorTool.IMAGE -> PlaceKind.IMAGE
         EditorTool.TEXIMAGE -> PlaceKind.TEX
+        EditorTool.PLOT -> PlaceKind.PLOT
         else -> null
     }
     shapeKind = when (tool) {

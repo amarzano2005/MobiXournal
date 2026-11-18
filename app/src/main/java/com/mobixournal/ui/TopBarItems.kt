@@ -189,12 +189,17 @@ fun decodeTopBarIds(raw: String?): List<String> {
  * through a plain single-tool button would hide that menu. ["polygons"] is null for the same reason:
  * it is a figure with a number to choose, so its menu is the side-count picker rather than a list of
  * members (see `PolygonSlotButton`).
+ *
+ * ["graph"] **is** a tool: the *Function graph* slot arms the Plot placement mode (`EditorTool.PLOT`), whose
+ * press either picks the plot that slot made or reserves the box the graph dialog fills. It opens no dialog by
+ * itself any more — a button that writes an element without a press of the page has nowhere to put it.
  */
 fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE
     "rectangle" -> EditorTool.RECTANGLE
     "ellipse" -> EditorTool.ELLIPSE
     "axis" -> EditorTool.COORDINATE_AXIS
+    "graph" -> EditorTool.PLOT
     "table" -> EditorTool.TABLE
     else -> null
 }

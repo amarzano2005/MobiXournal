@@ -25,13 +25,15 @@ can ([mobix-elements.md](mobix-elements.md)). The scope rule still holds at that
 flattens the element into the same strokes (`XoppSynthesis`). `insertMultiPlot` stays as the plain ink
 path for a caller that wants strokes and nothing else. An unparsable formula inserts nothing at all rather than
 an empty frame, and the dialog validates with the very same `compile` call, so it can't accept a graph
-the plotter would refuse to draw. It is opened from the Secondary Toolbar (`RailItem` id `graph`, placed
-immediately to the right of the Cartesian coordinate axis button — a dialog opener rather than a tool, so it gets a plain action button, not a
-pop-up), and the plot is placed **where the user is looking**: its box is centred on
-`viewportCentrePt(pageIndex)` — the page-local point under the middle of the viewport — and then pulls
-it back inside the sheet, so turning the plotter on while zoomed into a corner lands the graph where
-the eye already is rather than at the sheet's own middle. Same idea as `placeGuide`, and the same
-fallback to the page centre before the canvas has been laid out.
+the plotter would refuse to draw. It is a **placement slot** in the Secondary Toolbar (`RailItem` id `graph`, immediately to the right of the
+Cartesian coordinate axis button): the press arms `EditorTool.PLOT` and the page decides, as it does for the
+Table and the parts — a press on a plot that slot made **selects** it (and the same press carries or sizes it),
+paper reserves the **box** the graph lands in, and the dialog is that box's question (`Placement.bounds`). A
+drag is the box's two corners, a tap the family's default (`LivingPlacement.defaultSize`), and the box is kept
+inside the sheet. Nothing is written before the answer: one element, one undo step, left selected, and the slot
+stays in hand. A caller that has only a viewport (`insertPlotElement` with no box) still lands the graph **where
+the user is looking**: `viewportCentrePt(pageIndex)` — the page-local point under the middle of the viewport —
+pulled back inside the sheet, the same idea as `placeGuide`.
 
 **The marker key.** A marked point is drawn with the glyph of its kind — a circle for a root, a square for the y-intercept, an up/down triangle for a maximum/minimum, a diamond for an intersection — and a compact legend under the frame names every glyph the plot actually used. It sits below the x tick numbers, and the analysis summary is pushed below the key, so a dot is never left unexplained and the key is never crossed by the report.
 

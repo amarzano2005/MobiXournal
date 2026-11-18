@@ -253,5 +253,6 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   parts, not as one sheet of glass.
 - **The function-graph slot wears the plotter's own art**: the tablet's *Function graph* button draws `ToolGlyph.PLOT` from the catalogue (`EditorRegions.kt`) where it used a Material chart stand-in — the window's own plot slot already did, and one catalogue entry is what keeps the two rails the same picture.
 - **The plot editor anchors to its element**: editing an existing `PlotElement` opens `PlotInspectorAnchor`
-  beside the selection (committed through `applyPlotEdit`, unedited fields kept); a new plot uses the modal
-  `AdvancedFunctionGraphDialog`, whose placement arithmetic is viewport-centred.
+  beside the selection (committed through `applyPlotEdit`, unedited fields kept); a new plot is placed by the
+  *Function graph* slot's own press — the box is the press's — and the modal `AdvancedFunctionGraphDialog` is
+  that box's question.

@@ -204,7 +204,9 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showTrapezoidAnglesDialog = false },
         )
     }
-    DialogPresence(ui.showGraphDialog) {
+    DialogPresence(ui.plotPlacement != null) {
+        // Held so the box the press reserved is still the box the answer lands in while the card fades.
+        val placed = rememberClosingArgument(ui.plotPlacement)
         // Held so an editor opened on a plot still edits *that* plot while it closes, rather than
         // slipping back to the "new plot" face mid-fade.
         val targetPlot = rememberClosingArgument(ui.editingPlot)
@@ -229,7 +231,8 @@ fun BoxScope.EditorOverlays(
             initialInfoSide = targetPlot?.infoSide,
             initialShade = targetPlot?.shadeIntegral,
             onConfirm = { curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary, infoSide, shadeIntegral ->
-                ui.showGraphDialog = false
+                val box = placed?.bounds
+                ui.plotPlacement = null
                 val editing = ui.editingPlot
                 ui.editingPlot = null
                 if (editing != null) {
@@ -255,14 +258,15 @@ fun BoxScope.EditorOverlays(
                         includeSummary = includeSummary,
                         shadeIntegral = shadeIntegral,
                         infoSide = infoSide,
+                        bounds = box,
                     )
-                    if (ui.tool != EditorTool.SELECT && ui.tool != EditorTool.LASSO_SELECT) {
-                        surface?.activateTool(EditorTool.SELECT, ui, settings, onSettingsChange)
-                    }
+                    // The slot **stays in hand**, as on the window: the graph lands selected, and the press
+                    // that means "this graph" is the pick (`beginPlacementPress`), not another placement — so
+                    // there is nothing to hand to Select.
                 }
             },
             onDismiss = {
-                ui.showGraphDialog = false
+                ui.plotPlacement = null
                 ui.editingPlot = null
             },
         )

@@ -980,25 +980,6 @@ fun TopBarToolsRow(
                             triangleKind = settings.triangleKind,
                             trapezoidKind = settings.trapezoidKind,
                         )
-                    } else if (item.id == "graph") {
-                        val active = ui.showGraphDialog
-                        val shape = RoundedCornerShape(8.dp)
-                        val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(shape)
-                                .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
-                                .clickable { ui.showGraphDialog = true },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                ToolGlyph.PLOT.imageVector(),
-                                contentDescription = "Insert graph",
-                                tint = tint,
-                                modifier = Modifier.size(ToolIconSize),
-                            )
-                        }
                     } else if (item.id == "guides") {
                         CompactGuidePopupButton(
                             kind = settings.guideKind,
@@ -1527,6 +1508,10 @@ private fun DrawingSurfaceView.bindEditorActions(
             // instead of asking for the source a second time.
             PlaceKind.TEX -> if (!ui.openPlacedTex(placement)) ui.texPlacement = placement
             PlaceKind.IMAGE -> onPickImage(placement)
+            // The **Plot** slot's press on paper: the box the graph dialog fills. A press on a plot it made
+            // never reaches here — that press is the pick, which selects the plot on the way down
+            // (`beginPlacementPress`).
+            PlaceKind.PLOT -> ui.plotPlacement = placement
         }
     }
     onLivingDoubleTap = { target ->

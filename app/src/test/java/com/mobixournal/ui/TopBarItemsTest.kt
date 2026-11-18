@@ -134,8 +134,9 @@ class TopBarItemsTest {
         assertNull(singleToolForTopBarId("circuit_active"))
         assertNull(singleToolForTopBarId("logic"))
         assertNull(singleToolForTopBarId("guides"))
-        // The graph is a dialog opener, not a tool, so it must not resolve to a pen-like button.
-        assertNull(singleToolForTopBarId("graph"))
+        // The graph is the Plot slot's own tool: its press places a graph or picks the one it made, so it
+        // resolves to a real tool rather than to a plain dialog opener.
+        assertEquals(EditorTool.PLOT, singleToolForTopBarId("graph"))
         assertNull(singleToolForTopBarId("color"))
     }
 

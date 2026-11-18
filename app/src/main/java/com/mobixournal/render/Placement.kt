@@ -12,7 +12,7 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.TextElement
 
 /** What a canvas tap places when a placement tool is active (see [DrawingSurfaceView.placeKind]). */
-enum class PlaceKind { TEXT, IMAGE, TEX }
+enum class PlaceKind { TEXT, IMAGE, TEX, PLOT }
 
 /**
  * Where a placement tap landed: the page and its page-local pt coordinates. [existing] carries the
@@ -20,6 +20,11 @@ enum class PlaceKind { TEXT, IMAGE, TEX }
  * colour — instead of creating a new one); null means "create new". [math] is the same answer for the
  * **LaTeX** slot: the formula under the tap, whose editor opens instead of a second formula being laid
  * on it (`pickMathBlock`).
+ *
+ * [bounds] is the **box a plot** takes from this press: the drag's own two corners, or the family's default size
+ * centred on a tap ([LivingPlacement.bounds]) — the graph dialog's answer lands in it. A press on a plot the slot
+ * already made never carries one: that press is the pick, which selects the plot on the way down
+ * (`PlacementPick.beginPlacementPress`).
  */
 data class Placement(
     val pageIndex: Int,
@@ -27,4 +32,5 @@ data class Placement(
     val yPt: Double,
     val existing: TextElement? = null,
     val math: MathBlockElement? = null,
+    val bounds: Bounds? = null,
 )

@@ -30,6 +30,7 @@ package com.mobixournal.render
 import android.view.MotionEvent
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
 import kotlin.math.hypot
 
@@ -65,6 +66,22 @@ internal fun pickMathBlock(page: Page, xPt: Double, yPt: Double): MathBlockEleme
     val ref = SelectionTester.pickTopmost(page, xPt, yPt) { LivingEditFamily.MATH.matches(it) } ?: return null
     return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? MathBlockElement
 }
+
+/**
+ * The **plot** under ([xPt], [yPt]) on [page], or null: what the *Function graph* slot picks instead of asking
+ * for a formula again and laying a second graph on the first.
+ *
+ * A plot is a living element like a table or a formula, so it is matched by its family
+ * ([LivingEditFamily.PLOT], the double-tap's vocabulary) rather than by the element type spelled here.
+ */
+internal fun pickPlot(page: Page, xPt: Double, yPt: Double): PlotElement? =
+    pickPlotRef(page, xPt, yPt)?.let { ref ->
+        page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement
+    }
+
+/** The reference of the plot under ([xPt], [yPt]), or null — the pick the press needs to **select** one. */
+internal fun pickPlotRef(page: Page, xPt: Double, yPt: Double): ElementRef? =
+    SelectionTester.pickTopmost(page, xPt, yPt) { LivingEditFamily.PLOT.matches(it) }
 
 /**
  * The topmost figure [kind] draws under ([xPt], [yPt]) on [page], or null.
@@ -117,22 +134,34 @@ internal fun pickPlacedElement(page: Page, xPt: Double, yPt: Double, kind: Shape
  * placement would make the handles of a fresh object unreachable without picking Select first.
  */
 internal fun DrawingSurfaceView.beginPlacementPress(event: MotionEvent, pointerIndex: Int): Boolean {
-    val kind = shapeKind ?: return false
+    // The **Plot** slot is a placement mode rather than a shape, and it asks the page the same question: a press
+    // on a plot it made is the pick (`pickPlotRef`), and paper is where the next graph goes.
+    val plotSlot = placeKind == PlaceKind.PLOT
+    val kind = if (plotSlot) null else shapeKind ?: return false
     val chosen = selection
-    if (chosen != null && claims(chosen, kind) && gestures.pressSelection(event)) return true
+    val claimed = when {
+        chosen == null -> false
+        kind != null -> claims(chosen, kind)
+        else -> matchesFamily(chosen, LivingEditFamily.PLOT)
+    }
+    if (claimed && gestures.pressSelection(event)) return true
     val x = event.getX(pointerIndex)
     val y = event.getY(pointerIndex)
     val box = layout.pageAt(x + scrollX, y + scrollY) ?: return false
     val page = pageAt(box.index) ?: return false
     val xPt = box.toPtX(x, scrollX)
     val yPt = box.toPtY(y, scrollY)
-    // A press **on a pin** is where the drawing starts, not a pick of the object the pin belongs to: the
-    // press falls through to the stroke, whose draft snaps its first sample onto the mark
-    // (`DrawingSurfaceStrokes.snappedShapePoint`), so a wire leaves the terminal. Asked first, because the
-    // mark is the finer target — the part behind it is only the ink it was drawn on.
-    if (pinUnderPress(page, kind, xPt, yPt, CircuitSnapping.thresholdFor(box.scale)) != null) return false
-    val ref = pickPlacedElement(page, xPt, yPt, kind) ?: run {
-        // Paper that holds nothing of [kind] **lets go** of the selection (`letGoOfSelection`).
+    val ref = (if (kind == null) {
+        pickPlotRef(page, xPt, yPt)
+    } else {
+        // A press **on a pin** is where the drawing starts, not a pick of the object the pin belongs to: the
+        // press falls through to the stroke, whose draft snaps its first sample onto the mark
+        // (`DrawingSurfaceStrokes.snappedShapePoint`), so a wire leaves the terminal. Asked first, because the
+        // mark is the finer target — the part behind it is only the ink it was drawn on.
+        if (pinUnderPress(page, kind, xPt, yPt, CircuitSnapping.thresholdFor(box.scale)) != null) return false
+        pickPlacedElement(page, xPt, yPt, kind)
+    }) ?: run {
+        // Paper that holds nothing of the slot's own **lets go** of the selection (`letGoOfSelection`).
         letGoOfSelection(chosen)
         return false
     }

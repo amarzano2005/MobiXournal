@@ -95,7 +95,8 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 captureReleaseVelocity(event); handleHandTapUp()
                 // The router hears the lift too, so its contact map is empty for the next gesture.
                 if (session.routed) routePointer(event, event.actionIndex, InkPointerPhase.UP)
-                endGesture()
+                // The lift's own point: a **plot** placement's drag is the box between the press and it.
+                endGesture(event.getX(event.actionIndex), event.getY(event.actionIndex))
             }
         }
         MotionEvent.ACTION_CANCEL -> {
@@ -250,11 +251,13 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     // the drawing's, and it starts **on** the pin (`PlacementPick.pinUnderPress`), which is the connection
     // the hand was already making. One press, one answer — the tool in hand says which.
     if (intent == GestureIntent.SELECT && beginPinConnect(event, pointerIndex)) return
-    // A top-bar **placement** tool — the Table slot, a circuit part, a figure — asks the page first: the
-    // object the tool itself made under the press is selected (and the press drags it), and a new one is
-    // placed only where there is none. Asked only for a press that would draw, so a finger panning the
-    // page, an eraser tip and a barrel modifier all keep the gesture they were classified with.
-    if (intent == GestureIntent.DRAW && beginPlacementPress(event, pointerIndex)) return
+    // A top-bar **placement** tool — the Table slot, a circuit part, a figure, the Plot slot — asks the page
+    // first: the object the tool itself made under the press is selected (and the press drags it), and a new
+    // one is placed only where there is none. Asked for a press that would draw, and for the Plot slot's own
+    // placement press (a placement mode, so no object would be drawn there), so a finger panning the page, an
+    // eraser tip and a barrel modifier all keep the gesture they were classified with.
+    val placingPlot = intent == GestureIntent.PLACE && placeKind == PlaceKind.PLOT
+    if ((intent == GestureIntent.DRAW || placingPlot) && beginPlacementPress(event, pointerIndex)) return
     session.penOwned = (kind == PointerKind.STYLUS || kind == PointerKind.ERASER_TIP) &&
         (intent == GestureIntent.DRAW || intent == GestureIntent.ERASE)
     when (intent) {
@@ -424,7 +427,11 @@ internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
 }
 
 
-internal fun DrawingSurfaceView.endGesture() {
+/**
+ * The gesture's own lift, at [upX]/[upY] — the point the frame is on, which a **plot** placement's drag needs as
+ * the box's second corner. A caller with no press point to speak of leaves the defaults (the press itself).
+ */
+internal fun DrawingSurfaceView.endGesture(upX: Float = placeDownX, upY: Float = placeDownY) {
     guideDrag.end(null)
     // Snapshot then clear the mode flags first, so any render() inside a commit (e.g. the
     // rubber-band) sees the gesture already ended and doesn't paint a stale marquee/overlay.
@@ -445,7 +452,7 @@ internal fun DrawingSurfaceView.endGesture() {
     scroll.stopAutoScroll()
     gestures.reset()
     when {
-        wasPlacing -> commitPlace()
+        wasPlacing -> commitPlace(upX, upY)
         wasMoving -> gestures.commitMove() // applied live; re-home if dropped on another page
         wasTransforming -> Unit  // resize/rotate applied live; finishGesture records them
         wasBanding -> gestures.commitBand()

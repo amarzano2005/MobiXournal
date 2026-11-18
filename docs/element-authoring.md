@@ -100,17 +100,22 @@ rectangle; a stroke written by an older build falls back to its geometry, as on 
 `selectionDrag` here), so a handle pressed with the slot still in hand resizes rather than moves.
 
 A **plot** and a **formula** are picked by the slot that made them in **both** shells, so neither re-places one
-on the press that means to pick it. The window keeps a Plot and a Formula slot in hand and claims both
-(`LivingSlot.PLOT`, `LivingSlot.MATH`). The tablet's **LaTeX** slot (`PlaceKind.TEX`) is a placement mode
-rather than a shape, so it asks the page in `commitPlace` (`pickMathBlock`): a tap on a formula it made hands
-that formula to the editor — the double-tap's `LivingEditFamily.MATH` command — instead of asking for the
-source a second time and laying the new formula on the first. A **plot** has no slot of its own on the tablet:
-the Graph dialog inserts it and hands it to Select, so no press there can stack a second graph, and the
-insertion already lands it selected. **Both shells keep the slot in hand across the insertion** (`placeOrAsk`, `placeCircuit`,
-and a figure's own commit): the window used to pick Marquee and no longer does, so a row of rectangles, tables
-or parts is one gesture and the press on the object just placed is the one that selects and sizes it. `PlacementPickTest` pins the rule on the JVM
-and `DesktopPlacementPressTest` drives it through the window's own pointer path, including the slot still in
-hand after a figure lands.
+on the press that means to pick it. Each shell keeps a Plot and a Formula slot in hand: the window's are
+`LivingSlot.PLOT` and `LivingSlot.MATH`, the tablet's are the *Function graph* button (`EditorTool.PLOT`, a
+placement mode — `PlaceKind.PLOT`) and the **LaTeX** slot (`PlaceKind.TEX`). The plot slot asks the page on the
+way **down**, through the same entry the table and the parts use (`beginPlacementPress` → `pickPlotRef`): a
+press on a plot it made **selects** it and the same press carries or sizes it, and paper takes a new one. The
+tablet's **LaTeX** slot is a placement mode too, so it asks in `commitPlace` (`pickMathBlock`): a tap on a
+formula it made hands that formula to the editor — the double-tap's `LivingEditFamily.MATH` command — instead
+of asking for the source a second time and laying the new formula on the first. A new plot's box is the
+press's own: a drag is the box, a tap the family's default (`LivingPlacement.bounds`), and the graph dialog's
+answer lands in it (`Placement.bounds` → `insertPlotElement`) rather than in a second, invented one.
+**Both shells keep the slot in hand across the insertion** (`placeOrAsk`, `placeCircuit`, `commitPlace` and a
+figure's own commit): the window used to pick Marquee and no longer does, and the tablet used to hand a fresh
+graph to Select and no longer does, so a row of rectangles, tables, parts or graphs is one gesture and the press
+on the object just placed is the one that selects and sizes it. `PlacementPickTest` pins the rule on the JVM and
+`DesktopPlacementPressTest` drives it through the window's own pointer path, including the slot still in hand
+after a figure lands.
 
 On the window the press is taken **before** the ink router and `DesktopTool.inksByPackets()` stays
 false for these slots (the pen's packets stand aside, as for a figure) and the drag previews the box in

@@ -74,8 +74,13 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showTrapezoidAnglesDialog by mutableStateOf(false)
     /** Whether the quick Pen Parameters floating dialog is showing. */
     var showPenParametersDialog by mutableStateOf(false)
-    /** Whether the **function graph plotter** dialog is showing (see `FunctionPlot`). */
-    var showGraphDialog by mutableStateOf(false)
+    /**
+     * The **Plot** slot's reserved box while the graph dialog asks its questions (see `FunctionPlot`), or null.
+     *
+     * The press that reserved it ([Placement.bounds]) is what the answer lands in — the hand's own box, not a
+     * second one invented by the card.
+     */
+    var plotPlacement by mutableStateOf<Placement?>(null)
     /** The existing [PlotElement] being edited in the graph dialog, or null when creating a new one. */
     var editingPlot by mutableStateOf<com.mobixournal.format.model.PlotElement?>(null)
     /**

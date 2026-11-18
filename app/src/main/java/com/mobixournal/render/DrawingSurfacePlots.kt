@@ -157,6 +157,8 @@ fun DrawingSurfaceView.insertMultiPlot(
  * @param infoSide The side of the frame that report is written on.
  * @param shadeIntegral The area the plot stands for, or null for none — the wash `PlotInk` draws and
  *   the range the summary's integral is taken over (`docs/math-engine.md`, section 3).
+ * @param bounds The box a **slot's press** reserved for this graph ([Placement.bounds]), or null for a caller
+ *   that has only a viewport: the plot lands in the hand's box instead of a centred default.
  */
 fun DrawingSurfaceView.insertPlotElement(
     curves: List<PlotCurve>,
@@ -167,18 +169,18 @@ fun DrawingSurfaceView.insertPlotElement(
     includeSummary: Boolean = false,
     infoSide: PlotInfoSide = PlotInfoSide.BELOW,
     shadeIntegral: PlotShading? = null,
+    bounds: Bounds? = null,
 ) {
     if (curves.isEmpty()) return
     val index = visiblePageIndex()
     val page = pageAt(index) ?: return
     val (centreX, centreY) = viewportCentrePt(index)
-    val element = PlotElementFactory.plotElementFor(
+    val element = PlotElementFactory.plotElementIn(
+        box = bounds?.let { PlotBox(it.left, it.top, it.width, it.height) }
+            ?: PlotElementFactory.boxFor(page, centreX, centreY),
         curves = curves,
         xMin = xMin,
         xMax = xMax,
-        centreX = centreX,
-        centreY = centreY,
-        page = page,
         showCriticalPoints = showCriticalPoints,
         includeDerivative = includeDerivative,
         // The pen's own width and colour: the ink this replaces was drawn with them.
@@ -189,6 +191,11 @@ fun DrawingSurfaceView.insertPlotElement(
         shadeIntegral = shadeIntegral,
     )
     ElementEdits.addElement(doc, index, element) { resolvedActiveLayer(it) }
-        ?.let { commitElementEdit(it) }
+        ?.let {
+            commitElementEdit(it)
+            // Left selected, as a placed table or part is: the slot stays in hand, and the selection's
+            // handles are what sizes the graph before the next press.
+            selectInsertedElement(index)
+        }
 }
 

@@ -16,6 +16,10 @@ import com.mobixournal.render.TriangleKind
 enum class EditorTool {
     PEN, HIGHLIGHTER, ERASER, ERASER_WHOLE, HAND, SELECT, LASSO_SELECT, TEXT_SELECT, BG_SELECT,
     TEXT, IMAGE, TEXIMAGE,
+    // The **Plot** slot: a placement mode, like Text, whose answer is a living `PlotElement` rather than ink.
+    // The *Function graph* button arms it, and its press either picks the plot it made or reserves the box the
+    // graph dialog fills (`PlaceKind.PLOT`).
+    PLOT,
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, VERTICAL_SPACE,
     PLAY_OBJECT,
     // The STEM figures (see [ShapeKind]): a triangle, a trapezoid and the polygon — one
@@ -165,6 +169,7 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.TEXT, "Text", glyph = ToolGlyph.TEXT),
     ToolInfo(EditorTool.IMAGE, "Image", glyph = ToolGlyph.IMAGE),
     ToolInfo(EditorTool.TEXIMAGE, "LaTeX", glyph = ToolGlyph.TEXIMAGE),
+    ToolInfo(EditorTool.PLOT, "Plot", glyph = ToolGlyph.PLOT),
     ToolInfo(EditorTool.VERTICAL_SPACE, "Vertical space", glyph = ToolGlyph.VSPACE),
     ToolInfo(EditorTool.PLAY_OBJECT, "Play object", glyph = ToolGlyph.PLAY),
 )
@@ -188,7 +193,7 @@ val EditorTool.icon: ImageVector
 
 /**
  * The tools that make sense to *start* a document in, offered by the "Default tool" setting. The
- * place-modes (TEXT/IMAGE/TEXIMAGE) and SELECT aren't here: opening straight into them would strand
+ * place-modes (TEXT/IMAGE/TEXIMAGE/PLOT) and SELECT aren't here: opening straight into them would strand
  * the user in a mode with nothing to act on, so a default is one of the four drawing/pan tools.
  */
 val DEFAULT_TOOL_CHOICES: List<EditorTool> =

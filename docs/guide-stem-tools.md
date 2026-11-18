@@ -21,7 +21,10 @@ page exactly as it was, because nothing was ever written.
 
 The plot tool asks for the formula first. Its dialog carries the function, the domain's two bounds,
 critical points, the derivative, a summary, and a shaded integral with its own bounds; the default is
-`sin(x)` over −10 to 10, at a little under half the page's width.
+`sin(x)` over −10 to 10, at a little under half the page's width. It is a slot like the table's: pick
+*Function graph*, then press the page — a drag is the graph's box, a tap the default size — and the dialog is
+that box's question, so the graph lands where the hand drew. A press on a graph the slot already made picks it
+instead of asking for a second formula.
 
 The plot stays a live expression. Select it and its named parameters get sliders under the frame —
 dragging one re-evaluates the curve, the derivative and the summary while you drag, so the formula is
