@@ -37,6 +37,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.clearSelection
 import com.mobixournal.render.EraserMode
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.ImportPdfMode
@@ -66,6 +67,7 @@ import com.mobixournal.ui.theme.rememberGlassSurfaceColor
  * the variant, which is why neither has a separate mode menu.
  */
 fun DrawingSurfaceView.applyTool(tool: EditorTool) {
+    val wasSelecting = selectMode
     handMode = tool == EditorTool.HAND
     selectMode = tool == EditorTool.SELECT || tool == EditorTool.LASSO_SELECT
     backgroundSelectMode = tool == EditorTool.BG_SELECT
@@ -151,6 +153,11 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         -> this.tool = Tool.PEN
         else -> Unit // Hand / authoring tools keep the last drawing tool for when they're turned off
     }
+    // **Leaving** the select tool drops the selection, and re-applying the same one must not: the pane pushes
+    // the live tool onto its canvas on every touch (`applyLiveStyle`, before that touch reaches the canvas), so a
+    // clear on every write ran between every pair of presses — the press that followed a selection always found
+    // nothing to act on, and a tap on empty paper had no selection to let go of.
+    if (wasSelecting && !selectMode) clearSelection()
 }
 
 /**

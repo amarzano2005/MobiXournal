@@ -385,12 +385,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var handMode: Boolean = false
     /** When non-null, a one-finger tap places an element of this kind instead of drawing. */
     var placeKind: PlaceKind? = null
-    /** When true, one finger rubber-band-selects (or moves an existing selection) instead of drawing. */
+    /**
+     * When true, one finger rubber-band-selects (or moves an existing selection) instead of drawing. Setting it
+     * is not what clears the selection — leaving the select tool is (`applyTool`), because the pane pushes the
+     * live tool on every touch (`applyLiveStyle`), before that touch reaches the canvas.
+     */
     var selectMode: Boolean = false
-        set(value) {
-            field = value
-            if (!value) clearSelection()
-        }
 
     /** When true, a one-finger rectangle copies the flattened page region into the image clipboard. */
     var backgroundSelectMode: Boolean = false

@@ -78,7 +78,13 @@ in hand no longer keeps an object selected by drawing another one. A press that 
 the letting go: the gesture began because the slot is armed, and the release drops it (`ShapeDraft.onlyLetGo`,
 read by `DrawingSurfaceStrokes.commitCurrent`) — a figure tool's tap would otherwise write a degenerate figure and
 select it straight back, and a part slot would place a default-sized part on the press that meant to get out. A
-**drag** is still the drawing it was, so a second object can be laid down without picking the slot again. Its controls
+**drag** is still the drawing it was, so a second object can be laid down without picking the slot again.
+
+What makes that reachable is that a selection survives the **next press**: the pane pushes the live tool onto
+its canvas on every touch (`applyLiveStyle`) and `selectMode` used to clear the selection on being set to
+`false`, not on *leaving* the select tool — so the clear ran between every pair of presses and the press that
+followed always found nothing to act on. `DrawingSurfaceView.selectMode` now drops the selection only on the
+transition out of the select tool. Its controls
 are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halves the bar's footprint,
 and it arrives **in place** on the shared glass spring (`liquidGlassSpringAnimation`, scale + fade —
 the motion every floating surface plays), its offset animated only once it has been measured, so it

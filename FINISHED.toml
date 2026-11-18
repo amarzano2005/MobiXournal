@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "keep-the-selection-alive-across-the-pane-s-per-touch-tool-push"
+title = "Keep the selection alive across the pane's per-touch tool push"
+description = "The selection now survives from one press to the next: selectMode no longer clears it when written, applyTool clears only on leaving the select tool, and the pane's per-touch push of the live tool is no longer a deselect. That makes the letting-go tap and the pin press reachable at all - the tap on empty paper drops the selection and a drag still draws, and a press on a pin joins the selected element or starts the stroke there, depending on the tool in hand. :app:testDebugUnitTest 1691 green and the release APK rebuilt. Not seen on a device: no emulator or tablet here."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = ["selection", "pins", "tablet"]
+design = "material: nothing new on screen, the selection now stays where it was; tokens: unchanged, no colour moves because nothing is re-created; glyph: the dashed outline and the pins persist between presses, which is what makes them readable as a held object; states: leaving the select tool still drops the selection, re-applying the same tool does not, and every press now finds the state the previous one left; copy: no English text added; keyboard: the shortcut path goes through the same applyTool, so the rule is one; parity: the window's own tool switch is its own; docs: docs/selection.md explains that the selection survives the next press and why; tests: the app suite and the guards cover the change, and the rule is reachable only through a SurfaceView so it has no JVM unit test"
+
+[[task]]
 id = "let-the-table-and-circuit-slots-let-go-of-the-selection-on-an-empty-tap"
 title = "Let the table and circuit slots let go of the selection on an empty tap"
 description = "Every placement slot now lets go of the selection on paper that holds nothing of its kind, and the press stays a tap that writes nothing: ShapeDraft.letGoNext + onlyLetGo mark the draft, DrawingSurfaceStrokes.commitCurrent discards it through discardShaping when the hand never travelled, and PlacementPick.letGoOfSelection answers figure, table and circuit slots alike. A drag still draws and commits, so one slot lays several objects down. ShapeDraftTest gained two cases (a letting-go press writes nothing on a tap and a drag is still a drawing, and an ordinary press inherits no letting go) and :app:testDebugUnitTest is 1691 green. Not seen on a device: no emulator or tablet here."
