@@ -106,6 +106,10 @@ object SelectionOps {
      * @param scaleWidth Whether a stroke's width follows the scale (see above). A resize gesture
      *   (`false`) also leaves each headed figure at its drawn size — only the shaft lengthens
      *   ([FigureRedraw]); re-homing ink (`true`) scales the whole drawing, heads included.
+     * @param anchorX The point a **resize** holds still, in page pt — the handle opposite the one being
+     *   dragged — or null for a frame change, where no point is special. A part reads it (see its branch):
+     *   its one geometry is the length of its axis, which scales **about** that point.
+     * @param anchorY See [anchorX].
      * @return Transformed element, or unchanged if unmodelled.
      */
     fun affineXY(
@@ -115,6 +119,8 @@ object SelectionOps {
         dx: Double,
         dy: Double,
         scaleWidth: Boolean = true,
+        anchorX: Double? = null,
+        anchorY: Double? = null,
     ): Element {
         val scalar = kotlin.math.sqrt(sx * sy)
         val ink = if (scaleWidth) scalar else 1.0
@@ -168,28 +174,32 @@ object SelectionOps {
                     rowHeights = newRowHeights,
                 )
             }
-            // A part states its pins in its **own** frame and carries the turn that maps them onto the page,
-            // and `CircuitInk` draws the symbol from those pins — so a page-space stretch has to be read on
-            // the part's own axes. Scaling `relX` by `sx` read the *page's* directions instead: a page-wide
-            // drag lengthened a part lying across the page whichever way it was turned, a page-tall one did
-            // not lengthen it at all, and its pins slid off the ink it was drawn from. Each axis now takes
-            // the length of the page's scale measured along it, which is all a turn can carry — a diagonal
-            // stretch of a turned frame is a shear, and a part has none.
+            // A part is a **symbol generated from its own axis** (`CircuitInk` builds the body along the
+            // line its pins sit on), so the length of that axis is the only geometry the model holds: there
+            // is no width or height field for a cross-axis stretch to write. A page stretch is therefore
+            // measured **along the axis** — `hypot(sx·cos, sy·sin)` for a part whose axis runs on its own x,
+            // the other projection for one whose axis runs on its own y — and applied as a **similarity
+            // about the anchor** the drag holds still. Reading the page's `sx` on one own axis and its `sy`
+            // on the other did neither: it slid the symbol across the page, dragged the anchor corner with
+            // it, and left the pins short of the box the handles were pulling, which is a part that does not
+            // resize from its handles like the elements around it (`CircuitResizeTest`).
             is CircuitElement -> {
                 val radians = Math.toRadians(element.rotation)
                 val cos = cos(radians)
                 val sin = sin(radians)
-                val alongX = hypot(sx * cos, sy * sin)
-                val alongY = hypot(sx * sin, sy * cos)
-                val newX = element.positionX * sx + dx
-                val newY = element.positionY * sy + dy
-                val scaledPins = element.pins.map {
-                    it.copy(relX = it.relX * alongX, relY = it.relY * alongY)
-                }
+                // The axis is the longer side of the pins' own box, the rule `CircuitInk.axisOf` draws along.
+                val ownX = element.pins.isEmpty() ||
+                    element.pins.maxOf { it.relX } - element.pins.minOf { it.relX } >=
+                    element.pins.maxOf { it.relY } - element.pins.minOf { it.relY }
+                val along = if (ownX) hypot(sx * cos, sy * sin) else hypot(sx * sin, sy * cos)
+                // A similarity, so the symbol keeps its proportions and the far side stays on the anchor;
+                // without an anchor (a page re-homing) the plain affine is the whole story.
+                val newX = anchorX?.let { it + (element.positionX - it) * along } ?: (element.positionX * sx + dx)
+                val newY = anchorY?.let { it + (element.positionY - it) * along } ?: (element.positionY * sy + dy)
                 element.copy(
                     positionX = newX,
                     positionY = newY,
-                    pins = scaledPins,
+                    pins = element.pins.map { it.copy(relX = it.relX * along, relY = it.relY * along) },
                 )
             }
             // ParametricShapeElement scales its vertices, keeping its outline width as drawn (unless
@@ -246,7 +256,11 @@ object SelectionOps {
         // figure is re-emitted with the head it was drawn with (`docs/stylus.md` → *A figure is
         // resized, not thickened*, `FigureRedraw`).
         return mapPage(pages, pageIndex) { li, ei, el ->
-            if (ElementRef(li, ei) in refs) affineXY(el, sx, sy, dx, dy, scaleWidth = false) else el
+            if (ElementRef(li, ei) in refs) {
+                affineXY(el, sx, sy, dx, dy, scaleWidth = false, anchorX = anchorX, anchorY = anchorY)
+            } else {
+                el
+            }
         }
     }
 

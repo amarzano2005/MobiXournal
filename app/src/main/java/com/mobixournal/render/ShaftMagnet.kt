@@ -7,24 +7,41 @@ import com.mobixournal.format.model.Page
  *
  * A shaft drag was the one transform with no magnet: the page drew the pins a figure could be paired with,
  * the hand pulled the line's end towards one, and the line stopped two or three points short of it — a join
- * the sheet had just promised and never made. The end is a single moving point, so it follows [PointMagnet]'s
- * rule, the same one a wire's end follows while it is drawn, and the targets are the ones the element may
- * really join ([CircuitSnapping.collectMoveTargets]) so no mark is a promise the lift breaks.
+ * the sheet had just promised and never made. Moving the end from the **press** made that worse in a second
+ * way: the press lands within a fingertip of the ink, so the ratio it read scaled the shaft by
+ * `length / pressDistance` and the tip missed the hand itself.
  *
- * Lives here rather than in the gesture controller because that file is at its line budget: the rule is the
- * point's, not the gesture's, and it is the same pair of lines in both shells.
+ * The rule is [shaftResizeToPin]'s (mobix-core): the end follows the hand's travel from where it started,
+ * `PointMagnet` holds the pin it caught, and the targets are the ones the element may really join
+ * (`CircuitSnapping.collectMoveTargets`). This file is only the tablet's seam onto it — the resize limits are
+ * the shell's, so the controller never has to know them.
+ *
+ * Lives here rather than in the gesture controller because that file is at its line budget.
  */
-internal fun shaftEndOnPin(
+internal fun shaftEndDrag(
     pages: List<Page>,
     pageIndex: Int,
     refs: Set<ElementRef>,
-    x: Double,
-    y: Double,
+    anchorX: Double,
+    anchorY: Double,
+    pressX: Double,
+    pressY: Double,
+    pointerX: Double,
+    pointerY: Double,
     scale: Float,
     magnet: PointMagnet,
-): Pair<Double, Double> {
-    val page = pages.getOrNull(pageIndex) ?: return x to y
-    val targets = CircuitSnapping.collectMoveTargets(page, refs)
-    if (targets.isEmpty()) return x to y
-    return magnet.snap(x, y, targets, CircuitSnapping.thresholdFor(scale))
-}
+): List<Page> = shaftResizeToPin(
+    pages = pages,
+    pageIndex = pageIndex,
+    refs = refs,
+    anchorX = anchorX,
+    anchorY = anchorY,
+    pressX = pressX,
+    pressY = pressY,
+    pointerX = pointerX,
+    pointerY = pointerY,
+    scale = scale,
+    magnet = magnet,
+    minFactor = DrawingSurfaceDefaults.MIN_RESIZE,
+    maxFactor = DrawingSurfaceDefaults.MAX_RESIZE,
+)

@@ -58,7 +58,7 @@ class SelectionShaftTest {
 
     @Test
     fun `a drag along the shaft only lengthens it`() {
-        // Grabbed the tip 200 pt from the tail and pulled it to 400: twice as long, same direction.
+        // The end 200 pt from the anchored tail is carried to 400 from it: twice as long, same direction.
         val drag = shaftDrag(300.0, 100.0, 500.0, 100.0, 100.0, 100.0)
         assertEquals(2.0, drag.factor, 1e-9)
         assertEquals(0.0, drag.angle, 1e-9)
@@ -66,7 +66,7 @@ class SelectionShaftTest {
 
     @Test
     fun `a drag across the shaft re-aims it and keeps its length`() {
-        // Grabbed the tip 100 pt right of the tail and pulled to 100 pt below it: a quarter turn.
+        // The end 100 pt right of the anchored tail is carried to 100 pt below it: a quarter turn.
         val drag = shaftDrag(200.0, 100.0, 100.0, 200.0, 100.0, 100.0)
         assertEquals(1.0, drag.factor, 1e-9)
         assertEquals(kotlin.math.PI / 2, drag.angle, 1e-9)
@@ -82,7 +82,14 @@ class SelectionShaftTest {
     }
 
     @Test
-    fun `a free drag maps the grabbed end onto the pointer and leaves the pen's width`() {
+    fun `the end farthest from the anchor is the one a drag moves`() {
+        val shaft = SelectionShaft(100.0, 100.0, 300.0, 100.0)
+        assertEquals("the tail's drag moves the tip", 300.0 to 100.0, shaft.draggedEnd(100.0, 100.0))
+        assertEquals("the tip's drag moves the tail", 100.0 to 100.0, shaft.draggedEnd(300.0, 100.0))
+    }
+
+    @Test
+    fun `a free drag maps the shaft's end onto the pointer and leaves the pen's width`() {
         val arrow = stroke(
             100.0 to 100.0, 300.0 to 100.0, 280.0 to 88.0, 300.0 to 100.0, 280.0 to 112.0,
         )

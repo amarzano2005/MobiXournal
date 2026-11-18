@@ -433,19 +433,24 @@ internal fun shaftStretch(
     // The dragged end follows the pointer, so the far one is the anchor: the tail is dragged, the tip stays.
     val anchorX = if (handle == SelectionHandle.SHAFT_TAIL) shaft.tipX else shaft.tailX
     val anchorY = if (handle == SelectionHandle.SHAFT_TAIL) shaft.tipY else shaft.tailY
+    // The end **is** what the drag moves, so it travels with the hand's own travel from where it was: the
+    // press lands within a mouse's reach of the ink, and a ratio read from it scaled the shaft by
+    // `length / pressDistance`, which left the tip short of the pin the sheet had shown (the tablet reads the
+    // same rule, `shaftResizeToPin`).
+    val (startX, startY) = shaft.draggedEnd(anchorX, anchorY)
     // The dragged end is a **pin**: it lands on the pin it is aimed at, the same rule a moved part's ends
     // follow (`collectMoveTargets`, `findSnapTarget`), so a line pulled onto a figure's border really joins
     // it instead of stopping a few points short of the mark the sheet had just shown.
     val snapped = CircuitSnapping.findSnapTarget(
-        x1, y1,
+        startX + (x1 - x0), startY + (y1 - y0),
         CircuitSnapping.collectMoveTargets(original, selection.refs),
         CircuitSnapping.thresholdFor(scale),
     )
-    val endX = snapped?.absX ?: x1
-    val endY = snapped?.absY ?: y1
-    // A **free** resize: the pointer sets both the length and the inclination, and the pen's width is the
+    val endX = snapped?.absX ?: (startX + (x1 - x0))
+    val endY = snapped?.absY ?: (startY + (y1 - y0))
+    // A **free** resize: the hand sets both the length and the inclination, and the pen's width is the
     // one thing the drag never changes (`SelectionEdit.similarity`).
-    val drag = shaftDrag(x0, y0, endX, endY, anchorX, anchorY)
+    val drag = shaftDrag(startX, startY, endX, endY, anchorX, anchorY)
     val factor = drag.factor.coerceIn(MIN_SELECTION_SCALE, MAX_SELECTION_SCALE)
     return SelectionEdit.similarity(original, selection, factor, drag.angle, anchorX, anchorY)
 }

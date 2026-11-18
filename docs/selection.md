@@ -96,7 +96,7 @@ A **line** and an **arrow** are not figures with a box to stretch: they are a **
 one grip can read — its length and its inclination (`SelectionShaft`, answered by `shaftOf`). Neither shell
 draws a box round one — a rectangle would promise eight handles the ink does not have — and both wear their
 two grips on the shaft's own ends: the line's two ends, the arrow's tail and the tip of its head. Dragging one
-takes that end to the pointer and leaves the far one still, which is a **free** resize with the width locked:
+takes that end where the hand travels and leaves the far one still, which is a **free** resize with the width locked:
 one similarity transform (`SelectionEdit.similarity`, a uniform scale and a turn about the same anchor), so the
 drawing keeps its shape and the width of its pen while it gets longer, shorter or re-aimed. The turn ring is
 attached to the ink rather than floating: it hangs a gap's length off the shaft's middle, on the side that is
@@ -129,14 +129,19 @@ terminal while the one under the finger is 12 pt from its own, and the part "att
 `snapTranslationTo` therefore takes the point the drag went down on (`grab`, the press the controller
 latched in `beginMove`) and asks the **pin nearest that press** first, falling back to the nearest pair
 only when that pin has nothing in reach; the window passes the same point from its own gesture.
-`PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns. A joint is one joint whichever
+`PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns. The end a shaft drag moves is
+the **ink's own end**, never the point the press landed on: a hand goes down within a fingertip of it, so a
+ratio read from the press scaled the shaft by `length / pressDistance` and the tip came out short of the pin
+the sheet had lit (`shaftResizeToPin`, `ShaftResizeTest`). A joint is one joint whichever
 end is drawn second, so a **line reaches an arrow's tip**: refusing it kept the hand's few points of slop and
 left the tip's handle and the wire's end pin a tenth of an inch apart, which read as a pin that had missed its
-point. An arrow offers its tip and nothing else, so nothing else can be caught by mistake. A **resize of a part
-reads the stretch on the part's own axes** (`SelectionOps.affineXY`): its pins live in the part's frame and the
-turn maps them onto the page, so the page's `sx` is measured along that frame — a page-wide drag was lengthening
-a part lying across the page whichever way it was turned, a page-tall one did not lengthen it at all, and the
-symbol slid off the pins it is drawn from (`CircuitResizeTest`). A box with **no extent on an axis** wears no handles across it: a
+point. An arrow offers its tip and nothing else, so nothing else can be caught by mistake. A **part resizes on
+its own axis** (`SelectionOps.affineXY`): a component is a symbol generated from the axis its pins sit on
+(`CircuitInk`), so the length of that axis is the one geometry the model holds and no stretch across it has a
+height to write. The stretch is measured **along** the axis and applied as a similarity about the anchor the
+drag pins, so the part keeps its proportions and the far side stays exactly where the handle left it; a stretch
+across the axis no longer slid the symbol down the page and dragged the anchor corner with it, which is a part
+that did not resize from its handles like the elements around it (`CircuitResizeTest`). A box with **no extent on an axis** wears no handles across it: a
 selection around a part drawn as a line carries no height worth stretching, its top and bottom handles would
 land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands
 the press back to the body (`SelectionMovePaintTest`). The same rule makes a **corner** drag on a line its end

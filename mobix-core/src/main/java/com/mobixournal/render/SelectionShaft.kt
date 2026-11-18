@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -24,6 +25,17 @@ data class SelectionShaft(
     val length: Double get() = hypot(tipX - tailX, tipY - tailY)
 
     /**
+     * The end this drag **moves**, given the end it holds still: whoever is farther from ([anchorX],
+     * [anchorY]) travels, and the other one is the pivot.
+     */
+    fun draggedEnd(anchorX: Double, anchorY: Double): Pair<Double, Double> =
+        if (hypot(anchorX - tipX, anchorY - tipY) >= hypot(anchorX - tailX, anchorY - tailY)) {
+            tipX to tipY
+        } else {
+            tailX to tailY
+        }
+
+    /**
      * The uniform factor a pointer at ([x], [y]) asks for while ([anchorX], [anchorY]) stays still: the
      * distance from the anchored end now, over that distance at grab time. A purely uniform factor keeps
      * the shaft's direction and the glyph's shape — only the length changes — and it clamps at the caller,
@@ -42,22 +54,22 @@ data class SelectionShaft(
 data class ShaftDrag(val factor: Double, val angle: Double)
 
 /**
- * The drag a pointer at ([x], [y]) describes while ([anchorX], [anchorY]) stays still, given where the
- * pointer grabbed the end ([grabX], [grabY]).
+ * The drag a shaft's end at ([endX], [endY]) describes when the hand carries it to ([x], [y]) while
+ * ([anchorX], [anchorY]) stays still.
  *
- * The grabbed end follows the hand **wherever it goes**, so a drag across the shaft re-aims it and a drag
- * along it lengthens it: the two freedoms a line or an arrow has, in one grip.
+ * The end follows the hand **wherever it goes**, so a drag across the shaft re-aims it and a drag along it
+ * lengthens it: the two freedoms a line or an arrow has, in one grip.
  */
 fun shaftDrag(
-    grabX: Double,
-    grabY: Double,
+    endX: Double,
+    endY: Double,
     x: Double,
     y: Double,
     anchorX: Double,
     anchorY: Double,
 ): ShaftDrag {
-    val grabDx = grabX - anchorX
-    val grabDy = grabY - anchorY
+    val grabDx = endX - anchorX
+    val grabDy = endY - anchorY
     val start = hypot(grabDx, grabDy).coerceAtLeast(1e-3)
     val dx = x - anchorX
     val dy = y - anchorY
@@ -107,4 +119,16 @@ fun shaftOf(element: Element?): SelectionShaft? {
     val tip = ends.lastOrNull() ?: return null
     if (tail.first == tip.first && tail.second == tip.second) return null
     return SelectionShaft(tail.first, tail.second, tip.first, tip.second)
+}
+
+/**
+ * The shaft of the **line or arrow** the selection on [page] holds, or null.
+ *
+ * Read from the page the gesture started on, not from the live one: a drag rewrites the ink it moves, so
+ * the shaft of a moving end has to be asked of the snapshot to know which end started where.
+ */
+fun shaftOf(page: Page?, refs: Set<ElementRef>): SelectionShaft? {
+    val ref = refs.singleOrNull() ?: return null
+    val element = page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+    return shaftOf(element)
 }

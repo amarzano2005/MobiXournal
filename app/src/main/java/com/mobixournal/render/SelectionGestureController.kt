@@ -533,28 +533,15 @@ internal class SelectionGestureController(
      */
     fun resizeSelect(event: MotionEvent) = transform { sel, start, box ->
         if (resizeAxis == ResizeAxis.SHAFT) {
-            // A line's or an arrow's end follows the pointer: a new length **and** a new inclination in one
-            // grip, with the far end still and the pen's width untouched (`SelectionEdit.similarity`).
-            // The dragged end is a pin: it lands on the one it is aimed at (`shaftEndOnPin`).
-            val (endX, endY) = shaftEndOnPin(
+            // A line's or an arrow's end follows the hand's own travel from where the end was — not from the
+            // press, which lands up to a fingertip off the ink — and lands on the pin it is aimed at
+            // (`shaftEndDrag`).
+            shaftEndDrag(
                 start.pages, sel.pageIndex, sel.refs,
+                resizeAnchorX, resizeAnchorY,
+                resizeStartPtX, resizeStartPtY,
                 box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY),
                 box.scale, endMagnet,
-            )
-            val drag = shaftDrag(
-                resizeStartPtX,
-                resizeStartPtY,
-                endX,
-                endY,
-                resizeAnchorX,
-                resizeAnchorY,
-            )
-            val factor = drag.factor.coerceIn(
-                DrawingSurfaceDefaults.MIN_RESIZE,
-                DrawingSurfaceDefaults.MAX_RESIZE,
-            )
-            SelectionOps.similarity(
-                start.pages, sel.pageIndex, sel.refs, factor, drag.angle, resizeAnchorX, resizeAnchorY,
             )
         } else {
             val (sx, sy) = resizeFactors(box, event)
