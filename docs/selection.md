@@ -161,7 +161,10 @@ The own pin **nearest the target** travels, so the element takes the shorter way
 joint (a compatible pin sitting on one of the element's own pins) is not a target at all:
 `FigurePins.SelectionMarks.joinable` is the one list the overlay paints and the press joins, so nothing on screen is unpressable and nothing pressable is invisible. The press is asked **before** the select tool's own
 press, because a mark is the more specific target than the ink under it. This is the tablet's rule (`render/SelectionPinConnect.kt`, the pure half `FigurePins.pressJoin`, pinned by
-`FigurePinsTest`); the window keeps its own press, where a pin is a drag target and a selection grip. The end a shaft drag moves is
+`FigurePinsTest`) — and the window now answers the same press (`joinSelectionToPin` in
+`DesktopSelectionCommands.kt`, before its grips and its pick): a press on a compatible mark moves the
+selected element onto it there too, one undo step, outline carried along. A press on one of the element's
+**own** pins is still the window's grab, which is what moves a part by its terminal. The end a shaft drag moves is
 the **ink's own end**, never the point the press landed on: a hand goes down within a fingertip of it, so a
 ratio read from the press scaled the shaft by `length / pressDistance` and the tip came out short of the pin
 the sheet had lit (`shaftResizeToPin`, `ShaftResizeTest`). A joint is one joint whichever

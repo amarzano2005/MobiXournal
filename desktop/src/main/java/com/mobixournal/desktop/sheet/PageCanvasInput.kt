@@ -458,6 +458,8 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
 ) {
     val (anchorX, anchorY) = pagePointOf(start.position.x, start.position.y, density, view.current())
     if (anchorX !in 0.0..view.pageW.toDouble() || anchorY !in 0.0..view.pageH.toDouble()) return
+    // The slot in hand **lets go** of the selection (`letGoForSlot`): a click draws nothing, a drag still draws.
+    letGoForSlot(tab)
     var lastX = start.position.x
     var lastY = start.position.y
     var lastChange = start

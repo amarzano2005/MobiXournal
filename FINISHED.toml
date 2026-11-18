@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "port-the-pin-press-and-the-slot-letting-go-to-the-desktop-window"
+title = "Port the pin press and the slot letting-go to the desktop window"
+description = "The desktop window now presses a pin the way the tablet does: joinSelectionToPin moves a single selected element onto the compatible pin under the press as one undoable edit, keeps it selected and carries the outline (SelectionGesture.selectionDrag asks it before the grips and the pick, with CircuitSnapping.thresholdFor as the reach), and a press on one of the element's own pins is still the window's grab. letGoForSlot drops the selection when a figure, table or circuit slot is pressed, so the slot that stays in hand no longer keeps an old object selected. Verified: :desktop:compileKotlin and :desktop:compileTestKotlin green, :desktop:createDistributable rebuilt, :app:testDebugUnitTest 1691 green (the tablet is untouched this turn). Not verified by :desktop:test - that suite needs Skia and cannot run on this host - and not seen on a screen: no display here."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-18
+completed = 2026-11-18
+tags = ["selection", "pins", "desktop"]
+design = "material: nothing new on screen, the outline now follows the element it belongs to; tokens: the pin colours and shapes are the shared marks already painted by PageCanvasOverlay, no new colour; glyph: a joined element keeps the hollow own pins and loses the compatible mark it landed on, the same rule the tablet reads; states: a press on a compatible mark joins, a press on the element's ink still grabs and drags, and a slot's press lets go; copy: no new English text; keyboard: Esc still drops the selection, the press is an addition and not a replacement; parity: the two shells now answer the same press with the shared FigurePins.pressJoin rule, which is the point of the port; docs: docs/selection.md says the window answers the same press and keeps its own grab for an element's own pin; tests: the pure rule is FigurePinsTest's in core (green), the desktop wiring is compile-verified, and the desktop suite cannot run on this host"
+
+[[task]]
 id = "keep-the-selection-alive-across-the-pane-s-per-touch-tool-push"
 title = "Keep the selection alive across the pane's per-touch tool push"
 description = "The selection now survives from one press to the next: selectMode no longer clears it when written, applyTool clears only on leaving the select tool, and the pane's per-touch push of the live tool is no longer a deselect. That makes the letting-go tap and the pin press reachable at all - the tap on empty paper drops the selection and a drag still draws, and a press on a pin joins the selected element or starts the stroke there, depending on the tool in hand. :app:testDebugUnitTest 1691 green and the release APK rebuilt. Not seen on a device: no emulator or tablet here."

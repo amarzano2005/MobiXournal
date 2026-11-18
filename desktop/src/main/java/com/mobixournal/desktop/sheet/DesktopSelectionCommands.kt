@@ -12,6 +12,7 @@ import java.awt.datatransfer.DataFlavor
 import com.mobixournal.format.model.isLivingEntity
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.ElementRef
+import com.mobixournal.render.FigurePins
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionEdit
 import com.mobixournal.render.SelectionOps
@@ -107,6 +108,55 @@ internal fun deleteSelection(tab: DesktopTab, onEdited: (Int) -> Unit = {}): Boo
     tab.record(before)
     tab.selection = null
     onEdited(index)
+    return true
+}
+
+/**
+ * A press on a **compatible pin** joins the selected element to it — the tablet's own press, on the window.
+ *
+ * A selection wears both halves of a pairing (`FigurePins.selectionMarks`), and the compatible marks are the
+ * pins the element can be moved onto. On the window that was only a **promise**: a drag could carry the
+ * element there, but a click on the mark itself fell through to the pick and started a marquee, so a pin the
+ * sheet lit could not be used — the report the tablet answered first.
+ *
+ * The press moves the element onto the pin in **one undoable edit**, leaves it selected, and carries the
+ * outline with it (`SelectionRegion.translate`), so the element can be joined again or dragged from there.
+ * Only a **single** element joins — the selection the marks are drawn for — and only within the magnet's own
+ * reach (`CircuitSnapping.thresholdFor`), so what the sheet promises and what a press does are one distance.
+ */
+internal fun joinSelectionToPin(
+    tab: DesktopTab,
+    page: Page,
+    x: Double,
+    y: Double,
+    reachPt: Double,
+    onEdited: (Int) -> Unit = {},
+): Boolean {
+    val selection = tab.selection ?: return false
+    val ref = selection.refs.singleOrNull() ?: return false
+    val join = FigurePins.pressJoin(page, ref, x, y, reachPt) ?: return false
+    val index = tab.page
+    val moved = SelectionOps.translate(listOf(page), 0, selection.refs, join.dx, join.dy).firstOrNull()
+        ?: return false
+    val before = tab.document.snapshot()
+    if (tab.document.editPage(index) { moved } == null) return false
+    tab.record(before)
+    tab.selection = selection.copy(region = selection.region.translate(join.dx, join.dy))
+    onEdited(index)
+    return true
+}
+
+/**
+ * A **slot in hand lets go** of the selection on the press — the tablet's rule, ported.
+ *
+ * The window's element slots stay armed after they place something, so the press on the sheet is how the next
+ * object is put down; keeping the old one selected meant the only way to end a selection was `Esc` or another
+ * tool. A press is the letting go, and it costs nothing: a click with a slot draws nothing here
+ * (`MIN_SHAPE_DRAG_PT` in `PageInkGesture.shapeStroke`), while a drag still draws the next object.
+ */
+internal fun letGoForSlot(tab: DesktopTab): Boolean {
+    if (tab.selection == null) return false
+    tab.selection = null
     return true
 }
 

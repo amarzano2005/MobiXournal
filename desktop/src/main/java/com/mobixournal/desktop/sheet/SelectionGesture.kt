@@ -150,6 +150,11 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
     val live = tab.selection
     val page = runCatching { tab.document.page(tab.page) }.getOrNull()
+    // A press on a **compatible pin** is the join the mark promises (`joinSelectionToPin`, the tablet's press):
+    // asked before the grips and before the pick, because the mark is the finer target than the ink under it.
+    if (live != null && page != null &&
+        joinSelectionToPin(tab, page, x0, y0, CircuitSnapping.thresholdFor(pxPerPt), onEdited)
+    ) return
     // A **grip** on the selected element — a figure's corner, a table's divider — is found here and acted on
     // below the double-click: it is the finer control the tablet puts first, and a press a hair off the ink
     // should bend the figure rather than carry the whole selection.

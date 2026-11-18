@@ -185,6 +185,9 @@ internal suspend fun AwaitPointerEventScope.circuitDrag(
 ) {
     val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, view.current())
     if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return
+    // A part slot is a slot like the others: the press **lets go** of the selection before pulling the next
+    // part out (`letGoForSlot`, the tablet's rule), so a tap on the sheet is the way out of a selection.
+    letGoForSlot(tab)
     var lastX = start.position.x
     var lastY = start.position.y
     var cancelled = false
