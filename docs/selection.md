@@ -69,7 +69,12 @@ view px (`DrawingSurfaceView.selectionScreenRect` / `onSelectionRectChanged`, re
 pass next to `reportScroll`) through `PaneState.selectionRect`, and `EditorPaneView` — whose canvas
 `Box` *is* the surface's coordinate space — hangs the bar just **below** the box (above it only when
 the canvas ends below the selection, clamped inside the canvas either way). It carries **no Done
-button**: tapping off the selection clears it, and that same tap starts the next stroke. Its controls
+button**: tapping off the selection clears it, and that same tap starts the next stroke. A tap on **empty
+paper inside** the outline clears it too: the box encloses air, and a press there begins a move, so a still
+press is read as a tap on nothing and lets go (`SelectionGestureController.commitMove`) instead of holding — a
+press on the element's **ink** is the one that holds. A figure slot does the same on paper that holds no figure
+of its kind (`PlacementPick.letGoOfFigure`), so the tool left in hand no longer keeps a figure selected by drawing
+another one. Its controls
 are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halves the bar's footprint,
 and it arrives **in place** on the shared glass spring (`liquidGlassSpringAnimation`, scale + fade —
 the motion every floating surface plays), its offset animated only once it has been measured, so it
@@ -134,16 +139,18 @@ latched in `beginMove`) and asks the **pin nearest that press** first, falling b
 only when that pin has nothing in reach; the window passes the same point from its own gesture.
 `PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns.
 
-A **press** on a marked pin is that join taken literally. With one element selected, a press on a compatible
-mark — the filled dot or the square, within the magnet's own reach (`CircuitSnapping.thresholdFor`) — moves the
-element onto that pin in **one undoable edit** and leaves it selected: the press was aimed at the mark, not at
-an object, so the part the pin belongs to is never picked, which is exactly what a press there used to do.
+A **press** on a marked pin is that join taken literally, under the **select** tool. With one element selected, a
+press on a compatible mark — the filled dot or the square, within the magnet's own reach
+(`CircuitSnapping.thresholdFor`) — moves the element onto that pin in **one undoable edit** and leaves it
+selected: the press was aimed at the mark, not at an object, so the part the pin belongs to is never picked,
+which is exactly what a press there used to do. With a **drawing** tool in hand the same press is the drawing's,
+and it starts the stroke **on** the pin (`PlacementPick.pinUnderPress`: the pins the draft's magnet would catch,
+within the stroke's own reach), so a wire leaves the terminal and a part is never picked out from under a mark —
+the pin used to be the most specific *pick*, now it is the most specific *anchor*.
 The own pin **nearest the target** travels, so the element takes the shorter way, and a mark that is already a
 joint (a compatible pin sitting on one of the element's own pins) is not a target at all:
-`FigurePins.SelectionMarks.joinable` is the one list the overlay paints and the press joins, so nothing on
-screen is unpressable and nothing pressable is invisible. The press is asked **before** the placement pick and
-before the select tool's own press, because a mark is the more specific target than the ink under it. This is
-the tablet's rule (`render/SelectionPinConnect.kt`, the pure half `FigurePins.pressJoin`, pinned by
+`FigurePins.SelectionMarks.joinable` is the one list the overlay paints and the press joins, so nothing on screen is unpressable and nothing pressable is invisible. The press is asked **before** the select tool's own
+press, because a mark is the more specific target than the ink under it. This is the tablet's rule (`render/SelectionPinConnect.kt`, the pure half `FigurePins.pressJoin`, pinned by
 `FigurePinsTest`); the window keeps its own press, where a pin is a drag target and a selection grip. The end a shaft drag moves is
 the **ink's own end**, never the point the press landed on: a hand goes down within a fingertip of it, so a
 ratio read from the press scaled the shaft by `length / pressDistance` and the tip came out short of the pin

@@ -51,7 +51,9 @@ inspector. Parts arrive with the pins the factory gives them, and a wire connect
 components meet where their pins are rather than where you happened to end the drag.
 
 Choosing a part's tool already shows the pins on the sheet it could attach to, before you start placing it,
-so the place is chosen with the terminals in sight instead of after the part has landed.
+so the place is chosen with the terminals in sight instead of after the part has landed. Pressing one of those
+pins starts the wire **on** the pin rather than picking the part the pin belongs to, and a tap on empty paper
+lets go of a selected figure instead of leaving it selected.
 
 On the tablet, with a part's tool still in hand, a press on a part **selects** it — drag its handles and it
 stretches on both of its own axes, like any figure — while a press on empty paper places a new one. The tool stays picked

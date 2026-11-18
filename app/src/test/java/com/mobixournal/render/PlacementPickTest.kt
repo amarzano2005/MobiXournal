@@ -237,4 +237,49 @@ class PlacementPickTest {
         assertTrue("a part is not a table", !LivingEditFamily.TABLE.matches(resistor()))
         assertTrue("a stroke is no living object", !LivingEditFamily.CIRCUIT.matches(ink()))
     }
+
+    /** A wire from (100, 100) to (200, 100): a figure whose two ends are pins a connector may join. */
+    private fun wire(): Stroke = figure(ShapeKind.LINE, 100.0, 100.0, 200.0, 100.0)
+
+    /**
+     * A press **on a pin** is the gesture's, not the pick's: the stroke starts on the terminal.
+     *
+     * The list is the draft's own (what its magnet snaps the first sample to), asked with the stroke's reach,
+     * so a wire pressed on a wire's end draws from that end instead of selecting the wire the end belongs to.
+     */
+    @Test
+    fun aPressOnAWiresEndIsTheGesturesNotThePicks() {
+        val page = pageOf(wire())
+        assertEquals(
+            "the wire's start",
+            100.0,
+            pinUnderPress(page, ShapeKind.LINE, 101.0, 100.5, 12.0)?.absX,
+        )
+        assertEquals(
+            "and its far end",
+            200.0,
+            pinUnderPress(page, ShapeKind.LINE, 199.0, 100.0, 12.0)?.absX,
+        )
+    }
+
+    /** A press the magnet would not catch is no pin press: the part under it is picked as it always was. */
+    @Test
+    fun aPressOffTheMarkStillPicks() {
+        val page = pageOf(wire())
+        assertNull(
+            "44 pt from the end is outside the reach",
+            pinUnderPress(page, ShapeKind.LINE, 144.0, 140.0, 12.0),
+        )
+    }
+
+    /** An armed **figure** tool is offered the ends it may be paired with, so it starts there too. */
+    @Test
+    fun anArmedFigureStartsOnAWiresEnd() {
+        val page = pageOf(wire())
+        assertEquals(
+            "a rectangle begins on the wire's end",
+            200.0,
+            pinUnderPress(page, ShapeKind.RECTANGLE, 200.5, 100.5, 12.0)?.absX,
+        )
+    }
 }

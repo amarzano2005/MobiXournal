@@ -26,6 +26,7 @@ package com.mobixournal.render
 import android.view.MotionEvent
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
+import kotlin.math.hypot
 
 /**
  * The family a top-bar **living element** tool places, or null for a tool that draws a figure instead.
@@ -64,6 +65,25 @@ internal fun pickFigureElement(page: Page, xPt: Double, yPt: Double, kind: Shape
     }
 }
 
+/**
+ * The **pin** a press at ([xPt], [yPt]) is aimed at, or null: the first of the pins this gesture would be
+ * anchored to ([CircuitSnapping.draftTargets], the very list the draft's magnet snaps the first sample to)
+ * within [reachPt] — the same reach the stroke uses.
+ *
+ * A pin is a **terminal**, not a piece of the object it belongs to: asking this before the pick is what lets a
+ * press on a mark start the stroke *on* the pin, so a wire leaves the terminal, instead of selecting the part
+ * the mark sits on. Only a pin the gesture would really catch counts, so a press merely near a part still
+ * picks that part.
+ */
+internal fun pinUnderPress(
+    page: Page,
+    kind: ShapeKind,
+    xPt: Double,
+    yPt: Double,
+    reachPt: Double,
+): CircuitSnapping.PinTarget? = CircuitSnapping.draftTargets(kind, page)
+    .firstOrNull { hypot(it.absX - xPt, it.absY - yPt) <= reachPt }
+
 /** Everything a press with [kind] in hand may claim: a living element of its family, or its own figure. */
 internal fun pickPlacedElement(page: Page, xPt: Double, yPt: Double, kind: ShapeKind): ElementRef? =
     livingFamilyOf(kind)?.let { pickLivingElement(page, xPt, yPt, kind) }
@@ -85,7 +105,18 @@ internal fun DrawingSurfaceView.beginPlacementPress(event: MotionEvent, pointerI
     val y = event.getY(pointerIndex)
     val box = layout.pageAt(x + scrollX, y + scrollY) ?: return false
     val page = pageAt(box.index) ?: return false
-    val ref = pickPlacedElement(page, box.toPtX(x, scrollX), box.toPtY(y, scrollY), kind) ?: return false
+    val xPt = box.toPtX(x, scrollX)
+    val yPt = box.toPtY(y, scrollY)
+    // A press **on a pin** is where the drawing starts, not a pick of the object the pin belongs to: the
+    // press falls through to the stroke, whose draft snaps its first sample onto the mark
+    // (`DrawingSurfaceStrokes.snappedShapePoint`), so a wire leaves the terminal. Asked first, because the
+    // mark is the finer target — the part behind it is only the ink it was drawn on.
+    if (pinUnderPress(page, kind, xPt, yPt, CircuitSnapping.thresholdFor(box.scale)) != null) return false
+    val ref = pickPlacedElement(page, xPt, yPt, kind) ?: run {
+        // Paper that holds nothing of [kind] **lets go** of a selected figure (`letGoOfFigure`).
+        letGoOfFigure(chosen, kind)
+        return false
+    }
     selection = ActiveSelection(box.index, setOf(ref))
     onSelectionChanged?.invoke(true)
     reportSelectionRect()
@@ -94,6 +125,20 @@ internal fun DrawingSurfaceView.beginPlacementPress(event: MotionEvent, pointerI
     gestures.pressSelection(event)
     render()
     return true
+}
+
+/**
+ * Pressing paper that holds nothing of [kind] **lets go of a selected figure**.
+ *
+ * The figure tool stays in hand after the figure is placed, so a press on the sheet is how the next figure is
+ * put down — and until now that press also kept the old one selected, so a tap meant to let go drew another
+ * figure and selected it, and the only way to end a selection was to pick another tool. Only a **figure** slot
+ * does this (`livingFamilyOf` null): the table and the circuit slots are *insertion* slots, where an empty
+ * press places an object and the new object is what the selection follows.
+ */
+private fun DrawingSurfaceView.letGoOfFigure(chosen: ActiveSelection?, kind: ShapeKind) {
+    if (chosen == null || livingFamilyOf(kind) != null) return
+    clearSelection()
 }
 
 /** Whether [sel] is what a press with [kind] in hand would have selected — its family, or its own figure. */

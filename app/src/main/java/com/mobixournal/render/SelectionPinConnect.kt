@@ -11,10 +11,13 @@
  * is the report that the pins could be seen but not used.
  *
  * The rule is the press's, not a new tool: a mark is the more specific target than the ink it sits on, so it
- * is asked **before** the pick — placement pick and selection pick alike — and it is one undoable move that
- * leaves the selection where it was, so the element can be joined again or dragged from there. The pure
- * answer (which mark, how far) is `FigurePins.pressJoin`, unit-tested on the JVM; this file is the one place
- * the tablet turns it into an edit.
+ * is asked **before** the selection pick, and it is one undoable move that leaves the selection where it was,
+ * so the element can be joined again or dragged from there. The pure answer (which mark, how far) is
+ * `FigurePins.pressJoin`, unit-tested on the JVM; this file is the one place the tablet turns it into an edit.
+ *
+ * Asked under the **select tool** only (`DrawingSurfaceInput.beginPointer`). With a drawing tool in hand the
+ * press is the drawing's: it starts the stroke **on** the pin it landed on (`PlacementPick.pinUnderPress`), so
+ * a wire leaves the terminal, and the tool in hand is what decides which of the two a pin press means.
  *
  * The window keeps its own press: a pin there is a drag target and a selection grip, and this tap-to-join
  * lives on the tablet, where the marks are read as something to aim at.

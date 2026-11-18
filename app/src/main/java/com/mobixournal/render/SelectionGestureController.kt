@@ -113,6 +113,8 @@ internal class SelectionGestureController(
     private var moveStartPtX = 0.0
     private var moveStartPtY = 0.0
 
+    private val press = MovePress()
+
     // Live resize about a fixed anchor (the opposite corner, or the opposite edge for a one-axis
     // stretch), in page-local pt.
     var resizing = false
@@ -489,6 +491,8 @@ internal class SelectionGestureController(
         snapshot()
         moveStartPtX = box.toPtX(event.x, viewport.scrollX)
         moveStartPtY = box.toPtY(event.y, viewport.scrollY)
+        // Inside the outline is not on the element: that air is where a still press means "let go" (`MovePress`).
+        press.begin(event.x, event.y, pageAt(box.index)?.let { SelectionTester.pickTopmost(it, moveStartPtX, moveStartPtY) } != null)
     }
 
     private fun beginRotate(event: MotionEvent, box: PageBox, pivotX: Double, pivotY: Double) {
@@ -517,6 +521,7 @@ internal class SelectionGestureController(
     fun moveSelectTo(viewX: Float, viewY: Float) = moveTo(viewX, viewY)
 
     private fun moveTo(viewX: Float, viewY: Float) = transform { sel, start, box ->
+        press.track(viewX, viewY)
         val rawDx = box.toPtX(viewX, viewport.scrollX) - moveStartPtX
         val rawDy = box.toPtY(viewY, viewport.scrollY) - moveStartPtY
         // The reach is **screen** pixels whatever the zoom (`thresholdFor`), the magnet holds the pin it
@@ -598,6 +603,7 @@ internal class SelectionGestureController(
      * dropped). The whole move records as one undoable edit by the caller's gesture bookkeeping.
      */
     fun commitMove() {
+        if (press.tapOnNothing) { clearSelection(); render(); return }
         val sel = selection ?: return
         val srcBox = layout().boxes.getOrNull(sel.pageIndex) ?: return
         val page = pageAt(sel.pageIndex) ?: return

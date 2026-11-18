@@ -25,6 +25,30 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "let-go-of-the-selected-figure-on-a-press-on-empty-paper"
+title = "Let go of the selected figure on a press on empty paper"
+description = "An empty press now lets go of the selected figure: MovePress reads the press (what the page held under it, and whether the hand travelled past DrawingSurfaceDefaults.TAP_SLOP_PX) and SelectionGestureController.commitMove clears the selection when it was a tap on nothing, which finally covers the air inside a figure's own box. PlacementPick.letGoOfFigure drops a selected figure when a figure slot presses paper that holds none of its kind. MovePressTest pins the five readings (still on nothing, still on ink, travelled, jitter, a fresh press) and :app:testDebugUnitTest is 1689 green. Not seen on a device: no emulator or tablet here."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = ["selection", "tablet"]
+design = "material: nothing new on screen, the release only drops the outline and its bar; tokens: unchanged, no colour moves because the selection leaves rather than changes; glyph: the dashed outline and the handles go with the selection, so no mark is left claiming a figure that is no longer held; states: a tap on empty paper is now the deselect, a press on the ink still holds and any travel still moves, and a figure slot lets go on paper without its own figure; copy: no new English text; keyboard: untouched; parity: documented as the tablet's press, the window's own empty click is its own; docs: docs/selection.md describes the tap on nothing inside the outline and the figure slot letting go; tests: MovePressTest pins the rule and SourceStructureTest forced a split, so the reading lives in MovePress.kt"
+
+[[task]]
+id = "start-the-stroke-on-the-pin-a-press-lands-on-instead-of-picking-the-part-behind-it"
+title = "Start the stroke on the pin a press lands on, instead of picking the part behind it"
+description = "A press with a drawing tool in hand now starts the stroke on the pin it lands on: PlacementPick.pinUnderPress asks the same list the draft magnet snaps to (CircuitSnapping.draftTargets) within CircuitSnapping.thresholdFor, the placement pick refuses that press, and the draft anchors its first sample on the mark. The tap-to-join press is now the select tool's alone. PlacementPickTest gained three cases (a wire's end, an armed rectangle on that end, and a press off the mark still picking) and :app:testDebugUnitTest is 1689 green. Not seen on a device: no emulator or tablet here."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-18
+completed = 2026-11-18
+tags = ["circuit", "pins", "tablet"]
+design = "material: nothing new, a press is a press and no surface is added; tokens: the marks keep their pin red and the shapes the gesture already draws, no new colour; glyph: the pins are the same filled dot and square, unchanged, so what a press anchors to is what the sheet promised; states: the press now starts the stroke on the mark where it used to pick the part, and the select tool keeps the join-on-press so each tool owns one answer; copy: no new English text; keyboard: untouched, this is the canvas; parity: the mark stays the tablet's press and the window keeps its own drag-and-grip, as documented; docs: docs/selection.md says the pin is the most specific anchor under a drawing tool and docs/guide-stem-tools.md tells the reader the wire starts on the pin; tests: PlacementPickTest pins the pin press, the off-the-mark pick and the armed figure's end"
+
+[[task]]
 id = "show-the-pins-an-armed-placement-tool-s-object-could-join-before-the-gesture-starts"
 title = "Show the pins an armed placement tool's object could join, before the gesture starts"
 description = "An armed placement tool now paints what its object could join before the gesture starts: a connector's reachable pins through FigurePins.aimFamily and the existing drawTargetPins, a figure's joinable ends through FigurePins.joinedBy and a new drawJoinedPins over the visible pages. The selection half of the overlay is extracted as drawSelectionPins, so a selected element keeps its own pairing marks and an armed tool answers only when nothing is selected. FigurePinsTest pins the armed rectangle being offered a wire's two ends while a figure still aims at nothing. Verified: :mobix-core:test 1192 and :app:testDebugUnitTest 1681 green, release APK signed with the new drawing present in its dex, :desktop:createDistributable up to date on the unchanged core. Not verified on a device (no emulator or tablet here)."
