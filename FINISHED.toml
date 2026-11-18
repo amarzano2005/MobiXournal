@@ -25,6 +25,90 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "device-pass-contents-panel"
+title = "Pass the Android Contents panel on a device"
+description = "Pixel_Tablet AVD booted (20 s), app-debug.apk of main installed, notification permission allowed, onboarding skipped, a new sheet opened, then the navigator Bookmarks tab: three bookmarks (Alpha, Beta, Gamma) created through the draft row and Enter, each row showing its page number, the row menu and the drag handle; the row menu opens Rename/Delete. Screenshots at every step (build/qa/emu-1..8.png, build output, not committed). This also corrected docs/pdf.md, which had claimed all four menu words on both shells: the tablet keeps Rename/Delete there and reaches the moves through the drag and its accessibility actions. Not covered: the emulator ran the debug build of main, not the published 2.3.0 APK."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: a verification pass that changed no code"
+
+[[task]]
+id = "contents-menu-nested-and-filtered"
+title = "Cover the window row menu beyond the first level"
+description = "DesktopBookmarkNavigationTest gains two cases: aMovedChapterCarriesItsChildren (OutlineEdits.add puts a child under a root, the menu moves that root down, and the child travels with it) and aFilteredListStillMovesAmongTheRealSiblings (three roots filtered down to Beta; Move down still produces Alpha, Gamma, Beta, and the moved row stays the one the filter shows). pdf.md now says the row menu is a pointer surface that never takes the keyboard, with Alt+Up/Down as the window keyboard path, which is also why the menu was not made focusable (FloatingSurface is focusable = false by contract, DesktopPopupFocusTest guards it). Verified: :desktop:test, 5 tests in that class."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: tests and one documentation sentence, with no control, token or copy changed"
+
+[[task]]
+id = "update-check-survives-the-quota"
+title = "Read the release feed without the API quota"
+description = "Both shells now survive a refused API instead of only reporting it. New mobix-core UpdateFallback exposes three pure parsers — tagIn(atom), assetNamesIn(release page), release(tag, names, platform) — and each shell calls them when the API request fails: latest() tries the API, and only a refusal falls back (an answered 200 is trusted even when it names no installer, so the draft/prerelease rule the fallback cannot see is never widened). Versions and URLs are derived, never guessed: the tablet reads the tag, the window reads the MSI name, and an asset with no number is not an offer. UpdateFallbackTest (6 cases: newest tag, both installers, each shells own number and URL, unreadable page, the comparison unchanged) plus docs/updates.md, which records that the API stays primary. Not verified on a network: the 403 path was exercised through the parsers, not against GitHub."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: the check, its card and its About row are unchanged, and only the pages the same facts are read from are new"
+
+[[task]]
+id = "release-docs-spoke"
+title = "Move the release procedure to its own spoke"
+description = "docs/releasing.md now owns the order — freeze, curate, tag, watch — the two version lines, the tag command, release-name, the rehearsal and the workflow rules; tools.md keeps its index row (now a link) and a five-line pointer, dropping from 300 lines to 217 so the next release note has room. The architecture index lists the new spoke, release.py changelog draft and the version-rule comments in release.py, todo.py and UpdateFallback.kt name it, and test_release.py checks the draft points there. Verified by :app:testDebugUnitTest, which runs DocsGuardTest and DocClaimsTest over the new page."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: documentation only"
+
+[[task]]
+id = "tag-only-after-verify"
+title = "Tag a release only after the checks pass"
+description = "todo.sh tag --version X.Y.Z runs the same checks verify-release runs (shared _release_problems, so the sentence before tagging is the sentence CI prints after it) and only then creates the annotated tag and pushes it; --no-push stops after creating it. It refuses an existing tag, a HEAD that is not main, and anything the checks report. test_tag.py drives it against real temporary git repositories: tagged at HEAD, --no-push names the push, and refusals for an existing tag, an uncommitted tree (no tag left behind), an unfrozen version and a side branch. Verified: test_tag.py all green, and the command refuses this dirty tree with both problems named."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: release tooling"
+
+[[task]]
+id = "rehearse-the-release-job"
+title = "Rehearse the release job without publishing"
+description = "scripts/rehearse-release.sh checks what a release would attach — both artifacts present under the names their Gradle lines imply, and docs/releases/v<android>.md present as the body — and prints the title it would carry, failing the run otherwise. A rehearsal job in build.yml (workflow_dispatch only, needs [build, desktop]) downloads both artifacts and runs it; it creates no release and needs no write permission. Verified locally: the script fails on a missing asset and prints the composed title; the YAML parses with six jobs and the release job step order right. Not yet run in Actions."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: a CI rehearsal that publishes nothing"
+
+[[task]]
+id = "release-page-names-both-builds"
+title = "Name the release page after both builds"
+description = "release.release_name(root) builds the title from the two Gradle lines and refuses to name a release whose lines it cannot read; todo.py release-name prints it as the single name= line the workflow appends to $GITHUB_OUTPUT, and the release job now passes name: ${{ steps.versions.outputs.name }} instead of Release ${{ github.ref_name }}. test_release.py covers the title and the refusal. Not exercised by a tagged run: the step runs on a tag, which the rehearsal below is there for."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "none: the release page title is the workflow own string, not a surface either shell draws"
+
+[[task]]
 id = "desktop-contents-row-moves"
 title = "The window's Contents menu moves a chapter among its siblings"
 description = "The window closes the last Contents asymmetry: a notebook-owned row now offers Move up and Move down in its ⋯ menu, above Rename and Delete, and the commit is the path the drag and Alt+Up/Down already used — DesktopPages.moveBookmark through OutlineEdits.moveSibling, one tab.record(before), so a single Ctrl+Z puts the subtree back as the new test asserts. Availability is OutlineSiblingOrder.of(allRows), read from the whole tree so a filtered list still moves a row among the siblings it really has; the entries are shown but disabled at the ends of a run (ContentsMenuRow gained enabled, using the existing muted ink) rather than vanishing, so the menu keeps one shape. The menu goes through the same ContentsEdits.move the drag passes to ContentsDragList, so ContentsEditing.kt is untouched. Docs: the matrix row in guide-limitations.md no longer says the window lacks sibling reordering, and pdf.md describes the four words. Verified: new DesktopBookmarkNavigationTest.theRowMenuMovesAmongSiblingsAndStopsAtTheEdges (Move up disabled on the first row, Move down reorders, one undo restores), the whole :desktop:test suite, :app:testDebugUnitTest and :desktop:createDistributable. Not checked: the menu was not looked at on screen — no window was opened in this session."

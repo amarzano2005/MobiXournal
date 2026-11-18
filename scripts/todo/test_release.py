@@ -135,11 +135,36 @@ def test_render_changelog():
           "changelog sections follow the category order")
     check("- **Fix one** — Gist two." in text, "every task becomes a bullet")
     check("compare/v1.1.0...v1.2.0" in text, "the compare link uses the previous version")
-    check("docs/tools.md#cutting-a-release" in text, "the draft points at the release procedure")
+    check("docs/releasing.md" in text, "the draft points at the release procedure")
     check("1.2.0" in text, "the draft names the version it belongs to")
 
 
 # --- filesystem edges -----------------------------------------------------
+
+def test_release_name():
+    """The GitHub release's title names both builds — the tag alone names only the tablet's."""
+    with tempfile.TemporaryDirectory() as tmp:
+        gradle = os.path.join(tmp, "app")
+        desktop = os.path.join(tmp, "desktop")
+        os.makedirs(gradle)
+        os.makedirs(desktop)
+        with open(os.path.join(gradle, "build.gradle.kts"), "w", encoding="utf-8") as fh:
+            fh.write('versionName = "2.3.0"\nversionCode = 17\n')
+        with open(os.path.join(desktop, "build.gradle.kts"), "w", encoding="utf-8") as fh:
+            fh.write('packageVersion = "1.3.0"\n')
+        check(
+            release.release_name(tmp) == "Release v2.3.0 (Android) and v1.3.0 (Desktop)",
+            "release_name names both builds, each from its own Gradle line",
+        )
+        with open(os.path.join(desktop, "build.gradle.kts"), "w", encoding="utf-8") as fh:
+            fh.write("// no packageVersion\n")
+        raised = False
+        try:
+            release.release_name(tmp)
+        except SystemExit:
+            raised = True
+        check(raised, "release_name refuses to title a release it cannot name")
+
 
 def test_write_changelog_refuses_clobber():
     with tempfile.TemporaryDirectory() as tmp:
@@ -361,6 +386,7 @@ def main():
     test_sync_build_versions_leaves_an_agreed_pair_alone()
     test_set_desktop_version()
     test_check_versions_rejects_a_stale_about_row()
+    test_release_name()
     if _FAILURES:
         print(f"\n{len(_FAILURES)} check(s) failed")
         return 1

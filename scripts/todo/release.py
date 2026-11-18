@@ -226,7 +226,7 @@ def _draft_note(version):
         "<!-- Draft generated from FINISHED.toml by "
         f"`scripts/todo.sh release --version {version}`.\n"
         "     Curate it — group, reword, add the highlights — then it is published\n"
-        "     verbatim as the GitHub Release body (see docs/tools.md#cutting-a-release). -->\n"
+        "     verbatim as the GitHub Release body (see docs/releasing.md). -->\n"
     )
 
 
@@ -252,7 +252,7 @@ def bump_gradle(root, version):
     """Point ``app/build.gradle.kts`` at *version*.
 
     ``versionName`` becomes *version* and ``versionCode`` is incremented — a
-    monotonic counter, not derived from the name (see ``docs/tools.md``). Returns
+    monotonic counter, not derived from the name (see ``docs/releasing.md``). Returns
     ``(old_name, old_code, new_code)``. Read and written with ``newline=""`` so
     the file's existing line endings survive the edit untouched.
     """
@@ -425,3 +425,27 @@ def check_versions(root):
             "the window would name the wrong build in its About row"
         )
     return problems
+
+
+def release_name(root):
+    """The GitHub release's title, naming **both** builds.
+
+    The tag names the tablet's build, so the workflow called every release ``Release v2.3.0`` while
+    the same page shipped 1.3.0 for the window — and 2.3.0's title had to be corrected by hand through
+    the API. Both numbers already live in the Gradle file that owns each one, so the title is read from
+    them: a release cannot announce one shell's version as the whole story.
+    """
+    android, _ = gradle_version(root)
+    desktop = desktop_version(root)
+    if not android or not desktop:
+        raise SystemExit(
+            "cannot name the release: "
+            + (", ".join(
+                label for label, value in (
+                    ("app/build.gradle.kts versionName", android),
+                    ("desktop/build.gradle.kts packageVersion", desktop),
+                ) if not value
+            ))
+            + " is missing"
+        )
+    return f"Release v{android} (Android) and v{desktop} (Desktop)"

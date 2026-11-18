@@ -10,6 +10,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.format.model.OutlineNode
+import com.mobixournal.render.OutlineEdits
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -79,6 +81,53 @@ class DesktopBookmarkNavigationTest {
                 tab.undo()
             }
             compose.onNodeWithText("Row 0").assertIsDisplayed()
+        } finally { state.tabs.closeAll() }
+    }
+
+    @Test fun aMovedChapterCarriesItsChildren() {
+        val state = show()
+        try {
+            val tab = state.tabs.active!!
+            compose.runOnIdle {
+                // `OutlineEdits.add` is the same rule the menu's own Add uses: the child is appended under
+                // the chapter, so moving that chapter is the case where a move could lose a subtree.
+                val parent = tab.document.model.outline.nodes[1]
+                val added = OutlineEdits.add(tab.document.model.outline, "Child", parent.target!!, parent.id)
+                tab.document.replaceOutline((added as OutlineEdits.Result.Ok).tree)
+            }
+            compose.onNodeWithContentDescription("Actions for Row 1").performClick()
+            compose.onNodeWithText("Move down").performClick()
+            compose.runOnIdle {
+                val nodes = tab.document.model.outline.nodes
+                assertEquals(listOf("Row 0", "Row 2", "Row 1"), nodes.take(3).map { it.title })
+                assertEquals(listOf("Child"), nodes[2].children.map { it.title })
+            }
+        } finally { state.tabs.closeAll() }
+    }
+
+    @Test fun aFilteredListStillMovesAmongTheRealSiblings() {
+        val state = show()
+        try {
+            val tab = state.tabs.active!!
+            compose.runOnIdle {
+                // Three roots, filtered down to one: availability is read from the whole tree, so the move
+                // is still Alpha, Gamma, Beta rather than a reorder of whatever the filter happens to show.
+                val target = tab.document.model.outline.nodes.first().target!!
+                tab.document.replaceOutline(tab.document.model.outline.copy(nodes = listOf(
+                    OutlineNode("bkm_alpha", "Alpha", target),
+                    OutlineNode("bkm_beta", "Beta", target),
+                    OutlineNode("bkm_gamma", "Gamma", target),
+                )))
+            }
+            compose.onNodeWithText("Filter bookmarks").performTextInput("Beta")
+            compose.onNodeWithContentDescription("Actions for Beta").performClick()
+            compose.onNodeWithText("Move down").performClick()
+            compose.runOnIdle {
+                val titles = tab.document.model.outline.nodes.map { it.title }
+                assertEquals(listOf("Alpha", "Gamma", "Beta"), titles)
+            }
+            // The row it moved is still the one the filter shows.
+            compose.onNodeWithContentDescription("Beta, page 1").assertExists()
         } finally { state.tabs.closeAll() }
     }
 

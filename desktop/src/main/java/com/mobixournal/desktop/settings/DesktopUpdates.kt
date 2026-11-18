@@ -3,6 +3,7 @@ package com.mobixournal.desktop.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mobixournal.update.UpdateFallback
 import com.mobixournal.update.UpdateFeed
 import com.mobixournal.update.UpdatePlatform
 import com.mobixournal.update.UpdateRelease
@@ -186,21 +187,40 @@ object DesktopUpdates {
     /**
      * The newer release, or null when this window already is the latest.
      *
-     * A non-200 is thrown rather than read as "nothing newer": GitHub answers `403` to an anonymous request
-     * once the calling IP has spent its sixty calls an hour, and a window that reported that as the newest
-     * build hid the release it was supposed to offer (`docs/updates.md`).
+     * The API is the primary source: it alone answers whether a release is a draft or a prerelease. When it
+     * **refuses** the request — GitHub answers `403` to an anonymous caller that has spent the hour's sixty
+     * calls, which an entire network can do through one shared address — the same release is read through
+     * the quota-free pages ([UpdateFallback]) rather than reporting a failure the reader cannot act on
+     * (`docs/updates.md`).
      */
     private fun latest(): UpdateRelease? {
-        val request = HttpRequest.newBuilder(URI(UpdateFeed.LATEST))
+        val body = runCatching { text(UpdateFeed.LATEST, "application/vnd.github+json") }.getOrNull()
+        // A refused request falls back; an answered one is trusted, even when it names no MSI.
+        val parsed = if (body != null) parseRelease(body, UpdatePlatform.DESKTOP) else fallbackLatest()
+        return parsed?.takeIf { isNewer(it.version, DESKTOP_VERSION) }
+    }
+
+    /**
+     * The release read without the API: the published-releases feed names the newest tag, and that release's
+     * asset list names the MSI — which is where this window's number comes from.
+     */
+    private fun fallbackLatest(): UpdateRelease? {
+        val tag = UpdateFallback.tagIn(text(UpdateFallback.ATOM, "application/atom+xml")) ?: return null
+        val names = UpdateFallback.assetNamesIn(text(UpdateFallback.assetsPageOf(tag), "text/html"))
+        return UpdateFallback.release(tag, names, UpdatePlatform.DESKTOP)
+    }
+
+    /** One public page as text; a non-200 is thrown, because only the caller knows what it means. */
+    private fun text(url: String, accept: String): String {
+        val request = HttpRequest.newBuilder(URI(url))
             .timeout(Duration.ofSeconds(20))
-            .header("Accept", "application/vnd.github+json")
+            .header("Accept", accept)
             .header("User-Agent", USER_AGENT)
             .GET()
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
         if (response.statusCode() != 200) error("the update feed answered HTTP ${response.statusCode()}")
-        val parsed = parseRelease(response.body(), UpdatePlatform.DESKTOP) ?: return null
-        return parsed.takeIf { isNewer(it.version, DESKTOP_VERSION) }
+        return response.body()
     }
 
     /** Stream the MSI beside the system's temporary files, reporting its progress as it arrives. */

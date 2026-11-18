@@ -22,6 +22,13 @@ being prepared must not be offered as one; a release without the shell's own ins
 either. A readable document that names no newer build is *no update*, and a body that is not the release
 document is read the same way: a check never turns itself into an invitation to install something unknown.
 
+**A refusal is not the end of the check.** `403` is about the API, not about the release: both shells then
+read the same release through two public pages that carry no quota — `releases.atom` names the newest tag
+and that release's asset list names the files (`UpdateFallback`), so the tablet still finds its APK and the
+window still reads its own number from the MSI's name. The API stays primary because only it says whether a
+release is a **draft or a prerelease**: the feed lists what was published, so the fallback is the second
+door and not the first. Only when both doors fail does the check report a failure.
+
 **A check that could not be made says so.** A non-200 is a failure, not an "already the latest": GitHub
 answers `403` to an anonymous request once the calling IP has spent its sixty calls an hour, and a shared
 address reaches that without anyone doing anything unusual. Reading the refusal as *no update* told a reader

@@ -142,25 +142,45 @@ object AppUpdates {
     /**
      * The newer release, or null when this build already is the latest.
      *
-     * A body that is not the release document and a release with no APK answer null — nothing newer to offer.
-     * A **non-200 is thrown instead**: GitHub answers `403` to an anonymous request once the calling IP has
-     * spent its sixty calls an hour, and reading that refusal as "already the latest" told a reader on an
-     * older build that there was nothing to install while 2.3.0 was on the release page.
+     * The API is the primary source: it alone answers whether a release is a draft or a prerelease. When it
+     * **refuses** the request — GitHub answers `403` to an anonymous caller that has spent the hour's sixty
+     * calls, which an entire network can do through one shared address — the same release is read through
+     * the quota-free pages ([UpdateFallback]) instead of reporting a failure a reader cannot act on. A body
+     * that is not the release document still answers null: a check never turns itself into an invitation to
+     * install something it could not read.
      */
     private fun latest(): UpdateRelease? {
-        val connection = (URL(UpdateFeed.LATEST).openConnection() as HttpURLConnection).apply {
+        val body = runCatching { read(UpdateFeed.LATEST, "application/vnd.github+json") }.getOrNull()
+        // A refused request falls back; an answered one is trusted, even when it names no APK.
+        val parsed = if (body != null) parseRelease(body, UpdatePlatform.ANDROID) else fallbackLatest()
+        return parsed?.takeIf { isNewer(it.version, BuildConfig.VERSION_NAME) }
+    }
+
+    /**
+     * The release read without the API: the published-releases feed names the newest tag, and that release's
+     * asset list names the APK (`docs/updates.md`). Each request is a public page, so this path costs none of
+     * the API's hourly quota.
+     */
+    private fun fallbackLatest(): UpdateRelease? {
+        val tag = UpdateFallback.tagIn(read(UpdateFallback.ATOM, "application/atom+xml")) ?: return null
+        val names = UpdateFallback.assetNamesIn(read(UpdateFallback.assetsPageOf(tag), "text/html"))
+        return UpdateFallback.release(tag, names, UpdatePlatform.ANDROID)
+    }
+
+    /** One public page as text; a non-200 is thrown, because only the caller knows what it means. */
+    private fun read(url: String, accept: String): String {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
             readTimeout = 20_000
-            setRequestProperty("Accept", "application/vnd.github+json")
+            instanceFollowRedirects = true
+            setRequestProperty("Accept", accept)
             setRequestProperty("User-Agent", "MobiXournal-Android/${BuildConfig.VERSION_NAME}")
         }
         return try {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                 error("the update feed answered HTTP ${connection.responseCode}")
             }
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
-            val parsed = parseRelease(body, UpdatePlatform.ANDROID) ?: return null
-            parsed.takeIf { isNewer(it.version, BuildConfig.VERSION_NAME) }
+            connection.inputStream.bufferedReader().use { it.readText() }
         } finally {
             connection.disconnect()
         }

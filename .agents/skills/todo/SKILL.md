@@ -152,6 +152,14 @@ newest-`completed`-first.
   uncommitted changes, the tag (when it exists) at `HEAD`, and the window's `packageVersion` agreeing
   with `BuildVersions.DESKTOP`. Exits non-zero with the reason otherwise.
   CI runs it on every `v*` tag, so a tag whose release was skipped cannot publish.
+- **`tag --version X.Y.Z`** `[--no-push]` — create the annotated release tag **and push it**, but only for a
+  tree `verify-release` accepts: it runs the same checks first, then refuses a tag that already exists (a
+  moved tag is a decision, not a command), a `HEAD` that is not `main`, and any problem it printed. The
+  order that publishes is therefore one command instead of a memory. Implementation: `todo.py`
+  (`cmd_tag`); regression check: `python3 scripts/todo/test_tag.py` (real git repositories in a temp
+  directory: tagged, and refused for a dirty tree, a side branch, an existing tag, an unfrozen version).
+- **`release-name`** — print the GitHub release's title as the workflow's `$GITHUB_OUTPUT` line, naming
+  **both** builds (`name=Release v2.3.0 (Android) and v1.3.0 (Desktop)`), read from the two Gradle files.
 - **`validate`** — lint both files: required fields, unique ids, valid enum
   values, archive tasks have a `completed` date, and `release` (archive) an X.Y.Z version.
   Exits non-zero on any problem.

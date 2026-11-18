@@ -37,6 +37,7 @@ jobs:
           python3 scripts/todo/test_done.py
           python3 scripts/todo/test_design.py
           python3 scripts/todo/test_release.py
+          python3 scripts/todo/test_tag.py
           python3 scripts/test-release-signing.py
 
       # The `.mobix` corpora and the validator are the format's own tools: the golden corpus must verify
@@ -247,11 +248,48 @@ jobs:
           name: mobixournal-desktop-msi
           path: assets
 
+      # The tag names the tablet's build, so a title written from it alone called 2.3.0's page
+      # `Release v2.3.0` while the window shipped 1.3.0 beside it — and that title was corrected by hand
+      # through the API. Both numbers live in the Gradle files, so the title is read from them.
+      - name: Name the release after both builds
+        id: versions
+        run: python3 scripts/todo/todo.py release-name >> "$GITHUB_OUTPUT"
+
       - name: Create the release with both installers
         uses: softprops/action-gh-release@v2
         with:
           files: assets/MobiXournal-*
-          name: Release ${{ github.ref_name }}
+          name: ${{ steps.versions.outputs.name }}
           draft: false
           prerelease: false
           body_path: docs/releases/${{ github.ref_name }}.md
+
+  # The publishing job runs on a tag and only on a tag, so everything it assumes — both artifacts arrive,
+  # their names carry the two Gradle versions, and the note the body reads exists — used to be tested for
+  # the first time by a release. A manual run needs both builds and then checks exactly that, without
+  # publishing anything: `scripts/rehearse-release.sh` fails the run instead of the next tag.
+  rehearsal:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [ build, desktop ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download the APK built on Ubuntu
+        uses: actions/download-artifact@v4
+        with:
+          name: mobixournal-release-apk
+          path: assets
+
+      - name: Download the MSI built on Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: mobixournal-desktop-msi
+          path: assets
+
+      - name: Check what a release would attach
+        run: bash scripts/rehearse-release.sh assets

@@ -75,6 +75,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`design-workflow.md`](design-workflow.md) | the vendored design skill and the design declaration a UI change must record | you design, review or close a user-facing change |
 | [`function-plots.md`](function-plots.md) | the plot tool — the expression parser, the living plot and its study — and living figures | you work on *Insert graph* or a recognised figure |
 | [`developer-guide.md`](developer-guide.md) | the route in for someone changing the code: build, test, the guards, the docs rule and the release | you are new to the repository, or reviewing a change |
+| [`releasing.md`](releasing.md) | freezing a version, the tag command, the release workflow and the two version lines | you cut a release or move either version |
 | [`doc-governance.md`](doc-governance.md) | who updates which page: the rule, the per-change impact matrix, the review checklist, the periodic sweep and the local doc check | a change may invalidate a page, or a page and the code have started to disagree |
 | [`benchmarks.md`](benchmarks.md) | the measurements: what a run records, how a result is aggregated, and when two of them may be compared | you quote a timing or a byte count, or re-run one |
 | [`tools-emulator.md`](tools-emulator.md) | the device loop: boot the emulator, install, drive the screen, run `androidTest` | you run or change an instrumented test |

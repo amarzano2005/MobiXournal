@@ -452,21 +452,12 @@ def _git_release_problems(root, version):
     return problems
 
 
-def cmd_verify_release(args):
-    """Check that *version* was actually frozen by `release` before it is tagged.
+def _release_problems(root, version):
+    """Everything that says *version* was not frozen cleanly, and the archive it was read from.
 
-    The CI workflow runs this on a ``vX.Y.Z`` tag so a version can never ship
-    with an unfrozen archive: the tag must match ``versionName``, the changelog
-    must exist, and the archive must record the version as released. Work
-    finished after the freeze is fine — it belongs to the next version.
-
-    It also refuses a tree that does not carry the freeze — uncommitted changes,
-    or a tag that points somewhere other than HEAD — and a window whose two
-    numbers disagree with each other, which is the shape the 2.3.0 tag was made
-    in before the mistake was caught.
+    Shared by ``verify-release`` (CI's gate on a tag) and ``tag`` (the command that makes one), so the
+    sentence a reader sees before tagging is the sentence CI would print after it.
     """
-    root = store.find_repo_root()
-    version = args.version.strip().lstrip("v")
     problems = []
     _, done = _load_finished()
     recorded = release.latest_version(done)
@@ -488,6 +479,25 @@ def cmd_verify_release(args):
         )
     problems += release.check_versions(root)
     problems += _git_release_problems(root, version)
+    return problems, done
+
+
+def cmd_verify_release(args):
+    """Check that *version* was actually frozen by `release` before it is tagged.
+
+    The CI workflow runs this on a ``vX.Y.Z`` tag so a version can never ship
+    with an unfrozen archive: the tag must match ``versionName``, the changelog
+    must exist, and the archive must record the version as released. Work
+    finished after the freeze is fine — it belongs to the next version.
+
+    It also refuses a tree that does not carry the freeze — uncommitted changes,
+    or a tag that points somewhere other than HEAD — and a window whose two
+    numbers disagree with each other, which is the shape the 2.3.0 tag was made
+    in before the mistake was caught.
+    """
+    root = store.find_repo_root()
+    version = args.version.strip().lstrip("v")
+    problems, done = _release_problems(root, version)
     if problems:
         print("\n".join(f"- {p}" for p in problems))
         sys.exit(f"release v{version} was not frozen cleanly")
@@ -499,11 +509,56 @@ def cmd_verify_release(args):
     print(f"  pending for the next release: {pending}")
 
 
+def cmd_tag(args):
+    """Create the release tag — and push it — for a tree ``verify-release`` accepts.
+
+    The tag is the one step that publishes, and 2.3.0 was tagged by hand from a tree whose freeze was
+    not committed. The checks existed; what was missing was a command that makes the tag *after* them,
+    so nobody has to remember the order. Moving an existing tag is not something this command does: a
+    moved tag is a decision made in the open, not a retry.
+    """
+    root = store.find_repo_root()
+    version = args.version.strip().lstrip("v")
+    if not release.is_version(version):
+        sys.exit(f"not a X.Y.Z version: {version!r}")
+    problems, _ = _release_problems(root, version)
+    if problems:
+        print("\n".join(f"- {p}" for p in problems))
+        sys.exit(f"not tagging v{version}: the tree does not carry the freeze")
+    branch = (_git(root, "rev-parse", "--abbrev-ref", "HEAD") or "").strip()
+    if branch and branch != "main":
+        sys.exit(f"HEAD is on {branch}, not main: a tag publishes what main carries")
+    tag_name = "v" + version
+    if _git(root, "rev-parse", "-q", "--verify", "refs/tags/" + tag_name):
+        sys.exit(f"{tag_name} already exists — moving a tag is a decision, not a command")
+    # `_git` hands back stdout, and a command that prints nothing on success (`git tag`) would read as a
+    # refusal — so these two ask only whether git failed at all.
+    if _git(root, "tag", "-a", tag_name, "-m", f"MobiXournal v{version}") is None:
+        sys.exit(f"git refused to create {tag_name}")
+    head = (_git(root, "rev-parse", "--short", "HEAD") or "").strip()
+    print(f"tagged {tag_name} at {head}")
+    if args.no_push:
+        print(f"  push it with: git push origin {tag_name}")
+        return
+    if _git(root, "push", "origin", tag_name) is None:
+        sys.exit(f"{tag_name} was created locally; the push failed — retry `git push origin {tag_name}`")
+    print(f"pushed {tag_name}: CI builds both installers and creates the release")
+
+
+def cmd_release_name(args):
+    """Print the GitHub release's title as the workflow's ``$GITHUB_OUTPUT`` line.
+
+    One ``name=`` line on stdout and nothing else: a released page names both builds, so the title is
+    read from the two Gradle files (``release.release_name``) instead of written into the workflow.
+    """
+    print("name=" + release.release_name(store.find_repo_root()))
+
+
 def cmd_versions(args):
     """Print **both** version lines and check that each one is releasable.
 
     The Android app and the Windows window version themselves independently
-    (`docs/tools.md` owns the rule and the reasoning): the tablet restarted its
+    (`docs/releasing.md` owns the rule and the reasoning): the tablet restarted its
     numbering at 2.0.0, the window starts at 1.0.0, and neither is derived from
     the other. This reads the two Gradle files — the single source for each
     number, never a copy in a doc — and fails when one of them is not a shape a
@@ -814,6 +869,19 @@ def build_parser():
     vr.add_argument("--version", required=True,
                     help="release version, X.Y.Z or the vX.Y.Z tag")
     vr.set_defaults(func=cmd_verify_release)
+
+    tg = sub.add_parser("tag",
+                        help="create and push the release tag, but only for a tree "
+                             "verify-release accepts")
+    tg.add_argument("--version", required=True,
+                    help="release version, X.Y.Z or the vX.Y.Z tag")
+    tg.add_argument("--no-push", action="store_true",
+                    help="create the tag locally without pushing it")
+    tg.set_defaults(func=cmd_tag)
+
+    rn = sub.add_parser("release-name",
+                        help="print the GitHub release's title, naming both builds")
+    rn.set_defaults(func=cmd_release_name)
 
     vs = sub.add_parser("versions",
                         help="print both version lines (app and window) and check them")
