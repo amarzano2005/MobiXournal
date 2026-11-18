@@ -228,7 +228,8 @@ The design decisions worth keeping:
   holding the restore mark and the split glyph: taking it opens the right pane's tabs and
   the left pane's session and switches the split on, each document on the page it was left on, so the
   workspace comes back whole rather than as two documents to assemble (`EntryCards`, `adoptSplitSession`).
-  The left pane's tabs are not listed singly while that card stands: the reader left a workspace.
+  Only the two documents **on screen** are folded into that card: either half's other tabs keep their own
+  session cards, because a workspace drawn as one card must not hide the notebooks behind it.
 - **Each pane persists separately.** `TABS_DIRS` gives pane 0 the historical `filesDir/tabs` and pane
   1 `filesDir/tabs-right`, so an existing session still restores and the right-hand pane's documents
   survive both a split-view toggle and a restart. `onPause` snapshots and writes *both*.

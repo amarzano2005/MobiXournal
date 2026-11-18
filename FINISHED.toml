@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "split-card-hides-the-other-tabs"
+title = "Stop the split recents card from hiding the notebooks behind it"
+description = "Two defects behind a recents list that lost notebooks while the split card was up. EntryCards.of built the split card from both offered sessions and drew nothing for the tabs that were not the two on screen, while still claiming their URIs so the plain recents entries were dropped too: those documents existed nowhere on the screen until the card was removed. Either half's other tabs now keep their own session card, and only the two showing documents are folded into the split card (their recents entries stay claimed, so a session tab's cached edits are never opened from a file). EditorPane.holdsPreviousSession is snapshot state now, so the entry screen stops offering a session the reader has already answered for, instead of showing launch's answer until something else forced a recomposition. Verified with RecentNotebooksTest (new case: a second tab in each half, plus a recent that must still be listed), :app:testDebugUnitTest 1692 tests with DocsGuardTest and SourceStructureTest green, a rebuilt release APK and a refreshed desktop distributable; the screen itself was not viewed on a device. Docs: docs/chrome.md and docs/document-session.md."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "material: the cards keep the sheet rectangle and its halo, no new surface; tokens: unchanged, the new cards reuse the session card's badge and inset; glyph: the existing restore and split marks, nothing added; states: a session card keeps its restore badge and a split card its capsule, and each keeps the remove target; copy: the card captions are the tab titles the last run stored, in English as their files are; parity: mobile only, the window's entry screen has no split cards; docs: docs/chrome.md and docs/document-session.md say the other tabs keep their own cards; tests: RecentNotebooksTest pins the split card's membership, every guard suite is green, and no card was looked at on a device"
+
+[[task]]
 id = "split-recents-capsule-top-left"
 title = "Put the split recents capsule at the top-left, where the session mark sits"
 description = "The split card's capsule sits at the top-left of the paper, in the exact spot the plain session badge has always taken: SplitSessionBadge is aligned TopStart with DesignTokens.PAGE_SHADOW_DP of inset, the clearance constant added for the top-right placement is gone, and no mark stands beside the remove target any more. docs/chrome.md and docs/document-session.md now say top-left; the docs file stayed inside its 300-line budget. Verified with :app:testDebugUnitTest (1691 tests, DocsGuardTest and SourceStructureTest green), a rebuilt release APK and a refreshed desktop distributable; the card was not viewed on a device."

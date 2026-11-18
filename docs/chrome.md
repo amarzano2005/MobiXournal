@@ -280,7 +280,7 @@ entry screen itself (`PaneEntry`) — its lane keeps its badge and its `+`, so a
 split comes back in from there. The recents grid sizes its cards to the width it is given: the doors are
 *New sheet*, *Open…* and the notebooks opened lately as cards whose face is their first page — and a run
 closed **in split view** is one card naming both halves — its top-left corner wearing one capsule: restore
-mark, hairline, split glyph — because what it reopens is a workspace. Three cards to a line when the width is there and one when it is not. It is the PC window's
+mark, hairline, split glyph — because what it reopens is a workspace, while any **other** tab of either half keeps its own card instead of vanishing behind it. Three cards to a line when the width is there and one when it is not. It is the PC window's
 screen, whose design [`desktop-ui-layout.md`](desktop-ui-layout.md) owns: same tokens, no rim, no fill.
 
 Closing the last tab leaves the pane **empty** rather than opening a blank document — that is what makes

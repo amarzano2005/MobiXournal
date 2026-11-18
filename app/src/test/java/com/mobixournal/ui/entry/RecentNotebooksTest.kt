@@ -100,6 +100,37 @@ class RecentNotebooksTest {
     }
 
     @Test
+    fun aSplitCardDoesNotSwallowTheOtherTabsOfEitherHalf() {
+        // Both halves had a second notebook open at the last close: drawing the workspace as one card must
+        // not make those documents disappear from the screen, or the reader sees a recents list that has
+        // lost notebooks until the split card is removed.
+        val left = TabSession(
+            listOf(
+                OpenTab("l1", "sql.mobix", blankDocument(), uri = "content://docs/a"),
+                OpenTab("l2", "extra.mobix", blankDocument(), uri = "content://docs/d"),
+            ),
+            activeIndex = 0,
+        )
+        val right = TabSession(
+            listOf(
+                OpenTab("r1", "deep-outline.mobix", blankDocument(), uri = "content://docs/b"),
+                OpenTab("r2", "back-matter.mobix", blankDocument(), uri = "content://docs/e"),
+            ),
+            activeIndex = 0,
+        )
+        val cards = EntryCards.of(left, right, listOf(notebook("a"), notebook("b"), notebook("c")))
+
+        assertEquals(
+            listOf("sql.mobix · deep-outline.mobix", "extra.mobix", "back-matter.mobix", "c"),
+            cards.map { it.name },
+        )
+        // The two showing documents are the split card; the rest keep their own session cards.
+        assertEquals("l2", cards[1].sessionTab)
+        assertEquals("r2", cards[2].sessionTab)
+        assertEquals(listOf(true, true, true, false), cards.map { it.fromPreviousSession })
+    }
+
+    @Test
     fun aRightPaneWithNothingOpenIsNoSplitCard() {
         val right = TabSession(listOf(OpenTab("r1", "notes.xopp", blankDocument())), activeIndex = 0)
         val cards = EntryCards.of(null, right, listOf(notebook("a")))

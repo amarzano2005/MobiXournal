@@ -109,14 +109,22 @@ object EntryCards {
         val left = session?.showing()
         val right = split?.showing()
         if (left != null && right != null) {
+            val both = tabs + split?.tabs.orEmpty()
             val card = RecentNotebook(
                 uri = left.uri.orEmpty(),
                 name = "${left.title} · ${right.title}",
                 sessionTab = left.id,
                 splitTab = right.id,
             )
-            val claimed = (tabs + split?.tabs.orEmpty()).mapNotNull { it.uri }.toSet()
-            return listOf(card) + recents.filterNot { it.uri in claimed }
+            // The card stands for the two documents **on screen**. Every other tab of either half is a
+            // document the last run left open as well, and it keeps its own card: drawing the workspace as
+            // one card must not make the notebooks behind it vanish from the screen, which is what a
+            // card that swallowed every tab of both sessions did.
+            val others = both
+                .filterNot { it.id == left.id || it.id == right.id }
+                .map { tab -> RecentNotebook(tab.uri.orEmpty(), tab.title, sessionTab = tab.id) }
+            val claimed = both.mapNotNull { it.uri }.toSet()
+            return listOf(card) + others + recents.filterNot { it.uri in claimed }
         }
         val claimed = tabs.mapNotNull { it.uri }.toSet()
         return tabs.map { RecentNotebook(it.uri.orEmpty(), it.title, sessionTab = it.id) } +

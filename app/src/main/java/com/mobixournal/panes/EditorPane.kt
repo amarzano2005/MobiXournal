@@ -1,5 +1,8 @@
 package com.mobixournal.panes
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.tabs.SnapshotSources
@@ -41,8 +44,13 @@ class EditorPane(
      * It is what keeps the empty pane from answering for the reader — [persist] writes nothing until
      * the offer is taken or dropped, so the session index and the snapshots it names survive the pane
      * that is offering them (an empty write would sweep every snapshot away).
+     *
+     * **Snapshot state**, because the entry screen reads it while composing: as a plain `var` the answer
+     * Compose saw was the launch one, so the cards of an offer that had already been answered stayed on
+     * the screen — with their documents hidden from the recents they were claiming — until something else
+     * happened to recompose the screen.
      */
-    var holdsPreviousSession: Boolean = false
+    var holdsPreviousSession: Boolean by mutableStateOf(false)
 
     /**
      * The sticky save format for this pane. "Save As" sets it; every later plain Save reuses it.
