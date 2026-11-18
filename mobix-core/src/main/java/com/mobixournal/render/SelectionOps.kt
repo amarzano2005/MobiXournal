@@ -15,6 +15,7 @@ import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
@@ -167,11 +168,23 @@ object SelectionOps {
                     rowHeights = newRowHeights,
                 )
             }
+            // A part states its pins in its **own** frame and carries the turn that maps them onto the page,
+            // and `CircuitInk` draws the symbol from those pins — so a page-space stretch has to be read on
+            // the part's own axes. Scaling `relX` by `sx` read the *page's* directions instead: a page-wide
+            // drag lengthened a part lying across the page whichever way it was turned, a page-tall one did
+            // not lengthen it at all, and its pins slid off the ink it was drawn from. Each axis now takes
+            // the length of the page's scale measured along it, which is all a turn can carry — a diagonal
+            // stretch of a turned frame is a shear, and a part has none.
             is CircuitElement -> {
+                val radians = Math.toRadians(element.rotation)
+                val cos = cos(radians)
+                val sin = sin(radians)
+                val alongX = hypot(sx * cos, sy * sin)
+                val alongY = hypot(sx * sin, sy * cos)
                 val newX = element.positionX * sx + dx
                 val newY = element.positionY * sy + dy
                 val scaledPins = element.pins.map {
-                    it.copy(relX = it.relX * sx, relY = it.relY * sy)
+                    it.copy(relX = it.relX * alongX, relY = it.relY * alongY)
                 }
                 element.copy(
                     positionX = newX,

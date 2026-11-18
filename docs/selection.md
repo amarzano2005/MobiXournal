@@ -129,7 +129,14 @@ terminal while the one under the finger is 12 pt from its own, and the part "att
 `snapTranslationTo` therefore takes the point the drag went down on (`grab`, the press the controller
 latched in `beginMove`) and asks the **pin nearest that press** first, falling back to the nearest pair
 only when that pin has nothing in reach; the window passes the same point from its own gesture.
-`PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns. A box with **no extent on an axis** wears no handles across it: a
+`PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns. A joint is one joint whichever
+end is drawn second, so a **line reaches an arrow's tip**: refusing it kept the hand's few points of slop and
+left the tip's handle and the wire's end pin a tenth of an inch apart, which read as a pin that had missed its
+point. An arrow offers its tip and nothing else, so nothing else can be caught by mistake. A **resize of a part
+reads the stretch on the part's own axes** (`SelectionOps.affineXY`): its pins live in the part's frame and the
+turn maps them onto the page, so the page's `sx` is measured along that frame — a page-wide drag was lengthening
+a part lying across the page whichever way it was turned, a page-tall one did not lengthen it at all, and the
+symbol slid off the pins it is drawn from (`CircuitResizeTest`). A box with **no extent on an axis** wears no handles across it: a
 selection around a part drawn as a line carries no height worth stretching, its top and bottom handles would
 land on the mid-line where the hand presses to carry it, and a handle that could only multiply by one hands
 the press back to the body (`SelectionMovePaintTest`). The same rule makes a **corner** drag on a line its end

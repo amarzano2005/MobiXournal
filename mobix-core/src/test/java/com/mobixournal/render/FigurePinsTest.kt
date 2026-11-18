@@ -71,7 +71,9 @@ class FigurePinsTest {
         assertTrue(FigurePins.aimsAt(PinFamily.WIRE, PinFamily.CIRCUIT))
         assertTrue(FigurePins.aimsAt(PinFamily.WIRE, PinFamily.WIRE))
         assertTrue("a line attaches to a figure's border", FigurePins.aimsAt(PinFamily.WIRE, PinFamily.FIGURE))
-        assertFalse("a line does not reach an arrow", FigurePins.aimsAt(PinFamily.WIRE, PinFamily.ARROW))
+        // A line drawn onto an arrow's tip is the joint the hand makes, and refusing it left the pair a few
+        // points apart with a pin that looked displaced. The arrow offers its tip and nothing else.
+        assertTrue("a line lands on an arrow's tip", FigurePins.aimsAt(PinFamily.WIRE, PinFamily.ARROW))
 
         assertTrue(FigurePins.aimsAt(PinFamily.ARROW, PinFamily.CIRCUIT))
         assertTrue(FigurePins.aimsAt(PinFamily.ARROW, PinFamily.WIRE))
@@ -124,8 +126,8 @@ class FigurePinsTest {
         )
         assertEquals("two pins and two wire ends", 4, FigurePins.targets(page, PinFamily.CIRCUIT).size)
         assertEquals(
-            "and the figure's eight border points, which a line does reach",
-            12,
+            "and the figure's eight border points and the arrow's tip, which a line does reach",
+            13,
             FigurePins.targets(page, PinFamily.WIRE).size,
         )
         assertEquals(
@@ -344,6 +346,29 @@ class FigurePinsTest {
             listOf(25.0 to 15.0),
             FigurePins.withoutHandles(own, bounds, flatX = false, flatY = false),
         )
+    }
+
+    /**
+     * A line aimed at an **arrow's tip** is pulled onto it.
+     *
+     * The arrow could join a wire and the wire could not join the arrow, so a line drawn onto a tip kept the
+     * hand's few points of slop and the pair stayed *nearly* joined: the tip's handle and the wire's end pin a
+     * tenth of an inch apart, which reads as pins that do not attach. The tip is the only pin an arrow offers,
+     * so nothing else can be caught by mistake.
+     */
+    @Test
+    fun `a line ends on an arrows tip`() {
+        val page = pageOf(arrow(100.0, 100.0, 300.0, 100.0))
+        val targets = CircuitSnapping.gestureTargets(ShapeKind.LINE, page).orEmpty()
+        assertTrue(
+            "an arrow's tip is a target a line may land on",
+            targets.any { it.absX == 300.0 && it.absY == 100.0 },
+        )
+        val wire = listOf(StrokePoint(150.0, 160.0, 1.0), StrokePoint(296.0, 104.0, 1.0))
+        val snapped = FigurePins.snapEnds(wire, ShapeKind.LINE, targets, thresholdPt = 12.0)
+        assertEquals("the end lands on the tip", 300.0, snapped[1].x, 1e-6)
+        assertEquals(100.0, snapped[1].y, 1e-6)
+        assertEquals("the start keeps the hand's own point", 150.0, snapped[0].x, 1e-6)
     }
 
     /** A box with no height wears its two end handles and nothing else, so only those points are taken. */

@@ -24,7 +24,7 @@ import kotlin.math.hypot
  * | figure in hand | marks, and joins |
  * |---|---|
  * | circuit | parts' pins, and wires |
- * | wire (line) | parts' pins, wires, and figures' pins |
+ * | wire (line) | parts' pins, wires, arrows' tips, and figures' pins |
  * | arrow | every figure — parts, wires, arrows and drawn figures |
  * | drawn figure | the ends of the lines it may be paired with |
  *
@@ -184,13 +184,19 @@ object FigurePins {
     /**
      * Whether a gesture of [actor] may join [target] — the mark it shows and the target its magnet takes.
      *
-     * A circuit reaches wires; a wire reaches parts, wires and drawn figures; an arrow reaches every
-     * family; a drawn figure reaches the ends of the lines it can be paired with. Only an arrow may join
-     * another arrow's ends, and two figures are never pulled together.
+     * A circuit reaches wires; a wire reaches parts, wires, **arrows' tips** and drawn figures; an arrow
+     * reaches every family; a drawn figure reaches the ends of the lines it can be paired with. Two figures
+     * are never pulled together.
+     *
+     * A wire reaching an arrow was refused, and the refusal was invisible: the arrow could join the wire but
+     * the wire could not join the tip it was drawn onto, so a line aimed at a tip kept the hand's few points
+     * of slop and the pair was left **nearly** joined — the tip's handle and the wire's end pin a tenth of an
+     * inch apart, which read as "the pins do not attach". A joint is one joint whichever end is drawn second,
+     * and an arrow offers its tip and nothing else ([tip]), so nothing else can be caught by mistake.
      */
     fun aimsAt(actor: PinFamily, target: PinFamily): Boolean = when (actor) {
         PinFamily.CIRCUIT -> target == PinFamily.CIRCUIT || target == PinFamily.WIRE
-        PinFamily.WIRE -> target != PinFamily.ARROW
+        PinFamily.WIRE -> true
         PinFamily.ARROW -> true
         PinFamily.FIGURE -> target == PinFamily.WIRE
     }
