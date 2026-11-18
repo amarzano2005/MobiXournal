@@ -222,14 +222,18 @@ The design decisions worth keeping:
   all empty — single-pane, after its last tab closes — is the entry screen: the pane that is not drawn keeps
   its tabs for the next split, and they do not count (`EditorScreen`'s `nothingOpen`).
 - **The split itself is remembered.** Turning split view on gives the right pane **a sheet of its own** if it
-  holds nothing — a half with no document is a placeholder — and records that the split is where the app
-  will be closed (the `split_open` flag beside the recents, not in `AppSettings`). A run closed that way is
+  holds nothing — a half with no document is a placeholder — and records the **left half's tab id** as what
+  the next launch would offer (`split_left` beside the recents, not in `AppSettings`; `onPause` refreshes it
+  once the offer has been answered). A run closed that way is
   offered on the next launch as **one** card naming both halves, with one capsule on its top-left corner
   holding the restore mark and the split glyph: taking it opens the right pane's tabs and
   the left pane's session and switches the split on, each document on the page it was left on, so the
   workspace comes back whole rather than as two documents to assemble (`EntryCards`, `adoptSplitSession`).
   Only the two documents **on screen** are folded into that card: either half's other tabs keep their own
-  session cards, because a workspace drawn as one card must not hide the notebooks behind it.
+  session cards, because a workspace drawn as one card must not hide the notebooks behind it. The right pane
+  keeps its cache after the split closes, so its session alone is no evidence of one: the card is offered only
+  while the left pane still shows the half that close named — a document opened since ends the run single, and
+  pairing it with a leftover half would offer a workspace nobody ever left.
 - **Each pane persists separately.** `TABS_DIRS` gives pane 0 the historical `filesDir/tabs` and pane
   1 `filesDir/tabs-right`, so an existing session still restores and the right-hand pane's documents
   survive both a split-view toggle and a restart. `onPause` snapshots and writes *both*.

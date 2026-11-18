@@ -4,6 +4,7 @@ import com.mobixournal.render.blankDocument
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabSession
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -128,6 +129,24 @@ class RecentNotebooksTest {
         assertEquals("l2", cards[1].sessionTab)
         assertEquals("r2", cards[2].sessionTab)
         assertEquals(listOf(true, true, true, false), cards.map { it.fromPreviousSession })
+    }
+
+    @Test
+    fun aStoredSplitIsOfferedOnlyWhileItsLeftHalfIsStillShowing() {
+        // The right pane keeps its cache after a split is closed, so "a right session exists" says nothing
+        // about the run that just ended. The stored half has to be the document the left pane still shows:
+        // once the left pane has opened another one, that is a single run, and pairing it with the leftover
+        // half would offer a workspace nobody ever left.
+        val left = TabSession(
+            listOf(
+                OpenTab("l1", "sql.mobix", blankDocument(), uri = "content://docs/a"),
+                OpenTab("l2", "extra.mobix", blankDocument(), uri = "content://docs/d"),
+            ),
+            activeIndex = 1,
+        )
+        assertTrue(left.isSplitHalf("l2"))
+        assertFalse("another document is showing, not the half the split names", left.isSplitHalf("l1"))
+        assertFalse("a run that ended single stores no half", left.isSplitHalf(null))
     }
 
     @Test

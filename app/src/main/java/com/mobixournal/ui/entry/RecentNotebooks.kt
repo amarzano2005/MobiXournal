@@ -130,10 +130,20 @@ object EntryCards {
         return tabs.map { RecentNotebook(it.uri.orEmpty(), it.title, sessionTab = it.id) } +
             recents.filterNot { it.uri in claimed }
     }
-
-    /** The tab a session was left on, or its first when the stored index no longer names one. */
-    private fun TabSession.showing(): OpenTab? = tabs.getOrNull(activeIndex) ?: tabs.firstOrNull()
 }
+
+/** The tab a session was left on, or its first when the stored index no longer names one. */
+internal fun TabSession.showing(): OpenTab? = tabs.getOrNull(activeIndex) ?: tabs.firstOrNull()
+
+/**
+ * Whether this session is the **left half** of the split a close recorded, named by its tab id.
+ *
+ * The split is known by that half rather than by "the right pane has a session": pane 1 keeps its cache
+ * after the split is closed, so a right-hand session on disk says nothing about how the run ended. Once
+ * the left pane has opened another document, its session shows that document and the stored half is a
+ * memory: pairing the two would offer a workspace nobody ever left.
+ */
+internal fun TabSession.isSplitHalf(leftTab: String?): Boolean = leftTab != null && showing()?.id == leftTab
 
 /**
  * Where the recents live: its own preferences file, beside the settings but not inside them.
@@ -148,14 +158,21 @@ class RecentNotebookStore(context: Context) {
     fun list(): List<RecentNotebook> = RecentNotebooks.decode(prefs.getString(KEY, null))
 
     /**
-     * Whether the last run was closed **in split view**. Its own flag rather than "the right pane has a
-     * session": pane 1 keeps its cache after the split is closed, so the session alone would keep offering
-     * a split that is no longer what the reader left.
+     * The tab the **left half** was showing when the last run ended in split view, or null when it ended
+     * anywhere else. Its own value rather than "the right pane has a session": pane 1 keeps its cache
+     * after the split is closed, so that session alone would keep offering a split that is no longer what
+     * the reader left.
      */
-    fun splitOpen(): Boolean = prefs.getBoolean(KEY_SPLIT_OPEN, false)
+    fun splitLeftTab(): String? = prefs.getString(KEY_SPLIT_LEFT, null)
 
-    fun setSplitOpen(open: Boolean) {
-        prefs.edit().putBoolean(KEY_SPLIT_OPEN, open).apply()
+    /** Record the left half of the split the next launch should offer, or forget the split with null. */
+    fun setSplitLeftTab(tab: String?) {
+        prefs.edit().apply {
+            if (tab == null) remove(KEY_SPLIT_LEFT) else putString(KEY_SPLIT_LEFT, tab)
+            // The boolean this replaced: a build that knew only "a split was open" wrote it, and it
+            // cannot say which half, so it must not survive into this one.
+            remove(KEY_SPLIT_OPEN)
+        }.apply()
     }
 
     /** Remember [uri] as the notebook called [name] and return the list that results. */
@@ -174,6 +191,7 @@ class RecentNotebookStore(context: Context) {
 
     private companion object {
         const val KEY = "recents"
+        const val KEY_SPLIT_LEFT = "split_left"
         const val KEY_SPLIT_OPEN = "split_open"
     }
 }

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "split-offer-names-the-left-half"
+title = "Offer a stored split only while the left pane still shows its half"
+description = "The entry screen invented splits. The right pane keeps its cache when the split is closed, so a boolean that only said a split had once been open kept pairing whatever the left pane held next with that leftover half: a document opened on its own came back as side by side with an older page. The stored state is now the left halfs tab id (split_left in RecentNotebookStore, replacing split_open) and the offer is made only when the left pane still shows that half (TabSession.isSplitHalf), while onPause refreshes it from the real workspace through MainActivity.rememberLeavingSplit: leaving split view on records pane 0s active tab, a run answered without the split forgets it, and an unanswered offer keeps the half it was stored with so backgrounding the entry screen does not throw it away. Callers updated in toggleSplitView, sendTabToOtherPane, adoptSplitSession, startFreshSession and removeEntryCard. A build that only knew the boolean cannot be trusted, so its flag is dropped on the first write. Verified with RecentNotebooksTest.aStoredSplitIsOfferedOnlyWhileItsLeftHalfIsStillShowing, :app:testDebugUnitTest (1693 tests, 0 failures, DocsGuardTest and SourceStructureTest green), a rebuilt signed release APK and a refreshed desktop distributable. Docs: docs/document-session.md owns the rule; the card itself did not change, so docs/chrome.md did not. The screen was not viewed on a device."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-18
+completed = 2026-11-18
+tags = []
+design = "states: the split card is offered only while the left pane still shows the half the close recorded, so a left pane that opened another document lists it as a single card; copy: none; material: none; tokens: none; glyph: none; parity: desktop recents are File-based and carry no split offer; docs: docs/document-session.md owns the offer rule; tests: RecentNotebooksTest.aStoredSplitIsOfferedOnlyWhileItsLeftHalfIsStillShowing"
+
+[[task]]
 id = "split-card-hides-the-other-tabs"
 title = "Stop the split recents card from hiding the notebooks behind it"
 description = "Two defects behind a recents list that lost notebooks while the split card was up. EntryCards.of built the split card from both offered sessions and drew nothing for the tabs that were not the two on screen, while still claiming their URIs so the plain recents entries were dropped too: those documents existed nowhere on the screen until the card was removed. Either half's other tabs now keep their own session card, and only the two showing documents are folded into the split card (their recents entries stay claimed, so a session tab's cached edits are never opened from a file). EditorPane.holdsPreviousSession is snapshot state now, so the entry screen stops offering a session the reader has already answered for, instead of showing launch's answer until something else forced a recomposition. Verified with RecentNotebooksTest (new case: a second tab in each half, plus a recent that must still be listed), :app:testDebugUnitTest 1692 tests with DocsGuardTest and SourceStructureTest green, a rebuilt release APK and a refreshed desktop distributable; the screen itself was not viewed on a device. Docs: docs/chrome.md and docs/document-session.md."

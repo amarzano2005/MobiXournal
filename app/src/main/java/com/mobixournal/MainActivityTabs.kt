@@ -96,7 +96,7 @@ internal fun MainActivity.sendTabToOtherPane(index: Int, from: EditorPane, keepH
     // split view builds one.
     other.tabs.active?.let { show(it, other) }
     splitView.value = true
-    entryRecents.rememberSplitOpen(true)
+    entryRecents.rememberSplitLeft(panes.firstOrNull()?.tabs?.active?.id)
     from.persist()
     other.persist()
     tabsTick.value++
@@ -428,8 +428,9 @@ internal fun MainActivity.prunePdfCache() {
  */
 internal fun MainActivity.toggleSplitView() {
     val on = !splitView.value
-    // What the next launch finds on disk, so a run closed in split view can be offered as one card.
-    entryRecents.rememberSplitOpen(on)
+    // What the next launch finds on disk, so a run closed in split view can be offered as one card: the
+    // left half names the workspace that split was.
+    entryRecents.rememberSplitLeft(if (on) panes.firstOrNull()?.tabs?.active?.id else null)
     if (on) {
         // The new half opens **on a sheet of its own**: turning the split on is a request to work on two
         // documents, and a half holding nothing is a placeholder nobody asked for.

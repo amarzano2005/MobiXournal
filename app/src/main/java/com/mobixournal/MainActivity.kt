@@ -617,7 +617,6 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
-
     /**
      * Bring back the split workspace saved by [onSaveInstanceState]: a workspace that was split when
      * the process was killed comes back split, on the same half. The divider's fraction is still
@@ -647,6 +646,7 @@ class MainActivity : ComponentActivity() {
         // process can be killed once we are in the background, and a lost snapshot is lost edits.
         panes.forEach { snapshotActiveTab(it); it.persist() }
         panes.forEach { it.awaitPersist(PERSIST_WAIT_MS) }
+        rememberLeavingSplit()
     }
 
     override fun onDestroy() {
@@ -686,8 +686,6 @@ class MainActivity : ComponentActivity() {
         /** Saved-instance-state keys for the split workspace (see [onSaveInstanceState]). */
         private const val STATE_SPLIT_VIEW = "editor.splitView"
         private const val STATE_ACTIVE_PANE = "editor.activePane"
-
-
     }
 }
 

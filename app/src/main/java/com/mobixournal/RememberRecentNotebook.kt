@@ -9,6 +9,7 @@ import com.mobixournal.ui.entry.EntryCards
 import com.mobixournal.ui.entry.EntryPreviews
 import com.mobixournal.ui.entry.RecentNotebook
 import com.mobixournal.ui.entry.RecentNotebookStore
+import com.mobixournal.ui.entry.isSplitHalf
 
 // --- the entry screen's memory ---------------------------------------------------------------
 //
@@ -41,11 +42,14 @@ internal class EntryRecents(private val context: Context) {
      */
     val previousRight = mutableStateOf<TabSession?>(null)
 
-    /** Whether the last run was closed in split view — what makes [previousRight] worth offering. */
-    val splitOpen: Boolean get() = store.splitOpen()
+    /**
+     * The left half the last run was closed with in split view — the only thing that makes [previousRight]
+     * worth offering — or null when that run ended anywhere else.
+     */
+    val splitLeftTab: String? get() = store.splitLeftTab()
 
-    /** Record that the split is (or is no longer) where the app will be closed, for the next launch. */
-    fun rememberSplitOpen(open: Boolean) = store.setSplitOpen(open)
+    /** Record the left half of the split that is (or is no longer) where the app will be closed. */
+    fun rememberSplitLeft(tab: String?) = store.setSplitLeftTab(tab)
 
     /** Read the list back from the device — the launch path. */
     fun reload() {
@@ -101,13 +105,31 @@ internal fun MainActivity.readPreviousSession() {
         }
     }
     // A run closed **in split view** offers both halves as one card, and the right pane holds the session
-    // it is offering so nothing writes over it before the reader answers (as the left one does).
-    if (entryRecents.previous.value == null || !entryRecents.splitOpen) return
+    // it is offering so nothing writes over it before the reader answers (as the left one does). Only while
+    // the left pane still shows the half that split was left on: a left pane that has opened another
+    // document since ended single, and the right pane's cache is then a leftover of an older split rather
+    // than the second half of this one.
+    val leftTab = entryRecents.splitLeftTab ?: return
+    if (entryRecents.previous.value?.isSplitHalf(leftTab) != true) return
     val right = panes.getOrNull(1)?.takeIf { it.tabs.isEmpty } ?: return
     val session = runCatching { right.store.load() }.getOrNull() ?: return
     if (session.tabs.isEmpty()) return
     entryRecents.previousRight.value = session
     right.holdsPreviousSession = true
+}
+
+/**
+ * What the next launch may offer as a split: the half the **left** pane is showing, and only when this run
+ * is leaving with split view on screen.
+ *
+ * Called from `onPause`, after both sessions are written. An unanswered offer keeps the half it was stored
+ * with — backgrounding the entry screen must not throw the split away — while a run the reader has
+ * answered without taking it is a single run from then on, and its split must not pair the document they
+ * opened with the right pane's leftover cache.
+ */
+internal fun MainActivity.rememberLeavingSplit() {
+    if (pane.holdsPreviousSession) return
+    entryRecents.rememberSplitLeft(panes.firstOrNull()?.tabs?.active?.id?.takeIf { splitView.value })
 }
 
 /**
@@ -148,7 +170,7 @@ private fun MainActivity.adoptSplitSession(notebook: RecentNotebook) {
     right.persist()
     adoptPreviousSession(notebook.sessionTab)
     splitView.value = true
-    entryRecents.rememberSplitOpen(true)
+    entryRecents.rememberSplitLeft(notebook.sessionTab)
     tabsTick.value++
 }
 
@@ -193,6 +215,7 @@ internal fun MainActivity.startFreshSession() {
     entryRecents.previous.value = null
     // Starting new work answers the whole offer, the split included.
     entryRecents.previousRight.value = null
+    entryRecents.rememberSplitLeft(null)
     newTab()
 }
 
@@ -201,6 +224,7 @@ internal fun MainActivity.removeEntryCard(notebook: RecentNotebook) {
     // A split card takes both halves out: the right pane's tab from its own cache, then the left below.
     notebook.splitTab?.let { rightTab ->
         entryRecents.previousRight.value = null
+        entryRecents.rememberSplitLeft(null)
         panes.getOrNull(1)?.let { right ->
             right.holdsPreviousSession = false
             right.store.dropTab(rightTab)
