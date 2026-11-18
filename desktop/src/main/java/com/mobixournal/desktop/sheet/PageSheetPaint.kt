@@ -57,10 +57,10 @@ internal fun DrawScope.paintSheetOf(
         viewport = sheet.viewport,
         zoom = sheet.zoom,
         density = density,
-        // A connector's pins are marked while it is **being drawn**; a **selected** element's marks are the
-        // selection's own (`FigurePins.selectionMarks`), drawn beside them.
-        connectorKind = connectorKindFor(tool, circuitKind)
-            ?.takeIf { draft.isNotEmpty() || penDraft.isNotEmpty() || pointer.previewLiving.value != null },
+        // Every slot that places something with pins marks what it can join — a connector's targets while the
+        // gesture runs, and an **armed** slot's marks before the hand goes down; a **selected** element's marks
+        // are the selection's own (`FigurePins.selectionMarks`), drawn beside them.
+        connectorKind = markKindFor(tool, circuitKind),
         measurer = measurer,
         backdrop = tab.document.backdrop,
         hiddenLayers = tab.hiddenOn(tab.page),

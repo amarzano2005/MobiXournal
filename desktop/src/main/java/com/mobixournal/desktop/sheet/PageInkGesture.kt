@@ -38,6 +38,7 @@ import com.mobixournal.render.PageSelection
 import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.SelectionOps
+import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.rectRegion
 import com.mobixournal.render.RecognisedFigure
 import com.mobixournal.render.ShapeDwell
@@ -529,11 +530,12 @@ internal class PageInkGesture(
  */
 internal fun commitShape(
     points: List<StrokePoint>,
+    kind: ShapeKind,
     tab: DesktopTab,
     ink: DesktopInk,
     onEdited: (Int) -> Unit,
 ) {
-    val stroke = shapeStroke(points, ink.colour, ink.width, ink.lineStyle) ?: return
+    val stroke = shapeStroke(points, ink.colour, ink.width, ink.lineStyle, kind) ?: return
     val index = tab.page
     val page = runCatching { tab.document.page(index) }.getOrNull() ?: return
     val (grown, refs) = SelectionOps.addToLayerOn(page, listOf(stroke), tab.inkLayer(page))

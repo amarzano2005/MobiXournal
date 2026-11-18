@@ -189,6 +189,11 @@ fun shapeStroke(
     colour: Int,
     widthPt: Float,
     lineStyle: LineStyle = LineStyle.PLAIN,
+    /**
+     * The figure this stroke draws, when the commit knows it: the claim then names its kind, which is what
+     * lets the tool that drew it pick it up again (`PlacementPick`). Null keeps the plain "a tool drew me".
+     */
+    kind: ShapeKind? = null,
 ): Stroke? {
     if (points.size < 2) return null
     return Stroke(
@@ -198,7 +203,7 @@ fun shapeStroke(
         points = points.map { it.copy(width = widthPt.toDouble()) },
         uniformWidth = true,
         lineStyle = lineStyle,
-        extraAttrs = FigurePins.FIGURE_ATTRS,
+        extraAttrs = kind?.let(FigurePins::figureAttrs) ?: FigurePins.FIGURE_ATTRS,
     )
 }
 

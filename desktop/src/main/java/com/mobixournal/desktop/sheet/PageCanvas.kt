@@ -55,7 +55,6 @@ import androidx.compose.ui.text.TextMeasurer
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
-import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.MagneticHighlighter
 import com.mobixournal.render.LivingSlot
@@ -637,15 +636,6 @@ private fun DrawScope.paintRecordedSheet(
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */
 private val DESK = DesktopTheme.desk
-
-/**
- * The connector whose pins the sheet should mark: the line tool, or the circuit slot's armed part.
- * Everything else marks nothing, exactly as the tablet draws nothing for it.
- */
-internal fun connectorKindFor(tool: DesktopTool, circuitKind: ShapeKind): ShapeKind? {
-    val candidate = if (circuitFamilyOf(tool) != null) circuitKind else tool.shapeKind()
-    return candidate?.takeIf { CircuitElementFactory.isConnectorKind(it) }
-}
 
 /** A page's on-screen size in dp at [zoom] — used by the sidebar's progress bar and the status bar. */
 internal fun pageSizeDp(pageW: Double, pageH: Double, zoom: Float): Pair<Float, Float> =

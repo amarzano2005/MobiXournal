@@ -79,7 +79,7 @@ starts at `sin(x)` over −10…10; a table is a 3 × 3 grid with a header whose
 the box exactly; a component is the armed `ShapeKind` along the box's horizontal axis with
 `CircuitElementFactory`'s canonical pins. Identity is the codec's (`ElementId`), never the placement's.
 
-**On the tablet the press first asks what is already there.** With a placement tool in hand — the Table
+**A placement press first asks what is already there.** With a placement tool in hand — the Table
 slot, every circuit part (`LIVING_ELEMENT_TOOLS`) and every figure tool — a press on an object that tool
 itself made **selects** it instead of placing another, and the same press goes on to drag it, so a fresh part
 or figure is sized from its own handles without picking Select first; only paper holding none of them takes
@@ -90,8 +90,18 @@ picks triangles and leaves rectangles alone). A stroke written before the kind w
 geometry, the only thing it can say, and a figure written as **several strokes** — the dimension arrow — is
 not claimed at all: half of one is not the object (`ShapeBuilder.isMultiStroke`). Every one of these tools
 **stays in hand** across the insertion, which is what makes a row of parts or a row of rectangles one
-continuous gesture. The window still hands the page to Marquee after an insertion
-(`handToSelectionAfterInsertion`), so this press rule is the tablet's for now.
+continuous gesture. **The window asks the same question** (`desktop/sheet/PlacementPick.kt`, answered by
+`placementPress` before the slot's own drag): a press with the slot in hand selects the object that slot made
+and the same press carries it or takes its grips, and paper that holds none lets go of the selection
+(`letGoForSlot`) before the slot draws the next one. Its figures now name their **kind** on commit too
+(`shapeStroke` mints `FigurePins.figureAttrs(kind)`), which is what lets the pick tell a triangle from a
+rectangle; a stroke written by an older build falls back to its geometry, as on the tablet. A press on the
+**selection's own** object hands the press to the selection's own gesture (`pressSelection` on the tablet,
+`selectionDrag` here), so a handle pressed with the slot still in hand resizes rather than moves. The window
+still hands the page to Marquee after an insertion (`handToSelectionAfterInsertion`), so a figure just drawn
+is normally carried under Select; the slot's own press is what picks an object up once the slot is armed
+again. `PlacementPickTest` pins the rule on the JVM and `DesktopPlacementPressTest` drives it through the
+window's own pointer path.
 
 On the window the press is taken **before** the ink router and `DesktopTool.inksByPackets()` stays
 false for these slots (the pen's packets stand aside, as for a figure) and the drag previews the box in

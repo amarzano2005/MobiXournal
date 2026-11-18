@@ -78,7 +78,9 @@ in hand no longer keeps an object selected by drawing another one. A press that 
 the letting go: the gesture began because the slot is armed, and the release drops it (`ShapeDraft.onlyLetGo`,
 read by `DrawingSurfaceStrokes.commitCurrent`) — a figure tool's tap would otherwise write a degenerate figure and
 select it straight back, and a part slot would place a default-sized part on the press that meant to get out. A
-**drag** is still the drawing it was, so a second object can be laid down without picking the slot again.
+**drag** is still the drawing it was, so a second object can be laid down without picking the slot again. The
+window's slot does the same (`placementPress` → `letGoForSlot`, then its own drag), so a click there is the way
+out of a selection on both shells.
 
 What makes that reachable is that a selection survives the **next press**: the pane pushes the live tool onto
 its canvas on every touch (`applyLiveStyle`) and `selectMode` used to clear the selection on being set to
@@ -134,7 +136,10 @@ wire's end, a **hollow ring** is the selected element's **own** pin — the poin
 them — and a filled **accent** dot with its arms is a handle. The marks stand at **rest**, not only under a
 gesture: an armed placement tool already shows what its object could join (a connector's `gestureTargets`, a
 figure's `FigurePins.joinedBy`), so the sheet answers before the hand goes down. They used to arrive with the
-gesture, which made an armed tool look like a sheet with no pins until the press had already been made. A figure's border pins *are* its box's corners
+gesture, which made an armed tool look like a sheet with no pins until the press had already been made. The
+window paints them from the same rule: `markKindFor` answers which slot's marks the sheet wears and its overlay
+draws a connector's targets or a figure's `joinedBy` ends (`drawArmedMarks`), so an armed slot answers before
+the hand goes down on both shells. A figure's border pins *are* its box's corners
 and side midpoints, exactly where the eight handles are, so drawing both stacked two dots on one point and
 left the reader unable to say which was which; the overlay therefore drops the pins a handle already sits on
 (`FigurePins.withoutHandles`), and a line's own pins are its two end handles, so it wears no ring of its

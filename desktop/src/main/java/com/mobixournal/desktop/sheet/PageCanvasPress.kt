@@ -69,6 +69,14 @@ internal suspend fun AwaitPointerEventScope.pressAfterPan(
         pdfTextDrag(down, tab, dragView)
         return
     }
+    // A press with a **placement slot** on the object that slot makes picks it up — and the same press
+    // then drags it (`placementPress`), instead of placing a second object on top of the one already there.
+    // Paper that holds none of them lets go of the selection and falls through to the slot's own gesture.
+    if (
+        placementPress(
+            down, tool, tab, dragView, density, targets.onLiveDrag, onEdited, targets.circuitKind,
+        )
+    ) return
     // A **circuit** slot pulls the part out along the pen, from the press to the pointer, aimed at the
     // page's pins: its own two ends, not a box — the tablet's rule, and the one a rotated part needs
     // (`CircuitGesture.circuitPress`).

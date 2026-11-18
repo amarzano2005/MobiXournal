@@ -118,9 +118,15 @@ internal fun DrawScope.paintLiveOverlay(
     } else {
         emptySet()
     }
-    // The kind is the **caller's** answer, because it is the caller that knows whether a gesture is live: a
-    // selection merely resting on the page marks nothing, exactly as on the tablet.
-    paintConnectionMarks(page, connectorKind, previewLiving, selection, livingElement, actorRefs, pxPerPt)
+    // An **armed** slot shows the pins its object could join **before** the hand goes down: the slot is picked
+    // for a place on the sheet, and what it can attach to is part of picking it. While something is in flight
+    // the marks arrive with that gesture, and a single selected element already wears its own pairing.
+    val armed = drafts.all { it.isEmpty() } && previewLiving == null &&
+        (selection == null || selection.refs.size != 1)
+    // The kind is the **caller's** answer, because it is the caller that knows which slot is in hand.
+    paintConnectionMarks(
+        page, connectorKind, previewLiving, selection, livingElement, actorRefs, pxPerPt, armed = armed,
+    )
     // The selection's marching outline and its handles, above the ink: what is caught stays visible.
     // A single living element also wears its own grips (a figure's corners, a table's dividers).
     selection?.let { drawSelection(it, pxPerPt, living = livingElement) }
@@ -172,9 +178,26 @@ private fun DrawScope.paintConnectionMarks(
     selected: Element?,
     actorRefs: Set<ElementRef>,
     pxPerPt: Float,
+    /** True when nothing is in flight: the slot in hand shows what its object could join. */
+    armed: Boolean = false,
 ) {
     drawConnectionPins(page, markedKind, previewLiving, pxPerPt, actorRefs)
+    if (armed) drawArmedMarks(page, markedKind, pxPerPt)
     drawSelectionPins(page, selection, selected, pxPerPt)
+}
+
+/**
+ * The pins an **armed** slot's object could be paired with, painted before the hand goes down.
+ *
+ * A connector's marks are its own targets (`drawConnectionPins`, `CircuitSnapping.gestureTargets`); a drawn
+ * figure is only ever joined, so what it marks is the other half — the ends of the wires and the arrows' tips
+ * already on the page (`FigurePins.joinedBy`). Without them the sheet read as one with no pins at all until
+ * the press had been made, and the answer came too late to aim with.
+ */
+private fun DrawScope.drawArmedMarks(page: Page, markedKind: ShapeKind?, pxPerPt: Float) {
+    val kind = markedKind ?: return
+    if (FigurePins.aimFamily(kind) != null) return
+    for (target in FigurePins.joinedBy(page, kind)) drawPinTarget(target, pxPerPt)
 }
 
 /**

@@ -523,7 +523,7 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
             val points = preview(lastX, lastY)
             if (change.changedToUpIgnoreConsumed() || !change.pressed) {
                 draft.clear()
-                if (!cancelled) commitShape(points, tab, ink, onEdited)
+                if (!cancelled) commitShape(points, kind, tab, ink, onEdited)
                 break
             }
             change.consume()

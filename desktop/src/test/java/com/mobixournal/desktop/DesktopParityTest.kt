@@ -7,7 +7,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocuments
 import com.mobixournal.desktop.io.DesktopRecovery
 import com.mobixournal.desktop.settings.DesktopSettings
-import com.mobixournal.desktop.sheet.connectorKindFor
+import com.mobixournal.desktop.sheet.markKindFor
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.shell.PageSetup
@@ -207,21 +207,27 @@ class DesktopParityTest {
     }
 
     /**
-     * Pins are marked for the tools that can join them: the Line tool and a circuit family. Every other
-     * figure marks nothing, exactly as the tablet draws nothing for it, so a rectangle never scatters
-     * rings over the sheet.
+     * Pins are marked for every slot that places something with pins: a connector marks the targets its magnet
+     * takes, and an **armed** figure marks the wire ends it could be paired with — before the hand goes down,
+     * which is the tablet's own rule. A slot that places no object (the pen) and one whose object has no pins
+     * (a plot) mark nothing, exactly as the tablet draws nothing for them.
      */
     @Test
-    fun `only a connector marks the pins it could join`() {
+    fun `every slot that places a figure marks the pins it could join`() {
         val circuit = LivingPlacement.DEFAULT_CIRCUIT_KIND
-        assertEquals(ShapeKind.LINE, connectorKindFor(DesktopTool.LINE, circuit))
+        assertEquals(ShapeKind.LINE, markKindFor(DesktopTool.LINE, circuit))
         assertEquals(
             "a circuit slot marks the pins of the part it is about to place",
             circuit,
-            connectorKindFor(DesktopTool.CIRCUIT, circuit),
+            markKindFor(DesktopTool.CIRCUIT, circuit),
         )
-        assertNull("a rectangle joins nothing", connectorKindFor(DesktopTool.RECTANGLE, circuit))
-        assertNull("the pen joins nothing", connectorKindFor(DesktopTool.PEN, circuit))
+        assertEquals(
+            "an armed figure marks the ends it could be paired with",
+            ShapeKind.RECTANGLE,
+            markKindFor(DesktopTool.RECTANGLE, circuit),
+        )
+        assertNull("a plot has no pins to mark", markKindFor(DesktopTool.PLOT, circuit))
+        assertNull("the pen places no object", markKindFor(DesktopTool.PEN, circuit))
     }
 
     /** The stroke pattern a pen writes with is the ink's, as the shared palette names it. */

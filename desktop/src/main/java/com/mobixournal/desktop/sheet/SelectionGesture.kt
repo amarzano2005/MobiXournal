@@ -27,6 +27,7 @@ import com.mobixournal.render.shaftTurn
 import com.mobixournal.render.rectRegion
 import com.mobixournal.render.SelectionEdit
 import com.mobixournal.render.SelectionRegion
+import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.Vec2
 import kotlin.math.hypot
 
@@ -134,7 +135,8 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     tab: DesktopTab,
     view: DragView,
     density: Float,
-    region: MutableState<SelectionRegion?>,
+    /** Where an unusually traced region is published; null when the caller's press is on an object. */
+    region: MutableState<SelectionRegion?>? = null,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
     onEditLiving: (() -> Unit)? = null,
@@ -215,7 +217,8 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
             )
             return
         }
-        traceRegion(tool, x0, y0, tab, view, density, region, onLiveDrag)
+        val area = region ?: return
+        traceRegion(tool, x0, y0, tab, view, density, area, onLiveDrag)
         return
     }
     val selection = requireNotNull(live) { "a traced region was handled above" }
@@ -610,6 +613,61 @@ private suspend fun AwaitPointerEventScope.dragLivingGrip(
         view.endDrag()
         onLiveDrag(null)
     }
+}
+
+/**
+ * A press with a **placement slot** on the object that slot makes: the object is selected, and the same press
+ * drags it (`placementPick`), so an element inserted with its own slot is sized or carried in one gesture.
+ *
+ * The press is the slot's before it is the sheet's. On **paper that holds none of the kind** it lets go of
+ * the selection and answers false (`letGoForSlot`): a click then writes nothing, a drag still places the next
+ * object — the tablet's rule, where tapping empty paper is how a slot is put down. A press **on a pin** is not
+ * a pick either: it is where the drawing starts, so a wire leaves the terminal it is aimed at.
+ *
+ * False means the press is not this rule's, and the caller's own gesture (the slot's drag, or the ink) keeps
+ * it exactly as it did before.
+ */
+internal suspend fun AwaitPointerEventScope.placementPress(
+    down: PointerInputChange,
+    tool: DesktopTool,
+    tab: DesktopTab,
+    view: DragView,
+    density: Float,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+    onEdited: (Int) -> Unit,
+    circuitKind: ShapeKind,
+): Boolean {
+    val kind = placementKindOf(tool, circuitKind) ?: return false
+    val (x0, y0) = pagePointOf(down.position.x, down.position.y, density, view.current())
+    if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return false
+    val page = runCatching { tab.document.page(tab.page) }.getOrNull() ?: return false
+    val reach = CircuitSnapping.thresholdFor(view.current().zoom * density)
+    // The mark is the finer target than the ink behind it: a press on a pin draws from the terminal.
+    if (pinUnderPress(page, kind, x0, y0, reach) != null) return false
+    val picked = placementPick(page, kind, x0, y0)
+    if (picked == null) {
+        letGoForSlot(tab)
+        return false
+    }
+    val one = selectionOf(page, picked) ?: return false
+    // The object the press found is **already the selection**: its grips and its body are what the next press
+    // is for, so the selection's own gesture answers it (the tablet's `pressSelection`) — a handle pressed
+    // with the slot still in hand resizes, exactly as it does under Select.
+    if (tab.selection?.refs == one.refs) {
+        selectionDrag(
+            start = down,
+            tool = SelectionTool.MARQUEE,
+            tab = tab,
+            view = view,
+            density = density,
+            onLiveDrag = onLiveDrag,
+            onEdited = onEdited,
+        )
+        return true
+    }
+    tab.selection = one
+    transformSelection(one, SelectionHandle.BODY, x0, y0, tab, view, density, onLiveDrag, onEdited)
+    return true
 }
 
 /** The selection that follows [element] after a grip moved it — the outline travels with the ink. */
