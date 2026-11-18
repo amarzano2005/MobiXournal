@@ -35,10 +35,11 @@ import kotlin.math.hypot
  * plot), while a **figure** was drawn as a stroke and names the kind the shape tool minted into it
  * ([FigurePins.isFigureOf]), so the triangle slot picks triangles and leaves a rectangle alone.
  *
- * A plot and a formula are picked here and not on the tablet, and deliberately: the window keeps **every**
- * placement slot in hand (there is no hand-over to Marquee any more), so a slot that could not pick its own
- * object would stack a second one on the first click. The tablet still matches only the table and the circuit
- * families in its own `PlacementPick`; extending it is that shell's task, not this file's.
+ * A plot and a formula are picked here by their **own slot** (`LivingSlot.PLOT`, `LivingSlot.MATH`), because
+ * the window keeps every placement slot in hand (there is no hand-over to Marquee any more): a slot that could
+ * not pick its own object would stack a second one on the first click. The tablet answers the same two through
+ * its **LaTeX** slot (`app/.../render/PlacementPick.kt`, `pickMathBlock`) and its Graph dialog; `docs/element-
+ * authoring.md` owns how each shell reaches them.
  *
  * Pure page geometry, no Compose: the rule is a JVM test (`PlacementPickTest`).
  */

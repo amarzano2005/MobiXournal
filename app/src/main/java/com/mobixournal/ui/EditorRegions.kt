@@ -1522,7 +1522,10 @@ private fun DrawingSurfaceView.bindEditorActions(
         onActivePane(index)
         when (kind) {
             PlaceKind.TEXT -> ui.textPlacement = placement
-            PlaceKind.TEX -> ui.texPlacement = placement
+            // A formula under the LaTeX slot's tap is **picked**, not stacked on (`openPlacedTex`): the slot
+            // stays in hand after it places, so the tap that means "this one" opens that formula's editor
+            // instead of asking for the source a second time.
+            PlaceKind.TEX -> if (!ui.openPlacedTex(placement)) ui.texPlacement = placement
             PlaceKind.IMAGE -> onPickImage(placement)
         }
     }

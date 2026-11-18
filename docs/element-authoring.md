@@ -97,11 +97,16 @@ and the same press carries it or takes its grips, and paper that holds none lets
 (`shapeStroke` mints `FigurePins.figureAttrs(kind)`), which is what lets the pick tell a triangle from a
 rectangle; a stroke written by an older build falls back to its geometry, as on the tablet. A press on the
 **selection's own** object hands the press to the selection's own gesture (`pressSelection` on the tablet,
-`selectionDrag` here), so a handle pressed with the slot still in hand resizes rather than moves. A **plot** and a **formula** are
-picked by their own slot on the window too (`LivingSlot.PLOT`, `LivingSlot.MATH`): it keeps every slot in hand,
-so a plot slot that could not pick its own plot would stack a second one on the click that meant to select it.
-The tablet's own pick still matches only the table and the circuit families — a deliberate difference, to
-extend on that shell. **Both shells keep the slot in hand across the insertion** (`placeOrAsk`, `placeCircuit`,
+`selectionDrag` here), so a handle pressed with the slot still in hand resizes rather than moves.
+
+A **plot** and a **formula** are picked by the slot that made them in **both** shells, so neither re-places one
+on the press that means to pick it. The window keeps a Plot and a Formula slot in hand and claims both
+(`LivingSlot.PLOT`, `LivingSlot.MATH`). The tablet's **LaTeX** slot (`PlaceKind.TEX`) is a placement mode
+rather than a shape, so it asks the page in `commitPlace` (`pickMathBlock`): a tap on a formula it made hands
+that formula to the editor — the double-tap's `LivingEditFamily.MATH` command — instead of asking for the
+source a second time and laying the new formula on the first. A **plot** has no slot of its own on the tablet:
+the Graph dialog inserts it and hands it to Select, so no press there can stack a second graph, and the
+insertion already lands it selected. **Both shells keep the slot in hand across the insertion** (`placeOrAsk`, `placeCircuit`,
 and a figure's own commit): the window used to pick Marquee and no longer does, so a row of rectangles, tables
 or parts is one gesture and the press on the object just placed is the one that selects and sizes it. `PlacementPickTest` pins the rule on the JVM
 and `DesktopPlacementPressTest` drives it through the window's own pointer path, including the slot still in

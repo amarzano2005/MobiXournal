@@ -4,6 +4,7 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
@@ -45,6 +46,11 @@ class PlacementPickTest {
             borderColor = TableElement.DEFAULT_BORDER,
             borderWidth = TableElementFactory.DEFAULT_BORDER_WIDTH,
         )
+
+    /** A formula block 180 × 60 pt from ([left], [top]). */
+    private fun formula(left: Double = 100.0, top: Double = 500.0): MathBlockElement = MathBlockElement(
+        left, top, left + 180.0, top + 60.0, "\\frac{a}{b}", 0xFF000000.toInt(),
+    )
 
     /** A part spanning 40 pt from (200, 300) to (240, 300). */
     private fun resistor(): CircuitElement =
@@ -92,6 +98,25 @@ class PlacementPickTest {
         )
         assertNull("paper holds no table there", pickLivingElement(page, 500.0, 500.0, ShapeKind.TABLE))
         assertNull("a part is not a table", pickLivingElement(page, 160.0, 140.0, ShapeKind.RESISTOR))
+    }
+
+    /**
+     * The **LaTeX** slot's own press: a formula it made under the tap is the one picked, so the editor opens
+     * on that block instead of a second formula landing on it. The slot stays in hand after it inserts, which
+     * is exactly why the tap cannot be read as "place another one" (`pickMathBlock`).
+     */
+    @Test
+    fun theLatexSlotPicksTheFormulaUnderTheTap() {
+        val page = pageOf(formula())
+        assertEquals(
+            "the block under the tap is the one picked",
+            100.0,
+            pickMathBlock(page, 150.0, 520.0)?.left ?: Double.NaN,
+            1e-6,
+        )
+        assertNull("paper holds no formula there", pickMathBlock(page, 500.0, 700.0))
+        assertNull("a table is not a formula", pickMathBlock(pageOf(table()), 160.0, 140.0))
+        assertNull("and ink is nobody's formula", pickMathBlock(pageOf(ink()), 430.0, 400.0))
     }
 
     @Test

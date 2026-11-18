@@ -19,11 +19,16 @@
  * `mobix-core`'s [FigurePins.isFigureOf] answers from the kind the [ShapeBuilder] tool minted into it, so
  * the triangle tool picks the triangles and the rectangle tool picks the rectangles.
  *
+ * The **LaTeX** slot places a formula the same way, though it is a placement mode rather than a shape
+ * ([PlaceKind.TEX]): its tap claims the formula it made ([pickMathBlock]) so the editor opens on it instead
+ * of a second formula landing on top — the window's plot and formula slots, one shell's answer each.
+ *
  * Pure page geometry, so the pick is unit-tested on the JVM (`PlacementPickTest`).
  */
 package com.mobixournal.render
 
 import android.view.MotionEvent
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import kotlin.math.hypot
@@ -45,6 +50,20 @@ internal fun livingFamilyOf(kind: ShapeKind): LivingEditFamily? = when {
 internal fun pickLivingElement(page: Page, xPt: Double, yPt: Double, kind: ShapeKind): ElementRef? {
     val family = livingFamilyOf(kind) ?: return null
     return SelectionTester.pickTopmost(page, xPt, yPt) { family.matches(it) }
+}
+
+/**
+ * The **formula** under ([xPt], [yPt]) on [page], or null: what the LaTeX slot edits instead of laying a
+ * second formula on the one it already made.
+ *
+ * The LaTeX slot stays in hand after it inserts, so its tap is how the next formula is put down — and that
+ * tap used to ask for the dialog again whatever lay under it. A formula is a living element like a table or a
+ * part, so it is matched by its family ([LivingEditFamily.MATH], the double-tap's vocabulary) rather than by
+ * the element type spelled here.
+ */
+internal fun pickMathBlock(page: Page, xPt: Double, yPt: Double): MathBlockElement? {
+    val ref = SelectionTester.pickTopmost(page, xPt, yPt) { LivingEditFamily.MATH.matches(it) } ?: return null
+    return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? MathBlockElement
 }
 
 /**

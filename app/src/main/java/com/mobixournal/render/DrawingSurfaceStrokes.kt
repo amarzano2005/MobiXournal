@@ -234,7 +234,11 @@ internal fun DrawingSurfaceView.placeMove(event: MotionEvent) {
 }
 
 /**
- * Fire [onPlace] for the page/point the tap landed on, hitting an existing text box if any.
+ * Fire [onPlace] for the page/point the tap landed on, hitting an existing text box or formula if any.
+ *
+ * A **formula** under a LaTeX tap is handed over like a text box under a Text tap is: the slot stays in hand
+ * after it places, so the tap that means "this one" used to ask for the dialog again and lay a second formula
+ * on the first (`pickMathBlock`, `render/PlacementPick.kt`).
  */
 internal fun DrawingSurfaceView.commitPlace() {
     val kind = placeKind ?: return
@@ -242,7 +246,8 @@ internal fun DrawingSurfaceView.commitPlace() {
     val xPt = box.toPtX(placeDownX, scrollX)
     val yPt = box.toPtY(placeDownY, scrollY)
     val existing = if (kind == PlaceKind.TEXT) textEdits.pickForEditing(box.index, xPt, yPt) else null
-    onPlace?.invoke(kind, Placement(box.index, xPt, yPt, existing))
+    val math = if (kind == PlaceKind.TEX) pageAt(box.index)?.let { pickMathBlock(it, xPt, yPt) } else null
+    onPlace?.invoke(kind, Placement(box.index, xPt, yPt, existing, math))
 }
 /**
  * The stroke width one sample of the current tool draws at, in pt. A highlighter lays down a

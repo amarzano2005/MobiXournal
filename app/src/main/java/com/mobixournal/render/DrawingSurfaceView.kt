@@ -32,18 +32,8 @@ import com.mobixournal.format.model.Tool
 import com.mobixournal.ui.keyStringFromKeyEvent
 import kotlin.math.hypot
 
-/** What a canvas tap places when a placement tool is active (see [DrawingSurfaceView.placeKind]). */
-enum class PlaceKind { TEXT, IMAGE, TEX }
-
 /** One row of the layer panel: the layer's model index (bottom-up), label, visibility, active flag. */
 data class LayerInfo(val index: Int, val label: String, val visible: Boolean, val active: Boolean)
-
-/**
- * Where a placement tap landed: the page and its page-local pt coordinates. [existing] carries the
- * text box the tap hit (so the editor opens it for editing — prefilling its content, font, size and
- * colour — instead of creating a new one); null means "create new".
- */
-data class Placement(val pageIndex: Int, val xPt: Double, val yPt: Double, val existing: TextElement? = null)
 
 /**
  * The low-latency stylus canvas. Holds the whole [Document] and renders every page top-to-bottom,

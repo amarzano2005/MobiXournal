@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import com.mobixournal.render.LivingEditTarget
+import com.mobixournal.render.Placement
 
 /**
  * Open the editor a **living element** stands behind: the cell editor for a table, the anchored
@@ -19,4 +20,18 @@ fun EditorUiState.openLivingEditor(target: LivingEditTarget) {
         is LivingEditTarget.Shape -> editingShape = target.shape
         is LivingEditTarget.MathBlock -> editingMathBlock = target.block
     }
+}
+
+/**
+ * A **LaTeX tap** that landed on a formula: open *that* formula's editor, the same command the double-tap
+ * gives it, and answer true. Paper answers false, and the slot asks for the source as it always did.
+ *
+ * The LaTeX slot stays in hand after it inserts, so its tap is how the next formula is put down — and without
+ * this the tap that meant "this formula" asked for the dialog again and laid a second one on top
+ * (`com.mobixournal.render.pickMathBlock`).
+ */
+fun EditorUiState.openPlacedTex(placement: Placement): Boolean {
+    val block = placement.math ?: return false
+    openLivingEditor(LivingEditTarget.MathBlock(block))
+    return true
 }
