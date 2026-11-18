@@ -72,7 +72,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`desktop-tablet.md`](desktop-tablet.md) | the pen's two Windows streams: Wintab packets, Windows Ink, the dial | you change how the window reads the tablet |
 | [`desktop-pen-feel.md`](desktop-pen-feel.md) | the pen's active area, the hand's pan, the measurement against Xournal++ | you change how the pen feels in the window |
 | [`selection-actions.md`](selection-actions.md) | what a selection can be asked to do: copy and drop, align and distribute, the window's bar and inspector lane | you change a selection command or that bar |
-| [`design-workflow.md`](design-workflow.md) | the vendored design skill and the design declaration a UI change must record | you design, review or close a user-facing change |
+| [`design-workflow.md`](design-workflow.md) | the design declaration a UI change must record | you design, review or close a user-facing change |
 | [`function-plots.md`](function-plots.md) | the plot tool — the expression parser, the living plot and its study — and living figures | you work on *Insert graph* or a recognised figure |
 | [`developer-guide.md`](developer-guide.md) | the route in for someone changing the code: build, test, the guards, the docs rule and the release | you are new to the repository, or reviewing a change |
 | [`releasing.md`](releasing.md) | freezing a version, the tag command, the release workflow and the two version lines | you cut a release or move either version |

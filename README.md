@@ -148,7 +148,7 @@ chemistry palette is gone. Shell differences: [what works, and what is not there
 Build: `scripts/build.sh` with `/data/android`, `scripts/host-build.sh` elsewhere;
 [developer guide](docs/developer-guide.md), [contributing](CONTRIBUTING.md).
 Agent work: [AGENTS.md](AGENTS.md), `scripts/todo.sh` for tasks,
-`scripts/design.sh` for [design guidance](docs/design-workflow.md).
+[design-workflow.md](docs/design-workflow.md) for the UI closing check.
 
 ## Licence, credit and lineage
 

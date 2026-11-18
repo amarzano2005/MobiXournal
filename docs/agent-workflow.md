@@ -17,12 +17,10 @@ See [Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configura
 
 Repository skills live in `.agents/skills/`, the
 [documented discovery location](https://learn.chatgpt.com/docs/build-skills). The task workflow is
-[todo](../.agents/skills/todo/SKILL.md); the design workflow is
-[UI/UX Pro Max](../.agents/skills/ui-ux-pro-max/SKILL.md). Their entry points include the names and
-descriptions used for selection. The stable operator commands remain `scripts/todo.sh` and
-`scripts/design.sh`; callers need not know the data directory layout.
-The task wrapper probes Python execution to skip Windows Store aliases; `TODO_PYTHON` can select
-a real interpreter explicitly. The corresponding design override is `DESIGN_PYTHON`.
+[todo](../.agents/skills/todo/SKILL.md). Its entry point includes the name and description used for
+selection. The stable operator command remains `scripts/todo.sh`; callers need not know the data
+directory layout. The task wrapper probes Python execution to skip Windows Store aliases; `TODO_PYTHON`
+can select a real interpreter explicitly.
 
 Moving a skill requires updating its callers and checking the available-skill list in a fresh
 session. This chat may retain its initial catalogue: reading the explicit entry point remains the

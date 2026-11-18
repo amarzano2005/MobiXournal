@@ -9,7 +9,7 @@ device/emulator harnesses, code generators, and anything else outside the repo's
 
 Add one entry per tool, kept to what an agent needs to *use* it: where it lives, how to call it, and its gotchas.
 
-The vendored design skill and the design declaration that closes a UI change are [design-workflow.md](design-workflow.md)'s.
+The design declaration that closes a UI change is [design-workflow.md](design-workflow.md)'s.
 
 ## Index
 
@@ -21,7 +21,7 @@ The vendored design skill and the design declaration that closes a UI change are
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
 | Desktop shell | Run, test and package the Compose Multiplatform window (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [releasing.md](releasing.md) |
-| UI/UX Pro Max | Design data, its search script, and the declaration that closes a UI change | [below](design-workflow.md) |
+| Design declaration | The declaration that closes a UI change in `todo.sh done` | [below](design-workflow.md) |
 | Mobix corpora | Regenerate the golden and hostile `.mobix` fixture corpora | [below](#mobix-corpora) |
 
 ---

@@ -1,7 +1,6 @@
 """The design declaration a change to the interface must carry into the archive.
 
-`docs/interface-contract.md` is the law for what a new interface element must satisfy, and
-`scripts/design.sh` is the corpus a change is checked against. Neither could make anyone **say** what
+`docs/interface-contract.md` is the law for what a new interface element must satisfy. Neither could make anyone **say** what
 was checked: the contract's checklist was a paragraph nobody had to answer, so a change closed without
 ever opening it left exactly the same trace as one that had been through all nine lines.
 
@@ -39,7 +38,7 @@ MIN_AXES = 2
 MIN_NONE_REASON = 12
 MAX_DECLARATION = 1200
 
-# The corpus `scripts/design.sh --domain ux` answers from; owned by `docs/tools.md` (*UI/UX Pro Max*).
+# Optional local UX guidelines corpus path (skipped when absent).
 CORPUS = os.path.join(".agents", "skills", "ui-ux-pro-max", "data", "ux-guidelines.csv")
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -180,8 +179,7 @@ def _citation_problems(note, root):
     if known is None:  # not vendored here: nothing to check against, so nothing is claimed
         return []
     return [
-        f"`rule: {one}` is not in {CORPUS}: cite an id that `scripts/design.sh --domain ux \"...\"` "
-        "actually returned"
+        f"`rule: {one}` is not in {CORPUS}: cite a valid `<Category>/<Issue>` id"
         for one in cited
         if one.casefold() not in known
     ]
