@@ -81,4 +81,23 @@ class DesktopBookmarkNavigationTest {
             compose.onNodeWithText("Row 0").assertIsDisplayed()
         } finally { state.tabs.closeAll() }
     }
+
+    @Test fun theRowMenuMovesAmongSiblingsAndStopsAtTheEdges() {
+        val state = show()
+        try {
+            // Row 0 opens the run: up has nowhere to go, down has.
+            compose.onNodeWithContentDescription("Actions for Row 0").performClick()
+            compose.onNodeWithText("Move up").assertIsNotEnabled()
+            compose.onNodeWithText("Move down").performClick()
+            compose.runOnIdle {
+                val tab = state.tabs.active!!
+                assertEquals(listOf("Row 1", "Row 0"),
+                    tab.document.model.outline.nodes.take(2).map { it.title })
+                // One command, one step: a single undo puts both rows back.
+                tab.undo()
+                assertEquals(listOf("Row 0", "Row 1"),
+                    tab.document.model.outline.nodes.take(2).map { it.title })
+            }
+        } finally { state.tabs.closeAll() }
+    }
 }

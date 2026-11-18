@@ -10,6 +10,7 @@ import com.mobixournal.desktop.io.contentsResolved
 import com.mobixournal.desktop.io.visibleContentsRows
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
+import com.mobixournal.render.OutlineSiblingOrder
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 
@@ -225,6 +226,9 @@ private fun ColumnScope.ContentsListBlock(
     BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
         val widthDp = maxWidth.value
         val widest = largestPageNumber(rows)
+        // Availability comes from the whole tree, as the drag path's own actions do: a filtered list still
+        // moves a row among the siblings it really has.
+        val moves = remember(allRows) { OutlineSiblingOrder.of(allRows) }
         ContentsDragList(allRows, rows, tab.contentsList,
             editing.draft == null, { id, delta -> editing.submit(contentsEdits.move(id, delta)) }) { listModifier, rowModifier, dragging ->
             LazyColumn(state = tab.contentsList, modifier = listModifier, userScrollEnabled = !dragging) {
@@ -260,6 +264,9 @@ private fun ColumnScope.ContentsListBlock(
                         // bookmark seeds the tree from them so they stay in the list.
                         onRename = if (row.id.startsWith("bkm_")) ({ editing.renaming(row) }) else null,
                         onDelete = if (row.id.startsWith("bkm_")) ({ editing.deleting(row) }) else null,
+                        moves = moves[row.id] ?: OutlineSiblingOrder.Moves(),
+                        onMove = if (row.id.startsWith("bkm_"))
+                            ({ delta -> editing.submit(contentsEdits.move(row.id, delta)) }) else null,
                         renaming = renaming != null,
                         title = editing.title,
                         error = editing.error,
@@ -349,6 +356,8 @@ internal fun OutlineRowView(
     onToggle: (() -> Unit)? = null,
     onRename: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    moves: OutlineSiblingOrder.Moves = OutlineSiblingOrder.Moves(),
+    onMove: ((Int) -> Unit)? = null,
     renaming: Boolean = false,
     title: String = "",
     error: String? = null,
@@ -414,24 +423,31 @@ internal fun OutlineRowView(
         // One action gutter on every row — empty on a row the file owns, so the titles still end on one
         // edge and a source-PDF row offers no command it cannot run.
         Box(Modifier.width(ContentsRowLayout.ACTION_DP.dp), contentAlignment = Alignment.TopEnd) {
-            if (onRename != null || onDelete != null) {
-                ContentsRowMenu(title = row.title, onRename = onRename, onDelete = onDelete)
+            if (onRename != null || onDelete != null || onMove != null) {
+                ContentsRowMenu(
+                    title = row.title, onRename = onRename, onDelete = onDelete,
+                    moves = moves, onMove = onMove,
+                )
             }
         }
     }
 }
 
 /**
- * A row's **neutral menu**: one overflow glyph that opens **Rename** and **Delete**, and nothing else.
+ * A row's **neutral menu**: one overflow glyph that opens **Move up**, **Move down**, **Rename** and **Delete**.
  *
  * Anchored under its own glyph, it is a question rather than an act: dismissing it or picking Rename leaves the
  * tree untouched, and Delete only *asks* — the section's delete question is where a bookmark actually goes.
+ * The two moves are shown even when they cannot run, disabled, so the menu keeps one shape wherever it opens
+ * and the ends of a run are a fact the reader can see rather than a word that disappears.
  */
 @Composable
 private fun ContentsRowMenu(
     title: String,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    moves: OutlineSiblingOrder.Moves,
+    onMove: ((Int) -> Unit)?,
 ) {
     var open by remember { mutableStateOf(false) }
     val interactions = remember { MutableInteractionSource() }
@@ -454,6 +470,16 @@ private fun ContentsRowMenu(
                 Modifier.width(IntrinsicSize.Max).glassSurface().padding(4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
+                if (onMove != null) {
+                    ContentsMenuRow("Move up", title, enabled = moves.up) {
+                        open = false
+                        onMove(-1)
+                    }
+                    ContentsMenuRow("Move down", title, enabled = moves.down) {
+                        open = false
+                        onMove(1)
+                    }
+                }
                 if (onRename != null) {
                     ContentsMenuRow("Rename", title) {
                         open = false
@@ -473,19 +499,19 @@ private fun ContentsRowMenu(
 
 /** One answer of a row's menu: its word, on a hoverable slot, announced with the row it belongs to. */
 @Composable
-internal fun ContentsMenuRow(label: String, title: String, onClick: () -> Unit) {
+internal fun ContentsMenuRow(label: String, title: String, enabled: Boolean = true, onClick: () -> Unit) {
     val interactions = remember { MutableInteractionSource() }
     val focused by interactions.collectIsFocusedAsState()
     val pressed by interactions.collectIsPressedAsState()
     Text(
         label,
-        color = DesktopTheme.ink,
+        color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,
         style = DesktopTheme.label,
         modifier = Modifier
             .fillMaxWidth()
             .hoverFill(RoundedCornerShape(6.dp),
-                base = if (focused || pressed) DesktopTheme.hoverSlot else Color.Transparent)
-            .clickable(interactionSource = interactions, indication = null,
+                base = if (enabled && (focused || pressed)) DesktopTheme.hoverSlot else Color.Transparent)
+            .clickable(interactionSource = interactions, indication = null, enabled = enabled,
                 role = Role.Button, onClick = onClick)
             .semantics { contentDescription = "$label ${title.ifBlank { "bookmark" }}" }
             .heightIn(min = 40.dp)
