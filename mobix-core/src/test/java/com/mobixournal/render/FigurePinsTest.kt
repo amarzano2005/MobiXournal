@@ -24,12 +24,15 @@ import kotlin.math.abs
  */
 class FigurePinsTest {
 
-    private fun part(x: Double, y: Double) = CircuitElement(
+    private fun part(x: Double, y: Double) = partAt(x, y, id = "c1")
+
+    /** A part with pins 40 pt either side of ([x], [y]), under its own id. */
+    private fun partAt(x: Double, y: Double, id: String) = CircuitElement(
         symbol = "RESISTOR",
         positionX = x,
         positionY = y,
         pins = listOf(CircuitPin("p1", -40.0, 0.0), CircuitPin("p2", 40.0, 0.0)),
-        id = "c1",
+        id = id,
     )
 
     /** A stroke a **figure tool** minted: marked, which is what makes it a figure rather than ink. */
@@ -402,6 +405,63 @@ class FigurePinsTest {
         assertFalse(FigurePins.isFigureOf(wire(0.0, 0.0, 50.0, 0.0), ShapeKind.RECTANGLE))
         assertTrue(FigurePins.isFigureOf(arrow(0.0, 0.0, 60.0, 0.0), ShapeKind.ARROW))
         assertTrue(FigurePins.isFigureOf(figure(0.0, 0.0, 60.0, 40.0), ShapeKind.ELLIPSE))
+    }
+
+    /**
+     * A **press** on a marked pin joins it: the element's nearest own pin lands on the target in one move.
+     *
+     * The mark says "this can join here" and the press is the hand saying it, so the element travels onto the
+     * pin instead of the part behind the pin being picked — which is what a press used to do, mark or no mark.
+     */
+    @Test
+    fun aPressOnAMarkedPinJoinsIt() {
+        val selected = part(200.0, 200.0)
+        val page = pageOf(selected, partAt(400.0, 300.0, id = "c2"))
+        // The second part's left pin is at (360, 300); the press is 2 pt off it.
+        val join = FigurePins.pressJoin(page, ElementRef(0, 0), 362.0, 300.0, reachPt = 12.0)!!
+        assertEquals("the pin the press is aimed at", 360.0, join.target.absX, 1e-6)
+        assertEquals(300.0, join.target.absY, 1e-6)
+        // The own pin nearest that target is the selected part's right one, (240, 200): the shortest travel.
+        assertEquals(120.0, join.dx, 1e-6)
+        assertEquals(100.0, join.dy, 1e-6)
+    }
+
+    /**
+     * A mark that is **already joined** is not a target: the press finds nothing and the ordinary press runs.
+     *
+     * A compatible pin sitting on one of the element's own pins is the same joint — the two ends already meet
+     * there — so it is neither painted as a target nor joined by a press (`SelectionMarks.joinable`).
+     */
+    @Test
+    fun aJoinedMarkIsNotAJoin() {
+        val selected = part(200.0, 200.0)
+        // A wire that ends exactly on the selected part's right pin.
+        val page = pageOf(selected, wire(240.0, 200.0, 320.0, 200.0))
+        val marks = FigurePins.selectionMarks(page, selected, exclude = setOf(ElementRef(0, 0)))
+        assertTrue(
+            "the wire's end is compatible",
+            marks.compatible.any { it.absX == 240.0 && it.absY == 200.0 },
+        )
+        assertFalse(
+            "but it is the still point of a joint already made",
+            marks.joinable.any { it.absX == 240.0 && it.absY == 200.0 },
+        )
+        assertNull(
+            "and a press on it changes nothing",
+            FigurePins.pressJoin(page, ElementRef(0, 0), 240.0, 200.0, reachPt = 12.0),
+        )
+    }
+
+    /** A **drawn figure** joins the end of a wire the same way: its nearest border pin travels onto it. */
+    @Test
+    fun aFigureJoinsAWiresEnd() {
+        val page = pageOf(figure(100.0, 100.0, 200.0, 160.0), wire(300.0, 300.0, 400.0, 300.0))
+        val join = FigurePins.pressJoin(page, ElementRef(0, 0), 302.0, 300.0, reachPt = 12.0)!!
+        assertEquals(300.0, join.target.absX, 1e-6)
+        assertEquals(300.0, join.target.absY, 1e-6)
+        // The nearest border pin is the rectangle's bottom-right corner, (200, 160).
+        assertEquals(100.0, join.dx, 1e-6)
+        assertEquals(140.0, join.dy, 1e-6)
     }
 
     /** A box with no height wears its two end handles and nothing else, so only those points are taken. */

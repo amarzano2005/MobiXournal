@@ -56,6 +56,12 @@ after each insertion, so a row of parts needs no trip back to the toolbar, and a
 resistor does: taller or shorter across its body without getting longer, or both from a corner. The Table
 slot works the same way: press a table to select it, press paper to place one.
 
+A **selected** part or figure shows the pins it can be joined to, and a press on one of those pins connects
+the selected element to it in one step: the element moves onto the pin and stays selected, instead of the
+part behind the pin being picked. That is the same joint a drag makes, with the pin chosen directly, so a
+wire and the part for it can be paired without lining the two up by hand. A pin that already holds the
+element is not offered again, so what the sheet marks is exactly what a press connects.
+
 ## Figures
 
 The press rule is the same one for the figure tools. With the rectangle tool in hand, a press on a

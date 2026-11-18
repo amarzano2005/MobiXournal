@@ -115,11 +115,10 @@ internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
     }
     // And what it may join — the other end of the pairing. A compatible mark that sits **on** one of the
     // figure's own pins is the same joint (`FigurePins.selectionMarks` answers both ends): marking it twice
-    // stacked a square and a dot on one point, which read as a mark that had missed its pin.
-    val unjoined = marks.compatible.filter { target ->
-        marks.own.none { (x, y) -> hypot(x - target.absX, y - target.absY) <= CAUGHT_EPSILON_PT }
-    }
-    drawPinTargets(canvas, sel.pageIndex, unjoined)
+    // stacked a square and a dot on one point, which read as a mark that had missed its pin. The unjoined
+    // marks are the shared answer (`SelectionMarks.joinable`), so the marks painted here are exactly the ones
+    // a press joins (`FigurePins.pressJoin`).
+    drawPinTargets(canvas, sel.pageIndex, marks.joinable)
 }
 
 /**

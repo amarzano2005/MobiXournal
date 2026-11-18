@@ -121,7 +121,7 @@ and side midpoints, exactly where the eight handles are, so drawing both stacked
 left the reader unable to say which was which; the overlay therefore drops the pins a handle already sits on
 (`FigurePins.withoutHandles`), and a line's own pins are its two end handles, so it wears no ring of its
 own. The handle keeps that point because it is the one a **press** acts on: on the tablet a pin is a mark
-and a magnet, never a grip.
+and a magnet, never a grip — a press on one **joins** it (below).
 
 Which pin a drag **joins** is settled by the hand, not by distance. A moved part carries several pins, and
 the nearest pair could join one the reader never aimed at — drag so that the second pin passes 4 pt from a
@@ -129,7 +129,19 @@ terminal while the one under the finger is 12 pt from its own, and the part "att
 `snapTranslationTo` therefore takes the point the drag went down on (`grab`, the press the controller
 latched in `beginMove`) and asks the **pin nearest that press** first, falling back to the nearest pair
 only when that pin has nothing in reach; the window passes the same point from its own gesture.
-`PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns. The end a shaft drag moves is
+`PinMagnetTest` pins both halves, and `FigurePinsTest` the marks a handle owns.
+
+A **press** on a marked pin is that join taken literally. With one element selected, a press on a compatible
+mark — the filled dot or the square, within the magnet's own reach (`CircuitSnapping.thresholdFor`) — moves the
+element onto that pin in **one undoable edit** and leaves it selected: the press was aimed at the mark, not at
+an object, so the part the pin belongs to is never picked, which is exactly what a press there used to do.
+The own pin **nearest the target** travels, so the element takes the shorter way, and a mark that is already a
+joint (a compatible pin sitting on one of the element's own pins) is not a target at all:
+`FigurePins.SelectionMarks.joinable` is the one list the overlay paints and the press joins, so nothing on
+screen is unpressable and nothing pressable is invisible. The press is asked **before** the placement pick and
+before the select tool's own press, because a mark is the more specific target than the ink under it. This is
+the tablet's rule (`render/SelectionPinConnect.kt`, the pure half `FigurePins.pressJoin`, pinned by
+`FigurePinsTest`); the window keeps its own press, where a pin is a drag target and a selection grip. The end a shaft drag moves is
 the **ink's own end**, never the point the press landed on: a hand goes down within a fingertip of it, so a
 ratio read from the press scaled the shaft by `length / pressDistance` and the tip came out short of the pin
 the sheet had lit (`shaftResizeToPin`, `ShaftResizeTest`). A joint is one joint whichever

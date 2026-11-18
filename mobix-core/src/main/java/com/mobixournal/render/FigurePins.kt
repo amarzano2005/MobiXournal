@@ -282,6 +282,64 @@ object FigurePins {
     data class SelectionMarks(
         val own: List<Pair<Double, Double>>,
         val compatible: List<CircuitSnapping.PinTarget>,
+    ) {
+        /**
+         * The compatible marks that are **not** joints already made: [compatible] minus the pins sitting on
+         * one of [own].
+         *
+         * A compatible pin lying on the element's own pin is the same point, not a second target — the two
+         * ends already meet there — and both shells drew a square and a dot on it until they filtered it out
+         * by hand. One list here, so the mark a shell **paints** and the mark a press **joins** cannot be two
+         * answers: what is on screen is what a press can catch.
+         */
+        val joinable: List<CircuitSnapping.PinTarget>
+            get() = compatible.filter { target ->
+                own.none { (x, y) -> hypot(x - target.absX, y - target.absY) <= JOINED_POINT_PT }
+            }
+    }
+
+    /** Two points closer than this are one joint: a compatible pin already sitting on an own pin. */
+    private const val JOINED_POINT_PT = 0.5
+
+    /**
+     * The join a **press on a marked pin** makes: the compatible pin a selection's mark promises under
+     * ([xPt], [yPt]), and the translation that puts the element's nearest own pin exactly on it.
+     *
+     * A selection wears **both halves** of a pairing ([selectionMarks]) — its own pins and the compatible
+     * ones it can be joined to — and until now only a drag could act on the second half. A press on one of
+     * those marks is the hand asking for that joint by name, so the element travels onto the pin and stays
+     * selected, instead of the part the pin belongs to being picked: the press was aimed at a **mark**, not
+     * at an object. It is one undoable move, and the shortest one — the own pin nearest the target travels.
+     *
+     * [reachPt] is the magnet's own reach ([CircuitSnapping.thresholdFor]), so a mark is as easy to hit as it
+     * is to aim a drag at. Null when nothing marked is in reach (the press is then the pick or placement it
+     * was), when the element has no pins to land with, and when it is already exactly on that pin — a press
+     * on a joint that is already made changes nothing.
+     */
+    fun pressJoin(
+        page: Page,
+        ref: ElementRef,
+        xPt: Double,
+        yPt: Double,
+        reachPt: Double,
+    ): PinJoin? {
+        if (reachPt <= 0.0) return null
+        val element = page.layers.getOrNull(ref.layerIndex)
+            ?.elements?.getOrNull(ref.elementIndex) ?: return null
+        val marks = selectionMarks(page, element, exclude = setOf(ref))
+        val target = CircuitSnapping.findSnapTarget(xPt, yPt, marks.joinable, reachPt) ?: return null
+        val own = marks.own.minByOrNull { (x, y) -> hypot(x - target.absX, y - target.absY) } ?: return null
+        val dx = target.absX - own.first
+        val dy = target.absY - own.second
+        if (dx == 0.0 && dy == 0.0) return null
+        return PinJoin(target, dx, dy)
+    }
+
+    /** What [pressJoin] answers with: the pin, and the translation that lands the element on it. */
+    data class PinJoin(
+        val target: CircuitSnapping.PinTarget,
+        val dx: Double,
+        val dy: Double,
     )
 
     /** Two marks closer than this are one point: a pin sitting on the handle it coincides with. */
