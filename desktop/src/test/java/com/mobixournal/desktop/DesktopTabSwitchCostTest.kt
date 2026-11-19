@@ -81,8 +81,12 @@ class DesktopTabSwitchCostTest {
                     frame(canvas)
                 }
             }
+            // What a frame costs on this machine before anything switches: the switch's own cost is the
+            // difference, so the budget below grades the code and not the runner.
+            val still = stillFrames(shell)
             val full = switching(state) { frame(shell) }
             val canvasOnly = switching(state) { frame(canvas) }
+            report("still, full shell", still)
             report("switch, full shell", full)
             report("switch, canvas only", canvasOnly)
 
@@ -95,13 +99,20 @@ class DesktopTabSwitchCostTest {
 
             // The budgets are set to catch an order of magnitude — the return of the halo that cost a
             // quarter of a second a page — not to grade this machine: a switch that misses a frame is
-            // allowed, a switch that is a pause is not.
-            assertTrue("the readings landed", full.size == 8 && canvasOnly.size == 8 && pageChange.size == 8)
+            // allowed, a switch that is a pause is not. That is why the shell's budget is a **delta**: an
+            // absolute one graded the CI runner, where this window draws at ~225 ms a frame while the sheet
+            // inside it stays at ~22 ms and the same code passes on a workstation at half the cost.
+            assertTrue(
+                "the readings landed",
+                still.size == 8 && full.size == 8 && canvasOnly.size == 8 && pageChange.size == 8,
+            )
+            val medianStill = still.sorted()[still.size / 2]
             val medianFull = full.sorted()[full.size / 2]
             val medianCanvas = canvasOnly.sorted()[canvasOnly.size / 2]
             assertTrue(
-                "a switch must not be a pause (full shell %.1f ms, canvas %.1f ms)".format(medianFull, medianCanvas),
-                medianFull < 200.0,
+                "a switch must not cost a pause over a still frame " +
+                    "(switch %.1f ms, still %.1f ms)".format(medianFull, medianStill),
+                medianFull - medianStill < 150.0,
             )
             assertTrue(
                 "the sheet is not what a switch pays for (canvas %.1f ms)".format(medianCanvas),
@@ -242,6 +253,17 @@ class DesktopTabSwitchCostTest {
             scene.close()
             state.tabs.closeAll()
         }
+    }
+
+    /** Eight frames of the same shell with nothing changed: what this machine pays for any frame at all. */
+    private fun stillFrames(shell: ImageComposeScene): List<Double> {
+        val samples = mutableListOf<Double>()
+        repeat(8) {
+            val started = System.nanoTime()
+            frame(shell)
+            samples += (System.nanoTime() - started) / 1_000_000.0
+        }
+        return samples
     }
 
     /** A frame with the snapshot notifications a real frame loop sends; nothing is written to disk here. */
