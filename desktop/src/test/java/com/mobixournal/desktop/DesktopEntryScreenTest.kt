@@ -114,6 +114,25 @@ class DesktopEntryScreenTest {
     }
 
     /**
+     * A small window **stacks** the three columns and scrolls: 900 dp is under the width where the block fits
+     * side by side, and a fixed row clipped the recent grid instead of letting the window reach it.
+     */
+    @Test
+    fun `a narrow window paints the stacked entry screen`() {
+        val state = DesktopShellState(DesktopSettings(temp.newFile("narrow.properties")))
+        state.start(null)
+        val scene = ImageComposeScene(900, 620, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            val painted = scene.render().encodeToData()?.bytes ?: ByteArray(0)
+            assertTrue("the narrow entry screen drew nothing", painted.isNotEmpty())
+        } finally {
+            scene.close()
+        }
+    }
+
+    /**
      * The window keeps no tab list, so "the previous session" is exactly what `recovery/` holds: a start
      * with a snapshot **offers** it as a card instead of adopting it, and *Restore last session* brings the
      * work back dirty on its own file.

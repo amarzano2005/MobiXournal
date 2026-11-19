@@ -88,7 +88,16 @@ class DesktopTextFeedbackContractTest {
             "and no command chip or tile survives",
             !menu.contains(".hoverCapsule(") && !menu.contains("MenuChip") && !menu.contains("MenuTile"),
         )
-        assertTrue("entry commands retain their button background", entry.contains("DesktopTheme.tabFillResting"))
+        // The entry screen's doors are the window's one button now, full width, instead of a capsule of its own
+        // (`EntryScreen.kt`); the 36 dp height and the primary answer are what its column relies on.
+        assertTrue(
+            "entry commands are the window's one button",
+            entry.contains("DesktopButton(") && entry.contains("DesktopButtonVariant.Primary"),
+        )
+        assertTrue(
+            "and the entry screen paints no capsule of its own",
+            !entry.contains("tabFillResting") && !entry.contains("capsuleShape"),
+        )
         // The strip is the flat band's now: a tab is a control with the panel tone and the 4 dp corner, not
         // a chip of the tablet's glass with an accent rim (`docs/desktop-ui-layout.md` section 1).
         assertTrue(

@@ -47,41 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-entry-workspace-fixes"
-title = "Redesign EntryScreen without halo glow, fix SavingBadge z-order, and unify workspace band dividers"
-description = """
-Phase 3D of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Remove the tacky 26-ring white card halo and inconsistent `EntryButton`, fix responsive scrolling, fix occluded `SavingBadge`, and align light-mode workspace edges.
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/shell/EntryScreen.kt`:
-   - Delete `drawCardHalo` (the 26 concentric white stroke rings) and remove the `12.dp` `pageShadow` inset that stole `24.dp` from `100.dp` recent thumbnails.
-   - Style recent/template cards as `8.dp` (`DesktopTheme.surfaceShape`), `DesktopTheme.popupSurface` fill, `1.dp` `DesktopTheme.hairline` at rest -> `1.dp` `DesktopTheme.borderStrong` (or `accent`) + subtle `hoverSlot` tint on hover.
-   - Replace `EntryButton` with `DesktopButton` (`Primary` for `New sheet`, `Secondary` for `Open…` / `Restore last session`, `minHeight = 36.dp`, `Modifier.fillMaxWidth()`) so stacked buttons have equal width and match the rest of the app.
-   - Show `RemoveButton` (`×`, `22.dp`, `4.dp` hover fill) ONLY on card hover or keyboard focus instead of permanently visible red badges on every card.
-   - Fix shortcut hint text from `"Ctrl+N · Ctrl+T"` to `"Ctrl+N · Ctrl+O"`.
-   - Align empty-state text horizontally with the `"Recents"` heading (no `12.dp` misalignment).
-   - Wrap root layout in `verticalScroll(rememberScrollState())` and adapt cleanly below `976.dp` width so cards never clip.
-   - Keep `SheetCard` strictly `<= 85` lines (currently 97/100).
-2. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopShellView.kt`:
-   - Fix z-order bug: move `if (state.isSaving) SavingBadge()` AFTER `ScreenEntrance(...)` inside `WorkspaceBody`'s `Box` so `SavingBadge` paints on top of the canvas/entry screen instead of behind it.
-3. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopWorkspace.kt`:
-   - Remove `bandEdgeShade(...)` calls (bands now render uniform crisp `1.dp` `bandDivider` hairlines on all 4 docked sides, including the bottom edge above `StatusBar`).
-4. Docs: update `docs/desktop-ui-layout.md` §1 Entry screen paragraph (`<= 300` lines).
-5. Tests: update `DesktopEntryScreenTest.kt` and `DesktopShellTest.kt`; add a regression check proving `SavingBadge` is composed above `ScreenEntrance`.
-
-DO NOT: leave `drawCardHalo` or `tabFillResting` in `EntryScreen.kt`.
-Verification: run `:desktop:test` on `DesktopEntryScreenTest`, `DesktopShellTest`, `DesktopLifecycleTest`, plus `DocsGuardTest` and `SourceStructureTest`; inspect regenerated `shell-empty.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 100
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "entry"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-dialogs-unification"
 title = "Introduce shared DesktopDialogFrame and unify all 11 desktop modal dialogs"
 description = """

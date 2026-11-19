@@ -379,6 +379,23 @@ class DesktopShellTest {
     }
 
     /**
+     * The save badge is said **on** the screen, so it must be composed after it.
+     *
+     * A `Box` paints its children in order, and a badge declared before the screen lay *under* the canvas and
+     * under the entry screen: nothing was ever seen of it. There is no way to hover a frame in this suite, so
+     * the regression is read where the order is written — the one fact the pixels depend on.
+     */
+    @Test
+    fun `the saving badge is composed above the screen it floats over`() {
+        val view = File("src/main/java/com/mobixournal/desktop/shell/DesktopShellView.kt").readText()
+        val body = view.substringAfter("private fun BoxScope.WorkspaceBody(")
+        val badge = body.indexOf("SavingBadge()")
+        val screen = body.indexOf("ScreenEntrance(")
+        assertTrue("the badge is still raised somewhere", badge > 0)
+        assertTrue("and after the screen, or it paints beneath it", screen > 0 && badge > screen)
+    }
+
+    /**
      * The whole window, painted: the empty state and a document, written to `build/desktop-render/shell.png`
      * so it can be looked at — and checked where a screenshot cannot be trusted.
      *

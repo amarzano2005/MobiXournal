@@ -3,7 +3,11 @@ package com.mobixournal.desktop.shell
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -12,14 +16,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,15 +36,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
@@ -46,6 +48,8 @@ import com.mobixournal.desktop.io.DesktopDocuments
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
+import com.mobixournal.desktop.tools.DesktopButton
+import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.hoverFill
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
@@ -58,11 +62,13 @@ import kotlinx.coroutines.withContext
  * page it will be — the reader's own size and ruling, through the painter the page list uses — and the
  * notebooks opened lately as a grid of cards whose face is their first page. A single centred stack left a
  * 3440 px desk as three small objects in the middle of a hole; the columns are what spreads them across the
- * width while staying one block on a laptop's 1100.
+ * width while staying one block on a laptop's 1100. Below [NARROW_DESK_DP] the three columns become one, so
+ * a small window scrolls instead of clipping.
  *
- * The cards are the **sheet's own rectangle**, not a capsule: a rounded chip around rectangular paper
- * misreads the shape of the thing it shows. They keep the family's rim and hover step, so they are still
- * objects of this window and not a second language.
+ * The cards are **surfaces of this window** — the 8 dp [DesktopTheme.surfaceShape], the panel's own fill and
+ * one hairline — not a picture floating in a halo. Twenty-six concentric white rings around every thumbnail
+ * read as a sticker rather than a lift (`docs/desktop-ui-layout.md` §1), and they cost the paper 12 dp of its
+ * own preview on every side.
  */
 @Composable
 internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
@@ -80,57 +86,99 @@ internal fun EntryScreen(state: DesktopShellState, onOpen: () -> Unit) {
     // The screen wears the **band's own fill**: with nothing open there is no page and no desk to show, so
     // the window is one surface from the header to the status bar, and only the cards sit on it. A black
     // floor there read as a hole between two bands.
-    Box(Modifier.fillMaxSize().background(DesktopTheme.glass), contentAlignment = Alignment.Center) {
-        BoxWithConstraints(contentAlignment = Alignment.Center) {
-            // The block grows with the desk: a 3440 px monitor is not a reason to read laptop-sized cards
-            // in the middle of it, and a 1100 px window is not a reason to overflow.
-            val wide = maxWidth > WIDE_DESK_DP.dp
-            val gap = if (wide) WIDE_GAP_DP else COLUMN_GAP_DP
-            val hero = if (wide) WIDE_HERO_WIDTH_DP else HERO_WIDTH_DP
-            val recent = if (wide) WIDE_RECENT_WIDTH_DP else RECENT_WIDTH_DP
-            Row(
+    Box(Modifier.fillMaxSize().background(DesktopTheme.glass)) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            // The block scrolls as a whole and is centred while it fits: a 700 dp-tall window could not
+            // reach the third row of cards, because the grid's own overflow was clipped by the window.
+            val room = maxHeight
+            // Read once, outside the column's own scope: `maxWidth` there would be the column's name, not the
+            // window's, and the two are not the same question.
+            val deskWidth = maxWidth
+            Column(
                 modifier = Modifier
-                    .widthIn(max = if (wide) WIDE_MAX_WIDTH_DP.dp else ENTRY_MAX_WIDTH_DP.dp)
-                    .padding(horizontal = 32.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = room)
+                    .padding(horizontal = 32.dp, vertical = 32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                StartColumn(
-                    widthDp = if (wide) WIDE_START_COLUMN_DP else START_COLUMN_WIDTH_DP,
-                    onNew = { state.startFreshSession() },
-                    onOpen = onOpen,
-                    onRestore = if (pendingSession) ({ state.restoreLastSession() }) else null,
-                )
-                Spacer(Modifier.width(gap.dp))
-                SheetCard(
-                    key = "new-sheet:${sheet.width}x${sheet.height}",
-                    widthDp = hero,
-                    caption = "New sheet",
-                    load = { renderPageBitmap(sheet, hero / sheet.width.toFloat()) },
-                    onClick = { state.startFreshSession() },
-                )
-                Spacer(Modifier.width(gap.dp))
-                EntryColumn(
-                    cards,
-                    cardWidthDp = recent,
-                    columns = if (wide) WIDE_RECENT_COLUMNS else RECENT_COLUMNS,
-                    onOpenCard = { card -> state.openEntry(card, scope) },
-                    onRemoveCard = { card -> state.forgetEntry(card) },
-                )
+                // The block grows with the desk: a 3440 px monitor is not a reason to read laptop-sized
+                // cards in the middle of it, and a 1100 px window is not a reason to overflow.
+                val wide = deskWidth > WIDE_DESK_DP.dp
+                val gap = if (wide) WIDE_GAP_DP else COLUMN_GAP_DP
+                val hero = if (wide) WIDE_HERO_WIDTH_DP else HERO_WIDTH_DP
+                val recent = if (wide) WIDE_RECENT_WIDTH_DP else RECENT_WIDTH_DP
+                val start = @Composable { modifier: Modifier ->
+                    StartColumn(
+                        modifier = modifier,
+                        onNew = { state.startFreshSession() },
+                        onOpen = onOpen,
+                        onRestore = if (pendingSession) ({ state.restoreLastSession() }) else null,
+                    )
+                }
+                val heroCard = @Composable { modifier: Modifier ->
+                    SheetCard(
+                        key = "new-sheet:${sheet.width}x${sheet.height}",
+                        widthDp = hero,
+                        caption = "New sheet",
+                        modifier = modifier,
+                        load = { renderPageBitmap(sheet, hero / sheet.width.toFloat()) },
+                        onClick = { state.startFreshSession() },
+                    )
+                }
+                val recents = @Composable {
+                    EntryColumn(
+                        cards,
+                        cardWidthDp = recent,
+                        columns = if (wide) WIDE_RECENT_COLUMNS else RECENT_COLUMNS,
+                        onOpenCard = { card -> state.openEntry(card, scope) },
+                        onRemoveCard = { card -> state.forgetEntry(card) },
+                    )
+                }
+                if (deskWidth < NARROW_DESK_DP.dp) {
+                    Column(
+                        modifier = Modifier.widthIn(max = ENTRY_MAX_WIDTH_DP.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        start(Modifier.fillMaxWidth())
+                        Spacer(Modifier.height(24.dp))
+                        heroCard(Modifier)
+                        Spacer(Modifier.height(24.dp))
+                        recents()
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.widthIn(max = if (wide) WIDE_MAX_WIDTH_DP.dp else ENTRY_MAX_WIDTH_DP.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        start(Modifier.width((if (wide) WIDE_START_COLUMN_DP else START_COLUMN_WIDTH_DP).dp))
+                        Spacer(Modifier.width(gap.dp))
+                        heroCard(Modifier)
+                        Spacer(Modifier.width(gap.dp))
+                        recents()
+                    }
+                }
             }
         }
     }
 }
 
-/** The first column: what the reader can do, above the keys that do it. */
+/**
+ * The first column: what the reader can do, above the keys that do it.
+ *
+ * The commands are the window's one button ([DesktopButton]), full width so the stack reads as one column
+ * and not as three chips of three widths — the entry screen used to grow its own capsule `EntryButton`,
+ * which was the only place in the app where a commit wore the tablet's glass.
+ */
 @Composable
 private fun StartColumn(
-    widthDp: Float,
+    modifier: Modifier,
     onNew: () -> Unit,
     onOpen: () -> Unit,
-    /** *Restore last session* when the last run left work unsaved, null when there is nothing to offer. */
     onRestore: (() -> Unit)?,
 ) {
-    Column(Modifier.width(widthDp.dp)) {
+    Column(modifier) {
         Text("Nothing open yet", color = DesktopTheme.ink, style = DesktopTheme.title)
         Spacer(Modifier.height(8.dp))
         Text(
@@ -139,18 +187,40 @@ private fun StartColumn(
             style = DesktopTheme.body,
         )
         Spacer(Modifier.height(18.dp))
-        EntryButton("New sheet", ChromeGlyph.NEW, primary = true, onClick = onNew)
+        EntryCommand("New sheet", ChromeGlyph.NEW, DesktopButtonVariant.Primary, onNew)
         // Directly under *New sheet*, because it is the same decision: start here, or carry on with the
         // documents the last run left unsaved. Absent when there is nothing to restore.
         if (onRestore != null) {
-            Spacer(Modifier.height(10.dp))
-            EntryButton("Restore last session", ChromeGlyph.RESTORE, primary = false, onClick = onRestore)
+            Spacer(Modifier.height(8.dp))
+            EntryCommand("Restore last session", ChromeGlyph.RESTORE, DesktopButtonVariant.Secondary, onRestore)
         }
+        Spacer(Modifier.height(8.dp))
+        EntryCommand("Open…", ChromeGlyph.OPEN, DesktopButtonVariant.Secondary, onOpen)
         Spacer(Modifier.height(10.dp))
-        EntryButton("Open…", ChromeGlyph.OPEN, primary = false, onClick = onOpen)
-        Spacer(Modifier.height(10.dp))
-        Text("Ctrl+N · Ctrl+T", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+        Text("Ctrl+N · Ctrl+O", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
     }
+}
+
+/** A door of the first column: the header's own glyph for the command, then the words. */
+@Composable
+private fun EntryCommand(
+    label: String,
+    glyph: ChromeGlyph,
+    variant: DesktopButtonVariant,
+    onClick: () -> Unit,
+) {
+    val ink = if (variant == DesktopButtonVariant.Primary) DesktopTheme.onAccent else DesktopTheme.inkSecondary
+    DesktopButton(
+        label = label,
+        onClick = onClick,
+        variant = variant,
+        modifier = Modifier.fillMaxWidth(),
+        minHeight = 36.dp,
+        style = DesktopTheme.tab,
+        leadingIcon = {
+            Canvas(Modifier.size(16.dp)) { drawChromeGlyph(glyph, ink) }
+        },
+    )
 }
 
 /**
@@ -175,14 +245,9 @@ private fun EntryColumn(
     val perLine = minOf(columns, cards.size).coerceAtLeast(1)
     Column(Modifier.width((cardWidthDp * perLine + RECENT_GAP_DP * (perLine - 1)).dp)) {
         // The block's subtitle, not a caption: the section heading's face, one step up from the labels under
-        // the cards, and its first letter on the first card's **paper** — the card's box begins a halo's
-        // spread earlier, which is why the heading and the captions share the inset.
-        Text(
-            "Recents",
-            color = DesktopTheme.ink,
-            style = DesktopTheme.subtitle,
-            modifier = Modifier.padding(start = DesktopTheme.pageShadow),
-        )
+        // the cards, and its first letter on the first card's **left edge** — the cards carry no spread any
+        // more, so the heading and the grid share one inset instead of starting 12 dp apart.
+        Text("Recents", color = DesktopTheme.ink, style = DesktopTheme.subtitle)
         // Four, not ten: at the subtitle's size the heading already stands apart from the cards, and ten left
         // it floating over the grid instead of introducing it.
         Spacer(Modifier.height(4.dp))
@@ -214,11 +279,15 @@ private fun EntryColumn(
 }
 
 /**
- * One card: the sheet's own picture, its name, and the desk's glass under both.
+ * One card: the sheet's own picture, its name, and the window's surface under both.
  *
  * The preview is painted **off the UI thread** and kept — a card is a full page render, and six of them
  * inside composition would be six page paints on the frame the screen appears in. Until one lands the card
- * keeps the bare glass, which is what an empty sheet of a tile looks like, not a hole.
+ * keeps the bare panel fill, which is what an empty sheet of a tile looks like, not a hole.
+ *
+ * The `×` is **not** painted until the pointer or the keyboard arrives: a red badge on every card made the
+ * grid read as a row of errors, and the remove mark is not what a notebook is. Hovering lifts the rim to
+ * [DesktopTheme.borderStrong] over a [DesktopTheme.hoverSlot] step, the same two states a control has.
  */
 @Composable
 private fun SheetCard(
@@ -229,6 +298,7 @@ private fun SheetCard(
     fromSession: Boolean = false,
     /** The card's `×`, or null for the sheet to start — there is nothing to remove there. */
     onRemove: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
     load: suspend () -> ImageBitmap?,
     onClick: () -> Unit,
 ) {
@@ -241,79 +311,58 @@ private fun SheetCard(
             preview = painted
         }
     }
-    Column(
-        modifier = Modifier
-            .width(widthDp.dp)
-            .pointerInput(key, onClick) { detectTapGestures { onClick() } },
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    val interactions = remember { MutableInteractionSource() }
+    val hovered by interactions.collectIsHoveredAsState()
+    val focused by interactions.collectIsFocusedAsState()
+    val rim = if (hovered || focused) DesktopTheme.borderStrong else DesktopTheme.hairline
+    Column(modifier.width(widthDp.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
-            // No fill and no outline: the card is the **sheet and its halo**. Anything painted behind the
-            // paper would be the dark band around it that this is not supposed to have.
             modifier = Modifier
                 .width(widthDp.dp)
-                .aspectRatio(SHEET_ASPECT),
+                .aspectRatio(SHEET_ASPECT)
+                .clip(DesktopTheme.surfaceShape)
+                .background(DesktopTheme.popupSurface, DesktopTheme.surfaceShape)
+                .background(
+                    if (hovered) DesktopTheme.hoverSlot else Color.Transparent,
+                    DesktopTheme.surfaceShape,
+                )
+                .border(1.dp, rim, DesktopTheme.surfaceShape)
+                .hoverable(interactions)
+                .clickable(
+                    interactionSource = interactions,
+                    indication = null,
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            // Drawn at the box's own size rather than through `Image`'s `ContentScale`: the preview is a
-            // bitmap of exactly the sheet's proportions, and fitting it let the picture arrive as a strip in
-            // a box twice its width instead of filling the card.
-            Canvas(Modifier.fillMaxSize()) {
-                // The paper sits **inside** the card by the halo's own spread, and the halo fills the ring
-                // that leaves: the same `drawPageShadow` the canvas puts round a page, so a card's sheet and
-                // a page on the desk are lifted by one recipe. Its colour is the theme's own
-                // (`pageShadowColor` — a glow above black on the dark theme, a soft grey on paper), which is
-                // why this needs no line: a frame at the paper's edge vanished into the desk on one side and
-                // into the sheet on the other.
-                val spread = DesktopTheme.pageShadow.toPx()
-                val sheet = Rect(spread, spread, size.width - spread, size.height - spread)
-                if (sheet.width > 1f && sheet.height > 1f) {
-                    drawCardHalo(sheet)
-                    if (preview == null) {
-                        // Before the paint lands the card shows the **empty sheet it will become**, not a
-                        // glass slab that would be the band again.
-                        drawRoundRect(
-                            color = DesktopTheme.tabFillResting,
-                            topLeft = sheet.topLeft,
-                            size = sheet.size,
-                            cornerRadius = CornerRadius(SHEET_CORNER_DP.dp.toPx()),
-                        )
-                    }
-                    preview?.let { bitmap ->
-                        drawImage(
-                            image = bitmap,
-                            dstOffset = IntOffset(spread.roundToInt(), spread.roundToInt()),
-                            dstSize = IntSize(
-                                sheet.width.roundToInt().coerceAtLeast(1),
-                                sheet.height.roundToInt().coerceAtLeast(1),
-                            ),
-                        )
-                    }
+            // The paper fills the card: no inset for a halo, so a 100 dp recent shows a 100 dp page.
+            preview?.let { bitmap ->
+                Canvas(Modifier.fillMaxSize()) {
+                    drawImage(
+                        image = bitmap,
+                        dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                    )
                 }
             }
-            // The two marks that sit **on** the card, in the paper's own inset so they clear the halo: the
-            // session badge at the top-left, the remove mark at the top-right.
-            if (fromSession) {
-                SessionBadge(Modifier.align(Alignment.TopStart).padding(DesktopTheme.pageShadow))
+            // The two marks that sit **on** the card: the session badge at the top-left, the remove mark at
+            // the top-right, and only while the card is under the pointer or the keyboard.
+            if (fromSession && !hovered) {
+                SessionBadge(Modifier.align(Alignment.TopStart).padding(6.dp))
             }
-            onRemove?.let { remove ->
-                // Centred on the paper's own corner, not laid inside it: half the disc hangs over the desk.
-                val offset = (REMOVE_TOUCH_DP.dp - DesktopTheme.pageShadow * 2) / 2f
-                RemoveButton(remove, Modifier.align(Alignment.TopEnd).offset(x = offset, y = -offset))
+            if (onRemove != null && (hovered || focused)) {
+                RemoveButton(onRemove, Modifier.align(Alignment.TopEnd).padding(2.dp))
             }
         }
-        // Two, not eight: the caption belongs to the sheet it names, and the card's box already carries the
-        // halo's spread under the paper — eight made the gap read as a line of its own.
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = caption,
             color = DesktopTheme.inkSecondary,
             style = DesktopTheme.label,
             maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            // Left-aligned, but starting **where the paper starts**: the card keeps the halo's spread on
-            // every side, so a label flush with the card began a halo's width before the sheet it names.
-            modifier = Modifier.width(widthDp.dp).padding(start = DesktopTheme.pageShadow),
+            overflow = TextOverflow.Ellipsis,
+            // Left-aligned with the paper's own left edge, which is the card's: there is no spread to clear.
+            modifier = Modifier.width(widthDp.dp),
         )
     }
 }
@@ -340,57 +389,22 @@ private fun SessionBadge(modifier: Modifier = Modifier) {
 /**
  * A card's `×` on the sheet's top-right corner: the notebook leaves the entry screen.
  *
- * The disc is the window's danger red on glass, and the pointer gets the whole 36 dp target around it.
- * The target is centred on the **paper's** corner rather than laid inside it, so half the disc hangs over
- * the desk and the paper is never drawn through it.
+ * Invisible until the card is hovered or focused, so nothing on this screen is red at rest; then it is one
+ * 22 dp control with the 4 dp hover step, in the chrome's own ink rather than a warning colour.
  */
 @Composable
 private fun RemoveButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(REMOVE_TOUCH_DP.dp)
-            .pointerInput(onClick) { detectTapGestures { onClick() } },
+            .clip(DesktopTheme.controlShape)
+            .hoverFill(DesktopTheme.controlShape)
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(REMOVE_DISC_DP.dp)
-                .background(DesktopTheme.floating, CircleShape)
-                .border(1.dp, DesktopTheme.hairline, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(Modifier.size(REMOVE_GLYPH_DP.dp)) {
-                drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.danger)
-            }
+        Canvas(Modifier.size(REMOVE_GLYPH_DP.dp)) {
+            drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.inkSecondary)
         }
-    }
-}
-
-/** A card's door: the glyph the header wears for the same command, then the words. */
-@Composable
-private fun EntryButton(label: String, glyph: ChromeGlyph, primary: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .height(38.dp)
-            .background(
-                if (primary) DesktopTheme.accent.copy(alpha = BUTTON_TINT) else DesktopTheme.tabFillResting,
-                DesktopTheme.capsuleShape,
-            )
-            .hoverFill(DesktopTheme.capsuleShape)
-            .border(
-                1.dp,
-                if (primary) DesktopTheme.accent else DesktopTheme.hairline,
-                DesktopTheme.capsuleShape,
-            )
-            .pointerInput(label, onClick) { detectTapGestures { onClick() } }
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Canvas(Modifier.size(16.dp)) {
-            drawChromeGlyph(glyph, if (primary) DesktopTheme.ink else DesktopTheme.inkSecondary)
-        }
-        Spacer(Modifier.width(10.dp))
-        Text(label, color = if (primary) DesktopTheme.ink else DesktopTheme.inkSecondary, style = DesktopTheme.tab)
     }
 }
 
@@ -423,84 +437,21 @@ private val PREVIEW_PAINT = Dispatchers.Default.limitedParallelism(1)
 /** Cards already painted, by file and modification time: a screen that comes back does not re-render them. */
 private val PREVIEWS = java.util.concurrent.ConcurrentHashMap<String, ImageBitmap>()
 
-/**
- * A card's outline: the sheet's rectangle with a 3 dp corner, not the capsule the controls wear.
- *
- * A rounded chip around rectangular paper misreads the shape of the thing it shows; three dp is the least
- * that keeps the rim from looking cut with a knife, and it is a rectangle at any size.
- */
-private const val SHEET_CORNER_DP = 3f
-
 /** The badge a previous-session card carries, and the mark inside it. */
 private const val SESSION_BADGE_DP = 20f
 
 private const val SESSION_BADGE_GLYPH_DP = 12f
 
-/** A card's remove mark: the disc on the paper's corner, its glyph, and the target around them. */
-private const val REMOVE_DISC_DP = 22f
+/** A card's remove mark: one 22 dp control, and the glyph inside it. */
+private const val REMOVE_TOUCH_DP = 22f
 
 private const val REMOVE_GLYPH_DP = 12f
 
-/**
- * A pointer, not a finger: 36 dp is a whole tool slot, and it is what keeps two neighbouring cards'
- * targets from reaching into each other across the grid's 12 dp gap.
- */
-private const val REMOVE_TOUCH_DP = 36f
-
-/**
- * The lift under a card: a ring of four rectangles per step, falling off outward — the shape of the page's own
- * halo, in a tone that is **the theme's ink** instead of the page shadow's near-black.
- *
- * The page's halo can be the desk's own colour because a page is huge and its white edge does the lifting; a
- * card is a thumbnail on a near-black floor, and there a near-black shadow is no shadow at all — three passes
- * of it measured `#101011` against a `#0D0D0E` desk. The ink is light on the dark theme and dark on the light
- * one, so the same call lifts a card on both, and the strength is a card's own because the object is a
- * thumbnail, not a sheet of paper.
- */
-private fun DrawScope.drawCardHalo(sheet: Rect) {
-    // The spread is the card's, not the page's. Ten dp around a 212 dp sheet is a falloff; the same ten dp
-    // around a 78 dp thumbnail is an eighth of its width, which is how a lift turns back into a border.
-    val spread = minOf(DesktopTheme.pageShadow.toPx(), sheet.width * HALO_WIDTH_FRACTION)
-    val thickness = spread / HALO_STEPS
-    val corner = SHEET_CORNER_DP.dp.toPx()
-    for (step in 0 until HALO_STEPS) {
-        // Distance from the paper of this ring's centre; the falloff is read from it, so the halo is strongest
-        // where it meets the sheet and gone where the spread ends.
-        val distance = spread * (step + 0.5f) / HALO_STEPS
-        val left = 1f - distance / spread
-        drawRoundRect(
-            color = DesktopTheme.ink.copy(alpha = CARD_HALO_ALPHA * left * left),
-            topLeft = Offset(sheet.left - distance - thickness / 2f, sheet.top - distance - thickness / 2f),
-            size = Size(
-                sheet.width + (distance + thickness / 2f) * 2f,
-                sheet.height + (distance + thickness / 2f) * 2f,
-            ),
-            cornerRadius = CornerRadius(corner + distance * CORNER_BLOOM),
-            style = Stroke(width = thickness),
-        )
-    }
-}
-
-/**
- * The halo's strength where it leaves the paper, before the falloff thins it: a lift, not a glow.
- *
- * Squared rather than linear. Rings of one alpha step each read as concentric outlines — a frame drawn four
- * times over — and the square drops the outer ones away fast enough that the edge stays soft; it also puts
- * the weight at the paper, where a lift belongs.
- */
-private const val CARD_HALO_ALPHA = 0.18f
-
-/** Steps in the falloff: many and thin, because a visible step is a visible outline. */
-private const val HALO_STEPS = 26
-
-/** How much the corner radius grows per pixel of spread, so a corner blooms instead of mitering. */
-private const val CORNER_BLOOM = 0.4f
-
-/** The halo's reach as a share of the card's own width, capped by the page's spread at page size. */
-private const val HALO_WIDTH_FRACTION = 0.06f
-
 /** The block's own bound: three columns that stay one block on a laptop and do not stretch on a 3440 px desk. */
 private const val ENTRY_MAX_WIDTH_DP = 1000f
+
+/** Below this the three columns become one: a 976 dp window is where the block stops fitting side by side. */
+private const val NARROW_DESK_DP = 976f
 
 /** Between the commands and the sheet, and between the sheet and the grid. */
 private const val COLUMN_GAP_DP = 44f
@@ -542,6 +493,3 @@ private const val WIDE_RECENT_COLUMNS = 4
 
 /** Paper's proportions, so a card is the shape of the page it previews. */
 private const val SHEET_ASPECT = 0.707f
-
-/** The primary door's tint: the accent as a fill, not as a block of colour. */
-private const val BUTTON_TINT = 0.16f

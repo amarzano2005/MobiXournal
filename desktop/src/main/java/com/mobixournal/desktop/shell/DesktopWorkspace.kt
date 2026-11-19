@@ -21,7 +21,6 @@ import com.mobixournal.desktop.tools.TextBoxUi
 import com.mobixournal.desktop.tools.BandEdge
 import com.mobixournal.desktop.tools.ToolRail
 import com.mobixournal.desktop.tools.ToolRibbon
-import com.mobixournal.desktop.tools.bandEdgeShade
 import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.tools.resized
 import com.mobixournal.desktop.tools.selectTool
@@ -54,22 +53,11 @@ import com.mobixournal.format.model.LineStyle
  * claim every press that starts on them — so a drag begun on a strip is never a stroke drawn beneath it.
  */
 /**
- * The bands' one shade, drawn on the page: the canvas draws the top line and the side line itself, so
- * they turn its own corner where the two bands meet and neither band's shade runs across the band
- * beside it (`docs/interface-contract.md` §1).
+ * The canvas keeps **no shade of its own** on the bands' edges any more: every docked band ends in the same
+ * 1 dp `bandDivider` hairline, on all four sides — including the bottom edge above the status bar, which had
+ * no line at all while the other three were shaded. Two edge recipes in one window read as damage rather than
+ * depth (`docs/desktop-workstation.md` §2).
  */
-@Composable
-private fun Modifier.canvasBandShade(state: DesktopShellState): Modifier {
-    val placement = state.prefs.stripPlacement
-    val railOnLeft = state.prefs.railSide == RailSide.LEFT
-    val bandOnLeft = state.sidebarVisible || (placement.showsRail && railOnLeft)
-    val bandOnRight = (placement.showsRail && !railOnLeft) ||
-        state.prefs.inspectorPolicy != InspectorPolicy.NEVER
-    return this
-        .bandEdgeShade(BandEdge.TOP)
-        .then(if (bandOnLeft) Modifier.bandEdgeShade(BandEdge.START) else Modifier)
-        .then(if (bandOnRight) Modifier.bandEdgeShade(BandEdge.END) else Modifier)
-}
 
 @Composable
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
@@ -99,7 +87,7 @@ private fun androidx.compose.foundation.layout.RowScope.WorkspaceCanvas(
     tab: DesktopTab,
     tablet: DesktopTablet?,
 ) {
-    Box(Modifier.weight(1f).fillMaxHeight().canvasBandShade(state)) {
+    Box(Modifier.weight(1f).fillMaxHeight()) {
         // The PDF's text layer and Contents, read once per file off the UI thread and published
         // on the tab: the selection, the magnetic highlighter and the sidebar all read it there.
         PdfIndexLoader(tab)

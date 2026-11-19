@@ -64,13 +64,13 @@ no card, opening the same one twice leaves one entry, and the list is `recent.fi
 a restart keeps it. Each card's **×**, on the paper's corner, forgets it. A document the last run left
 **unsaved** is offered here too: its card comes first wearing the restore badge and showing the page those
 edits left, and **Restore last session** stands under *New sheet* — while *New sheet*, like the card's ×,
-drops that offer instead of opening it. The cards are the **sheet's own rectangle**, not a capsule — a rounded chip around
-rectangular paper misreads the shape of the thing it shows — and carry **no rim and no fill**: only a lift,
-drawn in the theme's ink rather than the page's near-black shadow, because a shadow cannot be darker than the
-near-black floor under it and a thumbnail has no white edge of its own to lift itself. Its reach is a share of
-the card's own width, capped by the page's spread — ten dp of falloff is a lift around a 212 dp sheet and an
-eighth of the width around a 78 dp thumbnail, which is a border again. Each caption is inset by the paper's
-inset inside the card, so its first letter stands on the **paper's** edge and not on the card's. The block is **three columns** (the commands, the sheet to start, the recent grid) so
+drops that offer instead of opening it. The cards are **surfaces of the window** — the 8 dp `surfaceShape`, the panel's own fill and one
+hairline — not a picture floating in a halo: twenty-six concentric white rings around a thumbnail read as a
+sticker rather than a lift, and they took 12 dp of the paper's own preview on every side. Hovering lifts the rim to `borderStrong` over one `hoverSlot` step. Each card's **×** appears only then, on the paper's
+corner: a red badge on every card made the grid read as a row of errors. The commands are the window's one
+`DesktopButton`, full width, so the stack has a single edge, and the heading and the empty sentence start
+on the paper's edge with the grid. Below 976 dp the three columns become one and the block scrolls, so a
+small window reaches its cards instead of clipping them. The block is **three columns** (the commands, the sheet to start, the recent grid) so
 that a 3440 px desk is not three small objects in the middle of a hole. The same screen is what closing the last
 tab returns to, and the swap is an **arrival** rather than a cut: whichever of the two owns the window
 springs in from 94 % and fades over 160 ms (`ScreenEntrance`), so opening a notebook and closing the last

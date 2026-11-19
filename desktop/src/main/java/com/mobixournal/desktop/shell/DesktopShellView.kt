@@ -170,9 +170,6 @@ private fun BoxScope.WorkspaceBody(
     onOpen: () -> Unit,
 ) {
     val tab = state.active
-    // A save is said **on** the page, never instead of it: swapping the workspace for a placeholder made a
-    // save look like a crash, and rebuilding every canvas afterwards was much of what it cost.
-    if (state.isSaving) SavingBadge()
     // Whichever of the two owns the window **arrives** rather than replaces: opening a document springs
     // the page in, and closing the last one springs the entry screen back, because a cut between the two
     // read as the window having been reloaded.
@@ -188,6 +185,12 @@ private fun BoxScope.WorkspaceBody(
             else -> PageWorkspace(state, tab, tablet)
         }
     }
+    // A save is said **on** the page, never instead of it: swapping the workspace for a placeholder made a
+    // save look like a crash, and rebuilding every canvas afterwards was much of what it cost. It is
+    // composed **after** the screen for the other half of that rule: a `Box` paints its children in order,
+    // so a badge declared first lay *under* the canvas and the entry screen and was never seen. The exit
+    // fade above does not cover it either, because this is a true sibling of the screen, not its child.
+    if (state.isSaving) SavingBadge()
     if (tab != null) {
         state.failure?.let { reported ->
             OpenFailureCard(
