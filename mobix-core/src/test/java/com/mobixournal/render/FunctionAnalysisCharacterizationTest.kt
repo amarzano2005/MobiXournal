@@ -226,6 +226,13 @@ class FunctionAnalysisCharacterizationTest {
         assertTrue("the minima and maxima have their own headings", summary.contains("• Local Minima: ") && summary.contains("• Local Maxima: "))
         assertTrue("a root is printed by x alone, without a y that is zero by definition", !summary.contains("(-3.142, 0)"))
         assertTrue("the integral of sin over a whole period is zero up to the difference scheme", summary.contains("• ∫ f dx = "))
-        assertEquals("3.142, not 3.14159: three decimals, trailing zeros trimmed", "-3.142", FunctionAnalysis::class.java.let { "%.3f".format(-PI) })
+        // The report's own formatter spells the decimal point with `Locale.US` (`FunctionAnalysis`), so the
+        // probe does too: with the host's default locale an Italian machine printed "-3,142" and failed a
+        // claim about three decimals, not about where the suite runs.
+        assertEquals(
+            "3.142, not 3.14159: three decimals",
+            "-3.142",
+            String.format(java.util.Locale.US, "%.3f", -PI),
+        )
     }
 }

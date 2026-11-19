@@ -48,24 +48,79 @@ class MobixConformanceScriptTest {
         }
 
     /**
-     * The script's verdict — exit code and combined output — run with [arguments].
+     * The script's verdict — exit code and combined output — run with [arguments] on [pythonInterpreter].
      *
-     * A missing `python3` is a failure, not a skip: `.github/workflows/build.yml` runs python3 for the
+     * A missing interpreter is a failure, not a skip: `.github/workflows/build.yml` runs python3 for the
      * todo scripts, so an environment that cannot run this is an environment where the check silently
-     * disappears, which is the failure mode the check exists to prevent.
+     * disappears, which is the failure mode the check exists to prevent. Missing means *no candidate
+     * answered*, which is why the name is resolved rather than assumed — see [pythonInterpreter].
      */
     private fun runScript(vararg arguments: String): Pair<Int, String> {
         assertTrue("${script.path} is missing", script.isFile)
+        val interpreter = pythonInterpreter()
         val process = try {
-            ProcessBuilder("python3", script.absolutePath, *arguments)
+            ProcessBuilder(interpreter, script.absolutePath, *arguments)
                 .directory(repoRoot)
                 .redirectErrorStream(true)
                 .start()
         } catch (failure: java.io.IOException) {
-            error("cannot run python3 for ${script.name}: ${failure.message}")
+            error("cannot run $interpreter for ${script.name}: ${failure.message}")
         }
         val output = process.inputStream.bufferedReader().use { it.readText() }
         return process.waitFor() to output
+    }
+
+    /**
+     * The interpreter that really runs on this host, resolved once.
+     *
+     * `python3` is the CI's name and the name this test used to call outright — but on Windows it is also
+     * the **App Execution Alias** Microsoft ships: the alias is earlier on `PATH` than a real install,
+     * starts a stub that prints "Python was not found" and exits non-zero, and the check then reported the
+     * stub's refusal as the *script's* verdict. A candidate that cannot answer is worse than an absent
+     * interpreter, because it looks like the file did not conform.
+     *
+     * So a candidate is used only when it answers `<candidate> --version` with exit 0, and the entries
+     * after the two `PATH` names are where a Windows install sits behind that alias: the Python install
+     * manager's `%LOCALAPPDATA%\Python\bin`, and the per-user and all-users `Python3xx` folders. Nothing
+     * is skipped — no candidate answering is a failure that names every path tried.
+     */
+    private fun pythonInterpreter(): String = interpreter ?: error(
+        "no working Python on this host; tried ${pythonCandidates().joinToString(", ")}. " +
+            "The conformance check runs ${script.name} and is not skippable.",
+    )
+
+    private val interpreter: String? by lazy { pythonCandidates().firstOrNull(::answers) }
+
+    /** Every place an interpreter is worth trying, the CI's own name first. */
+    private fun pythonCandidates(): List<String> {
+        val installs = mutableListOf<String>()
+        val local = System.getenv("LOCALAPPDATA").orEmpty()
+        val programFiles = System.getenv("ProgramFiles").orEmpty()
+        if (local.isNotEmpty()) {
+            installs += "$local\\Python\\bin\\python3.exe"
+            installs += "$local\\Python\\bin\\python.exe"
+            installs += installsUnder("$local\\Programs\\Python")
+        }
+        if (programFiles.isNotEmpty()) installs += installsUnder(programFiles)
+        return listOf("python3", "python") + installs + "/usr/bin/python3"
+    }
+
+    /** `…\Python3xx\python.exe` under [root], newest first: the per-user and all-users install layouts. */
+    private fun installsUnder(root: String): List<String> =
+        File(root).listFiles()
+            ?.filter { it.isDirectory && it.name.startsWith("Python3") }
+            ?.sortedByDescending { it.name }
+            ?.map { File(it, "python.exe").path }
+            ?.filter { File(it).isFile }
+            .orEmpty()
+
+    /** Whether [candidate] is a real interpreter: `--version` has to finish, and finish successfully. */
+    private fun answers(candidate: String): Boolean = try {
+        val probe = ProcessBuilder(candidate, "--version").redirectErrorStream(true).start()
+        probe.inputStream.bufferedReader().use { it.readText() }
+        probe.waitFor() == 0
+    } catch (failure: java.io.IOException) {
+        false
     }
 
     private fun verify(file: File): Pair<Int, String> = runScript(file.absolutePath)
