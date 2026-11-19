@@ -18,82 +18,22 @@ Every surface is one of three objects. Pick the class from what the element *doe
 |---|---|---|---|
 | **Band** | chrome that borders the canvas — header, status bar, sidebar, a lane's dividing rule | the glass fill + **one 4 dp edge**, no rim; on the tablet the edge is drawn *inside* the band, on the window the band is an **opaque tone** and casts nothing | never lies over the page, never a shadow on the band beside it |
 | **Capsule** | an object lying *in* a band's space — the tablet's rail and ribbon, its header controls | the glass fill + its own 6 dp lift + the family's rim, inside a lane of **air** | never a second sheet of glass behind it |
-| **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | the glass fill at `floatingPanelAlpha` + the rim as its whole edge (no cast elevation), at the 20 dp panel corner | never an opaque Material card or a system `Toast` |
+| **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | Android: glass at `floatingPanelAlpha` + rim at 20 dp corner; desktop: opaque `popupSurface` + 1 dp hairline at 8 dp corner (no cast elevation) | never an opaque Material card or a system `Toast` |
 | **None** | the page's own content being authored — a stroke being drawn, a text box being typed | the document's own ink and face, in the document's own place | no fill, no rim, no padding |
 
-- **One style, two shells.** A look is decided **once**, in `DesignTokens` (`mobix-core`), and lands on the
-  tablet and the window in the same change: the glass, its alphas, each theme's rim pair, the desk, the ink
-  trio, the steel and the corners are **read**, never re-declared. A shell that needs a different number says
-  why in the token's own KDoc and here — the window's flat tones (`DESKTOP_BAND_*_RGB`,
-  `DESKTOP_SURFACE_*_RGB`, `DESKTOP_CONTROL_*_RGB`) and its own corners. `ColorContractGuardTest`
-  (`oneStyleTwoShellsTheLightMaterialIsReadFromTheTokens`) fails on a light-theme literal that should have
-  been a token; `LightMaterialTest` and `DesktopThemeTest` hold the window's side.
-- **The window is flat (2026-11-19).** A desktop surface is an **opaque tone**, never a glass over the
-  desk — band, surface and control from `DESKTOP_*_RGB` — separated by tone and one hairline, with no
-  shadow on a band, under a capsule or on the canvas edge. A popup is that surface with one hairline and
-  the desktop corners, and what is behind it never reads through. Capsules keep the rim; the tablet keeps
-  its glass. `DesktopPopupMaterialTest`, `DesktopThemeTest`, `ChromeMaterialRenderTest`.
-- **A lane is air, not a band.** Painting a lane and its capsule both gives 0.85 over 0.85 (0.98) and the
-  strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract
-  exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`. **The tablet's bands
-  are that lane's other side**: the header and the rail lane wear the same glass (`RailLane` composites it
-  over the chrome colour, so both render the band's exact tone) and make one frame around the canvas. The
-  lane **never takes the canvas's background** — the floor around the page — because that turns the frame's
-  leg deep black on the dark scheme and grey on the light one, breaking it at the corner.
-- **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads
-  as two grey rules across the window. The edge is a band's whole boundary.
-- **On paper a band is the sheet's white, edged by one shade on the side that looks at the canvas.** A
-  band takes the glass at **full** opacity there (`panel`), so the header is the same white as the page it
-  frames and the system caption can be given that white too; what separates it from the sheet is a
-  gradient drawn **on the paper** along the canvas' own edges (`BAND_EDGE_ALPHA_LIGHT`, reaching
-  `BAND_EDGE_SHADOW_DP`) — the canvas draws the top line and the side line, so they turn its corner and
-  neither band's shade runs across the band beside it. A capsule is that white
-  with the family's ink rim, the picked steel at `HOVER_SLOT_ALPHA_LIGHT` under the pointer and the full
-  steel when picked, while an **unavailable command is its muted glyph alone**. The rim carries more of the
-  same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20). An **Android floating** surface is that recipe's one exception
-  to full opacity: it keeps the white at the `floatingPanelAlpha` token, so a menu is still glass over the
-  page, and the token is its bound — the sheet's tone shows through it, its handwriting does not.
-  `LightMaterialTest` holds every answer, its pixel test included.
-- **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a
-  shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's
-  lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**
-  onto the header in the lane's column alone — the header closing on a soft edge over the rail and on a
-  hard step over the page. The band therefore draws its edge **inside itself** (`BandBottomShadow`,
-  `ui/EditorRegions.kt`; strength `bandShadowAlpha`): a `4 dp` fade at its closing edge, one direction,
-  landing on no other surface. The window casts **no** shadow at all: a flat band and its lane are separated
-  from the canvas by tone and one 1 dp divider (`Modifier.bandDivider`), never by a lift.
-- **The frame's two arms share one edge.** The header's edge is a *segment*, not a full-width line: it runs
-  only over the width the canvas has (`bandClosingEdge(startInset, endInset)`, inset by the rail's lane
-  width on the side the lane is docked) and the lane draws the same fade, `4 dp` tall and the same scrim,
-  down its edge facing the page (`bandSideEdge`). Together they are one corner: a full-width header edge
-  crossing the lane's column put a soft line across the joint and made one frame read as two surfaces.
-  `ChromeGeometryGuardTest.bandsShadeTheirOwnClosingEdgeAndCastNothing` fails the build if a tablet band
-  gains an elevation again, or loses its own edge.
+- **One style, two shells.** A look is decided **once**, in `DesignTokens` (`mobix-core`), and lands on the tablet and the window in the same change: the glass, its alphas, each theme's rim pair, the desk, the ink trio, the steel and the corners are **read**, never re-declared. A shell that needs a different number says why in the token's own KDoc and here — the window's flat tones (`DESKTOP_BAND_*_RGB`, `DESKTOP_SURFACE_*_RGB`, `DESKTOP_CONTROL_*_RGB`) and its own corners. `ColorContractGuardTest` (`oneStyleTwoShellsTheLightMaterialIsReadFromTheTokens`) fails on a light-theme literal that should have been a token; `LightMaterialTest` and `DesktopThemeTest` hold the window's side.
+- **The window is flat (2026-11-19).** A desktop surface is an **opaque tone**, never a glass over the desk — band, surface and control from `DESKTOP_*_RGB` — separated by tone and one hairline, with no shadow on a band, under a capsule or on the canvas edge. A popup is that surface with one hairline and the desktop corners, and what is behind it never reads through. Capsules keep the rim; the tablet keeps its glass. `DesktopPopupMaterialTest`, `DesktopThemeTest`, `ChromeMaterialRenderTest`.
+- **A lane is air, not a band.** Painting a lane and its capsule both gives 0.85 over 0.85 (0.98) and the strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`. **The tablet's bands are that lane's other side**: the header and the rail lane wear the same glass (`RailLane` composites it over the chrome colour, so both render the band's exact tone) and make one frame around the canvas. The lane **never takes the canvas's background** — the floor around the page — because that turns the frame's leg deep black on the dark scheme and grey on the light one, breaking it at the corner.
+- **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads as two grey rules across the window. The edge is a band's whole boundary.
+- **On paper a band is the sheet's white, edged by one shade on the side that looks at the canvas.** A band takes the glass at **full** opacity there (`panel`), so the header is the same white as the page it frames and the system caption can be given that white too; what separates it from the sheet is a gradient drawn **on the paper** along the canvas' own edges (`BAND_EDGE_ALPHA_LIGHT`, reaching `BAND_EDGE_SHADOW_DP`) — the canvas draws the top line and the side line, so they turn its corner and neither band's shade runs across the band beside it. A capsule is that white with the family's ink rim, the picked steel at `HOVER_SLOT_ALPHA_LIGHT` under the pointer and the full steel when picked, while an **unavailable command is its muted glyph alone**. The rim carries more of the same ink on paper (`RIM_ALPHA_TOP_LIGHT`, 0.20). An **Android floating** surface is that recipe's one exception to full opacity: it keeps the white at the `floatingPanelAlpha` token, so a menu is still glass over the page, and the token is its bound — the sheet's tone shows through it, its handwriting does not. `LightMaterialTest` holds every answer, its pixel test included.
+- **A band casts nothing onto the band beside it.** The tablet's bands are rows of the *window*, so a shadow cast outside one can only land on the surface composed after it: the header's fell on the rail's lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up** onto the header in the lane's column alone — the header closing on a soft edge over the rail and on a hard step over the page. The band therefore draws its edge **inside itself** (`BandBottomShadow`, `ui/EditorRegions.kt`; strength `bandShadowAlpha`): a `4 dp` fade at its closing edge, one direction, landing on no other surface. The window casts **no** shadow at all: a flat band and its lane are separated from the canvas by tone and one 1 dp divider (`Modifier.bandDivider`), never by a lift.
+- **The frame's two arms share one edge.** The header's edge is a *segment*, not a full-width line: it runs only over the width the canvas has (`bandClosingEdge(startInset, endInset)`, inset by the rail's lane width on the side the lane is docked) and the lane draws the same fade, `4 dp` tall and the same scrim, down its edge facing the page (`bandSideEdge`). Together they are one corner: a full-width header edge crossing the lane's column put a soft line across the joint and made one frame read as two surfaces. `ChromeGeometryGuardTest.bandsShadeTheirOwnClosingEdgeAndCastNothing` fails the build if a tablet band gains an elevation again, or loses its own edge.
 - A picker, menu or dialog that comes and goes **may** lie over the page; a band **may not**.
-- **The window asks every question one way**: `DesktopDialogFrame` — a scrim that dims and blocks, the opaque
-  popup surface at the 8 dp corner, the commit at the end of the footer; `DesktopDialogContractTest` holds it.
-- **The pen-tip ring is a floating surface that happens to be round** ([`ui-modernization.md`](ui-modernization.md)):
-  the floating fill and the rim at its own radius instead of the 20 dp panel corner, the picked slot on the steel
-  with the accent ring around it — a menu's tokens, arranged round because the choice is made with a flick.
-- **A list inside Settings is a floating surface on the settings panel's fill**: every other menu keeps the
-  floating glass, but a select's list lands over a settings card, where that glass let the row behind it read
-  through the answers it was showing. It takes the near-solid panel the cards themselves wear, and keeps the
-  rim, the panel corner and the spring; the window's own select opens on that fill for the same reason
-  ([`desktop-settings.md`](desktop-settings.md)).
-- **The window's tool strips are docked bands** (lane 2026-10-28, flat band 2026-11-19). The rail stands
-  in a band down an edge and the ribbon in a band under the header — the header's own material and its one
-  1 dp line on the canvas side — with the slots standing *in* that fill: 36 dp on a 4 dp corner, in a 48 dp
-  rail or a 44 dp ribbon, and a 24 dp hairline between the five tool families. No capsule stands in the
-  lane and no bar lies on the sheet: the canvas is handed what is left. The strips lay themselves *over*
-  the page between 2026-10-26 and the lane decision; that left the canvas full width and the page running
-  behind the glass, and one window is not a second design language. The band is opaque to the pointer
-  (`DesktopTheme.glass`) — a translucent bar turned grey over a white sheet. The canvas can still be told
-  to frame a fitted page around a surface that lies on it (`ChromeInset`), which no strip asks for now.
-- **Page content being authored is not a surface.** A stroke being drawn is a draft on the sheet, and the
-  desktop's in-place text field is the same thing for words: it takes the document's own ink, face and
-  place, and **no fill and no rim** — it wore the floating glass once and read as a charcoal slab across a
-  third of a white page. Only the accent caret marks it. `DesktopTextPaintTest` reads the paper through a
-  point inside the box, so glass cannot come back.
+- **The window asks every question one way**: `DesktopDialogFrame` — a scrim that dims and blocks, the opaque popup surface at the 8 dp corner, the commit at the end of the footer; `DesktopDialogContractTest` holds it.
+- **The pen-tip ring is a floating surface that happens to be round** ([`ui-modernization.md`](ui-modernization.md)): the floating fill and the rim at its own radius instead of the 20 dp panel corner, the picked slot on the steel with the accent ring around it — a menu's tokens, arranged round because the choice is made with a flick.
+- **A list inside Settings is a floating surface on the settings panel's fill**: every other menu keeps the floating glass, but a select's list lands over a settings card, where that glass let the row behind it read through the answers it was showing. It takes the near-solid panel the cards themselves wear, and keeps the rim, the panel corner and the spring; the window's own select opens on that fill for the same reason ([`desktop-settings.md`](desktop-settings.md)).
+- **The window's tool strips are docked bands** (lane 2026-10-28, flat band 2026-11-19). The rail stands in a band down an edge and the ribbon in a band under the header — the header's own material and its one 1 dp line on the canvas side — with the slots standing *in* that fill: 36 dp on a 4 dp corner, in a 48 dp rail or a 44 dp ribbon, and a 24 dp hairline between the five tool families. No capsule stands in the lane and no bar lies on the sheet: the canvas is handed what is left. The strips lay themselves *over* the page between 2026-10-26 and the lane decision; that left the canvas full width and the page running behind the glass, and one window is not a second design language. The band is opaque to the pointer (`DesktopTheme.glass`) — a translucent bar turned grey over a white sheet. The canvas can still be told to frame a fitted page around a surface that lies on it (`ChromeInset`), which no strip asks for now.
+- **Page content being authored is not a surface.** A stroke being drawn is a draft on the sheet, and the desktop's in-place text field is the same thing for words: it takes the document's own ink, face and place, and **no fill and no rim** — it wore the floating glass once and read as a charcoal slab across a third of a white page. Only the accent caret marks it. `DesktopTextPaintTest` reads the paper through a point inside the box, so glass cannot come back.
 
 ## 2. Colour: tokens or nothing
 
@@ -261,7 +201,7 @@ with hand-picked durations, and no animation on a band.
 
 ## Checklist
 
-Before a UI change is called done, every line is true — and `todo.py done` will not close the task until the answers are declared ([`tools.md`](tools.md), *Closing a UI change*):
+Before a UI change is called done, every line is true — and `todo.py done` will not close the task until the answers are declared ([`design-workflow.md`](design-workflow.md#closing-a-ui-change), *Closing a UI change*):
 
 - [ ] the surface is a band, a capsule or a floating surface — and it takes that class's full recipe
 - [ ] every colour, radius and size is a token; no literals were added

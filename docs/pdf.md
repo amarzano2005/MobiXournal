@@ -9,58 +9,17 @@ A page's PDF **background** — the renderer, its caches, and the portable refer
 
 ## Fonts in generated PDFs
 
-**Fonts in generated PDFs.** A PDF's built-in **base-14** fonts (`PDType1Font.HELVETICA` and friends) only
-encode WinAnsi, so any codepoint outside it is lost wherever text is typeset **into** a PDF. Two paths
-do that: the **text import**'s generated background, where the source is arbitrary UTF-8 and the glyphs
-only exist in the generated PDF, and the **page export itself**, which replays `PdfPagePlan`'s `PdfText`
-ops as text rather than painting glyphs into an image — so a `<text>` element is typeset by the same
-faces (see *Unicode in exported text* below). The text-import path draws with fonts
-**bundled as app assets** and embedded per document by `PdfFonts`
-(`PDType0Font.load(doc, stream, subset = true)`): PDFBox subsets them into the output, so a CJK or
-Cyrillic import renders identically everywhere without bloating the file with a whole face.
+**Fonts in generated PDFs.** A PDF's built-in **base-14** fonts (`PDType1Font.HELVETICA` and friends) only encode WinAnsi, so any codepoint outside it is lost wherever text is typeset **into** a PDF. Two paths do that: the **text import**'s generated background, where the source is arbitrary UTF-8 and the glyphs only exist in the generated PDF, and the **page export itself**, which replays `PdfPagePlan`'s `PdfText` ops as text rather than painting glyphs into an image — so a `<text>` element is typeset by the same faces (see *Unicode in exported text* below). The text-import path draws with fonts **bundled as app assets** and embedded per document by `PdfFonts` (`PDType0Font.load(doc, stream, subset = true)`): PDFBox subsets them into the output, so a CJK or Cyrillic import renders identically everywhere without bloating the file with a whole face.
 
-The bundled family is **DejaVu Sans** — regular, **bold**, oblique and bold-oblique, the four faces
-markdown emphasis needs — and **DejaVu Sans Mono** (monospace, which also sets markdown code), chosen
-for broad Unicode coverage at a modest ~3 MB and a permissive licence — Bitstream Vera + Arev, with the
-DejaVu changes in the public domain, compatible with the Apache-2.0/OFL-only rule that already ruled
-out iText. The app carries them in `app/src/main/assets/fonts/`; the window carries the **same five
-files** under `desktop/src/main/resources/fonts/`, where `DesktopPdfFonts` reads them off the classpath,
-and each set has the full licence text beside it as `LICENSE.txt`. Codepoints even DejaVu lacks are
-**substituted, never fatal**: `GlyphSanitizer` (pure, unit-tested, in `mobix-core` so both emitters run
-the one rule; encodability injected as a predicate) maps each unencodable codepoint to U+FFFD — or `?`,
-or a space — memoising per codepoint, and iterates by codepoint so an astral character becomes one
-substitute rather than two surrogate halves. `PdfFonts.Embedded.measurer` is also what feeds
-`TextPaginator`'s injected measurement, so wrapping is measured against the exact font that draws.
-Markdown needs the same guarantee across *five* faces at once, so `MarkdownPdfWriter` resolves every
-`RunStyle` to an `Embedded` up front and exposes that map both as the layout's `SizedMeasurer` and as
-the draw-time font lookup — one table, so a line can never be wider on the page than the width it was
-wrapped to.
+The bundled family is **DejaVu Sans** — regular, **bold**, oblique and bold-oblique, the four faces markdown emphasis needs — and **DejaVu Sans Mono** (monospace, which also sets markdown code), chosen for broad Unicode coverage at a modest ~3 MB and a permissive licence — Bitstream Vera + Arev, with the DejaVu changes in the public domain, compatible with the Apache-2.0/OFL-only rule that already ruled out iText. The app carries them in `app/src/main/assets/fonts/`; the window carries the **same five files** under `desktop/src/main/resources/fonts/`, where `DesktopPdfFonts` reads them off the classpath, and each set has the full licence text beside it as `LICENSE.txt`. Codepoints even DejaVu lacks are **substituted, never fatal**: `GlyphSanitizer` (pure, unit-tested, in `mobix-core` so both emitters run the one rule; encodability injected as a predicate) maps each unencodable codepoint to U+FFFD — or `?`, or a space — memoising per codepoint, and iterates by codepoint so an astral character becomes one substitute rather than two surrogate halves. `PdfFonts.Embedded.measurer` is also what feeds `TextPaginator`'s injected measurement, so wrapping is measured against the exact font that draws. Markdown needs the same guarantee across *five* faces at once, so `MarkdownPdfWriter` resolves every `RunStyle` to an `Embedded` up front and exposes that map both as the layout's `SizedMeasurer` and as the draw-time font lookup — one table, so a line can never be wider on the page than the width it was wrapped to.
 
 ### Unicode in exported text
 
-A `<text>` element leaves through `PdfPagePlan`, which now decides the **face of each run** and keeps the
-characters. A run whose every character encodes in `WinAnsi` — Latin-1's printable range plus the 27
-characters CP1252 adds above U+00FF, so `…`, `–`, `€`, `™`, `Š`, `ž`, `ƒ`, `‹`, `›`, `†`, `‡`, `•`, `‰`
-and their neighbours — keeps its base-14 family and costs the file nothing. A run holding anything else
-(`α`, `Ж`, `H₂`, `e` + U+0301, an emoji, a C1 control) asks for the **bundled** DejaVu face of its
-family and slant (`PdfFontRef.Bundled`), which each shell embeds per document and subsets into it
-(`PDType0Font.load(doc, stream, subset = true)`): that also writes the `ToUnicode` map, so the run is
-drawn **and** selectable **and** extractable. `PdfBundledFace` names the asset path in `mobix-core`
-(`fonts/DejaVuSans.ttf`, its bold, oblique and bold-oblique companions, and `fonts/DejaVuSansMono.ttf`),
-so the plan stays platform-free and `PdfFonts` puts the file in the document; the licence ships beside
-the assets (`app/src/main/assets/fonts/LICENSE.txt` — Bitstream Vera + Arev, DejaVu changes in the
-public domain).
+A `<text>` element leaves through `PdfPagePlan`, which now decides the **face of each run** and keeps the characters. A run whose every character encodes in `WinAnsi` — Latin-1's printable range plus the 27 characters CP1252 adds above U+00FF, so `…`, `–`, `€`, `™`, `Š`, `ž`, `ƒ`, `‹`, `›`, `†`, `‡`, `•`, `‰` and their neighbours — keeps its base-14 family and costs the file nothing. A run holding anything else (`α`, `Ж`, `H₂`, `e` + U+0301, an emoji, a C1 control) asks for the **bundled** DejaVu face of its family and slant (`PdfFontRef.Bundled`), which each shell embeds per document and subsets into it (`PDType0Font.load(doc, stream, subset = true)`): that also writes the `ToUnicode` map, so the run is drawn **and** selectable **and** extractable. `PdfBundledFace` names the asset path in `mobix-core` (`fonts/DejaVuSans.ttf`, its bold, oblique and bold-oblique companions, and `fonts/DejaVuSansMono.ttf`), so the plan stays platform-free and `PdfFonts` puts the file in the document; the licence ships beside the assets (`app/src/main/assets/fonts/LICENSE.txt` — Bitstream Vera + Arev, DejaVu changes in the public domain).
 
-Nothing is sanitised at plan time any more. The emitter, the only layer that knows which face it can
-draw, keeps `GlyphSanitizer` as the **last resort**: a codepoint even DejaVu lacks becomes the visible
-U+FFFD, never `?`.
+Nothing is sanitised at plan time any more. The emitter, the only layer that knows which face it can draw, keeps `GlyphSanitizer` as the **last resort**: a codepoint even DejaVu lacks becomes the visible U+FFFD, never `?`.
 
-The guard this replaced was a code **range** (`0x20..0xFF`) applied to the text, and a range is wrong in
-both directions — it threw away all 27 of those CP1252 characters, and it let DEL and the C1 controls
-through, where WinAnsi decodes `0x80` as `€`. Both halves are measured: `PdfTextEncodingAuditTest` pins
-the decision (which face each fixture run asks for, and that a pure-WinAnsi run plans exactly what it
-planned before), and `PdfUnicodeExportTest` pins the round trip — paint, **save**, reload, extract with
-PDFBox's stripper.
+The guard this replaced was a code **range** (`0x20..0xFF`) applied to the text, and a range is wrong in both directions — it threw away all 27 of those CP1252 characters, and it let DEL and the C1 controls through, where WinAnsi decodes `0x80` as `€`. Both halves are measured: `PdfTextEncodingAuditTest` pins the decision (which face each fixture run asks for, and that a pure-WinAnsi run plans exactly what it planned before), and `PdfUnicodeExportTest` pins the round trip — paint, **save**, reload, extract with PDFBox's stripper.
 
 | Input | Face | What the produced PDF does |
 |---|---|---|
@@ -68,14 +27,7 @@ PDFBox's stripper.
 | `α`, `Ж`, `H₂`, `e` + U+0301, `😀` | bundled DejaVu Sans | drawn, and extracted back character for character |
 | `\u0080` (a C1 control) | bundled DejaVu Sans | a substitute glyph, not `€` |
 
-**Both shells, one fixture.** The window resolves the same reference the same way: `DesktopPdfPainter`
-loads a `PdfFontRef.Bundled` run through `DesktopPdfFonts` (`PDType0Font.load(doc, stream, true)`, cached per document), so it embeds, subsets and writes the `ToUnicode` map exactly as the app does, and falls back to the same shared `GlyphSanitizer`. The run both are measured against lives in `PdfUnicodeFixture` (`mobix-core` test fixtures) and is read by two tests — `PdfUnicodeExportTest` for
-the app's PDFBox port and `DesktopPdfUnicodeTest` for the window's `org.apache.pdfbox` — so a shell that
-drifts is a failing test, not an export the owner finds wrong a release later. Both also take the four
-cases the old range guard got wrong **one at a time**, so a failure names the one that broke: a character
-WinAnsi encodes above U+00FF, a C1 control (`\u0085`, which WinAnsi reads as `…`), a surrogate pair and a
-combining mark. Both assert the embedded face is a **subset** as well as `ToUnicode`-mapped: a page of
-text that ships a 759 kB face whole is a file nobody can mail.
+**Both shells, one fixture.** The window resolves the same reference the same way: `DesktopPdfPainter` loads a `PdfFontRef.Bundled` run through `DesktopPdfFonts` (`PDType0Font.load(doc, stream, true)`, cached per document), so it embeds, subsets and writes the `ToUnicode` map exactly as the app does, and falls back to the same shared `GlyphSanitizer`. The run both are measured against lives in `PdfUnicodeFixture` (`mobix-core` test fixtures) and is read by two tests — `PdfUnicodeExportTest` for the app's PDFBox port and `DesktopPdfUnicodeTest` for the window's `org.apache.pdfbox` — so a shell that drifts is a failing test, not an export the owner finds wrong a release later. Both also take the four cases the old range guard got wrong **one at a time**, so a failure names the one that broke: a character WinAnsi encodes above U+00FF, a C1 control (`\u0085`, which WinAnsi reads as `…`), a surrogate pair and a combining mark. Both assert the embedded face is a **subset** as well as `ToUnicode`-mapped: a page of text that ships a 759 kB face whole is a file nobody can mail.
 
 ## Exporting chosen pages
 
@@ -178,11 +130,7 @@ chrome (`onPdfOutlineChanged`). Android's direct **Bookmarks** entry opens an in
 
 `DocumentNavigationTest` covers access and Back; `DocumentNavigationLayoutTest` checks geometry. The pane retains folds and scroll offsets; new Android branches start closed. `BookmarkRowsHost` opens the shell immediately, with a worker-backed `BookmarkRowsCache`, reading feedback and a retryable error; weak reference keys avoid retaining closed readers. Destination lookup indexes pages once and uses manifest ids without decoding when targets name page ids. No synchronous page scan or fallback-tree seeding runs just to open the panel. Navigation bands use their final width immediately: [data-path.md](data-path.md#opening-the-mobile-navigator) owns the decoding and frame checks. `NavigationPanelTest` also covers raw PDF names, 800 outline rows, sibling moves, undo/redo and xopp reopening in both themes and compact/tablet layouts.
 
-**The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree`
-nodes: every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included,
-with the page it inherited from its first pointing descendant — shifted by the base's page count on a joined import. `imported` appends the original chapter roots by default on both shells. A filename marker is explicit opt-in; raw Open adds none. A marker points to the first arriving page and carries the chapters under it. Desktop append retains real chapters regardless of that option. Existing saved trees are preserved: older filename markers have no provenance distinguishing them from authored bookmarks. Deleting an unwanted marker promotes its children and is undoable.
-that arrived, the PDF's rows under it — option off and they join the tree at the top; pages and tree are one undoable
-edit, a failed import writes neither, and opening never re-seeds.
+**The tree is the notebook's, seeded once at import.** `PdfOutlineSeeding` turns the extracted rows into `OutlineTree` nodes: every row mints its own `bkm_` id, every destination is written as `OutlineTarget.Sheet` — a header included, with the page it inherited from its first pointing descendant — shifted by the base's page count on a joined import. `imported` appends the original chapter roots by default on both shells. A filename marker is explicit opt-in; raw Open adds none. A marker points to the first arriving page and carries the chapters under it. Desktop append retains real chapters regardless of that option. Existing saved trees are preserved: older filename markers have no provenance distinguishing them from authored bookmarks. Deleting an unwanted marker promotes its children and is undoable. Pages and tree are one undoable edit, a failed import writes neither, and opening never re-seeds.
 
 **A merge keeps every chapter; a page edit never removes a row.** Branches merge by node id (`MobixOutlineMerge`): a node
 only one side has is kept, a shared one keeps the local title and place with children unioned; a move changes no target, a

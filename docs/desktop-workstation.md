@@ -36,9 +36,7 @@ What it does today:
   Export PDF** as 28 dp icon commands (`DesktopTheme.headerHeight`), under the **system caption**: the window
   names the document in front and DWM paints that caption in the band's tone and the chrome ink
   (`DesktopTitleBar.kt`), with the app's art kept for the taskbar (`captionIcon`) — and with the tablet's own glyphs — monoline tools and the chrome's filled marks, one catalogue each — Inter
-  with tabular figures, one cast shadow under each band and one under the sheet (its halo is drawn in **screen space**, around the page's on-screen rectangle: a shadow is chrome, so the zoom must not scale it and the thumbnail raster, whose surface *is* the page, must not pay for it). The art is the
-  tablet's launcher icon **without its navy field**, enlarged inside its tile so the mark reads at taskbar
-  size (`desktop/icon/`).
+  with tabular figures, a 1 dp hairline on each band (no band shadow) and one screen-space halo under the sheet (chrome scale, so zoom does not scale it and thumbnail rasters omit it). The art is the tablet's launcher icon **without its navy field**, enlarged inside its tile so the mark reads at taskbar size (`desktop/icon/`).
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
   key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view**,
   eased rather than stepped (`EdgePan.kt`), so a marquee, a figure or a reflow reaches past one screenful.
@@ -169,13 +167,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   drawn in the shared amber with an aim readout while it is held), each STEM slot and **every figure**
   (Line, Arrow, Double arrow, Rectangle, Ellipse, the
   triangle, the trapezoid and the Polygon, then Axes) stand alone — nine figure slots, one click each,
-  the tablet's rail geometry. A grouped slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already
-  picked**, or `Alt`+`Down`) opens its **glass picker**. **One click never opens a submenu**: the first
-  click arms the slot, the second asks; a circuit slot obeys the same rule, since its family palette is
-  its submenu; a figure slot's picker is its own variants (4 triangle kinds, 3 trapezoid ones, 3–12 sides)
-  and the slot wears the chosen one. Picking a row re-faces the slot and closes the picker, a click on a
-  slot whose picker is open closes it too (that click is the press the popup dismisses on, so it may not
-  reopen what it just closed), `Esc` closes it as well, and no key ever changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
+  the tablet's rail geometry. A grouped slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already picked**, or `Alt`+`Down`) opens its **opaque picker**. **One click never opens a submenu**: the first click arms the slot, the second asks; a circuit slot obeys the same rule, since its family palette is its submenu; a figure slot's picker is its own variants (4 triangle kinds, 3 trapezoid ones, 3–12 sides) and the slot wears the chosen one. Picking a row re-faces the slot and closes the picker, a click on a slot whose picker is open closes it too (that click is the press the popup dismisses on, so it may not reopen what it just closed), `Esc` closes it as well, and no key ever changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
   The slot is **remembered**: the pick is written as `interface.pickedTool` and the window reopens on it, with the colour and width that slot keeps, so a session resumes at the pen, the marker or the eraser it
   was left on instead of always at the pencil.
 - **Records and plays back audio**, in the tablet's own capsule: a microphone/stop, a pause and a play
@@ -218,12 +210,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   **ends of the page's wires** too (`collectMoveTargets`), closing that joint (`SelectionMovePaintTest`).
   The rule is **circuit↔line, circuit↔circuit, line↔line or figure↔line**: a moved figure lands a border pin of its own on a line's end, two figures never pull each other, and a *moved wire* keeps to pins (`PinTarget.isWireEnd`) —
   a line is a connector, not a terminal, so two lines dragged near each other stay two lines.
-- **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
-  surface the drawn rim — and every one is a **menu that never takes the keyboard** (`FloatingSurface`,
-  `DesktopPopupFocusTest`), so the shortcuts survive a flyout or a hover pill. Both keep the **shared fill
-  with no gradient of the window's own** — a sheen made the same charcoal read a shade lighter on the PC.
-  Glyphs are the tablet's `mobix-core` `ToolGlyphCatalogue` strokes, drawn in the chrome's ink;
-  `ChromeMaterialRenderTest` proves the lift, the flat fill and the rim as pixels.
+- **One material and one icon set, not a lookalike**: every band is a flat opaque tone with no cast shadow, every popup an opaque surface with one hairline (capsules keep the drawn rim) — and every menu **never takes the keyboard** (`FloatingSurface`, `DesktopPopupFocusTest`), so shortcuts survive a flyout or hover pill, with **no gradient of the window's own** (a sheen made the same charcoal read lighter on the PC). Glyphs are the tablet's `mobix-core` `ToolGlyphCatalogue` strokes in the chrome's ink; `ChromeMaterialRenderTest` proves the shadowless band, the flat fill and the rim as pixels.
 - Consumes **`mobix-core`**, the platform-free module — model, XML/JSON layers, `.xopp` and `.mobix`
   codecs, shared paper/ink geometry, and the `.mobix` engine behind
   [`mobix-streaming-api.md`](mobix-streaming-api.md). `DesktopMobixOpenTest` opens a 40-page notebook
@@ -284,9 +271,4 @@ Why the core is shared, and what has moved into it, is [`codebase.md`](codebase.
 
 ## Decisions
 
-Three decisions taken on 2026-10-21, owned by [`ui-modernization.md`](ui-modernization.md): the chrome is
-the app's **own glass on a true-black desk** (Mica/Vibrancy would tint the window with the wallpaper and stop
-it matching the tablet); **three tool placements ship** — a vertical rail on the left (the default), the
-same rail on the right edge for a left hand, and a horizontal ribbon under the header — chosen in
-**Settings**, not by a header chooser, where the order of the tools in the strip is set too; and the
-tab/view model is Compose **snapshot state**, redrawn by the state it reads instead of a second copy.
+Core window decisions, owned by [`ui-modernization.md`](ui-modernization.md) and [`interface-contract.md`](interface-contract.md): the chrome uses the app's **own tones on a true-black desk** (flat opaque tones since 2026-11-19; Mica/Vibrancy stay excluded so wallpaper tint cannot diverge from the tablet); **three tool placements ship** — a vertical rail on the left (default), right rail for left-handed users, or horizontal ribbon under the header — chosen in **Settings**, not a header chooser, where tool order is also set; and the tab/view model is Compose **snapshot state**, redrawn directly without a second copy.

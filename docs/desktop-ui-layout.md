@@ -82,18 +82,9 @@ answer lands where Settings → App & data edits it, and the card never returns 
 A stored format is not an answer, so an install older than the card is asked once too; opened notebooks
 keep theirs, and Save As still switches.
 
-**Desktop decisions (2026-10-21):**
-- **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the
-  sidebar and the tool strips are the same frosted glass the mobile chrome uses, and the desk behind the
-  page is `#000000`; platform materials (Windows 11 Mica) are **not** used: Mica tints the window with the
-  wallpaper, so it would stop matching the phone and change with the user's own picture.
-- **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon the alternative
-  for 16:9 monitors. Either way the strip is a **docked band of its own** beside the canvas — 48 dp wide,
-  or 44 dp tall for the ribbon, drawn against the page — never a bar over the sheet and never a capsule
-  in a lane (lane 2026-10-28, flat band phase 3A); the settings file holds the choice.
-- **The window's surfaces are opaque tones of their own** (2026-11-19, superseding 2026-10-25): the band is
-  `DESKTOP_BAND_DARK_RGB` (`#141417`), a panel or popup `DESKTOP_SURFACE_DARK_RGB`, a control
-  `DESKTOP_CONTROL_DARK_RGB` — flat, no shadow, one hairline; the tablet keeps its frosted glass.
+**Desktop decisions (2026-10-21, updated 2026-11-19):**
+- **The chrome uses the app's own flat opaque tones on a `#000000` true-black desk — not Mica.** Windows 11 Mica is excluded so wallpaper tint never drifts from the tablet; since 2026-11-19 (superseding 2026-10-25), desktop chrome uses opaque tones (`DESKTOP_BAND_DARK_RGB` `#141417` bands, `DESKTOP_SURFACE_DARK_RGB` panels/popups, `DESKTOP_CONTROL_DARK_RGB` controls) with no shadow and one hairline while Android retains frosted glass.
+- **Tool placements ship as docked bands** (lane 2026-10-28, flat band phase 3A): the 48 dp vertical rail (default, Left/Right) or 44 dp horizontal ribbon under the header are drawn beside the sheet, never overlapping it and never as a capsule in a lane; `stripPlacement` in settings holds the choice.
 
 **The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status bar
 and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**
@@ -115,21 +106,10 @@ The **chrome's** own pictures live in `ChromeGlyphCatalogue` — Material's path
 marks and the add/close/eye included — and **both** shells read it, so two screens show one set.
 - **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option and every tool
   slot light one step short of the picked fill on the 4 dp `controlShape` — one square, never a glyph capsule.
-- **No motion of its own**: the window's surfaces arrive **and leave** on `DesignTokens.GlassMotion`, read
-from the shared tokens rather than picked here. A flyout is opened through `GlassPopup` — a `GlassPresence`
-hold plus the same spring — so a menu that closes draws back instead of vanishing; only the bars' hover
-tooltips still land with the pointer (`interface-contract.md` §7 owns that exception).
-- **The colours and corners are the tokens**: flat 28 dp tabs, the 8 dp popup corner, a 40 dp header,
-a 24 dp status bar, Inter with tabular figures, dark-first. `DesktopThemeTest` re-reads the JSON block
-above and `ChromeMaterialRenderTest` proves the fill and the rim as pixels.
+- **Motion matches the surface kind**: in-shell surfaces use `DesignTokens.GlassMotion` from shared tokens, whereas native popup windows open through `GlassPopup` immediately at full scale and opacity with no spring or fade (`GlassPopupGuardTest`, `interface-contract.md` §7); hover tooltips (`StripPill`) also land directly with the pointer.
+- **The colours and corners are the tokens**: flat 28 dp tabs, the 8 dp popup corner, a 40 dp header, a 24 dp status bar, Inter with tabular figures, dark-first. `DesktopThemeTest` re-reads the JSON block above and `ChromeMaterialRenderTest` proves the fill and the rim as pixels.
 
-Picking a colour writes it straight to the settings file (`ink.colour`, `ink.width`), and the palette is
-`palette.colours` through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour,
-a duplicate or an empty palette in front of the picker. The row ends in the **editable custom slot** and
-the **add-colour** swatch, both opening the window's own colour panel (saturation/value square, hue
-slider, two-way `#RRGGBB` with a live preview, Set/Cancel) in the floating glass rather than a Material
-dialog; an invalid hex keeps the last valid colour and leaves Set out of reach. The placement choice is
-persisted (`interface.toolPlacement`, Rail by default) and the strips appear once a document is open.
+Picking a colour writes it straight to the settings file (`ink.colour`, `ink.width`), and the palette is `palette.colours` through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour, a duplicate or an empty palette in front of the picker. The row ends in the **editable custom slot** and the **add-colour** swatch, both opening the window's own colour panel (saturation/value square, hue slider, two-way `#RRGGBB` with a live preview, Set/Cancel) in the opaque popup surface rather than a Material dialog; an invalid hex keeps the last valid colour and leaves Set out of reach. The placement choice is persisted (`interface.toolPlacement`, Rail by default) and the strips appear once a document is open.
 
 Everything the chrome does can also be done from the keyboard:
 
@@ -162,9 +142,7 @@ key hook, before the composition is asked, so no gesture — a drag on the page,
 silence them. The table stands down only for a real owner: an open Text box, an armed Shortcuts row, the
 settings surface, the open menu.
 
-Closing a dirty tab, or the window itself, raises the **Save / Discard / Cancel** question in the floating
-glass over the page rather than closing silently; `Esc` is Cancel and the window's X takes the same path.
-A tab with unsaved edits wears a dot in the accent after its label (`docs/desktop-documents.md`).
+Closing a dirty tab, or the window itself, raises the **Save / Discard / Cancel** question in the shared modal (`DesktopDialogFrame`) over the page rather than closing silently; `Esc` is Cancel and the window's X takes the same path. A tab with unsaved edits wears a dot in the accent after its label (`docs/desktop-documents.md`).
 
 **The two history commands have defined states, not just a binding.** `Ctrl + Z` and `Ctrl + Shift + Z`
 act on the **active tab's own** `EditHistory` — undoing in one document never reaches into another — and
@@ -263,13 +241,7 @@ ring is not held to those six: a logic gate or a flowchart arrow can sit at the 
   slot** commits it and closes the ring, a click inside the ring but off a slot does nothing (it was aimed at
   the ring, not through it), and a click well outside it, `Esc`, or a second `Alt + B` puts it away without
   changing anything. Every press while the ring is up is the ring's: nothing is inked, panned or selected under it.
-- **The pointer stays on it, and so does the pen.** The pointer over the ring is the *tool's* ring, not the arrow:
-  `DesktopHudLayer` paints it **above** the glass, so the mark the reader aims with is never hidden by the surface it
-  aims at. The pen's own packets answer the ring as well — a tip that lands on a face commits it and lays no ink under
-  it, because on this machine the packets are the stream and Windows' copy of the contact is not. That contact stays
-  the ring's after the surface has gone: the packets close it on the frame thread, so the copy of the same press
-  arrives a frame later with nothing on screen and is **swallowed** there rather than becoming a stroke underneath —
-  one contact, one answer — and the next press belongs to the page again.
+- **The pointer stays on it, and so does the pen.** The pointer over the ring is the *tool's* ring, not the arrow: `DesktopHudLayer` paints it **above** the ring, so the mark the reader aims with is never hidden by the surface it aims at. The pen's own packets answer the ring as well — a tip that lands on a face commits it and lays no ink under it, because on this machine the packets are the stream and Windows' copy of the contact is not. That contact stays the ring's after the surface has gone: the packets close it on the frame thread, so the copy of the same press arrives a frame later with nothing on screen and is **swallowed** there rather than becoming a stroke underneath — one contact, one answer — and the next press belongs to the page again.
 - **What a commit is.** The entries the rail and the flyouts already use (`pickColour`, `pickWidth`,
   `selectTool`), so a ring choice cannot mean something you could not have set by hand; the picked tool's own
   ink is what changes, exactly as the colour capsule changes it.

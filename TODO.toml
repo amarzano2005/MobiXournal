@@ -131,6 +131,7 @@ order = 110
 created = 2026-11-10
 tags = ["mobix", "performance"]
 epic = "mobix-performance-hardening"
+reviewed = 2026-11-19
 rebuild = false
 emulator_debug = false
 
@@ -150,6 +151,7 @@ urgency = "high"
 order = 120
 created = 2026-11-10
 tags = ["mobix", "migration"]
+reviewed = 2026-11-19
 rebuild = true
 emulator_debug = false
 
@@ -328,7 +330,7 @@ id = "selection-contextual-overflow-and-ownership"
 title = "Add contextual selection overflow on both shells and fix Android PDF selection ownership"
 description = """
 1. Fix two live Android PDF-selection ownership bugs: in `app/src/main/java/com/mobixournal/render/DrawingSurfaceSelection.kt` (`beginTextSelectAt`), call `clearSelection()` so an element selection and a PDF word range cannot coexist in one pane (enforcing `docs/pdf.md`'s one-owner-per-pane rule); in `app/src/main/java/com/mobixournal/ui/EditorBackHandler.kt` (L47), call `surface?.clearTextSelection()` instead of `surface?.cancelTextEdit()` when `pane.hasTextSelection` is true, and handle `ui.editingPlot != null`.
-2. Add a pure shared selection eligibility model in `mobix-core/src/main/java/com/mobixournal/render/SelectionContext.kt` (`SelectionOwnerKind`: `MODEL_ELEMENTS`, `PDF_TEXT_RANGE`, `FOCUSED_EDITOR`, `NONE`, plus `readOnly` gate) so future STEM contextual commands declare target eligibility once.
+2. Add a pure shared selection eligibility model in new `mobix-core/src/main/java/com/mobixournal/render/SelectionContext.kt` (`SelectionOwnerKind`: `MODEL_ELEMENTS`, `PDF_TEXT_RANGE`, `FOCUSED_EDITOR`, `NONE`, plus `readOnly` gate) so future STEM contextual commands declare target eligibility once.
 3. Add an extensible contextual overflow (⋯) action menu (hidden when no overflow actions are registered, so current bars stay visually unchanged) to Android `SelectionActionBar` and `TextSelectionBar` (`app/src/main/java/com/mobixournal/ui/EditorActionBars.kt`, using `ToolbarMenu`) and desktop `SelectionBar` (`desktop/src/main/java/com/mobixournal/desktop/sheet/SelectionBar.kt`) and `PdfTextCopyBar` (`desktop/src/main/java/com/mobixournal/desktop/io/PdfTextCopyBar.kt`, using the flat 8 dp opaque popup surface and 4 dp `controlShape`). English copy, catalogue glyphs only, all five states.
 4. Update `docs/selection-actions.md` and `docs/pdf.md` (splitting a spoke linked from `docs/architecture.md` if `docs/pdf.md` exceeds its 300-line ceiling). Verify with new `mobix-core/src/test/java/com/mobixournal/render/SelectionContextTest.kt`, Android `DrawingSurfaceSelectionTest` / `EditorBackHandlerTest`, and `:desktop:test`."""
 status = "active"
@@ -346,9 +348,9 @@ emulator_debug = false
 id = "stem-scalar-evaluator"
 title = "A bounded scalar evaluator with no globals and a hard operation budget"
 description = """
-Add a pure bounded scalar evaluator in `mobix-core/src/main/java/com/mobixournal/math/ScalarEvaluator.kt`, `EvaluationBudget.kt`, and `ScientificResult.kt` (used by calculation and quantity evaluators). Grammar: decimal and scientific literals, `+ - * / ^`, unary minus, parentheses, whitelisted functions (`sqrt`, `abs`, `sin`, `cos`, `tan`, `ln`, `log`, `exp`, `min`, `max`, `round`, `floor`, `ceil`) and constants `pi` and `e`. No variables, assignments, or globals: unknown identifiers return an error.
+Add a pure bounded scalar evaluator in new `mobix-core/src/main/java/com/mobixournal/math/ScalarEvaluator.kt`, `EvaluationBudget.kt`, and `ScientificResult.kt` (used by calculation and quantity evaluators). Grammar: decimal and scientific literals, `+ - * / ^`, unary minus, parentheses, whitelisted functions (`sqrt`, `abs`, `sin`, `cos`, `tan`, `ln`, `log`, `exp`, `min`, `max`, `round`, `floor`, `ceil`) and constants `pi` and `e`. No variables, assignments, or globals: unknown identifiers return an error.
 
-Enforce operation count, wall-clock, nesting depth, and source length budgets via `EvaluationBudget`. Results are typed outcomes in `ScientificResult` (`OK`, `ERROR`, `CANCELLED` — division by zero, domain error like `sqrt(-1)`/`ln(0)`, overflow — never `NaN` or `Infinity`), including normalised source, display rounding, and precision. Unit-test in `mobix-core/src/test/java/com/mobixournal/math/ScalarEvaluatorTest.kt` (`2*(3+4)=14`, `1/0`, `0^0`, `(-8)^(1/3)`, and both budgets) via `./gradlew :mobix-core:test --tests '*ScalarEvaluatorTest*'`."""
+Enforce operation count, wall-clock, nesting depth, and source length budgets via `EvaluationBudget`. Results are typed outcomes in `ScientificResult` (`OK`, `ERROR`, `CANCELLED` — division by zero, domain error like `sqrt(-1)`/`ln(0)`, overflow — never `NaN` or `Infinity`), including normalised source, display rounding, and precision. Unit-test in new `mobix-core/src/test/java/com/mobixournal/math/ScalarEvaluatorTest.kt` (`2*(3+4)=14`, `1/0`, `0^0`, `(-8)^(1/3)`, and both budgets) via `./gradlew :mobix-core:test --tests '*ScalarEvaluatorTest*'`."""
 status = "active"
 level = "task"
 category = "feature"
@@ -451,6 +453,7 @@ order = 360
 created = 2026-11-10
 tags = ["mobix"]
 epic = "mobix-stem-semantic-core"
+reviewed = 2026-11-19
 rebuild = false
 emulator_debug = false
 
@@ -743,7 +746,7 @@ emulator_debug = false
 id = "stem-numeric-accuracy-corpus"
 title = "Measure the analysis before changing any of it"
 description = """
-Before changing any numerical scheme, add `mobix-core/src/test/java/com/mobixournal/render/NumericAccuracyCorpus.kt` (preserving every case in `FunctionAnalysisCharacterizationTest.kt`): polynomials, `sin`/`exp`, `1/x`, `tan`, `x^3 - 2`, `sqrt`, `|x|`, piecewise, tangent root, and pole cases, each with closed-form derivative, roots, and integral plus tolerances.
+Before changing any numerical scheme, add new `mobix-core/src/test/java/com/mobixournal/render/NumericAccuracyCorpus.kt` (preserving every case in `FunctionAnalysisCharacterizationTest.kt`): polynomials, `sin`/`exp`, `1/x`, `tan`, `x^3 - 2`, `sqrt`, `|x|`, piecewise, tangent root, and pole cases, each with closed-form derivative, roots, and integral plus tolerances.
 
 Change zero production code; print max derivative error, root residual `|f(x*)|`, and integral relative error, verify via `./gradlew :mobix-core:test --tests '*NumericAccuracy*'`, and record the baseline table in `docs/benchmarks.md`."""
 status = "active"
@@ -983,7 +986,7 @@ emulator_debug = true
 id = "stem-conversion-report-model"
 title = "One report of what a conversion preserved, lost or refused"
 description = """
-Add `mobix-core/src/main/java/com/mobixournal/render/ConversionReport.kt` holding per-object (`elementId`, family, description) and per-target (`MOBIX`, `XOPP`, `PDF`, `SVG`, `PNG`, `CSV`, `JSON`) verdicts from `preserved | editable | displayed | partlyLost | unsupported` plus reasons. Map `XoppSynthesis.Uncompilable` into it without altering `.xopp` synthesis.
+Add new `mobix-core/src/main/java/com/mobixournal/render/ConversionReport.kt` holding per-object (`elementId`, family, description) and per-target (`MOBIX`, `XOPP`, `PDF`, `SVG`, `PNG`, `CSV`, `JSON`) verdicts from `preserved | editable | displayed | partlyLost | unsupported` plus reasons. Map `XoppSynthesis.Uncompilable` into it without altering `.xopp` synthesis.
 
 Surface non-preserved losses on both shells: update `app/src/main/java/com/mobixournal/ui/ExportGapsDialog.kt`, and on desktop carry losses through `DesktopSaveWorker.Saved` (`desktop/src/main/java/com/mobixournal/desktop/shell/DesktopSaveWorker.kt`, which currently discards `staged.uncompiled`) and `DesktopSaves.kt` to display in `DesktopStatus.kt` (reusing the `DesktopExportNotice` status bar pattern). Update `docs/xopp-bridge.md` and `docs/guide-formats-and-conversion.md`; verify with new `ConversionReportTest.kt` via `./gradlew :mobix-core:test --tests '*ConversionReportTest*' :app:testDebugUnitTest :desktop:test`."""
 status = "active"
@@ -994,6 +997,7 @@ order = 750
 created = 2026-11-11
 tags = ["stem", "export", "open-format"]
 epic = "mobix-stem-semantic-core"
+reviewed = 2026-11-19
 rebuild = true
 emulator_debug = false
 
@@ -1077,7 +1081,7 @@ emulator_debug = false
 id = "stem-code-block-model"
 title = "Model a code block and let it leave the native format"
 description = """
-Add `CodeBlockElement` in `mobix-core/src/main/java/com/mobixournal/format/model/CodeBlockElement.kt` (UTF-8 `source`, open `language`, `tabSize`, `wrap`, `lineNumbers`, frame, font size, colour, unknown-key preservation) and `MobixCodeBlockCodec.kt` registered in `MobixElementCodec.kt` (`isLivingEntity`, `LivingInk` dispatch, `RawElement` fallback on older readers). Add a sample to `app/src/test/java/com/mobixournal/guards/XoppExportCoverageTest.kt` (incrementing `elementFamilies`) and check `MobixSchemaGuardTest.kt`.
+Add `CodeBlockElement` in new `mobix-core/src/main/java/com/mobixournal/format/model/CodeBlockElement.kt` (UTF-8 `source`, open `language`, `tabSize`, `wrap`, `lineNumbers`, frame, font size, colour, unknown-key preservation) and `MobixCodeBlockCodec.kt` registered in `MobixElementCodec.kt` (`isLivingEntity`, `LivingInk` dispatch, `RawElement` fallback on older readers). Add a sample to `app/src/test/java/com/mobixournal/guards/XoppExportCoverageTest.kt` (incrementing `elementFamilies`) and check `MobixSchemaGuardTest.kt`.
 
 Document schema and no-execution rule in `docs/mobix-living-entities.md` (splitting a spoke linked from `docs/architecture.md` at the 300-line ceiling) and `docs/mobix-element-fields.md`. Verify via `./gradlew :mobix-core:test --tests '*MobixElementCodec*' --tests '*MobixSchemaGuardTest*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'`."""
 status = "active"
@@ -1088,6 +1092,7 @@ order = 900
 created = 2026-11-11
 tags = ["stem", "code", "schema"]
 epic = "mobix-stem-semantic-core"
+reviewed = 2026-11-19
 rebuild = true
 emulator_debug = false
 
@@ -1187,9 +1192,9 @@ emulator_debug = true
 id = "stem-connector-model"
 title = "Model a connector that ends on pins, and keep one truth for a net"
 description = """
-Add `ConnectorElement` in `mobix-core/src/main/java/com/mobixournal/format/model/ConnectorElement.kt` (`PinRef(elementId, pinId)` endpoints with fallback coordinates for dangling ends, `routeMode`, `waypoints`, stroke colour/width, `label`, `id`, unknown-key preservation) and `MobixConnectorCodec.kt` in `MobixElementCodec.kt` (`isLivingEntity`, `LivingInk.kt`, sample in `XoppExportCoverageTest.kt` raising `elementFamilies`). Declare capability `org.mobixournal/stem.connector:1` per `docs/mobix-capabilities.md`.
+Add `ConnectorElement` in new `mobix-core/src/main/java/com/mobixournal/format/model/ConnectorElement.kt` (`PinRef(elementId, pinId)` endpoints with fallback coordinates for dangling ends, `routeMode`, `waypoints`, stroke colour/width, `label`, `id`, unknown-key preservation) and `MobixConnectorCodec.kt` in `MobixElementCodec.kt` (`isLivingEntity`, `LivingInk.kt`, sample in `XoppExportCoverageTest.kt` raising `elementFamilies`). Declare capability `org.mobixournal/stem.connector:1` per `docs/mobix-capabilities.md`.
 
-Connectivity rule: `ConnectorElement.PinRef` is the single source of truth for pin connectivity; `CircuitPin.connectedTo` in `Living.kt` remains a legacy/optional display label preserved verbatim by `MobixCircuitCodec` and is never written by connectors as a second truth. Document this in `docs/mobix-living-entities.md` (split spoke if at 300 lines) & `docs/mobix-element-fields.md`; verify with `mobix-core/src/test/java/com/mobixournal/format/mobix/MobixConnectorCodecTest.kt` via `./gradlew :mobix-core:test --tests '*MobixConnectorCodecTest*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'`."""
+Connectivity rule: `ConnectorElement.PinRef` is the single source of truth for pin connectivity; `CircuitPin.connectedTo` in `Living.kt` remains a legacy/optional display label preserved verbatim by `MobixCircuitCodec` and is never written by connectors as a second truth. Document this in `docs/mobix-living-entities.md` (split spoke if at 300 lines) & `docs/mobix-element-fields.md`; verify with new `mobix-core/src/test/java/com/mobixournal/format/mobix/MobixConnectorCodecTest.kt` via `./gradlew :mobix-core:test --tests '*MobixConnectorCodecTest*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'`."""
 status = "active"
 level = "task"
 category = "feature"
@@ -1198,6 +1203,7 @@ order = 970
 created = 2026-11-11
 tags = ["stem", "circuit", "schema", "connector"]
 epic = "mobix-stem-dynamic-engineering"
+reviewed = 2026-11-19
 rebuild = true
 emulator_debug = false
 
@@ -1320,9 +1326,9 @@ emulator_debug = false
 id = "stem-measurement-element"
 title = "Model a measurement as an object with stored points"
 description = """
-`MeasurementText` (`render/MeasurementText.kt`) and `FigureGeometry` primitives exist, but measurements lack a persisted model object. Add `MeasurementElement` (`DISTANCE` mode, `PointRef(elementId, relX, relY, absX, absY)` endpoints, precision, colour, width, label offset, unknown-key preservation) in `mobix-core/src/main/java/com/mobixournal/format/model/MeasurementElement.kt` and `MobixMeasurementCodec.kt` in `MobixElementCodec.kt` (`LivingInk.kt` arm, sample in `XoppExportCoverageTest.kt`).
+`MeasurementText` (`render/MeasurementText.kt`) and `FigureGeometry` primitives exist, but measurements lack a persisted model object. Add `MeasurementElement` (`DISTANCE` mode, `PointRef(elementId, relX, relY, absX, absY)` endpoints, precision, colour, width, label offset, unknown-key preservation) in new `mobix-core/src/main/java/com/mobixournal/format/model/MeasurementElement.kt` and `MobixMeasurementCodec.kt` in `MobixElementCodec.kt` (`LivingInk.kt` arm, sample in `XoppExportCoverageTest.kt`).
 
-Document in `docs/mobix-living-entities.md` & `docs/mobix-element-fields.md`. Verify with new `MeasurementElementTest.kt` (`mobix-core/src/test/java/com/mobixournal/format/mobix/MeasurementElementTest.kt`) via `./gradlew :mobix-core:test --tests '*MeasurementElementTest*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'`."""
+Document in `docs/mobix-living-entities.md` & `docs/mobix-element-fields.md`. Verify with new `mobix-core/src/test/java/com/mobixournal/format/mobix/MeasurementElementTest.kt` via `./gradlew :mobix-core:test --tests '*MeasurementElementTest*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'`."""
 status = "active"
 level = "task"
 category = "feature"
@@ -1331,6 +1337,7 @@ order = 1050
 created = 2026-11-11
 tags = ["stem", "measurement", "schema"]
 epic = "mobix-stem-dynamic-engineering"
+reviewed = 2026-11-19
 rebuild = true
 emulator_debug = false
 
@@ -1541,7 +1548,7 @@ emulator_debug = true
 id = "stem-dataset-csv-import"
 title = "Stream a CSV into rows without a second copy in memory"
 description = """
-Add streaming RFC 4180 CSV parser `mobix-core/src/main/java/com/mobixournal/format/csv/CsvReader.kt` (delimiter sniff, optional header detection, UTF-8 with optional BOM strip, row callback so memory stays O(row), recorded field/row caps, and explicit malformed-row policy: record line-numbered error, skip malformed row, increment skipped counter, continue until cap).
+Add streaming RFC 4180 CSV parser in new `mobix-core/src/main/java/com/mobixournal/format/csv/CsvReader.kt` (delimiter sniff, optional header detection, UTF-8 with optional BOM strip, row callback so memory stays O(row), recorded field/row caps, and explicit malformed-row policy: record line-numbered error, skip malformed row, increment skipped counter, continue until cap).
 
 Add fixtures under `mobix-core/src/test/resources` (incl. 10k-row CSV) and verify O(row) memory and counters via `./gradlew :mobix-core:test --tests '*CsvReader*'`."""
 status = "active"
@@ -1800,7 +1807,7 @@ emulator_debug = true
 id = "stem-sci-text-runs"
 title = "A paragraph of versioned text and math runs"
 description = """
-Add `ScientificTextBox` in `mobix-core/src/main/java/com/mobixournal/format/model/ScientificTextBox.kt` (paragraphs of immutable versioned text runs and math runs holding `LATEX`/`TYPST` source without storing rendered formulas — e.g. `'the energy is E=mc²'`), plus `MobixScientificTextCodec.kt` in `MobixElementCodec.kt`, `isLivingEntity`, `LivingInk.kt`, and `XoppExportCoverageTest.kt` sample.
+Add `ScientificTextBox` in new `mobix-core/src/main/java/com/mobixournal/format/model/ScientificTextBox.kt` (paragraphs of immutable versioned text runs and math runs holding `LATEX`/`TYPST` source without storing rendered formulas — e.g. `'the energy is E=mc²'`), plus `MobixScientificTextCodec.kt` in `MobixElementCodec.kt`, `isLivingEntity`, `LivingInk.kt`, and `XoppExportCoverageTest.kt` sample.
 
 Document in `docs/mobix-living-entities.md` & `docs/mobix-element-fields.md`; verify via `./gradlew :mobix-core:test --tests '*ScientificText*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'`."""
 status = "active"
@@ -1811,6 +1818,7 @@ order = 1350
 created = 2026-11-11
 tags = ["stem", "text", "schema"]
 epic = "mobix-stem-semantic-core"
+reviewed = 2026-11-19
 rebuild = true
 emulator_debug = false
 
@@ -1910,7 +1918,7 @@ emulator_debug = true
 id = "stem-study-card-model"
 title = "Model a study card whose answer is data, not black ink"
 description = """
-Add `StudyCardElement` in `mobix-core/src/main/java/com/mobixournal/format/model/StudyCardElement.kt` (front & answer as text run, `MathBlockElement` source/flavour, or `ElementId` ref; `revealPolicy`, `tags`, `id`, unknown-key preservation — storing answer explicitly in clear and documenting not-redaction; session reveal state lives strictly outside the document), `MobixStudyCardCodec.kt` in `MobixElementCodec.kt`, `LivingInk.kt` front-only arm, and `XoppExportCoverageTest.kt` sample.
+Add `StudyCardElement` in new `mobix-core/src/main/java/com/mobixournal/format/model/StudyCardElement.kt` (front & answer as text run, `MathBlockElement` source/flavour, or `ElementId` ref; `revealPolicy`, `tags`, `id`, unknown-key preservation — storing answer explicitly in clear and documenting not-redaction; session reveal state lives strictly outside the document), `MobixStudyCardCodec.kt` in `MobixElementCodec.kt`, `LivingInk.kt` front-only arm, and `XoppExportCoverageTest.kt` sample.
 
 Document in `docs/mobix-living-entities.md` & `docs/mobix-element-fields.md`; verify via `./gradlew :mobix-core:test --tests '*StudyCard*' :app:testDebugUnitTest --tests '*XoppExportCoverageTest*'`."""
 status = "active"
@@ -1921,6 +1929,7 @@ order = 1420
 created = 2026-11-11
 tags = ["stem", "study", "schema"]
 epic = "mobix-stem-interactive-notebook"
+reviewed = 2026-11-19
 rebuild = true
 emulator_debug = false
 
