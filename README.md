@@ -145,10 +145,10 @@ chemistry palette is gone. Shell differences: [what works, and what is not there
 
 ## Building from source, and getting involved
 
-Build: `scripts/build.sh` with `/data/android`, `scripts/host-build.sh` elsewhere;
-[developer guide](docs/developer-guide.md), [contributing](CONTRIBUTING.md).
-Agent work: [AGENTS.md](AGENTS.md), `scripts/todo.sh` for tasks,
-[design-workflow.md](docs/design-workflow.md) for the UI closing check.
+Build & verify: `scripts/build.sh`, `scripts/host-build.sh`, `scripts/verify.sh` / `scripts/verify.cmd`;
+see [developer guide](docs/developer-guide.md), [contributing](CONTRIBUTING.md).
+Agent work: [AGENTS.md](AGENTS.md), `scripts/todo.sh` / `scripts/todo.cmd`,
+[design-workflow.md](docs/design-workflow.md) (UI check).
 
 ## Licence, credit and lineage
 

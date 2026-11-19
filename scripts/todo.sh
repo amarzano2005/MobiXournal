@@ -15,9 +15,10 @@ for candidate in \
     python \
     "${LOCALAPPDATA:-/nonexistent}/Python/bin/python.exe" \
     "${LOCALAPPDATA:-/nonexistent}/Programs/Python/Python313/python.exe"; do
-    if [ -n "$candidate" ] && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 8) else 1)' >/dev/null 2>&1; then
+    if [ -n "$candidate" ] && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
+        export PYTHONUTF8=1
         exec "$candidate" "$root/scripts/todo/todo.py" "$@"
     fi
 done
-echo 'todo.sh: no Python 3.8+ found; set TODO_PYTHON to a real interpreter (not the Store alias).' >&2
+echo 'todo.sh: no Python 3.11+ found; set TODO_PYTHON to a real interpreter (not the Store alias).' >&2
 exit 1

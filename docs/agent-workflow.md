@@ -10,17 +10,19 @@ discovered and checked, rather than repeating the preferences. Host detection be
 ## The instruction entry points
 
 Keep the root instruction file as a small map and the decisions needed for every task. Conditional
-detail goes in the owning spoke or skill. Codex's default combined project-instruction budget is
-32 KiB; this repository reserves half of that for the root file, leaving room for future nested
-guidance. A line count alone cannot protect against byte truncation, especially with Unicode copy.
-See [Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+detail goes in the owning spoke, skill, or module guide (`mobix-core/AGENTS.md`, `app/AGENTS.md`,
+`desktop/AGENTS.md`). Codex's default combined project-instruction budget is 32 KiB; this
+repository reserves half of that for the root file, leaving plenty of headroom for nested
+module guidance. A line count alone cannot protect against byte truncation, especially with Unicode
+copy. See [Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
 Repository skills live in `.agents/skills/`, the
-[documented discovery location](https://learn.chatgpt.com/docs/build-skills). The task workflow is
-[todo](../.agents/skills/todo/SKILL.md). Its entry point includes the name and description used for
-selection. The stable operator command remains `scripts/todo.sh`; callers need not know the data
-directory layout. The task wrapper probes Python execution to skip Windows Store aliases; `TODO_PYTHON`
-can select a real interpreter explicitly.
+[documented discovery location](https://learn.chatgpt.com/docs/build-skills):
+[todo](../.agents/skills/todo/SKILL.md), [new-living-element](../.agents/skills/new-living-element/SKILL.md),
+and [close-task](../.agents/skills/close-task/SKILL.md). Each entry point carries the name and
+description used for selection. Operator wrappers remain `scripts/todo.sh` (POSIX) and
+`scripts/todo.cmd` (Windows cmd/PowerShell); callers need not know the `scripts/todo/` layout, and
+both wrappers probe Python 3.11+ while skipping Windows Store aliases unless `TODO_PYTHON` overrides them.
 
 Moving a skill requires updating its callers and checking the available-skill list in a fresh
 session. This chat may retain its initial catalogue: reading the explicit entry point remains the
@@ -45,8 +47,13 @@ Beside it, `scripts/todo/plan_rules.py` enforces plan coherence across active wo
 `status = "blocked"` on tasks downstream of an undecided `scope`, active children for non-research
 epics, concrete repo anchors and verification steps without open design imperatives on `task`
 entries, no standalone follow-up `docs` tasks after code tasks, coherent `rebuild` flags, clean
-UTF-8 symbols, host-neutral AVD/doc pointers, and resolution of cited `docs/` files and Gradle test
-modules (`scripts/todo/test_plan_rules.py` runs in CI).
+UTF-8 symbols, host-neutral AVD/doc pointers, existing `targets` paths, `reviewed >= created`,
+and resolution of cited `docs/` files and Gradle test modules (`scripts/todo/test_plan_rules.py`
+runs in CI). For rolling-wave hygiene and faster task startup, `scripts/todo/doctor.py` powers
+`todo brief <id>` (dependency summaries, doc/source ceiling warnings) and `todo doctor` (git-stale
+targets, missing paths, and WIP advisories), guarded in CI by `scripts/todo/test_doctor.py`;
+sequential task closing checks run through `scripts/verify.cmd` and `scripts/verify.sh`
+([tools.md](tools.md#task-verification-wrapper)).
 
 These are conservative checks for known failures, not a parser of every natural-language request.
 A feature description can mention an emulator without requiring a device pass. Review still has

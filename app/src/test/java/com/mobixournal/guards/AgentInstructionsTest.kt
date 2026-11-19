@@ -33,7 +33,7 @@ class AgentInstructionsTest {
     @Test
     fun localWorkflowsAreDiscoverableAndTheirLinksResolve() {
         val root = repoRoot()
-        for (name in listOf("todo")) {
+        for (name in listOf("todo", "new-living-element", "close-task")) {
             val skill = File(root, ".agents/skills/$name/SKILL.md")
             assertTrue("Missing discoverable skill: $skill", skill.isFile)
             assertFalse("Remove the second instruction owner skills/$name", File(root, "skills/$name").exists())
@@ -57,6 +57,8 @@ class AgentInstructionsTest {
             workflow.any { it.trim() == "python3 scripts/todo/test_operational.py" })
         assertTrue("CI must execute the plan coherence rules regression suite",
             workflow.any { it.trim() == "python3 scripts/todo/test_plan_rules.py" })
+        assertTrue("CI must execute the todo doctor regression suite",
+            workflow.any { it.trim() == "python3 scripts/todo/test_doctor.py" })
     }
 
     private fun repoRoot(): File = generateSequence(File(".").canonicalFile) { it.parentFile }

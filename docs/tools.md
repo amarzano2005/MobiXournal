@@ -16,7 +16,8 @@ The design declaration that closes a UI change is [design-workflow.md](design-wo
 | Tool / pipeline | What it's for | Detail |
 |-----------------|---------------|--------|
 | Host selection | OS, machine profiles and local toolchain paths | [host-profiles.md](host-profiles.md) |
-| Agent task workflow | `scripts/todo.sh`, active-task validation and instruction regression checks | [agent-workflow.md](agent-workflow.md) |
+| Agent task workflow | `scripts/todo.sh` / `scripts/todo.cmd`, active-task validation and instruction checks | [agent-workflow.md](agent-workflow.md) |
+| Task verification | Sequential validate, test, guard, and distributable runner | [below](#task-verification-wrapper) |
 | Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
 | Desktop shell | Run, test and package the Compose Multiplatform window (no emulator, no container) | [below](#desktop-shell) |
@@ -215,3 +216,18 @@ or locale), so a re-run reproduces the same bytes and a fixture can be reviewed 
 - `scripts/check-mobix-cli.py` → what the `cli` CI job runs: the CLI's suite, `validate` over both corpora
   (each hostile file refused for its row), the writer round-trip, and one verdict per file compared with
   `spec/corpus-verdicts.csv` (`CorpusVerdictsTest` keeps it honest) — a rule added on one side alone fails.
+
+---
+
+## Task verification wrapper
+
+`scripts/verify.cmd` (Windows) and `scripts/verify.sh` (Linux/macOS) delegate to `scripts/verify.py`
+to run the full closing check sequence without spawning concurrent Gradle daemons:
+
+- Always runs `todo validate`, then the guard test classes (`DocsGuardTest`, `DocClaimsTest`,
+  `SourceStructureTest`, `AgentInstructionsTest`, `ToolbarMenuGuardTest`, `CiCoverageTest`), and
+  refreshes `:desktop:createDistributable` unless `--skip-distributable` is passed.
+- Pass `-- <gradle-args>` for targeted task tests, `--build-apk` when `rebuild = true`,
+  `--todo-tests` for `scripts/todo/test_*.py`, and `--full` to run `:mobix-core:test`,
+  `:app:testDebugUnitTest`, and `:desktop:test` sequentially. On Windows, JDK 17–24 discovery
+  automatically sets `JAVA_HOME` (preferring JDK 21).

@@ -20,12 +20,13 @@ write stays diff-friendly and every task carries full metadata.
 ## How to run it
 
 ```sh
-scripts/todo.sh <command> [options]          # operator wrapper (from repo root)
+scripts/todo.sh <command> [options]          # POSIX wrapper (from repo root)
+scripts/todo.cmd <command> [options]         # Windows cmd/PowerShell wrapper
 # or directly:
 python3 scripts/todo/todo.py <command> [options]
 ```
 
-Run `scripts/todo.sh <command> --help` for a command's options.
+Run `scripts/todo.sh <command> --help` (or `scripts/todo.cmd <command> --help`) for options.
 
 ## The schema
 
@@ -48,6 +49,8 @@ array of `[[task]]` tables. A task carries **more** metadata rather than less:
 | `tags`        | TODO             | freeform string list                                |
 | `epic`        | TODO             | active `epic` id that owns this item (optional)     |
 | `depends_on`  | TODO             | list of prerequisite task/scope ids (active or archived) |
+| `targets`     | TODO             | existing repository file paths touched (verified by `validate`) |
+| `reviewed`    | TODO             | last `YYYY-MM-DD` the plan was checked against code |
 | `rebuild`     | TODO             | rebuild the Android app for this task? (default `true`) |
 | `emulator_debug` | TODO          | run the full emulator verify loop for this task? (default `false`) |
 | `design`      | both             | the declaration a closed task made against `docs/interface-contract.md` — written by `done`, required there (`none: why` when the task has no interface surface) |
@@ -86,6 +89,22 @@ The rule of thumb: **an epic spawns scopes, a scope spawns tasks, a task spawns
 code.** When the user says "add this epic," they are asking for the big
 definition to be recorded — the breakdown happens later, when it's picked up.
 
+### Rolling-wave planning & level contracts
+
+To avoid hundreds of lines of task prose going stale when refactors land:
+
+- **Horizon discipline**: Keep distant future tracks at `epic` or `scope` level
+  (goal, invariants, acceptance criteria, prerequisites — no brittle file paths).
+  Expand a `scope` into concrete `task`s **Just-in-Time** once its prerequisites
+  have shipped, capping a single scope breakdown at ~6–8 tasks and keeping
+  unblocked active tasks focused (target ≤ 15 ready).
+- **Mandatory task structure**: Every `task` must name concrete targets
+  (`targets = [...]` or path anchors in `description`), exact behaviour and
+  edge cases, doc owner updates in the same commit, and an explicit verification
+  command/assertion — with zero open design choices (`Decide`, `Audit`, `Pick one`).
+- **Staleness hygiene**: Run `doctor` periodically; inspect git-changed targets,
+  doc/source line ceilings, and stamp verified tasks with `--mark-reviewed`.
+
 Set it with `add --level scope|epic` or `edit <id> --level …`; filter with
 `list --level epic` and tally with `count --by level`.
 
@@ -108,13 +127,19 @@ newest-`completed`-first.
   epic (and standalone tasks) in execution order with `[READY]`, `[WAIT: …]`, `[BLOCKED: …]`, and
   `[SCOPE]` tags.
 - **`show <id>`** `[--json]` — print one task with its full description.
+- **`brief <id>`** `[--json]` — print a compact start-of-task packet: metadata,
+  shipped summaries of `depends_on`, line counts/warnings for referenced files
+  against `DocsGuardTest` / `SourceStructureTest` ceilings, and verification command.
+- **`doctor`** `[--all] [--strict] [--json]` — audit ready tasks (or all non-epic
+  items with `--all`) for git-stale targets, missing file paths, docs near 300
+  lines, Kotlin files near 700 lines, and rolling-wave WIP advisories.
 - **`stats`** `[--json]` — totals plus counts by status, category, and urgency
   (active) and by category (finished). This is the "how many …" answer.
 - **`count`** `[--finished] [--by status|category|urgency|level]` — a raw count, or
   a grouped tally.
 - **`add --title T (--description D | --description-file PATH)`** `[--category C] [--urgency U]
-  [--level L] [--status S] [--order N] [--epic ID] [--depends-on ID …] [--tag t …] [--id ID]
-  [--no-rebuild] [--emulator-debug]` —
+  [--level L] [--status S] [--order N] [--epic ID] [--depends-on ID …] [--target PATH …]
+  [--reviewed YYYY-MM-DD] [--tag t …] [--id ID] [--no-rebuild] [--emulator-debug]` —
   add an active task. The `id` is a slug of the title (made unique) and
   `order` auto-increments unless given. `urgency` defaults to normal. **The file
   is kept in `order` sequence**: every write sorts the tasks (ties by id), so a
@@ -123,8 +148,9 @@ newest-`completed`-first.
   `level` defaults to `task`. `rebuild` defaults to yes (`--no-rebuild` turns it off); `emulator_debug`
   defaults to no (`--emulator-debug` turns it on).
 - **`edit <id>`** `[--title|--description|--description-file|--status|--level|--category|--urgency
-  |--order|--epic|--clear-epic|--depends-on|--add-depends-on|--clear-depends-on]
-  [--add-tag t] [--remove-tag t] [--rebuild|--no-rebuild] [--emulator-debug|--no-emulator-debug]`
+  |--order|--epic|--clear-epic|--depends-on|--add-depends-on|--clear-depends-on|--target|--add-target
+  |--clear-targets|--reviewed|--mark-reviewed] [--add-tag t] [--remove-tag t]
+  [--rebuild|--no-rebuild] [--emulator-debug|--no-emulator-debug]`
   — change fields on an active task (`--description-file` reads UTF-8 cleanly on Windows shells).
 - **`done <id> --shipped TEXT`** `[--shipped-file PATH] [--date YYYY-MM-DD]` — move an active task
   into `FINISHED.toml`, stamped `completed` (today unless `--date`), newest-first, **and replace its
@@ -188,7 +214,9 @@ plan-coherence limits on `task`, `scope`, and `epic` items: acyclic `depends_on`
 urgency alignment, mandatory `blocked` status downstream of active `scope`s, non-research epics
 holding active children, concrete repo anchors and explicit verification without open design
 imperatives in `task` descriptions, no standalone follow-up `docs` tasks after code, coherent
-`rebuild` flags, clean UTF-8 encoding, and resolving cited `docs/` files and Gradle test modules.
-Implementation: `scripts/todo/operational.py` and `scripts/todo/plan_rules.py`; regression checks:
-`python3 scripts/todo/test_operational.py` and `python3 scripts/todo/test_plan_rules.py`.
+`rebuild` flags, clean UTF-8 encoding, `targets` existence and `reviewed >= created`, and resolving
+cited `docs/` files and Gradle test modules. Implementation: `scripts/todo/operational.py`,
+`scripts/todo/plan_rules.py`, and `scripts/todo/doctor.py`; regression checks:
+`python3 scripts/todo/test_operational.py`, `python3 scripts/todo/test_plan_rules.py`, and
+`python3 scripts/todo/test_doctor.py`.
 It leaves historical archive text intact and does not infer device requirements for feature tasks.
