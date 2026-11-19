@@ -254,7 +254,8 @@ private fun RowScope.PdfTextBandNotice(message: String) {
     DesktopPdfTextNotice.retry?.let { action ->
         Spacer(Modifier.width(6.dp))
         DesktopTextAction("Try again", action, tone = DesktopTheme.accent,
-            minHeight = 20.dp, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp))
+            minHeight = 20.dp, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+            ghostFill = true)
     }
     Spacer(Modifier.width(14.dp))
 }

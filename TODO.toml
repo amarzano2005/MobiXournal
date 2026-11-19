@@ -47,46 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-buttons-inputs"
-title = "Build unified DesktopButton, DesktopIconButton, and DesktopTextField primitives and migrate PanelButton/InspectorButton"
-description = """
-Phase 1B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-tokens-theme`. Replace the fragmented 6-paradigm button/input system with shared flat-workstation primitives and fix the `PropertyCheckboxRow` press-shadowing bug.
-
-Exact changes:
-1. [NEW] `desktop/src/main/java/com/mobixournal/desktop/tools/DesktopButtons.kt`:
-   - `enum class DesktopButtonVariant { Primary, Secondary, Ghost, Destructive }`
-   - `@Composable internal fun DesktopButton(label, onClick, variant = Secondary, modifier, enabled = true, picked = false, minHeight = 32.dp, style = DesktopTheme.body, leadingIcon: (@Composable () -> Unit)? = null)`:
-     - Shape `DesktopTheme.controlShape` (`4.dp`); 5 states via `MutableInteractionSource` (default, hover, press, disabled, keyboard focus `2.dp` `accent` border).
-     - `Primary`: opaque `accent` fill, `onAccent` `Medium` text (slightly tinted/pressed shift on hover/press).
-     - `Secondary`: `DesktopTheme.control` fill, `1.dp` `DesktopTheme.borderStrong` border, `DesktopTheme.ink` text; hover shifts fill to `hoverSlot`, press to `activeSlot`.
-     - `Ghost`: transparent at rest, `hoverSlot` on hover, `activeSlot` on press/picked, `inkSecondary` (or `ink` on hover / `accent` when picked).
-     - `Destructive`: `DesktopTheme.danger.copy(alpha = 0.14f)` fill (0.22f hover, 0.30f press), `1.dp` `DesktopTheme.danger.copy(alpha = 0.40f)` border, `DesktopTheme.danger` text.
-     - Disabled: 45% muted ink/border, non-clickable.
-   - `@Composable internal fun DesktopIconButton(description, onClick, modifier, size = 28.dp, enabled = true, picked = false, tooltip: String? = description, shortcut: String? = null, content: @Composable () -> Unit)`:
-     - `4.dp` corner radius, transparent at rest, `hoverSlot` on hover, `activeSlot` when picked, `1.dp` `accent` border on focus, `semantics { contentDescription = description }`, delayed (`350 ms`) `StripPill` tooltip when `tooltip != null`.
-2. [NEW] `desktop/src/main/java/com/mobixournal/desktop/tools/DesktopInputs.kt`:
-   - `@Composable internal fun DesktopTextField(value, onValueChange, placeholder, modifier, error = false, height = 30.dp, singleLine = true, leadingIcon, onClear, onSubmit)`:
-     - `4.dp` corner radius, opaque `DesktopTheme.panelField` fill, `1.dp` border (`danger` if error, `accent` if focused, `borderStrong` at rest), BOTH text and placeholder in `DesktopTheme.field` (12.sp `tnum`), `SolidColor(DesktopTheme.accent)` caret, hoverable clear `×` (`4.dp`, `contentDescription = "Clear"`), `WindowKeys.focusControl` ownership while focused.
-3. [MODIFY] `PanelButton.kt`: delete unused imports; delegate strictly to `DesktopButton` (`destructive -> Destructive` using `danger`, `primary -> Primary`, `else -> Secondary`).
-4. [MODIFY] `InspectorButton.kt`: delete unused imports and REMOVE hardcoded `if (label == "Add equation") "+ Add equation"` (pass `"+ Add equation"` at the call site in `InspectorPanel.kt`); delegate to `DesktopButton` keeping `WindowKeys.focusControl`.
-5. [MODIFY] `DesktopTextAction.kt`: keep as compact `Ghost`/horizontal-tab helper with `4.dp` hover fill and add `pressed` state to `desktopTextFeedback`.
-6. [MODIFY] `PropertyControls.kt`: in `PropertyCheckboxRow`, replace stacked `.background(pressed)` + `.hoverFill(...)` with one single `.background(when { pressed -> activeSlot; hovered -> hoverSlot; else -> Color.Transparent }, PropertyControlShape)` so mouse press is never masked by hover.
-7. Docs: update `docs/interface-contract.md` §2 & §6 to document the 4-variant desktop button hierarchy and `danger` vs `documentRed` separation (file `<= 300` lines).
-8. Tests: rewrite `DesktopTextFeedbackContractTest.kt` & `DesktopGlobalTextFeedbackTest.kt` to enforce the new desktop button hierarchy (and forbid Material3 `Button`/`TextButton`/`OutlinedButton`/`FilledTonalButton` and `.hoverCapsule(`); update `DesktopPageRangeTest.kt` to check `DesktopTheme.danger` on Delete.
-
-DO NOT: import `androidx.compose.material3.Button*` or `material.icons`; use `documentRed` for destructive buttons or errors; exceed 700 lines/file or 100 lines/fun.
-Verification: run `:desktop:test` on `DesktopTextFeedbackContractTest`, `DesktopGlobalTextFeedbackTest`, `DesktopPageRangeTest`, `PropertyControlsTest`, plus `DocsGuardTest`, `SourceStructureTest`, `PackageStructureTest`, and `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 30
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "controls"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-titlebar-header"
 title = "Blend native Windows title bar caption and rebuild Header as a flat 40 dp workstation bar"
 description = """

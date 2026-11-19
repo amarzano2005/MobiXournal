@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
@@ -17,7 +18,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.desktop.shell.WindowKeys
 import com.mobixournal.design.ChromeGlyph
@@ -39,12 +39,21 @@ internal val PropertyControlShape = RoundedCornerShape(DesignTokens.PROPERTY_CON
 @Composable internal fun PropertyCheckboxRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val interactions = remember { MutableInteractionSource() }
     val pressed by interactions.collectIsPressedAsState()
+    val hovered by interactions.collectIsHoveredAsState()
     var focused by remember { mutableStateOf(false) }
     val owner = remember { Any() }
     DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
     Row(Modifier.fillMaxWidth().heightIn(min = 40.dp)
-        .background(if (pressed) DesktopTheme.activeSlot else Color.Transparent, PropertyControlShape)
-        .hoverFill(PropertyControlShape)
+        // **One** background for both pointer states. A stacked press fill under a hover overlay left a
+        // held row looking merely hovered, because the overlay was painted last; one `when` cannot.
+        .background(
+            when {
+                pressed -> DesktopTheme.activeSlot
+                hovered -> DesktopTheme.hoverSlot
+                else -> Color.Transparent
+            },
+            PropertyControlShape,
+        )
         .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, PropertyControlShape)
         .onFocusChanged { focused = it.isFocused; WindowKeys.focusControl(owner, focused) }
         .toggleable(checked, interactionSource = interactions, indication = null, role = Role.Checkbox, onValueChange = onChange)

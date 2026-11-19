@@ -210,7 +210,7 @@ private fun PlotQuestion(pending: PendingPlacement) {
         }
         Spacer(Modifier.height(4.dp))
         InspectorButton(
-            label = "Add equation",
+            label = "+ Add equation",
             primary = false,
             enabled = pending.formulas.size < MAX_EQUATIONS,
             onClick = { pending.addFormula() },

@@ -1,21 +1,17 @@
 package com.mobixournal.desktop.tools
-import com.mobixournal.desktop.tools.DesktopTextAction
-import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.settings.DesktopTheme
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.dp
 
-/** Dialog text commands share the desktop-wide unfilled ink/underline recipe. */
+/**
+ * A dialog's answer, in the window's four-command hierarchy: the commit is Primary, the ordinary answer
+ * Secondary, and the one that takes something away Destructive.
+ *
+ * It used to be an underlined label, which made a Save look like a menu entry and left the dialog with no
+ * filled control at all. The shape, the five states and the sizes now belong to [DesktopButton]
+ * (`docs/interface-contract.md` §2, §6) — this name remains because a dialog row reads as a row of
+ * answers, and because the fourteen call sites already speak it.
+ */
 @Composable
 internal fun PanelButton(
     label: String,
@@ -23,16 +19,21 @@ internal fun PanelButton(
     enabled: Boolean,
     onClick: () -> Unit,
     /**
-     * The **document red**, for the answer that takes something away. A destructive control keeps the same
-     * shape and the same five states; only its ink says what it does (`docs/interface-contract.md`).
+     * The **refusal red**, for the answer that takes something away: `DesktopTheme.danger`, never the
+     * document red, which is the PDF convention (`docs/interface-contract.md` §2).
      */
     destructive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    DesktopTextAction(
-        label, onClick, modifier = modifier, enabled = enabled, style = DesktopTheme.body,
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        tone = when { destructive -> DesktopTheme.documentRed; primary -> DesktopTheme.accent; else -> DesktopTheme.inkSecondary },
+    DesktopButton(
+        label = label,
+        onClick = onClick,
+        variant = when {
+            destructive -> DesktopButtonVariant.Destructive
+            primary -> DesktopButtonVariant.Primary
+            else -> DesktopButtonVariant.Secondary
+        },
+        modifier = modifier,
+        enabled = enabled,
     )
-
 }

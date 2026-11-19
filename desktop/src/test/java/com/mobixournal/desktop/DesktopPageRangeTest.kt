@@ -48,7 +48,8 @@ import org.junit.rules.TemporaryFolder
  *
  * The commands are checked against a real tab (the list they change, the undo step they record, the
  * document the next save writes), the refusals against the panel's own rules, and the surface against the
- * material it must wear: the accent on *Move pages* and the document red on *Delete pages*.
+ * material it must wear: the accent on *Move pages* and the refusal red on *Delete pages* — a destructive
+ * command is `DesktopTheme.danger`, never the document red, which belongs to the PDF convention.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class DesktopPageRangeTest {
@@ -170,11 +171,11 @@ class DesktopPageRangeTest {
     }
 
     /**
-     * The surface's material: the accent is the commit (*Move pages*) and the document red the destructive
+     * The surface's material: the accent is the commit (*Move pages*) and the refusal red the destructive
      * answer (*Delete pages*), on the family's glass, with English words.
      */
     @Test
-    fun `move wears the accent and delete the document red`() {
+    fun `move wears the accent and delete the refusal red`() {
         val scene = ImageComposeScene(460, 420, Density(1f)) {
             Box(Modifier.size(460.dp, 420.dp)) {
                 PageRangePanel(
@@ -202,11 +203,11 @@ class DesktopPageRangeTest {
                 for (y in 0 until pixels.height) {
                     val colour = pixels[x, y]
                     if (near(colour, DesktopTheme.accent)) accent++
-                    if (near(colour, DesktopTheme.documentRed)) red++
+                    if (near(colour, DesktopTheme.danger)) red++
                 }
             }
             assertTrue("the commit is written in the accent ($accent px)", accent > 40)
-            assertTrue("the destructive answer in the document red ($red px)", red > 40)
+            assertTrue("the destructive answer in the refusal red ($red px)", red > 40)
         } finally {
             scene.close()
         }

@@ -108,6 +108,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
   (`DOCUMENT_RED_RGB`, `#E53935`) and Save is the accent — the tablet's convention, which the window now
   follows (`DesktopTheme.documentRed`, `DesktopTheme.accent`). A third named colour is a decision for this
   file, not a call site's taste.
+- **A destructive command is the refusal red** (`danger`), never the document red: `danger` is what takes
+  something away or refuses a value (`DANGER_*_RGB`), `documentRed` is the PDF convention above. The window's
+  four button variants (`DesktopButtonVariant`) and their one state recipe are [§6](#6-states-five-all-of-them-drawn);
+  a filled Material button is not a variant, and a dialog's answer is not a capsule.
 - **The window's tones are its own**: bands, surfaces and controls take `DESKTOP_*_RGB` opaque, never the
   tablet's glass (2026-11-19, superseding the 2026-10-25 thinner band); pointer white at
   `DESKTOP_HOVER_DARK_ALPHA`, picked `DESKTOP_ACTIVE_SLOT_DARK_RGB`. The ink and accent are shared.
@@ -184,17 +188,12 @@ Every interactive element defines **default, hover, picked, disabled, focus**. F
 the steel slot; hover is the same steel at `hoverSlotAlpha` (**0.45**), never a colour change of the glyph and
 never the picked fill; disabled keeps its ink but loses its hit area; focus is visible without relying on
 the pointer. **On the window** hover is white at 8 % (`DESKTOP_HOVER_DARK_ALPHA`), picked is its active slot,
-and a focused control wears a 1 dp accent ring. A new element with only a default state is unfinished.
+and a focused control wears an accent ring — 1 dp on a glyph control, 2 dp on a button. A new element with only a default state is unfinished.
 
-The state layer **follows the shape**. An indication is drawn by the node that owns it, so a click applied
-to a bare box lights the box: a 32 dp square around an 18 dp glyph, a 34 dp cell around a 28 dp swatch, arectangle around a menu pane's 10 dp corner, the rectangle around the entry screen's capsule door. A
-rounded control clips to its own shape **before** the click
-(`FavoriteSwatch`'s `DotCellShape`, `ZoomBadge`, and the menu's panes, whose click `GlassPane` takes inside
-its clip), so a tap or a hover lights the capsule, circle or squircle the reader sees and not the rectangle
-around it. `ShapeFeedbackTest` holds the shared controls to that order, because a clip one modifier too
-late compiles and reads correctly.
+The state layer **follows the shape**: an indication is drawn by the node that owns it, and a rounded control clips to its own shape **before** the click (`FavoriteSwatch`'s `DotCellShape`, `ZoomBadge`, the menu's panes whose click `GlassPane` takes inside its clip), so a tap or hover lights the capsule, circle or squircle the reader sees and not the rectangle around it. `ShapeFeedbackTest` holds the shared controls to that order, because a clip one modifier too late still compiles and reads correctly.
 
-**Desktop text controls (owner rule, 2026-11-17):** textual buttons, tabs, presets, numeric commands and navigation labels use `DesktopTextAction` or `desktopTextFeedback`. Hover/press changes ink or underlines the label; picked and keyboard-focus states use an accent underline. Their padding and hit targets never acquire a filled state layer. This applies to dialogs, inspectors, Settings and the sidebar, including primary and destructive text commands (their ink retains its meaning). `DesktopTextFeedbackContractTest` pins the shared factories and checks direct interactive text; `DesktopGlobalTextFeedbackTest` checks real pixels and representative callers.
+**Desktop commands (owner rule, 2026-11-19, superseding the 2026-11-17 text-only rule):** a filled command is `DesktopButton` in one of four variants — **Primary** (accent fill, `onAccent` ink), **Secondary** (control fill, strong hairline, ink), **Ghost** (nothing at rest, `inkSecondary`), **Destructive** (the refusal red at 14/22/30 %, a 40 % `danger` hairline) — at the 4 dp control corner, with hover one step past the rest fill, press one further, disabled keeping its shape at 45 % ink and keyboard focus a 2 dp accent ring. A glyph command is `DesktopIconButton` (4 dp, nothing at rest, `hoverSlot`/`activeSlot`, a 1 dp accent hairline on focus, a delayed 350 ms `StripPill`); a label that navigates — a tab, a preset, a status link — stays `DesktopTextAction`/`desktopTextFeedback`: ink and one underline, the accent for picked and focus, never a box. A field is `DesktopTextField`: `panelField` fill, 1 dp `borderStrong` at rest, the accent while typed in, `danger` on a refused value, value and placeholder in one 12 sp tabular face.
+`DesktopTextFeedbackContractTest` pins the factories, forbids a Material button and forbids a capsule state layer on a command; `DesktopGlobalTextFeedbackTest` reads the four variants, the field and the label out of real pixels.
 
 The main hamburger menu, entry-screen commands and document tabs retain their original capsule/glass presentation (owner-requested exceptions, checked by `DesktopTextFeedbackContractTest`). Other distinct cases: icon tools and switches retain shaped slot feedback; popup menu choices retain the full-width rounded feedback checked by `SidebarTextFeedbackTest`; selection in document text, thumbnails, layers and search results remains content selection. Editable fields retain their caret, native text-selection highlight and bounded focus marker. These are not text-command state layers.
 

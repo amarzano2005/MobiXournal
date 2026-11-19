@@ -4,14 +4,21 @@ import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Text commands must use the desktop recipe; menu choices and content selection have different semantics. */
+/**
+ * The desktop command hierarchy: one filled button, one glyph control, one field, one text label.
+ *
+ * A window that answers "which control is this?" with six paradigms makes the reader learn six looks for
+ * one idea. `docs/interface-contract.md` §2 and §6 name the four button variants, and this test holds the
+ * source to them: the factories delegate, no file imports a Material button, and a command cannot paint a
+ * fill of its own beside the primitive's recipe.
+ */
 class DesktopTextFeedbackContractTest {
     private val root = generateSequence(File(".").absoluteFile) { it.parentFile }
         .first { File(it, "AGENTS.md").isFile }
     private val source = File(root, "desktop/src/main/java/com/mobixournal/desktop")
-    private val owners = mapOf(
-        "tools/PanelButton.kt" to listOf("PanelButton"),
-        "tools/InspectorButton.kt" to listOf("InspectorButton"),
+
+    /** Textual labels, tabs, presets and status links: ink and one underline, never a filled box. */
+    private val textOwners = mapOf(
         "tools/InspectorControls.kt" to listOf("ChoiceRow", "SectionCard"),
         "tools/ScaleneDialogs.kt" to listOf("StepButton", "PresetChip", "TriangleSumRow"),
         "settings/SettingsRows.kt" to listOf("SettingsTextAction", "SettingsCommand", "SettingsPill", "SettingsSectionRow"),
@@ -23,7 +30,7 @@ class DesktopTextFeedbackContractTest {
     )
 
     @Test fun textFactoriesUseTheSharedUnfilledRecipe() {
-        owners.forEach { (file, names) ->
+        textOwners.forEach { (file, names) ->
             val text = File(source, file).readText()
             names.forEach { name ->
                 val start = Regex("fun (?:[A-Za-z]+\\.)?" + name + "\\(").find(text)!!.range.first
@@ -32,11 +39,40 @@ class DesktopTextFeedbackContractTest {
                     .replace(".background(DesktopTheme.panelField)", "") // static selection-bar surface
                     .replace(".background(DesktopTheme.hairline)", "") // static group separator
                     .replace(".background(DesktopTheme.accent, CircleShape)", "") // unsaved document dot
-                assertTrue("$file:$name must delegate to the text recipe",
-                    body.contains("DesktopTextAction(") || body.contains("desktopTextFeedback("))
+                assertTrue(
+                    "$file:$name must delegate to the text recipe",
+                    body.contains("DesktopTextAction(") || body.contains("desktopTextFeedback("),
+                )
                 listOf(".hoverFill(", ".hoverCapsule(", ".background(", ".border(").forEach { forbidden ->
                     assertTrue("$file:$name reintroduced a filled/bordered text state: $forbidden", !body.contains(forbidden))
                 }
+            }
+        }
+    }
+
+    @Test fun theTwoCommandsDelegateToTheFourVariantPrimitive() {
+        val buttons = File(source, "tools/DesktopButtons.kt").readText()
+        val variants = Regex("enum class DesktopButtonVariant\\s*\\{([^}]*)\\}")
+            .find(buttons)?.groupValues?.get(1) ?: ""
+        listOf("Primary", "Secondary", "Ghost", "Destructive").forEach { variant ->
+            assertTrue("$variant is one of the four variants", variants.contains(variant))
+        }
+        assertTrue("the primitive paints its states in one place", buttons.contains("DesktopTheme.hoverSlot"))
+        assertTrue("a focused command wears the accent ring", buttons.contains("border = DesktopTheme.accent") && buttons.contains("borderWidth = 2.dp"))
+
+        val panel = File(source, "tools/PanelButton.kt").readText()
+        assertTrue("a dialog's answer is the primitive", panel.contains("DesktopButton("))
+        assertTrue("its destructive answer is the refusal red", panel.contains("DesktopButtonVariant.Destructive"))
+        assertTrue("the document red is not a destructive button", !panel.contains("documentRed"))
+
+        val inspector = File(source, "tools/InspectorButton.kt").readText()
+        assertTrue("the lane's answer is the primitive", inspector.contains("DesktopButton("))
+        assertTrue("no label-specific copy is rewritten in the factory", !inspector.contains("if (label =="))
+
+        listOf(panel, inspector).forEachIndexed { index, text ->
+            val name = if (index == 0) "PanelButton" else "InspectorButton"
+            listOf(".background(", ".border(", ".hoverFill(", ".hoverCapsule(").forEach { forbidden ->
+                assertTrue("$name re-paints the primitive's own state: $forbidden", !text.contains(forbidden))
             }
         }
     }
@@ -50,13 +86,25 @@ class DesktopTextFeedbackContractTest {
         assertTrue("document tabs retain their original glass and edge", tabs.contains(".tabEdge(active)") && tabs.contains("DesktopTheme.tabFill"))
     }
 
-    @Test fun noMobileButtonImplementationCanBypassTheDesktopRecipe() {
+    @Test fun noDesktopCommandUsesAMaterialButtonOrACapsuleState() {
         val offenders = source.walkTopDown().filter { it.extension == "kt" }.filter {
-            Regex("import androidx\\.compose\\.material3\\.(Button|TextButton|FilledTonalButton|OutlinedButton)\\b")
+            Regex("import androidx\\.compose\\.material3\\.(Button|TextButton|FilledTonalButton|OutlinedButton|IconButton)\\b")
                 .containsMatchIn(it.readText())
         }.map { it.relativeTo(source).path }.toList()
-        assertTrue("use DesktopTextAction for desktop text commands: $offenders", offenders.isEmpty())
+        assertTrue("use DesktopButton/DesktopIconButton for desktop commands: $offenders", offenders.isEmpty())
+
+        listOf(
+            "tools/DesktopButtons.kt",
+            "tools/DesktopInputs.kt",
+            "tools/PanelButton.kt",
+            "tools/InspectorButton.kt",
+        ).forEach { file ->
+            val text = File(source, file).readText()
+            assertTrue("$file paints a capsule state layer", !text.contains(".hoverCapsule("))
+            assertTrue("$file takes a Material icon instead of the catalogue", !text.contains("material.icons"))
+        }
     }
+
     @Test fun directInteractiveTextCannotBypassTheSharedRecipe() {
         // These four nodes are respectively the shared implementation, a rounded popup entry,
         // an explicitly guarded tooltip-bearing command and a draggable window heading.
@@ -95,5 +143,4 @@ class DesktopTextFeedbackContractTest {
         }
         return text.substring(start, at)
     }
-
 }
