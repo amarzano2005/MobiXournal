@@ -224,10 +224,14 @@ or locale), so a re-run reproduces the same bytes and a fixture can be reviewed 
 `scripts/verify.cmd` (Windows) and `scripts/verify.sh` (Linux/macOS) delegate to `scripts/verify.py`
 to run the full closing check sequence without spawning concurrent Gradle daemons:
 
-- Always runs `todo validate`, then the guard test classes (`DocsGuardTest`, `DocClaimsTest`,
-  `SourceStructureTest`, `AgentInstructionsTest`, `ToolbarMenuGuardTest`, `CiCoverageTest`), and
-  refreshes `:desktop:createDistributable` unless `--skip-distributable` is passed.
-- Pass `-- <gradle-args>` for targeted task tests, `--build-apk` when `rebuild = true`,
-  `--todo-tests` for `scripts/todo/test_*.py`, and `--full` to run `:mobix-core:test`,
-  `:app:testDebugUnitTest`, and `:desktop:test` sequentially. On Windows, JDK 17–24 discovery
-  automatically sets `JAVA_HOME` (preferring JDK 21).
+- Always runs `todo validate`, then the guard suites (`DocsGuardTest`, `DocClaimsTest`,
+  `SourceStructureTest`, `AgentInstructionsTest`, `CiCoverageTest`, `ColorContractGuardTest`,
+  `ChromeGeometryGuardTest`, `TypeContractGuardTest`, `SystemBarsGuardTest`,
+  `SettingsCopyParityTest`, `ToolbarMenuGuardTest`), and refreshes `:desktop:createDistributable`
+  unless `--skip-distributable` is passed.
+- Pass `--ui-guards` on UI changes to also run `ShapeFeedbackTest`, `ToolGlyphCoverageTest`, and
+  `SettingsGlyphParityTest` plus the 13 desktop UI contract and pixel guard suites (`:desktop:test`),
+  `-- <gradle-args>` for targeted task tests, `--build-apk` when `rebuild = true`, `--todo-tests`
+  for `scripts/todo/test_*.py`, and `--full` to run `:mobix-core:test`, `:app:testDebugUnitTest`,
+  and `:desktop:test` sequentially. On Windows, JDK 17–24 discovery automatically sets `JAVA_HOME`
+  (preferring JDK 21).

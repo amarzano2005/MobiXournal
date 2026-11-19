@@ -37,7 +37,7 @@ import org.junit.Test
 class DesktopDialogContractTest {
 
     private val root = generateSequence(File(".").absoluteFile) { it.parentFile }
-        .first { File(it, "AGENTS.md").isFile }
+        .first { File(it, "AGENTS.md").isFile && File(it, "docs").isDirectory }
     private val source = File(root, "desktop/src/main/java/com/mobixournal/desktop")
 
     /** The modals: every one of these is a question asked over the page, so all of them use the frame. */

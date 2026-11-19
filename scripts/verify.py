@@ -15,7 +15,32 @@ GUARD_CLASSES = (
     "com.mobixournal.guards.SourceStructureTest",
     "com.mobixournal.guards.AgentInstructionsTest",
     "com.mobixournal.guards.CiCoverageTest",
+    "com.mobixournal.guards.ColorContractGuardTest",
+    "com.mobixournal.guards.ChromeGeometryGuardTest",
+    "com.mobixournal.guards.TypeContractGuardTest",
+    "com.mobixournal.guards.SystemBarsGuardTest",
+    "com.mobixournal.guards.SettingsCopyParityTest",
     "com.mobixournal.ui.ToolbarMenuGuardTest",
+)
+ANDROID_UI_EXTRA_CLASSES = (
+    "com.mobixournal.ui.ShapeFeedbackTest",
+    "com.mobixournal.ui.ToolGlyphCoverageTest",
+    "com.mobixournal.ui.SettingsGlyphParityTest",
+)
+DESKTOP_UI_GUARD_CLASSES = (
+    "com.mobixournal.desktop.DesktopThemeTest",
+    "com.mobixournal.desktop.DesktopDialogContractTest",
+    "com.mobixournal.desktop.DesktopTextFeedbackContractTest",
+    "com.mobixournal.desktop.GlassPopupGuardTest",
+    "com.mobixournal.desktop.DesktopPopupMaterialTest",
+    "com.mobixournal.desktop.DesktopSettingsGlyphTest",
+    "com.mobixournal.desktop.DesktopSettingsStyleTest",
+    "com.mobixournal.desktop.DesktopShapeFeedbackTest",
+    "com.mobixournal.desktop.DismissGuardTest",
+    "com.mobixournal.desktop.ShortcutTableTest",
+    "com.mobixournal.desktop.ChromeMaterialRenderTest",
+    "com.mobixournal.desktop.LightMaterialTest",
+    "com.mobixournal.desktop.ToolStripsTest",
 )
 
 
@@ -107,13 +132,10 @@ def _parse_args(argv: list[str]) -> tuple[argparse.Namespace, list[str]]:
         description="Run sequential MobiXournal validation, guard suites, tests, and packaging.",
     )
     parser.add_argument("--full", action="store_true", help="Run all 3 module test suites sequentially.")
+    parser.add_argument("--ui-guards", action="store_true", help="Run full mobile and desktop UI guard suites.")
     parser.add_argument("--build-apk", action="store_true", help="Run :app:assembleDebug (when rebuild=true).")
     parser.add_argument("--todo-tests", action="store_true", help="Run scripts/todo/test_*.py suites.")
-    parser.add_argument(
-        "--skip-distributable",
-        action="store_true",
-        help="Skip refreshing :desktop:createDistributable.",
-    )
+    parser.add_argument("--skip-distributable", action="store_true", help="Skip :desktop:createDistributable.")
     if "--" in argv:
         split = argv.index("--")
         ns, extra = parser.parse_known_args(argv[:split])
@@ -121,34 +143,32 @@ def _parse_args(argv: list[str]) -> tuple[argparse.Namespace, list[str]]:
     return parser.parse_known_args(argv)
 
 
+def _tests_args(classes: tuple[str, ...]) -> list[str]:
+    return [arg for cls in classes for arg in ("--tests", cls)]
+
+
 def main(argv: list[str] | None = None) -> int:
     """Execute the sequential task verification workflow."""
     args, gradle_args = _parse_args(sys.argv[1:] if argv is None else argv)
     repo = _repo_root()
     env = {**os.environ, "PYTHONUTF8": "1"}
-
     _run_step([sys.executable, str(repo / "scripts" / "todo" / "todo.py"), "validate"], repo, env)
-
     if args.todo_tests:
         for test_file in sorted((repo / "scripts" / "todo").glob("test_*.py")):
             _run_step([sys.executable, str(test_file)], repo, env)
-
     if gradle_args:
         _run_gradle(repo, gradle_args, env)
-
     if args.full:
         for suite in (":mobix-core:test", ":app:testDebugUnitTest", ":desktop:test"):
             _run_gradle(repo, [suite], env)
-
-    guard_args = [":app:testDebugUnitTest", *[x for cls in GUARD_CLASSES for x in ("--tests", cls)]]
-    _run_gradle(repo, guard_args, env)
-
+    app_guards = GUARD_CLASSES + (ANDROID_UI_EXTRA_CLASSES if args.ui_guards else ())
+    _run_gradle(repo, [":app:testDebugUnitTest", *_tests_args(app_guards)], env)
+    if args.ui_guards and not args.full:
+        _run_gradle(repo, [":desktop:test", *_tests_args(DESKTOP_UI_GUARD_CLASSES)], env)
     if args.build_apk:
         _run_gradle(repo, [":app:assembleDebug"], env)
-
     if not args.skip_distributable:
         _run_gradle(repo, [":desktop:createDistributable"], env)
-
     return 0
 
 

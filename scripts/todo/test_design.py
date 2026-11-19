@@ -34,33 +34,12 @@ _FAILURES = []
 GOOD = ("material: capsule in the ribbon's lane; "
         "states: hover and focus added, the other three unchanged")
 
-CITED = "Interaction/Focus States"
-
-CORPUS = ("No,Category,Issue,Platform,Description,Do,Don't,"
-          "Code Example Good,Code Example Bad,Severity\n"
-          "1,Interaction,Focus States,All,A control needs a visible ring,"
-          "Draw the ring,Skip it,ring-2,none,High\n")
-
 
 def check(condition, label):
     status = "ok  " if condition else "FAIL"
     print(f"{status} {label}")
     if not condition:
         _FAILURES.append(label)
-
-
-def corpus_root(tmp):
-    """A checkout that has the skill vendored, with one rule in it."""
-    path = os.path.join(tmp, design.CORPUS)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(CORPUS)
-    return tmp
-
-
-def bare_root(tmp):
-    """A checkout without the skill: a citation cannot be checked there, so it is not judged."""
-    return tmp
 
 
 def scratch(tmp, active=(), finished=()):
@@ -148,28 +127,11 @@ def main():
     mixed = design.problems("none: documentation only; material: unchanged", root=None)
     check(any("whole declaration" in p for p in mixed), "`none:` cannot sit beside answered axes")
 
-    # --- citations of the corpus -------------------------------------------
+    # --- `rule:` is no longer part of the vocabulary ------------------------
 
-    with tempfile.TemporaryDirectory() as tmp:
-        root = corpus_root(tmp)
-        check(design.problems(GOOD + f"; rule: {CITED}", root=root) == [],
-              "a cited rule that exists passes")
-        missing = design.problems(GOOD + "; rule: Interaction/Contrast Ratios", root=root)
-        check(any("Interaction/Contrast Ratios" in p for p in missing),
-              "a cited rule that does not exist is refused by name")
-        check(design.problems(GOOD + "; rule: focus states", root=root) != [],
-              "a citation is matched on its `Category/Issue` id, not on a guess")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        root = bare_root(tmp)
-        check(design.problems(GOOD + f"; rule: {CITED}", root=root) == [],
-              "without the skill vendored a citation is skipped, not failed")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        root = corpus_root(tmp)
-        empty_citation = design.problems(GOOD + "; rule: see the checklist", root=root)
-        check(any("<Category>/<Issue>" in p for p in empty_citation),
-              "`rule:` with no id is refused")
+    rejected_rule = design.problems(GOOD + "; rule: Interaction/Focus States", root=None)
+    check(any("unknown axis `rule`" in p for p in rejected_rule),
+          "`rule:` is refused as an unknown axis")
 
     # --- closing a task ----------------------------------------------------
 

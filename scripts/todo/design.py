@@ -1,8 +1,8 @@
 """The design declaration a change to the interface must carry into the archive.
 
-`docs/interface-contract.md` is the law for what a new interface element must satisfy. Neither could make anyone **say** what
-was checked: the contract's checklist was a paragraph nobody had to answer, so a change closed without
-ever opening it left exactly the same trace as one that had been through all nine lines.
+`docs/interface-contract.md` is the law for what a new interface element must satisfy. Neither could make
+anyone **say** what was checked: the contract's checklist was a paragraph nobody had to answer, so a change
+closed without ever opening it left exactly the same trace as one that had been through all nine lines.
 
 This module is the answering half. `todo.py done` refuses to archive a task without a declaration, and
 the declaration is written in the contract's own words — the axes below are its checklist:
@@ -11,11 +11,8 @@ the declaration is written in the contract's own words — the axes below are it
     states: hover and focus added, the other three unchanged
 
 Two answers is the floor (a single axis is a note, not a check), an axis naming no answer is refused,
-and an unknown axis is refused with the vocabulary rather than silently ignored. A `rule:
-<Category>/<Issue>` clause cites the corpus, and every id in it must exist in `ux-guidelines.csv`, so a
-citation is **checked** where the skill is vendored and skipped where it is not — the gate must not
-depend on a folder someone may delete. `none: why` is the way out for a task with no interface surface,
-and it keeps the reason in the archive beside what shipped.
+and an unknown axis is refused with the vocabulary rather than silently ignored. `none: why` is the way
+out for a task with no interface surface, and it keeps the reason in the archive beside what shipped.
 
 It cannot read a screenshot. What it can do is make the question unskippable and keep the answer, which
 is the most an archive can hold.
@@ -23,25 +20,15 @@ is the most an archive can hold.
 
 from __future__ import annotations
 
-import csv
-import io
-import os
-
 # The contract's checklist, one word per line of it (`docs/interface-contract.md`, *Checklist*).
 AXES = ("material", "tokens", "glyph", "states", "copy", "keyboard", "parity", "docs", "tests")
 
-# Clause keys that are not axes: a citation of the corpus, and the escape for work with no UI surface.
-_CITATION_KEYS = ("rule", "rules")
+# Clause key for work with no UI surface.
 _NONE_KEYS = ("none", "not-ui")
 
 MIN_AXES = 2
 MIN_NONE_REASON = 12
 MAX_DECLARATION = 1200
-
-# Optional local UX guidelines corpus path (skipped when absent).
-CORPUS = os.path.join(".agents", "skills", "ui-ux-pro-max", "data", "ux-guidelines.csv")
-
-_HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def fold(text):
@@ -64,49 +51,9 @@ def normalise(text):
     return fold(raw)
 
 
-def corpus_path(root=None):
-    """Where the vendored corpus would be: *root* (a checkout) or this module's own repo."""
-    base = root or os.path.abspath(os.path.join(_HERE, "..", ".."))
-    return os.path.join(base, CORPUS)
-
-
-def _corpus_ids(root=None):
-    """The `Category/Issue` ids the corpus publishes, or ``None`` when it is not vendored.
-
-    ``None`` is not an error: the skill is a vendored third-party corpus, so a checkout without it is a
-    checkout where a citation cannot be verified — and skipping verification is the honest answer, not
-    refusing every declaration from then on.
-    """
-    path = corpus_path(root)
-    if not os.path.isfile(path):
-        return None
-    try:
-        with io.open(path, encoding="utf-8", newline="") as fh:
-            rows = list(csv.DictReader(fh))
-    except (OSError, csv.Error, UnicodeDecodeError):
-        return None
-    ids = set()
-    for row in rows:
-        category = fold(row.get("Category"))
-        issue = fold(row.get("Issue"))
-        if category and issue:
-            ids.add(f"{category}/{issue}".casefold())
-    return ids or None
-
-
-def _citations(note):
-    """The ids a `rule:` clause names, in the corpus' own `Category/Issue` spelling."""
-    out = []
-    for part in note.split(","):
-        cited = fold(part).strip("`").strip()
-        category, sep, issue = cited.partition("/")
-        if sep and fold(category) and fold(issue):
-            out.append(f"{fold(category)}/{fold(issue)}")
-    return out
-
-
 def problems(text, root=None):
     """Everything wrong with a declaration; an empty list means it says what a closer has to say."""
+    del root
     declaration = normalise(text)
     if not declaration:
         return [
@@ -133,15 +80,12 @@ def problems(text, root=None):
             continue
         if not fold(note):
             out.append(f"`{key}` has no answer: say what you verified, not just the axis")
-        elif key in _CITATION_KEYS:
-            out += _citation_problems(note, root)
         elif key in AXES:
             if key not in answered:
                 answered.append(key)
         else:
             out.append(
-                f"unknown axis `{key}` (the vocabulary is {', '.join(AXES)}, "
-                f"plus `rule:` and `none:`)"
+                f"unknown axis `{key}` (the vocabulary is {', '.join(AXES)}, plus `none:`)"
             )
     if len(answered) < MIN_AXES:
         out.append(
@@ -166,20 +110,3 @@ def _none_problems(clauses):
             "surface: a reader months later is the one it is for"
         )
     return out
-
-
-def _citation_problems(note, root):
-    cited = _citations(note)
-    if not cited:
-        return [
-            "`rule:` needs at least one `<Category>/<Issue>` id from the corpus, "
-            "e.g. `rule: Interaction/Focus States`"
-        ]
-    known = _corpus_ids(root)
-    if known is None:  # not vendored here: nothing to check against, so nothing is claimed
-        return []
-    return [
-        f"`rule: {one}` is not in {CORPUS}: cite a valid `<Category>/<Issue>` id"
-        for one in cited
-        if one.casefold() not in known
-    ]

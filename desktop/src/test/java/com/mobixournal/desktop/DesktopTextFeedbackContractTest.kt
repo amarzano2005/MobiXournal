@@ -14,7 +14,7 @@ import org.junit.Test
  */
 class DesktopTextFeedbackContractTest {
     private val root = generateSequence(File(".").absoluteFile) { it.parentFile }
-        .first { File(it, "AGENTS.md").isFile }
+        .first { File(it, "AGENTS.md").isFile && File(it, "docs").isDirectory }
     private val source = File(root, "desktop/src/main/java/com/mobixournal/desktop")
 
     /** Textual labels, tabs, presets and status links: ink and one underline, never a filled box. */

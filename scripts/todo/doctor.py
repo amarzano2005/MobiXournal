@@ -22,11 +22,23 @@ WIP_ACTIVE_TASK_LIMIT = 30
 
 _REPO_PATH_RE = re.compile(r"\b((?:app|mobix-core|desktop|docs|scripts)/[A-Za-z0-9_./-]+)")
 _EXT_PATH_RE = re.compile(
-    r"\b((?:app|mobix-core|desktop|docs|scripts)/[A-Za-z0-9_./-]+\.(?:kt|kts|java|py|sh|ps1|md|yml))"
+    r"\b((?:app|mobix-core|desktop|docs|scripts)/[A-Za-z0-9_./-]+\.(?:kt|kts|java|py|sh|cmd|ps1|md|yml))"
 )
 _DOC_MD_RE = re.compile(r"\b(docs/[A-Za-z0-9_./-]+\.md)\b")
 _SRC_MAIN_KT_RE = re.compile(r"\b((?:app|mobix-core|desktop)/src/main/[A-Za-z0-9_./-]+\.kt)\b")
 _NEW_PREFIX_RE = re.compile(r"\b(?:new|create)(?:\s+(?:file|spoke))?\s+[`'\"]?$", re.IGNORECASE)
+_UI_PATH_PREFIXES = (
+    "app/src/main/java/com/mobixournal/ui/",
+    "desktop/src/main/java/com/mobixournal/desktop/",
+)
+_UI_DOCS = frozenset({
+    "docs/interface-contract.md",
+    "docs/ui-modernization.md",
+    "docs/chrome.md",
+    "docs/desktop-ui-layout.md",
+    "docs/desktop-workstation.md",
+    "docs/desktop-settings.md",
+})
 
 
 def _parse_date(value):
@@ -71,11 +83,25 @@ def _file_warning(rel_path, lines):
     return None
 
 
+def _is_ui_task(task):
+    if "ui" in (task.get("tags") or []):
+        return True
+    candidates = list(task.get("targets") or [])
+    desc = task.get("description") or ""
+    candidates.extend(m.group(1).rstrip(".") for m in _REPO_PATH_RE.finditer(desc))
+    for ref in candidates:
+        clean = ref.replace("\\", "/").rstrip("/")
+        if clean in _UI_DOCS or any(clean.startswith(prefix) for prefix in _UI_PATH_PREFIXES):
+            return True
+    return False
+
+
 def _suggested_verification(task):
+    ui_flag = " --ui-guards" if _is_ui_task(task) else ""
     build_flag = " --build-apk" if task.get("rebuild") else ""
     steps = [
-        f"Windows: scripts/verify.cmd{build_flag} [-- <gradle-args>]",
-        f"Linux/macOS: scripts/verify.sh{build_flag} [-- <gradle-args>]",
+        f"Windows: scripts/verify.cmd{ui_flag}{build_flag} [-- <gradle-args>]",
+        f"Linux/macOS: scripts/verify.sh{ui_flag}{build_flag} [-- <gradle-args>]",
     ]
     if task.get("emulator_debug"):
         steps.append("Emulator pass required (emulator_debug = true): follow docs/tools-emulator.md")

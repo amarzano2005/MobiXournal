@@ -75,7 +75,29 @@ class DoctorTest(unittest.TestCase):
             self.assertIn("DocsGuardTest", by_path["docs/big.md"]["warning"])
             self.assertIn("SourceStructureTest", by_path["app/src/main/java/Big.kt"]["warning"])
             self.assertTrue(any("--build-apk" in v for v in payload["verification"]))
+            self.assertFalse(any("--ui-guards" in v for v in payload["verification"]))
             self.assertTrue(any("docs/tools-emulator.md" in v for v in payload["verification"]))
+
+            ui_task = dict(active_task, id="work-ui", tags=["ui"])
+            ui_payload = doctor.brief_task(ui_task, [ui_task], [done_dep], root=tmp)
+            self.assertTrue(any("--ui-guards --build-apk" in v for v in ui_payload["verification"]))
+
+            ui_doc_task = {
+                "id": "work-ui-doc",
+                "title": "Align layout doc",
+                "description": "Update docs/desktop-ui-layout.md and verify with DesktopThemeTest.",
+                "status": "active",
+                "level": "task",
+                "category": "docs",
+                "urgency": "normal",
+                "order": 110,
+                "created": datetime.date(2026, 11, 10),
+                "tags": [],
+                "rebuild": False,
+                "emulator_debug": False,
+            }
+            ui_doc_payload = doctor.brief_task(ui_doc_task, [ui_doc_task], [], root=tmp)
+            self.assertTrue(any("--ui-guards" in v for v in ui_doc_payload["verification"]))
 
             rendered = doctor.format_brief(payload)
             self.assertIn("[DONE 2026-11-12] dep-done", rendered)

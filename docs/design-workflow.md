@@ -20,6 +20,5 @@ scripts/todo.sh done <id> --shipped "..." --design "none: docs only, no interfac
 
 A declaration is `axis: answer` clauses split by `;` (or one per line, in `--design-file`), in the contract's own checklist words: `material`,
 `tokens`, `glyph`, `states`, `copy`, `keyboard`, `parity`, `docs`, `tests`. Two answers are the minimum, an
-empty one is refused, and an unknown axis is refused with the vocabulary. A `rule: <Category>/<Issue>`
-clause is optional and only verified when a local UX corpus is present. It cannot read a screenshot, only that the question was asked and answered.
+empty one is refused, and an unknown axis is refused with the vocabulary. It cannot read a screenshot, only that the question was asked and answered.
 Implementation `scripts/todo/design.py`; regression check `python3 scripts/todo/test_design.py`, run by CI.
