@@ -1,5 +1,7 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.hoverFill
+import com.mobixournal.desktop.tools.DesktopIconButton
+import com.mobixournal.desktop.tools.DesktopTextField
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
@@ -10,17 +12,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import com.mobixournal.design.ChromeGlyph
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,9 +37,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -39,27 +48,28 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mobixournal.design.ChromeGlyph
 import kotlin.math.roundToInt
 
 /**
- * The open documents, as a strip under the header.
+ * The open documents, as a strip inside the header band.
  *
- * Each tab shows its document's label and a monoline close glyph, and every one wears the **tablet's chip**:
- * the floating glass, at full strength for the document in front and thinned behind a hairline for the
- * rest, with the picked one also carrying the **accent edge** — 1 dp of the primary colour at 60 % — so
- * "which document am I in" is one bluish outline on a pane of glass rather than the steel a tool slot
- * wears. A tab whose edits are not in the file yet carries a small accent dot after
- * the label — the strip's only status readout, and the reason closing it asks before it goes. A **double-click edits the label in place** — a tab label is a label,
- * not the file's name — and **dragging sideways reorders** the strip. The `+` at the end is the same
- * open action the header button and `Ctrl+T` invoke.
+ * The strip is the flat band's, not a row of glass chips (`docs/interface-contract.md` §1): a tab is 28 dp
+ * tall on the 4 dp control corner, the document in front wears the panel tone with one hairline and a
+ * **2 dp accent bar** under it, and a tab behind it is bare — it only answers the pointer with the band's
+ * own hover step. A tab whose edits are not in the file yet carries a small accent dot beside its label,
+ * and its close cross is always on screen; a resting tab reveals the cross under the pointer.
  *
- * Tab widths are measured per tab, because drag-to-reorder needs to know how far one tab is: the
- * distance dragged divided by that width is how many places to move.
+ * **The tabs scroll, the `+` does not.** Long labels and many documents used to push the strip past the
+ * band's edge, where the last tabs and the new-document button were clipped and unreachable: the list now
+ * lives in a horizontal scroll that shares the band with the window, and the `+` stands outside it.
+ *
+ * A **double-click edits the label in place** through the window's own field, so the caret is the accent
+ * one in both themes, and **dragging sideways reorders** — the dragged tab follows the pointer through a
+ * live translation until it is dropped on its new place. Widths are measured per tab because that drag
+ * needs to know how far one tab is.
  */
 @Composable
 fun TabStrip(
@@ -74,97 +84,135 @@ fun TabStrip(
     var renamingKey by remember { mutableStateOf<String?>(null) }
     var dragFrom by remember { mutableStateOf(-1) }
     var dragX by remember { mutableStateOf(0f) }
-
-    // A little air at the strip's own end, so the last tab does not sit flush against the band's edge.
-    Row(
-        modifier.height(36.dp).padding(end = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        tabs.all.forEachIndexed { index, tab ->
-            val active = index == tabs.activeIndex
-            val width = widths[tab.key] ?: TAB_FALLBACK_PX
-
-            Row(
-                Modifier
-                    .onGloballyPositioned { widths[tab.key] = it.size.width.toFloat() }
-                    .padding(end = 6.dp)
-                    .height(30.dp)
-                    .widthIn(min = 120.dp, max = 240.dp)
-                    // The chip's fill and its hover step are **one** background, so the light cannot
-                    // disagree with the capsule it fills: the tablet's glass at full strength while this is
-                    // the document in front, the same glass thinned while it is not.
-                    .hoverFill(
-                        DesktopTheme.capsuleShape,
-                        active = active,
-                        base = if (active) DesktopTheme.tabFill else DesktopTheme.tabFillResting,
-                    )
-                    .tabEdge(active)
-                    // Answered on the **press**: a tab that also offers a double-click (the rename) makes
-                    // `detectTapGestures` hold every single tap for the double-tap timeout, which read as a
-                    // ~300 ms slow switch — `Ctrl+Tab` never paid it.
-                    .pointerInput(tab.key, index) {
-                        detectTapGestures(
-                            onPress = { onActivate(index) },
-                            onDoubleTap = { renamingKey = tab.key },
-                        )
-                    }
-                    .pointerInput(tab.key, tabs.size) {
-                        // A drag that lands past the end is clamped by `DesktopTabs.move`, so letting
-                        // go slightly outside the strip must not drop the tab.
-                        detectDragGestures(
-                            onDragStart = { dragFrom = index; dragX = 0f },
-                            onDragEnd = {
-                                if (dragFrom >= 0) {
-                                    val steps = (dragX / width.coerceAtLeast(1f)).roundToInt()
-                                    onMove(dragFrom, dragFrom + steps)
-                                }
-                                dragFrom = -1
-                                dragX = 0f
-                            },
-                            onDragCancel = { dragFrom = -1; dragX = 0f },
-                        ) { _, drag -> dragX += drag.x }
+    Row(modifier.height(TAB_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
+        // `fill = false`, so a strip of one tab keeps the `+` beside it instead of at the band's far end.
+        Row(
+            Modifier.weight(1f, fill = false).horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            tabs.all.forEachIndexed { index, tab ->
+                TabItem(
+                    tab = tab,
+                    active = index == tabs.activeIndex,
+                    dragOffset = if (dragFrom == index) dragX else 0f,
+                    renaming = renamingKey == tab.key,
+                    onMeasure = { widths[tab.key] = it },
+                    onActivate = { onActivate(index) },
+                    onRename = { renamingKey = tab.key },
+                    onRenameDone = { renamingKey = null },
+                    onClose = { onClose(index) },
+                    onDragStart = { dragFrom = index; dragX = 0f },
+                    onDrag = { dragX += it },
+                    onDragEnd = {
+                        if (dragFrom >= 0) {
+                            val width = (widths[tab.key] ?: TAB_FALLBACK_PX).coerceAtLeast(1f)
+                            onMove(dragFrom, dragFrom + (dragX / width).roundToInt())
+                        }
+                        dragFrom = -1
+                        dragX = 0f
                     },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Spacer(Modifier.width(12.dp))
-                if (renamingKey == tab.key) {
-                    RenamingField(tab, onDone = { renamingKey = null })
-                } else {
-                    androidx.compose.material3.Text(
-                        text = tab.title,
-                        color = if (active) DesktopTheme.ink else DesktopTheme.inkSecondary,
-                        // The tablet's label role, in the Medium face the family actually ships: the picked
-                        // tab is heavier than the rest without borrowing a weight Inter does not have.
-                        style = DesktopTheme.tab.copy(
-                            fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 160.dp),
-                    )
-                }
-                if (tab.isDirty) {
-                    // An **unsaved edit**, as the family's one status readout on the strip: a single
-                    // accent dot beside the label, absent when the file holds everything on the page.
-                    // It is not a control — the clickable thing beside it is the close glyph — so it
-                    // carries no hover, focus or disabled state (`docs/interface-contract.md` §6).
-                    Spacer(Modifier.width(6.dp))
-                    Box(Modifier.size(DIRTY_DOT_DP.dp).background(DesktopTheme.accent, CircleShape))
-                }
-                Spacer(Modifier.weight(1f))
-                CloseGlyph(onClose = { onClose(index) })
-                Spacer(Modifier.width(6.dp))
+                    onDragCancel = { dragFrom = -1; dragX = 0f },
+                )
             }
         }
-
-        AddTabButton(onNew)
         Spacer(Modifier.width(4.dp))
+        AddTabButton(onNew)
+    }
+}
+
+/**
+ * One tab: its label — or the field that renames it — the dirty dot and the close cross.
+ *
+ * The tab answers a **press** rather than a tap: it also offers a double-click (the rename), and
+ * `detectTapGestures` would hold every single click for the double-tap timeout, which read as a ~300 ms
+ * slow switch. The drag is a second pointer loop on the same box, so a sideways gesture reorders while a
+ * click still opens the document.
+ */
+@Composable
+private fun TabItem(
+    tab: DesktopTab,
+    active: Boolean,
+    dragOffset: Float,
+    renaming: Boolean,
+    onMeasure: (Float) -> Unit,
+    onActivate: () -> Unit,
+    onRename: () -> Unit,
+    onRenameDone: () -> Unit,
+    onClose: () -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
+) {
+    val pointer = remember { MutableInteractionSource() }
+    val hovered by pointer.collectIsHoveredAsState()
+    val shape = DesktopTheme.controlShape
+    Box(
+        Modifier
+            // The live drag: the tab follows the pointer instead of standing still until it is dropped.
+            .graphicsLayer { translationX = dragOffset }
+            .onGloballyPositioned { onMeasure(it.size.width.toFloat()) }
+            .padding(end = TAB_GAP)
+            .height(TAB_HEIGHT)
+            .widthIn(min = TAB_MIN_WIDTH, max = TAB_MAX_WIDTH)
+            .clip(shape)
+            .background(if (active) DesktopTheme.popupSurface else Color.Transparent, shape)
+            .then(if (active) Modifier.border(1.dp, DesktopTheme.hairline, shape) else Modifier)
+            .then(if (active) Modifier else Modifier.hoverFill(shape))
+            .hoverable(pointer)
+            .pointerInput(tab.key) {
+                detectTapGestures(onPress = { onActivate() }, onDoubleTap = { onRename() })
+            }
+            .pointerInput(tab.key) {
+                detectDragGestures(
+                    onDragStart = { onDragStart() },
+                    onDragEnd = onDragEnd,
+                    onDragCancel = onDragCancel,
+                ) { _, drag -> onDrag(drag.x) }
+            },
+    ) {
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (renaming) {
+                TabRenameField(tab, onDone = onRenameDone)
+            } else {
+                Text(
+                    text = tab.title,
+                    color = if (active) DesktopTheme.ink else DesktopTheme.inkSecondary,
+                    style = DesktopTheme.tab,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+            if (tab.isDirty) {
+                // An **unsaved edit**: one accent dot beside the label, absent when the file holds
+                // everything on the page. It is not a control, so it carries no state of its own.
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.size(DIRTY_DOT_DP.dp).background(DesktopTheme.accent, CircleShape))
+            }
+            Spacer(Modifier.weight(1f))
+            // Always there on the document in front and on a tab with unsaved work; a resting tab offers
+            // it only while the pointer is on it, so a row of tabs is not a row of crosses.
+            if (active || tab.isDirty || hovered) CloseTabButton(onClose)
+        }
+        if (active) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(ACTIVE_BAR_HEIGHT)
+                    .background(DesktopTheme.accent),
+            )
+        }
     }
 }
 
 /** The label, edited in place: Enter commits, Escape abandons, an empty label falls back to the file. */
 @Composable
-private fun RenamingField(tab: DesktopTab, onDone: () -> Unit) {
+private fun TabRenameField(tab: DesktopTab, onDone: () -> Unit) {
     var text by remember(tab) { mutableStateOf(tab.title) }
     val focus = remember { FocusRequester() }
 
@@ -173,17 +221,13 @@ private fun RenamingField(tab: DesktopTab, onDone: () -> Unit) {
         onDone()
     }
 
-    BasicTextField(
+    DesktopTextField(
         value = text,
         onValueChange = { text = it },
-        singleLine = true,
-        // The field wears the **role it edits**: a tab's name is [DesktopTheme.tab], so a rename cannot
-        // change the face the label is read in (it was a 12 sp literal in the bare family, which is one
-        // weight and one tracking step away from the name it replaces).
-        textStyle = DesktopTheme.tab.copy(color = DesktopTheme.ink),
+        height = TAB_HEIGHT,
         modifier = Modifier
-            .width(140.dp)
-            .focusRequester(focus)
+            .width(TAB_RENAME_WIDTH)
+            // The field's own keys, ahead of the text box: Enter is the commit, never a newline.
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
@@ -198,63 +242,60 @@ private fun RenamingField(tab: DesktopTab, onDone: () -> Unit) {
                     else -> false
                 }
             },
+        focusRequester = focus,
+        onSubmit = { commit() },
     )
     LaunchedEffect(Unit) { focus.requestFocus() }
 }
 
-/** A close glyph drawn as two monoline strokes — no filled Material icon in this chrome. */
+/** The tab's close cross: the catalogue's mark with its own tooltip and accelerator. */
 @Composable
-private fun CloseGlyph(onClose: () -> Unit) {
-    Box(
-        Modifier
-            .width(22.dp)
-            .height(22.dp)
-            .hoverFill(DesktopTheme.capsuleShape)
-            .pointerInput(Unit) { detectTapGestures { onClose() } },
-        contentAlignment = Alignment.Center,
+private fun CloseTabButton(onClose: () -> Unit) {
+    DesktopIconButton(
+        description = "Close tab",
+        onClick = onClose,
+        size = CLOSE_BUTTON,
+        shortcut = "Ctrl+W",
     ) {
-        Canvas(Modifier.size(14.dp)) {
+        Canvas(Modifier.size(12.dp)) {
             drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.inkSecondary)
         }
     }
 }
 
-/** A monoline `+`: a new page at the end of the strip, the tablet's New command. */
+/** The `+`: another document, the same command the header's menu and `Ctrl+N` invoke. */
 @Composable
 private fun AddTabButton(onNew: () -> Unit) {
-    Box(
-        Modifier
-            .width(28.dp)
-            .height(28.dp)
-            .background(Color.Transparent, DesktopTheme.capsuleShape)
-            .hoverFill(DesktopTheme.capsuleShape)
-            .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)
-            .pointerInput(Unit) { detectTapGestures { onNew() } },
-        contentAlignment = Alignment.Center,
+    DesktopIconButton(
+        description = "New notebook",
+        onClick = onNew,
+        size = 28.dp,
+        shortcut = "Ctrl+N",
     ) {
         Canvas(Modifier.size(16.dp)) {
-            drawChromeGlyph(ChromeGlyph.ADD, DesktopTheme.inkSecondary)
+            drawChromeGlyph(ChromeGlyph.ADD, DesktopTheme.chromeInk)
         }
     }
 }
 
-/**
- * **The edge a tab wears**: the tablet's two rims, one per state — the accent at 60 % while it is the
- * document in front, the chrome's hairline while it is not.
- *
- * The tablet's resting chip keeps a hairline so it still reads as an object on the band; the picked one
- * swaps it for the accent ring, which is how the tablet answers "which one is open". Its own helper because
- * the strip's row is a row: a style that reads as five lines inside it is a style that pushed the function
- * past `SourceStructureTest`'s ceiling.
- */
-private fun Modifier.tabEdge(active: Boolean): Modifier = border(
-    1.dp,
-    if (active) DesktopTheme.accent.copy(alpha = TAB_ACCENT_ALPHA) else DesktopTheme.hairline,
-    DesktopTheme.capsuleShape,
-)
+/** A tab's own height: the flat band's control, not the capsule chip it used to wear. */
+private val TAB_HEIGHT = 28.dp
 
-/** The picked tab's edge: the tablet's 60 % accent ring, the one mark a selected chip wears. */
-private const val TAB_ACCENT_ALPHA = 0.6f
+/** How much a tab may shrink to, and how much of the band one long label may take. */
+private val TAB_MIN_WIDTH = 100.dp
+private val TAB_MAX_WIDTH = 180.dp
+
+/** The field a rename happens in: one tab's width, minus the air its own controls need. */
+private val TAB_RENAME_WIDTH = 120.dp
+
+/** The air after a tab, so two tabs read as two objects and not as one split label. */
+private val TAB_GAP = 4.dp
+
+/** The close cross's own box: one step inside the tab it closes. */
+private val CLOSE_BUTTON = 20.dp
+
+/** The bar under the document in front: the strip's one mark of place. */
+private val ACTIVE_BAR_HEIGHT = 2.dp
 
 /** Fallback width of a tab before its first layout pass has been measured. */
 private const val TAB_FALLBACK_PX = 140f

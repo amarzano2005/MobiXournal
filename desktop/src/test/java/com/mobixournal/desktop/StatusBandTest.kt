@@ -6,7 +6,9 @@ import com.mobixournal.desktop.shell.bandMetrics
 import com.mobixournal.desktop.shell.fitLabel
 import com.mobixournal.desktop.shell.fitTip
 import com.mobixournal.desktop.shell.penTip
+import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,6 +44,23 @@ class StatusBandTest {
         assertNull(bandMetrics(0, 3.24))
     }
 
+    /**
+     * The accent on this band belongs to its **one door**, the zoom percentage. A report — an export, a
+     * copy — is news and keeps the secondary ink, so the colour never claims a command where there is none.
+     */
+    @Test
+    fun `the accent is the door's and news keeps the secondary ink`() {
+        val source = File(root(), "shell/DesktopStatus.kt").readText()
+        assertTrue("the door wears the accent", body(source, "private fun BandDoor(").contains("DesktopTheme.accent"))
+        assertTrue(
+            "a refused command is not the document red",
+            body(source, "private fun RefusalBadge(").contains("DesktopTheme.danger"),
+        )
+        val export = body(source, "DesktopExportNotice.text?.let { message ->")
+        assertTrue("the export's sentence is secondary ink", export.contains("DesktopTheme.inkSecondary"))
+        assertFalse("not the accent, which is the door's", export.contains("DesktopTheme.accent"))
+    }
+
     @Test
     fun `the pen's tip keeps the claim and the words the band drops`() {
         val tip = penTip(PenSource.MOUSE, dial = false, hz = 120, paintMs = 3.24)
@@ -53,5 +72,25 @@ class StatusBandTest {
             "pen: Windows Ink",
             penTip(PenSource.INK, dial = false, hz = null, paintMs = null),
         )
+    }
+
+    /** `desktop/src/main/java/com/mobixournal/desktop`, found from wherever the test is run. */
+    private fun root(): File {
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
+            if (File(dir, "AGENTS.md").isFile && File(dir, "docs").isDirectory) {
+                return File(dir, "desktop/src/main/java/com/mobixournal/desktop")
+            }
+            dir = dir.parentFile
+        }
+        error("no repository root above ${File(".").absolutePath}: this test must run inside the repo")
+    }
+
+    /** A declaration's body: from its signature to the next `}` in the first column. */
+    private fun body(source: String, signature: String): String {
+        val start = source.indexOf(signature)
+        if (start < 0) return ""
+        val end = source.indexOf("\n}", start)
+        return if (end < 0) source.substring(start) else source.substring(start, end)
     }
 }

@@ -47,42 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-tabstrip-status"
-title = "Make TabStrip scrollable with flat workstation tabs and declutter DesktopStatus"
-description = """
-Phase 2B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-titlebar-header`. Fix tab clipping, invisible dark-mode rename caret, dead drag feedback, and duplicated/misleading StatusBar readouts.
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/shell/TabStrip.kt`:
-   - Extract `TabItem`, `TabRenameField`, and `AddTabButton` helpers so NO function exceeds 85 lines (current `TabStrip` is at 100/100!).
-   - Wrap the tab list in `Row(Modifier.weight(1f, fill = false).horizontalScroll(rememberScrollState()))` and place `AddTabButton` (`28.dp` `DesktopIconButton`, tooltip `"New notebook"`, shortcut `"Ctrl+N"`) immediately AFTER the scrollable row so `+` and extra tabs never clip off-screen.
-   - Flat workstation tabs: `28.dp` height, `DesktopTheme.controlShape` (`4.dp`), `widthIn(min = 100.dp, max = 180.dp)`; active tab uses `DesktopTheme.popupSurface` fill + `1.dp` `DesktopTheme.hairline` border + `2.dp` `DesktopTheme.accent` bottom accent bar; inactive tab is transparent at rest with `hoverFill(4.dp)`.
-   - Close `×` button (`20.dp`, `4.dp` hover, tooltip `"Close tab"`, shortcut `"Ctrl+W"`): always visible on active or dirty tabs; hover-revealed on inactive tabs.
-   - Apply live `Modifier.graphicsLayer { translationX = dragX }` to the tab being dragged during reorder.
-   - Replace `RenamingField` with `DesktopTextField` (guarantees visible `DesktopTheme.accent` caret in dark mode).
-2. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopStatus.kt`:
-   - `.bandSurface().bandDivider(BandEdge.TOP)` (zero shadow).
-   - Remove duplicated `SearchCount` and `AudioStatus` blocks already shown in `Header`.
-   - Reserve `DesktopTheme.accent` strictly for clickable `BandDoor` (`100%` zoom reset; remove unused `pressed` var). Passive notices (`DesktopPdfTextNotice`, `DesktopExportNotice`) use `DesktopTheme.inkSecondary`.
-   - When `refusal != null`, display an inline `DesktopTheme.danger` badge instead of executing `return@Row` (never wipe zoom, fit, filename, or progress bar).
-   - Give filename `Modifier.weight(1f, fill = false)`, `maxLines = 1`, `overflow = TextOverflow.Ellipsis`, and a tooltip showing the full filename/container.
-   - Give `ProgressBar` rounded `2.dp` corners and a `"Page X of Y"` tooltip.
-3. Docs: update `docs/desktop-ui-layout.md` §1 tab strip & status bar bullets (`<= 300` lines).
-4. Tests: update `DesktopShellTest.kt`, `DesktopStatusTest.kt`, `StatusBandTest.kt`.
-
-DO NOT: leave `TabStrip()` > 100 lines; use `tabFill`/`tabFillResting`/`capsuleShape` on tabs; use `documentRed` for status refusals.
-Verification: run `:desktop:test` on `DesktopShellTest`, `DesktopStatusTest`, `StatusBandTest`, `DesktopTabsTest`, plus `DocsGuardTest`, `SourceStructureTest`; inspect `shell-tabs.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 50
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "chrome"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-menu-redesign"
 title = "Redesign DesktopMenu as a uniform flat desktop menu without embossed chips or tiles"
 description = """

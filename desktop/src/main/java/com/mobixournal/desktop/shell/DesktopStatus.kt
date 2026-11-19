@@ -2,12 +2,13 @@ package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.tools.desktopTextFeedback
 import com.mobixournal.desktop.tools.StripPill
+import com.mobixournal.desktop.tools.bandDivider
 import com.mobixournal.desktop.tools.bandSurface
+import com.mobixournal.desktop.tools.BandEdge
 import com.mobixournal.desktop.ink.DesktopTablet
 import com.mobixournal.desktop.ink.FrameMeter
 import com.mobixournal.desktop.ink.PenSource
 import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopExportNotice
 import com.mobixournal.desktop.io.DesktopPdfTextNotice
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -23,7 +24,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,7 +35,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import java.awt.GraphicsEnvironment
@@ -115,29 +116,6 @@ internal fun displayRefreshHz(): Int? {
 }
 
 /**
- * The search's count on the status band, beside the page counter: both answer "where am I", and a reader who
- * pressed Enter wants to know how many matches are left without looking back up at the field.
- *
- * It mirrors the field's state instead of recomputing it: a query the walk has not answered yet reads as
- * *Searching…* here too, because `0 / 0 found` would be a count of matches that do not exist
- * (`DesktopTab.isSearchPending`).
- */
-@Composable
-private fun SearchCount(tab: DesktopTab) {
-    if (tab.searchQuery.isBlank()) return
-    Spacer(Modifier.width(10.dp))
-    if (tab.isSearchPending) {
-        Text("Searching…", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-    } else {
-        Text(
-            "${tab.search.position} / ${tab.search.total} found",
-            color = DesktopTheme.accent,
-            style = DesktopTheme.numeric,
-        )
-    }
-}
-
-/**
  * What the band says with nothing on screen: the file an open is waiting for, or that there is nothing.
  *
  * Its own composable rather than three lines inside the bar: the bar is at its function budget, and this is
@@ -153,13 +131,11 @@ private fun WaitingSentence(opening: String?) {
 }
 
 /** The bottom bar: page, zoom, container and how far through the document the page is. */
-@Composable
+    @Composable
 internal fun StatusBar(
     tab: DesktopTab?,
     tablet: DesktopTablet? = null,
     frameTime: Boolean = true,
-    /** The window's audio, whose take indicator and one-sentence report live on this band. */
-    audio: DesktopAudioSession? = null,
     /** A command that was refused, in one sentence — a page that belongs to another PDF, today. */
     refusal: String? = null,
     /**
@@ -177,10 +153,11 @@ internal fun StatusBar(
             .fillMaxWidth()
             .height(DesktopTheme.statusHeight)
             .bandSurface()
+            // The band is closed against the canvas by its own hairline, not by a shadow (`§1`).
+            .bandDivider(BandEdge.TOP)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        audio?.let { session -> AudioStatus(session) }
         if (tab == null) {
             WaitingSentence(opening)
             return@Row
@@ -192,7 +169,6 @@ internal fun StatusBar(
         val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) }.getOrNull() }
         val fit = page?.let { tab.fitFor(it.width.toFloat(), it.height.toFloat()) } ?: tab.fit
         BandReading(pageLabel(tab.page, tab.pageCount), "The page in view", "PageDown / PageUp", numeric = true)
-        SearchCount(tab)
         // A document the gate would not let this build write says so on the band, with the whole sentence
         // under the pointer: drawing, Save and Save As are off, and this is the answer that turned them off.
         tab.document.gateNote?.let { note ->
@@ -206,11 +182,11 @@ internal fun StatusBar(
             BandReading(label, portabilityTip(tab.document.portability))
         }
         // A refused command says what happened and what to do, and sits here until the next command
-        // replaces it (`docs/ui-modernization.md` — the error-copy rule).
+        // replaces it (`docs/ui-modernization.md` — the error-copy rule). It is a **badge**, not the end
+        // of the band: the zoom, the fit, the file and the progress bar keep their place beside it.
         refusal?.let { sentence ->
             BandGap()
-            Text(sentence, color = DesktopTheme.documentRed, style = DesktopTheme.label)
-            return@Row
+            RefusalBadge(sentence)
         }
         BandGap()
         // The band's one door: the percentage is also the way back to 100 % (`Ctrl+1`).
@@ -223,23 +199,92 @@ internal fun StatusBar(
         PenReading(tablet, frameTime)
         Spacer(Modifier.weight(1f))
         // The PDF text slot's own sentence — `Copied 4 words`, or the reason it could select nothing — in
-        // the accent, because it is news about what the press just did (`DesktopPdfTextNotice`).
+        // the secondary ink: it is news (`DesktopPdfTextNotice`), and the accent is the one **door** on
+        // this band, so a report never wears it.
         DesktopPdfTextNotice.text?.let { message -> PdfTextBandNotice(message) }
-        // The last export's own sentence — `Exported 12 pages to notes.pdf` — in the accent, because it is
-        // news rather than a reading of the document. A write that worked is worth one line, not a card.
+        // The last export's own sentence — `Exported 12 pages to notes.pdf` — also in the secondary ink. A
+        // write that worked is worth one line, not a card.
         DesktopExportNotice.text?.let { message ->
-            Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
+            Text(message, color = DesktopTheme.inkSecondary, style = DesktopTheme.label, maxLines = 1)
             Spacer(Modifier.width(14.dp))
         }
+        FileReading(tab)
+        Spacer(Modifier.width(12.dp))
+        ProgressReading(tab)
+    }
+}
+
+/**
+ * The container and the file name, in one reading that **gives way**: the name is elided at the band's own
+ * width instead of pushing the progress bar off it, and the pointer gets the whole path in a pill.
+ */
+@Composable
+private fun FileReading(tab: DesktopTab) {
+    val pointer = remember { MutableInteractionSource() }
+    val hovered by pointer.collectIsHoveredAsState()
+    Box {
         Text(
             text = "${tab.document.container.label} · ${tab.file.name}",
-            color = DesktopTheme.inkMuted,
+            color = if (hovered) DesktopTheme.ink else DesktopTheme.inkMuted,
             style = DesktopTheme.label,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .widthIn(max = FILE_NAME_MAX_WIDTH)
+                .clip(BAND_READING_SHAPE)
+                .hoverable(pointer)
+                .padding(horizontal = 4.dp, vertical = 1.dp),
         )
-        Spacer(Modifier.width(12.dp))
-        ProgressBar(pageProgress(tab.page, tab.pageCount))
+        if (hovered) BandTip("${tab.file.absolutePath} · ${tab.document.container.label}", "")
     }
+}
+
+/**
+ * The page's completion, in the accent, with its own sentence under the pointer: `Page 3 of 8`.
+ *
+ * A reading, not a door: it does not brighten the accent when it is hovered, because it runs no command.
+ */
+@Composable
+private fun ProgressReading(tab: DesktopTab) {
+    val pointer = remember { MutableInteractionSource() }
+    val hovered by pointer.collectIsHoveredAsState()
+    val shape = RoundedCornerShape(PROGRESS_CORNER)
+    Box {
+        Box(
+            Modifier
+                .width(90.dp)
+                .height(3.dp)
+                .clip(shape)
+                .background(DesktopTheme.activeSlot)
+                .hoverable(pointer),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(pageProgress(tab.page, tab.pageCount).coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(DesktopTheme.accent),
+            )
+        }
+        if (hovered) BandTip("Page ${tab.page + 1} of ${tab.pageCount}", "")
+    }
+}
+
+/**
+ * A refused command on the band: the refusal red, held in a wash of its own colour so it reads as a notice
+ * rather than as one more reading.
+ */
+@Composable
+private fun RefusalBadge(sentence: String) {
+    Text(
+        text = sentence,
+        color = DesktopTheme.danger,
+        style = DesktopTheme.label,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(DesktopTheme.controlShape)
+            .background(DesktopTheme.danger.copy(alpha = REFUSAL_WASH))
+            .padding(horizontal = 6.dp, vertical = 1.dp),
+    )
 }
 
 /**
@@ -250,7 +295,7 @@ internal fun StatusBar(
  */
 @Composable
 private fun RowScope.PdfTextBandNotice(message: String) {
-    Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
+    Text(message, color = DesktopTheme.inkSecondary, style = DesktopTheme.label, maxLines = 1)
     DesktopPdfTextNotice.retry?.let { action ->
         Spacer(Modifier.width(6.dp))
         DesktopTextAction("Try again", action, tone = DesktopTheme.accent,
@@ -288,7 +333,6 @@ private fun BandReading(text: String, tip: String, accent: String = "", numeric:
 private fun BandDoor(text: String, tip: String, accent: String, onCommand: () -> Unit) {
     val pointer = remember { MutableInteractionSource() }
     val hovered by pointer.collectIsHoveredAsState()
-    val pressed by pointer.collectIsPressedAsState()
     Box {
         Text(
             text = text,
@@ -383,52 +427,14 @@ internal fun penTip(source: PenSource, dial: Boolean, hz: Int?, paintMs: Double?
 private val BAND_READING_SHAPE = RoundedCornerShape(4.dp)
 private val BAND_TIP_LIFT = 26.dp
 
-/**
- * The recording indicator: a record dot in the document red, the take's own `mm:ss`, and a thin level
- * bar — or, when nothing is being recorded, the one sentence the audio had to say (a recording this
- * machine does not have, a microphone that would not open).
- *
- * It is here rather than only on the pill because a take can start while the pill is scrolled out of
- * sight on a narrow window, and "is the microphone on" must never be a guess.
- */
-@Composable
-private fun AudioStatus(session: DesktopAudioSession) {
-    val message = session.message
-    if (session.recording) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(DesktopTheme.documentRed))
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = if (session.recordingPaused) "recording paused" else "recording ${formatTime(session.recordedMs)}",
-            color = DesktopTheme.documentRed,
-            style = DesktopTheme.numeric,
-        )
-        Spacer(Modifier.width(6.dp))
-        Box(Modifier.width(40.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(DesktopTheme.activeSlot)) {
-            Box(
-                Modifier
-                    .width((40f * session.level.coerceIn(0f, 1f)).dp)
-                    .height(4.dp)
-                    .background(DesktopTheme.accent),
-            )
-        }
-        Spacer(Modifier.width(14.dp))
-    } else if (message != null) {
-        Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
-        Spacer(Modifier.width(14.dp))
-    }
-}
+/** The progress bar's own corner: half the band's 4 dp, because a 3 dp bar cannot wear a whole one. */
+private val PROGRESS_CORNER = 2.dp
 
-@Composable
-private fun ProgressBar(fraction: Float) {
-    Box(Modifier.width(90.dp).height(3.dp).background(DesktopTheme.activeSlot)) {
-        Box(
-            Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .fillMaxHeight()
-                .background(DesktopTheme.accent),
-        )
-    }
-}
+/** The refusal badge's wash: its own colour, thin enough that the sentence is still the ink. */
+private const val REFUSAL_WASH = 0.14f
+
+/** How much of the band a file name may take before it is elided: the bar and its air keep the rest. */
+private val FILE_NAME_MAX_WIDTH = 260.dp
 
 /** The empty window's message, or the card standing in for it: a title and a sentence that says what to do. */
 @Composable

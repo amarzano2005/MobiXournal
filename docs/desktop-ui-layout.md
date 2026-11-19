@@ -26,13 +26,13 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 ```
 
 ### 1. Window layout & workspace panes
-- **Header band, 40 dp** (the token: it carries the tabs *and* the file commands): one glass tab per open
-  document (each keeps its page, zoom and fit), the `+` for another, and right of them the document's two
-  doors — **Pages** and **Layers** —, the 200 dp search field, **undo, redo, Save, PDF**. Every command is
-  a 28 dp icon button with an English tooltip and its accelerator; the groups are separated by a 1 dp
-  hairline with 8 dp of air on either side, never by a capsule (§1 of the contract). **Pages** is the
-  tablet's page section — add, remove, step, format, paper — **Layers** the page's stack with the manager's
-  edits; the strip ends with its last tool ([search.md](search.md), [desktop-workstation.md](desktop-workstation.md)).
+- **Header band, 40 dp** (the token: it carries the tabs *and* the file commands): one flat 28 dp tab per
+  open document (each keeps its page, zoom and fit) in a list that scrolls sideways, the `+` outside it, and
+  right of them the document's two doors — **Pages** and **Layers** —, the 200 dp search field, **undo,
+  redo, Save, PDF**. Every command is a 28 dp icon button with an English tooltip and its accelerator; the
+  groups are separated by a 1 dp hairline with 8 dp of air either side, never by a capsule (§1 of the
+  contract). **Pages** is the tablet's page section — add, remove, step, format, paper — **Layers** the page's
+  stack with the manager's edits ([search.md](search.md), [desktop-workstation.md](desktop-workstation.md)).
 - **Collapsible navigation sidebar (`Ctrl+B`)**: one sidebar, two views chosen by a persistent **Pages /
   Bookmarks** switch that each tab remembers. **Pages** holds the thumbnails, the current page's layers (with an
   eye per layer that hides it without writing to the document) and the search results; it opens itself only
@@ -53,7 +53,8 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   short words (`fit width`, `mouse`, `120 Hz · 3.2 ms`) and the jargon — the pen's stream, the display's rate, what
   a frame costs — in the tip. While a
   document is being read it says `opening <name>…` instead of `no document`, because the read runs off the
-  frame thread: the window keeps painting through an open instead of freezing until it lands.
+  frame thread: the window keeps painting through an open instead of freezing until it lands. A refused command
+  is a `danger` badge on the same line — the other readings stay — and the file name elides with its whole path in the tip.
 
 **Starting with nothing open.** The window opens on an entry screen, not on a blank page and not on a notice:
 **New sheet** drawn as the page it will be (the reader's own size and ruling, through the same painter the

@@ -148,7 +148,6 @@ internal fun DesktopShell(
             state.active,
             tablet,
             state.prefs.frameTime,
-            DesktopAudioSession,
             state.pageRefusal,
             DesktopOpens.opening,
             // The zoom readout is the band's one door: a click on the percentage is `Ctrl+1` — back to 100 %.

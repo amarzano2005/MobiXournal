@@ -280,7 +280,11 @@ class DesktopLifecycleTest {
         }
     }
 
-    /** The accent dot is the strip's dirty readout — a token colour, and only where there are unsaved edits. */
+    /**
+     * The accent marks the strip twice, both in the token: the 2 dp bar under the document in front and the
+     * dot that says its edits are not in the file yet. A clean tab therefore carries the bar alone, and a
+     * dirty one carries strictly more — the dot is the only mark that appears **because** of the edit.
+     */
     @Test
     @OptIn(ExperimentalComposeUiApi::class)
     fun theStripDotsADirtyTabInTheAccent() {
@@ -292,12 +296,15 @@ class DesktopLifecycleTest {
             }
             try {
                 val clean = accents(scene.render().encodeToData()?.bytes!!)
-                assertEquals("a clean tab carries no accent mark", 0, clean)
+                assertTrue("the document in front wears its accent bar ($clean px)", clean > 0)
 
                 tabs.active!!.edit()
                 Snapshot.sendApplyNotifications()
                 val dirty = accents(scene.render().encodeToData()?.bytes!!)
-                assertTrue("the unsaved edit is drawn in the accent ($dirty px)", dirty > 10)
+                assertTrue(
+                    "the unsaved edit adds its own accent dot ($clean -> $dirty px)",
+                    dirty > clean + 10,
+                )
             } finally {
                 scene.close()
             }

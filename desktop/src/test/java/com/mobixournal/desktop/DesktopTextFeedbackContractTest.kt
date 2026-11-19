@@ -77,13 +77,22 @@ class DesktopTextFeedbackContractTest {
         }
     }
 
-    @Test fun requestedChromeExceptionsKeepTheirOriginalCapsules() {
+    @Test fun requestedChromeExceptionsKeepTheirOriginalRecipes() {
         val menu = File(source, "shell/DesktopMenu.kt").readText()
         val entry = File(source, "shell/EntryScreen.kt").readText()
         val tabs = File(source, "shell/TabStrip.kt").readText()
         assertTrue("main-menu command chips retain their capsule", menu.contains(".hoverCapsule("))
         assertTrue("entry commands retain their button background", entry.contains("DesktopTheme.tabFillResting"))
-        assertTrue("document tabs retain their original glass and edge", tabs.contains(".tabEdge(active)") && tabs.contains("DesktopTheme.tabFill"))
+        // The strip is the flat band's now: a tab is a control with the panel tone and the 4 dp corner, not
+        // a chip of the tablet's glass with an accent rim (`docs/desktop-ui-layout.md` section 1).
+        assertTrue(
+            "document tabs wear the flat control surface",
+            tabs.contains("DesktopTheme.popupSurface") && tabs.contains("DesktopTheme.controlShape"),
+        )
+        assertTrue(
+            "and no longer the tablet's chip glass",
+            !tabs.contains("tabEdge(active)") && !tabs.contains("DesktopTheme.tabFill"),
+        )
     }
 
     @Test fun noDesktopCommandUsesAMaterialButtonOrACapsuleState() {

@@ -5,13 +5,16 @@ import com.mobixournal.desktop.shell.displayRefreshHz
 import com.mobixournal.desktop.shell.frameLabel
 import com.mobixournal.desktop.shell.refreshLabel
 
+import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The status bar's refresh readout.
+ * The status bar's readouts, and the rules its row keeps.
+ *
  *
  * "Is the refresh unlocked" used to be answerable only by inferring it from the watchdog's `paints/s`,
  * which exists only under `--diagnose`. The display's rate is now on screen, so the formatting is pinned
@@ -56,5 +59,48 @@ class DesktopStatusTest {
     fun `the display's rate is absent or positive on this host, never an error`() {
         val hz = displayRefreshHz()
         assertTrue("a reported rate is a real one", hz == null || hz > 0)
+    }
+
+    /**
+     * The band's structure, read from its source because it is structure rather than a label: it is a flat
+     * band closed by **one hairline** (never a shadow), it no longer repeats what the header already shows,
+     * and a refused command is a **badge inside the line** — not a `return@Row` that wiped the zoom, the fit,
+     * the file and the progress bar off the band.
+     */
+    @Test
+    fun `the band is flat, unrepeated, and a refusal does not end it`() {
+        val source = File(root(), "shell/DesktopStatus.kt").readText()
+        assertTrue("the band is closed by one hairline", source.contains("bandDivider(BandEdge.TOP)"))
+        assertFalse("and casts no shadow", source.contains("shadow("))
+        assertFalse("the search count lives in the header field", source.contains("SearchCount"))
+        assertFalse("and the take lives on the pill", source.contains("AudioStatus"))
+        val refusal = body(source, "refusal?.let { sentence ->")
+        assertTrue("the refusal is a badge", refusal.contains("RefusalBadge(sentence)"))
+        assertFalse("and does not return out of the band", refusal.contains("return@Row"))
+        assertTrue(
+            "its colour is the refusal red",
+            body(source, "private fun RefusalBadge(").contains("DesktopTheme.danger"),
+        )
+        assertFalse("never the document red", source.contains("documentRed"))
+    }
+
+    /** `desktop/src/main/java/com/mobixournal/desktop`, found from wherever the test is run. */
+    private fun root(): File {
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
+            if (File(dir, "AGENTS.md").isFile && File(dir, "docs").isDirectory) {
+                return File(dir, "desktop/src/main/java/com/mobixournal/desktop")
+            }
+            dir = dir.parentFile
+        }
+        error("no repository root above ${File(".").absolutePath}: this test must run inside the repo")
+    }
+
+    /** A declaration's body: from its signature to the next `}` in the first column. */
+    private fun body(source: String, signature: String): String {
+        val start = source.indexOf(signature)
+        if (start < 0) return ""
+        val end = source.indexOf("\n}", start)
+        return if (end < 0) source.substring(start) else source.substring(start, end)
     }
 }

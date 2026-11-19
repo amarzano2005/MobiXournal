@@ -111,6 +111,20 @@ class DesktopShellTest {
         assertTrue("the active chip is its own surface (${shades.size} shades)", shades.size >= 3)
     }
 
+    /**
+     * The strip **scrolls** and the `+` does not: many documents used to push the last tabs and the
+     * new-document command past the band's edge, where both were clipped and unreachable.
+     */
+    @Test
+    fun `the tab list scrolls and the new-document command stays outside it`() {
+        val source = File(sourceRoot(), "shell/TabStrip.kt").readText()
+        val row = source.substring(source.indexOf("fun TabStrip("))
+        val scroll = row.indexOf("horizontalScroll(rememberScrollState())")
+        assertTrue("the tabs live in a horizontal scroll", scroll >= 0)
+        assertTrue("and share the band with the +", row.contains("weight(1f, fill = false)"))
+        assertTrue("the + stands after the scroll row, not inside it", row.indexOf("AddTabButton(onNew)") > scroll)
+    }
+
     @Test
     fun `the sidebar renders thumbnails and keeps them cached`() {
         val tab = tabsOf("quaderno.mobix", "secondo.mobix").active!!
@@ -441,6 +455,18 @@ class DesktopShellTest {
     }
 
     // --- rendering ------------------------------------------------------------------------------
+
+    /** `desktop/src/main/java/com/mobixournal/desktop`, found from wherever the test is run. */
+    private fun sourceRoot(): File {
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
+            if (File(dir, "AGENTS.md").isFile && File(dir, "docs").isDirectory) {
+                return File(dir, "desktop/src/main/java/com/mobixournal/desktop")
+            }
+            dir = dir.parentFile
+        }
+        error("no repository root above ${File(".").absolutePath}: this test must run inside the repo")
+    }
 
     @OptIn(ExperimentalComposeUiApi::class)
     private fun renderStrip(tabs: DesktopTabs, name: String): File {
