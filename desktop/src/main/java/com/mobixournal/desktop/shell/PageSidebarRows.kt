@@ -257,7 +257,8 @@ private fun PageThumbnail(preview: ImageBitmap?, index: Int, current: Int, picke
  *
  * It is a real control ([clickable], role Button), not a tap gesture: the glyph is reachable with Tab, wears
  * the accent ring while it has the keyboard, and lights its own 4 dp square under the pointer instead of a
- * capsule the rest of the band does not have.
+ * capsule the rest of the band does not have. Its box and mark are the inspector's close — the band's 28 dp
+ * header command with the 14 dp cross — so the two lanes' × commands are one control, not two sizes.
  */
 @Composable
 private fun PageRemoveGlyph(enabled: Boolean, label: String, onRemove: () -> Unit) {
@@ -267,7 +268,7 @@ private fun PageRemoveGlyph(enabled: Boolean, label: String, onRemove: () -> Uni
     DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
     Box(
         Modifier
-            .size(22.dp)
+            .size(HEADER_CONTROL)
             .hoverFill(DesktopTheme.controlShape, focused = focused)
             .onFocusChanged {
                 focused = it.isFocused
@@ -277,7 +278,7 @@ private fun PageRemoveGlyph(enabled: Boolean, label: String, onRemove: () -> Uni
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(12.dp)) {
+        Canvas(Modifier.size(14.dp)) {
             drawChromeGlyph(ChromeGlyph.CLOSE, if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkMuted)
         }
     }

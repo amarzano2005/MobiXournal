@@ -102,7 +102,7 @@ spoke it takes four rules, and the parity work of 2026-10-22 put them all in the
 - **A band is chrome, a capsule is an object.** The header, status bar, sidebar, the inspector lane that
 mirrors it across the canvas, and both strips take the opaque band tone and **no shadow**; the rail is 48 dp wide and the ribbon 44 dp tall, with 36 dp slots
 standing straight in that fill (6 dp of air, 4 between them) — one material, one hairline
-  — and a header command is a 28 dp icon in that band's row. Separation is tone plus
+  — and a header command is a 28 dp icon in that band's row, the box the sidebar's page `×` and the lane's close also wear, so the two lanes' icon commands are that one measure. Separation is tone plus
   `Modifier.bandDivider`'s 1 dp hairline — a flat workstation has no lift to lose to eight-bit rounding. The
   ink is the shared tokens' (`interface-contract.md` §2 owns the colours). The native Windows caption is the
   system's again: `Window(title = …)` names the document in front and DWM paints that caption in the band's

@@ -9,6 +9,7 @@ import com.mobixournal.desktop.settings.drawToolGlyph
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.Header
+import com.mobixournal.desktop.shell.HEADER_CONTROL
 import com.mobixournal.desktop.shell.search.find
 
 import androidx.compose.foundation.clickable
@@ -416,15 +417,16 @@ internal fun RemoveGlyph(onClick: () -> Unit) = CrossGlyph(
 /**
  * The one × of the lane, at its one size and with its one focus ring.
  *
- * It is a real control ([DesktopIconButton] at 24 dp): reachable with Tab, wearing the window's accent ring
- * while it has the keyboard, instead of an unlabelled `detectTapGestures` box that only the mouse could
- * reach.
+ * It is a real control, and its box is the **band's header command** ([HEADER_CONTROL], 28 dp): the lane's
+ * close stands under the header's own icons, so a 24 dp square beside them read as a second, smaller
+ * measure of the same kind of control. Reachable with Tab and wearing the window's accent ring while it has
+ * the keyboard, instead of an unlabelled `detectTapGestures` box that only the mouse could reach.
  */
 @Composable
 private fun CrossGlyph(ink: Color, description: String, onClick: () -> Unit) = DesktopIconButton(
     description = description,
     onClick = onClick,
-    size = 24.dp,
+    size = HEADER_CONTROL,
     tooltip = null,
 ) {
     Canvas(Modifier.size(14.dp)) { drawChromeGlyph(ChromeGlyph.CLOSE, ink) }

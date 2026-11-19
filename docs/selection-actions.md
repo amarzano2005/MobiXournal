@@ -99,7 +99,8 @@ away).
 The **header** is the lane's identity, not just its title: the family's own catalogue glyph, the family's
 name, and one line of the element's content (`sin(x) · −6…6`, `4 × 6 · header`, `BJT NPN · 10 kΩ`, a text
 box's first line and its size) from `livingSummary`, because three plots on a page are all `Plot` and the
-fields below write into exactly one of them. The body uses flat, collapsible groups with aligned fields
+fields below write into exactly one of them, and its close is the band's 28 dp header command — one measure
+for every icon command in the two lanes, the sidebar's page `×` included. The body uses flat, collapsible groups with aligned fields
 and quiet dividers. Settings and inspectors share typography, colours and control states while each
 keeps the space its desktop task needs.
 
