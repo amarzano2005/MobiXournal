@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettingSection
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.shell.DesktopShell
@@ -45,6 +46,8 @@ class DesktopSettingsSurfaceTest {
     /** A window with a real document in it: four pages, so the page list would show without the toggle. */
     private fun state(): DesktopShellState {
         val state = DesktopShellState(DesktopSettings(File(temp.root, "surface.properties")))
+        // No first-run question over this surface: it is a modal with a scrim, and this measures the page.
+        state.prefs.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
         state.open(notebook())
         state.toggleSidebar()
         return state

@@ -1,37 +1,31 @@
 package com.mobixournal.desktop.shell
-import com.mobixournal.desktop.tools.glassSurface
-import com.mobixournal.desktop.tools.glassSpring
-import com.mobixournal.desktop.ink.of
+
 import com.mobixournal.desktop.settings.DesktopTheme
-import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.tools.DesktopDialogFrame
+import com.mobixournal.desktop.tools.DesktopTextField
+import com.mobixournal.desktop.tools.DialogWidth
 import com.mobixournal.desktop.tools.GlassPresence
 import com.mobixournal.desktop.tools.PanelButton
+import com.mobixournal.desktop.tools.rememberClosingValue
+import com.mobixournal.desktop.sheet.number
+import com.mobixournal.desktop.ink.of
 
 import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PageRangeRequest
 import com.mobixournal.render.PageRanges
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
@@ -45,10 +39,11 @@ import androidx.compose.ui.unit.dp
  * asks the question in the list's own numbering — *pages 3 to 7* — and acts on the whole run as **one**
  * undo step, through the same `PageOps` edits the rest of the list uses.
  *
- * It is a floating surface like every question here (`docs/interface-contract.md`): the family's glass and
- * spring, English copy, the accent on the commit, the document red on the destructive answer, and a plain
+ * It is a modal like every other question here ([DesktopDialogFrame]): the window's scrim, the opaque popup
+ * surface, English copy, the accent on the move, the refusal red on the destructive answer, and a plain
  * *Done*. A refusal is stated under the fields rather than hidden behind a dead button, so the reader knows
- * why the answer is not available.
+ * why the answer is not available — and it is written in [DesktopTheme.danger], the refusal red, never the
+ * PDF's document red.
  */
 @Composable
 internal fun PageRangePanel(
@@ -67,15 +62,26 @@ internal fun PageRangePanel(
     val canMove = pages is PageRangePlan.Pages && target is PageRangePlan.Pages && moveRefusal == null
     val canDelete = pages is PageRangePlan.Pages && deleteRefusal == null
 
-    Column(modifier.width(420.dp).glassSpring().glassSurface().padding(18.dp)) {
-        Text("Manage pages", color = DesktopTheme.ink, style = DesktopTheme.title)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Act on a whole run of pages at once, in one step you can undo.",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.body,
-        )
-        Spacer(Modifier.height(16.dp))
+    DesktopDialogFrame(
+        title = "Manage pages",
+        width = DialogWidth.Standard,
+        subtitle = "Act on a whole run of pages at once, in one step you can undo.",
+        onDismiss = onClose,
+        modifier = modifier,
+        // One row of answers, in the order they are read: what takes pages away, what moves them, and the
+        // plain word that closes the card.
+        footer = {
+            PanelButton(
+                label = "Delete pages",
+                primary = false,
+                enabled = canDelete,
+                destructive = true,
+                onClick = onDelete,
+            )
+            PanelButton(label = "Move pages", primary = true, enabled = canMove, onClick = onMove)
+            PanelButton(label = "Done", primary = false, enabled = true, onClick = onClose)
+        },
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Pages", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
             Spacer(Modifier.width(10.dp))
@@ -108,19 +114,10 @@ internal fun PageRangePanel(
         Spacer(Modifier.height(12.dp))
         Text(
             noteFor(pages, target, moveRefusal, deleteRefusal),
-            color = if (pages is PageRangePlan.Invalid) DesktopTheme.documentRed else DesktopTheme.inkMuted,
+            color = if (pages is PageRangePlan.Invalid) DesktopTheme.danger else DesktopTheme.inkMuted,
             style = DesktopTheme.label,
         )
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            PanelButton(label = "Delete pages", primary = false, enabled = canDelete, destructive = true, onClick = onDelete)
-            Spacer(Modifier.width(8.dp))
-            PanelButton(label = "Move pages", primary = true, enabled = canMove, onClick = onMove)
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            PanelButton(label = "Done", primary = false, enabled = true, onClick = onClose)
-        }
+        Spacer(Modifier.height(2.dp))
     }
 }
 
@@ -139,12 +136,12 @@ private fun noteFor(
 }
 
 /**
- * One page number, typed: a capsule of the window's glass that takes digits only.
+ * One page number, typed: the window's one field ([DesktopTextField]) that takes digits only.
  *
  * Digits and a length cap, so a paste of prose cannot become a page number; the panel's own validation
- * still owns what the number means.
+ * still owns what the number means. Its spoken name and its refusal travel with the field, so a reader who
+ * never sees the sentence under the row still meets it.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun PageNumberField(
     value: String,
@@ -154,46 +151,34 @@ internal fun PageNumberField(
     errorText: String? = null,
 ) {
     Box(
-        Modifier
-            .width(64.dp)
-            .height(32.dp)
-            .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
-            .semantics {
-                contentDescription = label
-                if (errorText != null) this.error(errorText)
-            }
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.CenterStart,
+        Modifier.width(64.dp).semantics {
+            contentDescription = label
+            if (errorText != null) this.error(errorText)
+        },
     ) {
-        BasicTextField(
+        DesktopTextField(
             value = value,
             onValueChange = { typed -> onValue(typed.filter(Char::isDigit).take(4)) },
-            singleLine = true,
-            textStyle = DesktopTheme.body.copy(color = DesktopTheme.ink),
-            cursorBrush = SolidColor(DesktopTheme.accent),
             modifier = Modifier.fillMaxWidth(),
+            error = errorText != null,
+            height = 32.dp,
         )
     }
 }
 
 /**
- * The shell's overlay for the panel: the invisible blocker — no stroke on the page behind a question — and
- * the card, on the family's spring.
+ * The shell's overlay for the panel: the card, on the family's spring, held for its exit. The frame
+ * supplies the blocker — no stroke lands on the page behind a question.
  */
 @Composable
 internal fun BoxScope.PageRangeHost(state: DesktopShellState) {
     val pages = state.pagesSection
-    val request = pages.range
-    GlassPresence(visible = request != null) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) { detectTapGestures { } },
-            contentAlignment = Alignment.Center,
-        ) {
-            request?.let { typed ->
+    val request = rememberClosingValue(pages.range)
+    GlassPresence(visible = pages.range != null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (request != null) {
                 PageRangePanel(
-                    request = typed,
+                    request = request,
                     pageCount = state.active?.document?.pageCount ?: 0,
                     onEdit = pages::editRange,
                     onMove = { pages.moveRange() },

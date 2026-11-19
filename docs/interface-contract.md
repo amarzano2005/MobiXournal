@@ -70,6 +70,8 @@ Every surface is one of three objects. Pick the class from what the element *doe
   `ChromeGeometryGuardTest.bandsShadeTheirOwnClosingEdgeAndCastNothing` fails the build if a tablet band
   gains an elevation again, or loses its own edge.
 - A picker, menu or dialog that comes and goes **may** lie over the page; a band **may not**.
+- **The window asks every question one way**: `DesktopDialogFrame` — a scrim that dims and blocks, the opaque
+  popup surface at the 8 dp corner, the commit at the end of the footer; `DesktopDialogContractTest` holds it.
 - **The pen-tip ring is a floating surface that happens to be round** ([`ui-modernization.md`](ui-modernization.md)):
   the floating fill and the rim at its own radius instead of the 20 dp panel corner, the picked slot on the steel
   with the accent ring around it — a menu's tokens, arranged round because the choice is made with a flick.

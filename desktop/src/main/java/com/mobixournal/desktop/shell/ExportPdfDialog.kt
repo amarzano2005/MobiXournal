@@ -2,10 +2,13 @@ package com.mobixournal.desktop.shell
 
 import com.mobixournal.desktop.io.DesktopExportQueue
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.tools.DesktopDialogFrame
+import com.mobixournal.desktop.tools.DesktopTextField
+import com.mobixournal.desktop.tools.DialogWidth
 import com.mobixournal.desktop.tools.GlassPresence
 import com.mobixournal.desktop.tools.PanelButton
-import com.mobixournal.desktop.tools.glassSpring
-import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.hoverFill
+import com.mobixournal.desktop.tools.rememberClosingValue
 import com.mobixournal.render.ExportPageScope
 import com.mobixournal.render.ExportPages
 import com.mobixournal.render.PageRangePlan
@@ -13,7 +16,7 @@ import com.mobixournal.render.PageRanges
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -23,12 +26,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -40,8 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -59,7 +59,9 @@ import androidx.compose.ui.unit.dp
  * because that is what an export always was.
  *
  * The indices are the **notebook's**, so a reordered notebook writes its pages in the order they read on
- * screen, and a refusal names the sheet by the number the page counter shows.
+ * screen, and a refusal names the sheet by the number the page counter shows. It is a modal like every
+ * other question ([DesktopDialogFrame]) and a refusal is written in [DesktopTheme.danger] — the refusal
+ * red, never the PDF's document red.
  */
 data class ExportPdfScope(
     /** How many pages the document has — the card counts its answer against this. */
@@ -96,22 +98,20 @@ internal fun ExportPdfDialog(
     val plan = request.plan
     val error = (plan as? PageRangePlan.Invalid)?.message
     val usable = request.chosen?.isNotEmpty() == true
-    Column(
-        Modifier
-            .width(420.dp)
-            .heightIn(max = 560.dp)
-            .glassSpring()
-            .glassSurface()
-            .padding(18.dp),
+    DesktopDialogFrame(
+        title = "Export PDF",
+        width = DialogWidth.Standard,
+        subtitle = if (request.pageCount == 1) {
+            "One page in this document."
+        } else {
+            "${request.pageCount} pages in this document."
+        },
+        onDismiss = onCancel,
+        footer = {
+            PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
+            PanelButton(label = "Export", primary = true, enabled = usable, onClick = onConfirm)
+        },
     ) {
-        Text("Export PDF", color = DesktopTheme.ink, style = DesktopTheme.title)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            if (request.pageCount == 1) "One page in this document." else "${request.pageCount} pages in this document.",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-        )
-        Spacer(Modifier.height(12.dp))
         Text("Pages", color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
         Spacer(Modifier.height(6.dp))
         Column(
@@ -160,15 +160,9 @@ internal fun ExportPdfDialog(
         // The number the reader is deciding on, whatever way they answered: one line, both answers.
         Text(
             if (error != null) error else ExportPages.readout(plan, request.pageCount),
-            color = if (error != null) DesktopTheme.documentRed else DesktopTheme.inkMuted,
+            color = if (error != null) DesktopTheme.danger else DesktopTheme.inkMuted,
             style = DesktopTheme.label,
         )
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
-            Spacer(Modifier.width(8.dp))
-            PanelButton(label = "Export", primary = true, enabled = usable, onClick = onConfirm)
-        }
     }
 }
 
@@ -182,87 +176,100 @@ private fun pageInView(request: ExportPdfScope): Int =
  * A **radio**, not a row that watches for taps: `selectable` gives it the role and the selected state in the
  * semantics tree, makes it reachable with Tab, and answers Space and Enter as every other radio does — and
  * [WindowKeys.focusControl] tells the window that this control owns those keys while focused, so Space
- * selects the answer instead of panning the page behind the card.
+ * selects the answer instead of panning the page behind the card. The 12 dp dot is the mark the import card
+ * draws on its own answers, so the two cards cannot disagree about what a picked answer looks like.
  */
 @Composable
 private fun ScopeRow(title: String, note: String, picked: Boolean, onPick: () -> Unit) {
+    val interactions = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
     val owner = remember { Any() }
     DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
     Row(
         Modifier
             .fillMaxWidth()
-            .background(
-                if (picked) DesktopTheme.activeSlot else Color.Transparent,
-                DesktopTheme.railSlotShape,
-            )
-            .border(
-                1.dp,
-                if (focused) DesktopTheme.accent else Color.Transparent,
-                DesktopTheme.railSlotShape,
+            .hoverFill(
+                DesktopTheme.controlShape,
+                active = picked,
+                base = if (picked) DesktopTheme.activeSlot else Color.Transparent,
+                focused = focused,
             )
             .onFocusChanged { state ->
                 focused = state.isFocused
                 WindowKeys.focusControl(owner, state.isFocused)
             }
-            .selectable(selected = picked, role = Role.RadioButton, onClick = onPick)
+            .selectable(
+                selected = picked,
+                interactionSource = interactions,
+                indication = null,
+                role = Role.RadioButton,
+                onClick = onPick,
+            )
             .semantics(mergeDescendants = true) { contentDescription = "$title. $note" }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = DesktopTheme.ink, style = DesktopTheme.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                title,
+                color = if (picked) DesktopTheme.accent else DesktopTheme.ink,
+                style = DesktopTheme.body,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Spacer(Modifier.height(2.dp))
             Text(note, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         }
-    }
-}
-
-/**
- * The selection's field: it holds a sentence the reader types rather than one number, it says its own name to a
- * screen reader, and a refusal travels on the field's node (`error`), so a keyboard-only reader meets the
- * sentence with the control that caused it.
- */
-@Composable
-private fun ScopeField(value: String, label: String, errorText: String?, onValue: (String) -> Unit) {
-    Box(
-        Modifier
-            .width(168.dp)
-            .height(32.dp)
-            .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
-            .semantics {
-                contentDescription = label
-                if (errorText != null) this.error(errorText)
-            }
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValue,
-            singleLine = true,
-            textStyle = DesktopTheme.body.copy(color = DesktopTheme.ink),
-            cursorBrush = SolidColor(DesktopTheme.accent),
-            modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.width(10.dp))
+        Box(
+            Modifier
+                .size(12.dp)
+                .background(
+                    if (picked) DesktopTheme.accent else Color.Transparent,
+                    DesktopTheme.capsuleShape,
+                )
+                .border(
+                    1.dp,
+                    if (picked) DesktopTheme.accent else DesktopTheme.hairline,
+                    DesktopTheme.capsuleShape,
+                ),
         )
     }
 }
 
 /**
- * The window's overlay for the question: the invisible blocker — nothing on the page behind a question may take
- * a stroke — and the card, on the family's spring, as the import question is raised.
+ * The selection's field: it holds a sentence the reader types rather than one number, it says its own name to a
+ * screen reader, and a refusal travels on the field's node (`error`) as well as on its rim, so a keyboard-only
+ * reader meets the sentence with the control that caused it.
+ */
+@Composable
+private fun ScopeField(value: String, label: String, errorText: String?, onValue: (String) -> Unit) {
+    Box(
+        Modifier.width(168.dp).semantics {
+            contentDescription = label
+            if (errorText != null) this.error(errorText)
+        },
+    ) {
+        DesktopTextField(
+            value = value,
+            onValueChange = onValue,
+            modifier = Modifier.fillMaxWidth(),
+            error = errorText != null,
+            height = 32.dp,
+        )
+    }
+}
+
+/**
+ * The window's overlay for the question: the card, on the family's spring. The frame supplies the blocker —
+ * nothing on the page behind a question may take a stroke.
  */
 @Composable
 internal fun BoxScope.ExportPdfHost() {
-    val request = DesktopExportQueue.scopeRequest
-    GlassPresence(visible = request != null) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) { detectTapGestures { } },
-            contentAlignment = Alignment.Center,
-        ) {
-            DesktopExportQueue.scopeRequest?.let { open ->
+    val open = rememberClosingValue(DesktopExportQueue.scopeRequest)
+    GlassPresence(visible = DesktopExportQueue.scopeRequest != null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (open != null) {
                 ExportPdfDialog(
                     request = open,
                     onEdit = DesktopExportQueue::editScope,

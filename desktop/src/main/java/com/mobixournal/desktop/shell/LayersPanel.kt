@@ -1,10 +1,13 @@
 package com.mobixournal.desktop.shell
-import com.mobixournal.desktop.tools.glassSpring
+import com.mobixournal.desktop.tools.DesktopDialogFrame
+import com.mobixournal.desktop.tools.DesktopTextField
+import com.mobixournal.desktop.tools.DialogWidth
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.tools.GlassPresence
 import com.mobixournal.desktop.tools.PanelButton
+import com.mobixournal.desktop.tools.rememberClosingValue
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -256,54 +259,37 @@ internal fun LayerRenamePanel(
     onCommit: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    Column(Modifier.width(360.dp).glassSpring().glassSurface().padding(18.dp)) {
-        Text("Rename layer", color = DesktopTheme.ink, style = DesktopTheme.title)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Leave it empty to go back to the layer's number.",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.body,
-        )
-        Spacer(Modifier.height(14.dp))
-        Box(
-            Modifier
-                .width(300.dp)
-                .height(32.dp)
-                .background(DesktopTheme.panelField, DesktopTheme.controlShape)
-                .semantics { contentDescription = "Layer name" }
-                .padding(horizontal = 10.dp),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            BasicTextField(
-                value = draft,
-                onValueChange = onDraft,
-                singleLine = true,
-                textStyle = DesktopTheme.body.copy(color = DesktopTheme.ink),
-                cursorBrush = SolidColor(DesktopTheme.accent),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onPreviewKeyEvent { event ->
-                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                        when (event.key) {
-                            Key.Enter -> {
-                                onCommit()
-                                true
-                            }
-                            Key.Escape -> {
-                                onCancel()
-                                true
-                            }
-                            else -> false
-                        }
-                    },
-            )
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+    DesktopDialogFrame(
+        title = "Rename layer",
+        width = DialogWidth.Compact,
+        subtitle = "Leave it empty to go back to the layer's number.",
+        onDismiss = onCancel,
+        footer = {
             PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
-            Spacer(Modifier.width(8.dp))
             PanelButton(label = "Rename", primary = true, enabled = true, onClick = onCommit)
-        }
+        },
+    ) {
+        DesktopTextField(
+            value = draft,
+            onValueChange = onDraft,
+            placeholder = "Layer name",
+            modifier = Modifier
+                .fillMaxWidth()
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (event.key) {
+                        Key.Enter -> {
+                            onCommit()
+                            true
+                        }
+                        Key.Escape -> {
+                            onCancel()
+                            true
+                        }
+                        else -> false
+                    }
+                },
+        )
     }
 }
 
@@ -314,14 +300,9 @@ internal fun LayerRenamePanel(
 @Composable
 internal fun BoxScope.LayerRenameHost(state: DesktopShellState) {
     val layers = state.layersSection
-    val renaming = layers.renaming
-    GlassPresence(visible = renaming != null) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) { detectTapGestures { } },
-            contentAlignment = Alignment.Center,
-        ) {
+    val renaming = rememberClosingValue(layers.renaming)
+    GlassPresence(visible = layers.renaming != null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             if (renaming != null) {
                 LayerRenamePanel(
                     draft = layers.draft,

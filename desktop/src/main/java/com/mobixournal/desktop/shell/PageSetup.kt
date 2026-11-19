@@ -1,15 +1,12 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.DesktopDialogFrame
 import com.mobixournal.desktop.tools.DesktopTextAction
-import com.mobixournal.desktop.tools.PillTextInset
-import com.mobixournal.desktop.tools.glassSurface
-import com.mobixournal.desktop.tools.glassSpring
-import com.mobixournal.desktop.tools.hoverFill
-import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.settings.DesktopTheme
-import com.mobixournal.desktop.tools.GlassPresence
+import com.mobixournal.desktop.tools.DialogWidth
 import com.mobixournal.desktop.tools.PanelButton
+import com.mobixournal.desktop.tools.GlassPresence
+import com.mobixournal.desktop.settings.DesktopTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -19,6 +16,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -144,20 +142,11 @@ private fun PageSetupPanel(
     onSetDefault: (Double, Double) -> Unit,
     onDone: () -> Unit,
 ) {
-    Column(Modifier.width(430.dp).glassSpring().glassSurface().padding(18.dp)) {
-        Text(
-            if (section == PageSetupSection.PAPER) "Page background" else "Page format",
-            color = DesktopTheme.ink,
-            style = DesktopTheme.title,
-        )
-        Spacer(Modifier.height(12.dp))
-        if (section == PageSetupSection.PAPER) {
-            PaperSection(page, onStyle, onSpacing)
-        } else {
-            FormatSection(page, onSize, defaultSize, unit, onUnit, onDefault = onSetDefault)
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    DesktopDialogFrame(
+        title = if (section == PageSetupSection.PAPER) "Page background" else "Page format",
+        width = DialogWidth.Standard,
+        onDismiss = onDone,
+        footer = {
             if (section == PageSetupSection.FORMAT) {
                 // The tablet's own two answers, in the same order: store this sheet as the default, or
                 // close the surface. Storing is a *setting*, not a page edit, so the page keeps its size
@@ -169,10 +158,14 @@ private fun PageSetupPanel(
                     enabled = true,
                     onClick = { onSetDefault(page.width, page.height) },
                 )
-            } else {
-                Spacer(Modifier.width(1.dp))
             }
             PanelButton(label = "Done", primary = true, enabled = true, onClick = onDone)
+        },
+    ) {
+        if (section == PageSetupSection.PAPER) {
+            PaperSection(page, onStyle, onSpacing)
+        } else {
+            FormatSection(page, onSize, defaultSize, unit, onUnit, onDefault = onSetDefault)
         }
     }
 }
@@ -245,9 +238,21 @@ internal fun ChipRow(content: @Composable androidx.compose.foundation.layout.Flo
     ) { content() }
 }
 
-/** One choice: a capsule that wears the steel when it is the live one. */
+/**
+ * One choice of a segmented group: a 4 dp control that wears the steel when it is the live one.
+ *
+ * It is a label that acts ([DesktopTextAction]) with its Ghost fill, so a chip and the row beside it share
+ * the control corner of `docs/interface-contract.md` §3 instead of drawing a capsule no other control has.
+ */
 @Composable
 internal fun SetupChip(label: String, picked: Boolean, onClick: () -> Unit) {
-    DesktopTextAction(label, onClick, picked = picked, role = androidx.compose.ui.semantics.Role.Tab)
-
+    DesktopTextAction(
+        label,
+        onClick,
+        picked = picked,
+        role = androidx.compose.ui.semantics.Role.Tab,
+        ghostFill = true,
+        minHeight = 28.dp,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+    )
 }

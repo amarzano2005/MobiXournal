@@ -13,6 +13,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopRecovery
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.glyph
@@ -78,7 +79,11 @@ class DesktopLifecycleTest {
     private fun state(store: DesktopRecovery = store()): DesktopShellState = DesktopShellState(
         settings = DesktopSettings(temp.newFile("desktop-${settingsCount++}.properties")),
         recovery = store,
-    )
+    ).also {
+        // The first-run question is a modal and dims the window it sits on: these renders are about the
+        // page and the shell, not that question, so the fixture answers it once.
+        it.prefs.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
+    }
 
     private fun strokeCount(page: Page): Int =
         page.layers.sumOf { layer -> layer.elements.count { element -> element is Stroke } }

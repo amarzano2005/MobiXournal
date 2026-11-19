@@ -7,6 +7,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DocumentLoader
 import com.mobixournal.desktop.io.save
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.sheet.FitMode
@@ -412,6 +413,8 @@ class DesktopShellTest {
         // A settings file of this test's own: the placement a developer happens to have picked on this
         // machine must not change what the shell's chrome test measures.
         val state = DesktopShellState(DesktopSettings(temp.newFile("settings.properties")))
+        // The first-run question is a modal with a scrim over the whole window; this measures the chrome.
+        state.prefs.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
         val scene = ImageComposeScene(1000, 700, Density(1f)) {
             DesktopShell(state = state, onOpenPicker = {})
         }

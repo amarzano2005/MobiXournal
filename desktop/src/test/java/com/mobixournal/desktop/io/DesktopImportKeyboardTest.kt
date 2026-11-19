@@ -10,6 +10,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.unit.Density
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
@@ -51,6 +52,9 @@ class DesktopImportKeyboardTest {
     /** The shell with an import card standing over it, as *Menu → Import PDF* leaves it. */
     private fun state(): DesktopShellState {
         val state = DesktopShellState(DesktopSettings(File(temp.root, "keys.properties")))
+        // The first-run question is answered: this test is about the import card, and two modals up at
+        // once leave the keyboard on whichever one is painted on top — the format card, not this one.
+        state.prefs.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
         state.open(notebook())
         state.importRequest = ImportPdfRequest(
             file = File("lecture-handout.pdf"),

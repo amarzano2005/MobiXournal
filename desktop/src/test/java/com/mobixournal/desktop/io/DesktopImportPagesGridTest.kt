@@ -10,6 +10,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.unit.Density
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
@@ -39,6 +40,9 @@ class DesktopImportPagesGridTest {
 
     private fun state(pages: String, count: Int = 8): DesktopShellState {
         val state = DesktopShellState(DesktopSettings(File(temp.root, "keys.properties")))
+        // The import card is the one modal here: the first-run question would be painted over it and hold
+        // the keyboard.
+        state.prefs.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
         state.importRequest = ImportPdfRequest(
             file = File(temp.root, "missing.pdf"),
             pageCount = count,

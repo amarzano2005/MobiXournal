@@ -47,44 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-dialogs-unification"
-title = "Introduce shared DesktopDialogFrame and unify all 11 desktop modal dialogs"
-description = """
-Phase 4A of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Eliminate fragmented scrims, widths, double borders, broken exit animation, boolean-toggle buttons, and error color drift across all desktop dialogs.
-
-Exact changes:
-1. [NEW] `desktop/src/main/java/com/mobixournal/desktop/tools/DesktopDialogFrame.kt`:
-   - `enum class DialogWidth(val dp: Dp) { Compact(360.dp), Standard(420.dp), Wide(520.dp) }`
-   - `@Composable internal fun DesktopDialogFrame(title, width = Standard, subtitle = null, dismissOnOutside = false, onDismiss, footer: @Composable RowScope.() -> Unit, content: @Composable ColumnScope.() -> Unit)`:
-     - Full-window `DesktopTheme.scrim` backdrop blocking clicks (calling `onDismiss` only if `dismissOnOutside`).
-     - Centered card: `width`, `.glassSurface()` (`8.dp`, `DesktopTheme.popupSurface`, `1.dp` `DesktopTheme.hairline`), `padding(20.dp)`, `DesktopTheme.title` (`18.sp` Medium) header, `Arrangement.End` footer with `8.dp` spacing (`Cancel` `Secondary` left, CTA `Primary`/`Destructive` right).
-2. Migrate and fix all 11 dialogs:
-   - `CloseDialog.kt`: use `DesktopDialogFrame(Compact)`; set `Discard` to `destructive = true` (`Destructive` variant in `danger`).
-   - `ExportAsDialog.kt`: `DesktopDialogFrame(Standard)`, `4.dp` row hover (`controlShape` instead of `railSlotShape`).
-   - `ExportPdfDialog.kt`: `DesktopDialogFrame(Standard)`, migrate text field to `DesktopTextField`, unify `ScopeRow` with `12.dp` circular radio dot + `4.dp` hover + focus ring + `Role.RadioButton`, validation errors in `DesktopTheme.danger` (not `documentRed`).
-   - `ImportPdfDialog.kt`: `DesktopDialogFrame`, remove `.glassCapsule(8.dp)` + `.border(1.dp, accent)` double border in `BookmarkSection`, replace boolean-toggle `PanelButton` (`"Bookmark added"`/`"No bookmark"`) with `PropertyCheckboxRow`, migrate text fields to `DesktopTextField`, `4.dp` `ImportModeRow`, errors in `DesktopTheme.danger`.
-   - `FirstRunFormatDialog.kt`: `DesktopDialogFrame(Standard)`, give `FormatRow` `4.dp` corners + `selectable` semantics + keyboard focus ring.
-   - `UpdateDialog.kt`: fix early return `if (!DesktopUpdates.dialog) return` BEFORE `GlassPresence` so exit animates cleanly; `DesktopDialogFrame(Standard)`; `"See what changed"` as `DesktopButton(Ghost)`.
-   - `ScaleneDialogs.kt`: migrate `ScaleneDialogFrame` onto `DesktopDialogFrame(Standard, dismissOnOutside = true)`; replace raw `Color.Black.copy(0.45f)` with `DesktopTheme.scrim`.
-   - `OpenFailureCard.kt`: `8.dp` `popupSurface` + `1.dp` `DesktopTheme.danger.copy(alpha = 0.40f)` border, `DesktopTheme.heading` title, clean `Esc` hint.
-   - `PageSetup.kt`: `DesktopDialogFrame(Standard)`, `4.dp` segmented `SetupChip`.
-   - `PageRangePanel.kt`: `DesktopDialogFrame(Standard)`, `DesktopTextField`, errors in `DesktopTheme.danger`, single clean footer row (`Delete pages` destructive, `Move pages` primary, `Done` secondary).
-   - `LayersPanel.kt` (`LayerRenamePanel`): `DesktopDialogFrame(Compact)` + `DesktopTextField`.
-3. Tests: update `GlassMotionTest.kt`, `DesktopPageRangeTest.kt`, `DesktopImportDialogCompactTest.kt`, `DesktopImportKeyboardTest.kt`, `DesktopPageSetupTest.kt`, `OpenFailureTest.kt`.
-
-DO NOT: use `documentRed` for any dialog error or destructive button; leave stale "20 dp corner / translucent glass" KDocs.
-Verification: run `:desktop:test` on the 6 test classes above + `SourceStructureTest`; inspect regenerated `shell.png` (`FirstRunFormatDialog`); refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 110
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "dialogs"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-sidebar-inspector"
 title = "Unify opaque Sidebar and Inspector styling, split PageSidebar under 700 lines, and fix Inspector footer order"
 description = """

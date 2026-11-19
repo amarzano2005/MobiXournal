@@ -5,11 +5,11 @@ import com.mobixournal.desktop.settings.DesktopTheme
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -116,6 +115,15 @@ internal fun ScaleneTrapezoidDialog(
     }
 }
 
+/**
+ * The two angle dialogs' shared card: the window's modal ([DesktopDialogFrame]) with the triangle's own
+ * preview and sliders inside it.
+ *
+ * It used to draw its own scrim — `Color.Black` at 45 %, which is neither the desk nor the paper and made
+ * a figure dialog a different material from the Save question — around a second copy of the card and its
+ * footer. A tap outside dismisses here, because these dialogs change a preview as the reader drags and
+ * walking away costs nothing.
+ */
 @Composable
 private fun ScaleneDialogFrame(
     title: String,
@@ -123,36 +131,20 @@ private fun ScaleneDialogFrame(
     isValid: Boolean,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
-    content: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.45f))
-            .clickable(onClick = onDismiss),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            modifier = Modifier
-                .width(420.dp)
-                .clickable(enabled = false) {}
-                .glassSpring()
-                .glassSurface()
-                .padding(18.dp),
-        ) {
-            Text(title, color = DesktopTheme.ink, style = DesktopTheme.title)
-            Spacer(Modifier.height(4.dp))
-            Text(subtitle, color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
-            Spacer(Modifier.height(12.dp))
-            content()
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onDismiss)
-                Spacer(Modifier.width(8.dp))
-                PanelButton(label = "Save", primary = true, enabled = isValid, onClick = onSave)
-            }
-        }
-    }
+    DesktopDialogFrame(
+        title = title,
+        width = DialogWidth.Standard,
+        subtitle = subtitle,
+        dismissOnOutside = true,
+        onDismiss = onDismiss,
+        footer = {
+            PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onDismiss)
+            PanelButton(label = "Save", primary = true, enabled = isValid, onClick = onSave)
+        },
+        content = content,
+    )
 }
 
 @Composable

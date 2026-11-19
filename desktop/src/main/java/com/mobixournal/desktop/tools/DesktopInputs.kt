@@ -57,6 +57,8 @@ internal fun DesktopTextField(
     error: Boolean = false,
     height: Dp = 30.dp,
     singleLine: Boolean = true,
+    /** A field that is shown but not editable — the value it holds is still read, never typed over. */
+    enabled: Boolean = true,
     leadingIcon: (@Composable () -> Unit)? = null,
     /** A field that owns the keyboard when something else asks for it (`Ctrl+F`'s search field). */
     focusRequester: FocusRequester? = null,
@@ -107,7 +109,10 @@ internal fun DesktopTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = singleLine,
-                textStyle = DesktopTheme.field.copy(color = DesktopTheme.ink),
+                enabled = enabled,
+                textStyle = DesktopTheme.field.copy(
+                    color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,
+                ),
                 cursorBrush = SolidColor(DesktopTheme.accent),
                 keyboardOptions = KeyboardOptions(
                     imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Default,

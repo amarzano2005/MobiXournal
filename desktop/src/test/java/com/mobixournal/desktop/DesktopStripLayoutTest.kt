@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.RailSide
@@ -56,6 +57,8 @@ class DesktopStripLayoutTest {
         val name = "layout-${placement.name.lowercase()}${zoom?.let { "-z$it" } ?: ""}"
         val settings = DesktopSettings(File(temp.root, "$name.properties"))
         val state = DesktopShellState(settings)
+        // The first-run question is a modal with a scrim; these frames measure the strip's lane and the page.
+        state.prefs.chooseNewDocumentFormat(DesktopNewDocumentFormat.MOBIX)
         state.open(notebook)
         // The page list would take the outer edge and hide half of what this measures.
         state.toggleSidebar()

@@ -119,7 +119,7 @@ marks and the add/close/eye included — and **both** shells read it, so two scr
 from the shared tokens rather than picked here. A flyout is opened through `GlassPopup` — a `GlassPresence`
 hold plus the same spring — so a menu that closes draws back instead of vanishing; only the bars' hover
 tooltips still land with the pointer (`interface-contract.md` §7 owns that exception).
-- **The colours and corners are the tokens**: flat 28 dp tabs, the 20 dp panel corner, a 40 dp header,
+- **The colours and corners are the tokens**: flat 28 dp tabs, the 8 dp popup corner, a 40 dp header,
 a 24 dp status bar, Inter with tabular figures, dark-first. `DesktopThemeTest` re-reads the JSON block
 above and `ChromeMaterialRenderTest` proves the fill and the rim as pixels.
 
