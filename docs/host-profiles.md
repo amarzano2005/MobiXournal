@@ -75,7 +75,7 @@ When the session is running on this Windows 11 workstation (`10.0.26300`, `pwsh`
     `adb.exe` in `platform-tools\`, `emulator.exe` in `emulator\` with AVD **`Pixel_Tablet`**.
   - **Emulator & `androidTest` on this host**: Use `.\gradlew.bat connectedDebugAndroidTest` (with
     `-Pandroid.testInstrumentationRunnerArguments.class=...` for single classes) — do **not** use
-    `scripts/connected-test.sh` here. See `docs/tools.md` (*Host fallback — Android Studio's own
+    `scripts/connected-test.sh` here. See `docs/tools-emulator.md` (*Host fallback — Android Studio's own
     emulator*) for `-no-snapshot-load`, `KEYCODE_WAKEUP`, and `run-as com.mobixournal`.
 
 Build and packaging commands belong to [tools.md](tools.md); device operation belongs to

@@ -93,13 +93,25 @@ def main():
             {"id": "keep", "title": "Keep me", "description": "a long description",
              "status": "active", "level": "scope", "category": "refactor",
              "urgency": "high", "order": 5, "created": "2026-10-22", "tags": ["desktop"],
+             "epic": "parent-epic", "depends_on": ["prereq-1", "prereq-2"],
+             "rebuild": False, "emulator_debug": False},
+            {"id": "bare", "title": "Bare", "description": "a bare description",
+             "status": "active", "level": "task", "category": "chore",
+             "urgency": "normal", "order": 10, "created": "2026-10-22", "tags": [],
+             "epic": "", "depends_on": [],
              "rebuild": False, "emulator_debug": False},
         ]}, path)
-        back = store.load(path)["tasks"][0]
+        back_all = store.load(path)["tasks"]
+        back = back_all[0]
+        bare = back_all[1]
         check(back.get("urgency") == "high" and back.get("level") == "scope"
               and back.get("tags") == ["desktop"] and back.get("rebuild") is False
+              and back.get("epic") == "parent-epic"
+              and back.get("depends_on") == ["prereq-1", "prereq-2"]
               and back.get("created") == "2026-10-22",
               "sorting changes no field but the sequence")
+        check("epic" not in bare and "depends_on" not in bare,
+              "empty epic and depends_on are omitted on write")
 
     print()
     if _FAILURES:

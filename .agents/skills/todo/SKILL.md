@@ -46,6 +46,8 @@ array of `[[task]]` tables. A task carries **more** metadata rather than less:
 | `completed`   | archive          | date it was finished                                |
 | `release`     | archive          | version it shipped in (`"1.2.0"`); **absent = pending the next version** |
 | `tags`        | TODO             | freeform string list                                |
+| `epic`        | TODO             | active `epic` id that owns this item (optional)     |
+| `depends_on`  | TODO             | list of prerequisite task/scope ids (active or archived) |
 | `rebuild`     | TODO             | rebuild the Android app for this task? (default `true`) |
 | `emulator_debug` | TODO          | run the full emulator verify loop for this task? (default `false`) |
 | `design`      | both             | the declaration a closed task made against `docs/interface-contract.md` — written by `done`, required there (`none: why` when the task has no interface surface) |
@@ -98,16 +100,21 @@ newest-`completed`-first.
 
 ## Commands
 
-- **`list`** `[--finished] [--unreleased] [--status S] [--category C] [--level L] [--json]` —
+- **`list`** `[--finished] [--unreleased] [--ready] [--epic ID] [--status S] [--category C] [--level L] [--json]` —
   list tasks. `--unreleased` (with `--finished`) is the **pending set**: the finished tasks the next
-  version will ship, i.e. what its changelog is drawn from.
+  version will ship, i.e. what its changelog is drawn from. `--ready` (active only) filters to tasks
+  and scopes whose `depends_on` are all finished and whose status is not `blocked`.
+- **`plan`** `[--epic ID] [--json]` — show the orchestrated roadmap: Ready Now queue plus each active
+  epic (and standalone tasks) in execution order with `[READY]`, `[WAIT: …]`, `[BLOCKED: …]`, and
+  `[SCOPE]` tags.
 - **`show <id>`** `[--json]` — print one task with its full description.
 - **`stats`** `[--json]` — totals plus counts by status, category, and urgency
   (active) and by category (finished). This is the "how many …" answer.
 - **`count`** `[--finished] [--by status|category|urgency|level]` — a raw count, or
   a grouped tally.
-- **`add --title T --description D`** `[--category C] [--urgency U]
-  [--level L] [--status S] [--tag t …] [--id ID] [--no-rebuild] [--emulator-debug]` —
+- **`add --title T (--description D | --description-file PATH)`** `[--category C] [--urgency U]
+  [--level L] [--status S] [--order N] [--epic ID] [--depends-on ID …] [--tag t …] [--id ID]
+  [--no-rebuild] [--emulator-debug]` —
   add an active task. The `id` is a slug of the title (made unique) and
   `order` auto-increments unless given. `urgency` defaults to normal. **The file
   is kept in `order` sequence**: every write sorts the tasks (ties by id), so a
@@ -115,9 +122,10 @@ newest-`completed`-first.
   the entry instead of leaving it where it was added.
   `level` defaults to `task`. `rebuild` defaults to yes (`--no-rebuild` turns it off); `emulator_debug`
   defaults to no (`--emulator-debug` turns it on).
-- **`edit <id>`** `[--title|--description|--status|--level|--category|--urgency|--order
-  …] [--add-tag t] [--rebuild|--no-rebuild] [--emulator-debug|--no-emulator-debug]`
-  — change fields on an active task.
+- **`edit <id>`** `[--title|--description|--description-file|--status|--level|--category|--urgency
+  |--order|--epic|--clear-epic|--depends-on|--add-depends-on|--clear-depends-on]
+  [--add-tag t] [--remove-tag t] [--rebuild|--no-rebuild] [--emulator-debug|--no-emulator-debug]`
+  — change fields on an active task (`--description-file` reads UTF-8 cleanly on Windows shells).
 - **`done <id> --shipped TEXT`** `[--shipped-file PATH] [--date YYYY-MM-DD]` — move an active task
   into `FINISHED.toml`, stamped `completed` (today unless `--date`), newest-first, **and replace its
   plan with the delivery summary**: the files, the behaviour, the tests, the docs, and whatever the
@@ -175,6 +183,12 @@ including when to archive, report the open count, commit and push. Documentation
 code change does not by itself require editing the README. Keep those rules at their owners.
 
 `validate` also checks active descriptions for obsolete package identifiers, current-host absence
-claims and explicit device-test titles that conflict with disabled emulator flags. Implementation:
-`scripts/todo/operational.py`; regression scenarios: `python3 scripts/todo/test_operational.py`.
+claims and explicit device-test titles that conflict with disabled emulator flags, plus stringent
+plan-coherence limits on `task`, `scope`, and `epic` items: acyclic `depends_on` ordering and
+urgency alignment, mandatory `blocked` status downstream of active `scope`s, non-research epics
+holding active children, concrete repo anchors and explicit verification without open design
+imperatives in `task` descriptions, no standalone follow-up `docs` tasks after code, coherent
+`rebuild` flags, clean UTF-8 encoding, and resolving cited `docs/` files and Gradle test modules.
+Implementation: `scripts/todo/operational.py` and `scripts/todo/plan_rules.py`; regression checks:
+`python3 scripts/todo/test_operational.py` and `python3 scripts/todo/test_plan_rules.py`.
 It leaves historical archive text intact and does not infer device requirements for feature tasks.

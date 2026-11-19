@@ -55,6 +55,8 @@ class AgentInstructionsTest {
         val workflow = File(repoRoot(), ".github/workflows/build.yml").readLines()
         assertTrue("CI must execute the operational task checks, not only validate current task data",
             workflow.any { it.trim() == "python3 scripts/todo/test_operational.py" })
+        assertTrue("CI must execute the plan coherence rules regression suite",
+            workflow.any { it.trim() == "python3 scripts/todo/test_plan_rules.py" })
     }
 
     private fun repoRoot(): File = generateSequence(File(".").canonicalFile) { it.parentFile }

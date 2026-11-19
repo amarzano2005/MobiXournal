@@ -29,6 +29,7 @@ import sys
 
 import design
 import operational
+import plan_rules
 import release
 import store
 
@@ -62,6 +63,10 @@ def _print_task(task, indent=""):
         meta += f" completed={task['completed']}"
     if "release" in task:
         meta += f" release={task['release']}"
+    if task.get("epic"):
+        meta += f" epic={task['epic']}"
+    if task.get("depends_on"):
+        meta += f" depends_on=[{', '.join(task['depends_on'])}]"
     if "rebuild" in task:
         meta += f" rebuild={'yes' if task['rebuild'] else 'no'}"
     if "emulator_debug" in task:
@@ -69,15 +74,65 @@ def _print_task(task, indent=""):
     print(meta)
 
 
+def _description_text(args, required=False):
+    if args.description is not None and args.description_file is not None:
+        sys.exit("pass --description or --description-file, not both")
+    text = args.description
+    if args.description_file is not None:
+        try:
+            with io.open(args.description_file, encoding="utf-8") as fh:
+                text = fh.read().replace("\r\n", "\n").strip()
+        except OSError as exc:
+            sys.exit(f"cannot read --description-file: {exc}")
+    if required and not text:
+        sys.exit("pass --description or --description-file")
+    return text
+
+
+def _dedupe(items):
+    return list(dict.fromkeys(items))
+
+
+def _unmet_deps(task, finished_ids):
+    return [dep for dep in (task.get("depends_on") or []) if dep not in finished_ids]
+
+
+def _is_ready(task, finished_ids):
+    return (
+        task.get("level", store.DEFAULT_LEVEL) != "epic"
+        and task.get("status") != "blocked"
+        and not _unmet_deps(task, finished_ids)
+    )
+
+
+def _plan_tag(task, finished_ids):
+    unmet = _unmet_deps(task, finished_ids)
+    if task.get("status") == "blocked":
+        return f"[BLOCKED: {', '.join(unmet)}]" if unmet else "[BLOCKED]"
+    if unmet:
+        return f"[WAIT: {', '.join(unmet)}]"
+    if task.get("level", store.DEFAULT_LEVEL) == "scope":
+        return "[SCOPE]"
+    return "[READY]"
+
+
 # --- commands --------------------------------------------------------------
 
-def cmd_list(args):
-    _, doc = (_load_finished() if args.finished else _load_todo())
+def cmd_list(args, root=None):
+    _, doc = (_load_finished(root) if args.finished else _load_todo(root))
     tasks = doc["tasks"]
     if args.unreleased:
         if not args.finished:
             sys.exit("--unreleased filters the archive; pass --finished too")
         tasks = release.pending_tasks(tasks)
+    if getattr(args, "ready", False):
+        if args.finished:
+            sys.exit("--ready filters active tasks; omit --finished")
+        _, done = _load_finished(root)
+        finished_ids = {t.get("id") for t in done["tasks"] if t.get("id")}
+        tasks = [t for t in tasks if _is_ready(t, finished_ids)]
+    if getattr(args, "epic", None):
+        tasks = [t for t in tasks if t.get("epic") == args.epic]
     if args.status:
         tasks = [t for t in tasks if t.get("status") == args.status]
     if args.category:
@@ -95,6 +150,79 @@ def cmd_list(args):
         return
     for task in tasks:
         _print_task(task)
+
+
+def cmd_plan(args, root=None):
+    _, todo = _load_todo(root)
+    _, done = _load_finished(root)
+    active = todo["tasks"]
+    finished_ids = {t.get("id") for t in done["tasks"] if t.get("id")}
+    epics = store.sort_by_order([t for t in active if t.get("level") == "epic"])
+    epic_filter = getattr(args, "epic", None)
+    if epic_filter:
+        if not any(e.get("id") == epic_filter for e in epics):
+            sys.exit(f"no active epic with id {epic_filter!r}")
+        epics = [e for e in epics if e.get("id") == epic_filter]
+        scoped = [t for t in active if t.get("epic") == epic_filter]
+    else:
+        scoped = [t for t in active if t.get("level") != "epic"]
+    ready = store.sort_active([t for t in scoped if _is_ready(t, finished_ids)])
+    waiting = [
+        t for t in scoped
+        if t.get("level") != "epic" and t.get("status") != "blocked" and _unmet_deps(t, finished_ids)
+    ]
+    blocked = [t for t in scoped if t.get("status") == "blocked"]
+    summary = {
+        "tasks": sum(1 for t in scoped if t.get("level", store.DEFAULT_LEVEL) == "task"),
+        "scopes": sum(1 for t in scoped if t.get("level") == "scope"),
+        "epics": len(epics),
+        "ready": len(ready),
+        "waiting": len(waiting),
+        "blocked": len(blocked),
+    }
+    standalone = store.sort_by_order([t for t in scoped if not t.get("epic")]) if not epic_filter else []
+    if args.json:
+        payload = {
+            "summary": summary,
+            "ready": [t["id"] for t in ready],
+            "epics": [
+                {
+                    "id": e["id"],
+                    "title": e["title"],
+                    "items": [
+                        {"id": c["id"], "tag": _plan_tag(c, finished_ids), "order": c.get("order")}
+                        for c in store.sort_by_order([t for t in scoped if t.get("epic") == e["id"]])
+                    ],
+                }
+                for e in epics
+            ],
+            "standalone": [
+                {"id": t["id"], "tag": _plan_tag(t, finished_ids), "order": t.get("order")}
+                for t in standalone
+            ],
+        }
+        print(json.dumps(payload, indent=2))
+        return
+    print(
+        f"Plan: {summary['tasks']} tasks, {summary['scopes']} scopes, {summary['epics']} epics | "
+        f"ready={summary['ready']} waiting={summary['waiting']} blocked={summary['blocked']}"
+    )
+    print("\nReady Now:")
+    if not ready:
+        print("  (none)")
+    for t in ready:
+        print(f"  - [{t['id']}] ({t.get('urgency')}, ord={t.get('order')}) {t['title']}")
+    for epic in epics:
+        children = store.sort_by_order([t for t in scoped if t.get("epic") == epic["id"]])
+        print(f"\nEpic [{epic['id']}] ({epic.get('urgency')}, ord={epic.get('order')}): {epic['title']}")
+        if not children:
+            print("  (no active children)")
+        for child in children:
+            print(f"  {_plan_tag(child, finished_ids)} [{child['id']}] (ord={child.get('order')}) {child['title']}")
+    if standalone:
+        print("\nStandalone:")
+        for item in standalone:
+            print(f"  {_plan_tag(item, finished_ids)} [{item['id']}] (ord={item.get('order')}) {item['title']}")
 
 
 def cmd_show(args):
@@ -164,21 +292,26 @@ def cmd_count(args):
 def cmd_add(args):
     path, doc = _load_todo()
     _, done = _load_finished()
+    description = _description_text(args, required=True)
     existing = [t.get("id") for t in doc["tasks"] + done["tasks"]]
     task = {
         "id": args.id or store.slugify(args.title, existing),
         "title": args.title,
-        "description": args.description,
+        "description": description,
         "status": args.status,
         "level": args.level,
         "category": args.category,
         "urgency": args.urgency,
-        "order": store.next_order(doc["tasks"]),
+        "order": args.order if args.order is not None else store.next_order(doc["tasks"]),
         "created": _today(),
-        "tags": args.tag or [],
+        "tags": _dedupe(args.tag or []),
         "rebuild": args.rebuild,
         "emulator_debug": args.emulator_debug,
     }
+    if args.epic:
+        task["epic"] = args.epic
+    if args.depends_on:
+        task["depends_on"] = _dedupe(args.depends_on)
     doc["tasks"].append(task)
     store.save_todo(doc, path)
     print(f"added [{task['id']}] {task['title']}")
@@ -189,16 +322,42 @@ def cmd_edit(args):
     task = store.find(doc["tasks"], args.id)
     if not task:
         sys.exit(f"no active task with id {args.id!r}")
-    for field in ("title", "description", "status", "level", "category", "urgency",
+    if args.epic and args.clear_epic:
+        sys.exit("pass --epic or --clear-epic, not both")
+    if args.clear_depends_on and (args.depends_on is not None or args.add_depends_on):
+        sys.exit("pass --clear-depends-on alone, not with --depends-on/--add-depends-on")
+    if args.depends_on is not None and args.add_depends_on:
+        sys.exit("pass --depends-on or --add-depends-on, not both")
+    description = _description_text(args, required=False)
+    if description is not None:
+        task["description"] = description
+    for field in ("title", "status", "level", "category", "urgency",
                   "order", "rebuild", "emulator_debug"):
         value = getattr(args, field)
         if value is not None:
             task[field] = value
+    if args.epic is not None:
+        task["epic"] = args.epic
+    elif args.clear_epic:
+        task.pop("epic", None)
+    if args.depends_on is not None:
+        deps = _dedupe(args.depends_on)
+        if deps:
+            task["depends_on"] = deps
+        else:
+            task.pop("depends_on", None)
+    elif args.add_depends_on:
+        task["depends_on"] = _dedupe(list(task.get("depends_on") or []) + args.add_depends_on)
+    elif args.clear_depends_on:
+        task.pop("depends_on", None)
     if args.add_tag:
         task.setdefault("tags", [])
         for tag in args.add_tag:
             if tag not in task["tags"]:
                 task["tags"].append(tag)
+    if args.remove_tag and "tags" in task:
+        drop = set(args.remove_tag)
+        task["tags"] = [t for t in task["tags"] if t not in drop]
     store.save_todo(doc, path)
     print(f"updated [{task['id']}]")
 
@@ -286,7 +445,7 @@ def cmd_done(args, root=None):
     task["completed"] = (
         datetime.date.fromisoformat(args.date) if args.date else _today()
     )
-    for stray in ("order", "urgency", "rebuild", "emulator_debug"):
+    for stray in ("order", "urgency", "epic", "depends_on", "rebuild", "emulator_debug"):
         task.pop(stray, None)
     # The archive says what the task **delivered**; the plan it came from is not the record.
     task["description"] = shipped
@@ -578,12 +737,16 @@ def cmd_validate(args, root=None):
     """Lint both files; ``root`` lets ``test_design.py`` drive a temp checkout (the CLI never passes it)."""
     problems = []
     seen = {}
-    for label, (_, doc), finished in (
-        ("TODO", _load_todo(root), False),
-        ("FINISHED", _load_finished(root), True),
+    _, todo_doc = _load_todo(root)
+    _, done_doc = _load_finished(root)
+    for label, doc, finished in (
+        ("TODO", todo_doc, False),
+        ("FINISHED", done_doc, True),
     ):
         for task in doc["tasks"]:
             problems += _validate_task(label, task, finished, seen)
+    repo_root = root or store.find_repo_root()
+    problems += plan_rules.validate_plan(todo_doc["tasks"], done_doc["tasks"], root=repo_root)
     if problems:
         print("\n".join(problems))
         sys.exit(1)
@@ -764,11 +927,19 @@ def build_parser():
     ls.add_argument("--finished", action="store_true", help="list the archive")
     ls.add_argument("--unreleased", action="store_true",
                     help="archive only: the finished tasks the next version will ship")
+    ls.add_argument("--ready", action="store_true",
+                    help="active only: tasks/scopes with all depends_on finished and not blocked")
+    ls.add_argument("--epic", help="filter by epic id")
     ls.add_argument("--status")
     ls.add_argument("--category")
     ls.add_argument("--level", choices=store.LEVELS)
     ls.add_argument("--json", action="store_true")
     ls.set_defaults(func=cmd_list)
+
+    pl = sub.add_parser("plan", help="show the orchestrated execution plan and DAG readiness")
+    pl.add_argument("--epic", help="focus on one epic id")
+    pl.add_argument("--json", action="store_true")
+    pl.set_defaults(func=cmd_plan)
 
     sh = sub.add_parser("show", help="show one task by id")
     sh.add_argument("id")
@@ -786,14 +957,20 @@ def build_parser():
 
     ad = sub.add_parser("add", help="add an active task")
     ad.add_argument("--title", required=True)
-    ad.add_argument("--description", required=True)
+    ad.add_argument("--description")
+    ad.add_argument("--description-file", metavar="PATH",
+                    help="read UTF-8 description from file")
     ad.add_argument("--category", choices=store.CATEGORIES, default="feature")
     ad.add_argument("--level", choices=store.LEVELS, default=store.DEFAULT_LEVEL,
                     help="task (atomic) | scope (investigate, then add tasks) | "
                          "epic (large; break into scope/task children)")
     ad.add_argument("--urgency", choices=store.URGENCIES, default="normal")
     ad.add_argument("--status", choices=store.STATUSES_ACTIVE, default="active")
+    ad.add_argument("--order", type=int, help="explicit order (default: next after max)")
     ad.add_argument("--id", help="explicit id (default: slug of title)")
+    ad.add_argument("--epic", help="parent active epic id")
+    ad.add_argument("--depends-on", action="append", metavar="ID",
+                    help="prerequisite task or scope id (repeatable)")
     ad.add_argument("--tag", action="append")
     ad.add_argument("--rebuild", action=argparse.BooleanOptionalAction, default=True,
                     help="rebuild the Android app for this task (default: yes)")
@@ -806,12 +983,23 @@ def build_parser():
     ed.add_argument("id")
     ed.add_argument("--title")
     ed.add_argument("--description")
+    ed.add_argument("--description-file", metavar="PATH",
+                    help="read UTF-8 description from file")
     ed.add_argument("--status", choices=store.STATUSES_ACTIVE)
     ed.add_argument("--category", choices=store.CATEGORIES)
     ed.add_argument("--level", choices=store.LEVELS)
     ed.add_argument("--urgency", choices=store.URGENCIES)
     ed.add_argument("--order", type=int)
+    ed.add_argument("--epic", help="set parent active epic id")
+    ed.add_argument("--clear-epic", action="store_true", help="remove parent epic")
+    ed.add_argument("--depends-on", action="append", metavar="ID",
+                    help="replace depends_on list (repeatable)")
+    ed.add_argument("--add-depends-on", action="append", metavar="ID",
+                    help="append prerequisite id (repeatable)")
+    ed.add_argument("--clear-depends-on", action="store_true",
+                    help="remove all depends_on entries")
     ed.add_argument("--add-tag", action="append")
+    ed.add_argument("--remove-tag", action="append")
     ed.add_argument("--rebuild", action=argparse.BooleanOptionalAction, default=None,
                     help="set whether this task rebuilds the Android app")
     ed.add_argument("--emulator-debug", action=argparse.BooleanOptionalAction,

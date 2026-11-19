@@ -15,8 +15,18 @@ import todo
 
 
 def task(**overrides):
-    entry = dict(id="check-example", title="Check the codec", description="Verify a round trip.",
-                 status="active", category="test", level="task")
+    entry = dict(
+        id="check-example",
+        title="Check the codec",
+        description=(
+            "Verify round-trip encoding in "
+            "mobix-core/src/main/java/com/mobixournal/format/mobix/MobixElementCodec.kt; "
+            "run MobixElementCodecTest."
+        ),
+        status="active",
+        category="test",
+        level="task",
+    )
     entry.update(overrides)
     return entry
 
@@ -67,6 +77,14 @@ class OperationalTest(unittest.TestCase):
         self.assertEqual([], operational.problems(task(title="Test emulator configuration parsing")))
         self.assertEqual([], operational.problems(task(title="Test the device parser on the JVM")))
         self.assertTrue(operational.problems(task(title="Run parser tests on the emulator")))
+
+    def test_description_apk_install_and_evidence_requires_emulator_debug(self):
+        desc = "Install the debug APK, open a sheet, and capture screenshots with logcat clean."
+        self.assertTrue(operational.problems(task(category="feature", title="Check feature", description=desc)))
+        self.assertEqual(
+            [],
+            operational.problems(task(category="feature", title="Check feature", description=desc, emulator_debug=True)),
+        )
 
     def test_validate_checks_active_tasks_but_preserves_archive_history(self):
         with tempfile.TemporaryDirectory() as root:

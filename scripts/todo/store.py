@@ -57,6 +57,8 @@ _TASK_FIELDS = (
     "completed",
     "release",
     "tags",
+    "epic",
+    "depends_on",
     "rebuild",
     "emulator_debug",
     "design",
@@ -136,6 +138,8 @@ def _dump(doc, header, meta_order):
         out.append("[[task]]")
         for field in _TASK_FIELDS:
             if field in task and task[field] is not None:
+                if field in ("epic", "depends_on") and not task[field]:
+                    continue
                 out.append(tomlio.fmt_kv(field, task[field]))
     return "\n".join(out) + "\n"
 

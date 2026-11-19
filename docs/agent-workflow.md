@@ -40,6 +40,14 @@ and explicit device-verification test titles whose emulator flag disables that w
 clearly labelled historical observations remain possible; completed deliveries are not rewritten.
 The regression suite is `scripts/todo/test_operational.py`, also run in CI.
 
+Beside it, `scripts/todo/plan_rules.py` enforces plan coherence across active work: acyclic
+`depends_on` edges whose `order` ascends and `urgency` never rises downstream, mandatory
+`status = "blocked"` on tasks downstream of an undecided `scope`, active children for non-research
+epics, concrete repo anchors and verification steps without open design imperatives on `task`
+entries, no standalone follow-up `docs` tasks after code tasks, coherent `rebuild` flags, clean
+UTF-8 symbols, host-neutral AVD/doc pointers, and resolution of cited `docs/` files and Gradle test
+modules (`scripts/todo/test_plan_rules.py` runs in CI).
+
 These are conservative checks for known failures, not a parser of every natural-language request.
 A feature description can mention an emulator without requiring a device pass. Review still has
 to reconcile the user's goal, task metadata and evidence before closing the work.

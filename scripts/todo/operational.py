@@ -31,6 +31,8 @@ _RUN = re.compile(
     r"\b(?:run|verify|test|exercise|install|review|type|compute|measure|check)\b",
     re.IGNORECASE,
 )
+_INSTALL_APK = re.compile(r"\binstall the (?:debug )?apk\b", re.IGNORECASE)
+_DEVICE_EVIDENCE = re.compile(r"\b(?:screenshots?|logcat|emulator|avd)\b", re.IGNORECASE)
 
 
 def problems(task):
@@ -57,15 +59,27 @@ def problems(task):
             "current-host absence claim: describe the unverified behaviour, or label a dated "
             "historical observation; detect the current host using AGENTS.md"
         )
+    apk_install_desc = False
+    device_evidence_desc = False
+    for sentence in re.split(r"(?<=[.!?])\s+|\n", description):
+        for match in _INSTALL_APK.finditer(sentence):
+            if not _HISTORICAL_PREFIX.search(sentence[:match.start()]):
+                apk_install_desc = True
+        for match in _DEVICE_EVIDENCE.finditer(sentence):
+            if not _HISTORICAL_PREFIX.search(sentence[:match.start()]):
+                device_evidence_desc = True
     # A subject named "emulator" is not evidence of a runtime requirement:
     # configuration/parser tests can run on the JVM. Require a location or an
     # explicit device pass, rather than inferring execution from two keywords.
     device_run = (_DEVICE_LOCATION.search(title) and _RUN.search(title)) or _DEVICE_PASS.search(title)
-    if (task.get("category") == "test" and task.get("level", "task") == "task"
-            and device_run
-            and not task.get("emulator_debug", False)):
+    if (task.get("level", "task") == "task"
+            and not task.get("emulator_debug", False)
+            and (
+                (task.get("category") == "test" and device_run)
+                or (apk_install_desc and device_evidence_desc)
+            )):
         out.append(
-            "device/emulator verification is required by the test title but emulator_debug is false "
+            "device/emulator verification is required by the task but emulator_debug is false "
             "(also its default): set --emulator-debug, or correct the task's verification goal"
         )
     return out
