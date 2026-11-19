@@ -17,7 +17,7 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
-latest_release = "2.3.0"
+latest_release = "2.3.1"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
@@ -33,6 +33,7 @@ level = "task"
 category = "bug"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["android", "tabs", "split"]
 design = "none: no interface surface changed. The door still reads Restore last session, the workspace card still reads both halves reopen, and no layout, token or copy moved - the task only changes which tabs a tap restores (one pane before, both panes when the stored left half still names the half the run closed on)."
 
@@ -45,6 +46,7 @@ level = "epic"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0"]
 design = "material: opaque tonal bands and surfaces, hairline separation, 4/8 dp corners; tokens: one DesktopTheme over DesignTokens, no literals in chrome; states: five states in the four button variants and every control; copy: English throughout, one grammar per control kind; keyboard: focus rings, Enter/Space, arrow steps and remappable keys held across the shell; parity: Android untouched, desktop tests and the render sweep pass; docs: the three owning spokes updated by each child; tests: :desktop:test and the app guard suites pass"
 
@@ -57,6 +59,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "settings"]
 design = "material: flat surfaces, hairline controls, chip = accent rim + 12 % wash; tokens: DesktopTheme tokens only (controlShape, popupRowShape, accent, hairline, danger, activeSlot), no literal colour or size; states: rest, hover, press, picked, focus and disabled held for the preset chip, the key chip, Edit/Delete and Choose/Change; copy: English and US spelling ('Add color', 'New color', 'Shortcut'); keyboard: Enter/Esc stay the preset field's keys, Tab and Space take a chip, the drag handle keeps its arrow steps; parity: the menu's Pen block draws the same carousel and the same chip; docs: colours.md, desktop-settings.md, interface-contract.md §6; tests: DesktopSettingsStyleTest, DesktopTextFeedbackContractTest, ToolbarOrderTest and the render sweep pass"
 
@@ -69,6 +72,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "settings"]
 design = "material: the panel stays an opaque body and now lies under the scrim; tokens: settingsPanel, panelField, activeSlot, accent, controlShape, ROW_INSET and SettingsMetrics reused, HELP_HEIGHT now 28; glyph: the search field keeps the catalogue magnifier and takes the shared clear cross; states: one accent stripe over a half steel fill for the selected section, a 1 dp accent focus border, pointer and focus sharing the 4 dp corner, clamped slider knob; copy: English labels unchanged, the clear cross speaks Clear search; keyboard: the field registers as typing so its letters are text, sliders keep their arrows plus Home and End; parity: the desktop Settings only, the tablet untouched; docs: desktop-settings updated for the scrim, the single indicator, the natural rows and the visible field; tests: DesktopSettingsStyleTest, DesktopSettingsSurfaceTest, SettingsScrollPaneTest, DesktopShapeFeedbackTest and DesktopTextFeedbackContractTest updated, the suite green but for the known PagePictureTest replay"
 
@@ -81,6 +85,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "sidebar"]
 design = "material: the page sidebar and the inspector lane wear the band glass with one divider on the canvas edge; material: sidebar and lane rows are controls of that band, no card and no capsule around a glyph; tokens: rows and swatches take the 4 dp controlShape corner, the sidebar sections one 12 dp padding; glyph: the page remove glyph is a real button with a spoken name, the lane close a 24 dp icon command; states: hover lights the row under the pointer, a focused or hovered glyph lights its own square, a disabled one stays put; copy: US English for filter bookmarks, clear filter, close inspector, remove; keyboard: a field being written in registers as a text owner, so a letter is text and not a tool; keyboard: the lane and dialog footers close on the same edge, ordinary answer left and commit right; parity: the lane footer order and the band material match the Android lane and every dialog; docs: the layout, selection actions, code structure and repo layout pages state the new material and package; tests: the lane, sidebar, bookmark and text feedback suites read the new pixels, orders and hover"
 
@@ -93,6 +98,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "dialogs"]
 design = "material: one opaque popup surface on 8 dp over DesktopTheme.scrim, never Color.Black or glassCapsule; tokens: surfaceRadius, popupSurface, hairline, controlShape, danger and scrim, with the title and body faces only; glyph: none added, rows reuse the catalogue marks and the 12 dp radio dot; states: rows have rest, hover, focus ring and picked steel, buttons keep their five states; copy: US English kept, errors name the problem and the next step and never a class name; keyboard: card takes focus on open, Tab walks the answers, Space takes a radio, Enter commits, Esc cancels; parity: desktop only, the tablet dialogs are untouched and the shared contract still owns them; docs: interface-contract gains the one-modal rule and desktop-ui-layout loses the stale 20 dp corner; tests: DesktopDialogContractTest plus page range, import, page setup, update and motion suites green"
 
@@ -105,6 +111,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "entry"]
 design = "material: entry cards are the window surface, 8 dp with one hairline, never a halo or a capsule, and the commands are the one DesktopButton; tokens: surfaceRadius, surfaceShape, popupSurface, hairline, borderStrong, hoverSlot, controlShape, accent, onAccent, danger gone from the cards and the remove mark; glyph: NEW, OPEN, RESTORE, CLOSE from the catalogue, 16 dp in a command and 12 dp in a mark; states: a card has rest, hover and focus, its remove mark exists only under pointer or keyboard, and buttons keep all five; copy: Ctrl+N · Ctrl+O, US English, Recents and the empty sentence share one inset; keyboard: the card is a Role.Button with its own focus, and Tab reaches the remove mark when it is shown; parity: the tablet offers the same restore card, this window only changes its material; docs: desktop-ui-layout section 1 rewritten; tests: DesktopEntryScreenTest DesktopShellTest DesktopLifecycleTest DesktopTextFeedbackContractTest"
 
@@ -117,6 +124,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "canvas"]
 design = "material: the selection bars are opaque 8 dp surfaces with one hairline, never glass capsules over a white page, and the ring is one disc whose edge is its own boundary; tokens: surfaceRadius, surfaceShape, controlShape, popupSurface, hairline, activeSlot, hoverSlot, ink, inkSecondary, accent, DESKTOP_RAIL dimensions untouched; glyph: catalogue ChromeGlyph only, 18 dp in a bar square and 14 dp inside a word; states: bar squares keep hover, active and disabled and each word answers hover, focus ring and disabled-with-reason; copy: English labels and shortcuts unchanged, Deselect stays an accessibility action; keyboard: the accent focus ring lands on the word rather than the whole bar; parity: the tablet keeps its capsule bar while the window records an opaque one at the same offset rule; docs: no page needed a change, the material rule in interface-contract already states opaque bars; tests: DesktopSelectionBarTest PdfTextCopyBarTest DesktopRingRenderTest DesktopRingTest EdgeBumpTest"
 
@@ -129,6 +137,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "popups"]
 design = "material: every popup is one 8 dp surface with its hairline and a 4 dp inner geometry, and no child carries a bigger corner than its parent; tokens: popupRadius, popupRowShape, popupInset, controlShape, panelField, activeSlot, hoverSlot, hairline, borderStrong, ink, inkSecondary, accent, danger; glyph: catalogue ChromeGlyph and ToolGlyph only, the custom slot keeps the pen mark; states: rows and cells answer hover on the 4 dp corner, picked rows wear activeSlot with accent glyph, the hex field shows rest, focus ring and the error step, disabled rows keep their ink and lose the hit area; copy: US English Custom color and New color, hex error sentence says color, Cancel left and Set right; keyboard: DesktopTextField keeps the field focusable and the Enter and Escape answers of the panel; parity: the tablet keeps its own dialog while the window records the same rule of opaque colours and a strict hex; docs: desktop-workstation strip sentence and interface-contract geometry table; tests: ColourPickerTest ColourFlyoutTest DesktopFigureMenuTest DesktopPopupMaterialTest DesktopLayersTest GlassPopupGuardTest"
 
@@ -141,6 +150,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "tools"]
 design = "material: both strips are one opaque band of the header tone and one hairline, with no capsule, no lift and nothing standing inside the lane; tokens: DESKTOP_RAIL_WIDTH_DP 48, DESKTOP_RIBBON_HEIGHT_DP 44, controlShape, activeSlot, hoverSlot, hairline, borderStrong, inkMuted, accent, numeric; glyph: catalogue ToolGlyph on every slot plus ChromeGlyph for the edit mark, no material icons; states: resting on the band, hover with the 4 dp corner, picked in the steel with an accent glyph, focused with a 1 dp accent ring, pressed through the press step of hoverFill; copy: English labels and shortcuts, Insert image and Reset wording untouched; keyboard: slots are focusable and Alt+Down still opens the picked group, the family rules are not targets; parity: the tablet keeps its capsule rail while the window records docked bands, the same tools, families and shortcuts on both; docs: interface-contract geometry table, desktop-ui-layout sections 1 and 2, desktop-workstation strip bullet; tests: ToolStripsTest DesktopStripLayoutTest StripItemsTest ToolSlotClickTest ColourFlyoutTest"
 
@@ -153,6 +163,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "menu"]
 design = "material: the panel is a flat surface with one hairline and no capsule, tile or embossed chip; tokens: popupSurface via glassSurface, popupInset, controlShape, hairline, accent, documentRed, ink and inkMuted, no literal colour; glyph: catalogue ChromeGlyph on every row plus the catalogue STYLUS mark on the Pen row, no material icons; states: every row answers hover with the 4 dp corner, disabled rows keep their box in the muted ink, and the Pen row folds open and shut; copy: English names with their accelerators, the shortcut in the muted ink rather than the accent, Reset to defaults; keyboard: the Pen block keeps the page's field and the menu stays the one popup that takes the keyboard through MenuSurface; parity: the tablet keeps its tiles and chips while the window records one flat row, and the preset chip is the same 28 dp control on both surfaces; docs: desktop-workstation records the flat list and the folded Pen block; tests: DesktopMenuTest PenPresetTest DesktopTextFeedbackContractTest"
 
@@ -165,6 +176,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "chrome"]
 design = "material: the strip and the status band are opaque tones closed by one hairline, with no capsule and no shadow; tokens: controlShape, popupSurface, hairline, accent, danger, inkSecondary and activeSlot, no literal colour; glyph: catalogue CLOSE and ADD paths only, with controller tooltips; states: the active tab keeps its panel fill and 2 dp accent bar, a resting tab answers hover only, the dirty dot marks unsaved work, the close cross appears on hover, and a refusal is a danger badge; copy: English tooltips (New notebook, Close tab) with Ctrl+N and Ctrl+W, Page X of Y and the full path pill; keyboard: the rename field owns Enter and Escape through DesktopTextField and the tab commands are tab stops; parity: the tablet keeps its chip tabs while the window records flat ones; docs: desktop-ui-layout section 1 records the scrolling strip, the flat tabs and the refusal badge; tests: DesktopShellTest DesktopStatusTest StatusBandTest DesktopLifecycleTest DesktopTextFeedbackContractTest DesktopTabsTest"
 
@@ -177,6 +189,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "header"]
 design = "material: one opaque band tone with a single 1 dp bottom hairline, and no capsule, rim or shadow in header, field or pill; tokens: HEADER_CONTROL reads DESKTOP_HEADER_BUTTON_DP (28) and every colour is a DesktopTheme token; glyph: catalogue ChromeGlyph paths plus monoline 1.5 dp transport marks, no material icons; states: hover and pick use hoverSlot and activeSlot, disabled keeps its box with muted ink, focus takes the accent ring, a field shows rest, focused, refused and clear; copy: every tooltip and spoken name is English (Menu, Pages, Layers, Undo, Redo, Save, Export PDF, Clear search) with its accelerator; keyboard: commands are tab stops, a field owns Enter, Shift+Enter and Esc, and a focused command defers Space to itself; parity: the tablet keeps its capsule header, the window records the flat 28 dp icon row; docs: desktop-ui-layout section 1 names the flat 40 dp band, the 28 dp commands and the system caption; tests: DesktopHeaderTest DesktopHeaderAudioTest DesktopLayersTest DesktopShapeFeedbackTest DesktopTitleBarTest DesktopImportKeyboardTest DesktopImportPagesGridTest"
 
@@ -189,6 +202,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "controls"]
 design = "material: a command is an opaque tone at rest, one step past it under the pointer and two while held, never a glass over the desk; tokens: DESKTOP_CONTROL/SURFACE/ACTIVE_SLOT/HOVER, danger and onAccent, DESKTOP_CONTROL_CORNER_DP as the only control corner; glyph: ChromeGlyph.CLOSE for the field's clear and no material icons import in any primitive; states: five per primitive — default, hover, press or picked, disabled at 45 % ink, and an accent focus ring of 2 dp on a button and 1 dp on a glyph control; copy: English throughout, the field's clear reads Clear, and no factory rewrites a caller's label; keyboard: a focused command or field takes WindowKeys.focusControl so Enter, Space and the arrows belong to it; parity: the tablet keeps its own text and capsule recipes while the window keeps four flat variants as the recorded desktop decision; docs: interface-contract section 2 carries the destructive-red separation and section 6 the command, glyph and field rules; tests: DesktopTextFeedbackContractTest DesktopGlobalTextFeedbackTest DesktopPageRangeTest PropertyControlsTest"
 
@@ -201,6 +215,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = ["desktop", "ui", "p0", "theme"]
 design = "material: opaque DESKTOP_* tones with one hairline and no shadow on band, capsule or canvas edge, while the tablet keeps its frosted glass; tokens: every desktop tone is a DesignTokens constant read through tokenColour with no Color(0x) literal, hover is white at DESKTOP_HOVER_DARK_ALPHA, picked is DESKTOP_ACTIVE_SLOT_DARK_RGB, control corner 4 dp, surface corner 8 dp, header 40 dp; states: default, hover, picked, disabled and focus are all defined, hover is the 8 % wash and focus a 1 dp accent ring; tests: DesktopThemeTest, LightMaterialTest, ChromeMaterialRenderTest, GlassEdgeTest, GlassParityRenderTest, DesktopTitleBarTest and ToolStripsTest hold the flat tones, the zero shadow and the 4/8 dp corners in pixels"
 
@@ -213,6 +228,7 @@ level = "task"
 category = "bug"
 created = 2026-11-19
 completed = 2026-11-19
+release = "2.3.1"
 tags = []
 design = "material: nothing new on screen, the dashed outline and its bar simply stay; tokens: unchanged, no colour moves; glyph: unchanged; states: a still press on the air inside the outline now holds the selection instead of dropping it, a press on the ink still holds, a press outside is still the deselect and starts the next marquee; copy: no new English text; keyboard: Esc and Back still drop the selection; parity: the window already kept the selection for a click inside its region and now pins it, the tablet now matches; docs: docs/selection.md states the inside-air rule; tests: MovePressTest went with the rule it pinned, DesktopSelectionTest gained the empty-air case, and the tablet's gesture has no JVM harness to drive a MotionEvent"
 
@@ -225,6 +241,7 @@ level = "task"
 category = "test"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: a verification pass that changed no code"
 
@@ -237,6 +254,7 @@ level = "task"
 category = "test"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: tests and one documentation sentence, with no control, token or copy changed"
 
@@ -249,6 +267,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: the check, its card and its About row are unchanged, and only the pages the same facts are read from are new"
 
@@ -261,6 +280,7 @@ level = "task"
 category = "docs"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: documentation only"
 
@@ -273,6 +293,7 @@ level = "task"
 category = "chore"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: release tooling"
 
@@ -285,6 +306,7 @@ level = "task"
 category = "chore"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: a CI rehearsal that publishes nothing"
 
@@ -297,6 +319,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: the release page title is the workflow own string, not a surface either shell draws"
 
@@ -309,6 +332,7 @@ level = "task"
 category = "feature"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "copy: Move up and Move down sit above Rename and Delete inside the row menu that already exists; states: both words stay listed at the ends of a run, disabled in the existing muted ink rather than disappearing; parity: the window now offers the sibling moves the tablet has, through the same OutlineEdits.moveSibling and one undo step; tests: DesktopBookmarkNavigationTest opens the menu, asserts the disabled edge, the move and the single undo"
 
@@ -321,6 +345,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: release tooling, CI job order and a documentation guard — no control, copy or token changes in either shell"
 
@@ -333,6 +358,7 @@ level = "task"
 category = "bug"
 created = 2026-11-18
 completed = 2026-11-18
+release = "2.3.1"
 tags = []
 design = "none: no new control, token or copy — the failure sentence both shells already carried is what appears now, and the About line and pill keep their layout"
 

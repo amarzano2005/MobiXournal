@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: the two formats, the one conversion that is refused, and what a conversion costs. The internal map is [architecture.md](architecture.md)._
 
-This page is true for Android **2.3.0** and desktop **1.3.0**.
+This page is true for Android **2.3.1** and desktop **1.4.0**.
 
 ## The rule, in one paragraph
 
