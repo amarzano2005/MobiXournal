@@ -9,7 +9,7 @@ import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.snapSelectionMove
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.DesktopTabs
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.pickForDrag
 

@@ -1,7 +1,7 @@
 package com.mobixournal.desktop.io
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettings
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 
 import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.model.Document

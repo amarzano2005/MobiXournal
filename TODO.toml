@@ -47,45 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-sidebar-inspector"
-title = "Unify opaque Sidebar and Inspector styling, split PageSidebar under 700 lines, and fix Inspector footer order"
-description = """
-Phase 4B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Make left Sidebar and right Inspector share one opaque flat-dock language, keep `PageSidebar.kt` safely below the 700-line ceiling, and fix Inspector's inverted button order.
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/shell/PageSidebar.kt` (currently 691/700 lines!) + [NEW] `desktop/src/main/java/com/mobixournal/desktop/shell/PageSidebarRows.kt`:
-   - Extract `PageRow`, `PageRemoveGlyph`, `AddPageRow`, and `LayersSection` into `PageSidebarRows.kt` so both files stay `< 450` lines and every function `<= 85` lines.
-   - Sidebar container: opaque `.bandSurface(DesktopTheme.glass).bandDivider(BandEdge.END)` (matching `InspectorFrame`), uniform `12.dp` horizontal padding across `Pages`, `Bookmarks`, `Layers`, and `Search`.
-   - Thumbnail rows, `AddPageRow`, and `LayersSection` rows: `DesktopTheme.controlShape` (`4.dp`) corners + `hoverFill(4.dp)`.
-   - `PageRemoveGlyph`: `4.dp` hover fill, `clickable` with keyboard focus ring (replacing raw `detectTapGestures`).
-2. `desktop/src/main/java/com/mobixournal/desktop/shell/PdfContentsSidebar.kt` & `ContentsEditing.kt`:
-   - Unify horizontal padding to `12.dp`.
-   - Give outline rows consistent `hoverFill(DesktopTheme.controlShape)` (`4.dp`) + focus border.
-   - Migrate `ContentsFilterField` and add/rename title fields to `DesktopTextField`.
-   - In `ContentsRowMenu` / `ContentsMenuRow`, change hardcoded `RoundedCornerShape(6.dp)` to `DesktopTheme.popupRowRadius` (`4.dp`).
-   - Use `DesktopButton(Secondary)` / `DesktopButton(Primary)` for Cancel / Add / Save.
-3. `desktop/src/main/java/com/mobixournal/desktop/shell/SearchSidebar.kt`:
-   - Unify `12.dp` horizontal padding; add `padding(horizontal = 8.dp, vertical = 4.dp)` on `SearchResultRow` (`4.dp` hover) so highlight never hugs text edges.
-4. `desktop/src/main/java/com/mobixournal/desktop/tools/InspectorPanel.kt`, `InspectorControls.kt`, `InspectorSizing.kt`:
-   - `InspectorFrame`: `.bandSurface(DesktopTheme.glass).bandDivider(BandEdge.START)`; drag handle hover `DesktopTheme.controlShape` (`4.dp`).
-   - `LaneHeader`: title in `DesktopTheme.heading` (`13.sp` Medium); `LaneClose` as keyboard-focusable `DesktopIconButton(size = 24.dp, description = "Close inspector")`.
-   - `LaneFooter`: switch to `Arrangement.End`, placing **`Cancel` (`Secondary`) on the LEFT and `Place` (`Primary`) on the RIGHT** — identical to every dialog.
-   - Migrate `ValueField` to `DesktopTextField`; `ChoiceRow` to `4.dp` segmented tabs; give `ColourDot` keyboard focus ring; delete unused `pressed` var in `SectionCard`.
-5. Tests: update `SidebarTextFeedbackTest.kt`, `DesktopInspectorLaneTest.kt`, `DesktopInspectorSizingTest.kt`, `DesktopSidebarTest.kt`.
-
-DO NOT: let `PageSidebar.kt` or `PageSidebarRows.kt` approach 700 lines; name new files with forbidden suffixes (`Utils`/`Helper`/`Common`/`Manager`).
-Verification: run `:desktop:test` on `SidebarTextFeedbackTest`, `DesktopInspectorLaneTest`, `DesktopInspectorSizingTest`, `DesktopSidebarTest`, `DesktopPdfContentsRowTest`, plus `SourceStructureTest` and `PackageStructureTest`; inspect `shell-sidebar.png`, `inspector-plot-dark.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 120
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "sidebar"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-settings-shell"
 title = "Fix Settings chrome: modal scrim, single nav indicator (no L-shape), visible search field, flexible rows, and clamped sliders"
 description = """

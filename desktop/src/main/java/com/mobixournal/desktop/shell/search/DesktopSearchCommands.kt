@@ -1,5 +1,10 @@
-package com.mobixournal.desktop.shell
+package com.mobixournal.desktop.shell.search
 import com.mobixournal.desktop.ink.of
+import com.mobixournal.desktop.shell.DesktopSearch
+import com.mobixournal.desktop.shell.DesktopShellState
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.isSearchPending
+import com.mobixournal.desktop.shell.selectPage
 import com.mobixournal.desktop.sheet.Viewport
 
 import com.mobixournal.render.SearchHit

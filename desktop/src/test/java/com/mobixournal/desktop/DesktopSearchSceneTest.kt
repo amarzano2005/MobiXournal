@@ -10,7 +10,7 @@ import com.mobixournal.desktop.shell.DesktopSearch
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.shell.HeaderSearchField
-import com.mobixournal.desktop.shell.SearchResultsSection
+import com.mobixournal.desktop.shell.search.SearchResultsSection
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

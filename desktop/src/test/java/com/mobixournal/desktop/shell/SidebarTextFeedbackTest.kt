@@ -56,7 +56,7 @@ class SidebarTextFeedbackTest {
         assertNoFill(compose.onNodeWithText("Pages"))
         assertNoFill(compose.onNodeWithText("Add bookmark"))
     }
-    @Test fun overflowStaysUnfilledAndMenuHighlightsTheWholeRoundedEntry() {
+    @Test fun overflowLightsItsWholeRowAndTheMenuHighlightsTheWholeRoundedEntry() {
         compose.setContent {
             DesktopTheme.Apply {
                 Column(Modifier.width(240.dp).background(DesktopTheme.desk)) {
@@ -65,10 +65,22 @@ class SidebarTextFeedbackTest {
                 }
             }
         }
+        // The row is the control the pointer answers, overflow glyph included (`hoverFill` on the row): the
+        // glyph's own square is not a second, differently shaped state layer inside it.
         val overflow = compose.onNodeWithContentDescription("Actions for Chapter", useUnmergedTree = true)
-        val resting = overflow.captureToImage().toPixelMap()[3, 3]
+        val row = compose.onRoot()
+        val middle = overflow.fetchSemanticsNode().boundsInRoot.center.y.toInt()
+        val resting = row.captureToImage().toPixelMap()
         overflow.performMouseInput { enter(); moveTo(center) }
-        assertEquals(resting, overflow.captureToImage().toPixelMap()[3, 3])
+        val hovered = row.captureToImage().toPixelMap()
+        assertNotEquals(
+            "the row's air lights with the row, not just the glyph",
+            resting[2, middle], hovered[2, middle],
+        )
+        assertEquals(
+            "the rounded corner stays outside the state layer",
+            resting[0, 0], hovered[0, 0],
+        )
         overflow.performClick()
         val rename = compose.onNodeWithText("Rename")
         val delete = compose.onNodeWithText("Delete")

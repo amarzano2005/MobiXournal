@@ -17,7 +17,7 @@ import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.shell.DesktopDiagnostics
 import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.DesktopTab
-import com.mobixournal.desktop.shell.drawSearchHit
+import com.mobixournal.desktop.shell.search.drawSearchHit
 import com.mobixournal.desktop.shell.drawToolCursor
 import com.mobixournal.desktop.shell.toolPointerIcon
 import com.mobixournal.desktop.tools.DesktopTool

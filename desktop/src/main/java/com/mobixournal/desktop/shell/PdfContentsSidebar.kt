@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.navigation.ContentsDragList
 import com.mobixournal.desktop.tools.DesktopTextAction
+import com.mobixournal.desktop.tools.DesktopTextField
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import com.mobixournal.desktop.tools.GlassPopup
@@ -91,7 +92,7 @@ enum class DesktopSidebarView {
 @Composable
 internal fun SidebarViewSwitch(view: DesktopSidebarView, onView: (DesktopSidebarView) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 2.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         DesktopSidebarView.entries.forEach { option ->
@@ -158,7 +159,7 @@ internal fun ContentsPanel(
             tab.contentsList.scrollToItem(at)
         }
     }
-    Column(modifier.padding(horizontal = 6.dp)) {
+    Column(modifier.padding(horizontal = 12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.weight(1f))
             ContentsHeaderAction("Add bookmark", enabled = !adding) { editing.adding(tab.page) }
@@ -287,37 +288,20 @@ internal fun ContentsHeaderAction(label: String, enabled: Boolean = true, onClic
 }
 
 /**
- * The window's bookmark filter: one flat field, a placeholder, and the keyboard's own Escape handled by the
- * dialog-free sidebar — [WindowKeys.focusControl] tells the shell that this field owns typing while it has
- * focus, so a chapter search is not eaten by the page commands' single-letter keys.
+ * The window's bookmark filter: the one field (`DesktopTextField`) with the placeholder that says what it
+ * filters, the `×` that clears it, and `typing = true` so a chapter search is not eaten by the page
+ * commands' single-letter keys.
  */
 @Composable
 private fun ContentsFilterField(query: String, onQuery: (String) -> Unit) {
-    var focused by remember { mutableStateOf(false) }
-    val owner = remember { Any() }
-    DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
-    BasicTextField(
+    DesktopTextField(
         value = query,
         onValueChange = onQuery,
-        singleLine = true,
-        textStyle = DesktopTheme.label.copy(color = DesktopTheme.ink),
-        cursorBrush = androidx.compose.ui.graphics.SolidColor(DesktopTheme.accent),
-        modifier = Modifier
-            .fillMaxWidth()
-            .onFocusChanged {
-                focused = it.isFocused
-                WindowKeys.focusControl(owner, focused)
-            }
-            .bookmarkField(focused = focused)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
-        decorationBox = { field ->
-            Box {
-                if (query.isEmpty()) {
-                    Text("Filter bookmarks", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-                }
-                field()
-            }
-        },
+        placeholder = "Filter bookmarks",
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        onClear = { onQuery("") },
+        clearDescription = "Clear filter",
+        typing = true,
     )
 }
 
@@ -378,12 +362,16 @@ internal fun OutlineRowView(
     val target = row.page
     val number = target?.plus(1)
     val heading = ContentsRowLayout.isHeading(row.depth)
+    val interactions = remember { MutableInteractionSource() }
+    val rowFocused by interactions.collectIsFocusedAsState()
     Row(
         modifier
             .fillMaxWidth()
-            // A row that leads nowhere answers the pointer with nothing: `active` keeps the hover light off
-            // it, so the row's own "cannot be opened" is not contradicted by a highlight.
-            .quietSidebarClick(enabled = target != null, role = Role.Button) {
+            // The row answers the pointer as **one** control: the 4 dp corner every other row in the band
+            // wears, and the accent ring while it has the keyboard. A row that leads nowhere still answers
+            // with nothing — its own click stays disabled.
+            .hoverFill(DesktopTheme.controlShape, focused = rowFocused)
+            .quietSidebarClick(enabled = target != null, interactions = interactions, role = Role.Button) {
                 if (target != null) onSelectPage(target)
             }
             // One announcement for the whole row: the title, the page and whether it opens at all.
@@ -509,7 +497,7 @@ internal fun ContentsMenuRow(label: String, title: String, enabled: Boolean = tr
         style = DesktopTheme.label,
         modifier = Modifier
             .fillMaxWidth()
-            .hoverFill(RoundedCornerShape(6.dp),
+            .hoverFill(DesktopTheme.popupRowShape,
                 base = if (enabled && (focused || pressed)) DesktopTheme.hoverSlot else Color.Transparent)
             .clickable(interactionSource = interactions, indication = null, enabled = enabled,
                 role = Role.Button, onClick = onClick)

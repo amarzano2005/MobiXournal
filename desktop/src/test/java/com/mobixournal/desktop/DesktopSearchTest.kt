@@ -1,7 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.shell.isSearchPending
-import com.mobixournal.desktop.shell.stepSearch
+import com.mobixournal.desktop.shell.search.stepSearch
 import com.mobixournal.desktop.ink.PageHandwriting
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopContainer
@@ -18,7 +18,7 @@ import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.DesktopTabs
 import com.mobixournal.desktop.shell.ShellCommand
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.shell.shellCommand
 
 import com.mobixournal.format.mobix.PageSource

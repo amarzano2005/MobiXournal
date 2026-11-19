@@ -18,6 +18,7 @@ import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.ShortcutTable
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.sheet.DefaultSheet
 import com.mobixournal.desktop.sheet.DesktopClipboard
 import com.mobixournal.desktop.sheet.FitMode

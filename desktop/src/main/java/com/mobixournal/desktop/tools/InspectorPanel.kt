@@ -135,8 +135,10 @@ internal fun InspectorLane(
         LaneFooter {
             when {
                 pending != null -> {
-                    InspectorButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
+                    // The lane's answers close on the right, in the order every dialog in the window uses:
+                    // the ordinary answer first, the commit last.
                     InspectorButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
+                    InspectorButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
                 }
                 // A box being typed is finished by the same answer the field's `Esc` gives: it is written.
                 drafting != null -> InspectorButton("Done", primary = true, enabled = true, onClick = commitBox)

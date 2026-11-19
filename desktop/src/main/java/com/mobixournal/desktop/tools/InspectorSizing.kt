@@ -35,7 +35,15 @@ internal class InspectorSizing {
     BoxWithConstraints(modifier) {
         Row(Modifier.width(sizing.effective(maxWidth)).fillMaxHeight()) {
             InspectorResizeHandle(sizing)
-            Column(Modifier.weight(1f).fillMaxHeight().bandSurface(fill = DesktopTheme.settingsPanel), content = content)
+            // The flat dock's material, the same one the page sidebar wears on the left: the band's opaque
+            // tone and **one** 1 dp divider against the canvas, on the edge the lane opens. A settings-surface
+            // tone here made the lane a lighter column than the bands beside it — a third material.
+            Column(
+                Modifier.weight(1f).fillMaxHeight()
+                    .bandSurface(DesktopTheme.glass)
+                    .bandDivider(BandEdge.START),
+                content = content,
+            )
         }
     }
 }
@@ -47,7 +55,7 @@ internal class InspectorSizing {
     val focusOwner = remember { Any() }
     DisposableEffect(focusOwner) { onDispose { WindowKeys.focusControl(focusOwner, false) } }
     Box(Modifier.width(6.dp).fillMaxHeight()
-        .hoverFill(DesktopTheme.railSlotShape)
+        .hoverFill(DesktopTheme.controlShape)
         .drawBehind {
             drawLine(if (focused || dragging) DesktopTheme.accent else DesktopTheme.hairline,
                 Offset(size.width / 2f, 0f), Offset(size.width / 2f, size.height),

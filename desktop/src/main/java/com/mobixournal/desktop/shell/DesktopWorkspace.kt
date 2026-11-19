@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.desktop.shell.search.showSearchHit
 
 /**
  * The document's half of the window: the sidebar in its lane, the tool strips in theirs, and the page.

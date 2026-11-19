@@ -427,7 +427,7 @@ class DesktopInspectorLaneTest {
             click(scene, 795, 175)
             assertEquals("the family chip keeps the two styles", "Serif Bold Italic", textBox(tab).font)
 
-            click(scene, 710, 496)
+            click(scene, 710, 483)
             assertEquals("the ink keeps the face", "Serif Bold Italic", textBox(tab).font)
             assertEquals("and is the swatch that was clicked", 0xFFFF0000.toInt(), textBox(tab).color)
             assertEquals("the size was never touched", 18.0, textBox(tab).size, 1e-9)
@@ -481,12 +481,12 @@ class DesktopInspectorLaneTest {
         assertTrue(message, !nearLane(image.getRGB(lanePixelX, lanePixelY) and 0xFFFFFF))
 
     /**
-     * The lane's fill composited over the desk: `DesktopTheme.settingsPanel` at its own 0.97 — the number the
-     * settings surface is read at — and no longer the bands' 0.58. The column is therefore a tone lighter than
-     * the bands beside it, which is the separation the settings material exists for.
+     * The lane's fill composited over the desk: `DesktopTheme.glass` at its own alpha — the **band** material,
+     * the same one the page sidebar wears on the other side of the canvas, not the settings surface's lighter
+     * tone. The lane used to be a settings column, which made it a third material beside the bands.
      */
     private fun nearLane(actual: Int): Boolean {
-        val fill = DesktopTheme.settingsPanel
+        val fill = DesktopTheme.glass
         val desk = DesktopTheme.desk
         val alpha = fill.alpha
         fun over(foreground: Float, background: Float): Int =

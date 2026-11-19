@@ -141,8 +141,11 @@ reader the slot they had chosen.
 The lane starts at 380 dp. Drag its left divider to resize between 320 and 520 dp; keyboard focus on
 the divider enables Left/Right adjustment and Home to reset. Its effective width is capped at 55% of
 available row space so a narrow window retains canvas space. Width is window state, not a document edit.
-Property groups are flat and their titled headers can be folded with click, Enter or Space. All groups
-start expanded, including the plot Preview; folding changes presentation only. Existing Place/Cancel and direct-edit/Done semantics
-are unchanged. Fields retain their current numeric validation and undo boundaries. Focused group
+The lane wears the **band's glass** and one `bandDivider` against the canvas — the same material as the page
+sidebar on the other side, not the lighter settings surface. Property groups are flat and their titled headers
+can be folded with click, Enter or Space. All groups
+start expanded, including the plot Preview; folding changes presentation only. Existing direct-edit/Done semantics
+are unchanged, and the lane's footer closes on the same edge as every dialog's: **Cancel** on the left, **Place** on
+the right. Fields retain their current numeric validation and undo boundaries. Focused group
 headers and resize handles receive navigation keys before global shortcuts; other shortcut keys remain
 available, and disposing a control releases its keyboard ownership. Property fields and buttons use compact corners, boolean rows use square checkboxes, and secondary actions stay unfilled; other window chrome is unchanged.

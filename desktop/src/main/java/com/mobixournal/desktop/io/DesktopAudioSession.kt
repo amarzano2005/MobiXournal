@@ -1,7 +1,7 @@
 package com.mobixournal.desktop.io
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.shell.DesktopTab
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf

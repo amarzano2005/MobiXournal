@@ -37,6 +37,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.io.File
+import com.mobixournal.desktop.shell.search.setSearchQuery
+import com.mobixournal.desktop.shell.search.stepSearch
+import com.mobixournal.desktop.shell.search.closeSearch
 
 /**
  * The shell as the drawing in `docs/ui-modernization.md` lays it out: a header carrying the tab strip,

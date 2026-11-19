@@ -82,7 +82,7 @@ class SourceStructureTest {
         // +20 deliberate: the **Export As** card's own state — whether it is up, the picker its `.pmobix`
         // answer runs, and the two commands that raise and put it away (the card itself lives beside the
         // other hosts, in `ExportAsDialog.kt`).
-        "desktop/shell/DesktopShell.kt" to 741,
+        "desktop/shell/DesktopShell.kt" to 742,
         // The file that now carries the ring's own end of the work: the catalogue's glyph table gained
         // the ring's six-slots-round-a-nib mark (ToolGlyphs).
         "design/ToolGlyphs.kt" to 715,

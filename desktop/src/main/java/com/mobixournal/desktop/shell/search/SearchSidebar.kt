@@ -1,8 +1,10 @@
-package com.mobixournal.desktop.shell
+package com.mobixournal.desktop.shell.search
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
+import com.mobixournal.desktop.shell.DesktopTab
+import com.mobixournal.desktop.shell.isSearchPending
 import com.mobixournal.desktop.sheet.pageLabel
 
 import androidx.compose.foundation.Canvas
@@ -47,7 +49,7 @@ internal fun SearchResultsSection(tab: DesktopTab, onSearchHit: (Int) -> Unit) {
     // reading text boxes — so "No results" a frame into a search would be a lie about a document still
     // being read. The old query's rows are held back with it ([SearchRunner] answers one query at a time).
     val pending = tab.isSearchPending
-    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
         Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Canvas(Modifier.size(14.dp)) {
                 drawChromeGlyph(ChromeGlyph.SEARCH, DesktopTheme.inkSecondary)
@@ -96,9 +98,11 @@ private fun SearchResultRow(pageLabel: String, snippet: String, current: Boolean
     Row(
         Modifier
             .fillMaxWidth()
-            .hoverFill(RoundedCornerShape(8.dp))
+            // The row lights as one 4 dp control, and its air is part of it: the highlight must never hug
+            // the text, which is what a row padded only vertically made it do.
+            .hoverFill(DesktopTheme.controlShape)
             .clickable { onClick() }
-            .padding(vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

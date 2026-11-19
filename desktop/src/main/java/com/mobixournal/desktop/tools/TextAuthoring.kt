@@ -3,7 +3,7 @@ import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.shell.DesktopTab
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key

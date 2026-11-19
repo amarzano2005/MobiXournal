@@ -9,7 +9,7 @@ import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.sheet.PageBackdrop
 import com.mobixournal.desktop.shell.DesktopPages
 import com.mobixournal.desktop.shell.DesktopTabs
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.shell.renderPageBitmap
 import com.mobixournal.desktop.shell.thumbnail
 

@@ -34,6 +34,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.tools.DesktopTextField
+import com.mobixournal.desktop.tools.PanelButton
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.OutlineRow
 
@@ -136,26 +138,15 @@ internal fun ContentsTitleField(
     page: Int? = null,
     saveLabel: String = "Save",
 ) {
-    val owner = remember { Any() }
     val requester = remember { FocusRequester() }
-    var focused by remember { mutableStateOf(false) }
     LaunchedEffect(requester) { requester.requestFocus() }
-    DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
     Column(modifier) {
-        BasicTextField(
+        DesktopTextField(
             value = value,
             onValueChange = onValue,
-            singleLine = true,
-            textStyle = DesktopTheme.field.copy(color = DesktopTheme.ink),
-            cursorBrush = androidx.compose.ui.graphics.SolidColor(DesktopTheme.accent),
+            placeholder = placeholder,
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(requester)
-                .semantics { contentDescription = "Bookmark title" }
-                .onFocusChanged {
-                    focused = it.isFocused
-                    WindowKeys.focusControl(owner, it.isFocused)
-                }
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     when (event.key) {
@@ -169,28 +160,28 @@ internal fun ContentsTitleField(
                         }
                         else -> false
                     }
-                }
-                .bookmarkField(focused = focused, error = error != null)
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            decorationBox = { field ->
-                Box {
-                    if (value.isEmpty()) Text(placeholder, color = DesktopTheme.inkMuted, style = DesktopTheme.field)
-                    field()
-                }
-            },
+                },
+            error = error != null,
+            focusRequester = requester,
+            description = "Bookmark title",
+            typing = true,
         )
         if (error != null) Text(error, color = DesktopTheme.danger, style = DesktopTheme.label)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().padding(top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        ) {
             Text(
                 if (page == null) "No page" else "Page ${page + 1}",
                 color = DesktopTheme.inkMuted,
                 style = DesktopTheme.numeric,
                 maxLines = 1,
                 softWrap = false,
-                modifier = Modifier.weight(1f).padding(start = 8.dp),
+                modifier = Modifier.weight(1f),
             )
-            ContentsRowAction("Cancel", "", onClick = onCancel)
-            ContentsRowAction(saveLabel, "", enabled = value.isNotBlank(), onClick = onSave)
+            PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
+            PanelButton(label = saveLabel, primary = true, enabled = value.isNotBlank(), onClick = onSave)
         }
     }
 }
@@ -236,9 +227,12 @@ internal fun ContentsDeleteQuestion(
             style = DesktopTheme.label,
         )
         if (error != null) Text(error, color = DesktopTheme.danger, style = DesktopTheme.label)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            ContentsRowAction("Cancel", row.title, onClick = onCancel)
-            ContentsRowAction("Delete", row.title, onClick = onDelete)
+        Row(
+            Modifier.fillMaxWidth().padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        ) {
+            PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
+            PanelButton(label = "Delete", primary = false, enabled = true, destructive = true, onClick = onDelete)
         }
     }
 }

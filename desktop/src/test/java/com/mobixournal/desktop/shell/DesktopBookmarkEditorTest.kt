@@ -46,7 +46,9 @@ class DesktopBookmarkEditorTest {
         val cancelBounds = cancel.fetchSemanticsNode().boundsInRoot
         assertTrue(page.right <= cancelBounds.left)
         assertEquals(cancelBounds.top, before.top, 0.5f)
-        assertTrue(before.right <= 240f && before.height >= 40f)
+        // The answer is a panel button now (`PanelButton`), not a text action: it keeps the panel's own
+        // 30 dp control height and still ends inside the 240 dp column beside the page.
+        assertTrue(before.right <= 240f && before.height >= 30f)
         compose.onNodeWithContentDescription("Bookmark title").performTextInput("Optical measurements")
         add.assertIsEnabled()
         assertEquals(before, add.fetchSemanticsNode().boundsInRoot)

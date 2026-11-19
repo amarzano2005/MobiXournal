@@ -18,7 +18,7 @@ import com.mobixournal.desktop.settings.SettingsKeyAction
 import com.mobixournal.desktop.settings.SidebarPolicy
 import com.mobixournal.desktop.settings.StripPlacement
 import com.mobixournal.desktop.shell.ShellCommand
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.shell.shellCommand
 import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
 import com.mobixournal.desktop.tools.DesktopTool

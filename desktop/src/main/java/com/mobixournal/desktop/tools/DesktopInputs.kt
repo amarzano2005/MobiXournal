@@ -31,10 +31,66 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+
+/**
+ * The field's **editable line**: the value, its placeholder and its spoken name, in one `BasicTextField`.
+ *
+ * The placeholder is drawn **inside** the field, not beside it: the field's own semantics are then the node
+ * that carries the words, so a reader (or a test) that looks the field up by its placeholder finds the
+ * editable node rather than a label nothing can be typed into.
+ */
+@Composable
+private fun FieldInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    singleLine: Boolean,
+    enabled: Boolean,
+    onSubmit: (() -> Unit)?,
+    description: String?,
+    focusRequester: FocusRequester?,
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = singleLine,
+        enabled = enabled,
+        textStyle = DesktopTheme.field.copy(
+            color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,
+        ),
+        cursorBrush = SolidColor(DesktopTheme.accent),
+        keyboardOptions = KeyboardOptions(
+            imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Default,
+        ),
+        keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke() }),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .then(
+                if (description == null) Modifier
+                else Modifier.semantics { contentDescription = description },
+            ),
+        decorationBox = { field ->
+            Box {
+                if (value.isEmpty() && placeholder.isNotEmpty()) {
+                    Text(
+                        placeholder,
+                        color = DesktopTheme.inkMuted,
+                        style = DesktopTheme.field,
+                        maxLines = 1,
+                    )
+                }
+                field()
+            }
+        },
+    )
+}
 
 /**
  * The window's **one field**: a name box, a page range, a search, a preset's value.
@@ -59,9 +115,17 @@ internal fun DesktopTextField(
     singleLine: Boolean = true,
     /** A field that is shown but not editable — the value it holds is still read, never typed over. */
     enabled: Boolean = true,
+    /**
+     * A field whose keys are **text**. The shell's shortcut table runs before the composition
+     * ([WindowKeys]), so without this a letter typed into a bookmark title or a lane value was that
+     * tool's accelerator — and picking a tool drops the selection the field belongs to.
+     */
+    typing: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
     /** A field that owns the keyboard when something else asks for it (`Ctrl+F`'s search field). */
     focusRequester: FocusRequester? = null,
+    /** The field's spoken name, for a field whose value alone does not say what it edits. */
+    description: String? = null,
     onClear: (() -> Unit)? = null,
     /** The clear cross's spoken name, for a field whose clear says more than "Clear" (`"Clear search"`). */
     clearDescription: String = "Clear",
@@ -71,7 +135,12 @@ internal fun DesktopTextField(
 ) {
     var focused by remember { mutableStateOf(false) }
     val owner = remember { Any() }
-    DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
+    DisposableEffect(owner) {
+        onDispose {
+            WindowKeys.focusControl(owner, false)
+            WindowKeys.focusField(owner, false)
+        }
+    }
     Row(
         modifier
             .height(height)
@@ -88,6 +157,7 @@ internal fun DesktopTextField(
             .onFocusChanged {
                 focused = it.isFocused
                 WindowKeys.focusControl(owner, it.isFocused)
+                if (typing) WindowKeys.focusField(owner, it.isFocused)
             }
             .padding(horizontal = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -95,32 +165,15 @@ internal fun DesktopTextField(
     ) {
         leadingIcon?.invoke()
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            // The placeholder shares the value's style, so the field keeps one line height whether it is
-            // empty or typed in.
-            if (value.isEmpty() && placeholder.isNotEmpty()) {
-                Text(
-                    placeholder,
-                    color = DesktopTheme.inkMuted,
-                    style = DesktopTheme.field,
-                    maxLines = 1,
-                )
-            }
-            BasicTextField(
+            FieldInput(
                 value = value,
                 onValueChange = onValueChange,
+                placeholder = placeholder,
                 singleLine = singleLine,
                 enabled = enabled,
-                textStyle = DesktopTheme.field.copy(
-                    color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,
-                ),
-                cursorBrush = SolidColor(DesktopTheme.accent),
-                keyboardOptions = KeyboardOptions(
-                    imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Default,
-                ),
-                keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
+                onSubmit = onSubmit,
+                description = description,
+                focusRequester = focusRequester,
             )
         }
         trailing?.invoke(this)

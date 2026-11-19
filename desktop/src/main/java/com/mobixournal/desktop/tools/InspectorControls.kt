@@ -9,11 +9,13 @@ import com.mobixournal.desktop.settings.drawToolGlyph
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.Header
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.foundation.Canvas
@@ -122,7 +124,7 @@ internal fun LaneHeader(
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, color = DesktopTheme.ink, style = DesktopTheme.body)
+            Text(title, color = DesktopTheme.ink, style = DesktopTheme.heading)
             if (summary != null) {
                 Text(
                     text = summary,
@@ -144,10 +146,14 @@ internal fun LaneHeader(
  * The lane's **footer**: one row of actions at the bottom of the frame, shared by the placement question
  * and the editor.
  *
- * It is the same bar in both states — Place/Cancel while a question is up, Done once the element exists —
+ * It is the same bar in both states — Cancel/Place while a question is up, Done once the element exists —
  * because they are the same lane at two moments, and a card that ended in buttons while the editor below
  * ended in nothing was two frames wearing one width. The row keeps its height when it has no action, so
  * opening and closing the lane never moves the fields above it.
+ *
+ * The answers end on the **same edge every dialog's do** (`docs/interface-contract.md` §2): the ordinary
+ * answer on the left, the commit on the right. The lane used to lead with Place, so the same two commands
+ * sat in the opposite order on the two halves of the window.
  */
 @Composable
 internal fun LaneFooter(content: @Composable () -> Unit) {
@@ -157,7 +163,7 @@ internal fun LaneFooter(content: @Composable () -> Unit) {
             .heightIn(min = LANE_FOOTER_HEIGHT)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
     ) {
         content()
     }
@@ -169,7 +175,6 @@ internal fun SectionCard(title: String? = null, initiallyExpanded: Boolean = tru
     var expanded by remember(title) { mutableStateOf(initiallyExpanded) }
     var focused by remember(title) { mutableStateOf(false) }
     val interactions = remember(title) { MutableInteractionSource() }
-    val pressed by interactions.collectIsPressedAsState()
     val focusManager = LocalFocusManager.current
     val focusOwner = remember { Any() }
     DisposableEffect(focusOwner) { onDispose { WindowKeys.focusControl(focusOwner, false) } }
@@ -281,12 +286,11 @@ internal fun ValueField(
 ) {
     var text by remember(initial) { mutableStateOf(initial) }
     var focused by remember { mutableStateOf(false) }
-    // A field being typed in owns the keyboard (`WindowKeys`): the window's shortcut table would otherwise
-    // read a letter as a tool's accelerator, and a tool change drops the selection — which closed this very
-    // lane while a value was being written into it.
-    val keyOwner = remember { Any() }
-    DisposableEffect(keyOwner) { onDispose { WindowKeys.focusField(keyOwner, false) } }
-    BasicTextField(
+    // The lane's field is the window's one field (`DesktopTextField`) with the lane's own rules on top: the
+    // commit on `Enter` or when the caret leaves, and `Esc` putting the value back. `typing = true` keeps
+    // the window's shortcut table out of the way, so a letter is text and not a tool that drops the
+    // selection this lane belongs to.
+    DesktopTextField(
         value = text,
         onValueChange = { entered ->
             if (!numeric || entered.isEmpty() || entered == "-" || entered == "." || parseNumber(entered) != null) {
@@ -295,30 +299,16 @@ internal fun ValueField(
             }
         },
         singleLine = !multiline,
-        textStyle = DesktopTheme.field.copy(color = DesktopTheme.ink),
-        cursorBrush = SolidColor(DesktopTheme.accent),
         modifier = Modifier
             .fillMaxWidth()
-            .background(DesktopTheme.activeSlot.copy(alpha = 0.45f), com.mobixournal.desktop.settings.PropertyControlShape)
-            .border(
-                width = 1.dp,
-                color = if (focused) DesktopTheme.accent else DesktopTheme.hairline,
-                shape = com.mobixournal.desktop.settings.PropertyControlShape,
-            )
-            .padding(horizontal = 7.dp, vertical = 6.dp)
             .onFocusChanged { focus ->
                 val had = focused
                 focused = focus.isFocused
-                WindowKeys.focusField(keyOwner, focus.isFocused)
                 if (had && !focus.isFocused) onCommit(text)
             }
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
-                    Key.Enter, Key.NumPadEnter -> {
-                        onCommit(text)
-                        true
-                    }
                     Key.Escape -> {
                         text = initial
                         onDraft(initial)
@@ -327,6 +317,8 @@ internal fun ValueField(
                     else -> false
                 }
             },
+        typing = true,
+        onSubmit = { onCommit(text) },
     )
 }
 
@@ -340,13 +332,22 @@ internal fun SwitchRow(label: String, on: Boolean, onToggle: (Boolean) -> Unit) 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun ChoiceRow(options: List<String>, picked: String, onPick: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    // A segmented group of the window's own chips: the 4 dp control corner and the Ghost fill, so these
+    // read as the same tab row the page setup draws rather than as underlined words in a lane.
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         options.forEach { option ->
-            DesktopTextAction(option, { onPick(option) }, modifier = Modifier.weight(1f),
-                picked = option.equals(picked, ignoreCase = true), role = androidx.compose.ui.semantics.Role.Tab)
+            DesktopTextAction(
+                label = option,
+                onClick = { onPick(option) },
+                modifier = Modifier.weight(1f),
+                picked = option.equals(picked, ignoreCase = true),
+                role = androidx.compose.ui.semantics.Role.Tab,
+                ghostFill = true,
+                minHeight = 28.dp,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+            )
         }
     }
-
 }
 
 /**
@@ -393,7 +394,11 @@ private const val COLOUR_SWATCHES = 8
 
 /** The lane's close glyph: two monoline strokes, the same one the placement card used. */
 @Composable
-internal fun LaneClose(onClick: () -> Unit) = CrossGlyph(ink = DesktopTheme.chromeInk, onClick = onClick)
+internal fun LaneClose(onClick: () -> Unit) = CrossGlyph(
+    ink = DesktopTheme.chromeInk,
+    description = "Close inspector",
+    onClick = onClick,
+)
 
 /**
  * A row's **remove** control — the equation row's ×.
@@ -402,21 +407,27 @@ internal fun LaneClose(onClick: () -> Unit) = CrossGlyph(ink = DesktopTheme.chro
  * edit of the question, not a dismissal of the lane, and the two must not read as the same act.
  */
 @Composable
-internal fun RemoveGlyph(onClick: () -> Unit) = CrossGlyph(ink = DesktopTheme.inkSecondary, onClick = onClick)
+internal fun RemoveGlyph(onClick: () -> Unit) = CrossGlyph(
+    ink = DesktopTheme.inkSecondary,
+    description = "Remove",
+    onClick = onClick,
+)
 
-/** The one × of the lane, at its one size and with its one hover state. */
+/**
+ * The one × of the lane, at its one size and with its one focus ring.
+ *
+ * It is a real control ([DesktopIconButton] at 24 dp): reachable with Tab, wearing the window's accent ring
+ * while it has the keyboard, instead of an unlabelled `detectTapGestures` box that only the mouse could
+ * reach.
+ */
 @Composable
-private fun CrossGlyph(ink: Color, onClick: () -> Unit) {
-    val dismiss = rememberUpdatedState(onClick)
-    Box(
-        Modifier
-            .size(24.dp)
-            .hoverFill(com.mobixournal.desktop.settings.PropertyControlShape)
-            .pointerInput(Unit) { detectTapGestures { dismiss.value() } },
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(Modifier.size(14.dp)) { drawChromeGlyph(ChromeGlyph.CLOSE, ink) }
-    }
+private fun CrossGlyph(ink: Color, description: String, onClick: () -> Unit) = DesktopIconButton(
+    description = description,
+    onClick = onClick,
+    size = 24.dp,
+    tooltip = null,
+) {
+    Canvas(Modifier.size(14.dp)) { drawChromeGlyph(ChromeGlyph.CLOSE, ink) }
 }
 
 /**
@@ -479,14 +490,17 @@ internal fun EquationRow(
 @Composable
 internal fun ColourDot(colour: Int, open: Boolean, onClick: () -> Unit) {
     var hovered by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    val owner = remember { Any() }
+    DisposableEffect(owner) { onDispose { WindowKeys.focusControl(owner, false) } }
     Box(
         Modifier
             .size(16.dp)
             .background(Color(colour), com.mobixournal.desktop.settings.PropertyControlShape)
             .border(
-                width = if (open) 2.dp else 1.dp,
+                width = if (open || focused) 2.dp else 1.dp,
                 color = when {
-                    open -> DesktopTheme.accent
+                    focused || open -> DesktopTheme.accent
                     hovered -> DesktopTheme.inkMuted
                     else -> DesktopTheme.hairline
                 },
@@ -494,6 +508,13 @@ internal fun ColourDot(colour: Int, open: Boolean, onClick: () -> Unit) {
             )
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }
-            .pointerInput(colour, open) { detectTapGestures { onClick() } },
+            // The swatch is the row's **control**: the accent ring says which one the keyboard is on, and
+            // the palette it opens is the same control's answer, so it needs no second glyph beside it.
+            .onFocusChanged {
+                focused = it.isFocused
+                WindowKeys.focusControl(owner, it.isFocused)
+            }
+            .clickable(role = Role.Button) { onClick() }
+            .semantics { contentDescription = "Curve colour" },
     )
 }

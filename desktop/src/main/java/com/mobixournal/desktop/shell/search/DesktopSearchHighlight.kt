@@ -1,5 +1,6 @@
-package com.mobixournal.desktop.shell
+package com.mobixournal.desktop.shell.search
 import com.mobixournal.desktop.settings.DesktopTheme
+import com.mobixournal.desktop.shell.DesktopTab
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size

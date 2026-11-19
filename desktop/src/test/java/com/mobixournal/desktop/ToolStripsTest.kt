@@ -16,7 +16,7 @@ import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.shell.toolForKey
 import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
 import com.mobixournal.desktop.tools.DesktopTool

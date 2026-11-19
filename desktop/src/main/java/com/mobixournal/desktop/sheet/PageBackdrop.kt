@@ -2,7 +2,7 @@ package com.mobixournal.desktop.sheet
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.PdfPageReferences
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.shell.thumbnail
 
 import androidx.compose.ui.graphics.ImageBitmap

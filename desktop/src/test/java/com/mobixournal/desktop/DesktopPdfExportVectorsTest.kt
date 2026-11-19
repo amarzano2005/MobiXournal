@@ -6,7 +6,7 @@ import com.mobixournal.desktop.io.DesktopDocument
 import com.mobixournal.desktop.io.DesktopPdfExport
 import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.sheet.PageBackdrop
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document

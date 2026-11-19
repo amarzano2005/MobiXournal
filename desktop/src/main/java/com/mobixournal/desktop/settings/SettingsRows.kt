@@ -5,7 +5,7 @@ import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.number
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable

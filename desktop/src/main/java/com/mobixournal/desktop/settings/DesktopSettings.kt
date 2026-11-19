@@ -12,7 +12,7 @@ import com.mobixournal.desktop.sheet.FigureShape
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.DEFAULT_TARGET_HZ
 import com.mobixournal.desktop.shell.TARGET_HZ_RANGE
-import com.mobixournal.desktop.shell.find
+import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.FigureSettings

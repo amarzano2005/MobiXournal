@@ -99,8 +99,8 @@ keep theirs, and Save As still switches.
 and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**
 spoke it takes four rules, and the parity work of 2026-10-22 put them all in the window:
 
-- **A band is chrome, a capsule is an object.** The header, status bar, sidebar and both strips take the
-opaque band tone and **no shadow**; the rail is 48 dp wide and the ribbon 44 dp tall, with 36 dp slots
+- **A band is chrome, a capsule is an object.** The header, status bar, sidebar, the inspector lane that
+mirrors it across the canvas, and both strips take the opaque band tone and **no shadow**; the rail is 48 dp wide and the ribbon 44 dp tall, with 36 dp slots
 standing straight in that fill (6 dp of air, 4 between them) — one material, one hairline
   — and a header command is a 28 dp icon in that band's row. Separation is tone plus
   `Modifier.bandDivider`'s 1 dp hairline — a flat workstation has no lift to lose to eight-bit rounding. The
@@ -114,7 +114,7 @@ and deleted — so a picker row and a slot face cannot disagree; the picked slot
 The **chrome's** own pictures live in `ChromeGlyphCatalogue` — Material's path data, the selection bar's
 marks and the add/close/eye included — and **both** shells read it, so two screens show one set.
 - **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option and every tool
-  slot light one step short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`.
+  slot light one step short of the picked fill on the 4 dp `controlShape` — one square, never a glyph capsule.
 - **No motion of its own**: the window's surfaces arrive **and leave** on `DesignTokens.GlassMotion`, read
 from the shared tokens rather than picked here. A flyout is opened through `GlassPopup` — a `GlassPresence`
 hold plus the same spring — so a menu that closes draws back instead of vanishing; only the bars' hover
