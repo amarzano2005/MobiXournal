@@ -16,6 +16,7 @@ import com.mobixournal.desktop.tools.DesktopTool
 
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.ToolGlyphCatalogue
 import java.io.File
@@ -75,11 +76,10 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.CAPSULE_SHADOW_DP, number("capsuleShadowDp").toInt())
         assertEquals(DesignTokens.CHROME_INK_DARK_RAW, string("chromeInkDark"))
         assertEquals(DesignTokens.HOVER_SLOT_ALPHA, number("hoverSlotAlpha").toFloat(), 1e-4f)
-        // Compose packs a colour's alpha to 8 bits, so 0.45 comes back as 115/255.
-        assertEquals(DesignTokens.HOVER_SLOT_ALPHA, DesktopTheme.hoverSlot.alpha, 0.005f)
-        assertEquals(DesktopTheme.activeSlot.red, DesktopTheme.hoverSlot.red, 1e-6f)
-        assertEquals(DesktopTheme.activeSlot.green, DesktopTheme.hoverSlot.green, 1e-6f)
-        assertEquals(DesktopTheme.activeSlot.blue, DesktopTheme.hoverSlot.blue, 1e-6f)
+        // The window's hover step is the flat contract's own — the hairline's ink at 8 %, not the
+        // tablet's 45 % steel (`docs/interface-contract.md` §6).
+        assertEquals(DesignTokens.DESKTOP_HOVER_DARK_ALPHA, DesktopTheme.hoverSlot.alpha, 0.005f)
+        assertEquals(0xFF / 255f, DesktopTheme.hoverSlot.red, 1e-4f)
 
         // The instrument both shells lay on the sheet: one amber, and one wash alpha. Reading the token
         // back is what keeps the window's overlay from picking a second amber (`CanvasChrome.GUIDE_COLOR`
@@ -125,43 +125,49 @@ class DesktopThemeTest {
     @Test
     fun `the window's colours are the tokens, not colours of their own`() {
         val tolerance = 0.005f
-        assertEquals(0x16 / 255f, DesktopTheme.glass.red, tolerance)
-        assertEquals(0x16 / 255f, DesktopTheme.glass.green, tolerance)
-        assertEquals(0x18 / 255f, DesktopTheme.glass.blue, tolerance)
-        // The window's band alpha, not the tablet's: `DESKTOP_BAND_ALPHA` is the one number the two
-        // shells deliberately part on (docs/ui-modernization.md, 2026-10-25).
-        assertEquals(DesignTokens.DESKTOP_BAND_ALPHA, DesktopTheme.glass.alpha, tolerance)
+        assertEquals(0x14 / 255f, DesktopTheme.glass.red, tolerance)
+        assertEquals(0x14 / 255f, DesktopTheme.glass.green, tolerance)
+        assertEquals(0x17 / 255f, DesktopTheme.glass.blue, tolerance)
+        assertEquals("a flat band is opaque", 1f, DesktopTheme.glass.alpha, tolerance)
 
         assertEquals("the desk is true OLED black", 0f, DesktopTheme.desk.red, 0f)
         assertEquals(0f, DesktopTheme.desk.green, 0f)
         assertEquals(0f, DesktopTheme.desk.blue, 0f)
 
-        // A floating surface is the bands' own glass with the see-through turned down.
-        assertEquals(DesktopTheme.glass.red, DesktopTheme.floating.red)
-        assertEquals(DesktopTheme.glass.green, DesktopTheme.floating.green)
-        assertEquals(DesktopTheme.glass.blue, DesktopTheme.floating.blue)
-        assertEquals(DesignTokens.FLOATING_PANEL_ALPHA, DesktopTheme.floating.alpha, tolerance)
+        // A floating surface is the surface tone: opaque, one step above the band.
+        assertEquals(0x1C / 255f, DesktopTheme.floating.red, tolerance)
+        assertEquals(0x1C / 255f, DesktopTheme.floating.green, tolerance)
+        assertEquals(0x20 / 255f, DesktopTheme.floating.blue, tolerance)
+        assertEquals("a floating surface is opaque too", 1f, DesktopTheme.floating.alpha, tolerance)
+        assertEquals("and the panel is that same tone", DesktopTheme.panel, DesktopTheme.floating)
 
         assertEquals(0x60 / 255f, DesktopTheme.accent.red, tolerance)
         assertEquals(0xA5 / 255f, DesktopTheme.accent.green, tolerance)
         assertEquals(0xFA / 255f, DesktopTheme.accent.blue, tolerance)
 
         assertEquals(0xFF / 255f, DesktopTheme.hairline.red, tolerance)
-        assertEquals(DesignTokens.HAIRLINE_ALPHA, DesktopTheme.hairline.alpha, tolerance)
+        assertEquals(DesignTokens.DESKTOP_HAIRLINE_ALPHA, DesktopTheme.hairline.alpha, tolerance)
     }
 
     @Test
     fun `the window's geometry is the tokens`() {
         assertEquals(CornerSize(DesignTokens.PANEL_CORNER_RADIUS_DP.dp), DesktopTheme.panelShape.topStart)
         assertEquals(CornerSize(DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp), DesktopTheme.capsuleShape.topStart)
-        // The window's band is the token plus 8: the tablet's header carries one row of glyphs, the
-        // window's carries the tab strip and four 36 dp capsules beside it (`DesktopTheme.headerHeight`).
-        assertEquals(DesignTokens.HEADER_HEIGHT_DP.dp + 8.dp, DesktopTheme.headerHeight)
+        // A flat header is the shared 40 dp: a 28 dp button with air above and below it.
+        assertEquals(DesignTokens.HEADER_HEIGHT_DP.dp, DesktopTheme.headerHeight)
+        assertEquals(
+            CornerSize(DesignTokens.DESKTOP_CONTROL_CORNER_DP.dp),
+            DesktopTheme.controlShape.topStart,
+        )
+        assertEquals(
+            CornerSize(DesignTokens.DESKTOP_POPUP_CORNER_RADIUS_DP.dp),
+            DesktopTheme.surfaceShape.topStart,
+        )
         assertEquals("a header glyph is drawn at the 20 dp it has to read at", 20.dp, DesktopTheme.headerGlyphSize)
         assertEquals(DesignTokens.STATUS_HEIGHT_DP.dp, DesktopTheme.statusHeight)
         assertEquals(DesignTokens.GLYPH_STROKE_DP, DesktopTheme.glyphStroke.value, 1e-4f)
         assertEquals(DesignTokens.PAGE_SHADOW_DP.dp, DesktopTheme.pageShadow)
-        assertEquals(DesignTokens.BAND_SHADOW_DP.dp, DesktopTheme.bandShadow)
+        assertEquals("a flat band casts no shadow", 0.dp, DesktopTheme.bandShadow)
         assertEquals(DesignTokens.CAPSULE_SHADOW_DP.dp, DesktopTheme.capsuleShadow)
         assertEquals(DesignTokens.RAIL_CAPSULE_WIDTH_DP.dp, DesktopTheme.railCapsuleWidth)
         assertEquals(DesignTokens.RAIL_LANE_WIDTH_DP.dp, DesktopTheme.railLaneWidth)
@@ -204,12 +210,17 @@ class DesktopThemeTest {
         for (role in roles) {
             assertEquals("a Material role kept the framework's face", DesktopTheme.inter, role.fontFamily)
         }
-        assertEquals(
-            "the chrome's styles are roles of that scale",
-            scale.labelSmall.fontSize,
-            DesktopTheme.label.fontSize,
-        )
-        assertEquals(scale.bodyMedium.fontSize, DesktopTheme.body.fontSize)
+        // The window's roles are the flat scale's own sizes: 13 sp for prose, 12 sp for a label, a
+        // figure and a tab, 11 sp for an eyebrow, 18 sp for a title.
+        assertEquals(12.sp, DesktopTheme.label.fontSize)
+        assertEquals(12.sp, DesktopTheme.numeric.fontSize)
+        assertEquals(12.sp, DesktopTheme.tab.fontSize)
+        assertEquals(12.sp, DesktopTheme.field.fontSize)
+        assertEquals(13.sp, DesktopTheme.body.fontSize)
+        assertEquals(13.sp, DesktopTheme.heading.fontSize)
+        assertEquals(15.sp, DesktopTheme.subtitle.fontSize)
+        assertEquals(18.sp, DesktopTheme.title.fontSize)
+        assertEquals(11.sp, DesktopTheme.eyebrow.fontSize)
         assertNotEquals(
             "a weight the family does not ship is not asked for",
             androidx.compose.ui.text.font.FontWeight.SemiBold,

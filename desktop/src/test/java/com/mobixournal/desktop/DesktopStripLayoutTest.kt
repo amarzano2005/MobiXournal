@@ -86,11 +86,17 @@ class DesktopStripLayoutTest {
         (pixels[y * width + x] and 0xFFFFFF) == 0xFFFFFF
 
     /**
-     * The sheet's left edge, read along a row under the strips: a row at the foot of the window is below
-     * every capsule, so what it finds is the page and nothing else.
+     * The sheet's left edge, read along a row **clear of the capsule**: the rail's pill carries glyphs, and
+     * a glyph's white would be read as paper. So the row is the first near the foot of the window whose
+     * strip column holds no paper at all — band, desk or capsule, but never a sheet.
      */
     private fun sheetLeft(pixels: IntArray): Int {
-        val y = height - 60
+        val lane = ToolStripMetrics.railWidth.value.toInt()
+        // Either edge will do: the rail stands on one of them, and on the other the sheet is paper.
+        val y = (height - 40 downTo height - 220).firstOrNull { candidate ->
+            (0 until lane).none { x -> paper(pixels, x, candidate) } ||
+                (width - lane until width).none { x -> paper(pixels, x, candidate) }
+        } ?: error("no row clear of the strips' capsules")
         return (0 until width).firstOrNull { x -> paper(pixels, x, y) }
             ?: error("no sheet in the row at $y")
     }
@@ -163,11 +169,13 @@ class DesktopStripLayoutTest {
             // The band's first pixels, the capsule's centre, and the sheet just past the board: the three
             // samples a lane is made of, wherever the strip stands.
             val (bandAt, capsuleAt, paperAt) = when {
+                // The band is sampled in the lane's top air, above the capsule: the pill's shadow
+                // reaches the lane's inner edge, and a shadow is not the band.
                 placement.showsRail && placement.railSide == RailSide.LEFT ->
-                    Triple(2 to height / 2, lane / 2 to header + 200, lane + 8 to height / 2)
+                    Triple(2 to header + 3, lane / 2 to header + 200, lane + 8 to height / 2)
                 placement.showsRail ->
                     Triple(
-                        width - 3 to height / 2,
+                        width - 3 to header + 3,
                         width - lane / 2 to header + 200,
                         width - lane - 8 to height / 2,
                     )

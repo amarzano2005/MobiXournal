@@ -32,6 +32,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -338,10 +339,11 @@ class ToolStripsTest {
             "tools-rail-tall",
         )
         val image = ImageIO.read(ByteArrayInputStream(png))
-        fun alphaAt(y: Int) = image.getRGB(lane / 2, y) ushr 24
+        fun toneAt(y: Int) = image.getRGB(lane / 2, y) and 0xFFFFFF
         // The capsule's fill, read in the 4 dp of its top padding — above slot 0, inside the capsule.
-        val capsuleAlpha = alphaAt(ToolStripMetrics.railSlotTop.value.toInt() - 2)
-        val bottom = (0 until image.height).lastOrNull { alphaAt(it) == capsuleAlpha }
+        // A flat capsule is opaque, so its **tone** is what marks it, not an alpha over the band.
+        val capsuleTone = toneAt(ToolStripMetrics.railSlotTop.value.toInt() - 2)
+        val bottom = (0 until image.height).lastOrNull { toneAt(it) == capsuleTone }
             ?: error("the rail's capsule drew nothing")
         assertTrue(
             "the capsule is as tall as the window ($bottom of ${image.height}), not as tall as its tools",
@@ -445,11 +447,13 @@ class ToolStripsTest {
             val ribbon = ToolStripMetrics.ribbonHeight.value.toInt()
             // The lane's first pixels, and the sheet just past the board: the page is zoomed past the
             // window, so paper at the first of these would mean the strip lies over the sheet again.
+            // The band is sampled in the lane's own top air, above the capsule: on the window-facing
+            // side the pill's shadow reaches the lane's inner edge, and a shadow is not the band.
             val (bandAt, paperAt) = when {
                 placement.showsRail && placement.railSide == RailSide.LEFT ->
-                    (2 to windowH / 2) to (lane + 8 to windowH / 2)
+                    (2 to header + 3) to (lane + 8 to windowH / 2)
                 placement.showsRail ->
-                    (windowW - 3 to windowH / 2) to (windowW - lane - 8 to windowH / 2)
+                    (windowW - 3 to header + 3) to (windowW - lane - 8 to windowH / 2)
                 else -> (windowW / 2 to header + 2) to (windowW / 2 to header + ribbon + 8)
             }
             assertTrue(
@@ -512,6 +516,16 @@ class ToolStripsTest {
 
     private val activeSlotArgb: Int get() = DesktopTheme.activeSlot.toArgb() and 0xFFFFFF
 
+    /** The hover step composited over the capsule it lies on: the tone a hovered slot must paint. */
+    private val hoverTone: Int get() = compositeOver(DesktopTheme.hoverSlot, DesktopTheme.stripGlass)
+
+    private fun compositeOver(top: Color, bottom: Color): Int {
+        fun channel(t: Float, b: Float) = ((t * top.alpha + b * (1f - top.alpha)) * 255f).toInt().coerceIn(0, 255)
+        return (channel(top.red, bottom.red) shl 16) or
+            (channel(top.green, bottom.green) shl 8) or
+            channel(top.blue, bottom.blue)
+    }
+
     /**
      * A slot under the pointer wears the steel at the hover step.
      *
@@ -552,16 +566,17 @@ class ToolStripsTest {
             difference(rest, hovered) > 4,
         )
         assertTrue(
-            "a hovered slot painted the picked steel instead of the hover step",
-            difference(hovered, activeSlotArgb) > 4,
+            "a hovered slot wears the hover step, not the picked steel: " +
+                "${"#%06X".format(hovered)} should sit at ${"#%06X".format(hoverTone)}",
+            difference(hovered, hoverTone) <= 2,
         )
     }
 
     /**
-     * The glass composited over the desk at the **window's** alpha: `#0C0C0D`, one tone above black.
+     * The window's band: the flat band token itself, opaque (`DESKTOP_BAND_DARK_RGB`, `#141417`).
      *
-     * It is not the tablet's `#131314`: the window's bands are deliberately blacker (2026-10-25,
-     * `docs/ui-modernization.md`), and this is the number that decision lands on.
+     * There is no composite left to compute — a flat workstation's band is a tone, not a glass over the
+     * desk (`docs/interface-contract.md` §1).
      */
     private val windowGlass: Int get() =
         DesktopTheme.bandRgb

@@ -5,7 +5,6 @@ import com.mobixournal.desktop.settings.DesktopTheme
 
 import com.mobixournal.design.DesignTokens
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -20,21 +19,13 @@ import org.junit.Test
 class DesktopTitleBarTest {
 
     @Test
-    fun `the band's colour is the glass composited over the desk`() {
+    fun `the band's colour is the flat band token`() {
         val band = DesktopTheme.bandRgb
-        // The window's own alpha (`DESKTOP_BAND_ALPHA`): a blacker band than the tablet's `#131314`, by
-        // the owner's decision of 2026-10-25 (`docs/ui-modernization.md`).
-        assertEquals("the glass keeps the desk's red channel", 0x0C, (band shr 16) and 0xFF)
-        assertEquals("and its own slight warmth on blue", 0x0D, band and 0xFF)
-        assertTrue(
-            "and the window's band is darker than the tablet's composite",
-            ((band shr 8) and 0xFF) <
-                (DesktopTheme.blendRgb(
-                    DesignTokens.GLASS_DARK_RGB,
-                    DesignTokens.GLASS_DARK_ALPHA,
-                    DesignTokens.DESK_RGB,
-                ) shr 8) and 0xFF,
-        )
+        // The flat contract's band, opaque: the caption is the band's own tone, not a composite — there
+        // is no alpha left to composite (`docs/interface-contract.md` §1).
+        assertEquals("the caption takes the band's tone", DesignTokens.DESKTOP_BAND_DARK_RGB, band)
+        assertEquals("its red channel", 0x14, (band shr 16) and 0xFF)
+        assertEquals("its blue channel", 0x17, band and 0xFF)
         assertEquals(
             "an opaque band with no alpha is the glass itself",
             DesignTokens.GLASS_DARK_RGB,

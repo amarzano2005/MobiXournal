@@ -89,6 +89,52 @@ object DesignTokens {
     const val DESKTOP_POPUP_ROW_HEIGHT_DP: Int = 28
     const val DESKTOP_POPUP_INSET_DP: Int = 4
 
+    // --- The desktop flat workstation (`docs/interface-contract.md` §1-§3) ----------------------
+    //
+    // The window's own palette and geometry: opaque tonal surfaces, one hairline, and two corners. The
+    // tablet never reads these, and none of its tokens move — the two shells are one product with two
+    // materials, and this block is the window's.
+
+    /** The bands' tone: the header, the sidebar, the status bar, the rail and the ribbon. */
+    const val DESKTOP_BAND_DARK_RGB: Int = 0x141417
+    const val DESKTOP_BAND_LIGHT_RGB: Int = 0xF3F4F6
+
+    /** A surface that stands on a band: panels, popups, settings, floating bars. */
+    const val DESKTOP_SURFACE_DARK_RGB: Int = 0x1C1C20
+
+    /** A control's fill: one tone above the band, for inputs, buttons and tab chips. */
+    const val DESKTOP_CONTROL_DARK_RGB: Int = 0x232329
+
+    /** A picked slot's steel, and its paper twin. */
+    const val DESKTOP_ACTIVE_SLOT_DARK_RGB: Int = 0x2E2E36
+    const val DESKTOP_ACTIVE_SLOT_LIGHT_RGB: Int = 0xDFE4EA
+
+    /** The ink a filled accent surface writes in. */
+    const val DESKTOP_ON_ACCENT_DARK_RGB: Int = 0x0B1220
+    const val DESKTOP_ON_ACCENT_LIGHT_RGB: Int = 0xFFFFFF
+
+    /** The hairline that separates two surfaces, and the stronger border a control or field wears. */
+    const val DESKTOP_HAIRLINE_ALPHA: Float = 0.10f
+    const val DESKTOP_BORDER_STRONG_ALPHA: Float = 0.16f
+    const val DESKTOP_BORDER_STRONG_LIGHT_ALPHA: Float = 0.18f
+
+    /** The hover step: the hairline's own ink, barely there. */
+    const val DESKTOP_HOVER_DARK_ALPHA: Float = 0.08f
+    const val DESKTOP_HOVER_LIGHT_ALPHA: Float = 0.06f
+
+    /** The scrim under a modal: the desk, or the slate the light theme dims with. */
+    const val DESKTOP_SCRIM_DARK_ALPHA: Float = 0.45f
+    const val DESKTOP_SCRIM_LIGHT_ALPHA: Float = 0.25f
+    const val DESKTOP_SCRIM_LIGHT_RGB: Int = 0x0F172A
+
+    /** The control corner (`4 dp`) and the shape tokens that carry it. */
+    const val DESKTOP_CONTROL_CORNER_DP: Int = 4
+
+    /** The rail's lane, the ribbon's band and a header button's slot, in dp. */
+    const val DESKTOP_RAIL_WIDTH_DP: Int = 48
+    const val DESKTOP_RIBBON_HEIGHT_DP: Int = 44
+    const val DESKTOP_HEADER_BUTTON_DP: Int = 28
+
     /** Backdrop blur radius behind the glass, in dp. */
     const val BLUR_RADIUS_DP: Int = 24
 

@@ -26,7 +26,7 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 ```
 
 ### 1. Window layout & workspace panes
-- **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one glass tab per open
+- **Header band, 40 dp** (the token: it carries the tabs *and* the file commands): one glass tab per open
   document (each keeps its page, zoom and fit), the `+` for another, and right **Pages and Layers** in one
   capsule, the search field, **undo, redo, Save, PDF**. The field stands there always beside the tabs, so
   using it never moves them or the file commands, and it keeps the **same gap either side** (12 dp to the
@@ -93,21 +93,20 @@ keep theirs, and Save As still switches.
   for 16:9 monitors. Whichever is on, the strip stands in a **lane of its own** beside the canvas — a band
   with the tablet's capsule in it, never a bar over the page (2026-10-28, `interface-contract.md`); the
   choice lives in the settings file, and the Interface section owns its door.
-- **The window's bands are blacker than the tablet's** (2026-10-25): the same glass RGB at
-  `DESKTOP_BAND_ALPHA` (0.58), because 0.85 composites to `#131314`, which in a maximised window on a 34"
-  screen read as a grey slab beside the phone; the band is `#0C0C0D` — the one tone the shells do not share.
+- **The window's surfaces are opaque tones of their own** (2026-11-19, superseding 2026-10-25): the band is
+  `DESKTOP_BAND_DARK_RGB` (`#141417`), a panel or popup `DESKTOP_SURFACE_DARK_RGB`, a control
+  `DESKTOP_CONTROL_DARK_RGB` — flat, no shadow, one hairline; the tablet keeps its frosted glass.
 
 **The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status bar
 and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**
 spoke it takes four rules, and the parity work of 2026-10-22 put them all in the window:
 
 - **A band is chrome, a capsule is an object.** The header, status bar, sidebar and the strips' lanes take
-the glass fill and **one 4 dp cast shadow**, no rim. The rail is a **52 dp capsule in a 64 dp lane** (6 dp
-of side air, 8 above and below), the ribbon a 48 dp capsule in a 56 dp band; each takes its **own 6 dp
-lift** and the family's rim, and a header control is that capsule at 36 dp. Without the lifts the bands were flat,
-because over a true-black desk the glass' alpha is invisible: the shadow is the only depth the window has
-(`Modifier.bandSurface()` / `glassCapsule()`). A shadow on a true-black desk is a **lift**, not a shade, and it has to survive eight-bit rounding: the sheet's halo is the shadow token at 12 %, because at the 4.5 % it carried the token's 21 units came out as `#000000` — the falloff existed in the recipe and not on the screen (`DesktopShellTest`). The fill and the ink are the shared tokens' — a sheen of the
-window's own made the same material lighter (`interface-contract.md` §2 owns the colours).
+the opaque band tone and **no shadow**; the rail is a **52 dp capsule in a 64 dp lane** (6 dp of side air,
+8 above and below), the ribbon a 48 dp capsule in a 56 dp band, each on the surface tone with the family's
+rim, and a header control is that capsule at 36 dp. Separation is tone plus `Modifier.bandDivider`'s 1 dp
+hairline — a flat workstation has no lift to lose to eight-bit rounding. The ink is the shared tokens'
+(`interface-contract.md` §2 owns the colours).
 - **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`. Neither
 shell keeps a set of its own — the tablet's deep circuit, gate, bond and variant vectors were transcribed

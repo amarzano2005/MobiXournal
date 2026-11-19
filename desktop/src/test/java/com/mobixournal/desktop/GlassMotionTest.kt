@@ -4,6 +4,7 @@ import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.GlassPresence
 import com.mobixournal.desktop.tools.glassSpring
+import com.mobixournal.desktop.settings.DesktopTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.DesignTokens
@@ -70,7 +72,8 @@ class GlassMotionTest {
                 opening.getRGB(centreX, grownY) and 0xFFFFFF,
             )
 
-            val settledFill = DesignTokens.GLASS_DARK_RGB
+            // The flat surface tone: an opaque panel, not the glass over the sheet.
+            val settledFill = DesktopTheme.panel.toArgb() and 0xFFFFFF
             assertTrue(
                 "40 ms in, the panel is still fading: centre ${Integer.toHexString(early.getRGB(centreX, centreY))} " +
                     "must be lighter than the settled ${Integer.toHexString(settledFill)}",

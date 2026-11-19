@@ -25,6 +25,7 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.File
 import javax.imageio.ImageIO
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -69,13 +70,13 @@ class ChromeMaterialRenderTest {
     }
 
     /**
-     * A band casts a shadow.
+     * A band casts **no** shadow: a flat workstation separates its surfaces by tone and a hairline.
      *
-     * The band is drawn over **white** on purpose: against the desk the shadow is black on black, which
-     * is exactly why the first, flat version of the window looked like it had no lift at all.
+     * The band is drawn over **white** on purpose: a shadow would be unmistakable there, which is what
+     * makes the absence of one a measurement rather than a claim.
      */
     @Test
-    fun aBandCastsAShadowUnderItself() {
+    fun aBandCastsNoShadow() {
         val image = render("chrome-band-shadow") {
             Box(
                 Modifier
@@ -84,14 +85,13 @@ class ChromeMaterialRenderTest {
                     .bandSurface(),
             )
         }
-        // The shadow's darkest ring sits in the first few pixels under the band and falls away fast; a
-        // 4 dp lift over white is a soft grey, not a black line, so the band's own bottom row is skipped
-        // (it carries the fill) and the tail is read instead.
-        val darkest = (41..48).minOf { y -> luminance(image.getRGB(width / 2, y)) }
+        // The band's own bottom row carries the fill; the rows under it must still be the underlay.
+        val justBelow = luminance(image.getRGB(width / 2, 41))
         val farBelow = luminance(image.getRGB(width / 2, height - 4))
-        assertTrue(
-            "a band must darken the surface under it: $darkest vs $farBelow",
-            darkest < farBelow - 10,
+        assertEquals(
+            "a flat band must not darken the surface under it: $justBelow vs $farBelow",
+            farBelow,
+            justBelow,
         )
     }
 
@@ -109,18 +109,15 @@ class ChromeMaterialRenderTest {
                     .bandSurface(),
             )
         }
-        // Inside the band, away from the two rows the graphics layer's own shadow tints: the face is one
-        // tone, which is what tells a shared fill from a gradient of the window's own.
-        val upper = luminance(image.getRGB(width / 2, 10))
-        val lower = luminance(image.getRGB(width / 2, 34))
-        assertTrue("a band must not carry a gradient of its own: upper $upper, lower $lower", kotlin.math.abs(upper - lower) <= 2)
-        // The glass at the window's alpha over the white underlay: 22·0.58 + 255·0.42 ≈ 120 a channel.
-        val token = DesignTokens.GLASS_DARK_RGB
-        val expected = (((token shr 16) and 0xFF) * DesignTokens.DESKTOP_BAND_ALPHA +
-            255f * (1f - DesignTokens.DESKTOP_BAND_ALPHA))
-        assertTrue(
-            "the fill must be the glass token over the underlay, not a lighter charcoal: $upper vs $expected",
-            kotlin.math.abs(upper - expected) <= 4f,
+        // The face is one tone — no gradient of the window's own — and that tone is the band token
+        // exactly, because a flat fill is opaque and cannot be tinted by what lies under it.
+        val upper = image.getRGB(width / 2, 10) and 0xFFFFFF
+        val lower = image.getRGB(width / 2, 34) and 0xFFFFFF
+        assertEquals("a band must not carry a gradient of its own", upper, lower)
+        assertEquals(
+            "the fill is the flat band token, not the glass over the underlay",
+            DesignTokens.DESKTOP_BAND_DARK_RGB,
+            upper,
         )
     }
 

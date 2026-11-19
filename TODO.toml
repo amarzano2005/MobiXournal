@@ -47,49 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-tokens-theme"
-title = "Add desktop flat-workstation tokens, opaque dark/light tonal ramp, typography scale, and flat surface modifiers"
-description = """
-Phase 1A of `desktop-ui-flat-workstation`. Establish the exact opaque desktop palette, 4/8 dp geometry tokens, desktop Inter typography scale, and shadow-free surface modifiers without touching Android tokens.
-
-Exact changes:
-1. `mobix-core/src/main/java/com/mobixournal/design/DesignTokens.kt`: ADD new `DESKTOP_*` constants ONLY (DO NOT modify any existing constant used by Android or `docs/ui-modernization.md` JSON):
-   - `DESKTOP_BAND_DARK_RGB = 0x141417`, `DESKTOP_BAND_LIGHT_RGB = 0xF3F4F6`
-   - `DESKTOP_SURFACE_DARK_RGB = 0x1C1C20`, `DESKTOP_CONTROL_DARK_RGB = 0x232329`
-   - `DESKTOP_ACTIVE_SLOT_DARK_RGB = 0x2E2E36`, `DESKTOP_ACTIVE_SLOT_LIGHT_RGB = 0xDFE4EA`
-   - `DESKTOP_ON_ACCENT_DARK_RGB = 0x0B1220`, `DESKTOP_ON_ACCENT_LIGHT_RGB = 0xFFFFFF`
-   - `DESKTOP_HAIRLINE_ALPHA = 0.10f`, `DESKTOP_BORDER_STRONG_ALPHA = 0.16f`, `DESKTOP_BORDER_STRONG_LIGHT_ALPHA = 0.18f`
-   - `DESKTOP_HOVER_DARK_ALPHA = 0.08f`, `DESKTOP_HOVER_LIGHT_ALPHA = 0.06f`
-   - `DESKTOP_SCRIM_DARK_ALPHA = 0.45f`, `DESKTOP_SCRIM_LIGHT_ALPHA = 0.25f`, `DESKTOP_SCRIM_LIGHT_RGB = 0x0F172A`
-   - `DESKTOP_CONTROL_CORNER_DP = 4`, `DESKTOP_RAIL_WIDTH_DP = 48`, `DESKTOP_RIBBON_HEIGHT_DP = 44`, `DESKTOP_HEADER_BUTTON_DP = 28`
-2. `desktop/src/main/java/com/mobixournal/desktop/settings/DesktopTheme.kt` (no `Color(0x` literals; use `tokenColour(...)`):
-   - Opaque `alpha = 1f` surfaces: `glass` = `DESKTOP_BAND_DARK_RGB` / `DESKTOP_BAND_LIGHT_RGB` (fixes light-mode white-on-white bug); `panel`/`popupSurface`/`settingsPanel`/`floating`/`stripGlass` = `DESKTOP_SURFACE_DARK_RGB` / `GLASS_LIGHT_RGB`; `control` = `DESKTOP_CONTROL_DARK_RGB` / `GLASS_LIGHT_RGB`; `panelField` = `DESKTOP_CONTROL_DARK_RGB` / `DESKTOP_BAND_LIGHT_RGB` (guarantees contrast inside dark panels).
-   - `activeSlot` = `DESKTOP_ACTIVE_SLOT_DARK_RGB` / `DESKTOP_ACTIVE_SLOT_LIGHT_RGB`; `hoverSlot` = `HAIRLINE_RGB @ DESKTOP_HOVER_DARK_ALPHA` / `HAIRLINE_LIGHT_RGB @ DESKTOP_HOVER_LIGHT_ALPHA`.
-   - `hairline` = `HAIRLINE_RGB` / `HAIRLINE_LIGHT_RGB` at `DESKTOP_HAIRLINE_ALPHA`; add `borderStrong`, `onAccent` (`DESKTOP_ON_ACCENT_*`), `scrim` (`DESK_RGB @ 0.45f` / `DESKTOP_SCRIM_LIGHT_RGB @ 0.25f`).
-   - Geometry: `controlRadius = DESKTOP_CONTROL_CORNER_DP.dp`, `controlShape = RoundedCornerShape(controlRadius)`, `surfaceRadius = DESKTOP_POPUP_CORNER_RADIUS_DP.dp`, `surfaceShape = RoundedCornerShape(surfaceRadius)`, `headerHeight = DesignTokens.HEADER_HEIGHT_DP.dp` (`40.dp`), `bandShadow = 0.dp`, `bandEdgeShadow = Color.Transparent`, `bandRgb` = opaque `DESKTOP_BAND_LIGHT_RGB` or `DESKTOP_BAND_DARK_RGB` (no alpha blend).
-   - Typography (Inter, no SemiBold): `title` 18.sp Medium (lh 24.sp), `subtitle` 15.sp Medium (lh 20.sp), `heading` 13.sp Medium (lh 18.sp), `body` 13.sp Normal (lh 18.sp), `field` 12.sp Normal `tnum` (lh 16.sp), `tab` 12.sp Medium (lh 16.sp), `label` 12.sp Normal (lh 16.sp), `numeric` 12.sp Medium `tnum` (lh 16.sp), `eyebrow` 11.sp Medium 0.4.sp tracking (lh 14.sp).
-   - Make `chromeScheme` read `tokenColour(...)` directly (not dynamic getters) with distinct `surface`, `surfaceVariant`, `surfaceContainer`, `outline`.
-3. `desktop/src/main/java/com/mobixournal/desktop/tools/GlassEdge.kt`:
-   - `bandSurface(fill = DesktopTheme.glass)`: remove `Modifier.shadow(...)`; opaque `.background(fill)` only.
-   - Add `Modifier.bandDivider(edge: BandEdge, color: Color = DesktopTheme.hairline)` drawing a crisp 1 dp line along the specified edge via `drawWithContent`.
-   - Keep `glassSurface(fill = DesktopTheme.popupSurface, cornerRadius = DesktopTheme.surfaceRadius)` opaque 8 dp + 1 dp hairline.
-   - Upgrade `hoverFill` with optional `pressed: Boolean = false` and `focused: Boolean = false` (1 dp accent focus border).
-4. Docs: update `docs/interface-contract.md` §1-§3 to record the Desktop Flat Workstation material & 4/8 dp geometry contract while keeping the file `<= 300` lines.
-5. Tests: update `DesktopThemeTest.kt`, `LightMaterialTest.kt`, `ChromeMaterialRenderTest.kt`, `GlassEdgeTest.kt`, `GlassParityRenderTest.kt`, `DesktopTitleBarTest.kt`, `DesktopPanelAirTest.kt` to assert opaque flat surfaces, light-theme tonal separation, 0 dp band shadow, 4/8 dp radii, and desktop typography.
-
-DO NOT: touch `app/` UI code; alter existing Android `DesignTokens` values; introduce `Color(0x` literals or `material.icons` imports.
-Verification: run `:mobix-core:test`, targeted `:desktop:test` on the 7 test classes above, `:app:testDebugUnitTest` for `DocsGuardTest`, `DocClaimsTest`, `SourceStructureTest`, `ColorContractGuardTest`, `ModernThemeTest`, and refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 20
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "theme"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-buttons-inputs"
 title = "Build unified DesktopButton, DesktopIconButton, and DesktopTextField primitives and migrate PanelButton/InspectorButton"
 description = """

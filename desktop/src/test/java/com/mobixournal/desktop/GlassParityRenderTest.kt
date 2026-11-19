@@ -123,6 +123,12 @@ class GlassParityRenderTest {
         return (r * 299 + g * 587 + b * 114) / 1000
     }
 
+    private fun compositeOf(rgb: Int, alpha: Float, under: Int): Int {
+        fun channel(shift: Int) = (((rgb shr shift) and 0xFF) * alpha + ((under shr shift) and 0xFF) * (1f - alpha))
+            .toInt().coerceIn(0, 255)
+        return (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
+    }
+
     private fun difference(a: Int, b: Int): Int {
         fun channel(rgb: Int, shift: Int) = (rgb shr shift) and 0xFF
         return maxOf(
@@ -133,7 +139,7 @@ class GlassParityRenderTest {
     }
 
     @Test
-    fun theTwoMaterialsAreTheSameGlass() {
+    fun theTwoShellsWearTheirOwnMaterials() {
         val image = render()
         // The panels begin after the margin; each one is `panel` wide with `gap` between them.
         val leftX = margin + panel / 2
@@ -142,20 +148,39 @@ class GlassParityRenderTest {
         val bottomY = margin + height - 2
         val middleY = margin + height / 2
 
+        val tablet = image.getRGB(leftX, middleY) and 0xFFFFFF
+        val desktop = image.getRGB(rightX, middleY) and 0xFFFFFF
+        val tabletFill = compositeOf(DesignTokens.GLASS_DARK_RGB, DesignTokens.FLOATING_PANEL_ALPHA, DesignTokens.DESK_RGB)
         assertEquals(
-            "the fills are one tone",
-            0,
-            difference(image.getRGB(leftX, middleY), image.getRGB(rightX, middleY)),
+            "the tablet's fill is its glass over the desk: ${Integer.toHexString(tablet)}",
+            tabletFill,
+            tablet,
         )
         assertEquals(
-            "the rim's top edge is one tone",
-            0,
-            difference(image.getRGB(leftX, topY), image.getRGB(rightX, topY)),
+            "the window's fill is the flat surface tone: ${Integer.toHexString(desktop)}",
+            DesignTokens.DESKTOP_SURFACE_DARK_RGB,
+            desktop,
         )
-        assertEquals(
-            "the rim's bottom edge is one tone",
-            0,
-            difference(image.getRGB(leftX, bottomY), image.getRGB(rightX, bottomY)),
+        assertTrue(
+            "the two shells wear two materials, by decision",
+            difference(tablet, desktop) > 4,
+        )
+        // The rim is drawn from the same ink at the same alphas over each body, so what matches is the
+        // **step** it takes from that body — an absolute tone would differ with the fill, and the fills
+        // are deliberately two materials now.
+        val tabletTop = image.getRGB(leftX, topY) and 0xFFFFFF
+        val desktopTop = image.getRGB(rightX, topY) and 0xFFFFFF
+        val tabletBottom = image.getRGB(leftX, bottomY) and 0xFFFFFF
+        val desktopBottom = image.getRGB(rightX, bottomY) and 0xFFFFFF
+        assertTrue(
+            "the rim's top edge takes one step from its body: " +
+                "${difference(tabletTop, tablet)} against ${difference(desktopTop, desktop)}",
+            kotlin.math.abs(difference(tabletTop, tablet) - difference(desktopTop, desktop)) <= 2,
+        )
+        assertTrue(
+            "and so does its bottom edge: " +
+                "${difference(tabletBottom, tablet)} against ${difference(desktopBottom, desktop)}",
+            kotlin.math.abs(difference(tabletBottom, tablet) - difference(desktopBottom, desktop)) <= 2,
         )
     }
 

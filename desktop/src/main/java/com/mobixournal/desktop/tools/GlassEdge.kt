@@ -144,12 +144,19 @@ internal fun Modifier.hoverFill(
     active: Boolean = false,
     fill: Color = DesktopTheme.hoverSlot,
     base: Color = Color.Transparent,
+    /** A pointer held down: one step past hover, so a press is answered before the action lands. */
+    pressed: Boolean = false,
+    /** The keyboard's focus: a 1 dp accent ring, visible without the pointer (`§6`). */
+    focused: Boolean = false,
 ): Modifier {
     var hovered by remember { mutableStateOf(false) }
+    val wash = if (pressed) fill.copy(alpha = (fill.alpha * 2f).coerceAtMost(0.22f)) else fill
+    val ring = if (focused) Modifier.border(1.dp, DesktopTheme.accent, shape) else Modifier
     return this
         .onPointerEvent(PointerEventType.Enter) { hovered = true }
         .onPointerEvent(PointerEventType.Exit) { hovered = false }
-        .background(if (hovered && !active) fill else base, shape)
+        .background(if ((hovered || pressed) && !active) wash else base, shape)
+        .then(ring)
 }
 
 /**
@@ -182,21 +189,44 @@ internal fun Modifier.hoverCapsule(
 }
 
 /**
- * A **band** of chrome — the header, the status bar, the sidebar, a tool lane — as the tablet draws it:
- * the glass fill and **one** cast shadow underneath for [DesktopTheme.bandShadow].
+ * A **band** of chrome — the header, the status bar, the sidebar, a tool lane: one opaque tonal fill and
+ * nothing else.
  *
- * A band deliberately takes **no rim** (`docs/chrome.md`): on the true-black scheme a rim above and one
- * below a 40 dp slab read as two grey rules across the window, and that is the pair the tablet removed.
- * The shadow is its whole edge. It takes **no sheen** either: the tablet's bands are the flat token fill,
- * and a lit gradient over the window's bands made the same material read a shade lighter on the PC.
- * Lightness is the fill's job, and the fill is the shared token.
+ * A flat workstation casts no shadow from its chrome and draws no rim on it (`docs/interface-contract.md`
+ * §1): a band is separated from what stands beside it by its tone and by [bandDivider], one crisp 1 dp
+ * line. The fill is a [DesktopTheme] token, never a gradient, so the two shells' chrome cannot drift.
  */
 @Composable
-internal fun Modifier.bandSurface(
-    fill: Color = DesktopTheme.glass,
-    shadow: Dp = DesktopTheme.bandShadow,
-): Modifier = shadow(shadow, RectangleShape, clip = false)
-    .background(fill)
+internal fun Modifier.bandSurface(fill: Color = DesktopTheme.glass): Modifier = background(fill)
+
+/**
+ * The **one line** that closes a band against a neighbouring surface: 1 dp of [color] along [edge].
+ *
+ * Drawn inside the band, over its content, so it lands exactly on the boundary the eye reads and cannot
+ * be clipped away by a parent. `docs/interface-contract.md` §1 makes it the band's whole edge. It takes
+ * no `Composable` state beyond the density, so a lane and the header beside it meet on one line.
+ */
+@Composable
+internal fun Modifier.bandDivider(edge: BandEdge, color: Color = DesktopTheme.hairline): Modifier {
+    val stroke = with(LocalDensity.current) { DesignTokens.HAIRLINE_STROKE_WIDTH_DP.dp.toPx() }
+    return drawWithContent {
+        drawContent()
+        when (edge) {
+            BandEdge.TOP -> drawRect(color, topLeft = Offset(0f, 0f), size = Size(size.width, stroke))
+            BandEdge.BOTTOM -> drawRect(
+                color,
+                topLeft = Offset(0f, size.height - stroke),
+                size = Size(size.width, stroke),
+            )
+            BandEdge.START -> drawRect(color, topLeft = Offset(0f, 0f), size = Size(stroke, size.height))
+            BandEdge.END -> drawRect(
+                color,
+                topLeft = Offset(size.width - stroke, 0f),
+                size = Size(stroke, size.height),
+            )
+        }
+    }
+}
 
 /**
  * The air a panel keeps at its rounded edge and a pill keeps inside its own outline — the same two

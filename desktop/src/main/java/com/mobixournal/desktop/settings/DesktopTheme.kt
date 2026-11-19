@@ -60,40 +60,33 @@ object DesktopTheme {
     val desk: Color get() = tokenColour(if (light) DesignTokens.DESK_LIGHT_RGB else DesignTokens.DESK_RGB)
 
     /**
-     * The bands' fill — the header, the sidebar, the status bar, the rail and every capsule — over the
-     * desk, at the **window's** alpha rather than the tablet's.
+     * The bands' fill — the header, the sidebar, the status bar, the rail and the ribbon.
      *
-     * The same RGB, thinned: over a true-black desk `0.85` composites to `#131314`, which in a maximised
-     * window on a 34" monitor read as a grey slab beside the phone's chrome. At
-     * `DESKTOP_BAND_ALPHA` it is `#0D0D0E` — a blacker band, still a material (there is a fill, a rim and
-     * a lift) and still the same colour family. The decision and its reasoning are
-     * `docs/ui-modernization.md`'s; `DesktopThemeTest` pins the composite.
+     * Flat and **opaque**: the flat-workstation contract separates surfaces with a tonal step and one
+     * crisp hairline, never with a translucent pane and a rim (`docs/interface-contract.md` §1). The
+     * tablet keeps its frosted glass and never reads the `DESKTOP_*` tokens.
      */
-    val glass: Color get() = if (light) {
-        tokenColour(DesignTokens.GLASS_LIGHT_RGB)
-    } else {
-        tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA)
-    }
+    val glass: Color get() = tokenColour(
+        if (light) DesignTokens.DESKTOP_BAND_LIGHT_RGB else DesignTokens.DESKTOP_BAND_DARK_RGB,
+    )
 
     /**
-     * The fill a chrome **control** wears — a header capsule, the search field, a menu chip.
-     *
-     * On the black desk a control and its band are one material, and the rim's white hairline is what
-     * tells them apart. On paper that recipe collapses: a white capsule on a white band is a ghost, and
-     * the window's buttons stopped reading as objects at all. So the light theme **inverts** the pair —
-     * the band is the tinted surface and the control is the white one, which is how a light toolbar is
-     * drawn everywhere. On black this is [glass] untouched, so nothing on the black desk moves.
+     * The fill a chrome **control** wears — a header button, an input, a menu chip: one tone above the
+     * band it stands on, opaque, so an object is read by its tone rather than by a rim.
      */
-    val control: Color get() = if (light) tokenColour(DesignTokens.GLASS_LIGHT_RGB) else glass
+    val control: Color get() = tokenColour(
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.DESKTOP_CONTROL_DARK_RGB,
+    )
 
     /**
-     * A **field inside a floating panel** — a name box, a page range, a preset capsule.
+     * A **field inside a floating panel** — a name box, a page range, a preset.
      *
-     * A panel is near-white, so [control] would vanish inside it; on paper a field steps *down* a tone
-     * instead ([card]), the way a sunken field does. On the black desk it stays the band's glass, which
-     * is what these boxes have always worn.
+     * A panel is the surface tone, so a field takes the control tone on dark and the band's tinted grey
+     * on paper: a sunken field reads as one step either way, never as the panel it sits in.
      */
-    val panelField: Color get() = if (light) card else glass
+    val panelField: Color get() = tokenColour(
+        if (light) DesignTokens.DESKTOP_BAND_LIGHT_RGB else DesignTokens.DESKTOP_CONTROL_DARK_RGB,
+    )
 
     /** The rim's alpha at the top of a floating surface: lit on black, shaded on paper. */
     val rimAlphaTop: Float get() =
@@ -103,8 +96,10 @@ object DesktopTheme {
     val rimAlphaBottom: Float get() =
         if (light) DesignTokens.RIM_ALPHA_BOTTOM_LIGHT else DesignTokens.RIM_ALPHA_BOTTOM
 
-    /** Legacy translucent glass for capsule chrome; desktop popup bodies use [popupSurface]. */
-    val floating: Color get() = glass.copy(alpha = DesignTokens.FLOATING_PANEL_ALPHA)
+    /** A floating surface's fill — an opaque surface tone, never a translucency. */
+    val floating: Color get() = tokenColour(
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.DESKTOP_SURFACE_DARK_RGB,
+    )
 
     /**
      * A **document tab's** fill: the tablet's own chip glass, at full strength while it is the document in
@@ -122,7 +117,9 @@ object DesktopTheme {
         floating.copy(alpha = if (light) TAB_RESTING_ALPHA_LIGHT else TAB_RESTING_ALPHA)
 
     /** Opaque palette body for desktop popups, dialogs and failure cards. */
-    val panel: Color get() = tokenColour(if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB)
+    val panel: Color get() = tokenColour(
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.DESKTOP_SURFACE_DARK_RGB,
+    )
 
     /** Opaque desktop popup body, sharing the palette with the other shells. */
     val popupSurface: Color get() = panel
@@ -134,27 +131,37 @@ object DesktopTheme {
     /** Settings and nested menus cover underlying controls with the same opaque body. */
     val settingsPanel: Color get() = popupSurface
 
-    /**
-     * The **tool strips'** fill: the same glass, at `STRIP_GLASS_ALPHA`.
-     *
-     * A strip lies on the page, so the band's 0.58 let the sheet's white through and the bar went grey —
-     * the tools were read against its own ink, and the bar stopped reading as chrome at all. Nearly solid
-     * is what makes it a bar on a desk: the page shows at its rim and nowhere else.
-     */
+    /** The **tool strips'** fill: the surface tone, opaque, one step above the page's frame. */
     val stripGlass: Color get() = tokenColour(
-        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.GLASS_DARK_RGB,
-        DesignTokens.STRIP_GLASS_ALPHA,
+        if (light) DesignTokens.GLASS_LIGHT_RGB else DesignTokens.DESKTOP_SURFACE_DARK_RGB,
     )
 
     /**
-     * One edge, one pixel, 12 % white — the hairline a *control* wears (a swatch's ring), never a second
-     * rule on a band. A floating surface takes [glassRim] instead: a flat border was what made the
-     * window's panels look like boxes while the tablet's looked like glass.
+     * One edge, one pixel, 10 % — the hairline that separates two flat surfaces, and the whole edge of a
+     * popup, a menu and a card.
      */
     val hairline: Color get() = tokenColour(
         if (light) DesignTokens.HAIRLINE_LIGHT_RGB else DesignTokens.HAIRLINE_RGB,
-        DesignTokens.HAIRLINE_ALPHA,
+        DesignTokens.DESKTOP_HAIRLINE_ALPHA,
     )
+
+    /** The stronger border a control, input or focused container wears. */
+    val borderStrong: Color get() = tokenColour(
+        if (light) DesignTokens.HAIRLINE_LIGHT_RGB else DesignTokens.HAIRLINE_RGB,
+        if (light) DesignTokens.DESKTOP_BORDER_STRONG_LIGHT_ALPHA else DesignTokens.DESKTOP_BORDER_STRONG_ALPHA,
+    )
+
+    /** The ink a filled accent surface writes in — the tablet's own on-colour pairing. */
+    val onAccent: Color get() = tokenColour(
+        if (light) DesignTokens.DESKTOP_ON_ACCENT_LIGHT_RGB else DesignTokens.DESKTOP_ON_ACCENT_DARK_RGB,
+    )
+
+    /** The scrim under a modal: the desk on black, the slate on paper. */
+    val scrim: Color get() = if (light) {
+        tokenColour(DesignTokens.DESKTOP_SCRIM_LIGHT_RGB, DesignTokens.DESKTOP_SCRIM_LIGHT_ALPHA)
+    } else {
+        tokenColour(DesignTokens.DESK_RGB, DesignTokens.DESKTOP_SCRIM_DARK_ALPHA)
+    }
 
     /** The luminescent accent: what is active, never a wash. */
     val accent: Color get() = tokenColour(
@@ -192,12 +199,13 @@ object DesktopTheme {
 
     /** The steel a *picked* slot wears — a selected tab, a held toggle. */
     val activeSlot: Color get() = tokenColour(
-        if (light) DesignTokens.ACTIVE_SLOT_LIGHT_RGB else DesignTokens.ACTIVE_SLOT_DARK_RGB,
+        if (light) DesignTokens.DESKTOP_ACTIVE_SLOT_LIGHT_RGB else DesignTokens.DESKTOP_ACTIVE_SLOT_DARK_RGB,
     )
 
-    /** The same steel at the hover step: what a slot under the pointer wears, short of picked. */
-    val hoverSlot: Color get() = activeSlot.copy(
-        alpha = if (light) DesignTokens.HOVER_SLOT_ALPHA_LIGHT else DesignTokens.HOVER_SLOT_ALPHA,
+    /** The hover step: the hairline's ink at 8 %, barely there, so a slot answers the pointer. */
+    val hoverSlot: Color get() = tokenColour(
+        if (light) DesignTokens.HAIRLINE_LIGHT_RGB else DesignTokens.HAIRLINE_RGB,
+        if (light) DesignTokens.DESKTOP_HOVER_LIGHT_ALPHA else DesignTokens.DESKTOP_HOVER_DARK_ALPHA,
     )
 
     /** The chrome's ink on the glass. */
@@ -222,6 +230,25 @@ object DesktopTheme {
     /** The corner every panel turns at (`panelCornerRadiusDp`). */
     val panelShape: RoundedCornerShape = RoundedCornerShape(panelRadius)
 
+    /**
+     * The window's **one control corner**, `4 dp`: a button, an input, a tab, a tool slot, a popup row, a
+     * tooltip. The flat-workstation contract allows exactly two corners and this is the smaller one
+     * (`docs/interface-contract.md` §3).
+     */
+    val controlRadius = DesignTokens.DESKTOP_CONTROL_CORNER_DP.dp
+
+    /** [controlRadius] as a shape. */
+    val controlShape: RoundedCornerShape = RoundedCornerShape(controlRadius)
+
+    /**
+     * The window's **one surface corner**, `8 dp`: a popup, a menu, a dialog, Settings, a floating bar, a
+     * card. A surface is never a capsule and a control is never a pill.
+     */
+    val surfaceRadius = DesignTokens.DESKTOP_POPUP_CORNER_RADIUS_DP.dp
+
+    /** [surfaceRadius] as a shape. */
+    val surfaceShape: RoundedCornerShape = RoundedCornerShape(surfaceRadius)
+
     /** The corner a capsule turns at (`capsuleCornerRadiusDp`): the rail, tabs, chips, round buttons. */
     val capsuleRadius = DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp
 
@@ -229,23 +256,16 @@ object DesktopTheme {
     val capsuleShape: RoundedCornerShape = RoundedCornerShape(capsuleRadius)
 
     /**
-     * The cast shadow a band puts on what stands beside it — 4 dp, the tablet's own band lift.
+     * The cast shadow a band puts on what stands beside it: **none**.
      *
-     * A band is not a panel: it takes this one lift and no rim (`docs/chrome.md`), which is what makes
-     * the header read as chrome over the canvas rather than as a slab lying on the page.
+     * A flat workstation has no drop shadows on its chrome — a band is separated from the canvas by its
+     * tone and one crisp hairline (`docs/interface-contract.md` §1). The token stays so every `bandSurface`
+     * call site keeps its shape.
      */
-    val bandShadow: Dp get() =
-        if (light) DesignTokens.BAND_SHADOW_LIGHT_DP.dp else DesignTokens.BAND_SHADOW_DP.dp
+    val bandShadow: Dp get() = 0.dp
 
-    /**
-     * The shade a band carries **down the edge that looks at the canvas**, or transparent on black.
-     *
-     * Drawn *inside* the band rather than cast: a band's edge is one direction, and a Compose shadow puts
-     * the same lift on four sides. The header's bottom and the sidebar's right take it, and the two meet at
-     * the corner as one frame (`docs/interface-contract.md` §1).
-     */
-    val bandEdgeShadow: Color get() =
-        if (light) ink.copy(alpha = DesignTokens.BAND_EDGE_ALPHA_LIGHT) else Color.Transparent
+    /** The paper-facing shade: none. The flat contract replaced it with the band's own hairline. */
+    val bandEdgeShadow: Color get() = Color.Transparent
 
     /** How far that shade reaches onto the paper. */
     val bandEdgeShadowWidth = DesignTokens.BAND_EDGE_SHADOW_DP.dp
@@ -292,14 +312,12 @@ object DesktopTheme {
     const val TOOL_GLYPH_STROKE_UNITS: Float = DesignTokens.TOOL_GLYPH_STROKE_UNITS
 
     /**
-     * The header band's height, in dp: the token plus 8.
+     * The header band's height, in dp: the shared `40 dp`.
      *
-     * The tablet's header carries one row of glyphs; the window's carries the tab strip *and* the four
-     * file commands beside it, on a band that has to hold a 36 dp capsule with air above and below it.
-     * At the token's 40 dp the capsules sat 2 dp from either edge and read as a strip of controls glued
-     * to the window's top — so the band grows, and every glyph it holds grows with it.
+     * A flat header holds a 28 dp button with air above and below it, so the band is the token itself and
+     * not the token plus the old capsule's lift (`docs/desktop-ui-layout.md`).
      */
-    val headerHeight = (DesignTokens.HEADER_HEIGHT_DP + 8).dp
+    val headerHeight = DesignTokens.HEADER_HEIGHT_DP.dp
 
     /**
      * A header glyph's own box, in dp: 20, the size `docs/interface-contract.md` requires every glyph to
@@ -358,27 +376,27 @@ object DesktopTheme {
     }
 
     /**
-     * A figure: the tablet's small label with **tabular numerals**. Every number the window shows — page,
-     * zoom, progress — uses this style, so the readout does not shuffle sideways as it changes.
+     * A figure: **12 sp Medium with tabular numerals** at 16 sp leading. Every number the window shows —
+     * page, zoom, progress — uses this style, so the readout does not shuffle sideways as it changes.
      */
-    val numeric = typography.labelSmall.copy(fontFeatureSettings = "tnum")
+    val numeric = desktopStyle(12, FontWeight.Medium, 16, tabular = true)
 
-    /** The status bar's plain word: the same role, muted, prose rather than a figure. */
-    val label = typography.labelSmall
+    /** The status bar's plain word: 12 sp, regular, prose rather than a figure. */
+    val label = desktopStyle(12, FontWeight.Normal, 16)
 
-    /** The empty state's title: the tablet's large title, in the regular face it actually ships. */
-    val title = typography.titleLarge.copy(fontWeight = FontWeight.Medium)
+    /** The empty state's title: 18 sp Medium at 24 sp leading. */
+    val title = desktopStyle(18, FontWeight.Medium, 24)
 
-    /** The empty state's explanation: the tablet's body, not a smaller face of its own. */
-    val body = typography.bodyMedium
+    /** The empty state's explanation: 13 sp regular at 18 sp leading. */
+    val body = desktopStyle(13, FontWeight.Normal, 18)
 
     /**
-     * A document's name on its tab: the tablet's label role, at the weight its picked chip wears.
+     * A document's name on its tab: 12 sp Medium at 16 sp leading.
      *
      * Inter ships a **Medium**, not a SemiBold, so a 600 request is a weight the family does not have —
      * the renderer picks the neighbouring face and the label comes out heavier than the strip's other words.
      */
-    val tab = typography.labelMedium.copy(fontWeight = FontWeight.Medium)
+    val tab = desktopStyle(12, FontWeight.Medium, 16)
 
     /**
      * The band's **effective** colour: the glass composited over the desk.
@@ -388,13 +406,8 @@ object DesktopTheme {
      * for the band: the Windows title bar, which the system paints and cannot be given a fill with an
      * alpha.
      */
-    val bandRgb: Int get() = if (light) {
-        // The band is already opaque on paper, so the system caption takes its own colour: a blend here
-        // painted the window's top strip a shade darker than the band under it.
-        DesignTokens.GLASS_LIGHT_RGB
-    } else {
-        blendRgb(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA, DesignTokens.DESK_RGB)
-    }
+    val bandRgb: Int get() =
+        if (light) DesignTokens.DESKTOP_BAND_LIGHT_RGB else DesignTokens.DESKTOP_BAND_DARK_RGB
 
     /** [bandRgb] in Win32's `COLORREF` order (`0x00BBGGRR`), which is what DWM attributes take. */
     val bandColourRef: Int get() = colourRef(bandRgb)
@@ -455,64 +468,62 @@ object DesktopTheme {
 
     val previewPaper: Color = tokenColour(0xFFFFFF)
 
-    /**
-     * A value inside a field: Inter at 12 sp with tabular figures — a size up from [numeric], because a
-     * field the user types into is read at a glance, not scanned like a status figure.
-     */
-    val field = typography.bodySmall.copy(fontFeatureSettings = "tnum")
+    /** A value inside a field: 12 sp regular with tabular figures, at 16 sp leading. */
+    val field = desktopStyle(12, FontWeight.Normal, 16, tabular = true)
 
-    /** A card's heading, and a section's: the lane's one step of hierarchy. */
-    val eyebrow = typography.labelSmall.copy(fontWeight = FontWeight.Medium)
+    /** A card's eyebrow, and a section's: 11 sp Medium, 0.4 sp tracking, so a label reads as a mark. */
+    val eyebrow = desktopStyle(11, FontWeight.Medium, 14).copy(letterSpacing = 0.4.sp)
 
-    /** A panel's title — a message, a card's own name: the tablet's small title, in Medium. */
-    val heading = typography.titleSmall.copy(fontWeight = FontWeight.Medium)
+    /** A panel's title — a message, a card's own name: 13 sp Medium at 18 sp leading. */
+    val heading = desktopStyle(13, FontWeight.Medium, 18)
 
     /**
-     * A block's subtitle: the heading one size up. For a label that introduces a group of objects rather than
-     * titling a section — the entry screen's "Recents", which stands over the grid and reads as its caption.
+     * A block's subtitle: 15 sp Medium at 20 sp leading. For a label that introduces a group of objects
+     * rather than titling a section — the entry screen's "Recents", which stands over the grid.
      */
-    val subtitle = typography.titleMedium.copy(fontWeight = FontWeight.Medium)
+    val subtitle = desktopStyle(15, FontWeight.Medium, 20)
 
     /** An `0xRRGGBB` colour in Win32's `COLORREF` order (`0x00BBGGRR`). */
     fun colourRef(rgb: Int): Int =
         ((rgb and 0xFF) shl 16) or (rgb and 0xFF00) or ((rgb shr 16) and 0xFF)
 
     /** The one Material scheme the window uses: the same black desk and charcoal ramp as the tablet. */
-    /** The Material scheme the light theme hands `MaterialTheme`: the same roles, on the light ramp. */
+    /** The Material scheme the light theme hands `MaterialTheme`: the flat roles, on the light ramp. */
     private val lightScheme = lightColorScheme(
         primary = tokenColour(DesignTokens.ACCENT_LIGHT_RGB),
-        onPrimary = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        onPrimary = tokenColour(DesignTokens.DESKTOP_ON_ACCENT_LIGHT_RGB),
         secondary = tokenColour(DesignTokens.ACCENT_LIGHT_RGB),
-        onSecondary = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        onSecondary = tokenColour(DesignTokens.DESKTOP_ON_ACCENT_LIGHT_RGB),
         background = tokenColour(DesignTokens.DESK_LIGHT_RGB),
         onBackground = tokenColour(DesignTokens.INK_LIGHT_RGB),
         surface = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
         onSurface = tokenColour(DesignTokens.INK_LIGHT_RGB),
-        surfaceVariant = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        surfaceVariant = tokenColour(DesignTokens.DESKTOP_BAND_LIGHT_RGB),
         onSurfaceVariant = tokenColour(DesignTokens.INK_SECONDARY_LIGHT_RGB),
-        surfaceContainer = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
-        surfaceContainerHigh = tokenColour(DesignTokens.ACTIVE_SLOT_LIGHT_RGB),
-        surfaceContainerHighest = tokenColour(DesignTokens.ACTIVE_SLOT_LIGHT_RGB),
-        outline = tokenColour(DesignTokens.ACTIVE_SLOT_LIGHT_RGB),
-        outlineVariant = tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+        surfaceContainer = tokenColour(DesignTokens.DESKTOP_ACTIVE_SLOT_LIGHT_RGB),
+        surfaceContainerHigh = tokenColour(DesignTokens.DESKTOP_ACTIVE_SLOT_LIGHT_RGB),
+        surfaceContainerHighest = tokenColour(DesignTokens.DESKTOP_ACTIVE_SLOT_LIGHT_RGB),
+        outline = tokenColour(DesignTokens.HAIRLINE_LIGHT_RGB, DesignTokens.DESKTOP_BORDER_STRONG_LIGHT_ALPHA),
+        outlineVariant = tokenColour(DesignTokens.HAIRLINE_LIGHT_RGB, DesignTokens.DESKTOP_HAIRLINE_ALPHA),
     )
 
+    /** The Material scheme the dark theme hands `MaterialTheme`: four distinct flat roles, not one tone. */
     val chromeScheme = darkColorScheme(
-        primary = accent,
-        onPrimary = desk,
-        secondary = accent,
-        onSecondary = desk,
-        background = desk,
-        onBackground = ink,
-        surface = tokenColour(DesignTokens.GLASS_DARK_RGB),
-        onSurface = ink,
-        surfaceVariant = tokenColour(DesignTokens.GLASS_DARK_RGB),
-        onSurfaceVariant = inkSecondary,
-        surfaceContainer = tokenColour(DesignTokens.GLASS_DARK_RGB),
-        surfaceContainerHigh = activeSlot,
-        surfaceContainerHighest = activeSlot,
-        outline = activeSlot,
-        outlineVariant = tokenColour(DesignTokens.GLASS_DARK_RGB),
+        primary = tokenColour(DesignTokens.ACCENT_DARK_RGB),
+        onPrimary = tokenColour(DesignTokens.DESKTOP_ON_ACCENT_DARK_RGB),
+        secondary = tokenColour(DesignTokens.ACCENT_DARK_RGB),
+        onSecondary = tokenColour(DesignTokens.DESKTOP_ON_ACCENT_DARK_RGB),
+        background = tokenColour(DesignTokens.DESK_RGB),
+        onBackground = tokenColour(DesignTokens.INK_DARK_RGB),
+        surface = tokenColour(DesignTokens.DESKTOP_SURFACE_DARK_RGB),
+        onSurface = tokenColour(DesignTokens.INK_DARK_RGB),
+        surfaceVariant = tokenColour(DesignTokens.DESKTOP_BAND_DARK_RGB),
+        onSurfaceVariant = tokenColour(DesignTokens.INK_SECONDARY_DARK_RGB),
+        surfaceContainer = tokenColour(DesignTokens.DESKTOP_CONTROL_DARK_RGB),
+        surfaceContainerHigh = tokenColour(DesignTokens.DESKTOP_ACTIVE_SLOT_DARK_RGB),
+        surfaceContainerHighest = tokenColour(DesignTokens.DESKTOP_ACTIVE_SLOT_DARK_RGB),
+        outline = tokenColour(DesignTokens.HAIRLINE_RGB, DesignTokens.DESKTOP_BORDER_STRONG_ALPHA),
+        outlineVariant = tokenColour(DesignTokens.HAIRLINE_RGB, DesignTokens.DESKTOP_HAIRLINE_ALPHA),
     )
 
     /**
@@ -527,6 +538,19 @@ object DesktopTheme {
         typography = typography,
         content = content,
     )
+
+    /**
+     * The window's flat type scale: Inter at one size, one weight and one leading, with tabular figures
+     * where the word is a number. Each role below is a call of this, so a size is written once.
+     */
+    private fun desktopStyle(size: Int, weight: FontWeight, line: Int, tabular: Boolean = false): TextStyle =
+        TextStyle(
+            fontFamily = inter,
+            fontWeight = weight,
+            fontSize = size.sp,
+            lineHeight = line.sp,
+            fontFeatureSettings = if (tabular) "tnum" else null,
+        )
 
     /** A token's RGB (`0xRRGGBB`) and alpha as a Compose [Color]. */
     fun tokenColour(rgb: Int, alpha: Float = 1f): Color = Color(

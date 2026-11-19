@@ -6,8 +6,7 @@
 > defect even if it looks fine on the machine it was written on.
 
 This is a **prescriptive** document, not a description of what exists: the design system's numbers live in
-[`ui-modernization.md`](ui-modernization.md) and `DesignTokens`, the layout in [`chrome.md`](chrome.md) and
-[`chrome.md`](chrome.md) — and, for the window, [`desktop-ui-layout.md`](desktop-ui-layout.md).
+[`ui-modernization.md`](ui-modernization.md) and `DesignTokens`, the layout in [`chrome.md`](chrome.md) — and, for the window, [`desktop-ui-layout.md`](desktop-ui-layout.md).
 Where a rule below names a test, that test is the enforcement — a rule with no enforcement is either given
 one in the same change or removed from this contract.
 
@@ -17,7 +16,7 @@ Every surface is one of three objects. Pick the class from what the element *doe
 
 | Class | What it is | Recipe | Never |
 |---|---|---|---|
-| **Band** | chrome that borders the canvas — header, status bar, sidebar, a lane's dividing rule | the glass fill + **one 4 dp edge**, no rim; on the tablet the edge is drawn *inside* the band, on the window a strip's is cast outward | never lies over the page, never a shadow on the band beside it |
+| **Band** | chrome that borders the canvas — header, status bar, sidebar, a lane's dividing rule | the glass fill + **one 4 dp edge**, no rim; on the tablet the edge is drawn *inside* the band, on the window the band is an **opaque tone** and casts nothing | never lies over the page, never a shadow on the band beside it |
 | **Capsule** | an object lying *in* a band's space — the tablet's rail and ribbon, a header control | the glass fill + its own 6 dp lift + the family's rim, inside a lane of **air** | never a second sheet of glass behind it |
 | **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | the glass fill at `floatingPanelAlpha` + the rim as its whole edge (no cast elevation), at the 20 dp panel corner | never an opaque Material card or a system `Toast` |
 | **None** | the page's own content being authored — a stroke being drawn, a text box being typed | the document's own ink and face, in the document's own place | no fill, no rim, no padding |
@@ -25,11 +24,15 @@ Every surface is one of three objects. Pick the class from what the element *doe
 - **One style, two shells.** A look is decided **once**, in `DesignTokens` (`mobix-core`), and lands on the
   tablet and the window in the same change: the glass, its alphas, each theme's rim pair, the desk, the ink
   trio, the steel and the corners are **read**, never re-declared. A shell that needs a different number says
-  why in the token's own KDoc and here — the window's compact opaque popup recipe, thinner band (`DESKTOP_BAND_ALPHA`) and its
-  strips' (`STRIP_GLASS_ALPHA`). `ColorContractGuardTest`
+  why in the token's own KDoc and here — the window's flat tones (`DESKTOP_BAND_*_RGB`,
+  `DESKTOP_SURFACE_*_RGB`, `DESKTOP_CONTROL_*_RGB`) and its own corners. `ColorContractGuardTest`
   (`oneStyleTwoShellsTheLightMaterialIsReadFromTheTokens`) fails on a light-theme literal that should have
   been a token; `LightMaterialTest` and `DesktopThemeTest` hold the window's side.
-- **Desktop popup exception (owner request, 2026-11-17):** popup and dialog bodies use the opaque palette panel with one hairline border and the desktop corner tokens below. Controls behind a menu must never remain visible through its body. Capsule chrome retains its original glass/rim recipe; the tablet keeps its floating-glass material. `DesktopPopupMaterialTest` checks contrasting backgrounds in both themes and native popup coverage from the first frame.
+- **The window is flat (2026-11-19).** A desktop surface is an **opaque tone**, never a glass over the
+  desk — band, surface and control from `DESKTOP_*_RGB` — separated by tone and one hairline, with no
+  shadow on a band, under a capsule or on the canvas edge. A popup is that surface with one hairline and
+  the desktop corners, and what is behind it never reads through. Capsules keep the rim; the tablet keeps
+  its glass. `DesktopPopupMaterialTest`, `DesktopThemeTest`, `ChromeMaterialRenderTest`.
 - **A lane is air, not a band.** Painting a lane and its capsule both gives 0.85 over 0.85 (0.98) and the
   strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract
   exists to prevent; it was made once and is now caught in pixels by `ToolStripsTest`. **The tablet's bands
@@ -57,8 +60,8 @@ Every surface is one of three objects. Pick the class from what the element *doe
   onto the header in the lane's column alone — the header closing on a soft edge over the rail and on a
   hard step over the page. The band therefore draws its edge **inside itself** (`BandBottomShadow`,
   `ui/EditorRegions.kt`; strength `bandShadowAlpha`): a `4 dp` fade at its closing edge, one direction,
-  landing on no other surface. The desktop keeps the cast shadow, because there a strip is an object lying
-  over the page and has room to cast one.
+  landing on no other surface. The window casts **no** shadow at all: a flat band and its lane are separated
+  from the canvas by tone and one 1 dp divider (`Modifier.bandDivider`), never by a lift.
 - **The frame's two arms share one edge.** The header's edge is a *segment*, not a full-width line: it runs
   only over the width the canvas has (`bandClosingEdge(startInset, endInset)`, inset by the rail's lane
   width on the side the lane is docked) and the lane draws the same fade, `4 dp` tall and the same scrim,
@@ -77,12 +80,12 @@ Every surface is one of three objects. Pick the class from what the element *doe
   ([`desktop-settings.md`](desktop-settings.md)).
 - **The window's tool strips take a lane, as the tablet's do** (decision 2026-10-28). The rail stands in a
   band down an edge and the ribbon in a band under the header — the header's own material and its one 4 dp
-  lift — with the tablet's capsule standing *in* that band: the rail 52 dp in a 64 dp lane, the ribbon
-  48 dp in a 56 dp band, each with its 6 dp lift and the family's rim. The canvas is handed what is left, so
+  tone — with the capsule standing *in* that band: the rail 52 dp in a 64 dp lane, the ribbon 48 dp in a
+  56 dp band, each on the surface tone with the family's rim. The canvas is handed what is left, so
   no bar is ever drawn on the sheet. The strips lay themselves *over* the page between 2026-10-26 and this
   decision; that left the canvas full width and the page running behind the glass, and one window is not a
-  second design language. A capsule is opaque to the pointer and its fill is nearly solid
-  (`STRIP_GLASS_ALPHA`, 0.95) — at a band's 0.58 a white sheet turned the bar grey. The canvas can still be
+  second design language. A capsule is opaque to the pointer and its fill is the surface tone
+  (`DesktopTheme.stripGlass`) — a translucent bar turned grey over a white sheet. The canvas can still be
   told to frame a fitted page around a surface that lies on it (`ChromeInset`), which no strip asks for now.
 - **Page content being authored is not a surface.** A stroke being drawn is a draft on the sheet, and the
   desktop's in-place text field is the same thing for words: it takes the document's own ink, face and
@@ -105,10 +108,9 @@ Every surface is one of three objects. Pick the class from what the element *doe
   (`DOCUMENT_RED_RGB`, `#E53935`) and Save is the accent — the tablet's convention, which the window now
   follows (`DesktopTheme.documentRed`, `DesktopTheme.accent`). A third named colour is a decision for this
   file, not a call site's taste.
-- **One tone is the window's own**: its bands take the glass RGB at `DESKTOP_BAND_ALPHA` (0.58, i.e.
-  `#0C0C0D` over the black desk) rather than the tablet's 0.85 (`#131314`), by the owner's decision of
-  2026-10-25 — `ui-modernization.md` owns the reasoning. Every other colour is shared, and the desktop's
-  chrome tests pin this one so it cannot drift silently.
+- **The window's tones are its own**: bands, surfaces and controls take `DESKTOP_*_RGB` opaque, never the
+  tablet's glass (2026-11-19, superseding the 2026-10-25 thinner band); pointer white at
+  `DESKTOP_HOVER_DARK_ALPHA`, picked `DESKTOP_ACTIVE_SLOT_DARK_RGB`. The ink and accent are shared.
 - The picked state of an icon/tool slot is the **steel `#38383E`** (`ACTIVE_SLOT_DARK_RGB`) with the glyph in the accent
   (`#60A5FA`). A new "selected" look is not a design decision; it is a second state the user has to learn.
 - **Desktop text feedback:** the global text-control rule is [below](#6-states-five-all-of-them-drawn). Sidebar fields keep a hairline at rest and an accent/error underline for focus/refusal, without capsule lift or glow.
@@ -119,14 +121,14 @@ Every surface is one of three objects. Pick the class from what the element *doe
 
 | Measure | Value | Token |
 |---|---|---|
-| Header / status bar | 40 dp / 24 dp (the window's header is the token **+ 8**) | `HEADER_HEIGHT_DP`, `STATUS_HEIGHT_DP`; `DesktopTheme.headerHeight` |
+| Header / status bar | 40 dp / 24 dp, both shells (the window's header is the token) | `HEADER_HEIGHT_DP`, `STATUS_HEIGHT_DP` |
 | Rail capsule in its lane | 52 dp in 64 dp (6 dp side air, 8 dp above and below) | `RAIL_*` |
 | Ribbon capsule in its band | 48 dp in 56 dp | `ribbonCapsuleHeight` |
 | Tool slot | 40 dp, 10 dp squircle | `COMPACT_BUTTON_SIZE_DP`, `RAIL_SLOT_CORNER_RADIUS_DP` |
 | Header control | 36 dp capsule | `HEADER_CONTROL_SIZE_DP` |
 | Capsule / panel corner | 16 dp / 20 dp | `CAPSULE_CORNER_RADIUS_DP`, `PANEL_CORNER_RADIUS_DP` |
 | Rim stroke | 1 dp | `RIM_WIDTH_DP` |
-| Desktop popup / row corners | 8 dp / 4 dp | `DESKTOP_POPUP_CORNER_RADIUS_DP`, `DESKTOP_POPUP_ROW_CORNER_RADIUS_DP` |
+| Desktop control / surface corners | 4 dp / 8 dp | `DESKTOP_CONTROL_CORNER_DP`, `DESKTOP_POPUP_CORNER_RADIUS_DP` |
 | Desktop dropdown row / inset | 28 dp / 4 dp | `DESKTOP_POPUP_ROW_HEIGHT_DP`, `DESKTOP_POPUP_INSET_DP` |
 
 - Nothing interactive is smaller than a tool slot. A control that needs to be smaller is a control that
@@ -181,7 +183,8 @@ Every surface is one of three objects. Pick the class from what the element *doe
 Every interactive element defines **default, hover, picked, disabled, focus**. For icon/tool slots, picked is
 the steel slot; hover is the same steel at `hoverSlotAlpha` (**0.45**), never a colour change of the glyph and
 never the picked fill; disabled keeps its ink but loses its hit area; focus is visible without relying on
-the pointer. A new element with only a default state is unfinished.
+the pointer. **On the window** hover is white at 8 % (`DESKTOP_HOVER_DARK_ALPHA`), picked is its active slot,
+and a focused control wears a 1 dp accent ring. A new element with only a default state is unfinished.
 
 The state layer **follows the shape**. An indication is drawn by the node that owns it, so a click applied
 to a bare box lights the box: a 32 dp square around an 18 dp glyph, a 34 dp cell around a 28 dp swatch, arectangle around a menu pane's 10 dp corner, the rectangle around the entry screen's capsule door. A

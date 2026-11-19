@@ -23,13 +23,11 @@ import org.junit.Test
 /**
  * The light theme's material rule (`docs/interface-contract.md` §1).
  *
- * The dark recipe is one material: a capsule and the band it stands in are the same glass, and the rim's
- * white hairline is what makes the capsule an object. Carried onto paper unchanged it gave a grey band
- * round a white page and capsules that could not be seen. So on paper the band is the sheet's own white at
- * full opacity, its capsule is that same white inside the ink rim, the pointer steps to the picked steel at
- * 35 %, and the **only** shadow is one shade down the edge that looks at the canvas — the header's bottom
- * and the sidebar's right meeting at the corner. This test holds those answers, and the dark ones unchanged,
- * which is the part a future light-theme tweak is most likely to disturb.
+ * A flat workstation separates its surfaces by tone: the band is the light tinted tone, a surface is the
+ * sheet's white, a control is the white again and a field steps back to the band's tone. The pointer and
+ * the picked slot are two steps down that ramp, and no surface casts a shadow or shades its canvas edge.
+ * This test holds those answers, and the dark ones, which is the part a future light-theme tweak is most
+ * likely to disturb.
  */
 class LightMaterialTest {
 
@@ -38,20 +36,30 @@ class LightMaterialTest {
         DesktopTheme.use(true)
         try {
             val band = luminance(DesktopTheme.glass)
-            assertEquals("the band is the sheet's own white", DesktopTheme.panel, DesktopTheme.glass)
             assertEquals(
-                "and the system caption is that white too",
-                DesignTokens.GLASS_LIGHT_RGB,
+                "the band is the flat light tone",
+                DesktopTheme.tokenColour(DesignTokens.DESKTOP_BAND_LIGHT_RGB),
+                DesktopTheme.glass,
+            )
+            assertEquals(
+                "and the system caption is that tone too",
+                DesignTokens.DESKTOP_BAND_LIGHT_RGB,
                 DesktopTheme.bandRgb,
             )
-            assertEquals("a capsule is that white as well", DesktopTheme.glass, DesktopTheme.control)
+            assertEquals(
+                "a surface is the sheet's white",
+                DesktopTheme.tokenColour(DesignTokens.GLASS_LIGHT_RGB),
+                DesktopTheme.panel,
+            )
             val hovered = onPaper(DesktopTheme.hoverSlot)
             val picked = onPaper(DesktopTheme.activeSlot)
             assertTrue("the pointer is a shade on it ($hovered)", hovered < band - 0.01f)
             assertTrue("and the picked slot deeper still ($picked)", picked < hovered)
-            assertTrue(
-                "a band carries its shade on the canvas-facing edge",
-                DesktopTheme.bandEdgeShadow.alpha > 0.05f,
+            assertEquals(
+                "a flat band carries no canvas edge shade",
+                0f,
+                DesktopTheme.bandEdgeShadow.alpha,
+                0f,
             )
             assertTrue(
                 "the desk is greyer than the band it frames (${luminance(DesktopTheme.desk)} vs $band)",
@@ -69,21 +77,11 @@ class LightMaterialTest {
                 "a card is a tone under the white panel, not a ghost",
                 luminance(DesktopTheme.card) < luminance(DesktopTheme.panel) - 0.01f,
             )
-            // A floating surface is that same white, still glass: it carries the token's alpha and not
-            // the panel's 1.0, so the page stays visible under an open menu.
-            assertEquals(
-                "a floating surface is the panel's white, seen through",
-                DesignTokens.FLOATING_PANEL_ALPHA,
-                DesktopTheme.floating.alpha,
-                0.005f,
-            )
-            assertEquals("and it is that same white", DesktopTheme.panel.red, DesktopTheme.floating.red)
-            assertEquals(DesktopTheme.panel.green, DesktopTheme.floating.green)
-            assertEquals(DesktopTheme.panel.blue, DesktopTheme.floating.blue)
-            assertTrue(
-                "and a band casts a hairline, never a smudge across the sheet",
-                DesktopTheme.bandShadow <= DesignTokens.BAND_SHADOW_LIGHT_DP.dp,
-            )
+            // A floating surface is the surface tone and it is **opaque**: a flat popup covers what is
+            // behind it, which is the desktop's own recipe (`docs/interface-contract.md` §1).
+            assertEquals("a floating surface is opaque", 1f, DesktopTheme.floating.alpha, 0.005f)
+            assertEquals("and it is the panel's own white", DesktopTheme.panel, DesktopTheme.floating)
+            assertEquals("a flat band casts no shadow", 0.dp, DesktopTheme.bandShadow)
         } finally {
             DesktopTheme.use(false)
         }
@@ -93,13 +91,17 @@ class LightMaterialTest {
     fun `on black nothing of the light recipe is left behind`() {
         DesktopTheme.use(false)
         try {
-            assertEquals("the black desk moves nothing", DesktopTheme.glass, DesktopTheme.control)
-            assertEquals(DesktopTheme.glass, DesktopTheme.panelField)
+            assertEquals(
+                "a control is one tone above the band",
+                DesktopTheme.tokenColour(DesignTokens.DESKTOP_CONTROL_DARK_RGB),
+                DesktopTheme.control,
+            )
+            assertEquals("and a field wears that control tone", DesktopTheme.control, DesktopTheme.panelField)
             assertEquals(DesignTokens.RIM_ALPHA_TOP, DesktopTheme.rimAlphaTop, 1e-4f)
             assertEquals(DesignTokens.RIM_ALPHA_BOTTOM, DesktopTheme.rimAlphaBottom, 1e-4f)
             assertEquals(DesktopTheme.activeSlot.copy(alpha = DesktopTheme.CARD_ALPHA), DesktopTheme.card)
-            assertEquals(DesignTokens.FLOATING_PANEL_ALPHA, DesktopTheme.floating.alpha, 0.005f)
-            assertEquals(DesignTokens.BAND_SHADOW_DP.dp, DesktopTheme.bandShadow)
+            assertEquals("a floating surface is opaque on black too", 1f, DesktopTheme.floating.alpha, 0.005f)
+            assertEquals("and a flat band casts nothing", 0.dp, DesktopTheme.bandShadow)
             assertEquals("and no canvas edge shade on black", Color.Transparent, DesktopTheme.bandEdgeShadow)
         } finally {
             DesktopTheme.use(false)

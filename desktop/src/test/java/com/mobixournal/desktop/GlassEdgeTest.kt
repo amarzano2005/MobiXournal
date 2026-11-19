@@ -37,8 +37,8 @@ import java.awt.image.BufferedImage
  *
  * A flat border and a shaded rim differ by one property a test can see: the border is the same tone all
  * the way round, the rim is brighter at its top than at its bottom. That is the assertion this file is
- * built on — plus the two facts that keep it from passing for the wrong reason: the corner still cuts
- * (the panel's fill is not there), and the fill is still the floating alpha rather than an opaque slab.
+ * built on — while the flat-workstation body it surrounds is an **opaque** surface: the fill is the
+ * surface token, what lies under it cannot tint it, and the corner still cuts.
  */
 class GlassEdgeTest {
 
@@ -107,14 +107,14 @@ class GlassEdgeTest {
     }
 
     @Test
-    fun theFillIsStillTheFloatingAlphaAndNotASlab() {
+    fun theFillIsTheOpaqueSurfaceTone() {
         val image = panel()
         val centre = image.getRGB(inset + panelWidth / 2, inset + panelHeight / 2) and 0xFFFFFF
-        // The glass over the true-black desk: the token's RGB at the floating alpha, nothing more.
-        val expected = composite(DesignTokens.GLASS_DARK_RGB, DesignTokens.FLOATING_PANEL_ALPHA, 0x000000)
-        assertTrue(
-            "centre ${Integer.toHexString(centre)} should sit at ${Integer.toHexString(expected)}",
-            difference(centre, expected) <= 6,
+        // A flat panel is the surface token and it is opaque: no alpha left for a desk to tint.
+        assertEquals(
+            "the panel is the surface tone",
+            DesignTokens.DESKTOP_SURFACE_DARK_RGB,
+            centre,
         )
     }
 
@@ -137,25 +137,16 @@ class GlassEdgeTest {
      * the glass was missing.
      */
     @Test
-    fun thePanelIsTranslucentOverThePage() {
-        val white = Color.White
-        val overPage = panel(under = white, name = "glass-over-page")
+    fun thePanelIsOpaqueOverThePage() {
+        val overPage = panel(under = Color.White, name = "glass-over-page")
             .getRGB(inset + panelWidth / 2, inset + panelHeight / 2) and 0xFFFFFF
         val overDesk = panel().getRGB(inset + panelWidth / 2, inset + panelHeight / 2) and 0xFFFFFF
 
-        val expected = composite(
-            DesignTokens.GLASS_DARK_RGB,
-            DesignTokens.FLOATING_PANEL_ALPHA,
-            white.toArgb() and 0xFFFFFF,
-        )
-        assertTrue(
-            "over the page the fill is the glass over white (${Integer.toHexString(expected)}), " +
-                "not a solid card: got ${Integer.toHexString(overPage)}",
-            difference(overPage, expected) <= 6,
-        )
-        assertTrue(
-            "and it is visibly lighter than the same panel over the desk ($overDesk)",
-            (overPage and 0xFF) > (overDesk and 0xFF) + 20,
+        assertEquals("the page cannot tint an opaque panel", overDesk, overPage)
+        assertEquals(
+            "and the panel is the surface tone in both places",
+            DesignTokens.DESKTOP_SURFACE_DARK_RGB,
+            overPage,
         )
     }
 
@@ -169,7 +160,7 @@ class GlassEdgeTest {
      * below it.
      */
     @Test
-    fun thePageReadsThroughThePanel() {
+    fun thePageDoesNotReadThroughThePanel() {
         val bandTop = inset + panelHeight / 2 - 6
         val bandBottom = inset + panelHeight / 2 + 6
         val image = panel(name = "glass-show-through", under = Color.White) {
@@ -184,10 +175,7 @@ class GlassEdgeTest {
         val onInk = image.getRGB(x, inset + panelHeight / 2) and 0xFF
         val onPaper = image.getRGB(x, inset + 20) and 0xFF
 
-        assertTrue(
-            "the ink under the panel must still tell it is there: on ink $onInk, on paper $onPaper",
-            onPaper > onInk + 15,
-        )
+        assertEquals("an opaque panel hides the ink under it", onPaper, onInk)
     }
 
     /** The desk itself shows nothing of the panel: the geometry is the panel, not the scene. */
