@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "android-contents-menu-contract"
+title = "Use the shared menu surface for Android bookmark actions"
+description = "Both raw DropdownMenu call sites in app/src/main/java/com/mobixournal/ui/PdfContentsDialog.kt (full-title long-press popup at ContentsRowTitle and row Rename/Delete action menu at ContentsRowMenu) were migrated to the shared ToolbarMenu surface in commit ac2be374; zero raw DropdownMenu( calls remain in app/src/main. Verified green with ToolbarMenuGuardTest and DocumentNavigationTest."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-17
+completed = 2026-11-19
+tags = []
+design = "material: PdfContentsDialog full-title popup and Rename/Delete menu both use the shared ToolbarMenu surface (commit ac2be374); states: ToolbarMenu preserves presence through exit animation, focus/dismissal and accessibility actions; tests: ToolbarMenuGuardTest and DocumentNavigationTest pass"
+
+[[task]]
 id = "restore-last-session-must-bring-back-both-halves-of-a-split-run"
 title = "Restore last session must bring back both halves of a split run"
 description = "Restore last session now brings back both halves of a run that ended in split view. app/src/main/java/com/mobixournal/RememberRecentNotebook.kt: new private MainActivity.adoptOfferedRight(rightTab) moves entryRecents.previousRight into pane 1 (every tab, the named one or its own active tab selected, persist() to stamp the half) and answers whether it went in; adoptSplitSession and restoreLastSession both call it, then restore the left session, set splitView.value = true and entryRecents.rememberSplitLeft(leftTab). restoreLastSession is no longer a one-liner that only adopted the focused pane. app/src/main/java/com/mobixournal/ui/entry/RecentNotebooks.kt: new pure TabSession.restoredWorkspace(split, splitLeftTab) returning RestoredWorkspace(leftTab, rightTab); rightTab is non-null only when isSplitHalf(splitLeftTab) holds, so a leftover right-hand cache is never mistaken for a workspace. Tests: app/src/test/java/com/mobixournal/ui/entry/RecentNotebooksTest.kt gains theRestoreDoorBringsBackBothHalvesOfASplitRun, aSingleRunIsRestoredIntoOnePane and aLeftoverRightSessionIsNotAWorkspaceToReopen (20 tests in the class, all green). Docs: docs/document-session.md - the launch-offer bullet and the split-view bullet both say the door takes the same route as the workspace card. Checks: sh scripts/host-build.sh BUILD SUCCESSFUL (app + core + desktop unit suites, the androidTest compile, :app:assembleDebug); DocsGuardTest 27/27 and SourceStructureTest 5/5 green; :desktop:createDistributable UP-TO-DATE. No emulator pass: this is an ad-hoc implementation."
