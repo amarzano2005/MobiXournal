@@ -220,15 +220,18 @@ def test_bump_gradle():
               "bump_gradle leaves the file's CRLF line endings intact")
 
 
+# The fixtures carry CRLF explicitly and are written with newline="" below: the guarantee under test is
+# that a bump keeps the *file's* line endings, which a text-mode write would fake on Windows and lose on
+# Linux, so the sample is the bytes and the platform never translates them.
 DESKTOP_SAMPLE = (
-    "compose.desktop {\n"
-    "    application {\n"
-    "        nativeDistributions {\n"
-    '            packageName = "MobiXournal"\n'
-    '            packageVersion = "1.0.0"\n'
-    "        }\n"
-    "    }\n"
-    "}\n"
+    "compose.desktop {\r\n"
+    "    application {\r\n"
+    "        nativeDistributions {\r\n"
+    '            packageName = "MobiXournal"\r\n'
+    '            packageVersion = "1.0.0"\r\n'
+    "        }\r\n"
+    "    }\r\n"
+    "}\r\n"
 )
 
 
@@ -251,9 +254,9 @@ def _two_line_repo(tmp, app_text=GRADLE_SAMPLE, desktop_text=DESKTOP_SAMPLE,
     """A repository with both Gradle files and, when given, the window's About constant."""
     os.makedirs(os.path.join(tmp, "app"), exist_ok=True)
     os.makedirs(os.path.join(tmp, "desktop"), exist_ok=True)
-    with open(os.path.join(tmp, "app", "build.gradle.kts"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(tmp, "app", "build.gradle.kts"), "w", encoding="utf-8", newline="") as fh:
         fh.write(app_text)
-    with open(os.path.join(tmp, "desktop", "build.gradle.kts"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(tmp, "desktop", "build.gradle.kts"), "w", encoding="utf-8", newline="") as fh:
         fh.write(desktop_text)
     if build_versions_text is not None:
         path = _build_versions_file(tmp)
