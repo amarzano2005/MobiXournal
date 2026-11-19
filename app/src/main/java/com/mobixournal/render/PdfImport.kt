@@ -42,11 +42,25 @@ object PdfImport {
         reference: String?,
         pageNoOffset: Int = 0,
         indices: List<Int>? = null,
+    ): List<Page> = pagesFor(cache.pageCount, cache::pageSizePt, reference, pageNoOffset, indices)
+
+    /**
+     * The same arithmetic without the Android renderer: one page per index [indices] names in a file of
+     * [pageCount] pages, sized by [sizeAt]. It exists so a JVM test can hold the numbering — a `pageno` is
+     * the source page's own number plus [pageNoOffset], which is where an appended PDF's pages sit in the
+     * joined file — to what the canvas will draw.
+     */
+    fun pagesFor(
+        pageCount: Int,
+        sizeAt: (Int) -> Pair<Double, Double>,
+        reference: String?,
+        pageNoOffset: Int = 0,
+        indices: List<Int>? = null,
     ): List<Page> {
-        val wanted = (indices ?: (0 until cache.pageCount).toList())
-            .filter { it in 0 until cache.pageCount }
+        val wanted = (indices ?: (0 until pageCount).toList())
+            .filter { it in 0 until pageCount }
         return wanted.mapIndexed { run, index ->
-            val (w, h) = cache.pageSizePt(index)
+            val (w, h) = sizeAt(index)
             Page(
                 width = w,
                 height = h,

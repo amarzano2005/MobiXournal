@@ -513,11 +513,12 @@ internal fun MainActivity.preparePdfImport(
         // A `.xopp` holds one reference, so the two PDFs become one file. The arriving bytes are read
         // by the merge itself, so there is no need for a store copy of them on the way.
         val offset = PdfPageCache(base).use { it.pageCount }
+        // The arriving pages are read from the picked file and numbered where they land in the joined one:
+        // the base's page count is the one and only shift. Shifting the run *and* passing the offset made
+        // every index fall outside the picked file, so the append seeded its Contents rows and brought none
+        // of the PDF's pages — a document that grew a bookmark and no page.
         val added = PdfPageCache(source).use { cache ->
-            // The joined file's own numbering is the only correct one: its page i is page i, so the arriving
-            // pages are the picked source pages shifted by the base's count.
-            val run = (indices ?: (0 until cache.pageCount).toList()).map { offset + it }
-            PdfImport.pagesFor(cache, reference = null, pageNoOffset = offset, indices = run)
+            PdfImport.pagesFor(cache, reference = null, pageNoOffset = offset, indices = indices)
         }
         val joined = io.merge(base, source)
         // The merge rewrote these bytes: any text or outline read from the files it joined is stale.
