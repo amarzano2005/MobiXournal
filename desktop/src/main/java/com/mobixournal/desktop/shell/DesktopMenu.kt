@@ -1,22 +1,23 @@
 package com.mobixournal.desktop.shell
+import com.mobixournal.desktop.tools.DesktopButton
+import com.mobixournal.desktop.tools.DesktopButtonVariant
+import com.mobixournal.desktop.tools.DesktopIconButton
+import com.mobixournal.desktop.tools.StripPill
 import com.mobixournal.desktop.tools.glassSurface
-import com.mobixournal.desktop.tools.hoverCapsule
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopPngExport
 import com.mobixournal.desktop.io.ImportPdfDialog
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.DesktopTheme
-import com.mobixournal.desktop.settings.SettingsRow
+import com.mobixournal.desktop.settings.PropertyCheckboxRow
 import com.mobixournal.desktop.settings.SettingsSlider
-import com.mobixournal.desktop.settings.SettingsSwitch
 import com.mobixournal.desktop.settings.StylusPresetCarousel
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.drawSettingsGlyph
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.tools.DismissGuard
-import com.mobixournal.desktop.tools.DesktopIconButton
 import com.mobixournal.desktop.tools.MenuSurface
 import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.GlassPresence
@@ -24,7 +25,6 @@ import com.mobixournal.desktop.tools.GlassPresence
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,45 +32,42 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.SettingsGlyph
 import com.mobixournal.render.PressureCurve
 import java.util.Locale
 
 /**
- * The window's **overflow menu** — the mobile bar's menu, ported and laid out the same way.
+ * The window's **overflow menu**: one flat list of commands, grouped by what they act on.
  *
- * The tablet's menu (its photo is the reference) is four **tiles** of art over a word across the top,
- * the file's **chips** under them, and the plain commands below a hairline. The window keeps that shape
- * with its own commands: New, Open, Save and Save As on the top row; then the tablet's two rows of chips —
- * **Import PDF** and **Export PDF** in the document red, then **Export As** in the accent — then the page
- * list under the rule.
+ * The menu used to be a collage — four 64 dp tiles of art over a word, two rows of embossed red and blue
+ * chips, and plain rows under them — so the same popup asked a reader to learn five looks for one idea.
+ * `docs/interface-contract.md` §1 and §6 settle on the flat workstation: a menu is a surface with one
+ * hairline, and every command in it is the **same row** — a 16 dp catalogue glyph, its name, its
+ * accelerator in the muted ink — lighting a 4 dp corner under the pointer. What changes between the
+ * groups is the hairline between them and nothing else.
  *
- * The chips are two rows rather than one row of four because the tablet draws them so: what brings a PDF
- * *in* beside what sends a PDF *out* (both red, both about the same file), and one export command of its
- * own in the accent. **Export As** unfolds into its three answers — PNG, SVG and `.pmobix` — in the same
- * line, so the question is asked once and the panel never changes height under the pointer.
+ * The groups are the document's bytes (New, Open, Save, Save As), the PDFs and exports, and the pen and
+ * the window. The **Pen** block folds: its pressure answers are reached mid-drawing, not every time a
+ * reader wants Hide page list, so the row opens them and stays shut at rest.
  *
  * The panel is [MenuPanel] rather than this `Popup`'s body, because a popup cannot be rendered in a
  * headless scene: the panel is what a test draws, clicks and files as a PNG, and this wrapper only adds
@@ -80,20 +77,20 @@ import java.util.Locale
 internal fun HeaderMenu(
     sidebarVisible: Boolean,
     canSave: Boolean,
-    /** Whether a document is open at all — what makes the two export chips available. */
+    /** Whether a document is open at all — what makes the two export rows available. */
     canExport: Boolean,
     onNew: () -> Unit,
     onOpen: () -> Unit,
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
     onExportPdf: () -> Unit,
-    /** The **Export As** chip: the card it raises owns the three answers (`ExportAsDialog`). */
+    /** The **Export As** row: the card it raises owns the three answers (`ExportAsDialog`). */
     onExportAs: () -> Unit = {},
     onExportSvg: () -> Unit,
     onExportPng: () -> Unit = {},
     /**
-     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is the
-     * red chip beside Export PDF, as on the tablet: the same file, coming in rather than going out.
+     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). Its row
+     * wears the document red on its glyph, as on the tablet: the same file, coming in rather than out.
      */
     onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
@@ -101,7 +98,7 @@ internal fun HeaderMenu(
     onPenParameters: () -> Unit = {},
     /** The window's settings, for the Pen block's pressure controls; null in a test with no window. */
     penPolicy: DesktopSettingsState? = null,
-    /** The chip that writes a copy carrying what this notebook only references ([MenuPanel]). */
+    /** The row that writes a copy carrying what this notebook only references ([MenuPanel]). */
     onPortableCopy: () -> Unit = {},
 ) {
     var open by remember { mutableStateOf(false) }
@@ -165,7 +162,12 @@ internal fun HeaderMenu(
     }
 }
 
-/** The menu's panel: four tiles, two rows of chips, and the page list — the mobile menu, with its rules. */
+/**
+ * The menu's **panel**: one column of rows, three groups and two rules.
+ *
+ * The panel owns no look of its own beyond the flat surface: every row is [MenuRow], so the only
+ * difference between "Save" and "Settings" is the word and the glyph — which is the point.
+ */
 @Composable
 internal fun MenuPanel(
     sidebarVisible: Boolean,
@@ -181,203 +183,267 @@ internal fun MenuPanel(
     onExportSvg: () -> Unit,
     /** **Export As ▸ PNG**: one raster file per page, into a folder you pick (`DesktopPngExport`). */
     onExportPng: () -> Unit = {},
-    /**
-     * **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). It is the
-     * red chip beside Export PDF, as on the tablet: the same file, coming in rather than going out.
-     */
+    /** **Import PDF**: a picked `.pdf` becomes pages to write on (`ImportPdfDialog` asks where). */
     onImportPdf: () -> Unit = {},
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
-    /** Put the panel away — the preset chips close it, because they were reached mid-drawing. */
+    /** Put the panel away — the preset rows close it, because they were reached mid-drawing. */
     onDismiss: () -> Unit = {},
     /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
     penPolicy: DesktopSettingsState? = null,
-    /**
-     * **Export As ▸ .pmobix**: one file carrying the bytes this notebook only names. An export, never a
-     * Save: the tab keeps its own file, name and container.
-     */
+    /** **Export As ▸ .pmobix**: one file carrying the bytes this notebook only names. */
     onPortableCopy: () -> Unit = {},
 ) {
     Column(
         Modifier
             .glassSurface()
             .width(MenuMetrics.width)
-            // Air above and below, but **none** at the sides: a row's highlight spans the panel, as a
-            // menu's does. The commands keep their inset by padding themselves, so the light lands on
-            // the whole row a reader points at instead of a rounded band inside it.
-            .padding(vertical = MenuMetrics.padding),
+            // The popup's own inset: the rows' light lands inside this air, never on the rim.
+            .padding(DesktopTheme.popupInset),
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MenuMetrics.padding),
-            horizontalArrangement = Arrangement.spacedBy(MenuMetrics.tileGap),
-        ) {
-            MenuTile("New", ChromeGlyph.NEW, enabled = true, onClick = onNew)
-            MenuTile("Open", ChromeGlyph.OPEN, enabled = true, onClick = onOpen)
-            MenuTile("Save", ChromeGlyph.SAVE, enabled = canSave, onClick = onSave)
-            MenuTile("Save As", ChromeGlyph.SAVE_AS, enabled = true, onClick = onSaveAs)
-        }
-        Spacer(Modifier.height(MenuMetrics.sectionGap))
-        // The tablet's two rows of chips, in its own order. **Import** sits beside **Export PDF** and
-        // they share the document red, because they are about the same file: a PDF. The page exports
-        // below are the accent, since they write the sheet rather than the PDF it may sit on.
-        MenuChipRow {
-            MenuChip("Import PDF", ChromeGlyph.PDF, true, Modifier.weight(1f), DesktopTheme.documentRed, onImportPdf)
-            MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
-        }
-        Spacer(Modifier.height(MenuMetrics.chipGap))
-        // **Export As**: its three answers are a question of their own, asked in a card over the sheet
-        // (`ExportAsDialog`) — a menu that unfolds a submenu is still a menu.
-        MenuChipRow {
-            MenuChip(
-                "Export As", ChromeGlyph.EXPORT, canExport, Modifier.weight(1f), DesktopTheme.accent,
-                onClick = onExportAs, centered = true,
-            )
-        }
-        // A rule between the **exports** and the **pen**: the two chips above it act on the document's
-        // bytes, and everything under it acts on the pen or on the window. A reader scanning for "export"
-        // stops at the line, which is what the tablet's own menu does.
-        Spacer(Modifier.height(MenuMetrics.sectionGap))
+        MenuFileRows(canSave, onNew, onOpen, onSave, onSaveAs)
         MenuDivider()
-        // The tablet's **Pen block**, and only the pen's own answers in it: the switch, the presets, their
-        // two numbers, the way back to the factory pair. Which stream the pen is read from is **not** here:
-        // it belongs to the Stylus page, and a menu's job is the pen's drawing, not the driver's identity.
-        // Nothing about the **ink** lives here either — a colour and a width have their capsule in the strip.
-        MenuHeadingRow(label = "Pen", onClick = onPenParameters)
-        if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss)
-        Spacer(Modifier.height(MenuMetrics.sectionGap))
+        MenuPdfRows(canExport, onImportPdf, onExportPdf, onExportAs)
         MenuDivider()
-        MenuWindowRows(
-            sidebarVisible = sidebarVisible,
-            onToggleSidebar = onToggleSidebar,
-            onSettings = onSettings,
-        )
+        MenuWorkspaceRows(sidebarVisible, penPolicy, onPenParameters, onDismiss, onToggleSidebar, onSettings)
     }
 }
 
+/** The document's own four commands: the top group of the flat list. */
+@Composable
+private fun MenuFileRows(
+    canSave: Boolean,
+    onNew: () -> Unit,
+    onOpen: () -> Unit,
+    onSave: () -> Unit,
+    onSaveAs: () -> Unit,
+) {
+    MenuRow("New", ChromeGlyph.NEW, shortcut = "Ctrl+N", onClick = onNew)
+    MenuRow("Open\u2026", ChromeGlyph.OPEN, shortcut = "Ctrl+T", onClick = onOpen)
+    MenuRow("Save", ChromeGlyph.SAVE, enabled = canSave, shortcut = "Ctrl+S", onClick = onSave)
+    MenuRow("Save As\u2026", ChromeGlyph.SAVE_AS, shortcut = "Ctrl+Shift+S", onClick = onSaveAs)
+}
+
 /**
- * The rows under the menu's second rule: the page list and Settings.
+ * The PDFs and the exports: the group whose two PDF rows wear the **document red on their glyph alone**.
  *
- * **Search is not one of them.** It had a row carrying `Ctrl+F`, but the band carries the field itself,
- * always in view and one click from the text: a menu row for a command whose own field is already on
- * screen is a second door to the same room, and it pushed the two commands that live only here down the
- * panel. Settings is the tablet's own row — its own page rather than a card over the sheet — so it belongs
- * here with the commands and not in the chrome it changes.
+ * A red label would make the row read as a warning; the mark is enough to say "this row is about a PDF",
+ * and the word keeps the same ink a reader scans in every other row (`docs/interface-contract.md` §2).
  */
 @Composable
-private fun MenuWindowRows(
+private fun MenuPdfRows(
+    canExport: Boolean,
+    onImportPdf: () -> Unit,
+    onExportPdf: () -> Unit,
+    onExportAs: () -> Unit,
+) {
+    MenuRow("Import PDF\u2026", ChromeGlyph.PDF, iconTone = DesktopTheme.documentRed, onClick = onImportPdf)
+    MenuRow(
+        "Export PDF\u2026",
+        ChromeGlyph.PDF,
+        enabled = canExport,
+        shortcut = "Ctrl+E",
+        iconTone = DesktopTheme.documentRed,
+        onClick = onExportPdf,
+    )
+    MenuRow("Export As\u2026", ChromeGlyph.EXPORT, enabled = canExport, onClick = onExportAs)
+}
+
+/** The pen and the window: the block that folds, then the two commands that only live here. */
+@Composable
+private fun MenuWorkspaceRows(
     sidebarVisible: Boolean,
+    penPolicy: DesktopSettingsState?,
+    onPenParameters: () -> Unit,
+    onDismiss: () -> Unit,
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
 ) {
+    MenuPenSection(penPolicy, onPenParameters, onDismiss)
     MenuRow(
         label = if (sidebarVisible) "Hide page list" else "Show page list",
         glyph = ChromeGlyph.DESCRIPTION,
         shortcut = "Ctrl+B",
-        enabled = true,
         onClick = onToggleSidebar,
     )
-    MenuRow(
-        label = "Settings",
-        glyph = ChromeGlyph.SETTINGS,
-        shortcut = "Ctrl+,",
-        enabled = true,
-        onClick = onSettings,
-    )
+    MenuRow("Settings", ChromeGlyph.SETTINGS, shortcut = "Ctrl+,", onClick = onSettings)
 }
 
 /**
- * **The Pen block**: what a stroke is drawn with, scaled to the menu.
+ * The **Pen** row and, under it, the pen's own answers when the row is open.
+ *
+ * Folded at rest: a reader opening the menu for *Hide page list* should not have to walk a pressure
+ * sliders block first. The gear at the row's end is the door to the **Stylus page**, where the same
+ * answers live at full size — it stands beside the row rather than inside it, so a click on the gear
+ * cannot also fold the block.
+ */
+@Composable
+private fun MenuPenSection(
+    policy: DesktopSettingsState?,
+    onPenParameters: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) {
+            MenuRow(
+                label = "Pen",
+                onClick = { expanded = !expanded },
+            ) {
+                Canvas(Modifier.size(MenuMetrics.glyph)) {
+                    drawSettingsGlyph(SettingsGlyph.STYLUS, DesktopTheme.ink)
+                }
+            }
+        }
+        DesktopIconButton(
+            description = "Stylus settings",
+            onClick = onPenParameters,
+            size = PEN_GEAR_SIZE,
+            tooltip = "Stylus settings",
+        ) {
+            Canvas(Modifier.size(14.dp)) {
+                drawSettingsGlyph(SettingsGlyph.EDITOR, DesktopTheme.inkSecondary)
+            }
+        }
+        Spacer(Modifier.width(2.dp))
+    }
+    if (expanded && policy != null) MenuPenBlock(policy, onDismiss)
+}
+
+/**
+ * **The Pen block**, open: how a stroke is drawn, at the menu's scale.
  *
  * It carries the pen's **drawing** answers only: whether pressure counts at all, *which* preset names the
- * two numbers, then those numbers, then the way back to the factory pair. Which **stream** the pen is read
- * from is deliberately absent — that is a fact about the driver on this machine, not about the stroke being
- * made, and the menu is reached mid-drawing. It stays on the Stylus page, where the heading's glyph leads.
- *
- * The rows are [MenuSettingRow] — [SettingsRow] at the menu's 34 dp line and in the *label* role — because
- * this block sits in a menu, not on a page. The smaller line is also what stopped the old *Pressure* row
- * from reading as a heading over its own sliders.
- *
- * The **presets** are the page's own carousel, × and `+` included: one component on both surfaces, so a
- * preset deleted here is deleted there, and nothing about the pair can drift between the two. Picking one
- * applies it and puts the panel away — the hand was mid-drawing.
+ * two numbers, then those numbers, then the way back to the factory pair. Which **stream** the pen is
+ * read from stays on the Stylus page — that is a fact about the driver on this machine, not about the
+ * stroke being made. The presets are the page's own carousel, so a preset deleted here is deleted there.
  */
 @Composable
 private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
-    MenuSettingRow(
-        label = "Pressure sensitivity",
-        onClick = { policy.choosePressureEnabled(!policy.pressureEnabled) },
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = MenuMetrics.penInset, end = MenuMetrics.rowInset, bottom = 4.dp),
     ) {
-        SettingsSwitch(policy.pressureEnabled)
-    }
-    StylusPresetCarousel(policy, inset = MenuMetrics.penInset, onApplied = onDismiss)
-    MenuSettingRow(label = "Minimum pressure") {
-        SettingsSlider(
+        PropertyCheckboxRow("Pressure sensitivity", policy.pressureEnabled) { on ->
+            policy.choosePressureEnabled(on)
+        }
+        StylusPresetCarousel(policy, inset = 0.dp, onApplied = onDismiss)
+        MenuSliderRow(
+            label = "Minimum pressure",
             value = policy.minimumPressure,
             range = PressureCurve.MINIMUM_PRESSURE_MIN..PressureCurve.MINIMUM_PRESSURE_MAX,
             step = 0.01f,
             format = { String.format(Locale.ROOT, "%.2f", it) },
             onValue = policy::chooseMinimumPressure,
-            width = MenuMetrics.sliderWidth,
         )
-    }
-    MenuSettingRow(label = "Multiplier") {
-        SettingsSlider(
+        MenuSliderRow(
+            label = "Multiplier",
             value = policy.pressureMultiplier,
             range = PressureCurve.MULTIPLIER_MIN..PressureCurve.MULTIPLIER_MAX,
             step = 0.05f,
             format = { String.format(Locale.ROOT, "%.2f×", it) },
             onValue = policy::choosePressureMultiplier,
+        )
+        Spacer(Modifier.height(4.dp))
+        DesktopButton(
+            label = "Reset to defaults",
+            onClick = policy::resetPressureToDefaults,
+            variant = DesktopButtonVariant.Ghost,
+            minHeight = 28.dp,
+            style = DesktopTheme.label,
+        )
+    }
+}
+
+/** One of the Pen block's two numbers: its name on the left, the slider that sets it at the end. */
+@Composable
+private fun MenuSliderRow(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    step: Float,
+    format: (Float) -> String,
+    onValue: (Float) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().height(MenuMetrics.rowHeight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = DesktopTheme.ink, style = DesktopTheme.label, modifier = Modifier.weight(1f))
+        SettingsSlider(
+            value = value,
+            range = range,
+            step = step,
+            format = format,
+            onValue = onValue,
             width = MenuMetrics.sliderWidth,
         )
     }
-    MenuSettingRow(
-        label = "Reset to defaults",
-        tone = DesktopTheme.accent,
-        onClick = policy::resetPressureToDefaults,
-    )
 }
 
 /**
- * **One small setting row of the menu**: its name on the left, its control at the end, on the menu's own
- * line with a capsule that lights under the pointer.
+ * **One command of the menu**, and the only shape a command has in it: a 16 dp glyph slot, the name, and
+ * the accelerator at the end in the **muted** ink.
  *
- * It is the page's [SettingsRow] at the menu's scale — the same grammar, the same control — and the whole
- * row is the hit area when it has an action, so the switch at the end is reachable from a hand that is
- * holding a pen.
+ * The accelerator is a reminder, not a control — it never takes the accent, because the accent on this
+ * surface means "this row is picked or is the one door" and a menu row is neither. [iconTone] is what the
+ * two PDF rows use to keep their glyph red while their word stays the ink a reader scans.
  */
 @Composable
-private fun MenuSettingRow(
+private fun MenuRow(
     label: String,
-    tone: Color = DesktopTheme.ink,
-    onClick: (() -> Unit)? = null,
-    control: @Composable () -> Unit = {},
+    glyph: ChromeGlyph? = null,
+    enabled: Boolean = true,
+    shortcut: String? = null,
+    iconTone: Color? = null,
+    onClick: () -> Unit,
+    icon: (@Composable () -> Unit)? = null,
 ) {
+    val ink = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = MenuMetrics.rowHeight)
-            .then(
-                if (onClick == null) {
-                    Modifier
-                } else {
-                    Modifier
-                        .hoverFill(DesktopTheme.capsuleShape)
-                        .pointerInput(label, onClick) { detectTapGestures { onClick() } }
-                },
-            )
-            .padding(horizontal = MenuMetrics.penInset, vertical = 2.dp),
+            .height(MenuMetrics.rowHeight)
+            .hoverFill(DesktopTheme.controlShape)
+            .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
+            .padding(horizontal = MenuMetrics.rowInset),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = tone, style = DesktopTheme.label, modifier = Modifier.weight(1f))
-        control()
+        when {
+            glyph != null -> Canvas(Modifier.size(MenuMetrics.glyph)) {
+                drawChromeGlyph(glyph, if (enabled) iconTone ?: DesktopTheme.ink else DesktopTheme.inkMuted)
+            }
+            icon != null -> icon()
+        }
+        Spacer(Modifier.width(MenuMetrics.glyphGap))
+        Text(
+            label,
+            color = ink,
+            style = DesktopTheme.body,
+            maxLines = 1,
+            modifier = Modifier.weight(1f),
+        )
+        if (shortcut != null) {
+            Text(shortcut, color = DesktopTheme.inkMuted, style = DesktopTheme.numeric)
+        }
     }
+}
+
+/** The rule between two groups, with the same 4 dp of air above and below it. */
+@Composable
+private fun MenuDivider() {
+    Spacer(Modifier.height(MenuMetrics.dividerAir))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
+    Spacer(Modifier.height(MenuMetrics.dividerAir))
 }
 
 /** What the hamburger's own [DismissGuard] remembers: the one menu, so one key. */
 private val MENU_TRIGGER = Any()
+
+/** The Pen row's gear: a 22 dp command at the end of a 30 dp row. */
+private val PEN_GEAR_SIZE = 22.dp
 
 /**
  * The panel's numbers, in one place: the layout reads them and so does `DesktopMenuTest`, which clicks
@@ -385,216 +451,25 @@ private val MENU_TRIGGER = Any()
  * test that fails the day a gap changes for a good reason.
  */
 internal object MenuMetrics {
-    val width = 320.dp
-    val padding = 10.dp
-    val tileGap = 2.dp
-    val tileHeight = 64.dp
-    val chipGap = 8.dp
-    val chipHeight = 38.dp
+    /** The panel's own width: a menu, not a page — one command per line reads at 272. */
+    val width = 272.dp
 
-    /** The two chip rows as one block: a line, the gap, a line — what the layout and the test both read. */
-    val chipsHeight: androidx.compose.ui.unit.Dp
-        get() = chipHeight * 2 + chipGap
-    val sectionGap = 10.dp
+    /** The popup's inset, and the air a row's light keeps from the panel's edge. */
+    val inset = DesktopTheme.popupInset
+    val rowInset = 8.dp
 
-    /** The rule between the chips and the page list, with its own air above and below. */
-    val dividerHeight = 11.dp
-    val rowHeight = 34.dp
-    val chipRadius = 12.dp
+    /** One command's line, its glyph slot and the gap between the two. */
+    val rowHeight = 30.dp
+    val glyph = 16.dp
+    val glyphGap = 8.dp
 
-    /** The pen block's own inset: the page's 12 dp pulled in to the menu's 10 dp lines. */
-    val penInset = 10.dp
+    /** A group's rule: one 1 dp line with its air, which is the height a divider costs the column. */
+    val dividerAir = 4.dp
+    val dividerHeight = dividerAir * 2 + 1.dp
 
-    /**
-     * The pen block's slider track: the panel is 320 dp wide, so the page's 150 dp track beside a label
-     * would run out of the row — the number and this length still leave *Minimum pressure* its room.
-     */
-    val sliderWidth = 118.dp
+    /** The Pen block's inset: under the row's glyph, so its answers line up with the names above. */
+    val penInset = rowInset + glyph + glyphGap
 
-    /** One tile's width: four of them, their gaps, and the panel's own padding. */
-    val tileWidth: androidx.compose.ui.unit.Dp
-        get() = (width - padding * 2 - tileGap * 3) / 4
-
-    /** One chip's width: two of them and their gap. */
-    val chipWidth: androidx.compose.ui.unit.Dp
-        get() = (width - padding * 2 - chipGap) / 2
-
-}
-
-/**
- * One of the four top commands: its glyph over its word, the whole tile one target.
- *
- * The tile is the mobile menu's own shape — art above the label rather than beside it — because a row
- * of four words is a list, and a row of four pictures with words under them is a palette.
- */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun RowScope.MenuTile(label: String, glyph: ChromeGlyph, enabled: Boolean, onClick: () -> Unit) {
-    Column(
-        Modifier
-            .weight(1f)
-            .heightIn(min = MenuMetrics.tileHeight)
-            .background(Color.Transparent, DesktopTheme.capsuleShape)
-            .hoverFill(DesktopTheme.capsuleShape)
-            .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Canvas(Modifier.size(22.dp)) {
-            drawChromeGlyph(glyph, if (enabled) DesktopTheme.chromeInk else DesktopTheme.inkMuted)
-        }
-        Text(
-            label,
-            color = if (enabled) DesktopTheme.chromeInk else DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-            maxLines = 1,
-        )
-    }
-}
-
-/**
- * **One row of chips** across the panel — the tablet's own rhythm for the file commands.
- *
- * A row rather than four chips in one flow: each line is a pair the tablet draws as a pair, and the two
- * lines are what tell a reader that the PDF pair and the page pair answer different questions.
- */
-@Composable
-private fun MenuChipRow(content: @Composable RowScope.() -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MenuMetrics.padding),
-        horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap),
-        content = content,
-    )
-}
-
-/**
- * An export: art and word in the **accent**, on a chip of its own — the tablet's blue chips.
- *
- * The chip is a capsule rather than a fifth tile because exporting is not a file command (nothing about
- * the document changes): the tablet draws that difference and the window keeps it.
- */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun MenuChip(
-    label: String,
-    /** The chip's mark, or null for a word-only chip. */
-    glyph: ChromeGlyph?,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-    /** The command's own colour while it can act — red for a PDF, the accent for a page export. */
-    tone: Color,
-    onClick: () -> Unit,
-    /**
-     * Whether the art and the word sit in the chip's **middle**: a chip that is the only one on its line
-     * (Export As) reads as a centred button, while a pair side by side keeps both words flush with their
-     * art at the same left margin.
-     */
-    centered: Boolean = false,
-) {
-    val ink = if (enabled) tone else DesktopTheme.inkMuted
-    Row(
-        modifier
-            .height(MenuMetrics.chipHeight)
-            .hoverCapsule(
-                cornerRadius = MenuMetrics.chipRadius,
-                fill = DesktopTheme.control,
-                active = !enabled,
-            )
-            .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(
-            8.dp,
-            if (centered) Alignment.CenterHorizontally else Alignment.Start,
-        ),
-    ) {
-        if (glyph != null) {
-            Canvas(Modifier.size(18.dp)) { drawChromeGlyph(glyph, ink) }
-        }
-        Text(label, color = ink, style = DesktopTheme.body, maxLines = 1)
-    }
-}
-
-/**
- * A **heading inside the menu** — the tablet's *Pen* row: its pen glyph beside the word, and the glyph
- * that opens what the rows below configure at the row's end.
- *
- * The **pen mark is beside the word** rather than only at the far end: the catalogue's own `STYLUS` glyph,
- * the picture the tablet and the Stylus page use, so a reader sees what the block is about before reading
- * the word. The row is the door to that page as well — a heading that only names a block would have the
- * block's door somewhere else.
- */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun MenuHeadingRow(label: String, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = MenuMetrics.rowHeight)
-            .hoverFill(DesktopTheme.capsuleShape)
-            .pointerInput(label) { detectTapGestures { onClick() } }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Canvas(Modifier.size(16.dp)) {
-            drawSettingsGlyph(SettingsGlyph.STYLUS, DesktopTheme.ink)
-        }
-        Spacer(Modifier.width(8.dp))
-        Text(label, color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
-        Canvas(Modifier.size(16.dp)) {
-            drawSettingsGlyph(SettingsGlyph.EDITOR, DesktopTheme.inkSecondary)
-        }
-    }
-}
-
-/** One plain row of the menu: a label, an optional accelerator, and the disabled tone when it cannot act. */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun MenuRow(
-    label: String,
-    /** The row's mark, from the chrome catalogue — the same picture the tablet's own menu row carries. */
-    glyph: ChromeGlyph? = null,
-    shortcut: String? = null,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = MenuMetrics.rowHeight)
-            .background(Color.Transparent, DesktopTheme.capsuleShape)
-            .hoverFill(DesktopTheme.capsuleShape, active = false)
-            .pointerInput(label, enabled) {
-                if (enabled) detectTapGestures { onClick() }
-            }
-            .padding(horizontal = MenuMetrics.penInset, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (glyph != null) {
-            Canvas(Modifier.size(16.dp)) {
-                drawChromeGlyph(glyph, if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted)
-            }
-            Spacer(Modifier.width(8.dp))
-        }
-        Text(
-            label,
-            color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,
-            style = DesktopTheme.body,
-            modifier = Modifier.weight(1f),
-        )
-        if (shortcut != null) {
-            Text(shortcut, color = DesktopTheme.accent, style = DesktopTheme.numeric)
-        }
-    }
-}
-
-/** A hairline between two parts of the menu, in the band's own rim ink. */
-@Composable
-private fun MenuDivider() {
-    Spacer(Modifier.height(6.dp))
-    Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
-    Spacer(Modifier.height(4.dp))
+    /** The Pen block's slider track: what is left of the 272 dp panel beside a label. */
+    val sliderWidth = 104.dp
 }

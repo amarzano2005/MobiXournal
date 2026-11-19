@@ -47,37 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-menu-redesign"
-title = "Redesign DesktopMenu as a uniform flat desktop menu without embossed chips or tiles"
-description = """
-Phase 2C of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Eliminate the 5-style collage inside `DesktopMenu` (64 dp tiles, 12 dp embossed red/blue `hoverCapsule` chips, 16 dp hover inside 8 dp popup, bright blue shortcuts, asymmetric dividers).
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopMenu.kt`:
-   - Panel width `272.dp`, `.glassSurface()` (`8.dp`, `DesktopTheme.popupSurface`, `1.dp` `DesktopTheme.hairline`), `padding(DesktopTheme.popupInset)` (`4.dp`).
-   - Delete `MenuTile`, `MenuChip`, and `MenuMetrics.chipRadius` (`12.dp`) — zero `.hoverCapsule(` calls anywhere in `DesktopMenu.kt`.
-   - Render ALL menu commands through one uniform `MenuRow` (`height = 30.dp`, `fillMaxWidth()`, `hoverFill(DesktopTheme.controlShape)` = `4.dp`, `padding(horizontal = 8.dp)`, `16.dp` monoline `ChromeGlyph` slot, `DesktopTheme.body` label in `DesktopTheme.ink`, right-aligned shortcut in **`DesktopTheme.inkMuted`** `DesktopTheme.numeric` — NEVER `DesktopTheme.accent`!):
-     - Group 1 (File): `New` (`Ctrl+N`), `Open…` (`Ctrl+T`), `Save` (`Ctrl+S`), `Save As…` (`Ctrl+Shift+S`).
-     - Symmetric `MenuDivider` (`padding(vertical = 4.dp)`, `1.dp` `DesktopTheme.hairline`).
-     - Group 2 (PDF & Export): `Import PDF…` (icon in `documentRed`, text in `ink`), `Export PDF…` (`Ctrl+E`, icon in `documentRed`, text in `ink`), `Export As…` (icon & text in `ink`).
-     - Symmetric `MenuDivider`.
-     - Group 3 (Pen & Workspace): collapsible `Pen` row (collapsed by default; when expanded renders `PropertyCheckboxRow`, uniform `28.dp` `4.dp` preset chips + `×`/`+`, clamped sliders, `DesktopButton(Ghost, "Reset to defaults")`, plus a trailing `DesktopIconButton` to open Settings -> Stylus), `Hide/Show sidebar` (`Ctrl+B`), `Settings` (`Ctrl+,`).
-   - Split groups into private composables so `MenuPanel` stays `<= 80` lines and file `<= 550` lines.
-2. Tests: update `DesktopMenuTest.kt` to match the new flat row geometry, hover fill (`4.dp`), `inkMuted` shortcut tone, and `documentRed` icon-only PDF rows; verify `PenPresetTest.kt` passes untouched.
-
-DO NOT: leave any `.hoverCapsule(`, `capsuleShape`, `12.dp` chip radius, or `accent` shortcut text in `DesktopMenu.kt`.
-Verification: run `:desktop:test` on `DesktopMenuTest`, `PenPresetTest`, `DesktopTextFeedbackContractTest`, plus `SourceStructureTest`; inspect regenerated `desktop-menu.png`, `desktop-menu-hover.png`, `desktop-pen-presets.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 60
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "menu"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-tool-strips"
 title = "Flatten ToolRail/ToolRibbon into docked hairline strips with group dividers, scroll cue, and delayed tooltips"
 description = """

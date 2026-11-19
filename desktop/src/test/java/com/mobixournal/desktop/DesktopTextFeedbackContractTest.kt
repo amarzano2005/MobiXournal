@@ -81,7 +81,13 @@ class DesktopTextFeedbackContractTest {
         val menu = File(source, "shell/DesktopMenu.kt").readText()
         val entry = File(source, "shell/EntryScreen.kt").readText()
         val tabs = File(source, "shell/TabStrip.kt").readText()
-        assertTrue("main-menu command chips retain their capsule", menu.contains(".hoverCapsule("))
+        // The overflow menu is the flat list now: one row per command, lighting a 4 dp corner, and no
+        // embossed chip or tile left anywhere in it (`docs/desktop-ui-layout.md`).
+        assertTrue("main-menu commands are one uniform row", menu.contains("hoverFill(DesktopTheme.controlShape)"))
+        assertTrue(
+            "and no command chip or tile survives",
+            !menu.contains(".hoverCapsule(") && !menu.contains("MenuChip") && !menu.contains("MenuTile"),
+        )
         assertTrue("entry commands retain their button background", entry.contains("DesktopTheme.tabFillResting"))
         // The strip is the flat band's now: a tab is a control with the panel tone and the 4 dp corner, not
         // a chip of the tablet's glass with an accent rim (`docs/desktop-ui-layout.md` section 1).

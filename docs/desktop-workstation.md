@@ -29,15 +29,13 @@ What it does today:
   one page**, with `Ctrl + B` remembered per document (`DesktopSidebar`) — the page alone on the
   true-black desk, and a 24 dp status bar with the page counter, the zoom, the fit mode, the pen stream, the
   display's refresh rate with its frame budget (`120 Hz · 8.3 ms frame`) and the container. The chrome is
-  the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 48 dp header carrying the
-  **hamburger menu**, 30 dp tab capsules in the tablet's chip glass (the active one ringed in the accent), the
-  search field always beside them, which `Ctrl + F` only hands the keyboard ([search.md](search.md) owns it), the strip's own **`+`** and, on the right,
-  **undo, redo, Save and Export PDF** — the mobile bar's four commands, on 36 dp
-  capsules with 20 dp glyphs; the band is 8 dp taller than the tablet's token because it carries that row of
-  controls as well as the tabs (`DesktopTheme.headerHeight`), under a **native caption painted in the
-  band's own composite colour** (`DesktopTitleBar.kt`: immersive dark mode, the caption, border and text
-  colours through DWM). It carries **no app name and no icon** (`captionIcon` keeps the art for the taskbar
-  only), with the tablet's own glyphs — monoline tools and the chrome's filled marks, one catalogue each — Inter
+  the app's **own tones** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp header carrying
+  the **hamburger menu**, one 28 dp flat tab per document (the active one on the panel tone with a 2 dp
+  accent bar, the list scrolling beside a fixed `+`), the search field always beside them, which `Ctrl + F`
+  only hands the keyboard ([search.md](search.md) owns it), and, on the right, **undo, redo, Save and
+  Export PDF** as 28 dp icon commands (`DesktopTheme.headerHeight`), under the **system caption**: the window
+  names the document in front and DWM paints that caption in the band's tone and the chrome ink
+  (`DesktopTitleBar.kt`), with the app's art kept for the taskbar (`captionIcon`) — and with the tablet's own glyphs — monoline tools and the chrome's filled marks, one catalogue each — Inter
   with tabular figures, one cast shadow under each band and one under the sheet (its halo is drawn in **screen space**, around the page's on-screen rectangle: a shadow is chrome, so the zoom must not scale it and the thumbnail raster, whose surface *is* the page, must not pay for it). The art is the
   tablet's launcher icon **without its navy field**, enlarged inside its tile so the mark reads at taskbar
   size (`desktop/icon/`).
@@ -188,25 +186,20 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   ([`audio.md`](audio.md) owns the format). A clip makes the capsule the **transport** — readout, scrubber,
   speed (1×–2×) — and while it sounds the page is painted **per stroke**, the writing following the
   recording. **Audio tap** — the pill's Play, or `Y` — replays from the point touched, and a take or a clip belongs to **its tab**; Settings → Audio picks the devices.
-- **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
-  glass panel — four **tiles** of art over a word (New, Open, Save, Save As), then the tablet's **two rows
-  of chips**: **Import PDF** and **Export PDF** in the document red (the same file, coming in and going
-  out), and **Export As** in the accent, which raises a card of its own with the three answers — **PNG**, **SVG** and **`.pmobix`** (one file per page or the whole notebook, into a folder you pick); every file dialog here is the Windows shell's own — Explorer's surface, a type box, a folder mode — with Java's dialogs as the fallback where the shell has none.
-  **A hairline**, then the tablet's **Pen block**: its heading (the pen glyph beside the word) opens the
-  Stylus page, and under it the pen's **drawing** answers in the page's own order — **Pressure
-  sensitivity**, the **preset carousel** with its × and `+`, **Minimum pressure**, **Multiplier**, and
-  **Reset to defaults** as a command row in the accent. Which **stream** the pen is read from is not in the
-  menu: that is the driver's fact, not the stroke's, and it stays on the Stylus page the heading opens.
-  The rows are the page's rows at the menu's 34 dp
-  line, which is what keeps *Pressure sensitivity* from reading as a heading over its own sliders. Picking a
-  preset applies it and closes the panel (the hand was mid-drawing); the name field the `+` opens is the one
-  the Stylus page opens, so the menu is the only popup that takes the keyboard. A second hairline, then the
-  **page list** and **Settings** rows, each wearing its own mark. Its commands keep their 10 dp inset by
-  padding themselves, so a row's hover spans the panel's whole width, as a menu's does. The block carries **nothing about the ink**: a
-  colour and a width live in the strip's capsule, and a reset beside a pressure preset made two different
-  things share one word. Page as PNG is absent because the window has no such command yet, not because it
-  has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by
-  the panel's own metrics). The tab
+- **Opens its file commands from one flat list**: the header's hamburger opens a 272 dp surface with one
+  hairline, and every command in it is the **same row** — a 16 dp catalogue glyph, its name, and its
+  accelerator in the muted ink, lighting a 4 dp corner under the pointer. Three groups, two rules: the
+  document's bytes (**New**, **Open**, **Save**, **Save As**), the PDFs and exports (**Import PDF** and
+  **Export PDF** with their glyph in the document red, **Export As** raising a card of its own with **PNG**,
+  **SVG** and **`.pmobix`**), then the pen and the window. The **Pen** row folds and stays shut at rest: open,
+  it carries the page's own answers in the page's order — **Pressure sensitivity**, the preset carousel
+  with its × and `+`, **Minimum pressure**, **Multiplier**, **Reset to defaults** — and the row's gear opens
+  the Stylus page, where which **stream** the pen is read from belongs. Picking a preset applies it and
+  closes the panel (the hand was mid-drawing), and the name field the `+` opens is the page's own, so the
+  menu stays the only popup that takes the keyboard. A second rule, then the **page list** and **Settings**.
+  Every file dialog here is the Windows shell's own — Explorer's surface, a type box, a folder mode — with
+  Java's dialogs as the fallback where the shell has none. Page as PNG is absent because the window has no
+  such command yet (`MenuPanel`; `DesktopMenuTest` clicks every row by the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`); the document is
   dirty from birth, its `Untitled N.mobix` name waiting for Save to ask where it goes. A window that starts
   with no file named on the command line opens on the **entry screen**, offering the last run's unsaved work.

@@ -366,9 +366,13 @@ internal fun SettingsSlider(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
-    DesktopTextAction(text, onPick, picked = selected, role = androidx.compose.ui.semantics.Role.Tab,
-        style = DesktopTheme.body)
-
+    // One 28 dp control line and the 4 dp corner, so a preset reads as the same chip on the Stylus page
+    // and in the menu's Pen block, which draws the same carousel in a 272 dp panel.
+    DesktopTextAction(
+        text, onPick, picked = selected, role = androidx.compose.ui.semantics.Role.Tab,
+        style = DesktopTheme.body, minHeight = 28.dp,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+    )
 }
 
 /** The square indicator; SettingsRow owns the hit target and checked semantics. */

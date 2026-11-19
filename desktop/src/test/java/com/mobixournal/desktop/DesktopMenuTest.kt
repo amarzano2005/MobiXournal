@@ -1,7 +1,6 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.settings.DesktopSettings
 import com.mobixournal.desktop.settings.DesktopSettingsState
 import com.mobixournal.desktop.settings.DesktopTheme
@@ -34,9 +33,8 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * The overflow menu as the mobile bar draws it: four tiles, two rows of chips (the PDF pair in the
- * document red, **Export As** in the accent), then the page list and Settings under a rule. Its three
- * answers — PNG, SVG and `.pmobix` — replace the Export As chip on the same line.
+ * The overflow menu as the flat workstation draws it: **one row per command**, three groups split by a
+ * hairline, and the Pen block folded behind its own row.
  *
  * A `Popup` cannot be rendered in a headless scene, which is why the panel is its own composable
  * (`MenuPanel`) and this draws it directly. The clicks use [MenuMetrics] — the very numbers the layout
@@ -52,12 +50,10 @@ class DesktopMenuTest {
     private val counters = IntArray(11)
 
     private val width = MenuMetrics.width.value
-    /** The scene fits the panel, Pen block included — a row clipped by the frame cannot be clicked. */
+
+    /** The scene fits the panel with the Pen block **folded**: ten rows, two rules and the inset. */
     private val height: Float = with(MenuMetrics) {
-        (
-            padding * 2 + tileHeight + sectionGap + chipsHeight + sectionGap + dividerHeight +
-                rowHeight + sectionGap + dividerHeight + rowHeight * 2
-            ).value + 4f
+        (inset * 2 + rowHeight * ROWS + dividerHeight * 2).value + 4f
     }
 
     @Test
@@ -65,15 +61,10 @@ class DesktopMenuTest {
         val scene = scene()
         try {
             var at = 1_000L
-            for (index in 0..3) {
-                tap(scene, tileCentre(index), tileCentreY(), at); at += 512L
+            for (row in 0..6) {
+                tap(scene, width / 2f, rowCentreY(row), at); at += 512L
             }
-            tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
-            tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
-            // Export As raises its card, which is the shell's overlay — the panel only has to run the door.
-            tap(scene, width / 2f, chipCentreY(row = 1), at); at += 512L
-            tap(scene, width / 2f, rowCentreY(row = 0), at); at += 512L
-            tap(scene, width / 2f, rowCentreY(row = 1), at)
+            tap(scene, width / 2f, rowCentreY(SIDEBAR_ROW), at)
 
             assertEquals("New", 1, counters[NEW])
             assertEquals("Open", 1, counters[OPEN])
@@ -93,12 +84,11 @@ class DesktopMenuTest {
         val scene = scene(canSave = false, canExport = false)
         try {
             var at = 1_000L
-            tap(scene, tileCentre(2), tileCentreY(), at); at += 512L
-            tap(scene, chipCentre(1), chipCentreY(row = 0), at); at += 512L
-            // With nothing open there is no card to raise: the chip is dead like the exports behind it.
-            tap(scene, width / 2f, chipCentreY(row = 1), at); at += 512L
-            tap(scene, chipCentre(0), chipCentreY(row = 0), at); at += 512L
-            tap(scene, tileCentre(0), tileCentreY(), at)
+            tap(scene, width / 2f, rowCentreY(SAVE_ROW), at); at += 512L
+            tap(scene, width / 2f, rowCentreY(PDF_ROW), at); at += 512L
+            tap(scene, width / 2f, rowCentreY(EXPORT_AS_ROW), at); at += 512L
+            tap(scene, width / 2f, rowCentreY(IMPORT_ROW), at); at += 512L
+            tap(scene, width / 2f, rowCentreY(NEW_ROW), at)
 
             assertEquals("a clean document has nothing to save", 0, counters[SAVE])
             assertEquals("and nothing to export", 0, counters[PDF])
@@ -115,14 +105,15 @@ class DesktopMenuTest {
     }
 
     /**
-     * The panel's picture: white art on the tiles, the PDF chip in the document red, the raster in the
-     * accent — the tablet's own colour rule for its exports.
+     * The panel's picture: every row a glyph and a word in the chrome ink, and the two PDF rows wearing
+     * the **document red on the glyph alone** — a red word would read as a warning, and the flat menu has
+     * one label tone.
      *
      * The frame is filed in `desktop/build/desktop-render/` so the panel can be looked at next to the
-     * tablet's, which is what "the same menu" has to mean in the end.
+     * flat header it opens from.
      */
     @Test
-    fun `the tiles wear the chrome ink, the pdf chip the document red and the raster the accent`() {
+    fun `every row is one list, and only the pdf glyphs are red`() {
         val scene = scene()
         val png = try {
             Snapshot.sendApplyNotifications()
@@ -141,53 +132,62 @@ class DesktopMenuTest {
             }
         }
 
-        for (index in 0..3) {
-            val white = pixelsAround(tileCentre(index), tileCentreY(), 12)
+        val glyphX = with(MenuMetrics) { (inset + rowInset + glyph / 2).value }
+        for (row in 0..6) {
+            val white = pixelsAround(glyphX, rowCentreY(row), 10)
                 .count { (it and 0xFFFFFF) >= INK_FLOOR }
-            assertTrue("tile $index draws its glyph and label", white > 12)
+            assertTrue("row $row draws its glyph", white > 8)
         }
-        for (index in 0..1) {
-            val pdfChip = pixelsAround(chipCentre(index), chipCentreY(row = 0), 16)
+        for (row in listOf(IMPORT_ROW, PDF_ROW)) {
+            val red = pixelsAround(glyphX, rowCentreY(row), 10)
                 .count { colour -> ((colour shr 16) and 0xFF) > (colour and 0xFF) + 60 }
-            assertTrue("chip $index of the PDF row is written in the document red", pdfChip > 12)
+            assertTrue("the PDF glyph of row $row is the document red", red > 8)
         }
-
-        val exportChip = pixelsAround(width / 2f, chipCentreY(row = 1), 16)
-            .count { colour -> (colour and 0xFF) > ((colour shr 16) and 0xFF) + 40 }
-        assertTrue("the export row is written in the accent", exportChip > 12)
+        val exportGlyph = pixelsAround(glyphX, rowCentreY(EXPORT_AS_ROW), 10)
+            .count { colour -> ((colour shr 16) and 0xFF) > (colour and 0xFF) + 60 }
+        assertEquals("an export is not a PDF: its glyph keeps the ink", 0, exportGlyph)
     }
 
     /**
      * The Pen block **with the pen's presets in it** — the block a reader opens mid-drawing, drawn whole so
-     * the heading, the pressure rows and the chips can be looked at instead of trusted.
+     * the folded row, the pressure answers and the chips can be looked at instead of trusted.
      *
-     * The frame is filed as `desktop-pen-presets.png`. The second frame has no settings, so it draws no Pen
-     * block; the two differing is what proves the picture is the block's and not the desk's.
+     * The frame is filed as `desktop-pen-presets.png`. Without settings the same tap draws no block, so
+     * the two frames differing is what proves the picture is the block's and not the desk's.
      */
     @Test
-    fun `the pen block draws the pressure rows and the presets`() {
+    fun `the pen row folds out the pressure answers and the presets`() {
         val policy = DesktopSettingsState(DesktopSettings(File(temp.root, "menu-pen.properties")))
         policy.beginPresetSave()
         policy.typePresetName("Light hand")
         policy.commitPresetSave()
 
-        val drawn = panelFrame(policy)
-        val bare = panelFrame(null)
+        val drawn = penFrame(policy)
+        val bare = penFrame(null)
         File("build/desktop-render/desktop-pen-presets.png").apply { parentFile?.mkdirs() }.writeBytes(drawn)
         assertTrue("the Pen block is drawn, not only the desk", !drawn.contentEquals(bare))
     }
 
+    /** The stationery is the same at rest and folded: the Pen row only opens its block. */
+    @Test
+    fun `the folded panel draws the same list whether or not there are settings`() {
+        val policy = DesktopSettingsState(DesktopSettings(File(temp.root, "menu-pen.properties")))
+        val withSettings = foldedFrame(policy)
+        val without = foldedFrame(null)
+        assertTrue("a folded Pen block hides its answers", withSettings.contentEquals(without))
+    }
+
     /**
-     * The hover step on an export chip, drawn so the shape of the lit area can be looked at: the whole
-     * capsule, not the label's box.
+     * The hover step of a row, drawn so the shape of the lit area can be looked at: the whole 4 dp row,
+     * not the label's box — a menu row is one target across the panel.
      */
     @Test
-    fun `hovering an export chip lights the whole capsule`() {
+    fun `hovering a row lights the whole row`() {
         val scene = scene()
         val (plain, lit) = try {
             Snapshot.sendApplyNotifications()
             val before = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
-            mouse(scene, PointerEventType.Move, width / 2f, chipCentreY(row = 1), 1_000L, pressed = false)
+            mouse(scene, PointerEventType.Move, width / 2f, rowCentreY(PDF_ROW), 1_000L, pressed = false)
             Snapshot.sendApplyNotifications()
             val after = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
             before to after
@@ -196,43 +196,43 @@ class DesktopMenuTest {
         }
         File("build/desktop-render/desktop-menu-hover.png").apply { parentFile?.mkdirs() }.writeBytes(lit)
 
-        // The bug this pins: the hint used to be a layer above the capsule and could be painted at the
-        // label's bounds, so the chip lit only where the words were. Both ends must brighten.
         val before = ImageIO.read(ByteArrayInputStream(plain))
         val after = ImageIO.read(ByteArrayInputStream(lit))
-        val y = chipCentreY(row = 1).toInt()
+        val y = rowCentreY(PDF_ROW).toInt()
         fun brightened(x: Float): Boolean {
             val px = x.toInt()
             val from = before.getRGB(px, y) and 0xFF
             val to = after.getRGB(px, y) and 0xFF
             return to > from
         }
-        assertTrue("the chip's left end lights up", brightened(width / 2f - 130f))
-        assertTrue("and its far right end does too", brightened(width / 2f + 130f))
+        assertTrue("the row's left end lights up", brightened(MenuMetrics.inset.value + 4f))
+        assertTrue("and its far right end does too", brightened(width - MenuMetrics.inset.value - 4f))
     }
 
-    /** One frame of the panel, tall enough that nothing in the Pen block is clipped. */
-    private fun panelFrame(policy: DesktopSettingsState?): ByteArray {
-        val scene = ImageComposeScene(width.toInt(), 560, Density(1f)) {
-            Box(Modifier.size(width.dp, 560.dp).background(DesktopTheme.desk)) {
-                MenuPanel(
-                    sidebarVisible = true,
-                    canSave = true,
-                    canExport = true,
-                    onNew = {},
-                    onOpen = {},
-                    onSave = {},
-                    onSaveAs = {},
-                    onExportPdf = {},
-                    onExportSvg = {},
-                    onExportPng = {},
-                    onImportPdf = {},
-                    onPortableCopy = {},
-                    onToggleSidebar = {},
-                    onSettings = {},
-                    onDismiss = {},
-                    penPolicy = policy,
-                )
+    /** One frame of the panel, tall enough that the opened Pen block is not clipped. */
+    private fun penFrame(policy: DesktopSettingsState?): ByteArray {
+        val scene = ImageComposeScene(width.toInt(), PEN_HEIGHT.toInt(), Density(1f)) {
+            Box(Modifier.size(width.dp, PEN_HEIGHT.dp).background(DesktopTheme.desk)) {
+                panel(policy, counters = null)
+            }
+        }
+        return try {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            // The row that folds the block is the one after the second rule and the PDF trio.
+            tap(scene, width / 2f, rowCentreY(PEN_ROW), 1_000L)
+            Snapshot.sendApplyNotifications()
+            requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
+        } finally {
+            scene.close()
+        }
+    }
+
+    /** One frame of the folded panel, with the settings the Pen block would read. */
+    private fun foldedFrame(policy: DesktopSettingsState?): ByteArray {
+        val scene = ImageComposeScene(width.toInt(), height.toInt(), Density(1f)) {
+            Box(Modifier.size(width.dp, height.dp).background(DesktopTheme.desk)) {
+                panel(policy, counters = null)
             }
         }
         return try {
@@ -245,55 +245,53 @@ class DesktopMenuTest {
 
     private fun scene(canSave: Boolean = true, canExport: Boolean = true): ImageComposeScene =
         ImageComposeScene(width.toInt(), height.toInt(), Density(1f)) {
-            // The desk behind the panel, so the glass has something to be glass over — as it does in
-            // the window, where a menu lies over the page.
+            // The desk behind the panel, so the surface has something to stand on — as it does in the
+            // window, where a menu lies over the page.
             Box(Modifier.size(width.dp, height.dp).background(DesktopTheme.desk)) {
-                MenuPanel(
-                    sidebarVisible = true,
-                    canSave = canSave,
-                    canExport = canExport,
-                    onNew = { counters[NEW]++ },
-                    onOpen = { counters[OPEN]++ },
-                    onSave = { counters[SAVE]++ },
-                    onSaveAs = { counters[SAVE_AS]++ },
-                    onExportPdf = { counters[PDF]++ },
-                    onExportSvg = { counters[SVG]++ },
-                    onExportPng = { counters[PNG]++ },
-                    onExportAs = { counters[EXPORT_AS]++ },
-                    onImportPdf = { counters[IMPORT]++ },
-                    onPortableCopy = { counters[PORTABLE]++ },
-                    onToggleSidebar = { counters[SIDEBAR]++ },
-                    onSettings = {},
-                )
+                panel(policy = null, counters = counters, canSave = canSave, canExport = canExport)
             }
         }
 
-    private fun tileCentre(index: Int): Float = with(MenuMetrics) {
-        (padding + tileWidth / 2 + (tileWidth + tileGap) * index).value
-    }
-
-    private fun tileCentreY(): Float = (MenuMetrics.padding + MenuMetrics.tileHeight / 2).value
-
-    private fun chipCentre(index: Int): Float = with(MenuMetrics) {
-        (padding + chipWidth / 2 + (chipWidth + chipGap) * index).value
-    }
-
-
-    /** A chip's line: the tiles, the section gap, then the first row and the second under it. */
-    private fun chipCentreY(row: Int): Float = with(MenuMetrics) {
-        (padding + tileHeight + sectionGap + (chipHeight + chipGap) * row + chipHeight / 2).value
+    /** The panel itself, with every command counted when a row can be clicked. */
+    @androidx.compose.runtime.Composable
+    private fun panel(
+        policy: DesktopSettingsState?,
+        counters: IntArray?,
+        canSave: Boolean = true,
+        canExport: Boolean = true,
+    ) {
+        MenuPanel(
+            sidebarVisible = true,
+            canSave = canSave,
+            canExport = canExport,
+            onNew = { counters?.set(NEW, counters[NEW] + 1) },
+            onOpen = { counters?.set(OPEN, counters[OPEN] + 1) },
+            onSave = { counters?.set(SAVE, counters[SAVE] + 1) },
+            onSaveAs = { counters?.set(SAVE_AS, counters[SAVE_AS] + 1) },
+            onExportPdf = { counters?.set(PDF, counters[PDF] + 1) },
+            onExportSvg = { counters?.set(SVG, counters[SVG] + 1) },
+            onExportPng = { counters?.set(PNG, counters[PNG] + 1) },
+            onExportAs = { counters?.set(EXPORT_AS, counters[EXPORT_AS] + 1) },
+            onImportPdf = { counters?.set(IMPORT, counters[IMPORT] + 1) },
+            onPortableCopy = { counters?.set(PORTABLE, counters[PORTABLE] + 1) },
+            onToggleSidebar = { counters?.set(SIDEBAR, counters[SIDEBAR] + 1) },
+            onSettings = {},
+            onDismiss = {},
+            penPolicy = policy,
+        )
     }
 
     /**
-     * A plain row under the second rule, by the panel's own arithmetic: the tiles, the two chip rows, the
-     * rule, the **Pen heading** (its block is the shell's settings, absent in this test), the second rule,
-     * then the two rows — the page list first, Settings under it.
+     * A row's centre, by the panel's own arithmetic: the inset, the rows above it, and the rule each
+     * group boundary costs.
      */
     private fun rowCentreY(row: Int): Float = with(MenuMetrics) {
-        (
-            padding + tileHeight + sectionGap + chipsHeight + sectionGap + dividerHeight +
-                rowHeight + sectionGap + dividerHeight + rowHeight / 2 + rowHeight * row
-            ).value
+        val rules = when {
+            row < IMPORT_ROW -> 0
+            row < PEN_ROW -> 1
+            else -> 2
+        }
+        (inset + rowHeight * row + dividerHeight * rules + rowHeight / 2).value
     }
 
     private fun tap(scene: ImageComposeScene, x: Float, y: Float, time: Long) {
@@ -328,6 +326,16 @@ class DesktopMenuTest {
     }
 
     private companion object {
+        /** The rows of the folded panel, in the order the panel draws them. */
+        const val NEW_ROW = 0
+        const val SAVE_ROW = 2
+        const val IMPORT_ROW = 4
+        const val PDF_ROW = 5
+        const val EXPORT_AS_ROW = 6
+        const val PEN_ROW = 7
+        const val SIDEBAR_ROW = 8
+        const val ROWS = 10
+
         const val NEW = 0
         const val OPEN = 1
         const val SAVE = 2
@@ -342,5 +350,8 @@ class DesktopMenuTest {
 
         /** Anything at or above this tone is a glyph stroke: the chrome ink is pure white. */
         const val INK_FLOOR = 0x909090
+
+        /** The panel with the Pen block open: ten rows, two rules and the pressure answers under them. */
+        const val PEN_HEIGHT = 620f
     }
 }
