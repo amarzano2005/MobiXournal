@@ -143,7 +143,8 @@ Consequences worth knowing:
 - **A launch offers the session, it does not reopen it.** Only the index is read at start
   (`EntryRecents.readPreviousSession`), and the empty pane then shows the last run's tabs as cards
   plus *Restore last session*; taking either loads those tabs, with their unsaved edits, from the
-  snapshots. Until the reader answers, `EditorPane.holdsPreviousSession` makes `persist` write
+  snapshots. A run closed **in split view** comes back whole from either door — both ask
+  `restoredWorkspace` which tab each pane shows, so the second half is never left on disk alone. Until the reader answers, `EditorPane.holdsPreviousSession` makes `persist` write
   nothing — an empty session written by the pane that is offering it would sweep the snapshots it is
   offering away. *New sheet* is the answer that drops the offer, and a card's `×` drops one tab with
   `TabStore.dropTab`, which rewrites the index and deletes that tab's snapshot. Only a cold start
@@ -228,7 +229,9 @@ The design decisions worth keeping:
   offered on the next launch as **one** card naming both halves, with one capsule on its top-left corner
   holding the restore mark and the split glyph: taking it opens the right pane's tabs and
   the left pane's session and switches the split on, each document on the page it was left on, so the
-  workspace comes back whole rather than as two documents to assemble (`EntryCards`, `adoptSplitSession`).
+  workspace comes back whole rather than as two documents to assemble (`EntryCards`, `adoptSplitSession`,
+  and *Restore last session*, which takes the same `restoredWorkspace` / `adoptOfferedRight` route instead of
+  adopting the focused pane alone).
   Only the two documents **on screen** are folded into that card: either half's other tabs keep their own
   session cards, because a workspace drawn as one card must not hide the notebooks behind it. The right pane
   keeps its cache after the split closes, so its session alone is no evidence of one: the card is offered only

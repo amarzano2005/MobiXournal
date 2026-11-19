@@ -146,6 +146,31 @@ internal fun TabSession.showing(): OpenTab? = tabs.getOrNull(activeIndex) ?: tab
 internal fun TabSession.isSplitHalf(leftTab: String?): Boolean = leftTab != null && showing()?.id == leftTab
 
 /**
+ * Which tab each pane must show when *Restore last session* takes this session back.
+ *
+ * [leftTab] is the tab the focused pane was left on; [rightTab] is the tab the second pane was left on,
+ * and it is non-null **only** when the run really ended in split view — a right-hand session on disk is not
+ * evidence of one (`isSplitHalf`).
+ *
+ * The door and the workspace card both promise the same thing, so the answer is computed once here rather
+ * than twice in `MainActivity`: the door used to restore the focused pane only and leave the other half's
+ * session on disk with nothing on screen saying so.
+ */
+internal fun TabSession.restoredWorkspace(
+    split: TabSession?,
+    splitLeftTab: String?,
+): RestoredWorkspace = RestoredWorkspace(
+    leftTab = showing()?.id,
+    rightTab = if (isSplitHalf(splitLeftTab)) split?.showing()?.id else null,
+)
+
+/**
+ * The tabs a taken-back session reopens, one per pane: [rightTab] non-null means **open the split too**,
+ * because the run was closed with both halves on screen.
+ */
+internal data class RestoredWorkspace(val leftTab: String?, val rightTab: String?)
+
+/**
  * Where the recents live: its own preferences file, beside the settings but not inside them.
  *
  * It is device state rather than a preference — nobody chose it, and losing it costs a card, not a

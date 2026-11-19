@@ -10,6 +10,7 @@ import com.mobixournal.ui.entry.EntryPreviews
 import com.mobixournal.ui.entry.RecentNotebook
 import com.mobixournal.ui.entry.RecentNotebookStore
 import com.mobixournal.ui.entry.isSplitHalf
+import com.mobixournal.ui.entry.restoredWorkspace
 
 // --- the entry screen's memory ---------------------------------------------------------------
 //
@@ -153,29 +154,62 @@ internal fun MainActivity.openEntryCard(notebook: RecentNotebook) {
  * exactly as it does for a split restored from the window's own state.
  */
 private fun MainActivity.adoptSplitSession(notebook: RecentNotebook) {
-    val rightTab = notebook.splitTab
-    val rightSession = entryRecents.previousRight.value
-    val right = panes.getOrNull(1)
-    if (rightTab == null || rightSession == null || right == null) {
+    if (notebook.splitTab == null || !adoptOfferedRight(notebook.splitTab)) {
         // Nothing to split: the card still stands for the document it names.
         adoptPreviousSession(notebook.sessionTab)
         return
     }
-    entryRecents.previousRight.value = null
-    right.holdsPreviousSession = false
-    rightSession.tabs.forEach(right.tabs::open)
-    right.tabs.select(
-        rightSession.tabs.indexOfFirst { it.id == rightTab }.takeIf { it >= 0 } ?: rightSession.activeIndex,
-    )
-    right.persist()
     adoptPreviousSession(notebook.sessionTab)
     splitView.value = true
     entryRecents.rememberSplitLeft(notebook.sessionTab)
     tabsTick.value++
 }
 
-/** *Restore last session*: every tab the last run left open, on the tab it was left on. */
-internal fun MainActivity.restoreLastSession() = adoptPreviousSession(null)
+/**
+ * Put the offered **right half** back into the second pane on [rightTab], and answer whether it went in.
+ *
+ * It stops short of opening the split: the caller does that once the left pane holds its tabs, so the second
+ * canvas is built with the document it was left on (`restoreTabs` shows the pane's active tab). One function
+ * for both doors that promise a workspace — the split card and *Restore last session* — because a half
+ * assembled twice is a half that can come back differently.
+ */
+private fun MainActivity.adoptOfferedRight(rightTab: String?): Boolean {
+    val rightSession = entryRecents.previousRight.value ?: return false
+    val right = panes.getOrNull(1) ?: return false
+    if (rightSession.tabs.isEmpty()) return false
+    entryRecents.previousRight.value = null
+    right.holdsPreviousSession = false
+    rightSession.tabs.forEach(right.tabs::open)
+    val at = rightSession.tabs.indexOfFirst { it.id == rightTab }.takeIf { it >= 0 }
+        ?: rightSession.activeIndex
+    right.tabs.select(at.coerceIn(0, rightSession.tabs.lastIndex))
+    right.persist()
+    return true
+}
+
+/**
+ * *Restore last session*: the tabs the last run left open, on the tab it was left on — and, when that run
+ * was closed **in split view**, both halves of it, because this door offers the same workspace the split
+ * card does.
+ *
+ * It used to adopt the focused pane's session and nothing else, so a reader who had left two documents side
+ * by side got one of them back in a single pane, while the right half sat on disk with nothing on screen
+ * saying so. Which tab each pane shows is [restoredWorkspace]'s answer, so the door and the card cannot
+ * drift.
+ */
+internal fun MainActivity.restoreLastSession() {
+    val offered = entryRecents.previous.value ?: return
+    val workspace = offered.restoredWorkspace(entryRecents.previousRight.value, entryRecents.splitLeftTab)
+    val rightTab = workspace.rightTab
+    if (rightTab != null && adoptOfferedRight(rightTab)) {
+        adoptPreviousSession(null)
+        splitView.value = true
+        entryRecents.rememberSplitLeft(workspace.leftTab)
+        tabsTick.value++
+        return
+    }
+    adoptPreviousSession(null)
+}
 
 /**
  * A **recreated** window resumes instead of offering: a config change or a process-death resume is not

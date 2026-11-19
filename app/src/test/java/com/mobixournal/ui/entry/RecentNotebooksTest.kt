@@ -5,6 +5,7 @@ import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabSession
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -155,6 +156,50 @@ class RecentNotebooksTest {
         val cards = EntryCards.of(null, right, listOf(notebook("a")))
         assertEquals(listOf("a"), cards.map { it.name })
         assertTrue(cards.none { it.fromSplitSession })
+    }
+
+    @Test
+    fun theRestoreDoorBringsBackBothHalvesOfASplitRun() {
+        // The door under *New sheet* offers the same workspace the split card does. Which tab each pane
+        // shows has to come from one rule: restoring the focused pane alone left the other half's session
+        // on disk with nothing on screen saying so.
+        val left = TabSession(
+            listOf(
+                OpenTab("l1", "sql.mobix", blankDocument(), uri = "content://docs/a"),
+                OpenTab("l2", "extra.mobix", blankDocument(), uri = "content://docs/d"),
+            ),
+            activeIndex = 1,
+        )
+        val right = TabSession(
+            listOf(
+                OpenTab("r1", "deep-outline.mobix", blankDocument(), uri = "content://docs/b"),
+                OpenTab("r2", "back-matter.mobix", blankDocument(), uri = "content://docs/e"),
+            ),
+            activeIndex = 1,
+        )
+
+        val workspace = left.restoredWorkspace(right, splitLeftTab = "l2")
+
+        assertEquals("the left pane reopens on the half the close named", "l2", workspace.leftTab)
+        assertEquals("and the split opens on the tab the right pane was left on", "r2", workspace.rightTab)
+    }
+
+    @Test
+    fun aSingleRunIsRestoredIntoOnePane() {
+        val left = TabSession(listOf(OpenTab("l1", "sql.mobix", blankDocument())), activeIndex = 0)
+        val workspace = left.restoredWorkspace(split = null, splitLeftTab = null)
+        assertEquals("l1", workspace.leftTab)
+        assertNull("nothing was on screen beside it", workspace.rightTab)
+    }
+
+    @Test
+    fun aLeftoverRightSessionIsNotAWorkspaceToReopen() {
+        val left = TabSession(listOf(OpenTab("l1", "sql.mobix", blankDocument())), activeIndex = 0)
+        val leftover = TabSession(listOf(OpenTab("r9", "old.mobix", blankDocument())), activeIndex = 0)
+        // A run that ended single, and one whose left half the pane no longer shows, both come back as a
+        // single pane: reopening the leftover would put two documents side by side that were never left so.
+        assertNull(left.restoredWorkspace(leftover, splitLeftTab = null).rightTab)
+        assertNull(left.restoredWorkspace(leftover, splitLeftTab = "l9").rightTab)
     }
 
     @Test

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "restore-last-session-must-bring-back-both-halves-of-a-split-run"
+title = "Restore last session must bring back both halves of a split run"
+description = "Restore last session now brings back both halves of a run that ended in split view. app/src/main/java/com/mobixournal/RememberRecentNotebook.kt: new private MainActivity.adoptOfferedRight(rightTab) moves entryRecents.previousRight into pane 1 (every tab, the named one or its own active tab selected, persist() to stamp the half) and answers whether it went in; adoptSplitSession and restoreLastSession both call it, then restore the left session, set splitView.value = true and entryRecents.rememberSplitLeft(leftTab). restoreLastSession is no longer a one-liner that only adopted the focused pane. app/src/main/java/com/mobixournal/ui/entry/RecentNotebooks.kt: new pure TabSession.restoredWorkspace(split, splitLeftTab) returning RestoredWorkspace(leftTab, rightTab); rightTab is non-null only when isSplitHalf(splitLeftTab) holds, so a leftover right-hand cache is never mistaken for a workspace. Tests: app/src/test/java/com/mobixournal/ui/entry/RecentNotebooksTest.kt gains theRestoreDoorBringsBackBothHalvesOfASplitRun, aSingleRunIsRestoredIntoOnePane and aLeftoverRightSessionIsNotAWorkspaceToReopen (20 tests in the class, all green). Docs: docs/document-session.md - the launch-offer bullet and the split-view bullet both say the door takes the same route as the workspace card. Checks: sh scripts/host-build.sh BUILD SUCCESSFUL (app + core + desktop unit suites, the androidTest compile, :app:assembleDebug); DocsGuardTest 27/27 and SourceStructureTest 5/5 green; :desktop:createDistributable UP-TO-DATE. No emulator pass: this is an ad-hoc implementation."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-19
+completed = 2026-11-19
+tags = ["android", "tabs", "split"]
+design = "none: no interface surface changed. The door still reads Restore last session, the workspace card still reads both halves reopen, and no layout, token or copy moved - the task only changes which tabs a tap restores (one pane before, both panes when the stored left half still names the half the run closed on)."
+
+[[task]]
 id = "desktop-ui-flat-workstation"
 title = "Epic: redesign desktop UI as a cohesive flat workstation (4/8 dp, opaque surfaces, desktop buttons)"
 description = "The flat-workstation epic closed with all 13 children archived: tokens and theme, buttons and inputs, title bar and header, tab strip and status bar, menu redesign, tool strips, popups and the colour picker, selection bars and overlays, entry screen and workspace fixes, dialog unification, sidebar and inspector, the Settings shell, and the Settings pages. The desktop now draws one material (opaque tonal surfaces, hairline edges, no rim or band shadow), two corners (4 dp controls, 8 dp surfaces) with circles only for swatches and dots, the four-variant DesktopButton hierarchy, strict red semantics, a native title bar over a flat 40 dp header, and Settings pages that share one row grammar. Every child updated its owning doc (interface-contract, desktop-ui-layout, desktop-settings, all within the 300-line budget), its desktop tests and the packaged executable; Android and the Android-pinned DesignTokens were left untouched."
