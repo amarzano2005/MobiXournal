@@ -39,6 +39,17 @@ def check(condition, label):
         _FAILURES.append(label)
 
 
+# Every git call the test makes — its own and the ones `cmd_tag` shells out to — carries this identity:
+# `git tag -a` needs an author, a developer's machine has one in its global config and a CI runner does
+# not, so relying on the environment is what made this test pass here and fail on the tag that published.
+IDENTITY = {
+    "GIT_AUTHOR_NAME": "Test",
+    "GIT_AUTHOR_EMAIL": "test@example.com",
+    "GIT_COMMITTER_NAME": "Test",
+    "GIT_COMMITTER_EMAIL": "test@example.com",
+}
+
+
 def git(root, *args, capture=False):
     """git in *root*, with an identity of its own so the caller's config cannot change the outcome."""
     done = subprocess.run(
@@ -100,7 +111,9 @@ def tag(root, version=VERSION):
     out, err = io.StringIO(), io.StringIO()
     code = 0
     cwd = os.getcwd()
+    saved = {key: os.environ.get(key) for key in IDENTITY}
     try:
+        os.environ.update(IDENTITY)
         os.chdir(root)
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             todo.cmd_tag(argparse.Namespace(version=version, no_push=True))
@@ -114,6 +127,11 @@ def tag(root, version=VERSION):
             out.write(str(exc.code) + "\n")
     finally:
         os.chdir(cwd)
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
     return code, out.getvalue() + err.getvalue()
 
 
@@ -122,7 +140,7 @@ def main():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         repo(tmp)
         code, said = tag(tmp)
-        check(code == 0, "a frozen tree is tagged")
+        check(code == 0, f"a frozen tree is tagged: {said.strip() or 'no output'}")
         check(git(tmp, "tag", "--list", capture=True).split() == ["v" + VERSION],
               "the tag carries the version")
         target = git(tmp, "rev-list", "-n1", "v" + VERSION, capture=True).strip()
