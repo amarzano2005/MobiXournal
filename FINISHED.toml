@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "hold-the-selection-when-a-press-lands-in-the-air-inside-its-outline"
+title = "Hold the selection when a press lands in the air inside its outline"
+description = "The selection is held by a press inside its own outline on the tablet: SelectionGestureController.beginMove no longer latches a MovePress and commitMove no longer drops the selection for a tap on nothing, so the air inside the box - which belongs to the area the reader picked - holds what is selected, and only a press outside the outline clears it (beginBand's clearSelection before it traces). app/src/main/java/com/mobixournal/render/MovePress.kt and app/src/test/java/com/mobixournal/render/MovePressTest.kt are deleted with the rule they existed for. The window already answered BODY for a press inside its own region, so no desktop code changed; DesktopSelectionTest pins the rule with 'a click on empty paper inside the outline keeps the selection' (a marquee round two bars, a click in the air between them keeps the group, a click below the box drops it). Verified on this Linux host, profile C with JDK 21 and SDK 34 installed in the home toolchain: :app:testDebugUnitTest 1690 green (DocsGuardTest and SourceStructureTest included), :desktop:test --tests '*DesktopSelectionTest*' 20 green, and both :app:assembleDebug and :desktop:createDistributable rebuilt. Not verified on a device: no emulator or tablet here, so the tablet gesture was not exercised by hand."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-19
+completed = 2026-11-19
+tags = []
+design = "material: nothing new on screen, the dashed outline and its bar simply stay; tokens: unchanged, no colour moves; glyph: unchanged; states: a still press on the air inside the outline now holds the selection instead of dropping it, a press on the ink still holds, a press outside is still the deselect and starts the next marquee; copy: no new English text; keyboard: Esc and Back still drop the selection; parity: the window already kept the selection for a click inside its region and now pins it, the tablet now matches; docs: docs/selection.md states the inside-air rule; tests: MovePressTest went with the rule it pinned, DesktopSelectionTest gained the empty-air case, and the tablet's gesture has no JVM harness to drive a MotionEvent"
+
+[[task]]
 id = "device-pass-contents-panel"
 title = "Pass the Android Contents panel on a device"
 description = "Pixel_Tablet AVD booted (20 s), app-debug.apk of main installed, notification permission allowed, onboarding skipped, a new sheet opened, then the navigator Bookmarks tab: three bookmarks (Alpha, Beta, Gamma) created through the draft row and Enter, each row showing its page number, the row menu and the drag handle; the row menu opens Rename/Delete. Screenshots at every step (build/qa/emu-1..8.png, build output, not committed). This also corrected docs/pdf.md, which had claimed all four menu words on both shells: the tablet keeps Rename/Delete there and reaches the moves through the drag and its accessibility actions. Not covered: the emulator ran the debug build of main, not the published 2.3.0 APK."

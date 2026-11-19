@@ -374,6 +374,41 @@ class DesktopSelectionTest {
     }
 
     /**
+     * A click in the **empty air inside** the outline keeps the selection, on this shell as on the tablet.
+     *
+     * The box encloses air — two bars caught by one marquee leave a gap between them — and that air is part of
+     * the area the reader picked, so the click holds the group instead of letting go. Only a click **outside**
+     * the area drops it, which is where a new marquee starts.
+     */
+    @Test
+    fun `a click on empty paper inside the outline keeps the selection`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        tab.document.editPage(0) { page -> page.withElements(listOf(bar(100.0, 100.0), bar(100.0, 160.0))) }
+        val scene = canvas(tab, DesktopTool.MARQUEE)
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+
+            drag(scene, 80f, 80f, 200f, 200f)
+            val group = requireNotNull(tab.selection) { "the marquee caught nothing" }
+            assertEquals("both bars were caught", 2, group.refs.size)
+
+            // Between the two bars: inside the outline, on no ink.
+            click(scene, 130f, 130f, at = 2_000L)
+            assertEquals("the group is still held", group.refs, tab.selection?.refs)
+
+            // Below it: outside the selection's area, so this is a new marquee and it catches nothing.
+            click(scene, 130f, 260f, at = 3_000L)
+            assertNull("a click outside the outline lets go", tab.selection)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
      * A click in the **empty part of a stroke's box** selects nothing, because the box is not the element.
      *
      * A diagonal line's box is a square of blank paper around it; reading that square as the stroke made the

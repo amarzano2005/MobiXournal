@@ -69,11 +69,13 @@ view px (`DrawingSurfaceView.selectionScreenRect` / `onSelectionRectChanged`, re
 pass next to `reportScroll`) through `PaneState.selectionRect`, and `EditorPaneView` — whose canvas
 `Box` *is* the surface's coordinate space — hangs the bar just **below** the box (above it only when
 the canvas ends below the selection, clamped inside the canvas either way). It carries **no Done
-button**: tapping off the selection clears it, and that same tap starts the next stroke. A tap on **empty
-paper inside** the outline clears it too: the box encloses air, and a press there begins a move, so a still
-press is read as a tap on nothing and lets go (`SelectionGestureController.commitMove`) instead of holding — a
-press on the element's **ink** is the one that holds. Every **placement slot** — a figure, a table, a circuit
-part — does the same on paper that holds nothing of its kind (`PlacementPick.letGoOfSelection`), so the tool left
+button**: tapping off the selection clears it, and that same tap starts the next stroke. A press on **empty
+paper inside** the outline does **not** let go: the box encloses air, and that air is part of the area the
+reader picked, so the press holds what is selected (`SelectionGestureController.beginMove`) whether or not it
+landed on the ink. **Only a press outside the outline** clears it — the marquee clears before it starts
+tracing (`beginBand`) — which is the same rule the window follows, where the selection is the region it draws
+and a click inside it keeps what is picked. Every **placement slot** — a figure, a table, a circuit
+part — lets go on paper that holds nothing of its kind (`PlacementPick.letGoOfSelection`), so the tool left
 in hand no longer keeps an object selected by drawing another one. A press that stays a **tap** there is *only*
 the letting go: the gesture began because the slot is armed, and the release drops it (`ShapeDraft.onlyLetGo`,
 read by `DrawingSurfaceStrokes.commitCurrent`) — a figure tool's tap would otherwise write a degenerate figure and
