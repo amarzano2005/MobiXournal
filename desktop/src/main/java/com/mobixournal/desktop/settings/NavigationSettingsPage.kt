@@ -2,6 +2,7 @@ package com.mobixournal.desktop.settings
 
 import androidx.compose.runtime.Composable
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /** **Navigation**: document open fit, page sidebar, zoom stepping and smooth scrolling. */
 @Composable
@@ -36,7 +37,8 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
                 value = nav.zoomStepWheel,
                 range = DesktopNavigationStore.ZOOM_WHEEL_MIN..DesktopNavigationStore.ZOOM_WHEEL_MAX,
                 step = DesktopNavigationStore.ZOOM_WHEEL_STEP,
-                format = { String.format(Locale.ROOT, "%d %%", (it * 100).toInt()) },
+                // The Stylus sliders' own spelling: a whole percent, rounded, and no space before the sign.
+                format = { String.format(Locale.ROOT, "%d%%", (it * 100).roundToInt()) },
                 onValue = nav::chooseZoomStepWheel,
             )
         }
@@ -48,7 +50,7 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
                 value = nav.zoomStepKeyboard,
                 range = DesktopNavigationStore.ZOOM_KEYBOARD_MIN..DesktopNavigationStore.ZOOM_KEYBOARD_MAX,
                 step = DesktopNavigationStore.ZOOM_KEYBOARD_STEP,
-                format = { String.format(Locale.ROOT, "+%d %%", ((it - 1f) * 100).toInt()) },
+                format = { String.format(Locale.ROOT, "+%d%%", ((it - 1f) * 100).roundToInt()) },
                 onValue = nav::chooseZoomStepKeyboard,
             )
         }
@@ -70,7 +72,7 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
                 value = nav.scrollStepDp,
                 range = DesktopNavigationStore.SCROLL_STEP_MIN..DesktopNavigationStore.SCROLL_STEP_MAX,
                 step = DesktopNavigationStore.SCROLL_STEP_STEP,
-                format = { String.format(Locale.ROOT, "%d dp", it.toInt()) },
+                format = { String.format(Locale.ROOT, "%d dp", it.roundToInt()) },
                 onValue = nav::chooseScrollStepDp,
             )
         }
@@ -83,7 +85,7 @@ internal fun NavigationSettings(policy: DesktopSettingsState) {
                     value = nav.scrollFluidity,
                     range = DesktopNavigationStore.FLUIDITY_MIN..DesktopNavigationStore.FLUIDITY_MAX,
                     step = DesktopNavigationStore.FLUIDITY_STEP,
-                    format = { String.format(Locale.ROOT, "%d %%", (it * 100).toInt()) },
+                    format = { String.format(Locale.ROOT, "%d%%", (it * 100).roundToInt()) },
                     onValue = nav::chooseScrollFluidity,
                 )
             }

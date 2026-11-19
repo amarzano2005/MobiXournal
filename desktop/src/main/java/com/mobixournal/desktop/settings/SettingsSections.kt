@@ -10,6 +10,8 @@ import com.mobixournal.desktop.shell.TARGET_HZ
 import com.mobixournal.desktop.shell.displayRefreshHz
 import com.mobixournal.desktop.shell.frameLabel
 import com.mobixournal.desktop.shell.refreshLabel
+import com.mobixournal.desktop.tools.DesktopButton
+import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.FiguresSettings
 import com.mobixournal.desktop.tools.formatNumber
 
@@ -193,11 +195,12 @@ internal fun DesktopSettingPage(
         Text("No settings found. Try theme, pressure or scrolling.", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
         return
     }
-    // The title only: the section's one-line summary lives in the panel's help line, at rest, under the
-    // page — a sentence under the title as well would spend a row saying the same thing twice.
+    // The title only: the section's one-line summary is its **index row's** own, handed to the panel's
+    // help line when the pointer is on it — a sentence under the title as well would spend a row saying the
+    // same thing twice, and ten pages of those is how this list came to read like a manual
+    // (`docs/desktop-settings.md`).
     Text(section.title, color = DesktopTheme.ink, style = DesktopTheme.title)
     Spacer(Modifier.height(6.dp))
-    Text(section.summary, color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
     when (section) {
         DesktopSettingSection.STYLUS -> StylusSettings(policy)
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
@@ -547,12 +550,15 @@ private fun AudioSettings(policy: DesktopSettingsState) {
             note = audio.exportFolder.ifBlank {
                 "Choose a destination directory to enable standalone audio export."
             },
-            onClick = { policy.audio.pickAudioFolder?.invoke() },
         ) {
-            Text(
-                if (audio.exportFolder.isBlank()) "Choose…" else "Change…",
-                color = DesktopTheme.accent,
-                style = DesktopTheme.label,
+            // A command, in the page's grammar: the word used to be coloured ink the whole row happened to
+            // be clickable around, so the control was invisible and the target was the row.
+            DesktopButton(
+                label = if (audio.exportFolder.isBlank()) "Choose…" else "Change…",
+                onClick = { policy.audio.pickAudioFolder?.invoke() },
+                variant = DesktopButtonVariant.Secondary,
+                enabled = policy.audio.pickAudioFolder != null,
+                minHeight = SettingsMetrics.CONTROL_HEIGHT,
             )
         }
     }

@@ -16,8 +16,10 @@ import com.mobixournal.render.RadialHud
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -44,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -106,7 +109,11 @@ private fun RingDrawing(policy: DesktopSettingsState) {
     val boardPx = with(density) { BOARD.toPx() }
     val ringRadiusPx = with(density) { RadialHud.RING_RADIUS_DP.dp.toPx() }
     val slotRadiusPx = with(density) { RadialHud.SLOT_DIAMETER_DP.dp.toPx() / 2f }
-    Box(Modifier.fillMaxWidth().height(BOARD + 16.dp), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(Modifier.fillMaxWidth().height(BOARD + 16.dp), contentAlignment = Alignment.Center) {
+        // The chooser opens **beside the disc**, which overflows a narrow panel: the board is centred in
+        // a column at most 720 dp wide, so its right edge is only half the spare width from the column's.
+        // The menu is moved back until its right edge lands on the column's own, never off the panel.
+        val popupX = minOf(BOARD + 12.dp, ((maxWidth + BOARD) / 2 - MENU_WIDTH).coerceAtLeast(0.dp))
         Box(Modifier.size(BOARD)) {
             Canvas(
                 Modifier
@@ -154,7 +161,7 @@ private fun RingDrawing(policy: DesktopSettingsState) {
                 val (faceIndex, face) = shown ?: return@GlassPresence
                 GlassPopup(
                     offset = IntOffset(
-                        with(density) { (BOARD + 12.dp).roundToPx() },
+                        with(density) { popupX.roundToPx() },
                         with(density) { 8.dp.roundToPx() },
                     ),
                     onDismissRequest = { picked = null },
@@ -218,15 +225,25 @@ private fun RingFaceMenu(
         Modifier
             .width(MENU_WIDTH)
             .heightIn(max = MENU_HEIGHT)
-            .verticalScroll(rememberScrollState())
+            // The surface is the **outer** layer: the fill, the rim and the 8 dp corner belong to the menu,
+            // and a column that scrolled first would have its edge scrolled with its rows.
             .glassSurface(fill = DesktopTheme.settingsPanel)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 6.dp, vertical = 6.dp),
     ) {
         if (colours.isNotEmpty()) {
             FaceHead("Colours")
             for (choice in colours) {
                 FaceRow(label = colourLabel(choice.argb), chosen = choice == face, onClick = { onPick(choice) }) {
-                    Box(Modifier.size(14.dp).clip(CircleShape).background(Color(choice.argb)))
+                    // One hairline round the swatch: white on the panel's pale tone and black on the dark
+                    // one are both a colour, and a colour with no edge is an empty-looking row.
+                    Box(
+                        Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(Color(choice.argb))
+                            .border(1.dp, DesktopTheme.hairline, CircleShape),
+                    )
                 }
             }
         }
@@ -279,7 +296,7 @@ private fun FaceRow(
             .fillMaxWidth()
             .heightIn(min = 30.dp)
             .hoverFill(
-                DesktopTheme.railSlotShape,
+                DesktopTheme.popupRowShape,
                 base = if (chosen) DesktopTheme.activeSlot.copy(alpha = 0.35f) else Color.Transparent,
             )
             .pointerInput(label) { detectTapGestures { onClick() } }
@@ -293,6 +310,7 @@ private fun FaceRow(
             color = if (chosen) DesktopTheme.accent else DesktopTheme.ink,
             style = DesktopTheme.body,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -335,7 +353,7 @@ private val WIDTH_DOT_BOX = 16.dp
 private fun widthDot(pt: Float): Dp = ringWidthDotDiameter(pt).dp
 
 /**
- * **Opening it**: the key that summons the ring, armed on the spot.
+ * **Shortcut**: the key that summons the ring, armed on the spot.
  *
  * The row is the Shortcuts page's own (`ShellCommand.RADIAL_HUD`, one table, one binding), reached from here
  * because this is the page a reader comes to when the ring will not open. A pen button that a driver turns
@@ -346,14 +364,14 @@ private fun RingSummonGroup(policy: DesktopSettingsState) {
     val id = ShellCommand.RADIAL_HUD.name
     val armed = policy.armedShortcut == id
     val key = ShortcutTable.key(policy.shortcutTable, id)
-    SettingsGroup("Opening it") {
+    SettingsGroup("Shortcut") {
         SettingsRow(
             label = "Key",
             note = "Click, then press a key — a pen button a driver turns into one works here too.",
             onClick = { policy.armShortcut(id) },
         ) {
             when {
-                armed -> Text("Press a key…", color = DesktopTheme.accent, style = DesktopTheme.label)
+                armed -> ShortcutKeyPrompt()
                 key.isEmpty() -> Text("None", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
                 else -> ShortcutKeyChip(key)
             }

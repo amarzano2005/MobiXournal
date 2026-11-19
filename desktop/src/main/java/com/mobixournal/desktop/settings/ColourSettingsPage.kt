@@ -1,6 +1,8 @@
 package com.mobixournal.desktop.settings
 import com.mobixournal.desktop.tools.ColourPicker
 import com.mobixournal.desktop.tools.ColourPickerPanel
+import com.mobixournal.desktop.tools.DesktopButton
+import com.mobixournal.desktop.tools.DesktopButtonVariant
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -28,7 +30,7 @@ import com.mobixournal.design.PenPalette
 /**
  * **Colors**, as a page: the palette itself — the list every picker in the window draws — editable the way
  * the tablet's *Settings → Drawing → Colors* edits it. **Edit** redefines a swatch in its own place,
- * **Delete** removes one, **Add colour** appends one, and **Restore default palette** puts the factory
+ * **Delete** removes one, **Add color** appends one, and **Restore default palette** puts the factory
  * eight back.
  *
  * It used to say only that the colour lived in the strip, which was true of *where to pick it* and false
@@ -39,9 +41,10 @@ import com.mobixournal.design.PenPalette
  * the same order.
  *
  * A row keeps the page's grammar: the swatch's name on the left, the row itself picking it, and the two
- * words that act on the entry at its end. The picker opens **in the page**, under the row it edits, rather
- * than as a floating panel: the settings surface already covers the sheet, and a second surface over it
- * would be a question about which one a key belongs to.
+ * commands that act on the entry at its end — a Ghost **Edit** and the refusal red's **Delete**, because a
+ * swatch is redefined or taken away, not navigated to. The picker opens **in the page**, under the row it
+ * edits rather than as a floating panel: the settings surface already covers the sheet, and a second
+ * surface over it would be a question about which one a key belongs to.
  *
  * The order is the reader's too, exactly as the toolbar's slots are: each row's **handle** carries it
  * through the list, the rows between glide open on a short tween, and a drop writes the whole palette — so
@@ -53,7 +56,10 @@ internal fun ColorsSettings(palette: PaletteActions) {
     // Which entry the picker is editing: an index, or `colours.size` for a colour not yet in the list.
     var editing by remember { mutableStateOf<Int?>(null) }
     val drag = remember { ReorderState() }
-    SettingsGroup("Pen palette") {
+    SettingsGroup(
+        "Pen palette",
+        summary = "Drag a row's handle to move it; a click picks the swatch, Edit redefines it in place.",
+    ) {
         colours.forEachIndexed { index, colour ->
             ReorderRow(drag, index, colours.size) {
                 PaletteRow(
@@ -79,7 +85,7 @@ internal fun ColorsSettings(palette: PaletteActions) {
             }
         }
         SettingsCommand(
-            label = "Add colour",
+            label = "Add color",
             note = "One more swatch in every picker, up to ${PenPalette.MAX_COLORS}.",
             onClick = { editing = colours.size },
         )
@@ -120,7 +126,7 @@ private fun InlinePicker(palette: PaletteActions, colours: List<Int>, target: In
     val requester = remember { BringIntoViewRequester() }
     LaunchedEffect(target) { requester.bringIntoView() }
     ColourPickerPanel(
-        title = if (isNew) "New colour" else "Edit ${paletteColourName(colours[target])}",
+        title = if (isNew) "New color" else "Edit ${paletteColourName(colours[target])}",
         initial = if (isNew) colours.lastOrNull() ?: PenPalette.BLACK else colours[target],
         onSet = { colour ->
             if (isNew) palette.add(colour) else palette.define(target, colour)
@@ -133,7 +139,7 @@ private fun InlinePicker(palette: PaletteActions, colours: List<Int>, target: In
     )
 }
 
-/** One swatch, as a row: its drag handle, its name, the row picking it, and the two words that act on it. */
+/** One swatch, as a row: its drag handle, its name, the row picking it, and the two commands that act on it. */
 @Composable
 private fun PaletteRow(
     colour: Int,
@@ -146,11 +152,7 @@ private fun PaletteRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    SettingsRow(
-        label = paletteColourName(colour),
-        note = "Drag the handle to move it; a click picks it, Edit redefines the swatch in its place.",
-        onClick = onPick,
-    ) {
+    SettingsRow(label = paletteColourName(colour), onClick = onPick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DragGrip(
                 label = paletteColourName(colour),
@@ -168,14 +170,20 @@ private fun PaletteRow(
                     .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape),
             )
             Spacer(Modifier.width(10.dp))
-            SettingsTextAction("Edit", onClick = onEdit)
+            DesktopButton(
+                label = "Edit",
+                onClick = onEdit,
+                variant = DesktopButtonVariant.Ghost,
+                minHeight = SettingsMetrics.CONTROL_HEIGHT,
+            )
             Spacer(Modifier.width(4.dp))
-            // The last swatch keeps its × drawn and out of reach: a picker with nothing in it cannot pick.
-            SettingsTextAction(
-                text = "Delete",
-                enabled = canDelete,
-                tone = DesktopTheme.danger,
+            // The last swatch keeps its Delete drawn and out of reach: a picker with nothing in it cannot pick.
+            DesktopButton(
+                label = "Delete",
                 onClick = onDelete,
+                variant = DesktopButtonVariant.Destructive,
+                enabled = canDelete,
+                minHeight = SettingsMetrics.CONTROL_HEIGHT,
             )
         }
     }

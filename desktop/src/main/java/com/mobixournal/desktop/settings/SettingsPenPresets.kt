@@ -44,8 +44,9 @@ import com.mobixournal.design.ChromeGlyph
  * `+` is dimmed while a name is being written, because one name is written at a time.
  *
  * Picking a chip drops the draft: a name being typed belongs to the pair that was live when it was opened.
- * The chips are the window's own [SettingsPill], so the picked one wears the steel fill and the accent word,
- * Tab reaches it and `Enter`/`Space` takes it; the two marks keep the tab strip's glyph-button recipe
+ * The chips are the window's own [SettingsPill] — 28 dp, the 4 dp corner, the accent's rim and wash while a
+ * chip is the pair in hand — Tab reaches one and `Enter`/`Space` takes it; the two marks keep the tab
+ * strip's glyph-button recipe
  * ([ChromeGlyph.ADD], [ChromeGlyph.CLOSE]) rather than the rows' five states, because they are chrome on a
  * control, not controls of their own.
  */
@@ -140,6 +141,9 @@ private fun PresetNameBlock(policy: DesktopSettingsState, inset: Dp) {
     }
 }
 
+/** The strip's one mark measure: a chip, its **×** and its **+** are all 28 dp, so the row has one height. */
+private val PRESET_MARK_SIZE = 28.dp
+
 /**
  * The **red × beside one preset**: it removes that pair, and nothing else on the page could mean another.
  *
@@ -150,8 +154,7 @@ private fun PresetNameBlock(policy: DesktopSettingsState, inset: Dp) {
 private fun PresetDeleteMark(name: String, onDelete: () -> Unit) {
     Box(
         Modifier
-            .width(22.dp)
-            .height(22.dp)
+            .size(PRESET_MARK_SIZE)
             .hoverFill(PropertyControlShape)
             .pointerInput(name) { detectTapGestures { onDelete() } },
         contentAlignment = Alignment.Center,
@@ -170,8 +173,7 @@ private fun PresetDeleteMark(name: String, onDelete: () -> Unit) {
 private fun NewPresetMark(enabled: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
-            .width(SettingsMetrics.CONTROL_HEIGHT)
-            .height(SettingsMetrics.CONTROL_HEIGHT)
+            .size(PRESET_MARK_SIZE)
             .background(Color.Transparent, PropertyControlShape)
             .hoverFill(PropertyControlShape)
             .border(1.dp, DesktopTheme.hairline, PropertyControlShape)

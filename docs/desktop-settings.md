@@ -7,24 +7,9 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 ## What it is
 
-`Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — under a scrim, an
-opaque body with a desktop popup border and compact corner — so a setting is changed while looking at the
-thing it changes, and nothing behind the panel reads as a control while the settings own the pointer. The pointer is
-the panel's while it is up: a press or a wheel notch on a row never reaches the page behind it, because a
-sheet that read the click would ink what nothing on screen was marking. It is
-**draggable by its title bar**: it opens centred, which is over the sheet the reader came to compare
-against, and dragging it is how the thing being changed is kept in view. The offset is clamped so the panel
-cannot be lost off an edge (and it is not stored — a window that opened with its panel half off the screen
-would hide the controls the user needs). The body and nested lists follow the opaque [desktop popup recipe](interface-contract.md#1-material-three-classes-no-fourth).
+`Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — under a scrim, an opaque body with a desktop popup border and compact corner — so a setting is changed while looking at the thing it changes, and nothing behind the panel reads as a control while the settings own the pointer. The pointer is the panel's while it is up: a press or a wheel notch on a row never reaches the page behind it, because a sheet that read the click would ink what nothing on screen was marking. It is **draggable by its title bar**: it opens centred, which is over the sheet the reader came to compare against, and dragging it is how the thing being changed is kept in view. The offset is clamped so the panel cannot be lost off an edge, and it is not stored — a window that opened with its panel half off the screen would hide the controls the user needs. The body and nested lists follow the opaque [desktop popup recipe](interface-contract.md#1-material-three-classes-no-fourth).
 
-Its index is **twelve sections** — Stylus, Shortcuts, Audio, Figures, Colors, Ring, Toolbar, Navigation,
-Appearance, Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each
-wearing the shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). Desktop navigation follows four task areas: **Workspace** (Appearance, Toolbar, Navigation), **Input** (Stylus, Shortcuts, Ring), **Drawing** (Figures, Colors), and **Files & app** (Documents, Audio, Backup, About). This desktop grouping keeps pen shortcuts together and recording beside document workflows. What the window does **not** carry is
-the phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this
-shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
-**rows**, the name and the control at the right edge (`SettingsRows.kt`), and a group's heading starts on the
-**labels' column** rather than on the card's edge — the rows inside are inset 12 dp, so a group's name and the
-names under it begin at the same x.
+Its index is **twelve sections** — Stylus, Shortcuts, Audio, Figures, Colors, Ring, Toolbar, Navigation, Appearance, Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each wearing the shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). Desktop navigation follows four task areas: **Workspace** (Appearance, Toolbar, Navigation), **Input** (Stylus, Shortcuts, Ring), **Drawing** (Figures, Colors), and **Files & app** (Documents, Audio, Backup, About) — pen shortcuts together, recording beside document workflows. What the window does **not** carry is the phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is **rows**, the name and the control at the right edge (`SettingsRows.kt`), and a group's heading starts on the **labels' column** rather than on the card's edge — the rows inside are inset 12 dp, so a group's name and the names under it begin at the same x.
 
 Desktop groups are flat: a heading, a quiet divider and aligned property rows. Only the outer floating
 window has its own panel border. This desktop-specific composition shares the tablet's palette, glyphs
@@ -50,7 +35,9 @@ request a section, such as Stylus from the pen menu. Switching sections starts t
 Rows keep a 40 dp hit area, the name and its note on the left and the control at the right edge hugging its
 own words — not a fixed share of the row, which wrapped a note beside a small checkbox. Explanations are
 visible beneath their labels, up to two lines; the hover footer remains available for the complete sentence. Each page starts
-with its title and summary. Groups use whitespace and a hairline instead of nested rounded cards.
+with its title, and its one-line summary is the **index row's own**, said in the help footer while the pointer is on it rather
+than repeated under the title. A **group** may carry one sentence about all of its rows (`Pen palette`), said once and
+never copied under every row. Groups use whitespace and a hairline instead of nested rounded cards.
 
 ### The page's grammar
 
@@ -183,9 +170,11 @@ reads — because the hand decides how hard it presses while the device decides 
   surface's hamburger menu carries the same drawing rows in the same order (`MenuPenBlock`), at the
   menu's smaller line, because they are reached mid-drawing — the stream itself is the page's row only,
   since which driver is open is not a fact about the stroke being made.
-- **Pressure → Presets** — the tablet's named pairs, as preset names following the [desktop text-feedback rule](interface-contract.md#6-states-five-all-of-them-drawn),
-  one click applies it (`tablet.penPresets`, `tablet.selectedPenPreset`). A **red ×** removes a pair, a **`+`**
-  opens the name field, and moving a slider edits the active preset's values.
+- **Pressure → Presets** — the tablet's named pairs, as the window's one **chip**: 28 dp, the 4 dp corner, a
+  hairline at rest and the accent's rim with its 12 % wash on the preset in hand ([§6](interface-contract.md#6-states-five-all-of-them-drawn)).
+  One click applies it (`tablet.penPresets`, `tablet.selectedPenPreset`); a **red ×** removes a pair, a **`+`**
+  opens the name field (the window's own `DesktopTextField`, so it has an edge on the dark theme), and the
+  chip, its marks and the field are one 28 dp row. Moving a slider edits the active preset's values.
 - **Pressure → Reset to defaults** restores the factory floor and multiplier (0.05 and 1.00×).
 - **Active area → Mapped surface** (`tablet.activeArea`): *Full* is the driver's own **system context**, the
   surface every other program on the machine sees, and it is what the window has always read. *Tablet* maps
@@ -213,8 +202,10 @@ to a logic gate) and **Widths** (the pen's three slots, each marked by a dot as 
 **pins** it — an untouched ring is *automatic*: the palette's first five colours, the widths and the six tools
 (Line, Lasso, Marquee, Highlighter, Eraser, Pen), following the palette — and **Reset to defaults** brings that back. Sixteen faces at most, stored as one line
 (`ring.slots`: `c:` a colour, `w:` a width, `t:` a tool); a ring with no faces does not open. **Key** is the
-Shortcuts table's *Ring at the pen* row, armed from here. There is no *side button* row: on a PC a pen's
-buttons arrive as keyboard keys, so the key is the whole door.
+Shortcuts table's *Ring at the pen* row, under the group **Shortcut**, armed from here — the waiting row
+wears the key chip's own box rimmed in the accent, and the chooser opens beside the disc, moved back until it
+fits the panel rather than off its edge. There is no *side button* row: on a PC a pen's buttons arrive as
+keyboard keys, so the key is the whole door.
 
 ## Toolbar — the strips' place and their order
 
@@ -270,7 +261,8 @@ every time the page opens, because a headset can be plugged in while the window 
 A name that is **no longer on the machine** drops to the system default, in the store as well; the recorder and
 player fall back to default if a device disappears mid-session (`DesktopAudioDevices.kt`, `chooseDevice`).
 
-**Outside the app**: **Save separate audio** (`audio.saveExternally`) and its **folder** (`audio.exportFolder`)
+**Outside the app**: **Save separate audio** (`audio.saveExternally`) and its **folder** (`audio.exportFolder`,
+changed with the row's secondary **Choose…**/**Change…** button rather than by clicking the row)
 copy takes externally on completion while keeping them in the document. **Input level** monitors the microphone.
 
 ## Navigation — zoom stepping and smooth scrolling

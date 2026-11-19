@@ -43,9 +43,13 @@ valid colour and says so) built in the desktop's glass, because `CustomColorPick
 app's `ui/` and reads `AppSettings`.
 
 **The palette itself is editable from the window's Settings**, under **Drawing → Colors** — the phone's own
-four verbs, over the same rules: a row per swatch, the row picks it, **Edit** redefines the entry in its
-place, **Delete** removes it, **Add colour** appends, and **Restore default palette** writes the factory
-eight back; the panel opens in the page under the row it edits and is scrolled into view (the last swatch cannot be deleted, and the ceiling is `PenPalette.MAX_COLORS`).The page's subject is a `PaletteActions` reading the window's live palette, so a swatch changed there is changed in the
+four verbs, over the same rules: a row per swatch, the row picks it, the Ghost **Edit** redefines the entry in
+its place, the refusal red's **Delete** removes it, **Add color** appends, and **Restore default palette**
+writes the factory eight back; the panel opens in the page under the row it edits and is scrolled into view
+(the last swatch cannot be deleted, and the ceiling is `PenPalette.MAX_COLORS`). The one sentence that
+explains the page — drag the handle to move a swatch, click it to pick it, Edit to redefine it — is the
+**Pen palette** group's own description rather than a caption under all eight rows. The page's subject is a
+`PaletteActions` reading the window's live palette, so a swatch changed there is changed in the
 strip's stroke panel and in the pen-tip ring the moment it is committed — never a second list.
 
 **The order is the reader's too, on both shells.** Each swatch row carries a drag handle; the carried row is

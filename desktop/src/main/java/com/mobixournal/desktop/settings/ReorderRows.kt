@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -36,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.desktop.tools.hoverFill
-import kotlin.math.roundToInt
+import kotlin.math.abs
 
 /** How far a carried row sits off the page, the same lift the page list's ghost wears. */
 private val DRAG_LIFT = 12.dp
@@ -48,17 +49,50 @@ private val LANDING_LINE = 2.dp
 private const val GLIDE_MS = 160
 
 /**
- * Where the row picked up at [from] lands after [offsetPx] of travel: one place per measured row
- * crossed, rounded, with the ends stopping rather than wrapping.
+ * Where the row picked up at [from] lands after [offsetPx] of travel: the place whose **own** slot is
+ * nearest to where the carried row now sits, with the ends stopping rather than wrapping.
  *
- * The page sidebar's own arithmetic ([com.mobixournal.desktop.navigation.PageReorder]) generalises to any
- * pitch; this is the version a settings row list can use, where every row is the height of the first
- * one measured. An unmeasured row, no drag, or an index past the end answers [from].
+ * A settings list is not one pitch. A row with a name alone is 40 dp; a row with a name and a sentence is
+ * taller, and a group can hold both — the strip's slot rows and its *Insert image* row, the palette and its
+ * commands. Reading every row against the first row's height made a drag land a place late under tall rows
+ * and a place early under short ones, so each row contributes [heights]`[index]`, and a row that has not been
+ * measured yet falls back to [fallbackPx] (the list's first pitch).
+ *
+ * The rule is the page sidebar's ([com.mobixournal.desktop.navigation.PageReorder]) generalised: the lifted
+ * row's top is placed among the rows' tops, and the nearest one wins — ties to the later row, so a drag of
+ * exactly half a row already counts as crossed. Over a uniform list it is `from + round(offset / rowHeight)`
+ * exactly, which is what [stripDropTarget]'s one-pitch form has always been.
  */
-internal fun stripDropTarget(from: Int, offsetPx: Float, rowHeightPx: Int, count: Int): Int {
-    if (from !in 0 until count || rowHeightPx <= 0) return from
-    return (from + (offsetPx / rowHeightPx).roundToInt()).coerceIn(0, count - 1)
+internal fun stripDropTarget(
+    from: Int,
+    offsetPx: Float,
+    heights: List<Int>,
+    fallbackPx: Int,
+    count: Int,
+): Int {
+    if (from !in 0 until count) return from
+    val fallback = fallbackPx.takeIf { it > 0 } ?: heights.firstOrNull { it > 0 } ?: return from
+    fun height(index: Int): Int = heights.getOrNull(index)?.takeIf { it > 0 } ?: fallback
+    var start = 0f
+    for (index in 0 until from) start += height(index)
+    val lifted = start + offsetPx
+    var best = from
+    var bestDistance = Float.MAX_VALUE
+    var top = 0f
+    for (index in 0 until count) {
+        val distance = abs(lifted - top)
+        if (distance <= bestDistance) {
+            bestDistance = distance
+            best = index
+        }
+        top += height(index)
+    }
+    return best
 }
+
+/** The same question over a list of one uniform height — the shape a strip of chips has. */
+internal fun stripDropTarget(from: Int, offsetPx: Float, rowHeightPx: Int, count: Int): Int =
+    stripDropTarget(from, offsetPx, emptyList(), rowHeightPx, count)
 
 /**
  * One settings list being arranged: the row in flight, how far the pointer has carried it, and the
@@ -78,9 +112,12 @@ internal class ReorderState {
     var offset by mutableStateOf(0f)
         private set
 
-    /** One measured row's height, in px — the pitch a drop lands on. */
+    /** The list's first measured row, in px — the pitch an unmeasured row falls back to. */
     var rowHeightPx by mutableStateOf(0)
         private set
+
+    /** Every row's own height, in px: a row with a note is taller than one without. */
+    private val heights = mutableStateMapOf<Int, Int>()
 
     /** Begin carrying [index]. */
     fun start(index: Int) {
@@ -100,7 +137,8 @@ internal class ReorderState {
     }
 
     /** The row the carried one would land on right now. */
-    fun landing(count: Int): Int = stripDropTarget(from, offset, rowHeightPx, count)
+    fun landing(count: Int): Int =
+        stripDropTarget(from, offset, List(count) { heights[it] ?: 0 }, rowHeightPx, count)
 
     /**
      * The place the carried row lands, clearing the gesture — or null when nothing moved, so a drop
@@ -113,9 +151,11 @@ internal class ReorderState {
         return moved
     }
 
-    /** Remember the list's pitch from its first row: rows of one list are the same height. */
-    internal fun measured(px: Int) {
-        if (rowHeightPx == 0 && px > 0) rowHeightPx = px
+    /** Remember row [index]'s own height, and the list's first pitch as the fallback. */
+    internal fun measured(index: Int, px: Int) {
+        if (px <= 0) return
+        heights[index] = px
+        if (rowHeightPx == 0) rowHeightPx = px
     }
 
     /**
@@ -125,10 +165,13 @@ internal class ReorderState {
     fun shift(index: Int, count: Int): Float {
         if (from < 0 || rowHeightPx <= 0) return 0f
         val landing = landing(count)
+        // The rows between move by the carried row's own height: the hole it leaves is its size, whatever
+        // the rows it passes are.
+        val carried = (heights[from] ?: rowHeightPx).toFloat()
         return when {
             index == from -> 0f
-            from < landing && index in (from + 1)..landing -> -rowHeightPx.toFloat()
-            landing < from && index in landing until from -> rowHeightPx.toFloat()
+            from < landing && index in (from + 1)..landing -> -carried
+            landing < from && index in landing until from -> carried
             else -> 0f
         }
     }
@@ -170,7 +213,7 @@ internal fun ReorderRow(
                     drawRect(DesktopTheme.accent, size = Size(size.width, LANDING_LINE.toPx()))
                 }
             }
-            .onSizeChanged { state.measured(it.height) },
+            .onSizeChanged { state.measured(index, it.height) },
     ) {
         content()
     }

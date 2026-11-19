@@ -117,12 +117,24 @@ internal object SettingsMetrics {
     val INDEX_ROW_HEIGHT = 38.dp
 }
 
-/** Desktop property group: a heading and a hairline, with no nested glass or rounded card. */
+/**
+ * Desktop property group: a heading, its **one** sentence about the whole group, and a hairline — no nested
+ * glass or rounded card.
+ *
+ * [summary] is the group's grammar, not a row's: a list of eight swatches shares one sentence about dragging
+ * and clicking, instead of repeating it under every row and turning a palette into a manual
+ * (`docs/desktop-settings.md`). A group without one draws nothing extra.
+ */
 @Composable
-internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
+internal fun SettingsGroup(title: String, summary: String? = null, content: @Composable () -> Unit) {
     Spacer(Modifier.height(20.dp))
     Text(title, color = DesktopTheme.ink, style = DesktopTheme.heading,
         modifier = Modifier.padding(horizontal = ROW_INSET))
+    if (!summary.isNullOrBlank()) {
+        Spacer(Modifier.height(2.dp))
+        Text(summary, color = DesktopTheme.inkSecondary, style = DesktopTheme.label,
+            modifier = Modifier.padding(horizontal = ROW_INSET))
+    }
     Spacer(Modifier.height(8.dp))
     Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
     Column(Modifier.fillMaxWidth()) { content() }
@@ -392,15 +404,19 @@ private fun DrawScope.drawSliderTrack(fraction: Float, focused: Boolean, pressed
     )
 }
 
-/** Preset names use the shared unfilled text action; selection and keyboard focus remain visible. */
+/**
+ * A **preset name**, as the window's one chip: 28 dp, the 4 dp control corner, a hairline at rest and the
+ * accent's rim and wash while it is the preset in hand.
+ *
+ * It is the text control's `chip` recipe ([DesktopTextAction]), so the Stylus page and the menu's Pen block —
+ * which draws the same carousel in a 272 dp panel — cannot disagree about what a choice looks like.
+ */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
-    // One 28 dp control line and the 4 dp corner, so a preset reads as the same chip on the Stylus page
-    // and in the menu's Pen block, which draws the same carousel in a 272 dp panel.
     DesktopTextAction(
         text, onPick, picked = selected, role = androidx.compose.ui.semantics.Role.Tab,
-        style = DesktopTheme.body, minHeight = 28.dp,
+        style = DesktopTheme.body, minHeight = 28.dp, chip = true,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
     )
 }

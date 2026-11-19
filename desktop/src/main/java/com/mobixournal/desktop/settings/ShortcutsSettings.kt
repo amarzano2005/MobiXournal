@@ -3,6 +3,7 @@ import com.mobixournal.desktop.tools.PillTextInset
 import com.mobixournal.desktop.ink.of
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -168,7 +169,7 @@ private fun ShortcutRow(
                 Spacer(Modifier.width(8.dp))
             }
             if (armed) {
-                Text("Press a key…", color = DesktopTheme.accent, style = DesktopTheme.label)
+                ShortcutKeyPrompt()
             } else {
                 val key = ShortcutTable.key(policy.shortcutTable, entry.id)
                 if (key.isEmpty()) {
@@ -181,14 +182,46 @@ private fun ShortcutRow(
     }
 }
 
-/** A key, drawn as the capsule the strips use for a slot's own words — the Ring page's row too. */
+/**
+ * A **key**, in the window's one chip: 24 dp, the 4 dp control corner and the picked slot's steel.
+ *
+ * It is a control rather than a capsule — the flat contract allows two corners and a capsule belongs to the
+ * tablet's toolbars — and the Ring page's row draws the same box, so a key looks like a key on both pages.
+ */
 @Composable
 internal fun ShortcutKeyChip(key: String) {
     Box(
         Modifier
-            .background(DesktopTheme.activeSlot, DesktopTheme.capsuleShape)
-            .padding(horizontal = PillTextInset, vertical = 4.dp),
+            .height(KEY_CHIP_HEIGHT)
+            .background(DesktopTheme.activeSlot, DesktopTheme.controlShape)
+            .padding(horizontal = PillTextInset),
+        contentAlignment = Alignment.Center,
     ) {
         Text(key, color = DesktopTheme.ink, style = DesktopTheme.numeric)
     }
 }
+
+/**
+ * The **armed** row's chip: the same box, rimmed in the accent while the window waits for a press.
+ *
+ * The waiting state used to be a bare word floating at the row's edge, which read as a status line rather
+ * than as the place the next key will land. A chip of the same measure, in the accent, is the control that
+ * is being filled — and it is the same box in the Shortcuts table and on the Ring page, because it is the
+ * same arm (`DesktopSettingsState.armedShortcut`).
+ */
+@Composable
+internal fun ShortcutKeyPrompt() {
+    Box(
+        Modifier
+            .height(KEY_CHIP_HEIGHT)
+            .background(DesktopTheme.accent.copy(alpha = 0.12f), DesktopTheme.controlShape)
+            .border(1.dp, DesktopTheme.accent, DesktopTheme.controlShape)
+            .padding(horizontal = PillTextInset),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("Press a key…", color = DesktopTheme.accent, style = DesktopTheme.label)
+    }
+}
+
+/** One key's own height, so the resting chip and the armed one cannot move the row by a border. */
+private val KEY_CHIP_HEIGHT = 24.dp

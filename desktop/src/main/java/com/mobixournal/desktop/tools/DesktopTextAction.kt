@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.tools
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -34,6 +35,11 @@ import com.mobixournal.desktop.settings.DesktopTheme
  * while picked — for a place that reads as a control rather than as navigation. It is opt-in because the
  * sidebar's tabs are ink-only by the contract, and a helpfully filled tab would be a second look for a
  * control the reader already knows.
+ *
+ * [chip] is the **choice** recipe — a preset's name in the Stylus strip: one 4 dp outline, the accent's rim
+ * and its 12 % wash while that chip is the answer in hand, and no underline, because a chip is a control
+ * rather than a link. It is the one place the ink-and-underline rule gives way, and it is opt-in so every
+ * other label stays a label (`docs/desktop-settings.md`).
  */
 @Composable
 internal fun DesktopTextAction(
@@ -49,6 +55,7 @@ internal fun DesktopTextAction(
     minHeight: androidx.compose.ui.unit.Dp = 40.dp,
     contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 12.dp),
     ghostFill: Boolean = false,
+    chip: Boolean = false,
 ) {
     val interactions = remember { MutableInteractionSource() }
     val hovered by interactions.collectIsHoveredAsState()
@@ -61,7 +68,7 @@ internal fun DesktopTextAction(
             tone == DesktopTheme.documentRed || tone == DesktopTheme.danger -> tone
             picked || focused -> DesktopTheme.accent
             hovered || pressed -> DesktopTheme.ink
-            else -> tone
+            else -> if (chip) DesktopTheme.ink else tone
         },
         style = style,
         maxLines = 1,
@@ -70,6 +77,13 @@ internal fun DesktopTextAction(
         modifier = modifier
             .background(
                 when {
+                    // A chip is a choice, not a slot: the accent's own wash while it is the answer in
+                    // hand, never the steel a picked tool wears — a filled preset reads as a button.
+                    chip -> when {
+                        picked -> DesktopTheme.accent.copy(alpha = CHIP_WASH_ALPHA)
+                        hovered || pressed -> DesktopTheme.hoverSlot
+                        else -> androidx.compose.ui.graphics.Color.Transparent
+                    }
                     !ghostFill -> androidx.compose.ui.graphics.Color.Transparent
                     pressed || picked -> DesktopTheme.activeSlot
                     hovered -> DesktopTheme.hoverSlot
@@ -77,8 +91,20 @@ internal fun DesktopTextAction(
                 },
                 DesktopTheme.controlShape,
             )
+            .then(
+                if (chip) {
+                    Modifier.border(
+                        1.dp,
+                        if (picked || (enabled && focused)) DesktopTheme.accent else DesktopTheme.hairline,
+                        DesktopTheme.controlShape,
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .drawBehind {
-                if (picked || (enabled && (focused || hovered || pressed))) {
+                // A chip draws its state as a rim, so the label's underline would be a second indicator.
+                if (!chip && (picked || (enabled && (focused || hovered || pressed)))) {
                     val stroke = (if (picked) 2.dp else 1.dp).toPx()
                     drawLine(if (picked || focused) DesktopTheme.accent else tone, Offset(8.dp.toPx(), size.height - stroke / 2),
                         Offset(size.width - 8.dp.toPx(), size.height - stroke / 2), stroke)
@@ -94,6 +120,9 @@ internal fun DesktopTextAction(
             .padding(contentPadding),
     )
 }
+
+/** How much of the accent a picked chip wears: a choice the eye finds on the panel's own tone. */
+private const val CHIP_WASH_ALPHA = 0.12f
 
 /** Compound text controls keep their gestures while sharing unfilled hover/press/focus/selection feedback. */
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
